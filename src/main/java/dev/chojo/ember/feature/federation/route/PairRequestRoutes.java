@@ -5,87 +5,99 @@
  */
 package dev.chojo.ember.feature.federation.route;
 
+import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Routes;
-import dev.chojo.ember.feature.federation.contract.FederationContractBinder;
-import dev.chojo.ember.feature.federation.contract.FederationEndpoint;
-import dev.chojo.ember.feature.federation.contract.FederationSurface;
 import dev.chojo.ember.feature.federation.entity.FederationContract;
 import dev.chojo.ember.feature.federation.entity.PairRequestStatus;
-import dev.chojo.ember.feature.federation.route.RemoteFederationRoutes.StatusResponse;
 import dev.chojo.ember.feature.federation.service.IncomingPairRequestService;
 import dev.chojo.ember.feature.federation.service.OutgoingPairRequestService;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
+import io.javalin.openapi.HttpMethod;
+import io.javalin.openapi.OpenApi;
+import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiRequestBody;
+import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
-import java.util.List;
 import java.util.UUID;
 
 /**
  * Requests to federate between stations of two instances that are not partners yet.
  *
- * <p>No partnership exists while these are exchanged, so none of them carries a partner session.
- * What stands in for one is a pair of signatures inside each body: the station's federation key and
- * the discovery key of its instance, which the receiving instance knows from discovery. All three
- * stay callable across contract versions, like the handshake, so that two instances can still tell
- * each other why they cannot pair.
+ * <p>They belong to discovery and sit beside its ping, not under {@code /remote}: no partnership
+ * exists while they are exchanged, and they are not part of the versioned federation contract, so a
+ * new kind of request never pauses partnerships that already stand. What stands in for a partner
+ * session is a pair of signatures inside each body: the station's federation key and the discovery
+ * key of its instance, which the receiving instance knows from discovery.
  */
 @Singleton
-public class RemotePairRequestRoutes implements Routes {
+public class PairRequestRoutes implements Routes {
 
-    public static final FederationEndpoint PAIR_REQUEST = FederationEndpoint.post(
-                    FederationSurface.CORE, "/remote/pair-request", PairRequestMessage.class, PairRequestReceipt.class)
-            .exempt();
-    public static final FederationEndpoint PAIR_REQUEST_STATUS = FederationEndpoint.post(
-                    FederationSurface.CORE,
-                    "/remote/pair-request/status",
-                    PairRequestStatusQuery.class,
-                    PairRequestAnswer.class)
-            .exempt();
-    public static final FederationEndpoint PAIR_REQUEST_ANSWER = FederationEndpoint.post(
-                    FederationSurface.CORE,
-                    "/remote/pair-request/answer",
-                    PairRequestAnswer.class,
-                    StatusResponse.class)
-            .exempt();
+    /** Where a station of another instance sends its request, below the API prefix. */
+    public static final String PAIR_REQUEST = "/public/discovery/pair-request";
 
-    public static final List<FederationEndpoint> CONTRACT =
-            List.of(PAIR_REQUEST, PAIR_REQUEST_STATUS, PAIR_REQUEST_ANSWER);
+    /** Where the asking instance asks about its request. */
+    public static final String PAIR_REQUEST_STATUS = "/public/discovery/pair-request/status";
+
+    /** Where the asked instance pushes its station's answer. */
+    public static final String PAIR_REQUEST_ANSWER = "/public/discovery/pair-request/answer";
 
     private final IncomingPairRequestService incoming;
     private final OutgoingPairRequestService outgoing;
 
     @Inject
-    public RemotePairRequestRoutes(IncomingPairRequestService incoming, OutgoingPairRequestService outgoing) {
+    public PairRequestRoutes(IncomingPairRequestService incoming, OutgoingPairRequestService outgoing) {
         this.incoming = incoming;
         this.outgoing = outgoing;
     }
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        FederationContractBinder.register(routes, prefix, CONTRACT, binder -> binder.handle(PAIR_REQUEST, this::receive)
-                .handle(PAIR_REQUEST_STATUS, this::status)
-                .handle(PAIR_REQUEST_ANSWER, this::answer));
+        routes.post(prefix + PAIR_REQUEST, this::receive);
+        routes.post(prefix + PAIR_REQUEST_STATUS, this::status);
+        routes.post(prefix + PAIR_REQUEST_ANSWER, this::answer);
     }
 
     /** A station of another instance asks a station here to federate. */
+    @OpenApi(
+            path = "/api/v1/public/discovery/pair-request",
+            methods = HttpMethod.POST,
+            summary = "Receive a signed request to federate from a station of another instance",
+            tags = {"Discovery"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = PairRequestMessage.class)),
+            responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = PairRequestReceipt.class)))
     private void receive(Context ctx) {
         ctx.status(HttpStatus.CREATED).json(incoming.receive(ctx.bodyAsClass(PairRequestMessage.class)));
     }
 
     /** The instance that sent a request asks where it stands. */
+    @OpenApi(
+            path = "/api/v1/public/discovery/pair-request/status",
+            methods = HttpMethod.POST,
+            summary = "Answer the asking instance where its request to federate stands",
+            tags = {"Discovery"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = PairRequestStatusQuery.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = PairRequestAnswer.class)))
     private void status(Context ctx) {
         ctx.json(incoming.status(ctx.bodyAsClass(PairRequestStatusQuery.class)));
     }
 
     /** The instance that was asked tells this one what its station answered. */
+    @OpenApi(
+            path = "/api/v1/public/discovery/pair-request/answer",
+            methods = HttpMethod.POST,
+            summary = "Receive the signed answer to a request to federate",
+            tags = {"Discovery"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = PairRequestAnswer.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MessageResponse.class)))
     private void answer(Context ctx) {
         outgoing.receiveAnswer(ctx.bodyAsClass(PairRequestAnswer.class));
-        ctx.json(new StatusResponse("ok"));
+        ctx.json(new MessageResponse("Answer taken"));
     }
 
     /**

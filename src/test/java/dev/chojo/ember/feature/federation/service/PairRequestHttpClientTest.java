@@ -8,9 +8,9 @@ package dev.chojo.ember.feature.federation.service;
 import com.sun.net.httpserver.HttpServer;
 import dev.chojo.ember.feature.federation.entity.FederationContract;
 import dev.chojo.ember.feature.federation.entity.PairRequestStatus;
-import dev.chojo.ember.feature.federation.route.RemotePairRequestRoutes.PairRequestAnswer;
-import dev.chojo.ember.feature.federation.route.RemotePairRequestRoutes.PairRequestMessage;
-import dev.chojo.ember.feature.federation.route.RemotePairRequestRoutes.PairRequestStatusQuery;
+import dev.chojo.ember.feature.federation.route.PairRequestRoutes.PairRequestAnswer;
+import dev.chojo.ember.feature.federation.route.PairRequestRoutes.PairRequestMessage;
+import dev.chojo.ember.feature.federation.route.PairRequestRoutes.PairRequestStatusQuery;
 import dev.chojo.ember.feature.federation.service.PairRequestHttpClient.Delivery;
 import dev.chojo.ember.util.TestRemoteUrlValidator;
 import org.junit.jupiter.api.AfterEach;
@@ -84,7 +84,7 @@ class PairRequestHttpClientTest {
 
     @Test
     void aTakenRequestNamesTheAskedStation() {
-        answers.put("/api/v1/remote/pair-request", new Answer(201, "{\"stationName\": \"Wache Süd\"}"));
+        answers.put("/api/v1/public/discovery/pair-request", new Answer(201, "{\"stationName\": \"Wache Süd\"}"));
 
         var delivery = client.send(baseUrl(), message());
 
@@ -94,7 +94,9 @@ class PairRequestHttpClientTest {
 
     @Test
     void aRefusalCarriesItsCode() {
-        answers.put("/api/v1/remote/pair-request", new Answer(409, "{\"error\": \"Conflict\", \"code\": \"X-065\"}"));
+        answers.put(
+                "/api/v1/public/discovery/pair-request",
+                new Answer(409, "{\"error\": \"Conflict\", \"code\": \"X-065\"}"));
 
         var delivery = assertInstanceOf(Delivery.Answered.class, client.send(baseUrl(), message()));
 
@@ -125,7 +127,7 @@ class PairRequestHttpClientTest {
         var query = new PairRequestStatusQuery(ASKING, ASKED, Instant.now(), "nonce", "station", "instance");
         assertTrue(client.askStatus(baseUrl(), query).isEmpty());
 
-        answers.put("/api/v1/remote/pair-request/status", new Answer(200, """
+        answers.put("/api/v1/public/discovery/pair-request/status", new Answer(200, """
                         {"requesterStationUid": "%s", "targetStationUid": "%s", "status": "DECLINED",
                          "stationName": "Wache Süd", "baseUrl": "https://sued.example",
                          "issuedAt": "2026-10-03T10:00:00Z", "nonce": "n", "instanceSignature": "s"}""".formatted(ASKING, ASKED)));
@@ -150,7 +152,7 @@ class PairRequestHttpClientTest {
                 "instance");
         assertFalse(client.deliverAnswer(baseUrl(), answer));
 
-        answers.put("/api/v1/remote/pair-request/answer", new Answer(200, "{\"status\": \"ok\"}"));
+        answers.put("/api/v1/public/discovery/pair-request/answer", new Answer(200, "{\"status\": \"ok\"}"));
 
         assertTrue(client.deliverAnswer(baseUrl(), answer));
     }

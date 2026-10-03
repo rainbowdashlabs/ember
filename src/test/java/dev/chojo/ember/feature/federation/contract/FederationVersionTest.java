@@ -61,9 +61,7 @@ class FederationVersionTest {
     /**
      * Only the endpoints a diverged partnership needs to recover may skip the version gate:
      * the handshake and ping that carry the vectors, and the host-change announcement without
-     * which a partner that moved and upgraded at once could never be reached again. Beside them
-     * the requests to federate, which come before any partnership and say for themselves when
-     * two instances cannot pair.
+     * which a partner that moved and upgraded at once could never be reached again.
      */
     @Test
     void onlyRecoveryEndpointsAreVersionExempt() {
@@ -71,15 +69,7 @@ class FederationVersionTest {
                 .filter(FederationEndpoint::versionExempt)
                 .map(FederationEndpoint::path)
                 .toList();
-        assertEquals(
-                List.of(
-                        "/remote/handshake",
-                        "/remote/announce",
-                        "/remote/federation/ping",
-                        "/remote/pair-request",
-                        "/remote/pair-request/status",
-                        "/remote/pair-request/answer"),
-                exempt);
+        assertEquals(List.of("/remote/handshake", "/remote/announce", "/remote/federation/ping"), exempt);
     }
 
     private static String resource(String name) throws IOException {

@@ -42660,6 +42660,126 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/public/discovery/pair-request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Receive a signed request to federate from a station of another instance */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["PairRequestMessage"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PairRequestReceipt"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/discovery/pair-request/answer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Receive the signed answer to a request to federate */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["PairRequestAnswer"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MessageResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/discovery/pair-request/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Answer the asking instance where its request to federate stands */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["PairRequestStatusQuery"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PairRequestAnswer"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/public/discovery/remote/{instance}/{stationUid}/logo": {
         parameters: {
             query?: never;
@@ -60768,6 +60888,39 @@ export interface components {
             left: string;
             right: string;
         };
+        PairRequestAnswer: {
+            baseUrl: string;
+            contract: components["schemas"]["FederationContract"] | null;
+            instanceSignature: string;
+            issuedAt: components["schemas"]["Instant"];
+            nonce: string;
+            publicKey: string | null;
+            /** Format: uuid */
+            requesterStationUid: string;
+            stationName: string;
+            stationSignature: string | null;
+            status: components["schemas"]["PairRequestStatus"];
+            /** Format: uuid */
+            targetStationUid: string;
+        };
+        PairRequestMessage: {
+            contract?: components["schemas"]["FederationContract"];
+            instanceSignature?: string;
+            issuedAt?: components["schemas"]["Instant"];
+            nonce?: string;
+            requesterBaseUrl?: string;
+            requesterInstanceKey?: string;
+            requesterPublicKey?: string;
+            requesterStationName?: string;
+            /** Format: uuid */
+            requesterStationUid?: string;
+            stationSignature?: string;
+            /** Format: uuid */
+            targetStationUid?: string;
+        };
+        PairRequestReceipt: {
+            stationName: string;
+        };
         PairRequestResponse: {
             createdAt: string;
             /** Format: int32 */
@@ -60776,6 +60929,16 @@ export interface components {
         };
         /** @enum {string} */
         PairRequestStatus: "PENDING" | "ACCEPTED" | "DECLINED";
+        PairRequestStatusQuery: {
+            instanceSignature?: string;
+            issuedAt?: components["schemas"]["Instant"];
+            nonce?: string;
+            /** Format: uuid */
+            requesterStationUid?: string;
+            stationSignature?: string;
+            /** Format: uuid */
+            targetStationUid?: string;
+        };
         ParseResult: {
             headers: string[];
             rows: string[][];
@@ -65825,8 +65988,12 @@ export type PageUsingForm = components['schemas']['PageUsingForm'];
 export type PageVisibility = components['schemas']['PageVisibility'];
 export type PageVisibilityRequest = components['schemas']['PageVisibilityRequest'];
 export type Pair = components['schemas']['Pair'];
+export type PairRequestAnswer = components['schemas']['PairRequestAnswer'];
+export type PairRequestMessage = components['schemas']['PairRequestMessage'];
+export type PairRequestReceipt = components['schemas']['PairRequestReceipt'];
 export type PairRequestResponse = components['schemas']['PairRequestResponse'];
 export type PairRequestStatus = components['schemas']['PairRequestStatus'];
+export type PairRequestStatusQuery = components['schemas']['PairRequestStatusQuery'];
 export type ParseResult = components['schemas']['ParseResult'];
 export type PartnerEventDetail = components['schemas']['PartnerEventDetail'];
 export type PartnerPlacesView = components['schemas']['PartnerPlacesView'];

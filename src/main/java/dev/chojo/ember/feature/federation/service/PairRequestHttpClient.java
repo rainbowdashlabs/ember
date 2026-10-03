@@ -5,12 +5,11 @@
  */
 package dev.chojo.ember.feature.federation.service;
 
-import dev.chojo.ember.feature.federation.contract.FederationEndpoint;
-import dev.chojo.ember.feature.federation.route.RemotePairRequestRoutes;
-import dev.chojo.ember.feature.federation.route.RemotePairRequestRoutes.PairRequestAnswer;
-import dev.chojo.ember.feature.federation.route.RemotePairRequestRoutes.PairRequestMessage;
-import dev.chojo.ember.feature.federation.route.RemotePairRequestRoutes.PairRequestReceipt;
-import dev.chojo.ember.feature.federation.route.RemotePairRequestRoutes.PairRequestStatusQuery;
+import dev.chojo.ember.feature.federation.route.PairRequestRoutes;
+import dev.chojo.ember.feature.federation.route.PairRequestRoutes.PairRequestAnswer;
+import dev.chojo.ember.feature.federation.route.PairRequestRoutes.PairRequestMessage;
+import dev.chojo.ember.feature.federation.route.PairRequestRoutes.PairRequestReceipt;
+import dev.chojo.ember.feature.federation.route.PairRequestRoutes.PairRequestStatusQuery;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -55,7 +54,7 @@ public class PairRequestHttpClient {
      * @return how the call ended
      */
     public Delivery send(String baseUrl, PairRequestMessage message) {
-        var exchange = post(baseUrl, RemotePairRequestRoutes.PAIR_REQUEST, message);
+        var exchange = post(baseUrl, PairRequestRoutes.PAIR_REQUEST, message);
         if (!(exchange instanceof Delivery.Answered answered) || !answered.successful()) return exchange;
         try {
             var receipt = mapper.readValue(answered.body(), PairRequestReceipt.class);
@@ -74,7 +73,7 @@ public class PairRequestHttpClient {
      * @return the answer, or empty where none could be had
      */
     public Optional<PairRequestAnswer> askStatus(String baseUrl, PairRequestStatusQuery query) {
-        if (!(post(baseUrl, RemotePairRequestRoutes.PAIR_REQUEST_STATUS, query) instanceof Delivery.Answered answered)
+        if (!(post(baseUrl, PairRequestRoutes.PAIR_REQUEST_STATUS, query) instanceof Delivery.Answered answered)
                 || !answered.successful()) {
             return Optional.empty();
         }
@@ -94,12 +93,12 @@ public class PairRequestHttpClient {
      * @return true when that instance took it
      */
     public boolean deliverAnswer(String baseUrl, PairRequestAnswer answer) {
-        return post(baseUrl, RemotePairRequestRoutes.PAIR_REQUEST_ANSWER, answer) instanceof Delivery.Answered answered
+        return post(baseUrl, PairRequestRoutes.PAIR_REQUEST_ANSWER, answer) instanceof Delivery.Answered answered
                 && answered.successful();
     }
 
-    private Delivery post(String baseUrl, FederationEndpoint endpoint, Object body) {
-        String url = OutboundHttp.join(baseUrl, "/api/v1" + endpoint.path());
+    private Delivery post(String baseUrl, String path, Object body) {
+        String url = OutboundHttp.join(baseUrl, "/api/v1" + path);
         try {
             var request = HttpRequest.newBuilder()
                     .uri(URI.create(url))

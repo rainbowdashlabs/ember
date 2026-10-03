@@ -32539,6 +32539,87 @@
         }
       }
     },
+    "/api/v1/public/discovery/pair-request" : {
+      "post" : {
+        "summary" : "Receive a signed request to federate from a station of another instance",
+        "tags" : [ "Discovery" ],
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PairRequestReceipt"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PairRequestMessage"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/public/discovery/pair-request/answer" : {
+      "post" : {
+        "summary" : "Receive the signed answer to a request to federate",
+        "tags" : [ "Discovery" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PairRequestAnswer"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/public/discovery/pair-request/status" : {
+      "post" : {
+        "summary" : "Answer the asking instance where its request to federate stands",
+        "tags" : [ "Discovery" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PairRequestAnswer"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PairRequestStatusQuery"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/public/discovery/remote/{instance}/{stationUid}/logo" : {
       "get" : {
         "summary" : "Get the copy of the logo of a station of another instance",
@@ -59121,6 +59202,100 @@
         },
         "required" : [ "left", "right" ]
       },
+      "PairRequestAnswer" : {
+        "type" : "object",
+        "properties" : {
+          "requesterStationUid" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "targetStationUid" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "status" : {
+            "$ref" : "#/components/schemas/PairRequestStatus"
+          },
+          "stationName" : {
+            "type" : "string"
+          },
+          "baseUrl" : {
+            "type" : "string"
+          },
+          "publicKey" : {
+            "type" : [ "string", "null" ]
+          },
+          "contract" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/FederationContract"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "issuedAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "nonce" : {
+            "type" : "string"
+          },
+          "stationSignature" : {
+            "type" : [ "string", "null" ]
+          },
+          "instanceSignature" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "requesterStationUid", "targetStationUid", "status", "stationName", "baseUrl", "publicKey", "contract", "issuedAt", "nonce", "stationSignature", "instanceSignature" ]
+      },
+      "PairRequestMessage" : {
+        "type" : "object",
+        "properties" : {
+          "requesterStationUid" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "requesterStationName" : {
+            "type" : "string"
+          },
+          "requesterPublicKey" : {
+            "type" : "string"
+          },
+          "requesterBaseUrl" : {
+            "type" : "string"
+          },
+          "requesterInstanceKey" : {
+            "type" : "string"
+          },
+          "targetStationUid" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "contract" : {
+            "$ref" : "#/components/schemas/FederationContract"
+          },
+          "issuedAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "nonce" : {
+            "type" : "string"
+          },
+          "stationSignature" : {
+            "type" : "string"
+          },
+          "instanceSignature" : {
+            "type" : "string"
+          }
+        }
+      },
+      "PairRequestReceipt" : {
+        "type" : "object",
+        "properties" : {
+          "stationName" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "stationName" ]
+      },
       "PairRequestResponse" : {
         "type" : "object",
         "properties" : {
@@ -59140,6 +59315,31 @@
       "PairRequestStatus" : {
         "type" : "string",
         "enum" : [ "PENDING", "ACCEPTED", "DECLINED" ]
+      },
+      "PairRequestStatusQuery" : {
+        "type" : "object",
+        "properties" : {
+          "requesterStationUid" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "targetStationUid" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "issuedAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "nonce" : {
+            "type" : "string"
+          },
+          "stationSignature" : {
+            "type" : "string"
+          },
+          "instanceSignature" : {
+            "type" : "string"
+          }
+        }
       },
       "ParseResult" : {
         "type" : "object",

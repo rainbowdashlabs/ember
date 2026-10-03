@@ -19,7 +19,7 @@ import dev.chojo.ember.feature.federation.entity.PairRequestDirection;
 import dev.chojo.ember.feature.federation.entity.PairRequestStatus;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.repository.PairRequestRepository;
-import dev.chojo.ember.feature.federation.route.RemotePairRequestRoutes.PairRequestAnswer;
+import dev.chojo.ember.feature.federation.route.PairRequestRoutes.PairRequestAnswer;
 import dev.chojo.ember.feature.federation.service.PairRequestHttpClient.Delivery;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.lifecycle.Schedule;
