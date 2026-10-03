@@ -19,7 +19,7 @@ version `main` carries and ship with the next fix release.
 
 Pull requests are labelled automatically: by the branch they come from (`t:feature`, `t:fix`,
 `t:deps`, `t:release`, `t:chore`, `t:other`) and by what they change (`a:backend`, `a:frontend`,
-`a:database`, `a:api`, `a:i18n`, `a:tests`, `a:e2e`, `a:docs`, `ci`). The rules are in
+`a:database`, `a:api`, `a:i18n`, `a:helpcenter`, `a:tests`, `a:e2e`, `a:docs`, `ci`). The rules are in
 `.github/labeler.yml`.
 
 ## Versions

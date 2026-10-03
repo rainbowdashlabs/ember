@@ -44,6 +44,18 @@
       - any-glob-to-any-file:
           - "frontend/src/i18n/**"
           - "src/main/resources/i18n/**"
+"a:helpcenter":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "frontend/src/views/helpcenter/**"
+          - "frontend/src/pages/helpcenter/**"
+          - "frontend/src/components/helpcenter/**"
+          - "frontend/src/components/help/**"
+          - "frontend/src/layouts/helpcenter-*.vue"
+          - "frontend/src/i18n/de-DE.helpcenter.ts"
+          - "frontend/src/composables/helpPages.generated.ts"
+          - "frontend/src/composables/useHelp*.ts"
+          - "frontend/src/composables/useHelpcenter*.ts"
 "a:tests":
   - changed-files:
       - any-glob-to-any-file:
