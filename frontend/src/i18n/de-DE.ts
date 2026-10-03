@@ -2652,7 +2652,7 @@ export default {
             RIGHT: 'Rechts',
         },
         pageTitle: 'Seite',
-        pageHint: 'Das Papier ist A4. Kopf- und Fußzeile stehen im oberen und unteren Rand.',
+        pageHint: 'Das Papier ist A4. Der Rand oben reicht bis zur Kopfzeile, der Rand unten bis zur Fußzeile. Der Text beginnt mit etwas Abstand unter der Kopfzeile und endet mit etwas Abstand über der Fußzeile.',
         marginTop: 'Rand oben (mm)',
         marginBottom: 'Rand unten (mm)',
         marginLeft: 'Rand links (mm)',

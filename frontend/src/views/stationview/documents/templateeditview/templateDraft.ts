@@ -50,10 +50,10 @@ export interface TemplateDraft {
     formBindings: FormBinding[]
 }
 
-/** The page a new template starts with: A4 with room for the letterhead, 10 point text. */
+/** The page a new template starts with: A4 with the letterhead and footer near the paper's edges, 10 point text. */
 export const DEFAULT_PAGE: LetterPage = {
-    marginTopMm: 40,
-    marginBottomMm: 30,
+    marginTopMm: 15,
+    marginBottomMm: 12,
     marginLeftMm: 20,
     marginRightMm: 20,
     fontSizePt: 10,

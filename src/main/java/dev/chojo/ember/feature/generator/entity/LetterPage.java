@@ -14,12 +14,14 @@ import java.util.stream.Stream;
 /**
  * The page a letter is set on. The paper is always A4.
  *
- * <p>The header and the footer are drawn inside the top and bottom margins, so those two have to
- * leave room for them. The body, the header and the footer each print in the default font, Liberation
- * Sans, or in a family of uploaded fonts the station reaches.
+ * <p>The top margin reaches from the paper's edge to the header and the bottom margin from the footer to
+ * the paper's edge. The body starts a fixed gap below the header and ends the same gap above the footer,
+ * however tall the two are, so neither leaves the paper nor runs into the text. The body, the header and
+ * the footer each print in the default font, Liberation Sans, or in a family of uploaded fonts the
+ * station reaches.
  *
- * @param marginTopMm    the top margin in millimetres, which holds the header
- * @param marginBottomMm the bottom margin in millimetres, which holds the footer
+ * @param marginTopMm    the distance from the paper's top edge to the header, in millimetres
+ * @param marginBottomMm the distance from the footer to the paper's bottom edge, in millimetres
  * @param marginLeftMm   the left margin in millimetres
  * @param marginRightMm  the right margin in millimetres
  * @param fontSizePt     the size of the body text in points
@@ -49,7 +51,7 @@ public record LetterPage(
     /** The largest body text, in points. */
     public static final int MAX_FONT_SIZE_PT = 16;
 
-    private static final LetterPage DEFAULT = new LetterPage(40, 30, 20, 20, 10, null, null, null);
+    private static final LetterPage DEFAULT = new LetterPage(15, 12, 20, 20, 10, null, null, null);
 
     /** The page a new template starts with. */
     public static LetterPage defaults() {

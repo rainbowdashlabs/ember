@@ -1841,8 +1841,11 @@ volumes:
                 + 'ziehst du am Rand oder gibst sie im Menü ein. Über „Linien zwischen den Spalten" im Menü einer '
                 + 'Zeile steht zwischen ihren Spalten je eine senkrechte Linie. Kopf- und Fußzeile zeigen sich, wie '
                 + 'sie gedruckt werden, und öffnen sich zum Bearbeiten per Klick.',
-            pageText: 'Unter Seite stellst du die Ränder und die Schriftgröße ein. Kopf- und Fußzeile stehen im '
-                + 'oberen und unteren Rand, lass dort also genug Platz. Dort wählst du auch die Schriften für Text, '
+            pageText: 'Unter Seite stellst du die Ränder und die Schriftgröße ein. Der Rand oben ist der Abstand '
+                + 'vom Papierrand bis zur Kopfzeile, der Rand unten der Abstand von der Fußzeile bis zum Papierrand. '
+                + 'Der Text rückt so weit nach innen, wie Kopf- und Fußzeile hoch sind, mit einem festen Abstand '
+                + 'von 8 mm dazwischen. So bleibt auch eine hohe Kopf- oder Fußzeile ganz auf dem Blatt. Dort '
+                + 'wählst du auch die Schriften für Text, '
                 + 'Kopf- und Fußzeile. Die Auswahl zeigt jede Schrift mit ihrer Herkunft und einer Zeile Beispieltext. '
                 + 'Text, Kopf- und Fußzeile erscheinen im Editor in der gewählten Schrift.',
             bodyTitle: 'Text, Platzhalter und Sichtbarkeit',

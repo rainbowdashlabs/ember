@@ -191,8 +191,27 @@ public final class TestPdfs {
      * @return its first page drawn at {@link #SCALE} pixels per point
      */
     public static BufferedImage picture(byte[] pdf) throws IOException {
+        return picture(pdf, 1);
+    }
+
+    /**
+     * @param pdf  the file
+     * @param page the page, counted from one
+     * @return that page drawn at {@link #SCALE} pixels per point
+     */
+    public static BufferedImage picture(byte[] pdf, int page) throws IOException {
         try (var document = Loader.loadPDF(pdf)) {
-            return new PDFRenderer(document).renderImage(0, SCALE);
+            return new PDFRenderer(document).renderImage(page - 1, SCALE);
+        }
+    }
+
+    /**
+     * @param pdf the file
+     * @return how many pages it has
+     */
+    public static int pages(byte[] pdf) throws IOException {
+        try (var document = Loader.loadPDF(pdf)) {
+            return document.getNumberOfPages();
         }
     }
 

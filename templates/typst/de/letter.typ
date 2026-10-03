@@ -131,21 +131,34 @@
   title: data.title,
   date: datetime(year: data.date.year, month: data.date.month, day: data.date.day),
 )
-#set page(
-  paper: "a4",
-  margin: (
-    top: data.page.marginTopMm * 1mm,
-    bottom: data.page.marginBottomMm * 1mm,
-    left: data.page.marginLeftMm * 1mm,
-    right: data.page.marginRightMm * 1mm,
-  ),
-  header: letterhead(data.header, 8.5pt, data.fonts.header),
-  header-ascent: 12%,
-  footer: letterhead(data.footer, 7.5pt, data.fonts.footer),
-  footer-descent: 12%,
-)
+#let edge-gap = 8mm
+#let left = data.page.marginLeftMm * 1mm
+#let right = data.page.marginRightMm * 1mm
+#let header = letterhead(data.header, 8.5pt, data.fonts.header)
+#let footer = letterhead(data.footer, 7.5pt, data.fonts.footer)
+
+#let reach(edge, width) = if edge == none { 0pt } else {
+  measure(block(width: width, edge)).height + edge-gap
+}
+
+#set page(paper: "a4", margin: (left: left, right: right))
 #set text(font: data.fonts.body, size: data.page.fontSizePt * 1pt, lang: "de")
 #set par(justify: false, leading: 0.65em)
 #show link: set text(fill: rgb("#c71100"))
 
-#rows(data.body, 9cm, 1em)
+#context {
+  let width = page.width - left - right
+  set page(
+    margin: (
+      top: data.page.marginTopMm * 1mm + reach(header, width),
+      bottom: data.page.marginBottomMm * 1mm + reach(footer, width),
+      left: left,
+      right: right,
+    ),
+    header: header,
+    header-ascent: edge-gap,
+    footer: footer,
+    footer-descent: edge-gap,
+  )
+  rows(data.body, 9cm, 1em)
+}
