@@ -59101,6 +59101,7 @@ export interface components {
             label?: string;
         };
         DocumentFontsResponse: {
+            defaultFamily: string;
             own: components["schemas"]["DocumentFontView"][];
             reachable: components["schemas"]["FontFamilyOption"][];
         };

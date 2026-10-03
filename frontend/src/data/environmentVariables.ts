@@ -107,6 +107,12 @@ export const ENVIRONMENT_GROUPS: readonly EnvironmentGroup[] = [
         prefixes: ['updates', 'changelog', 'attendance', 'knowledgeBase', 'logging'],
     },
     {title: 'helpCenter.basics.configuration.envGroupMailImport', defaultOpen: false, prefixes: ['mailImport']},
+    {
+        title: 'helpCenter.basics.configuration.envGroupDocuments',
+        note: 'helpCenter.basics.configuration.envGroupDocumentsNote',
+        defaultOpen: false,
+        prefixes: ['documents'],
+    },
     {title: 'helpCenter.basics.configuration.envGroupFederation', defaultOpen: true, prefixes: ['federation']},
     {title: 'helpCenter.basics.configuration.envGroupTheming', defaultOpen: false, prefixes: ['theming']},
     {

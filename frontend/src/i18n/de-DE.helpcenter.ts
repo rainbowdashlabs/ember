@@ -733,6 +733,8 @@ volumes:
                 envGroupMetricsNote: 'Wie lange Statistik-Daten gespeichert werden. Kürzer = weniger Speicher, weniger Auswertungs-Historie.',
                 envGroupOperations: 'Betrieb & Aufbewahrung (Backend)',
                 envGroupMailImport: 'Dokumente aus Postfächern (Backend)',
+                envGroupDocuments: 'Erstellte Dokumente (Backend)',
+                envGroupDocumentsNote: 'Die Standardschrift erstellter Dokumente. Ohne sie druckt Ember in Liberation Sans.',
                 envGroupFederation: 'Föderation (Backend)',
                 envGroupTheming: 'Design (Backend)',
                 envGroupTools: 'Externe Programme (Backend)',
@@ -962,6 +964,9 @@ volumes:
                         maxAttachmentsPerCycle: 'Wie viele Anhänge ein Abruf eines Postfachs höchstens ablegt. Der Rest folgt beim nächsten Abruf.',
                         timeoutSeconds: 'Wie viele Sekunden auf einen Mailserver gewartet wird, bevor Ember aufgibt.',
                         logRetentionDays: 'Wie viele Tage das Protokoll des Imports aufbewahrt wird.',
+                    },
+                    documents: {
+                        defaultFontDir: 'Verzeichnis, aus dem Ember beim Start die Standardschrift für erstellte Dokumente liest. Ember nimmt die Schriftfamilie, deren normalen Schnitt es dort findet, und druckt darin jeden Text, für den eine Vorlage keine Schrift wählt. Ist das Verzeichnis leer oder fehlt es, druckt Ember in Liberation Sans.',
                     },
                 },
                 variables: {

@@ -49969,9 +49969,12 @@
             "items" : {
               "$ref" : "#/components/schemas/FontFamilyOption"
             }
+          },
+          "defaultFamily" : {
+            "type" : "string"
           }
         },
-        "required" : [ "own", "reachable" ]
+        "required" : [ "own", "reachable", "defaultFamily" ]
       },
       "DocumentLanguage" : {
         "type" : "string",

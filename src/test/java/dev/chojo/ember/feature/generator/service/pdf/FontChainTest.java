@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.generator.service.pdf;
 
+import dev.chojo.ember.feature.generator.service.font.DefaultFont;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
@@ -30,7 +31,7 @@ class FontChainTest {
     void aGlyphTheChosenFontLacksFallsBackForThatRunOnly() throws IOException {
         try (var document = new PDDocument()) {
             var chosen = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
-            var fallback = new StampFonts().liberationSans(document);
+            var fallback = new StampFonts(DefaultFont.absent()).liberationSans(document);
             var chain = new FontChain(List.of(chosen, fallback));
 
             var shaped = chain.shape("Łukasz Weiß");
@@ -48,7 +49,7 @@ class FontChainTest {
     @Test
     void whatNoFontHasIsLeftOutAndNamedButControlCharactersAreNot() throws IOException {
         try (var document = new PDDocument()) {
-            var chain = new StampFonts().chainFor(document);
+            var chain = new StampFonts(DefaultFont.absent()).chainFor(document);
 
             var shaped = chain.shape("A漢\tB😀");
 

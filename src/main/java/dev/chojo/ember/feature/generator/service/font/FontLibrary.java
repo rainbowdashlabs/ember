@@ -35,18 +35,29 @@ import java.util.Optional;
  *
  * <p>An association keeps its fonts in its home station, the way it keeps its other files there; the
  * instance keeps them in its own storage.
+ *
+ * <p>A text that names no family, or one no longer reached, prints in the {@link DefaultFont}, which
+ * every owner reaches alike and none keeps.
  */
 @Singleton
 public class FontLibrary {
     private final DocumentFontRepository fonts;
     private final OwnerStores stores;
     private final StorageService storage;
+    private final DefaultFont defaultFont;
 
     @Inject
-    public FontLibrary(DocumentFontRepository fonts, OwnerStores stores, StorageService storage) {
+    public FontLibrary(
+            DocumentFontRepository fonts, OwnerStores stores, StorageService storage, DefaultFont defaultFont) {
         this.fonts = fonts;
         this.stores = stores;
         this.storage = storage;
+        this.defaultFont = defaultFont;
+    }
+
+    /** @return the font a text naming no family prints in */
+    public DefaultFont defaultFont() {
+        return defaultFont;
     }
 
     /**

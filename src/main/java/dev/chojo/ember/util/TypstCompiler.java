@@ -7,6 +7,7 @@ package dev.chojo.ember.util;
 
 import org.jspecify.annotations.Nullable;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -16,6 +17,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 public final class TypstCompiler {
     private static final String TYPST_BIN = System.getenv().getOrDefault("TYPST_BIN", "typst");
@@ -106,6 +108,24 @@ public final class TypstCompiler {
             Output output,
             Map<String, byte[]> fonts)
             throws IOException, InterruptedException {
+        return compileTemplate(data, templateName, logo, resources, files, output, fonts, List.of());
+    }
+
+    /**
+     * The same, additionally searching the given directories for fonts, after the files handed over and
+     * before the system's fonts. They are read where they are, which suits fonts every document of the
+     * instance may print in better than writing them out for each one.
+     */
+    public static byte[] compileTemplate(
+            Map<String, Object> data,
+            String templateName,
+            @Nullable StationLogo logo,
+            Map<String, String> resources,
+            Map<String, byte[]> files,
+            Output output,
+            Map<String, byte[]> fonts,
+            List<Path> fontDirectories)
+            throws IOException, InterruptedException {
         Path tempDir = Files.createTempDirectory("typst-template-");
         try {
             Path templateSource = Path.of("templates", "typst", templateName);
@@ -129,10 +149,13 @@ public final class TypstCompiler {
                 Files.write(templateDir.resolve(entry.getKey()), entry.getValue());
             }
             Files.copy(templateSource, templateFile);
+            var fontPath = new ArrayList<Path>();
             Path fontDir = writeFonts(tempDir, fonts);
+            if (fontDir != null) fontPath.add(fontDir);
+            fontDirectories.forEach(directory -> fontPath.add(directory.toAbsolutePath()));
 
             Path outputFile = tempDir.resolve("output.pdf");
-            return runTypst(tempDir, templateFile, outputFile, output, fontDir);
+            return runTypst(tempDir, templateFile, outputFile, output, fontPath);
         } finally {
             cleanup(tempDir);
         }
@@ -165,14 +188,17 @@ public final class TypstCompiler {
 
     private static byte[] runTypst(Path workDir, Path inputFile, Path outputFile)
             throws IOException, InterruptedException {
-        return runTypst(workDir, inputFile, outputFile, Output.PDF, null);
+        return runTypst(workDir, inputFile, outputFile, Output.PDF, List.of());
     }
 
-    private static byte[] runTypst(Path workDir, Path inputFile, Path outputFile, Output output, @Nullable Path fontDir)
+    private static byte[] runTypst(Path workDir, Path inputFile, Path outputFile, Output output, List<Path> fontPath)
             throws IOException, InterruptedException {
         var command = new ArrayList<>(List.of(TYPST_BIN, "compile"));
         if (output == Output.PDF_A_3B) command.addAll(List.of("--pdf-standard", "a-3b"));
-        if (fontDir != null) command.addAll(List.of("--font-path", fontDir.toString()));
+        if (!fontPath.isEmpty()) {
+            String joined = fontPath.stream().map(Path::toString).collect(Collectors.joining(File.pathSeparator));
+            command.addAll(List.of("--font-path", joined));
+        }
         command.addAll(List.of(inputFile.toString(), outputFile.toString()));
         var process = new ProcessBuilder(command)
                 .directory(workDir.toFile())

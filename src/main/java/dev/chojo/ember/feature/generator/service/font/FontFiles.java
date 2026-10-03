@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.generator.service.font;
 import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.generator.entity.FontOutline;
+import dev.chojo.ember.feature.generator.entity.FontStyle;
 import org.apache.fontbox.ttf.NameRecord;
 import org.apache.fontbox.ttf.OS2WindowsMetricsTable;
 import org.apache.fontbox.ttf.OTFParser;
@@ -46,14 +47,21 @@ public final class FontFiles {
 
     private FontFiles() {}
 
+    /** The bit of {@code fsSelection} that marks an italic style. */
+    private static final int SELECTION_ITALIC = 0x0001;
+
+    /** The bit of {@code fsSelection} that marks a bold style. */
+    private static final int SELECTION_BOLD = 0x0020;
+
     /**
      * What a font file is.
      *
      * @param outline        how its glyphs are drawn
      * @param internalFamily the family name it carries itself
      * @param subsettable    whether its licence lets a document embed only the glyphs it uses
+     * @param style          the style of its family it says it is
      */
-    public record Inspection(FontOutline outline, String internalFamily, boolean subsettable) {}
+    public record Inspection(FontOutline outline, String internalFamily, boolean subsettable, FontStyle style) {}
 
     /**
      * Reads a font file.
@@ -69,16 +77,17 @@ public final class FontFiles {
         if (read == null) throw DocumentRefusal.DOCUMENT_FONT_NOT_A_FONT.raise();
         if (!embeddable(read.fsType())) throw DocumentRefusal.DOCUMENT_FONT_EMBEDDING_FORBIDDEN.raise();
         boolean subsettable = (read.fsType() & OS2WindowsMetricsTable.FSTYPE_NO_SUBSETTING) == 0;
-        return new Inspection(outline, read.family(), subsettable);
+        return new Inspection(outline, read.family(), subsettable, styleOf(read.fsSelection()));
     }
 
     /**
      * What the parser found in a file.
      *
-     * @param fsType the licence bits of its OS/2 table
-     * @param family the family name it carries
+     * @param fsType      the licence bits of its OS/2 table
+     * @param fsSelection the style bits of its OS/2 table
+     * @param family      the family name it carries
      */
-    private record Read(int fsType, String family) {}
+    private record Read(int fsType, int fsSelection, String family) {}
 
     /**
      * Parses a file in full. The bytes come from whoever uploaded them, so any failure of the parser,
@@ -91,7 +100,7 @@ public final class FontFiles {
             var os2 = font.getOS2Windows();
             String family = familyOf(font);
             if (os2 == null || family == null || font.getNumberOfGlyphs() == 0) return null;
-            return new Read(os2.getFsType(), family);
+            return new Read(os2.getFsType(), os2.getFsSelection(), family);
         } catch (IOException | RuntimeException unreadable) {
             return null;
         }
@@ -121,6 +130,13 @@ public final class FontFiles {
     static boolean embeddable(int fsType) {
         if ((fsType & USAGE_PERMISSIONS) == OS2WindowsMetricsTable.FSTYPE_RESTRICTED) return false;
         return (fsType & OS2WindowsMetricsTable.FSTYPE_BITMAP_ONLY) == 0;
+    }
+
+    private static FontStyle styleOf(int fsSelection) {
+        boolean bold = (fsSelection & SELECTION_BOLD) != 0;
+        boolean italic = (fsSelection & SELECTION_ITALIC) != 0;
+        if (bold) return italic ? FontStyle.BOLD_ITALIC : FontStyle.BOLD;
+        return italic ? FontStyle.ITALIC : FontStyle.REGULAR;
     }
 
     private static FontOutline outlineOf(byte[] data) {

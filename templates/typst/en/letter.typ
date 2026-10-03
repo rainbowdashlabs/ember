@@ -10,11 +10,18 @@
   }
 }
 
+#let upright-families = data.at("uprightFamilies", default: ()).map(lower)
+
+#let italic-fallback(body) = context {
+  set text(font: text.font.filter(family => lower(family) not in upright-families))
+  body
+}
+
 #let caption(body) = block(
   width: 100%,
   above: 0.5em,
   below: 1.2em,
-  text(size: 8.5pt, fill: luma(90), style: "italic", body),
+  italic-fallback(text(size: 8.5pt, fill: luma(90), style: "italic", body)),
 )
 
 #let fit(it, max-height) = layout(region => {
@@ -110,6 +117,8 @@
   set par(leading: 0.45em, spacing: 0.6em)
   rows(list, 18mm, 0.4em)
 }
+
+#show emph: italic-fallback
 
 #set document(
   title: data.title,
