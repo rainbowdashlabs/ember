@@ -57,7 +57,7 @@ export function usePublicKbItems(sources: PublicKbSources) {
         return {
             key: 'folder-' + folder.id,
             icon: ['fas', 'folder'],
-            iconClass: 'text-[var(--accent)]',
+            iconClass: 'text-[var(--color-primary-accent)]',
             imageUrl: folder.iconUrl
                 ? publicKb.folderIconUrl(sources.stationUid.value, folder.id)
                 : undefined,
@@ -82,7 +82,7 @@ export function usePublicKbItems(sources: PublicKbSources) {
         return {
             key: 'file-' + file.id,
             icon: fileIcon(file),
-            iconClass: 'text-[var(--primary)]',
+            iconClass: 'text-[var(--color-primary)]',
             picture: PICTURED_TYPES.has(file.fileType)
                 ? publicKb.filePictureUrl(sources.stationUid.value, file.id)
                 : undefined,

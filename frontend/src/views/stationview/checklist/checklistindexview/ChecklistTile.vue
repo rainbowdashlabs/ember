@@ -31,7 +31,7 @@ const checklistPage = computed(() => ({name: 'checklist-detail', params: {id: pr
 
 <template>
   <RowLink :to="checklistPage">
-    <NeutralContainer class="h-full flex flex-col cursor-pointer hover:border-[var(--accent)] transition-colors">
+    <NeutralContainer class="h-full flex flex-col cursor-pointer hover:border-[var(--color-primary)] transition-colors">
       <div class="flex items-start gap-2 mb-2">
         <font-awesome-icon :icon="['fas', 'list-check']" class="mt-1 text-(--text-muted) shrink-0"/>
         <SubHeader class="flex-1 min-w-0 truncate">{{ item.name }}</SubHeader>

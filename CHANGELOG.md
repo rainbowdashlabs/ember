@@ -1,5 +1,13 @@
 # Changelog
 
+## v26.21.0
+
+Theme colours show where they were missing.
+
+### Fixes
+
+- **Some theme colours were missing.** On many pages, highlights, links, backgrounds under the mouse pointer, progress bars, error messages and success marks were shown without their colour. They now show in the theme colours.
+
 ## v26.20.3
 
 Protocols keep their place while they are being edited, and their sections and points can be sorted.

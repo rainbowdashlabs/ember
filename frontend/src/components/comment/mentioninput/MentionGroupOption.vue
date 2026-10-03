@@ -4,19 +4,22 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import type {MemberGroup} from '@/api/generated/schema'
 
-defineProps<{
+const props = defineProps<{
   data: MemberGroup
 }>()
 
 const {t} = useI18n()
+
+const tint = computed(() => props.data.color ?? 'var(--color-secondary)')
 </script>
 
 <template>
   <div class="h-6 w-6 shrink-0 rounded-full flex items-center justify-center"
-       :style="{ backgroundColor: (data.color ?? 'var(--secondary)') + '20', color: data.color ?? 'var(--secondary)' }">
+       :style="{ backgroundColor: `color-mix(in srgb, ${tint} 12.5%, transparent)`, color: tint }">
     <font-awesome-icon :icon="['fas', 'layer-group']" class="h-3 w-3" />
   </div>
   <span class="font-medium truncate">{{ data.name }}</span>

@@ -128,21 +128,21 @@ function confirm() {
         <FieldLabel>{{ t('inventory.check.exchangeReason') }}</FieldLabel>
         <ButtonRow>
           <SecondaryButton
-              :class="{'ring-2 ring-(--accent)': reasonKind === 'tooSmall'}"
+              :class="{'ring-2 ring-(--color-primary)': reasonKind === 'tooSmall'}"
               data-testid="rapid-exchange-reason-too-small"
               @click="chooseReason('tooSmall')"
           >
             {{ t('inventory.check.exchangeReasonTooSmall') }}
           </SecondaryButton>
           <SecondaryButton
-              :class="{'ring-2 ring-(--accent)': reasonKind === 'damaged'}"
+              :class="{'ring-2 ring-(--color-primary)': reasonKind === 'damaged'}"
               data-testid="rapid-exchange-reason-damaged"
               @click="chooseReason('damaged')"
           >
             {{ t('inventory.check.exchangeReasonDamaged') }}
           </SecondaryButton>
           <SecondaryButton
-              :class="{'ring-2 ring-(--accent)': reasonKind === 'other'}"
+              :class="{'ring-2 ring-(--color-primary)': reasonKind === 'other'}"
               data-testid="rapid-exchange-reason-other"
               @click="chooseReason('other')"
           >

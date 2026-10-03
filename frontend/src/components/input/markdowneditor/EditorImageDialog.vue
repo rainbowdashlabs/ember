@@ -36,7 +36,7 @@ const urlId = useId()
   >
     <div class="flex items-center justify-between">
       <div class="flex items-center gap-2">
-        <font-awesome-icon :icon="['fas', 'image']" class="text-[var(--primary)] w-3.5 h-3.5" />
+        <font-awesome-icon :icon="['fas', 'image']" class="text-[var(--color-primary)] w-3.5 h-3.5" />
         <span class="text-sm font-medium">{{ t('markdownEditor.insertImage') }}</span>
       </div>
       <MutedIconButton :icon="['fas', 'xmark']" :label="t('common.close')" hover="text" @click="$emit('cancel')"/>

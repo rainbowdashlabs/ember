@@ -54,7 +54,7 @@ function totalFor(row: PageLeaderboardEntry): number {
         <td class="py-2 pr-3 text-right font-mono">{{ n(row.botHits) }}</td>
         <td class="py-2 pr-3 text-right">
           <SecondaryButton
-              :class="selectedPageId === row.pageId ? 'ring-2 ring-(--accent)' : ''"
+              :class="selectedPageId === row.pageId ? 'ring-2 ring-(--color-primary)' : ''"
               @click="emit('select', row.pageId)">
             {{ t('insights.table.details') }}
           </SecondaryButton>

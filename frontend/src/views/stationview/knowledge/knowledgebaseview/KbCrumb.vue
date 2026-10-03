@@ -27,8 +27,8 @@ function open() {
 
 <template>
     <span
-        class="hover:text-[var(--primary)] transition-colors"
-        :class="[current ? 'font-semibold text-[var(--primary)]' : '', inert ? '' : 'cursor-pointer']"
+        class="hover:text-[var(--color-primary)] transition-colors"
+        :class="[current ? 'font-semibold text-[var(--color-primary)]' : '', inert ? '' : 'cursor-pointer']"
         role="button"
         tabindex="0"
         :aria-current="current ? 'location' : undefined"

@@ -36,7 +36,7 @@ const {t} = useI18n()
       <div class="flex items-start justify-between gap-3">
         <div>
           <div class="flex items-center gap-2">
-            <font-awesome-icon :icon="['fas', 'file-lines']" class="text-[var(--accent)]" />
+            <font-awesome-icon :icon="['fas', 'file-lines']" class="text-[var(--color-primary)]" />
             <span class="font-semibold text-base">{{ t('helpCenter.sample.knowledge.firstAidBasics') }}</span>
             <PrimaryBadge>{{ t('helpCenter.sample.knowledge.markdown') }}</PrimaryBadge>
           </div>
@@ -125,7 +125,7 @@ const {t} = useI18n()
 
     <NeutralContainer class="space-y-4">
       <div class="flex items-center gap-2">
-        <font-awesome-icon :icon="['fas', 'file-powerpoint']" class="text-[var(--accent)]"/>
+        <font-awesome-icon :icon="['fas', 'file-powerpoint']" class="text-[var(--color-primary)]"/>
         <span class="font-semibold">{{ t('helpCenter.sample.knowledge.presentationFile') }}</span>
         <PrimaryBadge>{{ t('helpCenter.sample.knowledge.presentation') }}</PrimaryBadge>
       </div>

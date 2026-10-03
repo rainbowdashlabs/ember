@@ -32,7 +32,7 @@ const protocolPage = computed(() => ({name: 'protocol-detail', params: {id: prop
 <template>
   <RowLink :to="protocolPage">
     <NeutralContainer
-      class="flex items-center gap-2 cursor-pointer hover:border-[var(--primary)] transition-colors group"
+      class="flex items-center gap-2 cursor-pointer hover:border-[var(--color-primary)] transition-colors group"
     >
       <div class="flex-1 min-w-0">
         <div class="font-medium">{{ protocol.name }}</div>

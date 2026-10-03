@@ -34,7 +34,7 @@ const {t} = useI18n()
       <span class="font-semibold">{{ warnCount }}</span> {{ t('adminProblems.warnings') }}
     </InfoContainer>
     <NeutralContainer v-if="errorCount === 0 && warnCount === 0" class="flex items-center gap-2 !py-2 !px-3">
-      <font-awesome-icon :icon="['fas', 'circle-check']" class="text-(--success)"/>
+      <font-awesome-icon :icon="['fas', 'circle-check']" class="text-(--color-success)"/>
       {{ emptyLabel }}
     </NeutralContainer>
   </div>

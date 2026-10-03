@@ -75,7 +75,7 @@ function openShared(step: SharedFolderEntry) {
             </KbCrumb>
             <template v-if="isFavouritesView">
                 <font-awesome-icon :icon="['fas', 'chevron-right']" class="text-xs text-[var(--text-muted)]"/>
-                <span class="font-semibold text-[var(--primary)]">
+                <span class="font-semibold text-[var(--color-primary)]">
                     <font-awesome-icon :icon="['fas', 'star']" class="text-yellow-500 mr-1"/>
                     {{ t('kb.favourites') }}
                 </span>

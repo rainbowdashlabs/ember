@@ -256,7 +256,7 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
           :selected="idx === currentSectionIndex"
           @toggle="currentSectionIndex = idx"
         >
-          <font-awesome-icon v-if="doneSections.has(sec.id)" :icon="['fas', 'circle-check']" class="w-3 h-3 text-[var(--success)] mr-1" />
+          <font-awesome-icon v-if="doneSections.has(sec.id)" :icon="['fas', 'circle-check']" class="w-3 h-3 text-[var(--color-success)] mr-1" />
           {{ sec.name }}
           <span class="ml-1 font-mono">{{ sectionCheckedScore(sec.id) }}/{{ sectionMaxScore(sec.id) }}</span>
         </SelectionToggleButton>

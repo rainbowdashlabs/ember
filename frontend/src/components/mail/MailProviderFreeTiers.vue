@@ -42,9 +42,9 @@ const entries = Object.entries(PROVIDER_FREE_TIER).map(([key, tier]) => ({
           :target="entry.pricingUrl ? '_blank' : undefined"
           :rel="entry.pricingUrl ? 'noopener' : undefined"
           class="block rounded-theme border border-(--border) p-3 space-y-1"
-          :class="entry.pricingUrl ? 'hover:border-(--primary) transition-colors' : ''">
+          :class="entry.pricingUrl ? 'hover:border-(--color-primary) transition-colors' : ''">
         <div class="font-medium">{{ entry.name }}</div>
-        <div v-if="entry.perDay" class="text-2xl font-semibold text-(--primary)">
+        <div v-if="entry.perDay" class="text-2xl font-semibold text-(--color-primary)">
           {{ t('mailFreeTier.perDay', {count: entry.perDay}) }}
         </div>
         <div v-else class="text-sm font-medium text-(--text-muted)">

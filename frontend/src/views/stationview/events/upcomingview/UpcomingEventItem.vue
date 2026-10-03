@@ -66,7 +66,7 @@ const {t} = useI18n()
 
 const containerClass = computed(() => [
   'space-y-2',
-  props.endDate ? 'border-l-4 border-(--accent)' : '',
+  props.endDate ? 'border-l-4 border-(--color-primary)' : '',
 ])
 </script>
 

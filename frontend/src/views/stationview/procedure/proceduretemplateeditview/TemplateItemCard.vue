@@ -53,7 +53,7 @@ const emit = defineEmits<{
             <span
               v-for="depId in dependencies"
               :key="depId"
-              class="inline-flex items-center gap-1 text-xs bg-[var(--bg-light-accent)] dark:bg-[var(--bg-dark-accent)] rounded px-1.5 py-0.5"
+              class="inline-flex items-center gap-1 text-xs bg-[var(--bg-accent)] rounded px-1.5 py-0.5"
             >
               {{ getItemById(depId)?.title ?? depId }}
               <IconButton
