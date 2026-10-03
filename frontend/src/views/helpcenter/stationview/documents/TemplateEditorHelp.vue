@@ -27,6 +27,7 @@ const {t} = useI18n()
     <HelpSection :title="t('helpCenter.documentTemplateEditor.bodyTitle')">
       <p>{{ t('helpCenter.documentTemplateEditor.bodyText') }}</p>
       <p>{{ t('helpCenter.documentTemplateEditor.placeholdersText') }}</p>
+      <p>{{ t('helpCenter.documentTemplateEditor.fontText') }}</p>
       <p>{{ t('helpCenter.documentTemplateEditor.importText') }}</p>
     </HelpSection>
 
