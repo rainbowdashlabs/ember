@@ -214,7 +214,7 @@ const hasAnyContent = computed(() => props.links.length > 0 || props.weblinks.le
             <div class="space-y-1">
                 <div v-for="wl in weblinks" :key="wl.id" class="flex items-center gap-2 text-sm group">
                     <font-awesome-icon :icon="['fas', 'globe']" class="text-(--text-muted) text-xs" />
-                    <a :href="wl.url" target="_blank" rel="noopener" class="text-(--accent) hover:underline truncate flex-1">{{ wl.title || wl.url }}</a>
+                    <a :href="wl.url" target="_blank" rel="noopener" class="text-(--link) hover:underline truncate flex-1">{{ wl.title || wl.url }}</a>
                     <IconButton v-if="!readonly" :icon="['fas', 'xmark']" :label="t('common.remove')" class="opacity-0 group-hover:opacity-100 text-xs" @click="removeWeblink(wl.id)" />
                 </div>
             </div>

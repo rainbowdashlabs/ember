@@ -1,5 +1,13 @@
 # Änderungsprotokoll
 
+## v26.21.0
+
+Themenfarben erscheinen dort, wo sie fehlten.
+
+### Fehlerbehebungen
+
+- **Manche Themenfarben fehlten.** Auf vielen Seiten erschienen Hervorhebungen, Links, Hintergründe unter dem Mauszeiger, Fortschrittsbalken, Fehlermeldungen und Erfolgsmarkierungen ohne ihre Farbe. Jetzt erscheinen sie in den Themenfarben.
+
 ## v26.20.2
 
 Der tägliche Nutzungsbericht geht wieder auf jeder Instanz hinaus.

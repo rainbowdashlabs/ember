@@ -110,7 +110,7 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
       <div class="space-y-2">
         <RowLink v-for="tpl in filteredTemplates" :key="tpl.id" :to="templatePage(tpl)">
           <NeutralContainer
-            class="flex items-center gap-3 cursor-pointer hover:border-[var(--primary)] transition-colors group"
+            class="flex items-center gap-3 cursor-pointer hover:border-[var(--color-primary)] transition-colors group"
             :class="{ 'opacity-60': tpl.archived }"
           >
             <div class="flex-1 min-w-0">

@@ -46,7 +46,7 @@ const { t } = useI18n()
       <p>{{ t('helpCenter.protocolGrading.sectionsText') }}</p>
       <div class="flex flex-wrap gap-1.5 mb-4">
         <SelectionToggleButton :selected="true" disabled>
-          <font-awesome-icon :icon="['fas', 'circle-check']" class="w-3 h-3 text-[var(--success)] mr-1" />
+          <font-awesome-icon :icon="['fas', 'circle-check']" class="w-3 h-3 text-[var(--color-success)] mr-1" />
           {{ t('helpCenter.sample.protocol.emergencyCall') }}
           <span class="ml-1 font-mono">7/8</span>
         </SelectionToggleButton>
@@ -71,19 +71,19 @@ const { t } = useI18n()
       <NeutralContainer class="space-y-3">
         <div class="flex items-center justify-between">
           <SectionHeader class="font-bold">
-            <font-awesome-icon :icon="['fas', 'circle-check']" class="w-4 h-4 text-[var(--success)] mr-1" />
+            <font-awesome-icon :icon="['fas', 'circle-check']" class="w-4 h-4 text-[var(--color-success)] mr-1" />
             {{ t('helpCenter.sample.protocol.emergencyCall') }}
           </SectionHeader>
           <SuccessBadge>{{ t('helpCenter.sample.protocol.pointsOf', {points: 7, total: 8}) }}</SuccessBadge>
         </div>
 
-        <div class="flex items-center gap-2 p-3 rounded-lg border-2 border-[var(--success)]" style="background: color-mix(in srgb, var(--success) 10%, transparent)">
-          <font-awesome-icon :icon="['fas', 'square-check']" class="w-6 h-6 text-[var(--success)]" />
+        <div class="flex items-center gap-2 p-3 rounded-lg border-2 border-[var(--color-success)]" style="background: color-mix(in srgb, var(--color-success) 10%, transparent)">
+          <font-awesome-icon :icon="['fas', 'square-check']" class="w-6 h-6 text-[var(--color-success)]" />
           <span class="flex-1 text-sm">{{ t('helpCenter.sample.protocol.fiveW') }}</span>
           <span class="text-xs text-[var(--text-muted)] font-mono">5P</span>
         </div>
-        <div class="flex items-center gap-2 p-3 rounded-lg border-2 border-[var(--success)]" style="background: color-mix(in srgb, var(--success) 10%, transparent)">
-          <font-awesome-icon :icon="['fas', 'square-check']" class="w-6 h-6 text-[var(--success)]" />
+        <div class="flex items-center gap-2 p-3 rounded-lg border-2 border-[var(--color-success)]" style="background: color-mix(in srgb, var(--color-success) 10%, transparent)">
+          <font-awesome-icon :icon="['fas', 'square-check']" class="w-6 h-6 text-[var(--color-success)]" />
           <span class="flex-1 text-sm">{{ t('helpCenter.sample.protocol.number112') }}</span>
           <span class="text-xs text-[var(--text-muted)] font-mono">2P</span>
         </div>

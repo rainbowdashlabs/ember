@@ -84,7 +84,7 @@ function onWidthChange(e: Event) {
 }
 
 .image-node-view.image-selected img {
-  outline: 2px solid var(--primary);
+  outline: 2px solid var(--color-primary);
   outline-offset: 2px;
   border-radius: 4px;
 }

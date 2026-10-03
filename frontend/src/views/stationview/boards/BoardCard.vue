@@ -31,11 +31,11 @@ const { t } = useI18n()
 </script>
 
 <template>
-    <NeutralContainer class="h-full cursor-pointer hover:border-[var(--accent)] transition-colors">
+    <NeutralContainer class="h-full cursor-pointer hover:border-[var(--color-primary)] transition-colors">
         <div class="flex items-start justify-between">
             <div>
                 <div class="flex items-center gap-2 mb-1">
-                    <span class="text-xs font-mono text-[var(--text-muted)] bg-[var(--bg-muted)] px-1.5 py-0.5 rounded">{{ board.shortKey }}</span>
+                    <span class="text-xs font-mono text-[var(--text-muted)] bg-[var(--bg-accent)] px-1.5 py-0.5 rounded">{{ board.shortKey }}</span>
                     <SubHeader>{{ board.name }}</SubHeader>
                 </div>
                 <p v-if="board.description" class="text-sm text-[var(--text-muted)] line-clamp-2">{{ board.description }}</p>

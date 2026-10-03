@@ -94,9 +94,9 @@ function laneName(id: number | null): string {
                 <div v-if="item.type === 'transition'" class="flex items-center gap-2 text-sm text-(--text-muted) flex-wrap">
                     <MemberName :identity="item.data.actor" size="sm" />
                     <span>{{ t('boards.movedFrom') }}</span>
-                    <BaseBadge bg-class="" class="font-medium" :style="{ backgroundColor: lanes.find(l => l.id === item.data.fromLaneId)?.color ?? 'var(--primary)', color: contrastTextColor(lanes.find(l => l.id === item.data.fromLaneId)?.color ?? '#fd4f00') }">{{ laneName(item.data.fromLaneId) }}</BaseBadge>
+                    <BaseBadge bg-class="" class="font-medium" :style="{ backgroundColor: lanes.find(l => l.id === item.data.fromLaneId)?.color ?? 'var(--color-primary)', color: contrastTextColor(lanes.find(l => l.id === item.data.fromLaneId)?.color ?? '#fd4f00') }">{{ laneName(item.data.fromLaneId) }}</BaseBadge>
                     <span>{{ t('boards.movedTo') }}</span>
-                    <BaseBadge bg-class="" class="font-medium" :style="{ backgroundColor: lanes.find(l => l.id === item.data.toLaneId)?.color ?? 'var(--primary)', color: contrastTextColor(lanes.find(l => l.id === item.data.toLaneId)?.color ?? '#fd4f00') }">{{ laneName(item.data.toLaneId) }}</BaseBadge>
+                    <BaseBadge bg-class="" class="font-medium" :style="{ backgroundColor: lanes.find(l => l.id === item.data.toLaneId)?.color ?? 'var(--color-primary)', color: contrastTextColor(lanes.find(l => l.id === item.data.toLaneId)?.color ?? '#fd4f00') }">{{ laneName(item.data.toLaneId) }}</BaseBadge>
                     <span class="ml-auto text-xs">{{ formatDateTime(item.ts) }}</span>
                 </div>
                 <div v-else-if="item.type === 'history'" class="flex items-center gap-2 text-sm text-(--text-muted) flex-wrap">
@@ -135,9 +135,9 @@ function laneName(id: number | null): string {
                 <div v-else-if="item.type === 'transition'" class="flex items-center gap-2 text-sm text-(--text-muted) flex-wrap">
                     <MemberName :identity="item.data.actor" size="sm" />
                     <span>{{ t('boards.movedFrom') }}</span>
-                    <BaseBadge bg-class="" class="font-medium" :style="{ backgroundColor: lanes.find(l => l.id === item.data.fromLaneId)?.color ?? 'var(--primary)', color: contrastTextColor(lanes.find(l => l.id === item.data.fromLaneId)?.color ?? '#fd4f00') }">{{ laneName(item.data.fromLaneId) }}</BaseBadge>
+                    <BaseBadge bg-class="" class="font-medium" :style="{ backgroundColor: lanes.find(l => l.id === item.data.fromLaneId)?.color ?? 'var(--color-primary)', color: contrastTextColor(lanes.find(l => l.id === item.data.fromLaneId)?.color ?? '#fd4f00') }">{{ laneName(item.data.fromLaneId) }}</BaseBadge>
                     <span>{{ t('boards.movedTo') }}</span>
-                    <BaseBadge bg-class="" class="font-medium" :style="{ backgroundColor: lanes.find(l => l.id === item.data.toLaneId)?.color ?? 'var(--primary)', color: contrastTextColor(lanes.find(l => l.id === item.data.toLaneId)?.color ?? '#fd4f00') }">{{ laneName(item.data.toLaneId) }}</BaseBadge>
+                    <BaseBadge bg-class="" class="font-medium" :style="{ backgroundColor: lanes.find(l => l.id === item.data.toLaneId)?.color ?? 'var(--color-primary)', color: contrastTextColor(lanes.find(l => l.id === item.data.toLaneId)?.color ?? '#fd4f00') }">{{ laneName(item.data.toLaneId) }}</BaseBadge>
                     <span class="ml-auto text-xs">{{ formatDateTime(item.ts) }}</span>
                 </div>
                 <div v-else-if="item.type === 'history'" class="flex items-center gap-2 text-sm text-(--text-muted) flex-wrap">

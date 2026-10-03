@@ -47,7 +47,7 @@ function pickDelete(file: StationFile) {
                 <DropdownMenuItem :icon="['fas', 'pen']" @click="pickEdit(file)">
                     {{ t('stationPages.editor.edit') }}
                 </DropdownMenuItem>
-                <DropdownMenuItem :icon="['fas', 'trash']" icon-class="w-4 text-(--error)"
+                <DropdownMenuItem :icon="['fas', 'trash']" icon-class="w-4 text-(--color-error)"
                                   @click="pickDelete(file)">
                     {{ t('stationPages.editor.deleteFile') }}
                 </DropdownMenuItem>

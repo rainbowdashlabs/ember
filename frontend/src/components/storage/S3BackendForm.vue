@@ -29,7 +29,7 @@ const endpointInvalid = computed(() => {
             <FieldLabel>{{ t('stationStorageBackend.form.s3.endpoint') }}</FieldLabel>
             <TextInput v-model="model.endpoint" placeholder="https://s3.amazonaws.com" />
             <MutedText tag="p" size="xs">{{ t('stationStorageBackend.form.s3.endpointHint') }}</MutedText>
-            <p v-if="endpointInvalid" class="text-xs text-(--error)">
+            <p v-if="endpointInvalid" class="text-xs text-(--color-error-badge)">
                 {{ t('stationStorageBackend.form.s3.endpointInvalid') }}
             </p>
         </div>

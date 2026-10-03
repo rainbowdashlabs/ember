@@ -121,7 +121,7 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
         <RowLink v-for="p in filteredItems" :key="p.id" :to="procedurePage(p)">
           <NeutralContainer
             data-testid="procedure-entry"
-            class="flex items-center gap-3 cursor-pointer hover:border-[var(--primary)] transition-colors group"
+            class="flex items-center gap-3 cursor-pointer hover:border-[var(--color-primary)] transition-colors group"
           >
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2">

@@ -35,7 +35,7 @@ const { t } = useI18n()
   <NeutralContainer class="space-y-3 mb-4">
     <div class="flex items-center justify-between">
       <SectionHeader class="font-bold">
-        <font-awesome-icon v-if="done" :icon="['fas', 'circle-check']" class="w-4 h-4 text-[var(--success)] mr-1" />
+        <font-awesome-icon v-if="done" :icon="['fas', 'circle-check']" class="w-4 h-4 text-[var(--color-success)] mr-1" />
         {{ section.name }}
       </SectionHeader>
       <div class="flex items-center gap-2">
