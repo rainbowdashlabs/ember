@@ -416,6 +416,18 @@ a:not(:has(button)):not(.row-link):hover {
     color: var(--text);
 }
 
+:is(.markdown-content, .prose) [data-align="center"] {
+    text-align: center;
+}
+
+:is(.markdown-content, .prose) [data-align="right"] {
+    text-align: right;
+}
+
+:is(.markdown-content, .prose) [data-align="justify"] {
+    text-align: justify;
+}
+
 .markdown-content mark {
     background-color: #fef08a;
     padding: 0.1em 0.2em;

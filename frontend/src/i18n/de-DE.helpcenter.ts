@@ -1835,6 +1835,9 @@ volumes:
                 + 'unterstrichen, und zeigst du mit der Maus darauf, steht dort der Name der Schrift. Erst im PDF '
                 + 'erscheint die Schrift selbst. „Schrift der Vorlage" setzt die Wörter zurück. Gibt es eine '
                 + 'Schrift später nicht mehr, druckt Ember die Wörter in der Schrift der Vorlage.',
+            alignText: 'Absätze und Überschriften richtest du mit den vier Ausrichtungs-Buttons der Werkzeugleiste '
+                + 'aus: linksbündig, zentriert, rechtsbündig oder im Blocksatz. So steht etwa ein Titel mittig oder '
+                + 'ein Ort mit Datum rechts, im Editor wie im PDF.',
             importText: 'Hast du die Bescheinigung schon als Word- oder OpenDocument-Text, importiere sie. Lücken in '
                 + 'eckigen Klammern wie [Vorname Nachname] oder [Geburtsdatum] werden zu Platzhaltern, alles andere '
                 + 'bleibt Text. Der Text landet als ein Baustein im Brief, ein Bild auf eigener Zeile als eigener '
@@ -3850,6 +3853,10 @@ volumes:
                 formattingText: 'Du kannst Text fett, kursiv, unterstrichen, durchgestrichen oder als Code markieren. Markiere dazu den Text und klicke auf den passenden Button - oder nutze die Schnellformatierung, die bei markiertem Text erscheint.',
                 headingsTitle: 'Überschriften',
                 headingsText: 'Es gibt drei Überschriftenebenen (H1, H2, H3) und normalen Absatztext (P). Klicke auf den passenden Button, um die aktuelle Zeile umzuwandeln.',
+                colorTitle: 'Farben',
+                colorText: 'Textfarbe und Hervorhebung bieten eine Auswahl fertiger Farben. Jede andere Farbe gibst du als Hex-Code ein, etwa #1a2b3c oder kurz #abc, und bestätigst mit Enter, oder du wählst sie im Farbwähler daneben. Das Kreuz nimmt die Farbe wieder weg. Seiten, Artikel und PDFs zeigen die Farbe genauso.',
+                alignTitle: 'Ausrichtung',
+                alignText: 'Mit den vier Ausrichtungs-Buttons stellst du den Absatz oder die Überschrift, in der der Cursor steht, linksbündig, zentriert, rechtsbündig oder in den Blocksatz. Hast du mehrere Absätze markiert, gilt die Ausrichtung für alle. Die Seite, der Artikel und das PDF zeigen den Text genauso. In einer Tabelle gibt es keine Ausrichtung.',
                 listsTitle: 'Listen und Zitate',
                 listsText: 'Erstelle Aufzählungen (Punkte), nummerierte Listen, Zitate oder Codeblöcke. Mit dem Minus-Button fügst du eine horizontale Trennlinie ein.',
                 linksTitle: 'Links und Medien',
