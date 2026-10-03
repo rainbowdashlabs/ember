@@ -25,6 +25,11 @@ describe('EditorToolbar', () => {
             .toBe(false)
     })
 
+    it('offers a size in every editor, with or without families', () => {
+        expect(mount(EditorToolbar, {props: {editor: undefined}}).find('[data-testid="editor-size"]').exists())
+            .toBe(true)
+    })
+
     it('offers the template font and every family given', async () => {
         const wrapper = mount(EditorToolbar, {props: {editor: undefined, fonts: FONTS}, attachTo: document.body})
         await wrapper.find('[data-testid="editor-font"]').trigger('click')

@@ -29,6 +29,7 @@ Stations turn their own templates and those of their association into documents 
 - **Template writers see the whole media library.** Whoever writes document templates sees and organises every file in the station's media, not only their own uploads.
 - **Text alignment in the text editor.** Paragraphs and headings in pages, news, wiki articles and letters are aligned left, centred, right or justified from the editor's toolbar. The alignment shows on the published pages and in the letter and wiki PDFs.
 - **Any colour for text and highlights.** Next to the ready-made colours, the editor's text colour and highlight take any colour as a hex code or from a colour picker. The chosen colour shows on the published pages and in the letter and wiki PDFs.
+- **A font size for selected words.** The editor's toolbar sets selected words in pages, news, wiki articles and letters to a size from 6 to 96 pixels, and an empty field gives them their normal size back. The size shows on the published pages and in the letter and wiki PDFs.
 
 ### Changes
 

@@ -6,6 +6,7 @@
 import TurndownService from 'turndown'
 import {extendTurndownWithBlockAlign} from './blockAlign'
 import {asHex} from './colorHex'
+import {extendTurndownWithTextSize} from './textSize'
 
 /**
  * Converts the editor's HTML back into the Markdown that is stored.
@@ -87,6 +88,7 @@ export function createMarkdownTurndown(): TurndownService {
   })
 
   extendTurndownWithBlockAlign(turndown)
+  extendTurndownWithTextSize(turndown)
 
   return turndown
 }

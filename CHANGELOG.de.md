@@ -29,6 +29,7 @@ Wachen erstellen aus eigenen Vorlagen und denen ihres Verbands Dokumente für ih
 - **Wer Vorlagen schreibt, sieht alle Medien.** Wer Dokumentvorlagen schreibt, sieht und ordnet alle Dateien in den Medien der Wache, nicht nur die eigenen Uploads.
 - **Textausrichtung im Texteditor.** Absätze und Überschriften in Seiten, Neuigkeiten, Wiki-Artikeln und Briefen lassen sich über die Werkzeugleiste des Editors linksbündig, zentriert, rechtsbündig oder im Blocksatz ausrichten. Die Ausrichtung erscheint auf den veröffentlichten Seiten und in den PDFs von Briefen und Wiki.
 - **Jede Farbe für Text und Hervorhebung.** Neben den fertigen Farben nehmen Textfarbe und Hervorhebung im Editor jede Farbe als Hex-Code oder aus einem Farbwähler an. Die gewählte Farbe erscheint auf den veröffentlichten Seiten und in den PDFs von Briefen und Wiki.
+- **Eine Schriftgröße für markierte Wörter.** Über die Werkzeugleiste des Editors bekommen markierte Wörter in Seiten, Neuigkeiten, Wiki-Artikeln und Briefen eine Größe von 6 bis 96 Pixeln, und ein leeres Feld gibt ihnen die normale Größe zurück. Die Größe erscheint auf den veröffentlichten Seiten und in den PDFs von Briefen und Wiki.
 
 ### Änderungen
 

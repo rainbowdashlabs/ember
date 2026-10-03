@@ -10,6 +10,8 @@ import type { Editor } from '@tiptap/vue-3'
 import type { FontFamilyOption } from '@/api/generated/schema'
 import EditorFontPicker from './EditorFontPicker.vue'
 import EditorColorPicker from './EditorColorPicker.vue'
+import EditorSizePicker from './EditorSizePicker.vue'
+import { sizeAtCursor, TEXT_SIZE } from './textSize'
 import { alignBlock, canAlign, isAligned, type BlockAlignment } from './blockAlign'
 
 const props = defineProps<{
@@ -70,6 +72,11 @@ const textColors = [
 function setTextColor(color: string) {
   if (color) { cmd()?.setColor(color).run() }
   else { cmd()?.unsetColor().run() }
+}
+
+function setTextSize(size: number | null) {
+  if (size) { cmd()?.setMark(TEXT_SIZE, { size }).run() }
+  else { cmd()?.unsetMark(TEXT_SIZE).run() }
 }
 
 interface ToolbarButton {
@@ -170,6 +177,7 @@ const toolbarButtons: ToolbarButton[][] = [
       @update:open="open => setPickerOpen('textColor', open)"
       @pick="setTextColor"
     />
+    <EditorSizePicker :current="sizeAtCursor(editor?.getAttributes(TEXT_SIZE))" @pick="setTextSize" />
 
     <EditorFontPicker v-if="fonts" :editor="editor" :fonts="fonts" />
   </div>

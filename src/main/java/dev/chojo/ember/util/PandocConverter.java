@@ -53,7 +53,7 @@ public final class PandocConverter {
      * caller hands over pictures it has placed next to the document. Every other image is replaced
      * by its alternative text: it points at a URL the Typst compiler cannot fetch, and an
      * unreachable image aborts the whole render. The formatting the article editor writes as HTML
-     * (coloured text, highlights, underlining, a picture's caption) becomes its Typst equivalent.
+     * (coloured text, sized text, highlights, underlining, a picture's caption) becomes its Typst equivalent.
      *
      * @param markdown the markdown source
      * @return the Typst markup fragment

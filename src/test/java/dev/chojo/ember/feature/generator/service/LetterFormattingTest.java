@@ -29,6 +29,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -36,10 +37,11 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
- * A letter prints its aligned paragraphs where the editor showed them: centred ones in the middle of the
- * text, right-aligned ones against its right edge, and justified ones filling their lines to it.
+ * A letter prints its paragraphs and words the way the editor showed them: centred paragraphs in the middle
+ * of the text, right-aligned ones against its right edge, justified ones filling their lines to it, and
+ * words set in a size of their own in that size, a pixel printed as three quarters of a point.
  */
-class LetterAlignmentTest extends RepositoryTestBase {
+class LetterFormattingTest extends RepositoryTestBase {
     private static final String LONG_WORD = "Donaudampfschifffahrtsgesellschaftskapitän";
     private static final String RAGGED = "Ein Satz aus kurzen Wörtern, der vor einem langen Wort umbricht, "
             + "nämlich vor dem Wort " + LONG_WORD + " und " + LONG_WORD + " und " + LONG_WORD + ".";
@@ -81,6 +83,16 @@ class LetterAlignmentTest extends RepositoryTestBase {
         float justified = firstLineEnd(TestPdfs.positions(render(row(aligned("justify", RAGGED))), 1));
 
         assertTrue(justified > ragged + 20, () -> "justified to " + justified + ", ragged to " + ragged);
+    }
+
+    @Test
+    void sizedWordsPrintInTheirSize() throws IOException {
+        var positions = TestPdfs.positions(render(row("normal <span data-size=\"48\">G</span>")), 1);
+
+        float normal = first(positions, "n").getFontSizeInPt();
+        float sized = first(positions, "G").getFontSizeInPt();
+        assertEquals(36, sized, 0.5, () -> "sized at " + sized + ", normal at " + normal);
+        assertTrue(sized > normal * 2, () -> "sized at " + sized + ", normal at " + normal);
     }
 
     private static String aligned(String alignment, String markdown) {

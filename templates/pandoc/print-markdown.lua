@@ -21,6 +21,10 @@
 --- the family when the letter is printed. Without it the tag is dropped and the words are kept, since
 --- no other template defines that function.
 ---
+--- Sizes: the editor stores words in a size of their own as `<span data-size="14">`, in whole pixels
+--- from 6 to 96. The pair becomes `text(size: ...)` in points, a pixel being three quarters of one; a
+--- size out of bounds drops the tag and keeps the words.
+---
 --- Alignment: the editor stores a centred, right-aligned or justified paragraph or heading wrapped in
 --- `<div data-align="...">`, a blank line on either side, so the markdown reader still reads what is
 --- inside and leaves the two tags as blocks of HTML around it. A pair of them becomes `align(center)`,
@@ -66,6 +70,14 @@ local function font_family(tag)
   return family and unescape(family):match("^%s*(.-)%s*$")
 end
 
+local SMALLEST_SIZE, LARGEST_SIZE = 6, 96
+
+local function text_size(tag)
+  local size = tonumber((attribute(tag, "data%-size") or ""):match("^%s*(%d+)%s*$"))
+  if not size or size < SMALLEST_SIZE or size > LARGEST_SIZE then return nil end
+  return string.format("%gpt", size * PIXEL)
+end
+
 local function opener(name, tag)
   if name == "u" then return "#underline[" end
   if name == "mark" then
@@ -75,6 +87,8 @@ local function opener(name, tag)
   if name == "span" then
     local family = font_family(tag)
     if family then return "#font(" .. typst_string(family) .. ")[" end
+    local size = text_size(tag)
+    if size then return "#text(size: " .. size .. ")[" end
     local fill = typst_color(css(attribute(tag, "style"), "color"))
     return fill and ("#text(fill: " .. fill .. ")[") or nil
   end
