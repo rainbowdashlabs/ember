@@ -35,7 +35,7 @@ const emit = defineEmits<{
     <p class="mt-4 text-(--text-muted)">{{ t('kb.conversionPending') }}</p>
   </NeutralContainer>
   <NeutralContainer v-else-if="file.conversionStatus === 'FAILED'" class="text-center py-8">
-    <font-awesome-icon :icon="['fas', 'triangle-exclamation']" class="text-4xl text-(--error) mb-4"/>
+    <font-awesome-icon :icon="['fas', 'triangle-exclamation']" class="text-4xl text-(--color-error) mb-4"/>
     <p class="mb-4">{{ t('kb.conversionFailed') }}</p>
     <FileInput v-if="canEdit" accept=".pptx,.ppt,.odp" :label="t('kb.reupload')" @select="emit('reupload', $event)"/>
   </NeutralContainer>

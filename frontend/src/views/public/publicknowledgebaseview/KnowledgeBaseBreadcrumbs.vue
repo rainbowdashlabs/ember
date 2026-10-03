@@ -34,12 +34,12 @@ const {t} = useI18n()
     <IconButton
         :icon="['fas', 'house']"
         :label="t('publicKb.backToBrowse')"
-        :class="{'!text-[var(--primary)]': !currentFolder}"
+        :class="{'!text-[var(--color-primary)]': !currentFolder}"
         @click="emit('navigate', null)"
     />
     <template v-if="currentFolder">
       <font-awesome-icon :icon="['fas', 'chevron-right']" class="text-xs text-[var(--text-muted)]"/>
-      <span class="font-semibold text-[var(--primary)]">
+      <span class="font-semibold text-[var(--color-primary)]">
         {{ currentFolder.name }}
       </span>
     </template>

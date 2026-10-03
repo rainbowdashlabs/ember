@@ -40,13 +40,13 @@ function onNoteBlur(e: Event) {
             v-if="canCheck"
             :icon="item.checked ? ['fas', 'square-check'] : ['fas', 'square']"
             :label="item.checked ? t('procedures.uncheck') : t('procedures.check')"
-            :class="item.checked ? 'text-[var(--success)]' : 'text-[var(--text-muted)]'"
+            :class="item.checked ? 'text-[var(--color-success)]' : 'text-[var(--text-muted)]'"
             @click="emit('toggle')"
         />
         <font-awesome-icon
             v-else-if="item.checked"
             :icon="['fas', 'square-check']"
-            class="w-4 h-4 text-[var(--success)] mt-1 ml-2"
+            class="w-4 h-4 text-[var(--color-success)] mt-1 ml-2"
         />
         <font-awesome-icon
             v-else

@@ -64,7 +64,7 @@ const buttons: ToolbarButton[] = [
         :key="btn.labelKey"
         type="button"
         :title="t(btn.labelKey)"
-        :class="['p-1.5 rounded text-sm transition-colors', btn.active() ? 'bg-[var(--primary)] text-[var(--color-primary-text)]' : 'text-[var(--text)] hover:bg-[var(--bg-accent)]']"
+        :class="['p-1.5 rounded text-sm transition-colors', btn.active() ? 'bg-[var(--color-primary)] text-[var(--color-primary-text)]' : 'text-[var(--text)] hover:bg-[var(--bg-accent)]']"
         @mousedown.prevent
         @click="btn.action()"
       >
@@ -82,7 +82,7 @@ const buttons: ToolbarButton[] = [
     <template v-else-if="isOnLink">
       <font-awesome-icon :icon="['fas', 'link']" class="w-3 h-3 text-[var(--text-muted)] flex-shrink-0" />
       <span class="truncate text-[var(--text-muted)] text-xs max-w-[200px] mx-1" :title="currentLinkUrl">{{ currentLinkUrl }}</span>
-      <a :href="currentLinkUrl" target="_blank" rel="noopener noreferrer" class="p-1 rounded hover:bg-[var(--bg-accent)] text-[var(--primary)] transition-colors flex-shrink-0" :title="t('markdownEditor.openLink')" :aria-label="t('markdownEditor.openLink')" @mousedown.prevent>
+      <a :href="currentLinkUrl" target="_blank" rel="noopener noreferrer" class="p-1 rounded hover:bg-[var(--bg-accent)] text-[var(--color-primary)] transition-colors flex-shrink-0" :title="t('markdownEditor.openLink')" :aria-label="t('markdownEditor.openLink')" @mousedown.prevent>
         <font-awesome-icon :icon="['fas', 'arrow-right']" class="w-3 h-3" />
       </a>
       <button type="button" :title="t('markdownEditor.editLink')" class="p-1 rounded hover:bg-[var(--bg-accent)] text-[var(--text)] transition-colors flex-shrink-0" @mousedown.prevent @click="$emit('openLink')">

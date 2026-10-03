@@ -34,7 +34,7 @@ function onCheckboxClick(event: MouseEvent) {
     <RowLink :to="item.to">
         <NeutralContainer
             data-testid="kb-item"
-            class="hover:border-[var(--primary)] transition-colors relative group h-full"
+            class="hover:border-[var(--color-primary)] transition-colors relative group h-full"
             :class="item.to ? 'cursor-pointer' : ''"
         >
             <KbReachEye v-if="item.shared && !selectable" :reach="item.shared" class="absolute top-1.5 left-1.5"/>

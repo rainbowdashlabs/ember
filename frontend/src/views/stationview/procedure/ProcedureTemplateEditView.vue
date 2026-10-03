@@ -294,9 +294,9 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
           </PrimaryButton>
         </div>
         <div v-if="depTargetItem && getDepsForItem(depTargetItem.id).length > 0" class="space-y-1">
-          <div v-for="depId in getDepsForItem(depTargetItem.id)" :key="depId" class="flex items-center justify-between bg-[var(--bg-light-accent)] dark:bg-[var(--bg-dark-accent)] rounded px-2 py-1 text-sm">
+          <div v-for="depId in getDepsForItem(depTargetItem.id)" :key="depId" class="flex items-center justify-between bg-[var(--bg-accent)] rounded px-2 py-1 text-sm">
             <span>{{ getItemById(depId)?.title ?? depId }}</span>
-            <IconButton :icon="['fas', 'trash']" :label="t('common.remove')" class="!p-0 text-[var(--error)]" @click="removeDependency(depId, depTargetItem!.id)" />
+            <IconButton :icon="['fas', 'trash']" :label="t('common.remove')" class="!p-0 text-[var(--color-error)]" @click="removeDependency(depId, depTargetItem!.id)" />
           </div>
         </div>
         <p v-else class="text-sm text-[var(--text-muted)]">{{ t('procedures.empty') }}</p>

@@ -52,7 +52,7 @@ const share = computed(() => {
     </div>
 
     <div v-if="share !== null" class="h-1.5 w-full rounded-full bg-(--bg-accent) overflow-hidden">
-      <div class="h-full rounded-full bg-(--primary)" :style="{width: `${share}%`}"/>
+      <div class="h-full rounded-full bg-(--color-primary)" :style="{width: `${share}%`}"/>
     </div>
   </div>
 </template>

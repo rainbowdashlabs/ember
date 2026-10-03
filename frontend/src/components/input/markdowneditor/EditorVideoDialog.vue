@@ -45,7 +45,7 @@ function onInput() {
   >
     <div class="flex items-center justify-between">
       <div class="flex items-center gap-2">
-        <font-awesome-icon :icon="['fas', 'play']" class="text-[var(--primary)] w-3.5 h-3.5" />
+        <font-awesome-icon :icon="['fas', 'play']" class="text-[var(--color-primary)] w-3.5 h-3.5" />
         <span class="text-sm font-medium">{{ t('markdownEditor.embedVideo') }}</span>
       </div>
       <MutedIconButton :icon="['fas', 'xmark']" :label="t('common.close')" hover="text" @click="$emit('cancel')"/>
@@ -57,7 +57,7 @@ function onInput() {
     </div>
 
     <p v-if="detectedProvider" class="text-xs text-[var(--text-muted)]">
-      <font-awesome-icon :icon="['fas', 'check']" class="text-[var(--success)] mr-1" />
+      <font-awesome-icon :icon="['fas', 'check']" class="text-[var(--color-success)] mr-1" />
       {{ t('markdownEditor.providerDetected', {provider: detectedProvider}) }}
     </p>
     <p class="text-[10px] text-[var(--text-muted)]">{{ t('markdownEditor.videoProviders') }}</p>

@@ -33,7 +33,7 @@ const {t} = useI18n()
 <template>
   <div
       v-if="selectedCount > 0"
-      class="sticky top-0 z-10 mb-3 p-3 rounded-theme border border-(--accent)/40 bg-(--accent)/10 flex items-center gap-2 flex-wrap"
+      class="sticky top-0 z-10 mb-3 p-3 rounded-theme border border-(--color-primary)/40 bg-(--color-primary)/10 flex items-center gap-2 flex-wrap"
   >
     <span class="text-sm font-semibold">
       {{ t('adminDataTracking.batch.selected', {n: selectedCount}) }}

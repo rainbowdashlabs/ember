@@ -223,7 +223,7 @@ watch(loaded, (v) => {
           </div>
           <p v-if="detail.procedure.description" class="text-[var(--text-muted)] text-sm">{{ detail.procedure.description }}</p>
           <div class="flex flex-wrap gap-4 mt-2 text-sm text-[var(--text-muted)]">
-            <span v-if="detail.procedure.dueAt" class="flex items-center gap-1" :class="{ 'text-[var(--error)]': isOverdue }">
+            <span v-if="detail.procedure.dueAt" class="flex items-center gap-1" :class="{ 'text-[var(--color-error-badge)]': isOverdue }">
               <font-awesome-icon :icon="['fas', 'calendar']" class="w-3 h-3"/>
               {{ formatDate(detail.procedure.dueAt) }}
             </span>
@@ -265,8 +265,8 @@ watch(loaded, (v) => {
       <NeutralContainer class="mb-4">
         <div class="flex items-center gap-3">
           <span class="text-sm font-medium">{{ t('procedures.progress') }}</span>
-          <div class="flex-1 h-2 bg-[var(--bg-light-accent)] dark:bg-[var(--bg-dark-accent)] rounded-full overflow-hidden">
-            <div class="h-full bg-[var(--success)] rounded-full transition-all" :style="{ width: progress.percent + '%' }"/>
+          <div class="flex-1 h-2 bg-[var(--bg-accent)] rounded-full overflow-hidden">
+            <div class="h-full bg-[var(--color-success)] rounded-full transition-all" :style="{ width: progress.percent + '%' }"/>
           </div>
           <span class="text-sm text-[var(--text-muted)]">{{ progress.checked }}/{{ progress.total }}</span>
         </div>

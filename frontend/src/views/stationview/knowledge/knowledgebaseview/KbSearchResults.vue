@@ -32,7 +32,7 @@ defineProps<{
         <div v-else class="flex flex-col gap-2">
             <RowLink v-for="item in items" :key="item.key" :to="item.to">
                 <NeutralContainer
-                    class="hover:border-[var(--primary)] transition-colors"
+                    class="hover:border-[var(--color-primary)] transition-colors"
                     :class="item.to ? 'cursor-pointer' : ''"
                 >
                     <div class="flex items-start gap-3 p-2">

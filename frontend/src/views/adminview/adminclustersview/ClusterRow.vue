@@ -79,7 +79,7 @@ function choose(account: AccountSearchResult) {
         <BareButton
             v-for="account in results"
             :key="account.uid"
-            class="block w-full rounded px-2 py-1 text-left hover:bg-(--surface-hover)"
+            class="block w-full rounded px-2 py-1 text-left hover:bg-(--bg-accent)"
             @click="choose(account)"
         >
           {{ account.displayName }} <span class="text-(--text-muted)">{{ account.email }}</span>

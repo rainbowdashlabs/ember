@@ -151,9 +151,9 @@ async function replace() {
         </ol>
         <div class="flex flex-wrap gap-4">
           <a v-if="settingsLink" :href="settingsLink" target="_blank" rel="noopener"
-             class="text-sm text-(--primary) underline">{{ t('mailWebhook.openSettings') }}</a>
+             class="text-sm text-(--color-primary) underline">{{ t('mailWebhook.openSettings') }}</a>
           <a v-if="docsLink" :href="docsLink" target="_blank" rel="noopener"
-             class="text-sm text-(--primary) underline">{{ t('mailWebhook.docs') }}</a>
+             class="text-sm text-(--color-primary) underline">{{ t('mailWebhook.docs') }}</a>
         </div>
       </div>
       <Alert v-else variant="info">{{ t('mailWebhook.unsupported', {provider: providerName}) }}</Alert>

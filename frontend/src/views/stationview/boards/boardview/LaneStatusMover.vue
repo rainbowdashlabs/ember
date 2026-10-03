@@ -35,7 +35,7 @@ defineExpose({ close: () => { editing.value = false } })
         <div
             class="px-3 py-2 rounded-theme text-sm font-medium text-center"
             :class="canEdit ? 'cursor-pointer' : ''"
-            :style="{ backgroundColor: currentLane?.color ?? 'var(--primary)', color: contrastTextColor(currentLane?.color ?? '#fd4f00') }"
+            :style="{ backgroundColor: currentLane?.color ?? 'var(--color-primary)', color: contrastTextColor(currentLane?.color ?? '#fd4f00') }"
             role="button"
             tabindex="0"
             aria-haspopup="true"
@@ -53,7 +53,7 @@ defineExpose({ close: () => { editing.value = false } })
                 v-for="lane in choices"
                 :key="lane.id"
                 class="px-3 py-2 text-sm font-medium text-center cursor-pointer hover:opacity-90 flex items-center justify-center gap-2"
-                :style="{ backgroundColor: lane.color ?? 'var(--primary)', color: contrastTextColor(lane.color ?? '#fd4f00') }"
+                :style="{ backgroundColor: lane.color ?? 'var(--color-primary)', color: contrastTextColor(lane.color ?? '#fd4f00') }"
                 role="button"
                 tabindex="0"
                 @click="pick(lane.id)"

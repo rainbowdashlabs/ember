@@ -35,7 +35,7 @@ const protocolPage = computed(() => props.shared.stationUid
 <template>
   <RowLink :to="protocolPage">
     <NeutralContainer
-      class="flex items-center gap-2 hover:border-[var(--primary)] transition-colors group"
+      class="flex items-center gap-2 hover:border-[var(--color-primary)] transition-colors group"
       :class="shared.stationUid ? 'cursor-pointer' : ''"
     >
       <div class="flex-1 min-w-0">

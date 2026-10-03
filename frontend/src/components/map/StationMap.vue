@@ -134,7 +134,7 @@ function popupOf(station: MapStation): string {
   popupParts.push(`<strong>${escapeHtml(station.name)}</strong>`)
   if (station.subtitle) popupParts.push(`<div>${escapeHtml(station.subtitle)}</div>`)
   if (station.href) popupParts.push(
-      `<div class="mt-2"><a href="${encodeURI(station.href)}" target="_blank" rel="noopener" class="text-(--primary)">${escapeHtml(station.name)} →</a></div>`,
+      `<div class="mt-2"><a href="${encodeURI(station.href)}" target="_blank" rel="noopener" class="text-(--color-primary)">${escapeHtml(station.name)} →</a></div>`,
   )
   return popupParts.join('')
 }

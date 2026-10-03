@@ -90,7 +90,7 @@ const demoSecret = ref('')
       <p v-else>{{ t('helpCenter.mailVendor.webhookUnsupported') }}</p>
       <p v-if="webhookLink">
         <a :href="webhookLink" target="_blank" rel="noopener"
-           class="text-(--primary) underline">{{ webhookLink }}</a>
+           class="text-(--color-primary) underline">{{ webhookLink }}</a>
       </p>
     </HelpSection>
 
