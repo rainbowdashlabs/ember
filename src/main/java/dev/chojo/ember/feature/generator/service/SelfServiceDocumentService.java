@@ -31,12 +31,15 @@ import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Documents a member generates for themselves, and a guardian for each member in their care.
  *
  * <p>A template is offered where it is marked for self service and its audience takes in the member
- * the document is about; whoever asks has to be that member or look after them. Three things refuse a
+ * the document is about; a template of the association where the association offers it and the station
+ * switched it on for an audience of its own ({@link TemplateStationUseService}). Whoever asks has to be
+ * that member or look after them. The wait is the template's, whoever keeps it. Three things refuse a
  * document that is offered, each with words of its own: data the template needs and the profile does
  * not hold (the message names it, so it can be filled in first), a template generated for the same
  * member within its wait (the message says from when), and a station that keeps no documents.
@@ -50,6 +53,7 @@ public class SelfServiceDocumentService {
 
     private final DocumentTemplateRepository templates;
     private final DocumentTemplateService templateService;
+    private final TemplateStationUseService stationUses;
     private final DocumentGeneratorService generator;
     private final DocumentGenerationService generation;
     private final DocumentGenerationRepository generations;
@@ -63,6 +67,7 @@ public class SelfServiceDocumentService {
     public SelfServiceDocumentService(
             DocumentTemplateRepository templates,
             DocumentTemplateService templateService,
+            TemplateStationUseService stationUses,
             DocumentGeneratorService generator,
             DocumentGenerationService generation,
             DocumentGenerationRepository generations,
@@ -73,6 +78,7 @@ public class SelfServiceDocumentService {
         this(
                 templates,
                 templateService,
+                stationUses,
                 generator,
                 generation,
                 generations,
@@ -89,6 +95,7 @@ public class SelfServiceDocumentService {
     public SelfServiceDocumentService(
             DocumentTemplateRepository templates,
             DocumentTemplateService templateService,
+            TemplateStationUseService stationUses,
             DocumentGeneratorService generator,
             DocumentGenerationService generation,
             DocumentGenerationRepository generations,
@@ -99,6 +106,7 @@ public class SelfServiceDocumentService {
             Clock clock) {
         this.templates = templates;
         this.templateService = templateService;
+        this.stationUses = stationUses;
         this.generator = generator;
         this.generation = generation;
         this.generations = generations;
@@ -135,8 +143,10 @@ public class SelfServiceDocumentService {
     public List<SelfServiceOffer> offers(StationSession session, int memberId) {
         requireMayActFor(session, memberId);
         documents.requireKept(session.stationId(), DocumentDoor.STATION);
-        return templates.findByStation(session.stationId(), false).stream()
-                .filter(template -> offered(template, memberId))
+        return Stream.concat(
+                        templates.findByOwner(session.owner(), false).stream(),
+                        templates.findOfAssociationOf(session.stationId()).stream())
+                .filter(template -> offered(template, session.stationId(), memberId))
                 .map(template -> offer(session, template, memberId))
                 .toList();
     }
@@ -151,8 +161,10 @@ public class SelfServiceDocumentService {
      */
     public GeneratedDocumentResponse generate(StationSession session, int templateId, int memberId) {
         requireMayActFor(session, memberId);
-        var template = templateService.requireInUse(session.owner(), templateId);
-        if (!offered(template, memberId)) throw DocumentRefusal.DOCUMENT_SELF_SERVICE_NOT_OFFERED.raise();
+        var template = templateService.requireInUse(session.stationId(), templateId);
+        if (!offered(template, session.stationId(), memberId)) {
+            throw DocumentRefusal.DOCUMENT_SELF_SERVICE_NOT_OFFERED.raise();
+        }
         var openAgain = availableFrom(template, memberId);
         if (openAgain != null) {
             throw DocumentRefusal.DOCUMENT_SELF_SERVICE_COOLING_DOWN.raise(RefusalDetail.text(day(session, openAgain)));
@@ -182,7 +194,12 @@ public class SelfServiceDocumentService {
                 generator.missing(prepared));
     }
 
-    private boolean offered(DocumentTemplate template, int memberId) {
+    /**
+     * Whether a template is offered to a member: a station's own by its flag and its audience, one of the
+     * association by what the station chose for it.
+     */
+    private boolean offered(DocumentTemplate template, int stationId, int memberId) {
+        if (template.ofAssociation()) return stationUses.offers(template, stationId, memberId);
         return template.selfService()
                 && restrictions.includes(RestrictionType.DOCUMENT_TEMPLATE, template.id(), memberId);
     }

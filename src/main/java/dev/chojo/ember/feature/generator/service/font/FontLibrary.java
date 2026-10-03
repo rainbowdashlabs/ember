@@ -7,14 +7,13 @@ package dev.chojo.ember.feature.generator.service.font;
 
 import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.api.refusal.RefusalDetail;
-import dev.chojo.ember.feature.cluster.service.ClusterService;
 import dev.chojo.ember.feature.generator.entity.DocumentFont;
 import dev.chojo.ember.feature.generator.entity.FontFamily;
 import dev.chojo.ember.feature.generator.entity.PdfContent;
 import dev.chojo.ember.feature.generator.entity.ReachableFonts;
 import dev.chojo.ember.feature.generator.entity.TemplateContent;
 import dev.chojo.ember.feature.generator.repository.DocumentFontRepository;
-import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.generator.service.store.OwnerStores;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageScope;
 import dev.chojo.ember.feature.storage.service.StorageService;
@@ -40,16 +39,13 @@ import java.util.Optional;
 @Singleton
 public class FontLibrary {
     private final DocumentFontRepository fonts;
-    private final ClusterService clusters;
-    private final StationRepository stations;
+    private final OwnerStores stores;
     private final StorageService storage;
 
     @Inject
-    public FontLibrary(
-            DocumentFontRepository fonts, ClusterService clusters, StationRepository stations, StorageService storage) {
+    public FontLibrary(DocumentFontRepository fonts, OwnerStores stores, StorageService storage) {
         this.fonts = fonts;
-        this.clusters = clusters;
-        this.stations = stations;
+        this.stores = stores;
         this.storage = storage;
     }
 
@@ -88,15 +84,15 @@ public class FontLibrary {
     }
 
     /**
-     * Which family a station's templates print in for a family name, which says which owner's file they
-     * would read.
+     * Which family the templates of an owner print in for a family name, which says which owner's file
+     * they would read.
      *
-     * @param stationId the station
-     * @param family    the family name
-     * @return the family the station reaches under that name, or empty where it reaches none
+     * @param owner  the station or the association that keeps the templates
+     * @param family the family name
+     * @return the family the owner reaches under that name, or empty where it reaches none
      */
-    public Optional<FontFamily> familyAt(int stationId, String family) {
-        return reachable(new Owner.Station(stationId)).find(family);
+    public Optional<FontFamily> familyAt(Owner owner, String family) {
+        return reachable(owner).find(family);
     }
 
     /**
@@ -114,17 +110,7 @@ public class FontLibrary {
      * @return where the owner's font files are kept
      */
     public StorageScope scopeOf(Owner owner) {
-        return switch (owner) {
-            case Owner.Station station ->
-                new StorageScope.Station(station.stationId(), stations.requireUid(station.stationId()));
-            case Owner.Association association -> {
-                int home = clusters.findById(association.clusterId())
-                        .orElseThrow(DocumentRefusal.DOCUMENT_FONT_NOT_HERE::raise)
-                        .homeStationId();
-                yield new StorageScope.Association(home, stations.requireUid(home));
-            }
-            case Owner.Instance ignored -> new StorageScope.Instance();
-        };
+        return stores.scopeOf(owner, DocumentRefusal.DOCUMENT_FONT_NOT_HERE);
     }
 
     /**
@@ -148,6 +134,6 @@ public class FontLibrary {
     }
 
     private @Nullable Integer associationOf(int stationId) {
-        return clusters.findByStation(stationId).map(cluster -> cluster.id()).orElse(null);
+        return stores.associationOf(stationId).map(Owner.Association::clusterId).orElse(null);
     }
 }

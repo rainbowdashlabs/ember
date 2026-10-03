@@ -55,6 +55,7 @@ class LetterImportServiceTest extends RepositoryTestBase {
     private static LetterImportService service;
     private static MediaLibraryService media;
     private static StationSession session;
+    private static LetterImportService.Importer importer;
     private static int schoolField;
 
     @BeforeAll
@@ -73,7 +74,8 @@ class LetterImportServiceTest extends RepositoryTestBase {
                 .thenReturn(new StationFile(
                         5, 0, station.id(), HASH, "bild.png", "image/png", 1, Instant.EPOCH, null, null, null));
         service = new LetterImportService(
-                media, new PlaceholderCatalogue(profileFieldRepo, stationRepo), newDocumentIntake());
+                media, newPlaceholderCatalogue(), newDocumentIntake(), newOwnerStores(), stationRepo);
+        importer = LetterImportService.Importer.of(session);
     }
 
     private static byte[] fixture(String name) throws IOException {
@@ -85,7 +87,7 @@ class LetterImportServiceTest extends RepositoryTestBase {
     @ParameterizedTest
     @ValueSource(strings = {"certificate.docx", "certificate.odt"})
     void gapsBecomePlaceholdersWhereTheirWordsAreKnown(String file) throws IOException {
-        var imported = service.read(session, file, null, fixture(file));
+        var imported = service.read(importer, file, null, fixture(file));
 
         String body = text(imported);
         assertTrue(body.contains("Berlin, den {{today}}"), body);
@@ -103,7 +105,7 @@ class LetterImportServiceTest extends RepositoryTestBase {
     @ParameterizedTest
     @ValueSource(strings = {"certificate.docx", "certificate.odt"})
     void picturesOfTheBodyGoIntoTheMediaLibrary(String file) throws IOException {
-        var imported = service.read(session, file, null, fixture(file));
+        var imported = service.read(importer, file, null, fixture(file));
 
         var pictures = LetterContent.blocks(imported.rows())
                 .filter(cell -> cell.contentType() == CellContentType.IMAGE)
@@ -121,7 +123,7 @@ class LetterImportServiceTest extends RepositoryTestBase {
     /** What a file is, is read from the file: a Word document renamed is still read as one. */
     @Test
     void theFormatIsReadFromTheFileNotFromItsName() throws IOException {
-        var imported = service.read(session, "bescheinigung.odt", null, fixture("certificate.docx"));
+        var imported = service.read(importer, "bescheinigung.odt", null, fixture("certificate.docx"));
 
         assertTrue(text(imported).contains("{{member.fullName}}"));
     }
@@ -155,11 +157,11 @@ class LetterImportServiceTest extends RepositoryTestBase {
     void onlyWordAndOpenDocumentTextsAreRead() throws IOException {
         var pdf = assertThrows(
                 RefusalResponse.class,
-                () -> service.read(session, "bescheinigung.docx", null, new byte[] {0x25, 0x50, 0x44, 0x46}));
-        var epub = assertThrows(RefusalResponse.class, () -> service.read(session, "buch.epub", null, epub()));
+                () -> service.read(importer, "bescheinigung.docx", null, new byte[] {0x25, 0x50, 0x44, 0x46}));
+        var epub = assertThrows(RefusalResponse.class, () -> service.read(importer, "buch.epub", null, epub()));
         var oldWord = assertThrows(
                 RefusalResponse.class,
-                () -> service.read(session, "alt.doc", "application/msword", new byte[] {
+                () -> service.read(importer, "alt.doc", "application/msword", new byte[] {
                     (byte) 0xD0, (byte) 0xCF, 0x11, (byte) 0xE0
                 }));
 
@@ -168,7 +170,7 @@ class LetterImportServiceTest extends RepositoryTestBase {
         assertEquals(DocumentRefusal.DOCUMENT_IMPORT_KIND_NOT_TAKEN, oldWord.refusal());
         assertEquals(
                 DocumentRefusal.DOCUMENT_UPLOAD_MISSING_FILE,
-                assertThrows(RefusalResponse.class, () -> service.read(session, null))
+                assertThrows(RefusalResponse.class, () -> service.read(importer, null))
                         .refusal());
     }
 
@@ -183,7 +185,9 @@ class LetterImportServiceTest extends RepositoryTestBase {
 
         assertEquals(
                 DocumentRefusal.DOCUMENT_IMPORT_UNREADABLE,
-                assertThrows(RefusalResponse.class, () -> service.read(session, "kaputt.docx", null, out.toByteArray()))
+                assertThrows(
+                                RefusalResponse.class,
+                                () -> service.read(importer, "kaputt.docx", null, out.toByteArray()))
                         .refusal());
     }
 

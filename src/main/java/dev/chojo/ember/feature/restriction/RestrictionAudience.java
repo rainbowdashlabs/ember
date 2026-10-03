@@ -35,6 +35,15 @@ public record RestrictionAudience(
         return new RestrictionAudience(List.of(), List.of(), List.of(), List.of(), RestrictionMode.AND);
     }
 
+    /** @return whether the audience names nobody, which every member passes */
+    public boolean namesNobody() {
+        var selection = toSelection();
+        return selection.userTypes().isEmpty()
+                && selection.groupIds().isEmpty()
+                && selection.tagIds().isEmpty()
+                && selection.memberIds().isEmpty();
+    }
+
     /**
      * Whether a member belongs to this audience, by the same rule a stored restriction set follows.
      *

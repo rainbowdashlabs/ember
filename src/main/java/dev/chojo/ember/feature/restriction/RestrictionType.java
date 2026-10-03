@@ -55,6 +55,13 @@ public enum RestrictionType {
             "document_template",
             "id",
             "restriction_mode",
+            StationPermission.DOCUMENT_TEMPLATE_EDIT),
+    DOCUMENT_TEMPLATE_STATION_USE(
+            "document_template_station_use_restriction",
+            "use_id",
+            "document_template_station_use",
+            "id",
+            "restriction_mode",
             StationPermission.DOCUMENT_TEMPLATE_EDIT);
 
     private final String table;

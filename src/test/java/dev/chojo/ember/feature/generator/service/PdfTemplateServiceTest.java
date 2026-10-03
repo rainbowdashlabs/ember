@@ -26,6 +26,7 @@ import dev.chojo.ember.feature.generator.entity.TextAlign;
 import dev.chojo.ember.feature.generator.repository.DocumentGenerationRepository;
 import dev.chojo.ember.feature.generator.repository.DocumentTemplateRepository;
 import dev.chojo.ember.feature.generator.repository.PdfTemplateRepository;
+import dev.chojo.ember.feature.generator.repository.TemplateStationUseRepository;
 import dev.chojo.ember.feature.generator.service.DocumentTemplateService.DocumentTemplateResponse;
 import dev.chojo.ember.feature.generator.service.pdf.PdfStamper;
 import dev.chojo.ember.feature.generator.service.pdf.StampFonts;
@@ -33,7 +34,6 @@ import dev.chojo.ember.feature.generator.service.pdf.TestPdfs;
 import dev.chojo.ember.feature.knowledgebase.service.KbPdfPictures;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.members.entity.StationMember;
-import dev.chojo.ember.feature.members.service.GenderFields;
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -82,6 +82,7 @@ class PdfTemplateServiceTest extends RepositoryTestBase {
     private static Station station;
     private static Owner.Station owner;
     private static StationMember manager;
+    private static int author;
     private static StationMember lena;
     private static StationMember ren;
     private static int names;
@@ -92,15 +93,17 @@ class PdfTemplateServiceTest extends RepositoryTestBase {
         station = stationRepo.create("PDF Vorlagen Wache");
         owner = new Owner.Station(station.id());
         manager = member("pdf-manager@test.com", "Nora", "Fülling");
+        author = Objects.requireNonNull(manager.accountId());
         lena = member("pdf-lena@test.com", "Lena", "Schmidt");
         ren = member("pdf-ren@test.com", "Ren", "漢字");
 
         var backend = localStorage();
         var storage = new StorageService(new StorageBackendResolver(backend), backend);
         documents = newDocumentService(storage);
-        var catalogue = new PlaceholderCatalogue(profileFieldRepo, stationRepo);
+        var catalogue = newPlaceholderCatalogue();
         var templateRepository = new DocumentTemplateRepository();
         var pdfTemplates = new PdfTemplateRepository();
+        var uses = new TemplateStationUseRepository();
         var media = mock(MediaLibraryService.class);
         var fonts = newFontLibrary(storage);
         var checks = new TemplateChecks(
@@ -109,22 +112,17 @@ class PdfTemplateServiceTest extends RepositoryTestBase {
                 new LetterChecks(contentBlocks(), media),
                 stationRepo,
                 catalogue,
-                fonts);
-        templates =
-                new DocumentTemplateService(templateRepository, pdfTemplates, checks, restrictionService, catalogue);
+                fonts,
+                newOwnerStores());
+        templates = new DocumentTemplateService(
+                templateRepository, pdfTemplates, uses, checks, restrictionService, catalogue, newOwnerStores());
         pdfs = new PdfTemplateService(
-                templates, templateRepository, pdfTemplates, newDocumentIntake(), storage, stationRepo);
+                templates, templateRepository, pdfTemplates, newDocumentIntake(), storage, newOwnerStores());
         var generator = new DocumentGeneratorService(
                 templates,
-                new PlaceholderResolver(
-                        stationRepo,
-                        stationMemberRepo,
-                        memberNameResolver,
-                        profileFieldRepo,
-                        new GenderFields(profileFieldCore, stationRepo),
-                        clock),
+                newPlaceholderResolver(clock),
                 catalogue,
-                new LetterRenderer(mock(KbPdfPictures.class), media, newStationLogoService(), fonts),
+                new LetterRenderer(mock(KbPdfPictures.class), media, newStationLogoService(), fonts, newOwnerStores()),
                 new PdfTemplateRenderer(pdfs, new PdfStamper(new StampFonts()), fonts),
                 stationRepo,
                 restrictionService,
@@ -135,6 +133,7 @@ class PdfTemplateServiceTest extends RepositoryTestBase {
         selfService = new SelfServiceDocumentService(
                 templateRepository,
                 templates,
+                new TemplateStationUseService(templates, uses, restrictionService),
                 generator,
                 generation,
                 log,
@@ -185,13 +184,13 @@ class PdfTemplateServiceTest extends RepositoryTestBase {
 
     /** A PDF template with its PDF, ready for fields. */
     private static DocumentTemplateResponse uploaded(String name, byte[] pdf) {
-        var created = templates.create(owner, request(name), manager.id());
-        return pdfs.upload(owner, created.id(), TestUploads.of("form.pdf", "application/pdf", pdf), manager.id());
+        var created = templates.create(owner, request(name), author);
+        return pdfs.upload(owner, created.id(), TestUploads.of("form.pdf", "application/pdf", pdf), author);
     }
 
     private static DocumentTemplateResponse withFields(
             DocumentTemplateResponse template, DocumentTemplateRequest change) {
-        return templates.update(owner, template.id(), change, manager.id());
+        return templates.update(owner, template.id(), change, author);
     }
 
     @Test
@@ -229,8 +228,8 @@ class PdfTemplateServiceTest extends RepositoryTestBase {
     @Test
     void onlyAPdfThatOpensWithoutAPasswordIsTaken() throws IOException {
         var letter = templates.create(
-                owner, TemplateRequestBuilder.letter("Brief für PDF").build(), manager.id());
-        var template = templates.create(owner, request("Geschützt"), manager.id());
+                owner, TemplateRequestBuilder.letter("Brief für PDF").build(), author);
+        var template = templates.create(owner, request("Geschützt"), author);
         byte[] locked = TestPdfs.protectedBy("owner", "user");
 
         refused(
@@ -243,15 +242,13 @@ class PdfTemplateServiceTest extends RepositoryTestBase {
         refused(
                 DocumentRefusal.DOCUMENT_TEMPLATE_PDF_PASSWORD,
                 () -> pdfs.upload(owner, template.id(), TestUploads.of("a.pdf", "application/pdf", locked), 0));
-        refused(
-                DocumentRefusal.DOCUMENT_UPLOAD_MISSING_FILE,
-                () -> pdfs.upload(owner, template.id(), null, manager.id()));
+        refused(DocumentRefusal.DOCUMENT_UPLOAD_MISSING_FILE, () -> pdfs.upload(owner, template.id(), null, author));
 
         var taken = pdfs.upload(
                 owner,
                 template.id(),
                 TestUploads.of("a.pdf", "application/pdf", TestPdfs.protectedBy("owner", "")),
-                manager.id());
+                author);
         assertNotNull(taken.pdf());
         assertTrue(pdfs.current(owner, letter.id()).isEmpty());
     }
@@ -260,8 +257,8 @@ class PdfTemplateServiceTest extends RepositoryTestBase {
     void fieldsWaitForThePdf() {
         refused(
                 DocumentRefusal.DOCUMENT_TEMPLATE_PDF_MISSING,
-                () -> templates.create(owner, request("Ohne PDF", text(NAME, "x")), manager.id()));
-        var empty = templates.create(owner, request("Noch leer"), manager.id());
+                () -> templates.create(owner, request("Ohne PDF", text(NAME, "x")), author));
+        var empty = templates.create(owner, request("Noch leer"), author);
         refused(
                 DocumentRefusal.DOCUMENT_TEMPLATE_PDF_MISSING,
                 () -> generation.generate(as(manager), empty.id(), lena.id()));
@@ -369,7 +366,7 @@ class PdfTemplateServiceTest extends RepositoryTestBase {
         var before = generation.generate(as(manager), template.id(), lena.id());
 
         var reuploaded = pdfs.upload(
-                owner, template.id(), TestUploads.of("neu.pdf", "application/pdf", TestPdfs.plain(2)), manager.id());
+                owner, template.id(), TestUploads.of("neu.pdf", "application/pdf", TestPdfs.plain(2)), author);
         var after = generation.generate(as(manager), template.id(), lena.id());
 
         var oldOriginal = Objects.requireNonNull(template.pdf()).id();

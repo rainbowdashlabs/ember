@@ -55,6 +55,9 @@ public class MediaReferenceRegistry {
      * Every text body in the application a member can insert a media image into. Each query
      * takes {@code :station_id} and returns one {@code body} column.
      *
+     * <p>The letters of an association's document templates take their pictures from the library of
+     * the association's home station, so they count as that station's references.
+     *
      * <p>Add a row here whenever a feature gains a markdown body that the media browser reaches.
      */
     private static final List<String> TEXT_BODIES = List.of(
@@ -76,7 +79,8 @@ public class MediaReferenceRegistry {
             SELECT concat_ws(' ', l.header::text, l.footer::text, l.body::text) AS body
             FROM document_template_letter l
             JOIN document_template t ON t.id = l.template_id
-            WHERE t.station_id = :station_id;""");
+            WHERE t.station_id = :station_id
+               OR t.cluster_id IN (SELECT c.id FROM cluster c WHERE c.home_station_id = :station_id);""");
 
     /**
      * References that name their file outright rather than mentioning it in prose. They are read

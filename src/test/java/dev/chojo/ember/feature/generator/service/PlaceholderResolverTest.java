@@ -14,9 +14,9 @@ import dev.chojo.ember.feature.generator.entity.SubjectRole;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.PronounSet;
 import dev.chojo.ember.feature.members.entity.StationMember;
-import dev.chojo.ember.feature.members.service.GenderFields;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.owner.Owner;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.BeforeAll;
@@ -55,13 +55,7 @@ class PlaceholderResolverTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        resolver = new PlaceholderResolver(
-                stationRepo,
-                stationMemberRepo,
-                memberNameResolver,
-                profileFieldRepo,
-                new GenderFields(profileFieldCore, stationRepo),
-                new MovableClock(NOW));
+        resolver = newPlaceholderResolver(new MovableClock(NOW));
         station = stationRepo.create("Resolver Wache");
         stationRepo.updateLocation(station.id(), "Dönhoffstr. 31", "10318", "Berlin", "DE", null, null);
         stationRepo.updateNicknamesEnabled(station.id(), true);
@@ -292,7 +286,7 @@ class PlaceholderResolverTest extends RepositoryTestBase {
 
     @Test
     void aPreviewWithoutAMemberKnowsTheStationAndTheDay() {
-        var values = resolver.withoutMember(station.id(), DocumentLanguage.DE);
+        var values = resolver.withoutMember(new Owner.Station(station.id()), DocumentLanguage.DE);
 
         assertEquals("Resolver Wache", values.get("station.name"));
         assertEquals("02.10.2026", values.get("today"));

@@ -79,4 +79,8 @@ export default {
     'D-070': 'Eine Unterschriftszeile kann nur im Text eines Briefs stehen',
     'D-071': 'Eine Unterschriftszeile braucht die Person, die darauf unterschreibt',
     'D-072': 'Für dieses Mitglied bitten zwei Unterschriftszeilen der Vorlage dieselbe Person um eine Unterschrift, es wurde nichts erstellt',
+    'D-080': 'Diese Vorlage gehört dem Verband und kann nur dort geändert werden',
+    'D-081': 'Nur eine Vorlage des Verbands wird hier freigeschaltet; die eigenen Vorlagen der Wache legen das selbst fest',
+    'D-082': 'Eine Vorlage des Verbands wird ohne Mitglied angezeigt',
+    'D-083': 'Der Verband bietet eine Vorlage nur zur Selbstbedienung an; wer sie nutzen darf, legt jede Wache selbst fest',
 }

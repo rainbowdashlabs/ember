@@ -5,9 +5,9 @@
  */
 package dev.chojo.ember.feature.generator.repository;
 
-import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import de.chojo.sadu.queries.api.call.Call;
 import dev.chojo.ember.feature.generator.entity.DocumentFont;
+import dev.chojo.ember.feature.generator.entity.DocumentTemplate;
 import dev.chojo.ember.feature.generator.entity.FontOutline;
 import dev.chojo.ember.feature.generator.entity.FontStyle;
 import dev.chojo.ember.feature.generator.entity.FontUse;
@@ -15,7 +15,6 @@ import dev.chojo.ember.owner.Owner;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -157,32 +156,36 @@ public class DocumentFontRepository {
     }
 
     /**
-     * The templates in use that print in a family of that name.
+     * The templates in use that print in a family of that name and could reach the fonts of an owner:
+     * a station's own templates for a station's font; the association's templates and those of its
+     * stations for an association's font; every template for the instance's.
      *
-     * @param family     the family name, in any case
-     * @param stationIds the stations whose templates to look at, or null for every station
-     * @return the templates, with the station that keeps each
+     * @param family    the family name, in any case
+     * @param fontOwner who keeps the font
+     * @return the templates, with the owner that keeps each
      */
-    public List<FontUse> templatesNaming(String family, @Nullable Collection<Integer> stationIds) {
+    public List<FontUse> templatesNaming(String family, Owner fontOwner) {
         return query("""
-                        SELECT t.id, t.station_id, t.name
+                        SELECT t.id, t.station_id, t.cluster_id, t.name
                         FROM document_template t
                             LEFT JOIN document_template_letter l ON l.template_id = t.id
                         WHERE t.archived_at IS NULL
-                          AND (:all_stations OR t.station_id = ANY(:station_ids))
+                          AND (:instance
+                               OR t.station_id = :station_id::int
+                               OR t.cluster_id = :cluster_id::int
+                               OR t.station_id IN (SELECT s.id FROM station s WHERE s.cluster_id = :cluster_id::int))
                           AND (lower(l.page ->> 'bodyFont') = lower(:family)
                                OR lower(l.page ->> 'headerFont') = lower(:family)
                                OR lower(l.page ->> 'footerFont') = lower(:family)
                                OR EXISTS(SELECT 1 FROM document_template_field f
                                          WHERE f.template_id = t.id AND lower(f.font_family) = lower(:family)))
                         ORDER BY t.name;""")
-                .single(call().bind("family", family)
-                        .bind("all_stations", stationIds == null)
-                        .bind(
-                                "station_ids",
-                                stationIds == null ? List.of() : List.copyOf(stationIds),
-                                PostgreSqlTypes.INTEGER))
-                .map(row -> new FontUse(row.getInt("id"), row.getInt("station_id"), row.getString("name")))
+                .single(owned(fontOwner).bind("family", family).bind("instance", fontOwner instanceof Owner.Instance))
+                .map(row -> new FontUse(
+                        row.getInt("id"),
+                        DocumentTemplate.ownerOf(
+                                row.getObject("station_id", Integer.class), row.getObject("cluster_id", Integer.class)),
+                        row.getString("name")))
                 .all();
     }
 

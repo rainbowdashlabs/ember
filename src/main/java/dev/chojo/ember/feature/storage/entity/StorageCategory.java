@@ -60,6 +60,17 @@ public enum StorageCategory {
             false,
             Optional.empty()),
     /**
+     * The PDFs an association's PDF templates fill in, kept and counted in its home station.
+     */
+    ASSOCIATION_DOCUMENT_TEMPLATES(
+            "document-templates",
+            StorageScope.Kind.ASSOCIATION,
+            true,
+            QuotaMode.ENFORCED,
+            List.of("application/pdf"),
+            false,
+            Optional.empty()),
+    /**
      * The fonts a station uploaded for its documents. Measured against the same room as the documents
      * they print.
      */

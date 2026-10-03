@@ -699,7 +699,10 @@ public enum ClusterRefusal implements Refusal {
     CLUSTER_PROFILE_PRONOUN_TOO_LONG(177, HttpStatus.BAD_REQUEST, Sentences.PRONOUN_TOO_LONG),
 
     /** The fonts of a cluster, asked for without saying which cluster. */
-    NO_CLUSTER_CHOSEN_FOR_FONTS(178, HttpStatus.BAD_REQUEST, Sentences.NO_CLUSTER_CHOSEN);
+    NO_CLUSTER_CHOSEN_FOR_FONTS(178, HttpStatus.BAD_REQUEST, Sentences.NO_CLUSTER_CHOSEN),
+
+    /** The document templates of a cluster, asked for without saying which cluster. */
+    NO_CLUSTER_CHOSEN_FOR_DOCUMENT_TEMPLATES(179, HttpStatus.BAD_REQUEST, Sentences.NO_CLUSTER_CHOSEN);
 
     private final Definition definition;
 

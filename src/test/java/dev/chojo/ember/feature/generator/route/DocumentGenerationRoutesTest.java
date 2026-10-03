@@ -58,8 +58,9 @@ class DocumentGenerationRoutesTest {
         selfService = mock(SelfServiceDocumentService.class);
         var templates = mock(DocumentTemplateService.class);
         var members = mock(StationMemberService.class);
-        when(templates.requireOwned(OWNER, 8)).thenReturn(DocumentTemplateRoutesTest.template(8));
-        when(templates.requireOwned(OWNER, 9)).thenThrow(DocumentRefusal.DOCUMENT_TEMPLATE_NOT_HERE.raise());
+        when(templates.requireUsable(OWNER.stationId(), 8)).thenReturn(DocumentTemplateRoutesTest.template(8));
+        when(templates.requireUsable(OWNER.stationId(), 9))
+                .thenThrow(DocumentRefusal.DOCUMENT_TEMPLATE_NOT_HERE.raise());
         when(members.findById(11)).thenReturn(Optional.of(member(11, 3)));
         when(members.findById(12)).thenReturn(Optional.of(member(12, 4)));
         when(generation.usable(OWNER)).thenReturn(List.of());

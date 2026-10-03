@@ -42,10 +42,13 @@ import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
 /**
  * The station media library.
  *
- * <p>Three permissions open the whole library, because three features author content with it:
- * pages, news and the knowledge base. Anyone who may log in may upload and pick from what they
- * uploaded themselves, which is what lets a board ticket carry a picture. Deleting outright and
- * pruning stay with the page manager.
+ * <p>Four permissions open the whole library, because four features author content with it:
+ * pages, news, the knowledge base and the letters of document templates. Anyone who may log in may
+ * upload and pick from what they uploaded themselves, which is what lets a board ticket carry a
+ * picture. Deleting outright and pruning stay with the page manager.
+ *
+ * <p>An association keeps its pictures in the library of its home station, whose screens it reaches
+ * with the rights its own grant there.
  */
 @Singleton
 public class MediaRoutes implements Routes {
@@ -55,7 +58,10 @@ public class MediaRoutes implements Routes {
      * Who may browse and organise the whole library: everyone who authors content with it.
      */
     private static final StationPermission[] CONTENT_PERMISSIONS = {
-        StationPermission.PAGE_EDIT, StationPermission.NEWS_EDIT, StationPermission.KNOWLEDGE_EDIT
+        StationPermission.PAGE_EDIT,
+        StationPermission.NEWS_EDIT,
+        StationPermission.KNOWLEDGE_EDIT,
+        StationPermission.DOCUMENT_TEMPLATE_EDIT
     };
 
     private final MediaLibraryService media;

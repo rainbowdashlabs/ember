@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:4e4e8434064e7bce523e60a4bc6da2a10a0c26d804c8be3c2a790d1a3f9e428e",
-  "generatedAt": "2026-10-03T15:13:52Z",
+  "schemaHash": "sha256:3527a4fd387c7eb994fb5d67ff1373abef3131d8df28de6b50fadc09d8b55c23",
+  "generatedAt": "2026-10-03T16:25:34Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -6339,14 +6339,14 @@
           "type": "int4",
           "nullable": false,
           "verified": true,
-          "description": "The station the document was filed at."
+          "description": "The station the document was filed at, the station of the member it is about, whoever owns the template."
         },
         {
           "name": "template_id",
           "type": "int4",
           "nullable": false,
           "verified": true,
-          "description": "The template the document was generated from."
+          "description": "The template the document was generated from, the station's own or one of its association."
         },
         {
           "name": "template_version",
@@ -6540,7 +6540,7 @@
       "description": "Every person whose data went into a generated document: the member it is about and the guardians it names."
     },
     "document_template": {
-      "tableHash": "sha256:6772ea016088285a395368b402688e58a7d5d8b68ca49b302896e8ad880781b0",
+      "tableHash": "sha256:d9e9bfcfa470650cd3f95c6628673e42a65bec8d6b734234928df86656d179cf",
       "columns": [
         {
           "name": "id",
@@ -6552,9 +6552,16 @@
         {
           "name": "station_id",
           "type": "int4",
-          "nullable": false,
+          "nullable": true,
           "verified": true,
-          "description": "The station that owns the template."
+          "description": "The station that owns the template. NULL for a template of an association."
+        },
+        {
+          "name": "cluster_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The association that owns the template, which its stations use but do not change. NULL for a template of a station."
         },
         {
           "name": "kind",
@@ -6617,7 +6624,7 @@
           "type": "bool",
           "nullable": false,
           "verified": true,
-          "description": "Whether members of the audience may generate the document for themselves, and guardians for the members in their care."
+          "description": "Whether members of the audience may generate the document for themselves, and guardians for the members in their care. For a template of an association, whether it is offered for self service; each station then decides in document_template_station_use."
         },
         {
           "name": "self_service_cooldown_days",
@@ -6659,7 +6666,7 @@
           "type": "int4",
           "nullable": true,
           "verified": true,
-          "description": "The member who created the template. NULL once they are gone."
+          "description": "The account that created the template. NULL once it is gone."
         },
         {
           "name": "updated_at",
@@ -6673,7 +6680,7 @@
           "type": "int4",
           "nullable": true,
           "verified": true,
-          "description": "The member who last changed the template. NULL once they are gone."
+          "description": "The account that last changed the template. NULL once it is gone."
         },
         {
           "name": "archived_at",
@@ -6685,8 +6692,14 @@
       ],
       "foreignKeys": [
         {
+          "column": "cluster_id",
+          "refTable": "cluster",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
           "column": "created_by",
-          "refTable": "station_member",
+          "refTable": "account",
           "refColumn": "id",
           "onDelete": "SET NULL"
         },
@@ -6698,24 +6711,24 @@
         },
         {
           "column": "updated_by",
-          "refTable": "station_member",
+          "refTable": "account",
           "refColumn": "id",
           "onDelete": "SET NULL"
         }
       ],
       "stationTransfer": {
         "status": "TRACKED",
-        "rationale": "Placeholders of profile questions name the question by its id inside the texts, which a transfer does not rewrite; they print as gaps until the template is saved again with the questions picked anew."
+        "rationale": "A station's own templates (station_id) go with it; an association's templates (cluster_id) stay with the association, and documents a station generated from them keep their files but lose their log entry on the way. Placeholders of profile questions name the question by its id inside the texts, which a transfer does not rewrite; they print as gaps until the template is saved again with the questions picked anew."
       },
       "gdprExport": {
         "status": "TRACKED",
         "identityColumns": [
           {
-            "type": "MEMBER_ID",
+            "type": "ACCOUNT_ID",
             "column": "created_by"
           },
           {
-            "type": "MEMBER_ID",
+            "type": "ACCOUNT_ID",
             "column": "updated_by"
           }
         ]
@@ -6735,7 +6748,7 @@
           }
         ]
       },
-      "description": "A template a station turns into a PDF for one member at a time. Never deleted, only archived, so every generated document keeps pointing at the template it came from."
+      "description": "A template turned into a PDF for one member at a time, kept by a station (station_id) or by an association for all its stations (cluster_id). Never deleted, only archived, so every generated document keeps pointing at the template it came from."
     },
     "document_template_field": {
       "tableHash": "sha256:de740bdeb471e4ba8c5733167b8500f01762cd28aa131d06adc9d1131f6935c0",
@@ -6935,7 +6948,7 @@
           "type": "jsonb",
           "nullable": false,
           "verified": true,
-          "description": "The rows drawn at the top of every page, shaped like the rows of a page: each row up to three columns with their width, optionally with a line between the columns (columnLines), each holding a text with placeholders written as {{key}}, a picture from the media library by its content hash or the station logo, a divider line with its label, a gap, or blocks stacked in it. A block may carry a restriction saying which members it is printed for, and a guardianCondition (SECOND_GUARDIAN or NO_SECOND_GUARDIAN) on whether the member has a second guardian."
+          "description": "The rows drawn at the top of every page, shaped like the rows of a page: each row up to three columns with their width, optionally with a line between the columns (columnLines), each holding a text with placeholders written as {{key}}, a picture from the media library by its content hash (an association's template from the library of its home station) or the logo of the station the document is generated at, a divider line with its label, a gap, or blocks stacked in it. A block may carry a restriction saying which members it is printed for, and a guardianCondition (SECOND_GUARDIAN or NO_SECOND_GUARDIAN) on whether the member has a second guardian."
         },
         {
           "name": "footer",
@@ -7026,7 +7039,7 @@
       "description": "Which uploaded version of its PDF a PDF template fills now. A PDF template without a row has no PDF yet."
     },
     "document_template_pdf_original": {
-      "tableHash": "sha256:ae4e5788bdb92cb710950b34397b229a56a5481e8b0a14b604d88d92b4bf8871",
+      "tableHash": "sha256:ed125b0aa6424a77dcb8276eaf571d378c0da79df369b2c930f00dcbc3dc3ca5",
       "columns": [
         {
           "name": "id",
@@ -7082,7 +7095,7 @@
           "type": "int4",
           "nullable": true,
           "verified": true,
-          "description": "The member who uploaded the file. NULL once they are gone."
+          "description": "The account that uploaded the file. NULL once it is gone."
         }
       ],
       "foreignKeys": [
@@ -7094,7 +7107,7 @@
         },
         {
           "column": "uploaded_by",
-          "refTable": "station_member",
+          "refTable": "account",
           "refColumn": "id",
           "onDelete": "SET NULL"
         }
@@ -7106,7 +7119,7 @@
         "status": "TRACKED",
         "identityColumns": [
           {
-            "type": "MEMBER_ID",
+            "type": "ACCOUNT_ID",
             "column": "uploaded_by"
           }
         ]
@@ -7121,7 +7134,7 @@
           }
         ]
       },
-      "description": "Every uploaded version of the PDF a PDF template fills in. The file is kept in the station storage under document-templates/<id>/original, as it arrived, and never changed; a new upload is a new row."
+      "description": "Every uploaded version of the PDF a PDF template fills in. The file is kept in the storage of the template's owner under document-templates/<id>/original (an association's in its home station), as it arrived, and never changed; a new upload is a new row."
     },
     "document_template_restriction": {
       "tableHash": "sha256:9c35756d1fbb6fba6ea356c3fa0aa13d6548bb7792b18e5b54198effa3628aa3",
@@ -7206,7 +7219,167 @@
         "status": "IGNORED",
         "reason": "Template structure data, not per-member"
       },
-      "description": "Who may generate a self service template for themselves. Empty means every member. Shaped like event_restriction."
+      "description": "Who may generate a self service template of a station for themselves. Empty means every member. A template of an association has none; each station sets its own audience in document_template_station_use_restriction. Shaped like event_restriction."
+    },
+    "document_template_station_use": {
+      "tableHash": "sha256:e36c1873cfe370fde08f4acd59a8415bc64cbf1eb7c11718badf43f6889f251c",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Auto-generated primary key."
+        },
+        {
+          "name": "template_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The template of the association."
+        },
+        {
+          "name": "station_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The station that uses it."
+        },
+        {
+          "name": "self_service",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether members of the station generate the document for themselves, and guardians for the members in their care. Only takes effect while the association offers the template for self service."
+        },
+        {
+          "name": "restriction_mode",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "AND or OR, how the parts of document_template_station_use_restriction combine."
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the station last changed how it uses the template."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "station_id",
+          "refTable": "station",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "template_id",
+          "refTable": "document_template",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "Says how the station uses the templates of its association, which stay with the association; a station that moves leaves its association and starts without them"
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Template settings of a station, not per-member"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Template settings of a station, not per-member"
+      },
+      "description": "How a station uses a template of its association. Its managers generate every template of the association in use; whether its members generate one through self service, and who of them, the station decides here. A template without a row is not offered for self service at that station."
+    },
+    "document_template_station_use_restriction": {
+      "tableHash": "sha256:efaffb62c259d5eebccf9956908be8db705f19bb8e91a035251f199d7aabc76c",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Auto-generated primary key."
+        },
+        {
+          "name": "use_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "References how the station uses the template."
+        },
+        {
+          "name": "user_type",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "Required user type. Exactly one of user_type/group_id/tag_id/member_id must be set."
+        },
+        {
+          "name": "group_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "Required group membership."
+        },
+        {
+          "name": "tag_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "Required tag."
+        },
+        {
+          "name": "member_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "Specific member (always OR-connected, bypasses AND/OR mode)."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "group_id",
+          "refTable": "member_group",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "member_id",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "tag_id",
+          "refTable": "user_tag",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "use_id",
+          "refTable": "document_template_station_use",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "Belongs to how the station uses a template of its association, which a station that moves leaves behind"
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Template structure data, not per-member"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Template structure data, not per-member"
+      },
+      "description": "Who of a station may generate a template of its association through self service. Empty means every member. Shaped like event_restriction."
     },
     "email_daily_count": {
       "feature": "mail",

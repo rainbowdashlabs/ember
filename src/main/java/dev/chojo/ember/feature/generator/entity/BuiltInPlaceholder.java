@@ -13,8 +13,8 @@ import java.util.Optional;
  * The placeholders every station has, whatever questions it asks.
  *
  * <p>The profile questions add theirs on top as {@code profile.<id>}, and the guardians' answers to them
- * as {@code guardian1.profile.<id>} and {@code guardian2.profile.<id>}. The pronouns for the member
- * are {@link PronounKey}s.
+ * as {@code guardian1.profile.<id>} and {@code guardian2.profile.<id>}; an association's questions the same
+ * way with {@code associationProfile.<id>}. The pronouns for the member are {@link PronounKey}s.
  *
  * <p>Names are official names throughout: the register's first name and surname, never the name a
  * member is called by. {@link #MEMBER_CALLED_NAME} is the one exception and is kept out of legal
@@ -49,6 +49,9 @@ public enum BuiltInPlaceholder {
     STATION_POSTAL_CODE(
             "station.postalCode", PlaceholderCategory.STATION, "Postleitzahl der Wache", "Station postal code"),
     STATION_CITY("station.city", PlaceholderCategory.STATION, "Ort der Wache", "Station city"),
+    ASSOCIATION_NAME("association.name", PlaceholderCategory.ASSOCIATION, "Name des Verbands", "Association name"),
+    ASSOCIATION_ADDRESS(
+            "association.address", PlaceholderCategory.ASSOCIATION, "Anschrift des Verbands", "Association address"),
     EVENT_NAME("event.name", PlaceholderCategory.APPOINTMENT, "Termin", "Appointment"),
     EVENT_START("event.start", PlaceholderCategory.APPOINTMENT, "Beginn des Termins", "Appointment start"),
     EVENT_END("event.end", PlaceholderCategory.APPOINTMENT, "Ende des Termins", "Appointment end"),

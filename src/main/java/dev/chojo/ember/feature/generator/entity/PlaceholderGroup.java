@@ -17,6 +17,8 @@ public enum PlaceholderGroup {
     GUARDIAN,
     /** The station that files the document. */
     STATION,
+    /** The association the station that files the document belongs to. */
+    ASSOCIATION,
     /** The appointment a document is generated for, where it is generated for one. */
     EVENT,
     /** The document itself: the day it is generated and who generates it. */
