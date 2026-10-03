@@ -9,6 +9,7 @@ import { useI18n } from 'vue-i18n'
 import type { Editor } from '@tiptap/vue-3'
 import type { FontFamilyOption } from '@/api/generated/schema'
 import EditorFontPicker from './EditorFontPicker.vue'
+import EditorColorPicker from './EditorColorPicker.vue'
 import { alignBlock, canAlign, isAligned, type BlockAlignment } from './blockAlign'
 
 const props = defineProps<{
@@ -40,26 +41,35 @@ function setHeading(level: 1 | 2 | 3) {
   }
 }
 
-const showHighlightPicker = ref(false)
+type ColorPicker = 'highlight' | 'textColor'
+
+const openPicker = ref<ColorPicker | null>(null)
+
+function setPickerOpen(picker: ColorPicker, open: boolean) {
+  openPicker.value = open ? picker : null
+}
+
+function currentColor(mark: 'highlight' | 'textStyle'): string | null {
+  const color = props.editor?.getAttributes(mark).color
+  return typeof color === 'string' ? color : null
+}
+
 const highlightColors = [
   '', '#fef08a', '#fde68a', '#bbf7d0', '#a5f3fc', '#c4b5fd',
   '#fecaca', '#fed7aa', '#fbcfe8', '#e5e7eb',
 ]
 function setHighlightColor(color: string) {
-  if (color) { cmd()?.toggleHighlight({ color }).run() }
+  if (color) { cmd()?.setHighlight({ color }).run() }
   else { cmd()?.unsetHighlight().run() }
-  showHighlightPicker.value = false
 }
 
-const showColorPicker = ref(false)
 const textColors = [
-  '', '#ec2929', '#FF6421', '#ffdd1b', '#00C507', '#3694FF', '#73CEFF',
+  '', '#ec2929', '#ff6421', '#ffdd1b', '#00c507', '#3694ff', '#73ceff',
   '#9333ea', '#db2777', '#000000', '#6b7280',
 ]
 function setTextColor(color: string) {
   if (color) { cmd()?.setColor(color).run() }
   else { cmd()?.unsetColor().run() }
-  showColorPicker.value = false
 }
 
 interface ToolbarButton {
@@ -138,27 +148,28 @@ const toolbarButtons: ToolbarButton[][] = [
     </template>
 
     <div class="w-px h-5 bg-[var(--border)] mx-1" />
-    <div class="relative">
-      <button type="button" :title="t('markdownEditor.highlight')" :class="['p-1.5 rounded text-sm transition-colors', isActive('highlight') ? 'text-primary bg-primary/10' : 'text-[var(--text)] hover:bg-[var(--bg-accent)]']" @mousedown.prevent @click="showHighlightPicker = !showHighlightPicker; showColorPicker = false">
-        <font-awesome-icon :icon="['fas', 'highlighter']" class="w-3.5 h-3.5" />
-      </button>
-      <div v-if="showHighlightPicker" class="absolute top-full left-0 mt-1 z-30 p-2 rounded-lg shadow-lg border border-[var(--border)] bg-[var(--bg)] grid grid-cols-5 gap-2" style="min-width: 160px">
-        <button v-for="c in highlightColors" :key="c || 'remove'" type="button" class="w-7 h-7 rounded-full border border-[var(--border)] transition-transform hover:scale-110 cursor-pointer flex items-center justify-center" :style="{ background: c || 'var(--bg-accent)' }" :title="c || t('common.remove')" @mousedown.prevent @click="setHighlightColor(c)">
-          <font-awesome-icon v-if="!c" :icon="['fas', 'xmark']" class="w-3 h-3 text-[var(--text-muted)]" />
-        </button>
-      </div>
-    </div>
-
-    <div class="relative">
-      <button type="button" :title="t('markdownEditor.textColor')" class="p-1.5 rounded text-sm transition-colors text-[var(--text)] hover:bg-[var(--bg-accent)]" @mousedown.prevent @click="showColorPicker = !showColorPicker; showHighlightPicker = false">
-        <font-awesome-icon :icon="['fas', 'palette']" class="w-3.5 h-3.5" />
-      </button>
-      <div v-if="showColorPicker" class="absolute top-full left-0 mt-1 z-30 p-2 rounded-lg shadow-lg border border-[var(--border)] bg-[var(--bg)] grid grid-cols-5 gap-2" style="min-width: 160px">
-        <button v-for="c in textColors" :key="c || 'reset'" type="button" class="w-7 h-7 rounded-full border border-[var(--border)] transition-transform hover:scale-110 cursor-pointer flex items-center justify-center" :style="{ background: c || 'var(--bg-accent)' }" :title="c || t('markdownEditor.defaultColor')" @mousedown.prevent @click="setTextColor(c)">
-          <font-awesome-icon v-if="!c" :icon="['fas', 'xmark']" class="w-3 h-3 text-[var(--text-muted)]" />
-        </button>
-      </div>
-    </div>
+    <EditorColorPicker
+      :open="openPicker === 'highlight'"
+      :icon="['fas', 'highlighter']"
+      :label="t('markdownEditor.highlight')"
+      :swatches="highlightColors"
+      :reset-label="t('common.remove')"
+      :current="currentColor('highlight')"
+      :active="isActive('highlight')"
+      @update:open="open => setPickerOpen('highlight', open)"
+      @pick="setHighlightColor"
+    />
+    <EditorColorPicker
+      :open="openPicker === 'textColor'"
+      :icon="['fas', 'palette']"
+      :label="t('markdownEditor.textColor')"
+      :swatches="textColors"
+      :reset-label="t('markdownEditor.defaultColor')"
+      :current="currentColor('textStyle')"
+      :active="currentColor('textStyle') !== null"
+      @update:open="open => setPickerOpen('textColor', open)"
+      @pick="setTextColor"
+    />
 
     <EditorFontPicker v-if="fonts" :editor="editor" :fonts="fonts" />
   </div>

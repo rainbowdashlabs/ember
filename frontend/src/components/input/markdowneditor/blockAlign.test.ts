@@ -69,7 +69,7 @@ describe('block alignment', () => {
     it('keeps a placeholder, a font and a colour inside an aligned paragraph', () => {
         const markdown = '<div data-align="center">\n\n'
             + 'Hallo {{member.firstName}}, <span data-font="Hausschrift">in **Schrift**</span> '
-            + 'und <span style="color: rgb(255, 0, 0)">rot</span>.\n\n</div>'
+            + 'und <span style="color: #ff0000">rot</span>.\n\n</div>'
 
         expect(stored(open(markdown))).toBe(markdown)
     })

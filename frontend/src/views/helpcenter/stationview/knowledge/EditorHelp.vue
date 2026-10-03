@@ -110,6 +110,10 @@ Normaler Absatztext darunter.`)
       <p>{{ t('helpCenter.kb.editor.headingsText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.kb.editor.colorTitle')">
+      <p>{{ t('helpCenter.kb.editor.colorText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.kb.editor.alignTitle')">
       <p>{{ t('helpCenter.kb.editor.alignText') }}</p>
     </HelpSection>

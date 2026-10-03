@@ -3852,6 +3852,8 @@ volumes:
                 formattingText: 'Du kannst Text fett, kursiv, unterstrichen, durchgestrichen oder als Code markieren. Markiere dazu den Text und klicke auf den passenden Button - oder nutze die Schnellformatierung, die bei markiertem Text erscheint.',
                 headingsTitle: 'Überschriften',
                 headingsText: 'Es gibt drei Überschriftenebenen (H1, H2, H3) und normalen Absatztext (P). Klicke auf den passenden Button, um die aktuelle Zeile umzuwandeln.',
+                colorTitle: 'Farben',
+                colorText: 'Textfarbe und Hervorhebung bieten eine Auswahl fertiger Farben. Jede andere Farbe gibst du als Hex-Code ein, etwa #1a2b3c oder kurz #abc, und bestätigst mit Enter, oder du wählst sie im Farbwähler daneben. Das Kreuz nimmt die Farbe wieder weg. Seiten, Artikel und PDFs zeigen die Farbe genauso.',
                 alignTitle: 'Ausrichtung',
                 alignText: 'Mit den vier Ausrichtungs-Buttons stellst du den Absatz oder die Überschrift, in der der Cursor steht, linksbündig, zentriert, rechtsbündig oder in den Blocksatz. Hast du mehrere Absätze markiert, gilt die Ausrichtung für alle. Die Seite, der Artikel und das PDF zeigen den Text genauso. In einer Tabelle gibt es keine Ausrichtung.',
                 listsTitle: 'Listen und Zitate',
