@@ -1696,9 +1696,11 @@ volumes:
             generateTitle: 'Ein Dokument erstellen',
             generateText: 'Auf der Seite eines Mitglieds öffnest du im Reiter Dokumente „Dokument erstellen", '
                 + 'wählst die Vorlage und siehst sofort eine Vorschau. Mit „Erstellen" wird das PDF abgelegt. Aus '
-                + 'dem Editor einer Vorlage geht das genauso, über die Vorschau.',
+                + 'dem Editor einer Vorlage geht das genauso, über die Vorschau. Unter Dokumente → Ablage gibt es '
+                + '„Dokument erstellen" auch, dort wählst du zusätzlich das Mitglied.',
             missingText: 'Fehlen Angaben, nennt Ember sie vor dem Erstellen. Du kannst trotzdem erstellen, die '
-                + 'Lücken stehen dann als Linien zum Ausfüllen im Dokument.',
+                + 'Lücken stehen dann als Linien zum Ausfüllen im Dokument. Vorlagen für Termine stehen beim '
+                + 'Erstellen für ein Mitglied nicht zur Wahl, ihnen fehlen ohne Termin die Angaben.',
             selfServiceTitle: 'Selbst erstellen lassen',
             selfServiceText: 'Ist eine Vorlage zum Selbst-Erstellen freigegeben, finden Mitglieder sie unter Dokumente → '
                 + 'Meine Dokumente neben ihren Dokumenten. Erziehungsberechtigte erstellen sie dort für jedes Kind. Fehlen Angaben im '
@@ -1910,6 +1912,12 @@ volumes:
                 + 'abschalten, dann verschwindet die Seite aus der Navigation. Der Datenexport '
                 + 'eines Mitglieds enthält seine Dokumente trotzdem: eine abgeschaltete Seite ist '
                 + 'kein Grund, jemandem seine eigenen Daten vorzuenthalten.',
+            generateTitle: 'Ein Dokument aus einer Vorlage erstellen',
+            generateText: 'Mit „Dokument erstellen" in der Leiste oben wählst du eine Vorlage und das Mitglied, '
+                + 'für das sie gedacht ist. Die Vorschau zeigt das Dokument und nennt fehlende Angaben. Mit '
+                + '„Erstellen" liegt es beim Mitglied, und die Ablage öffnet es gleich.',
+            generateRightsText: 'Den Button sieht, wer „Mitgliederdokumente verwalten" hat. Vorlagen für Termine '
+                + 'stehen hier nicht zur Wahl, weil ihnen ohne Termin die Angaben fehlen.',
             unboundTitle: 'Die Ablage der Wache finden',
             unboundText: 'Auf der Seite gibt es den Schalter „Nur ohne Mitglied". Er zeigt genau '
                 + 'die Dokumente, die zu niemandem gehören, also Verträge, Prüfberichte und was '

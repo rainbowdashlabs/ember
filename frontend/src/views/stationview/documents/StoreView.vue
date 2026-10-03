@@ -22,6 +22,7 @@ import {fromMember} from '@/components/input/select/memberOption'
 import DocumentGrid from '@/components/documents/DocumentGrid.vue'
 import DocumentModal from '@/components/documents/DocumentModal.vue'
 import DocumentUploadModal from '@/components/documents/DocumentUploadModal.vue'
+import GenerateDocumentModal from '@/components/documents/GenerateDocumentModal.vue'
 import {usePermissions} from '@/composables/usePermissions'
 import {documents as documentsApi, stationMembers} from '@/api'
 import type {DocumentFilter, DocumentUpload} from '@/api/documents'
@@ -50,8 +51,12 @@ const allTags = ref<string[]>([])
 const members = ref<MemberWithName[]>([])
 
 const showUpload = ref(false)
+const showGenerate = ref(false)
 const showDocument = ref(false)
 const opened = ref<MemberDocumentResponse | null>(null)
+
+/** The document just generated here, opened as soon as the list that holds it arrives. */
+const awaitedDocument = ref<number | null>(null)
 
 /** How many documents a page holds, which the store answers with rather than being told. */
 const pageSize = 24
@@ -171,6 +176,24 @@ function open(document: MemberDocumentResponse) {
 }
 
 /**
+ * Shows a document generated from the store: the first page, where the newest document stands, and
+ * the document itself opened on it. A filter that leaves the document out leaves it closed; the dialog
+ * has already said it was filed.
+ */
+async function showFiled(documentId: number) {
+  awaitedDocument.value = documentId
+  if (page.value === 0) await reload()
+  else page.value = 0
+}
+
+watch(documents, list => {
+  if (awaitedDocument.value === null) return
+  const filed = list.find(document => document.id === awaitedDocument.value)
+  awaitedDocument.value = null
+  if (filed) open(filed)
+})
+
+/**
  * Runs a change to one document and catches the list up afterwards.
  *
  * <p>Caught apart: by the time the list is fetched again the change is written, and a reader told that
@@ -233,9 +256,11 @@ async function selectAll() {
           v-model:departed="departedOnly"
           :member-options="memberOptions"
           :can-upload="canEdit"
+          :can-generate="canEdit"
           :reads-members="readsMembers"
           @search-input="onSearch"
           @upload="showUpload = true"
+          @generate="showGenerate = true"
       />
 
       <DocumentPruneBar
@@ -283,6 +308,7 @@ async function selectAll() {
         :all-tags="allTags"
         @upload="upload"
     />
+    <GenerateDocumentModal v-if="showGenerate" v-model="showGenerate" :members="memberOptions" @filed="showFiled"/>
     <DocumentModal
         v-model="showDocument"
         :document="opened"
