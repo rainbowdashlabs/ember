@@ -58566,7 +58566,7 @@ export interface components {
             name?: string;
         };
         /** @enum {string} */
-        FieldType: "TEXT" | "LONG_TEXT" | "NUMBER" | "DATE" | "TIME" | "BOOLEAN" | "CHOICE" | "URL" | "MEMBER" | "MEMBER_LIST" | "BIRTH_DATE" | "EXPIRY_DATE" | "AGE" | "SECTION" | "SPACER" | "LOCATION" | "MEMBER_OF_GROUP" | "MEMBER_LIST_OF_GROUP" | "MEMBER_OF_TYPE" | "MEMBER_LIST_OF_TYPE" | "MEMBER_OF_TAG" | "MEMBER_LIST_OF_TAG" | "LANE_ASSIGNEE";
+        FieldType: "TEXT" | "LONG_TEXT" | "NUMBER" | "DATE" | "TIME" | "BOOLEAN" | "CHOICE" | "GENDER" | "URL" | "MEMBER" | "MEMBER_LIST" | "BIRTH_DATE" | "EXPIRY_DATE" | "AGE" | "SECTION" | "SPACER" | "LOCATION" | "MEMBER_OF_GROUP" | "MEMBER_LIST_OF_GROUP" | "MEMBER_OF_TYPE" | "MEMBER_LIST_OF_TYPE" | "MEMBER_OF_TAG" | "MEMBER_LIST_OF_TAG" | "LANE_ASSIGNEE";
         FieldUpdateRequest: {
             config?: components["schemas"]["FieldConfig"];
             label?: string;
@@ -62219,6 +62219,11 @@ export interface components {
             notifyOnChange: boolean;
             options: string[] | null;
             overview: boolean;
+            pronouns: {
+                [key: string]: {
+                    [key: string]: components["schemas"]["PronounSet"];
+                };
+            } | null;
             reminderDays: number[] | null;
             remindManagement: boolean | null;
             remindMember: boolean | null;
@@ -62253,6 +62258,12 @@ export interface components {
         };
         /** @enum {string} */
         PronounForm: "ER" | "SIE" | "NAME";
+        PronounSet: {
+            dative: string | null;
+            object: string | null;
+            possessive: string | null;
+            subject: string | null;
+        };
         PronounSource: {
             answers: {
                 [key: string]: components["schemas"]["PronounForm"];
@@ -66905,6 +66916,7 @@ export type ProfileFieldScope = components['schemas']['ProfileFieldScope'];
 export type ProfileFieldTarget = components['schemas']['ProfileFieldTarget'];
 export type ProfileFieldValue = components['schemas']['ProfileFieldValue'];
 export type PronounForm = components['schemas']['PronounForm'];
+export type PronounSet = components['schemas']['PronounSet'];
 export type PronounSource = components['schemas']['PronounSource'];
 export type ProtocolChecksRequest = components['schemas']['ProtocolChecksRequest'];
 export type ProtocolDetailResponse = components['schemas']['ProtocolDetailResponse'];
@@ -67723,6 +67735,7 @@ export const FieldType = {
     CHOICE: "CHOICE",
     DATE: "DATE",
     EXPIRY_DATE: "EXPIRY_DATE",
+    GENDER: "GENDER",
     LANE_ASSIGNEE: "LANE_ASSIGNEE",
     LOCATION: "LOCATION",
     LONG_TEXT: "LONG_TEXT",

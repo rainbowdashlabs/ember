@@ -51285,7 +51285,7 @@
       },
       "FieldType" : {
         "type" : "string",
-        "enum" : [ "TEXT", "LONG_TEXT", "NUMBER", "DATE", "TIME", "BOOLEAN", "CHOICE", "URL", "MEMBER", "MEMBER_LIST", "BIRTH_DATE", "EXPIRY_DATE", "AGE", "SECTION", "SPACER", "LOCATION", "MEMBER_OF_GROUP", "MEMBER_LIST_OF_GROUP", "MEMBER_OF_TYPE", "MEMBER_LIST_OF_TYPE", "MEMBER_OF_TAG", "MEMBER_LIST_OF_TAG", "LANE_ASSIGNEE" ]
+        "enum" : [ "TEXT", "LONG_TEXT", "NUMBER", "DATE", "TIME", "BOOLEAN", "CHOICE", "GENDER", "URL", "MEMBER", "MEMBER_LIST", "BIRTH_DATE", "EXPIRY_DATE", "AGE", "SECTION", "SPACER", "LOCATION", "MEMBER_OF_GROUP", "MEMBER_LIST_OF_GROUP", "MEMBER_OF_TYPE", "MEMBER_LIST_OF_TYPE", "MEMBER_OF_TAG", "MEMBER_LIST_OF_TAG", "LANE_ASSIGNEE" ]
       },
       "FieldUpdateRequest" : {
         "type" : "object",
@@ -61762,9 +61762,18 @@
           },
           "remindManagement" : {
             "type" : [ "boolean", "null" ]
+          },
+          "pronouns" : {
+            "type" : [ "object", "null" ],
+            "additionalProperties" : {
+              "type" : "object",
+              "additionalProperties" : {
+                "$ref" : "#/components/schemas/PronounSet"
+              }
+            }
           }
         },
-        "required" : [ "description", "notifyOnChange", "overview", "options", "defaultValue", "computed", "sourceField", "sourceFieldId", "ageMode", "showAge", "warnFromDays", "reminderDays", "repeatEveryDays", "remindMember", "remindManagement" ]
+        "required" : [ "description", "notifyOnChange", "overview", "options", "defaultValue", "computed", "sourceField", "sourceFieldId", "ageMode", "showAge", "warnFromDays", "reminderDays", "repeatEveryDays", "remindMember", "remindManagement", "pronouns" ]
       },
       "ProfileFieldRequest" : {
         "type" : "object",
@@ -61820,6 +61829,24 @@
       "PronounForm" : {
         "type" : "string",
         "enum" : [ "ER", "SIE", "NAME" ]
+      },
+      "PronounSet" : {
+        "type" : "object",
+        "properties" : {
+          "subject" : {
+            "type" : [ "string", "null" ]
+          },
+          "object" : {
+            "type" : [ "string", "null" ]
+          },
+          "dative" : {
+            "type" : [ "string", "null" ]
+          },
+          "possessive" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "subject", "object", "dative", "possessive" ]
       },
       "PronounSource" : {
         "type" : "object",

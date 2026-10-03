@@ -85,6 +85,7 @@ class DocumentTemplateServiceTest extends RepositoryTestBase {
                 null,
                 null,
                 null,
+                null,
                 null);
         choiceField = profileFieldRepo
                 .create(station.id(), "Geschlecht", FieldType.CHOICE, config, false, false, null)

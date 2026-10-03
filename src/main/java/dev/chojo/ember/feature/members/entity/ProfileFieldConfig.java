@@ -10,6 +10,8 @@ import dev.chojo.ember.feature.question.QuestionSettings;
 import org.jspecify.annotations.Nullable;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 /**
  * What a profile field's question is made of, parsed from JSON.
@@ -47,6 +49,9 @@ import java.util.List;
  *                         new date is entered; nothing means once
  * @param remindMember     whether the member, and whoever looks after them, is reminded
  * @param remindManagement whether the member management is reminded
+ * @param pronouns         for a gender field, the pronouns each answer stands for, keyed by the answer and
+ *                         then by language ({@code de}, {@code en}). An answer or a language without
+ *                         pronouns uses the member's first name.
  */
 public record ProfileFieldConfig(
         @Nullable String description,
@@ -63,9 +68,24 @@ public record ProfileFieldConfig(
         @Nullable List<Integer> reminderDays,
         @Nullable Integer repeatEveryDays,
         @Nullable Boolean remindMember,
-        @Nullable Boolean remindManagement) {
+        @Nullable Boolean remindManagement,
+        @Nullable Map<String, Map<String, PronounSet>> pronouns) {
     private static final ProfileFieldConfig EMPTY = new ProfileFieldConfig(
-            null, false, false, null, null, false, null, null, null, null, null, null, null, null, null);
+            null, false, false, null, null, false, null, null, null, null, null, null, null, null, null, null);
+
+    /**
+     * The pronouns one answer of a gender field stands for in one language.
+     *
+     * @param answer   the answer as it is stored, or null where there is none
+     * @param language {@code de} or {@code en}
+     * @return the pronouns, or empty where the member's first name stands instead
+     */
+    public Optional<PronounSet> pronounsOf(@Nullable String answer, String language) {
+        if (answer == null || pronouns == null) return Optional.empty();
+        return Optional.ofNullable(pronouns.get(answer))
+                .map(byLanguage -> byLanguage.get(language))
+                .filter(set -> !set.saysNothing());
+    }
 
     /**
      * The settings of a field that names none.

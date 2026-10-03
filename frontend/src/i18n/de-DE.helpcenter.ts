@@ -1534,6 +1534,11 @@ volumes:
                 + 'und Ember erinnert rechtzeitig daran.',
             typeBoolean: 'Ja/Nein - Schalter.',
             typeEnum: 'Auswahl - Auswahl aus vorgegebenen Werten. Die Werte trägst du einzeln ein, einen pro Zeile; mit den Pfeilen änderst du ihre Reihenfolge.',
+            typeGender: 'Geschlecht - Eine Auswahl, deren Antworten sagen, mit welchen Pronomen Dokumente über '
+                + 'das Mitglied schreiben. Neu angelegt bringt sie männlich und weiblich mit, weitere Antworten '
+                + 'kommen dazu. Jede Antwort steht für er, sie, eigene Pronomen je Sprache oder den Vornamen. '
+                + 'Pro Wache gibt es ein Geschlechtsfeld, das eigene oder das des Verbands. Ein bestehendes '
+                + 'Auswahlfeld lässt sich zum Geschlecht umstellen; die gegebenen Antworten bleiben erhalten.',
             typeAge: 'Alter - Wird automatisch aus einem Datumsfeld berechnet.',
             typeSection: 'Überschrift - Kein Feld, sondern eine Zwischenüberschrift. Sie wird nach '
                 + 'nichts gefragt und steht in keinem Export.',

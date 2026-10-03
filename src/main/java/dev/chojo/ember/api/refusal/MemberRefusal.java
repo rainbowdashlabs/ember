@@ -766,7 +766,16 @@ public enum MemberRefusal implements Refusal {
 
     /** A sign-in with a one-time password whose time is up. */
     ONE_TIME_PASSWORD_EXPIRED(
-            207, HttpStatus.UNAUTHORIZED, "Your one-time password has expired. Ask your administration for a new one");
+            207, HttpStatus.UNAUTHORIZED, "Your one-time password has expired. Ask your administration for a new one"),
+
+    /** A second gender field at a station that already asks for one, its own or its association's, named after it. */
+    PROFILE_GENDER_ALREADY_ASKED(208, HttpStatus.BAD_REQUEST, Sentences.GENDER_ALREADY_ASKED),
+
+    /** A field other than a choice field turned into a gender field. */
+    PROFILE_GENDER_NOT_FROM_CHOICE(209, HttpStatus.BAD_REQUEST, Sentences.GENDER_NOT_FROM_CHOICE),
+
+    /** A pronoun of a gender field longer than a pronoun may be. */
+    PROFILE_PRONOUN_TOO_LONG(210, HttpStatus.BAD_REQUEST, Sentences.PRONOUN_TOO_LONG);
 
     private final Definition definition;
 

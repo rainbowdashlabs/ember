@@ -1,7 +1,7 @@
 {
   "version": 1,
   "schemaHash": "sha256:42a83c0c3b88cfa78da484c8a27b2ff1c98fac3cd8a946c8f4235801744552ea",
-  "generatedAt": "2026-10-03T09:32:26Z",
+  "generatedAt": "2026-10-03T13:01:43Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -19564,7 +19564,7 @@
           "type": "text",
           "nullable": false,
           "verified": true,
-          "description": "What kind of answer it takes, by its shared type name: TEXT, NUMBER, DATE, BOOLEAN, CHOICE, AGE, BIRTH_DATE, EXPIRY_DATE, SECTION or SPACER."
+          "description": "What kind of answer it takes, by its shared type name: TEXT, NUMBER, DATE, BOOLEAN, CHOICE, GENDER (a choice whose answers carry the pronouns documents use, one per station), AGE, BIRTH_DATE, EXPIRY_DATE, SECTION or SPACER."
         },
         {
           "name": "config",

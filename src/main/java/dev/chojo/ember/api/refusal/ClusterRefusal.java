@@ -687,7 +687,16 @@ public enum ClusterRefusal implements Refusal {
     CLUSTER_MEMBER_GROUP_NAME_TAKEN_ON_CREATE(173, HttpStatus.CONFLICT, Sentences.GROUP_NAME_TAKEN),
 
     /** A member group renamed to a name another member group of the cluster already has, whatever the case. */
-    CLUSTER_MEMBER_GROUP_NAME_TAKEN_ON_CHANGE(174, HttpStatus.CONFLICT, Sentences.GROUP_NAME_TAKEN);
+    CLUSTER_MEMBER_GROUP_NAME_TAKEN_ON_CHANGE(174, HttpStatus.CONFLICT, Sentences.GROUP_NAME_TAKEN),
+
+    /** A second gender field of an association, or one where a station of it already asks its own. */
+    CLUSTER_PROFILE_GENDER_ALREADY_ASKED(175, HttpStatus.BAD_REQUEST, Sentences.GENDER_ALREADY_ASKED),
+
+    /** An association field other than a choice field turned into a gender field. */
+    CLUSTER_PROFILE_GENDER_NOT_FROM_CHOICE(176, HttpStatus.BAD_REQUEST, Sentences.GENDER_NOT_FROM_CHOICE),
+
+    /** A pronoun of an association's gender field longer than a pronoun may be. */
+    CLUSTER_PROFILE_PRONOUN_TOO_LONG(177, HttpStatus.BAD_REQUEST, Sentences.PRONOUN_TOO_LONG);
 
     private final Definition definition;
 

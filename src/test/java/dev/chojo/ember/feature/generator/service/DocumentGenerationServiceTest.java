@@ -135,6 +135,7 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
                 null,
                 null,
                 null,
+                null,
                 null);
         genderField = profileFieldRepo
                 .create(station.id(), "Geschlecht", FieldType.CHOICE, choices, false, false, null)

@@ -48,7 +48,8 @@ import java.util.stream.Collectors;
 @Singleton
 public class FormRespondents {
     /** The kinds of profile field that fall into a few groups and so can be grouped and filtered by. */
-    static final Set<FieldType> GROUPABLE_FIELDS = Set.of(FieldType.CHOICE, FieldType.BOOLEAN, FieldType.NUMBER);
+    static final Set<FieldType> GROUPABLE_FIELDS =
+            Set.of(FieldType.CHOICE, FieldType.GENDER, FieldType.BOOLEAN, FieldType.NUMBER);
 
     private final StationMemberRepository members;
     private final MemberGroupRepository groups;

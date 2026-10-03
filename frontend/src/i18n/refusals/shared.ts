@@ -74,3 +74,6 @@ export const ONE_TIME_PASSWORD_FOR_YOURSELF = 'Für dein eigenes Konto kannst du
     + 'Ändere dein Passwort in deinen Kontoeinstellungen'
 export const ONE_TIME_PASSWORD_PASSKEYS_ONLY = 'Auf dieser Instanz meldet man sich nur mit Passkeys an, '
     + 'es wurde kein Einmalpasswort erstellt'
+export const GENDER_ALREADY_ASKED = 'Eine Wache hat ein Geschlechtsfeld, und es gibt schon eines, es wurde nichts gespeichert'
+export const GENDER_NOT_FROM_CHOICE = 'Nur ein Auswahlfeld kann zu einem Geschlechtsfeld werden, es wurde nichts gespeichert'
+export const PRONOUN_TOO_LONG = 'Ein Pronomen ist länger, als ein Pronomen sein kann, es wurde nichts gespeichert'

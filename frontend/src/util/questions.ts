@@ -62,6 +62,7 @@ export function questionKindOf(
         case FieldType.BOOLEAN:
             return QuestionKinds.BOOLEAN
         case FieldType.CHOICE:
+        case FieldType.GENDER:
             return QuestionKinds.CHOICE
         case FieldType.URL:
             return QuestionKinds.URL

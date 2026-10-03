@@ -26,6 +26,22 @@ COMMENT ON COLUMN ember_schema.member_manager.created_at IS
 COMMENT ON COLUMN ember_schema.member_manager.created_by IS
     'The member who linked the guardian. NULL where nobody did (an import, a waiting list, a link made before this was recorded) or once they are gone.';
 
+ALTER TABLE ember_schema.profile_field
+    DROP CONSTRAINT profile_field_type_known;
+ALTER TABLE ember_schema.profile_field
+    ADD CONSTRAINT profile_field_type_known CHECK (field_type IN (
+        'TEXT', 'NUMBER', 'DATE', 'BOOLEAN', 'CHOICE', 'GENDER', 'AGE', 'BIRTH_DATE', 'EXPIRY_DATE', 'SECTION',
+        'SPACER'));
+
+ALTER TABLE ember_schema.cluster_profile_field
+    DROP CONSTRAINT cluster_profile_field_type_known;
+ALTER TABLE ember_schema.cluster_profile_field
+    ADD CONSTRAINT cluster_profile_field_type_known CHECK (field_type IN (
+        'TEXT', 'NUMBER', 'DATE', 'BOOLEAN', 'CHOICE', 'GENDER', 'AGE', 'EXPIRY_DATE', 'SECTION', 'SPACER'));
+
+COMMENT ON COLUMN ember_schema.profile_field.field_type
+    IS 'What kind of answer it takes, by its shared type name: TEXT, NUMBER, DATE, BOOLEAN, CHOICE, GENDER (a choice whose answers carry the pronouns documents use, one per station), AGE, BIRTH_DATE, EXPIRY_DATE, SECTION or SPACER.';
+
 CREATE TABLE IF NOT EXISTS ember_schema.document_template
 (
     id                         SERIAL PRIMARY KEY,

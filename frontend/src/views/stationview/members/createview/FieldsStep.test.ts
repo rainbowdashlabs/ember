@@ -11,7 +11,7 @@ import {FieldType, type ProfileField, type ProfileFieldConfig} from '@/api/gener
 const NO_SETTINGS: ProfileFieldConfig = {
     ageMode: null, computed: false, defaultValue: null, description: null, notifyOnChange: false, options: null,
     overview: false, reminderDays: null, remindManagement: null, remindMember: null, repeatEveryDays: null,
-    showAge: null, sourceField: null, sourceFieldId: null, warnFromDays: null,
+    showAge: null, sourceField: null, sourceFieldId: null, warnFromDays: null, pronouns: null,
 }
 
 function question(id: number, name: string, fieldType: FieldType, required = false): ProfileField {

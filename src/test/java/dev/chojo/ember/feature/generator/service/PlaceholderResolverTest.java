@@ -88,7 +88,7 @@ class PlaceholderResolverTest extends RepositoryTestBase {
 
     private static int field(String name, FieldType type, List<String> options) {
         var config = new ProfileFieldConfig(
-                null, false, false, options, null, false, null, null, null, null, null, null, null, null, null);
+                null, false, false, options, null, false, null, null, null, null, null, null, null, null, null, null);
         return profileFieldRepo
                 .create(station.id(), name, type, config, false, false, null)
                 .id();

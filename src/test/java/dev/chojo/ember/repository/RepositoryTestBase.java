@@ -159,6 +159,7 @@ import dev.chojo.ember.feature.members.repository.SavedFilterRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.repository.UserSettingsRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
+import dev.chojo.ember.feature.members.service.GenderFields;
 import dev.chojo.ember.feature.members.service.GroupMembershipService;
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
@@ -593,7 +594,11 @@ public abstract class RepositoryTestBase {
                 clusterStationGroupRepo);
         clusterStationGroupService = new ClusterStationGroupService(clusterStationGroupRepo, clusterRepo, stationRepo);
         clusterProfileFieldService = new ClusterProfileFieldService(
-                clusterProfileFieldRepo, clusterRepo, clusterStationGroupRepo, profileFieldCore);
+                clusterProfileFieldRepo,
+                clusterRepo,
+                clusterStationGroupRepo,
+                profileFieldCore,
+                new GenderFields(profileFieldCore, stationRepo));
         clusterStorageQuotaRepo = new ClusterStorageQuotaRepository();
         clusterGovernanceService = new ClusterGovernanceService(
                 clusterRepo, clusterStationGroupRepo, stationRepo, new DomainEventBus(Set.of()));
@@ -848,7 +853,13 @@ public abstract class RepositoryTestBase {
      */
     protected static ProfileFieldService newProfileFieldService(ProfileFieldCore core) {
         return new ProfileFieldService(
-                profileFieldRepo, profileFieldChangeRepo, stationMemberRepo, accountRepo, memberGroupRepo, core);
+                profileFieldRepo,
+                profileFieldChangeRepo,
+                stationMemberRepo,
+                accountRepo,
+                memberGroupRepo,
+                core,
+                new GenderFields(core, stationRepo));
     }
 
     /**
