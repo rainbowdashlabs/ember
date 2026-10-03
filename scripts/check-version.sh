@@ -7,8 +7,10 @@
 #   tag vX.Y.Z                          the tag equals the version
 #   release/vX.Y.Z, or a pull request   the version is X.Y.Z
 #     into it or from it into main
-#   fix/**, or a pull request into      the version is one patch above the newest release reachable
-#     main                              from this commit
+#   a pull request into main            the version is one patch above the newest release reachable
+#                                       from this commit
+#   fix/**                              the same for an urgent fix headed for main, or the version of
+#                                       an open release branch for a fix that ships with that release
 #   main, renovate/**, or a pull        the same, or still the newest release: dependency updates
 #     request from renovate/** into     collect on main without a bump until the next fix
 #     main
@@ -70,12 +72,28 @@ require_next_patch_or_newest() {
     require_next_patch
 }
 
-require_open_release_version() {
-    local branches
-    branches=$(git ls-remote --heads origin 'release/v*' | sed 's|.*refs/heads/||' |
+open_release_branches() {
+    git ls-remote --heads origin 'release/v*' | sed 's|.*refs/heads/||' |
         while read -r branch; do
             if [ -z "$(released_commit "${branch#release/v}")" ]; then echo "$branch"; fi
-        done)
+        done
+}
+
+require_hotfix_or_release_fix() {
+    local branch
+    for branch in $(open_release_branches); do
+        if [ "$version" = "${branch#release/v}" ]; then
+            echo "Version $version is the one of the open release branch $branch, so this fix ships with that release."
+            require_unreleased
+            return
+        fi
+    done
+    require_next_patch
+}
+
+require_open_release_version() {
+    local branches
+    branches=$(open_release_branches)
     case $(printf '%s' "$branches" | grep -c . || true) in
         0) echo "No release branch is open, so the version is only checked against the releases." ;;
         1)
@@ -119,7 +137,7 @@ case "${EVENT_NAME:-push}" in
     *)
         case "$REF_NAME" in
             main | renovate/*) require_next_patch_or_newest ;;
-            fix/*) require_next_patch ;;
+            fix/*) require_hotfix_or_release_fix ;;
             release/v*) require_release_branch_version "$REF_NAME" ;;
             feature/*) require_open_release_version ;;
             *) require_unreleased ;;

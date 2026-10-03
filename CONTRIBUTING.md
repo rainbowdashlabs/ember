@@ -7,10 +7,12 @@
 | `main` | What is released, plus fixes waiting for their release | |
 | `release/vX.Y.Z` | The next feature release | `main`, once, to release it |
 | `feature/<name>` | One feature | the open `release/vX.Y.Z`, squash-merged |
-| `fix/<name>` | One fix | `main`, squash-merged |
+| `fix/<name>` | One fix | `main` when it is urgent, otherwise the open `release/vX.Y.Z`; squash-merged |
 
-A feature never goes into `main` directly, and a fix never goes into a release branch: it reaches the
-release branch by the rebase described below. A pull request into any other branch fails CI.
+A feature never goes into `main` directly. A fix that cannot wait goes into `main` and is released on
+its own as a patch; it reaches the release branch by the rebase described below. A fix that can wait
+for the next feature release goes into the open release branch, branched from it, and carries its
+version. A pull request into any other branch fails CI.
 
 Dependency updates from Renovate go into `main` without a version bump. They collect there and ship
 with the next fix, which bumps the patch as usual.
@@ -21,8 +23,9 @@ The version lives in `build.gradle.kts`. CI checks it on every push and pull req
 
 - A release branch `release/vX.Y.Z` carries the version `X.Y.Z` from its first commit on.
 - A feature branch carries the version of the open release branch.
-- A fix raises the patch above the newest release: after `v26.20.1`, a fix carries `26.20.2`.
-  Several fixes merged before that release share the same version.
+- An urgent fix into `main` raises the patch above the newest release: after `v26.20.1`, it carries
+  `26.20.2`. Several fixes merged before that release share the same version.
+- A fix into the open release branch carries that branch's version, like a feature.
 - A version that is already tagged is never used again.
 
 ## Migrations

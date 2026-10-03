@@ -63,11 +63,22 @@ expect_pass "a feature while no release branch is open" check EVENT_NAME=push RE
 git push -q origin 'v26.20.0^{commit}:refs/heads/release/v26.20.0'
 git push -q origin HEAD:refs/heads/release/v26.21.0
 expect_pass "a feature at the open release branch's version, a released one left over" check EVENT_NAME=push REF_NAME=feature/thing
+expect_pass "a fix that waits for the open release, at its version" check EVENT_NAME=push REF_NAME=fix/thing
+expect_pass "a fix pull request into the open release branch" \
+    check EVENT_NAME=pull_request BASE_REF=release/v26.21.0 HEAD_REF=fix/thing
 set_version 26.20.1
 commit_all "Feature on the wrong version"
 expect_fail "a feature at another version than the open release branch" \
     "released with release/v26.21.0, so the version should be 26.21.0, not 26.20.1" \
     check EVENT_NAME=push REF_NAME=feature/thing
+expect_pass "an urgent fix one patch above the release while a release branch is open" \
+    check EVENT_NAME=push REF_NAME=fix/thing
+set_version 26.23.0
+commit_all "Fix on no version at all"
+expect_fail "a fix neither one patch above the release nor at an open release branch's version" \
+    "should be 26.20.1" check EVENT_NAME=push REF_NAME=fix/thing
+set_version 26.20.1
+commit_all "Back on the patch"
 git push -q origin HEAD:refs/heads/release/v26.22.0
 expect_pass "a feature while several release branches are open" check EVENT_NAME=push REF_NAME=feature/thing
 
