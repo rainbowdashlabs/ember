@@ -95,6 +95,20 @@ class LetterFormattingTest extends RepositoryTestBase {
         assertTrue(sized > normal * 2, () -> "sized at " + sized + ", normal at " + normal);
     }
 
+    @Test
+    void sizedWordsPrintInTheirSizeInTheHeaderAndTheFooterToo() throws IOException {
+        var sized = row("klein <span data-size=\"32\">G</span>");
+        var letter = new LetterContent(List.of(sized), List.of(sized), List.of(sized), LetterPage.defaults());
+
+        var words = TestPdfs.positions(render(letter), 1).stream()
+                .filter(position -> position.getUnicode().equals("G"))
+                .toList();
+
+        assertEquals(3, words.size(), "one in the header, the body and the footer");
+        words.forEach(
+                word -> assertEquals(24, word.getFontSizeInPt(), 0.5, () -> "printed at " + word.getFontSizeInPt()));
+    }
+
     private static String aligned(String alignment, String markdown) {
         return "<div data-align=\"" + alignment + "\">\n\n" + markdown + "\n\n</div>";
     }
@@ -120,7 +134,10 @@ class LetterFormattingTest extends RepositoryTestBase {
     }
 
     private static byte[] render(ContentRow... rows) {
-        var letter = new LetterContent(List.of(), List.of(), List.of(rows), LetterPage.defaults());
+        return render(new LetterContent(List.of(), List.of(), List.of(rows), LetterPage.defaults()));
+    }
+
+    private static byte[] render(LetterContent letter) {
         return renderer.render(new LetterRenderer.LetterJob(
                 station,
                 station.stationId(),
