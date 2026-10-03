@@ -8,6 +8,7 @@ import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import type {DiscoveredStationResponse} from '@/api/generated/schema'
+import {placeLine} from '@/util/format'
 
 interface EnrichedStation extends DiscoveredStationResponse {
   distance: number | null
@@ -38,7 +39,7 @@ const {t} = useI18n()
       </div>
     </div>
     <p v-if="station.city || station.country" class="text-xs text-(--text-muted)">
-      {{ [station.city, station.country].filter(Boolean).join(', ') }}
+      {{ placeLine({city: station.city, country: station.country}) }}
     </p>
   </NeutralContainer>
 </template>

@@ -8,6 +8,7 @@ import {useI18n} from 'vue-i18n'
 import EntitySearchPicker from './EntitySearchPicker.vue'
 import {searchFederationStations} from '@/api/federation'
 import type {StationPickerResult} from '@/api/generated/schema'
+import {placeLine} from '@/util/format'
 
 const model = defineModel<string | null>()
 
@@ -30,7 +31,7 @@ const searchFn = async (q: string) => {
     return exclude.size === 0 ? results : results.filter(r => !exclude.has(r.stationUid))
 }
 const displayFn = (item: StationPickerResult) => item.name
-const subtitleFn = (item: StationPickerResult) => [item.city, item.country].filter(Boolean).join(', ')
+const subtitleFn = (item: StationPickerResult) => placeLine(item)
 const keyFn = (item: StationPickerResult) => item.stationUid
 const iconFn = (): string[] => ['fas', 'handshake']
 const isSelectableFn = (item: StationPickerResult) => item.selectable
