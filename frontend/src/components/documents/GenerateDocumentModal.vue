@@ -64,7 +64,7 @@ const ISSUER_SETTLE_MS = 400
 const {t} = useI18n()
 
 const templates = ref<DocumentTemplateSummary[]>([])
-const members = ref<MemberOption[]>([])
+const issuerCandidates = ref<MemberOption[]>([])
 const templateId = ref<number | null>(null)
 const chosenMember = ref('')
 const preview = ref<PreviewResponse | null>(null)
@@ -79,7 +79,7 @@ const loader = useAsyncLoader(async () => {
     stationMembers.listCompletions().catch(() => []),
   ])
   templates.value = recentlyUsedFirst(usable.filter(template => !template.forAppointments))
-  members.value = completions.map(fromCompletion)
+  issuerCandidates.value = completions.map(fromCompletion)
 })
 
 const drawing = useAsyncAction(async (id: number, member: number) => {
@@ -128,7 +128,7 @@ watchDebounced(issuer, () => {
         <MemberSelectInput v-model="chosenMember" :members="props.members" data-testid="generate-member"/>
       </LabelledField>
       <IssuerOverride v-if="templateIssuer" :key="templateId ?? 0" v-model="issuer" :template-issuer="templateIssuer"
-                      :members="members"/>
+                      :members="issuerCandidates"/>
       <GeneratedPreview v-if="preview && chosen" :preview="preview" :title="chosen.name"/>
       <ButtonRow pair align="end">
         <SecondaryButton @click="open = false">{{ t('common.cancel') }}</SecondaryButton>
