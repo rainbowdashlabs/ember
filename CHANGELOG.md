@@ -2,7 +2,7 @@
 
 ## v26.21.0
 
-Stations turn templates into documents for their members. A letter template is written in blocks like the station's pages, with placeholders for member data, guardians and the station, and blocks some members get and others do not. A PDF template fills an uploaded form, such as a consent form, in place, and an appointment can ask its participants to bring it. Letters and forms leave an empty signature field for each signer. Documents name people by their official names, and pronouns follow the new gender profile field or use the first name. Managers generate a document on the member page after a preview that names missing data, or for many members at once in the background. Members and guardians generate documents marked for self service on the profile page, with a waiting time between two documents. Every generated document is filed in the member's documents and recorded with the version of its template. Templates take their body from a Word or OpenDocument text and print in fonts that the instance, an association or the station uploaded. The guardians of a member have an order, which documents follow.
+Stations turn their own templates and those of their association into documents for their members. A letter template is written in blocks like the station's pages, with placeholders for member data, guardians and the station, and blocks some members get and others do not. A PDF template fills an uploaded form, such as a consent form, in place, and an appointment can ask its participants to bring it. Letters and forms leave an empty signature field for each signer. Documents name people by their official names, and pronouns follow the new gender profile field or use the first name. Managers generate a document on the member page after a preview that names missing data, or for many members at once in the background. Members and guardians generate documents marked for self service on the profile page, with a waiting time between two documents. Every generated document is filed in the member's documents and recorded with the version of its template. Templates take their body from a Word or OpenDocument text and print in fonts that the instance, an association or the station uploaded. The guardians of a member have an order, which documents follow.
 
 ### New Features
 
@@ -14,6 +14,7 @@ Stations turn templates into documents for their members. A letter template is w
 - **Members generate their own documents.** Templates marked for self service appear on the profile page, for oneself and for each child. A document is generated once the profile holds the data it needs, and the same document again only after a waiting time of 30 days by default.
 - **Documents for many members at once.** From the templates page or for members chosen in the member list, a template is generated for many members in a background run, after a preview that names the missing data of each. The run goes on when the page is closed and lists the members whose document could not be filed, with the reason.
 - **Documents to bring to appointments.** An appointment or an appointment template asks participants to bring documents from templates marked for appointments, which fill in the appointment's name, times and place. Every registered participant or their guardian downloads a filled copy on the appointment page, which is also filed in the participant's documents.
+- **Associations keep templates for their stations.** An association writes letter and PDF templates in its administration, and its stations use them next to their own without changing them. Each station decides whether and which of its members generate one for themselves, and placeholders fill from the member's own station and the association.
 - **Word and OpenDocument texts fill a template.** A .docx or .odt file fills the body of a letter template as a text block, and a picture on a line of its own becomes a picture block. Gaps written in brackets for a name or a date of birth become placeholders where their words are recognised.
 - **Own fonts for documents.** The instance, an association and a station each upload fonts for documents, one TrueType or OpenType file per style, and a font whose licence forbids embedding is refused. Letters print their body, header and footer in them and PDF templates each text field, with a station's own font taking the place of the association's or the instance's of the same name.
 
@@ -21,11 +22,14 @@ Stations turn templates into documents for their members. A letter template is w
 
 - **Guardians have an order.** On the member page, the guardians of a member are put in order with the arrows or by dragging. Documents name the first one as guardian 1 and the second as guardian 2.
 - **Imports read files for what they are.** Wiki and legal document imports recognise Word, OpenDocument and EPUB files by their content, also under another file name.
+- **Association profile fields in templates.** Templates name the answers to the profile fields of the association, and the name and address of the association. A station's templates offer the association's fields that reach the station.
+- **Media for associations.** The administration of an association has a media page for the pictures of its templates, wiki and news. Pictures a template uses are kept when unused files are cleared.
+- **Template writers see the whole media library.** Whoever writes document templates sees and organises every file in the station's media, not only their own uploads.
 
 ### Changes
 
 - **Station administrators manage document templates.** The station administrator permission now includes the new permission for document templates, which is also part of the documents permission.
-- **Association administrators manage fonts.** The association administrator permission includes the new association permission for document templates and fonts.
+- **Association administrators manage templates and fonts.** The association administrator permission includes the new association permission for document templates and fonts, which also opens the association's media.
 
 ## v26.20.1
 

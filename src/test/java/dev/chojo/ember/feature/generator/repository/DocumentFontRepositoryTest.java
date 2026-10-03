@@ -53,7 +53,8 @@ class DocumentFontRepositoryTest extends RepositoryTestBase {
         association = new Owner.Association(
                 clusterService.create("Schriftablage Verband", null).id());
         accountId = accountRepo.create("font-repo@test.com", "Rita", "Ablage").id();
-        author = stationMemberRepo.create(station.stationId(), accountId).id();
+        stationMemberRepo.create(station.stationId(), accountId);
+        author = accountId;
     }
 
     private static DocumentFont insert(Owner owner, String family, FontStyle style) {
@@ -64,7 +65,7 @@ class DocumentFontRepositoryTest extends RepositoryTestBase {
                 accountId);
     }
 
-    private static int template(Owner.Station owner, String name, TemplateContent content) {
+    private static int template(Owner owner, String name, TemplateContent content) {
         var draft = new DocumentTemplateDraft(
                 name,
                 "t",
@@ -79,7 +80,7 @@ class DocumentFontRepositoryTest extends RepositoryTestBase {
                 RestrictionMode.AND,
                 DocumentLanguage.DE,
                 content);
-        int id = templates.create(owner.stationId(), draft, author).id();
+        int id = templates.create(owner, draft, author).id();
         switch (content) {
             case LetterContent letter -> templates.writeLetter(id, letter);
             case PdfContent pdf -> pdfs.writeLayout(id, pdf.layout());
@@ -158,16 +159,19 @@ class DocumentFontRepositoryTest extends RepositoryTestBase {
         int archived = template(station, "Archiv", letterIn("Gesucht", null, null));
         templates.setArchived(archived, true, author);
         template(station, "Anders", letterIn("Anders", null, null));
+        int ofAssociation = template(association, "Verbandsbrief", letterIn("Gesucht", null, null));
 
         assertEquals(
                 List.of(field, header, body).stream().sorted().toList(),
-                fonts.templatesNaming("gesucht", List.of(station.stationId())).stream()
-                        .map(FontUse::templateId)
-                        .sorted()
-                        .toList());
-        var everywhere = fonts.templatesNaming("Gesucht", null);
-        assertEquals(4, everywhere.size());
-        assertTrue(everywhere.contains(new FontUse(footer, other.stationId(), "Fuss")));
-        assertTrue(fonts.templatesNaming("Gesucht", List.of()).isEmpty());
+                idsOf(fonts.templatesNaming("gesucht", station)));
+        var everywhere = fonts.templatesNaming("Gesucht", new Owner.Instance());
+        assertEquals(5, everywhere.size());
+        assertTrue(everywhere.contains(new FontUse(footer, other, "Fuss")));
+        assertTrue(everywhere.contains(new FontUse(ofAssociation, association, "Verbandsbrief")));
+        assertEquals(List.of(ofAssociation), idsOf(fonts.templatesNaming("Gesucht", association)));
+    }
+
+    private static List<Integer> idsOf(List<FontUse> uses) {
+        return uses.stream().map(FontUse::templateId).sorted().toList();
     }
 }

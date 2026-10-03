@@ -21,6 +21,9 @@ import dev.chojo.ember.feature.generator.service.DocumentTemplateService.Documen
 import dev.chojo.ember.feature.generator.service.DocumentTemplateService.PlaceholderCatalogueResponse;
 import dev.chojo.ember.feature.generator.service.LetterImportService;
 import dev.chojo.ember.feature.generator.service.PdfTemplateService;
+import dev.chojo.ember.feature.generator.service.TemplateStationUseService;
+import dev.chojo.ember.feature.generator.service.TemplateStationUseService.TemplateUseRequest;
+import dev.chojo.ember.feature.generator.service.TemplateStationUseService.TemplateUseResponse;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.owner.Owner;
@@ -54,7 +57,7 @@ import static org.mockito.Mockito.when;
  */
 class DocumentTemplateRoutesTest {
     private static final Owner.Station OWNER = new Owner.Station(3);
-    private static final DocumentTemplateResponse TEMPLATE = new DocumentTemplateResponse(
+    static final DocumentTemplateResponse TEMPLATE = new DocumentTemplateResponse(
             8,
             "Bescheinigung",
             DocumentTemplateKind.LETTER,
@@ -82,6 +85,7 @@ class DocumentTemplateRoutesTest {
 
     private DocumentTemplateService service;
     private PdfTemplateService pdfs;
+    private TemplateStationUseService uses;
     private RouteHarness harness;
 
     @BeforeEach
@@ -95,13 +99,15 @@ class DocumentTemplateRoutesTest {
         when(service.setArchived(any(), anyInt(), anyBoolean(), anyInt())).thenReturn(TEMPLATE);
         when(service.catalogue(any())).thenReturn(new PlaceholderCatalogueResponse(List.of()));
         pdfs = mock(PdfTemplateService.class);
-        harness = RouteHarness.serving(new DocumentTemplateRoutes(service, mock(LetterImportService.class), pdfs));
+        uses = mock(TemplateStationUseService.class);
+        harness =
+                RouteHarness.serving(new DocumentTemplateRoutes(service, mock(LetterImportService.class), pdfs, uses));
     }
 
     static DocumentTemplate template(int id) {
         return new DocumentTemplate(
                 id,
-                3,
+                OWNER,
                 DocumentTemplateKind.LETTER,
                 "Bescheinigung",
                 "t",
@@ -201,6 +207,35 @@ class DocumentTemplateRoutesTest {
         });
 
         verify(pdfs).upload(eq(OWNER), eq(8), any(), anyInt());
+    }
+
+    /** A station sets how it uses a template of its association, for its own station only. */
+    @Test
+    void anEditorOfTemplatesSetsHowTheStationUsesAnAssociationsTemplate() {
+        var use = new TemplateUseResponse(
+                12, "Verbandsbrief", DocumentTemplateKind.LETTER, false, true, 30, true, RestrictionAudience.empty());
+        when(uses.useOf(3, 12)).thenReturn(use);
+        when(uses.setUse(eq(3), eq(12), any())).thenReturn(use);
+
+        harness.run((server, client) -> {
+            var editor = harness.as(TestSessions.member(3, StationPermission.DOCUMENT_TEMPLATE_EDIT));
+            var filer = harness.as(TestSessions.member(3, StationPermission.DOCUMENT_EDIT_MEMBER));
+            assertTrue(json(client.get(PREFIX + "/document-templates/12/use", editor))
+                    .path("offered")
+                    .asBoolean());
+            assertEquals(
+                    200,
+                    client.put(PREFIX + "/document-templates/12/use", body("{\"selfService\": true}"), editor)
+                            .code());
+            assertEquals(
+                    403,
+                    client.put(PREFIX + "/document-templates/12/use", body("{\"selfService\": true}"), filer)
+                            .code());
+        });
+
+        var request = ArgumentCaptor.forClass(TemplateUseRequest.class);
+        verify(uses).setUse(eq(3), eq(12), request.capture());
+        assertTrue(request.getValue().selfService());
     }
 
     /** Filing documents for members is not the same as writing the templates they come from. */

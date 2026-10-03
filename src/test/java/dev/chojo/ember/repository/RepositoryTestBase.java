@@ -109,7 +109,10 @@ import dev.chojo.ember.feature.feed.repository.FeedMetricsRepository;
 import dev.chojo.ember.feature.feed.repository.FeedTokenRepository;
 import dev.chojo.ember.feature.form.repository.FormRepository;
 import dev.chojo.ember.feature.generator.repository.DocumentFontRepository;
+import dev.chojo.ember.feature.generator.service.PlaceholderCatalogue;
+import dev.chojo.ember.feature.generator.service.PlaceholderResolver;
 import dev.chojo.ember.feature.generator.service.font.FontLibrary;
+import dev.chojo.ember.feature.generator.service.store.OwnerStores;
 import dev.chojo.ember.feature.insights.repository.PageHitRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryArtRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryCheckRepository;
@@ -232,6 +235,7 @@ import org.mockito.Mockito;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 import java.nio.file.Path;
+import java.time.Clock;
 import java.util.Base64;
 import java.util.Map;
 import java.util.Optional;
@@ -438,7 +442,43 @@ public abstract class RepositoryTestBase {
      * @return the library
      */
     protected static FontLibrary newFontLibrary(StorageService storage) {
-        return new FontLibrary(new DocumentFontRepository(), clusterService, stationRepo, storage);
+        return new FontLibrary(new DocumentFontRepository(), newOwnerStores(), storage);
+    }
+
+    /**
+     * Where the owners of templates keep their files and pictures, over the shared repositories.
+     *
+     * @return the stores
+     */
+    protected static OwnerStores newOwnerStores() {
+        return new OwnerStores(clusterService, stationRepo);
+    }
+
+    /**
+     * What templates of a station or an association can name, over the shared repositories.
+     *
+     * @return the catalogue
+     */
+    protected static PlaceholderCatalogue newPlaceholderCatalogue() {
+        return new PlaceholderCatalogue(profileFieldRepo, clusterProfileFieldService, stationRepo, newOwnerStores());
+    }
+
+    /**
+     * Fills placeholders from the shared repositories, with today read from the given clock.
+     *
+     * @param clock what today is
+     * @return the resolver
+     */
+    protected static PlaceholderResolver newPlaceholderResolver(Clock clock) {
+        return new PlaceholderResolver(
+                stationRepo,
+                stationMemberRepo,
+                memberNameResolver,
+                profileFieldRepo,
+                profileFieldCore,
+                new GenderFields(profileFieldCore, stationRepo),
+                clusterService,
+                clock);
     }
 
     /**

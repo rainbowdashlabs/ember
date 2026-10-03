@@ -31,6 +31,7 @@ import dev.chojo.ember.feature.generator.entity.TextAlign;
 import dev.chojo.ember.feature.generator.repository.DocumentFontRepository;
 import dev.chojo.ember.feature.generator.repository.DocumentTemplateRepository;
 import dev.chojo.ember.feature.generator.repository.PdfTemplateRepository;
+import dev.chojo.ember.feature.generator.repository.TemplateStationUseRepository;
 import dev.chojo.ember.feature.generator.service.font.DocumentFontService;
 import dev.chojo.ember.feature.generator.service.font.DocumentFontService.DocumentFontsResponse;
 import dev.chojo.ember.feature.generator.service.font.DocumentFontService.FontFamilyOption;
@@ -93,7 +94,7 @@ class DocumentFontServiceTest extends RepositoryTestBase {
         storage = new StorageService(new StorageBackendResolver(backend), backend);
         quota = new StorageQuotaService(storageUsageRepo, new Storage(), new DomainEventBus(Set.of()));
         library = newFontLibrary(storage);
-        fonts = new DocumentFontService(new DocumentFontRepository(), library, clusterService, storage, quota);
+        fonts = new DocumentFontService(new DocumentFontRepository(), library, storage, quota);
 
         cluster = clusterService.create("Schriften Verband", null);
         association = new Owner.Association(cluster.id());
@@ -102,9 +103,10 @@ class DocumentFontServiceTest extends RepositoryTestBase {
         station = new Owner.Station(member.id());
         outsider = new Owner.Station(stationRepo.create("Schriften Einzelwache").id());
         accountId = accountRepo.create("fonts@test.com", "Fiona", "Font").id();
-        authorId = stationMemberRepo.create(member.id(), accountId).id();
+        stationMemberRepo.create(member.id(), accountId);
+        authorId = accountId;
 
-        var catalogue = new PlaceholderCatalogue(profileFieldRepo, stationRepo);
+        var catalogue = newPlaceholderCatalogue();
         var templateRepository = new DocumentTemplateRepository();
         var pdfTemplates = new PdfTemplateRepository();
         var checks = new TemplateChecks(
@@ -113,9 +115,16 @@ class DocumentFontServiceTest extends RepositoryTestBase {
                 new LetterChecks(contentBlocks(), mock(MediaLibraryService.class)),
                 stationRepo,
                 catalogue,
-                library);
-        templates =
-                new DocumentTemplateService(templateRepository, pdfTemplates, checks, restrictionService, catalogue);
+                library,
+                newOwnerStores());
+        templates = new DocumentTemplateService(
+                templateRepository,
+                pdfTemplates,
+                new TemplateStationUseRepository(),
+                checks,
+                restrictionService,
+                catalogue,
+                newOwnerStores());
     }
 
     private static UploadedFile file(byte[] data) {
@@ -433,11 +442,13 @@ class DocumentFontServiceTest extends RepositoryTestBase {
         var pictures = mock(KbPdfPictures.class);
         when(pictures.place(anyInt(), anyString(), anyString()))
                 .thenAnswer(call -> new KbPdfPictures.Placed(call.getArgument(1), Map.of()));
-        return new LetterRenderer(pictures, mock(MediaLibraryService.class), newStationLogoService(), library);
+        return new LetterRenderer(
+                pictures, mock(MediaLibraryService.class), newStationLogoService(), library, newOwnerStores());
     }
 
     private static LetterRenderer.LetterJob job(LetterContent letter) {
         return new LetterRenderer.LetterJob(
+                station,
                 station.stationId(),
                 "Brief",
                 letter,

@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.generator.service;
 
 import dev.chojo.ember.api.refusal.DocumentRefusal;
+import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.feature.generator.entity.DocumentLanguage;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplate;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplateDraft;
@@ -23,6 +24,7 @@ import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import dev.chojo.ember.feature.restriction.service.RestrictionService;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.owner.Owner;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -53,6 +55,11 @@ import java.util.stream.Stream;
  *
  * <p>A legal template is checked again here, not only when it is saved: a document that names a member
  * by the name they are called by is refused, whatever state the template got into.
+ *
+ * <p>A template carries its owner, a station or an association, which decides where its files and
+ * pictures are read from, which fonts it reaches and what its placeholders are called. A document is
+ * always drawn at the station of the member it is about: its values, the station logo and the day it
+ * is dated come from there, whoever keeps the template.
  */
 @Singleton
 public class DocumentGeneratorService {
@@ -108,19 +115,20 @@ public class DocumentGeneratorService {
     }
 
     /**
-     * What a document is drawn from: the state of the template, what of it the member sees, and the
-     * values of one member.
+     * What a document is drawn from: the state of the template, the station it is drawn at, what of it
+     * the member sees, and the values of one member.
      *
-     * @param source   the template
-     * @param view     which blocks of a letter the member sees and how many guardians sign for them
-     * @param resolved the values and what is missing
+     * @param source    the template
+     * @param stationId the station of the member, where the document is drawn and filed
+     * @param view      which blocks of a letter the member sees and how many guardians sign for them
+     * @param resolved  the values and what is missing
      */
-    public record Prepared(Source source, MemberView view, ResolvedValues resolved) {}
+    public record Prepared(Source source, int stationId, MemberView view, ResolvedValues resolved) {}
 
     /**
      * A template as the generator reads it, saved or still a draft in the editor.
      *
-     * @param stationId       the station that owns it
+     * @param owner           the station or the association that keeps it
      * @param name            what it is called, which a document without a title is called after
      * @param titlePattern    the title, with placeholders
      * @param fileNamePattern the file name, with placeholders
@@ -130,7 +138,7 @@ public class DocumentGeneratorService {
      * @param cacheKey        the template and version a letter's texts are kept under, or null for a draft
      */
     public record Source(
-            int stationId,
+            Owner owner,
             String name,
             String titlePattern,
             String fileNamePattern,
@@ -194,7 +202,7 @@ public class DocumentGeneratorService {
      */
     public Source sourceOf(DocumentTemplate template) {
         return new Source(
-                template.stationId(),
+                template.owner(),
                 template.name(),
                 template.titlePattern(),
                 template.fileNamePattern(),
@@ -205,13 +213,13 @@ public class DocumentGeneratorService {
     }
 
     /**
-     * @param stationId the station the editor works for
-     * @param draft     a template still in the editor
+     * @param owner the station or the association the editor works for
+     * @param draft a template still in the editor
      * @return the template as the generator reads it
      */
-    public static Source sourceOf(int stationId, DocumentTemplateDraft draft) {
+    public static Source sourceOf(Owner owner, DocumentTemplateDraft draft) {
         return new Source(
-                stationId,
+                owner,
                 draft.name(),
                 draft.titlePattern(),
                 draft.fileNamePattern(),
@@ -234,6 +242,7 @@ public class DocumentGeneratorService {
      * @return the values and what is missing
      */
     public Prepared prepare(Source source, int memberId, GenerationContext context) {
+        int stationId = resolver.stationOf(memberId).orElseThrow(MemberRefusal.MEMBER_NOT_HERE::raise);
         var member = restrictions.memberOf(memberId).orElse(null);
         Predicate<RestrictionAudience> audience =
                 member == null ? restriction -> false : restriction -> restriction.includes(member);
@@ -244,17 +253,17 @@ public class DocumentGeneratorService {
         var keys = source.valueKeys(view);
         if (source.legal()) PlaceholderCatalogue.requireOfficial(keys);
         return new Prepared(
-                source, view, resolver.resolve(source.stationId(), memberId, keys, source.language(), context));
+                source, stationId, view, resolver.resolve(stationId, memberId, keys, source.language(), context));
     }
 
     /**
-     * The placeholders without a value, in the words of the station.
+     * The placeholders without a value, in the words of the template's owner.
      *
      * @param prepared what a document is about to be drawn from
      * @return the missing values in template order
      */
     public List<MissingValue> missing(Prepared prepared) {
-        var labels = catalogue.byKey(prepared.source().stationId());
+        var labels = catalogue.byKey(prepared.source().owner());
         return prepared.resolved().missing().stream()
                 .map(key -> new MissingValue(key, labelOf(labels, key)))
                 .toList();
@@ -270,14 +279,15 @@ public class DocumentGeneratorService {
         var source = prepared.source();
         var values = prepared.resolved().values();
         String title = title(source, values);
-        var labels = labels(source.stationId(), prepared.resolved().missing());
-        var drawn = draw(source, prepared.view(), title, values, labels, false);
+        var labels = labels(source.owner(), prepared.resolved().missing());
+        var drawn = draw(source, prepared.stationId(), prepared.view(), title, values, labels, false);
         return new Rendered(drawn.pdf(), title, fileName(source, values), prepared.resolved(), drawn.unprintable());
     }
 
     /**
      * Draws a template for a look in the editor, for a member or, without one, with the placeholders
-     * shown by their labels.
+     * shown by their labels. Without a member a station's template is drawn at that station, and an
+     * association's at none: what only a station knows shows by its label.
      *
      * @param source   the template, saved or a draft
      * @param memberId the member to draw it for, or null for no member
@@ -290,17 +300,17 @@ public class DocumentGeneratorService {
             var rendered = render(prepared);
             return new PreviewResponse(encode(rendered.pdf()), missing(prepared), rendered.unprintable());
         }
-        var values = resolver.withoutMember(source.stationId(), source.language());
+        var values = resolver.withoutMember(source.owner(), source.language());
         var labels = new LinkedHashMap<String, String>();
-        catalogue
-                .forStation(source.stationId())
-                .forEach(placeholder -> labels.put(placeholder.key(), placeholder.label()));
-        var drawn = draw(source, MemberView.EVERYBODY, title(source, values), values, labels, true);
+        catalogue.forOwner(source.owner()).forEach(placeholder -> labels.put(placeholder.key(), placeholder.label()));
+        Integer stationId = source.owner() instanceof Owner.Station station ? station.stationId() : null;
+        var drawn = draw(source, stationId, MemberView.EVERYBODY, title(source, values), values, labels, true);
         return new PreviewResponse(encode(drawn.pdf()), List.of(), drawn.unprintable());
     }
 
     private PdfStamper.Stamped draw(
             Source source,
+            @Nullable Integer stationId,
             MemberView view,
             String title,
             Map<String, String> values,
@@ -310,7 +320,8 @@ public class DocumentGeneratorService {
             case LetterContent letter ->
                 new PdfStamper.Stamped(
                         letters.render(new LetterRenderer.LetterJob(
-                                source.stationId(),
+                                source.owner(),
+                                stationId,
                                 title,
                                 letter,
                                 source.cacheKey(),
@@ -319,11 +330,11 @@ public class DocumentGeneratorService {
                                 values,
                                 labels,
                                 showLabels,
-                                today(source))),
+                                today(stationId))),
                         List.of());
             case PdfContent pdf ->
                 pdfs.render(
-                        source.stationId(),
+                        source.owner(),
                         pdf,
                         view.guardians(),
                         text -> PlaceholderTokens.replace(text, key -> {
@@ -338,8 +349,8 @@ public class DocumentGeneratorService {
         return Base64.getEncoder().encodeToString(pdf);
     }
 
-    private Map<String, String> labels(int stationId, List<String> keys) {
-        var known = catalogue.byKey(stationId);
+    private Map<String, String> labels(Owner owner, List<String> keys) {
+        var known = catalogue.byKey(owner);
         var labels = new LinkedHashMap<String, String>();
         keys.forEach(key -> labels.put(key, labelOf(known, key)));
         return labels;
@@ -375,9 +386,8 @@ public class DocumentGeneratorService {
         return safe + ".pdf";
     }
 
-    private LocalDate today(Source source) {
-        var zone =
-                StationFormat.timezoneOf(stations.findById(source.stationId()).orElse(null));
-        return LocalDate.now(clock.withZone(zone));
+    private LocalDate today(@Nullable Integer stationId) {
+        var station = stationId == null ? null : stations.findById(stationId).orElse(null);
+        return LocalDate.now(clock.withZone(StationFormat.timezoneOf(station)));
     }
 }

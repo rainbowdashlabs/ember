@@ -7,7 +7,6 @@ package dev.chojo.ember.feature.generator.service.font;
 
 import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.api.refusal.RefusalDetail;
-import dev.chojo.ember.feature.cluster.service.ClusterService;
 import dev.chojo.ember.feature.generator.entity.DocumentFont;
 import dev.chojo.ember.feature.generator.entity.FontFamily;
 import dev.chojo.ember.feature.generator.entity.FontOrigin;
@@ -64,20 +63,14 @@ public class DocumentFontService {
 
     private final DocumentFontRepository fonts;
     private final FontLibrary library;
-    private final ClusterService clusters;
     private final StorageService storage;
     private final StorageQuotaService quota;
 
     @Inject
     public DocumentFontService(
-            DocumentFontRepository fonts,
-            FontLibrary library,
-            ClusterService clusters,
-            StorageService storage,
-            StorageQuotaService quota) {
+            DocumentFontRepository fonts, FontLibrary library, StorageService storage, StorageQuotaService quota) {
         this.fonts = fonts;
         this.library = library;
-        this.clusters = clusters;
         this.storage = storage;
         this.quota = quota;
     }
@@ -218,23 +211,13 @@ public class DocumentFontService {
      * kept, find this owner's family under that name rather than a nearer one.
      */
     List<FontUse> usersOf(DocumentFont font) {
-        var candidates = fonts.templatesNaming(font.family(), stationsReaching(font.owner()));
-        Map<Integer, Optional<FontFamily>> resolved = new HashMap<>();
+        var candidates = fonts.templatesNaming(font.family(), font.owner());
+        Map<Owner, Optional<FontFamily>> resolved = new HashMap<>();
         return candidates.stream()
-                .filter(use -> resolved.computeIfAbsent(
-                                use.stationId(), stationId -> library.familyAt(stationId, font.family()))
+                .filter(use -> resolved.computeIfAbsent(use.owner(), owner -> library.familyAt(owner, font.family()))
                         .map(family -> family.file(font.style()).owner().equals(font.owner()))
                         .orElse(false))
                 .toList();
-    }
-
-    /** The stations whose templates can reach an owner's fonts, or null for every station. */
-    private @Nullable List<Integer> stationsReaching(Owner owner) {
-        return switch (owner) {
-            case Owner.Station station -> List.of(station.stationId());
-            case Owner.Association association -> clusters.findStationIds(association.clusterId());
-            case Owner.Instance ignored -> null;
-        };
     }
 
     private static String requireFamily(@Nullable String family) {

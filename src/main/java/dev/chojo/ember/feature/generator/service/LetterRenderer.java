@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.generator.entity.MemberView;
 import dev.chojo.ember.feature.generator.entity.PlaceholderTokens;
 import dev.chojo.ember.feature.generator.service.font.FontLibrary;
 import dev.chojo.ember.feature.generator.service.pdf.SignatureFields;
+import dev.chojo.ember.feature.generator.service.store.OwnerStores;
 import dev.chojo.ember.feature.knowledgebase.service.KbPdfPictures;
 import dev.chojo.ember.feature.media.entity.MediaContent;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
@@ -36,6 +37,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -79,22 +81,31 @@ public class LetterRenderer {
     private final MediaLibraryService mediaLibrary;
     private final StationLogoService logos;
     private final FontLibrary fonts;
+    private final OwnerStores stores;
     private final Cache<BodyKey, PreparedTexts> converted =
             Caffeine.newBuilder().maximumSize(128).build();
 
     @Inject
     public LetterRenderer(
-            KbPdfPictures pictures, MediaLibraryService mediaLibrary, StationLogoService logos, FontLibrary fonts) {
+            KbPdfPictures pictures,
+            MediaLibraryService mediaLibrary,
+            StationLogoService logos,
+            FontLibrary fonts,
+            OwnerStores stores) {
         this.pictures = pictures;
         this.mediaLibrary = mediaLibrary;
         this.logos = logos;
         this.fonts = fonts;
+        this.stores = stores;
     }
 
     /**
      * What a letter is rendered from.
      *
-     * @param stationId  the station whose pictures the letter uses
+     * @param owner      the station or the association that keeps the letter, whose media library its
+     *                   pictures come from and whose fonts it reaches
+     * @param stationId  the station the letter is drawn at, whose logo it prints, or null for a look at an
+     *                   association's letter without a member, which prints the logo of its home station
      * @param title      the title the PDF carries
      * @param letter     the letter
      * @param cacheKey   the template and version the texts belong to, or null for a draft that is not saved
@@ -106,7 +117,8 @@ public class LetterRenderer {
      * @param date       the day the document is dated
      */
     public record LetterJob(
-            int stationId,
+            Owner owner,
+            @Nullable Integer stationId,
             String title,
             LetterContent letter,
             @Nullable BodyKey cacheKey,
@@ -148,7 +160,9 @@ public class LetterRenderer {
      * @return the PDF/A-3b
      */
     public byte[] render(LetterJob job) {
-        var texts = texts(job);
+        int library = stores.libraryOf(job.owner());
+        int logoStation = Objects.requireNonNullElse(job.stationId(), library);
+        var texts = texts(job, library);
         var files = new HashMap<>(texts.pictures());
         var resources = new HashMap<String, String>();
         var layout = new LetterLayout(job.view(), new LetterLayout.Blocks() {
@@ -159,7 +173,7 @@ public class LetterRenderer {
 
                     @Override
                     public @Nullable Map<String, Object> image(ContentCell cell) {
-                        return picture(job.stationId(), cell, files);
+                        return picture(new PictureSource(library, logoStation), cell, files);
                     }
 
                     @Override
@@ -191,10 +205,7 @@ public class LetterRenderer {
         data.put("values", job.values());
         data.put("labels", job.labels());
         data.put("showLabels", job.showLabels());
-        var typeset = LetterFonts.of(
-                fonts.reachable(new Owner.Station(job.stationId())),
-                job.letter().page(),
-                fonts::read);
+        var typeset = LetterFonts.of(fonts.reachable(job.owner()), job.letter().page(), fonts::read);
         data.put("fonts", typeset.families());
         try {
             return SignatureFields.replaceMarkers(
@@ -208,7 +219,7 @@ public class LetterRenderer {
                             typeset.files()),
                     marker);
         } catch (IOException e) {
-            log.error("A letter of station {} could not be rendered", job.stationId(), e);
+            log.error("A letter of {} could not be rendered", job.owner(), e);
             throw DocumentRefusal.DOCUMENT_RENDER_FAILED.raise();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -216,10 +227,10 @@ public class LetterRenderer {
         }
     }
 
-    private PreparedTexts texts(LetterJob job) {
+    private PreparedTexts texts(LetterJob job, int library) {
         var key = job.cacheKey();
-        if (key == null) return prepare(job.stationId(), job.letter());
-        return converted.get(key, ignored -> prepare(job.stationId(), job.letter()));
+        if (key == null) return prepare(library, job.letter());
+        return converted.get(key, ignored -> prepare(library, job.letter()));
     }
 
     /**
@@ -281,10 +292,19 @@ public class LetterRenderer {
     }
 
     /**
+     * Where a letter's pictures come from: its owner's media library, and the logo of the station it is
+     * drawn at.
+     *
+     * @param library     the station whose media library holds the owner's pictures
+     * @param logoStation the station whose logo the letter prints
+     */
+    private record PictureSource(int library, int logoStation) {}
+
+    /**
      * Places a picture block's picture next to the document, or nothing where it cannot be read.
      */
-    private @Nullable Map<String, Object> picture(int stationId, ContentCell cell, Map<String, byte[]> files) {
-        var picture = read(stationId, cell.content()).orElse(null);
+    private @Nullable Map<String, Object> picture(PictureSource source, ContentCell cell, Map<String, byte[]> files) {
+        var picture = read(source, cell.content()).orElse(null);
         if (picture == null) return null;
         String extension = EXTENSIONS.get(picture.contentType());
         if (extension == null) return null;
@@ -298,13 +318,13 @@ public class LetterRenderer {
         return drawn;
     }
 
-    private Optional<MediaContent> read(int stationId, String content) {
+    private Optional<MediaContent> read(PictureSource source, String content) {
         try {
-            if (ContentCell.STATION_LOGO.equals(content)) return logos.original(stationId);
+            if (ContentCell.STATION_LOGO.equals(content)) return logos.original(source.logoStation());
             if (content.isBlank()) return Optional.empty();
-            return mediaLibrary.readVariant(stationId, content, PICTURE_WIDTH, "image/webp");
+            return mediaLibrary.readVariant(source.library(), content, PICTURE_WIDTH, "image/webp");
         } catch (RuntimeException e) {
-            log.warn("A picture of a letter of station {} could not be read", stationId, e);
+            log.warn("A picture of a letter from the library of station {} could not be read", source.library(), e);
             return Optional.empty();
         }
     }

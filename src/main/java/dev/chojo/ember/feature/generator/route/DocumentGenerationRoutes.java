@@ -113,7 +113,8 @@ public class DocumentGenerationRoutes implements Routes {
         ctx.json(generation.previewDraft(session, template, request.templateId(), memberId));
     }
 
-    private static DocumentTemplateRequest emptyTemplate() {
+    /** @return a template with nothing written in it, what a preview without a template draws */
+    static DocumentTemplateRequest emptyTemplate() {
         return new DocumentTemplateRequest(
                 null, null, null, null, null, false, null, false, false, false, null, null, null, null, null, null,
                 null, null, null);
@@ -204,11 +205,11 @@ public class DocumentGenerationRoutes implements Routes {
                 .id();
     }
 
-    /** The template behind the path, which has to be one of the reader's station. */
+    /** The template behind the path, which has to be one the reader's station uses: its own or its association's. */
     private int requireOwnedTemplate(Context ctx) {
         int templateId = RouteSupport.pathInt(ctx, "templateId");
         return templates
-                .requireOwned(StationSession.from(ctx).owner(), templateId)
+                .requireUsable(StationSession.from(ctx).stationId(), templateId)
                 .id();
     }
 }

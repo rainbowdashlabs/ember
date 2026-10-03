@@ -213,4 +213,5 @@ export default {
     'CU-176': GENDER_NOT_FROM_CHOICE,
     'CU-177': PRONOUN_TOO_LONG,
     'CU-178': CHOOSE_A_CLUSTER,
+    'CU-179': CHOOSE_A_CLUSTER,
 }

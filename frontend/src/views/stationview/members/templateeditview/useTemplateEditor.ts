@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {computed, ref, shallowRef, watch, type Ref} from 'vue'
-import {documentFonts, documents, documentTemplates, memberGroups, stationMembers, userTags} from '@/api'
+import {documents, memberGroups, stationMembers, userTags} from '@/api'
 import type {
     DocumentTemplateKind,
     DocumentTemplateResponse,
@@ -18,15 +18,42 @@ import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {draftOf, emptyDraft, requestOf, type TemplateDraft} from './templateDraft'
 import {placeholdersOfTemplate} from './placeholderpicker/placeholderTree'
+import type {TemplateScreens} from '../templateScreens'
+
+/** The lists of a station a template's audience, its blocks and its preview choose from. */
+interface StationChoices {
+    groups: MemberGroup[]
+    tags: UserTag[]
+    members: MemberWithName[]
+    documentTags: string[]
+}
+
+/** No lists, which is what an association has. */
+function noChoices(): StationChoices {
+    return {groups: [], tags: [], members: [], documentTags: []}
+}
 
 /**
- * One template in the editor: the draft being written, what the station's templates can name, the
- * font families they reach, the lists the audience and the preview choose from, and for a PDF template
- * the PDF it fills.
+ * The station's lists, each read where the reader may and left empty where not: they only make
+ * choosing easier and are no reason to keep anybody from writing a template.
+ */
+async function stationChoices(): Promise<StationChoices> {
+    const [groups, tags, members, documentTags] = await Promise.all([
+        memberGroups.listGroups().catch(() => []),
+        userTags.listTags().catch(() => []),
+        stationMembers.listMembers().catch(() => []),
+        documents.listTags().catch(() => []),
+    ])
+    return {groups, tags, members: members.filter(member => !member.formerAt), documentTags}
+}
+
+/**
+ * One template in the editor: the draft being written, what the owner's templates can name, the font
+ * families they reach, the lists the audience and the preview choose from, and for a PDF template the
+ * PDF it fills.
  *
- * <p>The lists that need rights the editor of templates may not hold (the members, the document tags)
- * are read where they can be and stay empty where they cannot: they only make choosing easier and are
- * no reason to keep anybody from writing a template.
+ * <p>An association has no members, groups or document tags of its own, so its lists stay empty; its
+ * stations choose the audience of its templates themselves.
  *
  * <p>The values of an appointment are offered only while the template is for appointments, since only
  * a document generated for an appointment fills them.
@@ -36,17 +63,17 @@ import {placeholdersOfTemplate} from './placeholderpicker/placeholderTree'
  *
  * @param templateId the template being changed, or null for a new one
  * @param newKind    what a new template is made of
+ * @param screens    whose template it is
  */
-export function useTemplateEditor(templateId: Ref<number | null>, newKind: Ref<DocumentTemplateKind>) {
+export function useTemplateEditor(
+    templateId: Ref<number | null>, newKind: Ref<DocumentTemplateKind>, screens: TemplateScreens) {
+    const source = screens.source
     const draft = ref<TemplateDraft>(emptyDraft(newKind.value))
     const saved = ref<DocumentTemplateResponse | null>(null)
     const pdf = shallowRef<Blob | null>(null)
     const catalogue = ref<Placeholder[]>([])
     const placeholders = computed(() => placeholdersOfTemplate(catalogue.value, draft.value.forAppointments))
-    const groups = ref<MemberGroup[]>([])
-    const tags = ref<UserTag[]>([])
-    const members = ref<MemberWithName[]>([])
-    const documentTags = ref<string[]>([])
+    const choices = shallowRef<StationChoices>(noChoices())
     const fonts = ref<FontFamilyOption[]>([])
 
     const labels = computed<ReadonlyMap<string, string>>(() =>
@@ -56,34 +83,28 @@ export function useTemplateEditor(templateId: Ref<number | null>, newKind: Ref<D
     const letterCatalogue = computed(() => ({
         placeholders: placeholders.value,
         labels: labels.value,
-        choices: {groups: groups.value, tags: tags.value},
+        choices: {groups: choices.value.groups, tags: choices.value.tags},
     }))
 
     const loader = useAsyncLoader(async () => {
-        const [offered, groupList, tagList, memberList, tagNames, fontList] = await Promise.all([
-            documentTemplates.getCatalogue(),
-            memberGroups.listGroups().catch(() => []),
-            userTags.listTags().catch(() => []),
-            stationMembers.listMembers().catch(() => []),
-            documents.listTags().catch(() => []),
-            documentFonts.stationFontSource.list().then(list => list.reachable).catch(() => []),
+        const [offered, lists, fontList] = await Promise.all([
+            source.catalogue(),
+            screens.hasMembers ? stationChoices() : Promise.resolve(noChoices()),
+            screens.fonts.list().then(list => list.reachable).catch(() => []),
         ])
         catalogue.value = offered.placeholders
+        choices.value = lists
         fonts.value = fontList
-        groups.value = groupList
-        tags.value = tagList
-        members.value = memberList.filter(member => !member.formerAt)
-        documentTags.value = tagNames
         if (templateId.value === null) return
-        saved.value = await documentTemplates.getTemplate(templateId.value)
+        saved.value = await source.get(templateId.value)
         draft.value = draftOf(saved.value)
     })
 
     const saving = useAsyncAction(async () => {
         const request = requestOf(draft.value)
         const written = saved.value
-            ? await documentTemplates.updateTemplate(saved.value.id, request)
-            : await documentTemplates.createTemplate(request)
+            ? await source.update(saved.value.id, request)
+            : await source.create(request)
         saved.value = written
         draft.value = draftOf(written)
         return written
@@ -91,12 +112,12 @@ export function useTemplateEditor(templateId: Ref<number | null>, newKind: Ref<D
 
     const uploading = useAsyncAction(async (file: File) => {
         if (!saved.value) return null
-        saved.value = await documentTemplates.uploadPdf(saved.value.id, file)
+        saved.value = await source.uploadPdf(saved.value.id, file)
         return saved.value
     })
 
     const pdfLoader = useAsyncAction(async (id: number) => {
-        pdf.value = await documentTemplates.templatePdf(id)
+        pdf.value = await source.templatePdf(id)
     })
 
     watch(() => saved.value?.pdf?.id ?? null, original => {
@@ -107,8 +128,8 @@ export function useTemplateEditor(templateId: Ref<number | null>, newKind: Ref<D
     const archiving = useAsyncAction(async (archived: boolean) => {
         if (!saved.value) return null
         const written = archived
-            ? await documentTemplates.archiveTemplate(saved.value.id)
-            : await documentTemplates.restoreTemplate(saved.value.id)
+            ? await source.archive(saved.value.id)
+            : await source.restore(saved.value.id)
         saved.value = written
         return written
     })
@@ -122,10 +143,10 @@ export function useTemplateEditor(templateId: Ref<number | null>, newKind: Ref<D
         placeholders,
         labels,
         letterCatalogue,
-        groups,
-        tags,
-        members,
-        documentTags,
+        groups: computed(() => choices.value.groups),
+        tags: computed(() => choices.value.tags),
+        members: computed(() => choices.value.members),
+        documentTags: computed(() => choices.value.documentTags),
         fonts,
         loader,
         saving,

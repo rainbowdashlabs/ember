@@ -14,12 +14,12 @@ import dev.chojo.ember.feature.documents.service.DocumentService;
 import dev.chojo.ember.feature.generator.repository.DocumentGenerationRepository;
 import dev.chojo.ember.feature.generator.repository.DocumentTemplateRepository;
 import dev.chojo.ember.feature.generator.repository.PdfTemplateRepository;
+import dev.chojo.ember.feature.generator.repository.TemplateStationUseRepository;
 import dev.chojo.ember.feature.generator.service.pdf.PdfStamper;
 import dev.chojo.ember.feature.generator.service.pdf.StampFonts;
 import dev.chojo.ember.feature.knowledgebase.service.KbPdfPictures;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.members.entity.StationMember;
-import dev.chojo.ember.feature.members.service.GenderFields;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.service.StorageService;
@@ -93,7 +93,7 @@ abstract class GeneratorTestBase extends RepositoryTestBase {
         var pictures = mock(KbPdfPictures.class);
         when(pictures.place(anyInt(), anyString(), anyString()))
                 .thenAnswer(call -> new KbPdfPictures.Placed(call.getArgument(1), Map.of()));
-        var catalogue = new PlaceholderCatalogue(profileFieldRepo, stationRepo);
+        var catalogue = newPlaceholderCatalogue();
         var templateRepository = new DocumentTemplateRepository();
         var pdfTemplates = new PdfTemplateRepository();
         var fonts = newFontLibrary(storage);
@@ -103,26 +103,26 @@ abstract class GeneratorTestBase extends RepositoryTestBase {
                 new LetterChecks(contentBlocks(), media),
                 stationRepo,
                 catalogue,
-                fonts);
-        var templates =
-                new DocumentTemplateService(templateRepository, pdfTemplates, checks, restrictionService, catalogue);
+                fonts,
+                newOwnerStores());
+        var templates = new DocumentTemplateService(
+                templateRepository,
+                pdfTemplates,
+                new TemplateStationUseRepository(),
+                checks,
+                restrictionService,
+                catalogue,
+                newOwnerStores());
         var pdfRenderer = new PdfTemplateRenderer(
                 new PdfTemplateService(
-                        templates, templateRepository, pdfTemplates, newDocumentIntake(), storage, stationRepo),
+                        templates, templateRepository, pdfTemplates, newDocumentIntake(), storage, newOwnerStores()),
                 new PdfStamper(new StampFonts()),
                 fonts);
-        var resolver = new PlaceholderResolver(
-                stationRepo,
-                stationMemberRepo,
-                memberNameResolver,
-                profileFieldRepo,
-                new GenderFields(profileFieldCore, stationRepo),
-                clock);
         var generator = new DocumentGeneratorService(
                 templates,
-                resolver,
+                newPlaceholderResolver(clock),
                 catalogue,
-                new LetterRenderer(pictures, media, newStationLogoService(), fonts),
+                new LetterRenderer(pictures, media, newStationLogoService(), fonts, newOwnerStores()),
                 pdfRenderer,
                 stationRepo,
                 restrictionService,

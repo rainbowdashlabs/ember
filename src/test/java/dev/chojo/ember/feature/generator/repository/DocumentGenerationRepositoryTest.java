@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.generator.entity.LetterPage;
 import dev.chojo.ember.feature.generator.entity.SubjectRole;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.owner.Owner;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -39,6 +40,8 @@ class DocumentGenerationRepositoryTest extends RepositoryTestBase {
     private static Station station;
     private static int child;
     private static int guardian;
+    private static int author;
+    private static Owner.Station owner;
     private static int templateId;
 
     @BeforeAll
@@ -49,14 +52,10 @@ class DocumentGenerationRepositoryTest extends RepositoryTestBase {
                         station.id(),
                         accountRepo.create("log-child@test.com", "Kind", "Log").id())
                 .id();
-        guardian = stationMemberRepo
-                .create(
-                        station.id(),
-                        accountRepo
-                                .create("log-guardian@test.com", "Eltern", "Log")
-                                .id())
-                .id();
-        templateId = templates.create(station.id(), draft("Log"), guardian).id();
+        author = accountRepo.create("log-guardian@test.com", "Eltern", "Log").id();
+        guardian = stationMemberRepo.create(station.id(), author).id();
+        owner = new Owner.Station(station.id());
+        templateId = templates.create(owner, draft("Log"), author).id();
         templates.writeLetter(templateId, LetterContent.blank());
     }
 
@@ -110,8 +109,7 @@ class DocumentGenerationRepositoryTest extends RepositoryTestBase {
     /** Only what was generated through self service counts towards the wait. */
     @Test
     void theLastSelfServiceGenerationIsWhatTheWaitCountsFrom() {
-        var otherTemplate =
-                templates.create(station.id(), draft("Wartezeit"), guardian).id();
+        var otherTemplate = templates.create(owner, draft("Wartezeit"), author).id();
         assertNull(log.lastSelfService(otherTemplate, child));
 
         log.log(
@@ -168,7 +166,7 @@ class DocumentGenerationRepositoryTest extends RepositoryTestBase {
         var row = new ContentRow(0, 0, 0, List.of(cell));
         var second = new ContentRow(0, 0, 1, List.of(cell));
         var letter = new LetterContent(List.of(row), List.of(), List.of(row, second), LetterPage.defaults());
-        int letterId = templates.create(station.id(), draft("Zeilen"), guardian).id();
+        int letterId = templates.create(owner, draft("Zeilen"), author).id();
 
         templates.writeLetter(letterId, letter);
 

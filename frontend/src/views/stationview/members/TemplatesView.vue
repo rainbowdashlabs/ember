@@ -16,7 +16,6 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ToggleSetting from '@/components/input/toggle/ToggleSetting.vue'
 import TableColumnPicker from '@/components/table/TableColumnPicker.vue'
 import BulkGenerateModal from '@/components/documents/bulk/BulkGenerateModal.vue'
-import {documentTemplates} from '@/api'
 import {DocumentTemplateKind, StationPermission, type DocumentTemplateSummary} from '@/api/generated/schema'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useDataTable} from '@/composables/useDataTable'
@@ -24,20 +23,26 @@ import {useSession} from '@/composables/useSession'
 import TemplateTable from './templatesview/TemplateTable.vue'
 import GenerationJobsPanel from './templatesview/GenerationJobsPanel.vue'
 import {templateColumns} from './templatesview/templateColumns'
+import type {TemplateScreens} from './templateScreens'
 
 /**
- * The document templates of the station: letters written in Ember and uploaded PDFs filled in place.
- * An archived template generates nothing more and stays for the documents it made; the switch lists
- * those instead of the ones in use.
+ * The document templates of a station or an association: letters written in Ember and uploaded PDFs
+ * filled in place. An archived template generates nothing more and stays for the documents it made; the
+ * switch lists those instead of the ones in use. A station's list also holds the templates of its
+ * association, marked as such, which it uses but does not change.
  *
- * <p>Whoever may file documents for members also generates a template for many members at once here,
- * and follows those runs below the list.
+ * <p>At a station, whoever may file documents for members also generates a template for many members at
+ * once here, and follows those runs below the list. An association has no members to generate for.
  */
+const props = defineProps<{
+  screens: TemplateScreens
+}>()
+
 const {t} = useI18n()
 const router = useRouter()
 const {hasPermission} = useSession()
 
-const canGenerate = computed(() => hasPermission(StationPermission.DOCUMENT_EDIT_MEMBER))
+const canGenerate = computed(() => props.screens.hasMembers && hasPermission(StationPermission.DOCUMENT_EDIT_MEMBER))
 const bulkOpen = ref(false)
 const jobsPanel = ref<InstanceType<typeof GenerationJobsPanel> | null>(null)
 
@@ -45,7 +50,7 @@ const showArchived = ref(false)
 const templates = ref<DocumentTemplateSummary[]>([])
 
 const {loading, failure, reload} = useAsyncLoader(async () => {
-  templates.value = await documentTemplates.listTemplates(showArchived.value)
+  templates.value = await props.screens.source.list(showArchived.value)
 })
 
 watch(showArchived, () => reload())
@@ -53,22 +58,24 @@ watch(showArchived, () => reload())
 const table = useDataTable<DocumentTemplateSummary>({
   id: 'document-templates',
   rows: templates,
-  columns: computed(() => templateColumns(t)),
+  columns: computed(() => templateColumns(t, props.screens.useRoute !== null)),
   rowKey: template => template.id,
 })
+
+function create(kind?: DocumentTemplateKind) {
+  router.push({name: props.screens.editRoute, params: {id: 'new'}, query: kind ? {kind} : {}})
+}
 </script>
 
 <template>
-  <ViewContent :title="t('pages.member-document-templates.title')" :subtitle="t('pages.member-document-templates.subtitle')">
+  <ViewContent :title="t(`pages.${screens.listRoute}.title`)" :subtitle="t(`pages.${screens.listRoute}.subtitle`)">
     <div class="space-y-4">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <ButtonRow>
-          <PrimaryButton :icon="['fas', 'plus']" data-testid="template-new"
-                         @click="router.push({name: 'member-document-template-edit', params: {id: 'new'}})">
+          <PrimaryButton :icon="['fas', 'plus']" data-testid="template-new" @click="create()">
             {{ t('documentTemplates.create') }}
           </PrimaryButton>
-          <SecondaryButton :icon="['fas', 'file-pdf']" data-testid="template-new-pdf"
-                           @click="router.push({name: 'member-document-template-edit', params: {id: 'new'}, query: {kind: DocumentTemplateKind.PDF}})">
+          <SecondaryButton :icon="['fas', 'file-pdf']" data-testid="template-new-pdf" @click="create(DocumentTemplateKind.PDF)">
             {{ t('documentTemplates.createPdf') }}
           </SecondaryButton>
           <SecondaryButton v-if="canGenerate" :icon="['fas', 'users']" data-testid="template-bulk"
@@ -83,7 +90,7 @@ const table = useDataTable<DocumentTemplateSummary>({
       </div>
       <FailureAlert :failure="failure"/>
       <Spinner v-if="loading" size="lg"/>
-      <TemplateTable v-else :table="table"/>
+      <TemplateTable v-else :table="table" :screens="screens"/>
       <GenerationJobsPanel v-if="canGenerate" ref="jobsPanel"/>
     </div>
     <BulkGenerateModal v-if="bulkOpen" v-model="bulkOpen" @started="jobsPanel?.reload()"/>

@@ -19,8 +19,11 @@ import dev.chojo.ember.feature.generator.entity.PdfLayout;
 import dev.chojo.ember.feature.generator.entity.PdfOriginal;
 import dev.chojo.ember.feature.generator.entity.Placeholder;
 import dev.chojo.ember.feature.generator.entity.TemplateContent;
+import dev.chojo.ember.feature.generator.entity.TemplateStationUse;
 import dev.chojo.ember.feature.generator.repository.DocumentTemplateRepository;
 import dev.chojo.ember.feature.generator.repository.PdfTemplateRepository;
+import dev.chojo.ember.feature.generator.repository.TemplateStationUseRepository;
+import dev.chojo.ember.feature.generator.service.store.OwnerStores;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.restriction.service.RestrictionService;
@@ -34,17 +37,24 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
- * The document templates of an owner: listing, writing and archiving them.
+ * The document templates of a station or an association: listing, writing and archiving them, and which
+ * of them a station may use.
  *
- * <p>A template is never deleted. Documents generated from it name it in the generation log, so one a
- * station no longer wants is archived: it leaves the lists, generates nothing more, and can be taken
- * back into use. Every change counts its version up, so the log says which state a document came from.
+ * <p>A template is never deleted. Documents generated from it name it in the generation log, so one its
+ * owner no longer wants is archived: it leaves the lists, generates nothing more, and can be taken back
+ * into use. Every change counts its version up, so the log says which state a document came from.
  *
- * <p>Templates belong to a station today. The owner is passed as an {@link Owner.Station} so that the
- * association's templates can join without the callers changing shape.
+ * <p>Only the owner writes a template. A station uses the templates of its association in use next to
+ * its own and lists them, marked as the association's, but a change to one is refused with words of its
+ * own. Whether the station's members generate one of them through self service, the station decides
+ * ({@link TemplateStationUseService}); an association only offers a template for it and sets no audience.
  */
 @Singleton
 public class DocumentTemplateService {
@@ -52,62 +62,105 @@ public class DocumentTemplateService {
 
     private final DocumentTemplateRepository templates;
     private final PdfTemplateRepository pdfTemplates;
+    private final TemplateStationUseRepository uses;
     private final TemplateChecks checks;
     private final RestrictionService restrictions;
     private final PlaceholderCatalogue catalogue;
+    private final OwnerStores stores;
 
     @Inject
     public DocumentTemplateService(
             DocumentTemplateRepository templates,
             PdfTemplateRepository pdfTemplates,
+            TemplateStationUseRepository uses,
             TemplateChecks checks,
             RestrictionService restrictions,
-            PlaceholderCatalogue catalogue) {
+            PlaceholderCatalogue catalogue,
+            OwnerStores stores) {
         this.templates = templates;
         this.pdfTemplates = pdfTemplates;
+        this.uses = uses;
         this.checks = checks;
         this.restrictions = restrictions;
         this.catalogue = catalogue;
+        this.stores = stores;
     }
 
     /**
-     * The templates of an owner by name.
+     * The templates of an owner by name. A station's list in use also holds the templates of its
+     * association in use, marked as such, each showing whether the station offers it for self service.
      *
-     * @param owner    the owner
-     * @param archived whether to list the archived ones instead of those in use
+     * @param owner    the station or the association
+     * @param archived whether to list the owner's archived ones instead of those in use
      * @return the templates
      */
-    public List<DocumentTemplateSummary> list(Owner.Station owner, boolean archived) {
-        return templates.findByStation(owner.stationId(), archived).stream()
-                .map(DocumentTemplateSummary::of)
-                .toList();
+    public List<DocumentTemplateSummary> list(Owner owner, boolean archived) {
+        var own = templates.findByOwner(owner, archived).stream()
+                .map(template -> DocumentTemplateSummary.of(template, template.selfService()));
+        if (archived || !(owner instanceof Owner.Station station)) return own.toList();
+        Map<Integer, TemplateStationUse> used = uses.findByStation(station.stationId()).stream()
+                .collect(Collectors.toMap(TemplateStationUse::templateId, Function.identity()));
+        var association = templates.findOfAssociationOf(station.stationId()).stream()
+                .map(template -> DocumentTemplateSummary.of(
+                        template, template.selfService() && offeredAt(used.get(template.id()))));
+        return Stream.concat(own, association).toList();
+    }
+
+    private static boolean offeredAt(@Nullable TemplateStationUse use) {
+        return use != null && use.selfService();
     }
 
     /**
-     * A template of the owner, refusing one that is not theirs.
+     * A template of the owner, refusing one that is not theirs. A station asking for a template of its
+     * association is told that only the association changes it.
      *
-     * @param owner      the owner
+     * @param owner      the station or the association
      * @param templateId the template
      * @return the template
      */
-    public DocumentTemplate requireOwned(Owner.Station owner, int templateId) {
+    public DocumentTemplate requireOwned(Owner owner, int templateId) {
+        var template = templates.findById(templateId).orElseThrow(DocumentRefusal.DOCUMENT_TEMPLATE_NOT_HERE::raise);
+        if (template.owner().equals(owner)) return template;
+        if (owner instanceof Owner.Station station && keptForStation(template, station.stationId())) {
+            throw DocumentRefusal.DOCUMENT_TEMPLATE_KEPT_BY_ASSOCIATION.raise();
+        }
+        throw DocumentRefusal.DOCUMENT_TEMPLATE_NOT_HERE.raise();
+    }
+
+    /**
+     * A template a station may generate documents from: its own, or one of its association.
+     *
+     * @param stationId  the station
+     * @param templateId the template
+     * @return the template
+     */
+    public DocumentTemplate requireUsable(int stationId, int templateId) {
         return templates
                 .findById(templateId)
-                .filter(template -> template.stationId() == owner.stationId())
+                .filter(template ->
+                        template.owner().equals(new Owner.Station(stationId)) || keptForStation(template, stationId))
                 .orElseThrow(DocumentRefusal.DOCUMENT_TEMPLATE_NOT_HERE::raise);
     }
 
     /**
-     * A template of the owner that is in use, refusing an archived one.
+     * A template a station may generate documents from that is in use, refusing an archived one.
      *
-     * @param owner      the owner
+     * @param stationId  the station
      * @param templateId the template
      * @return the template
      */
-    public DocumentTemplate requireInUse(Owner.Station owner, int templateId) {
-        var template = requireOwned(owner, templateId);
+    public DocumentTemplate requireInUse(int stationId, int templateId) {
+        var template = requireUsable(stationId, templateId);
         if (template.archived()) throw DocumentRefusal.DOCUMENT_TEMPLATE_ARCHIVED.raise();
         return template;
+    }
+
+    /** Whether a template is one of the association a station belongs to. */
+    private boolean keptForStation(DocumentTemplate template, int stationId) {
+        return template.ofAssociation()
+                && stores.associationOf(stationId)
+                        .map(association -> association.equals(template.owner()))
+                        .orElse(false);
     }
 
     /**
@@ -130,47 +183,48 @@ public class DocumentTemplateService {
     /**
      * A template with everything the editor shows of it.
      *
-     * @param owner      the owner
+     * @param owner      the station or the association
      * @param templateId the template
      * @return the template
      */
-    public DocumentTemplateResponse detail(Owner.Station owner, int templateId) {
+    public DocumentTemplateResponse detail(Owner owner, int templateId) {
         return response(requireOwned(owner, templateId));
     }
 
     /**
      * Creates a template.
      *
-     * @param owner    the owner
+     * @param owner    the station or the association
      * @param request  what the editor sent
-     * @param authorId the member who creates it
+     * @param authorId the account that creates it
      * @return the template as written
      */
-    public DocumentTemplateResponse create(Owner.Station owner, DocumentTemplateRequest request, int authorId) {
-        var draft = checks.draft(owner.stationId(), request, null);
+    public DocumentTemplateResponse create(Owner owner, DocumentTemplateRequest request, int authorId) {
+        requireAudienceAllowed(owner, request);
+        var draft = checks.draft(owner, request, null);
         var template = Transactions.call(() -> {
-            var written = templates.create(owner.stationId(), draft, authorId);
+            var written = templates.create(owner, draft, authorId);
             writeContent(written.id(), draft.content());
             writeAudience(written.id(), request.audience());
             return written;
         });
-        log.info("Document template {} created at station {}", template.id(), owner.stationId());
+        log.info("Document template {} created for {}", template.id(), owner);
         return response(template);
     }
 
     /**
      * Changes a template, counting its version up.
      *
-     * @param owner      the owner
+     * @param owner      the station or the association
      * @param templateId the template
      * @param request    what the editor sent
-     * @param authorId   the member who changes it
+     * @param authorId   the account that changes it
      * @return the template as written
      */
-    public DocumentTemplateResponse update(
-            Owner.Station owner, int templateId, DocumentTemplateRequest request, int authorId) {
+    public DocumentTemplateResponse update(Owner owner, int templateId, DocumentTemplateRequest request, int authorId) {
         var existing = requireOwned(owner, templateId);
-        var draft = checks.draft(owner.stationId(), request, existing);
+        requireAudienceAllowed(owner, request);
+        var draft = checks.draft(owner, request, existing);
         var template = Transactions.call(() -> {
             var written = templates
                     .update(templateId, draft, authorId)
@@ -186,15 +240,15 @@ public class DocumentTemplateService {
     /**
      * Archives a template, or takes an archived one back into use.
      *
-     * @param owner      the owner
+     * @param owner      the station or the association
      * @param templateId the template
      * @param archived   whether it is archived from now on
-     * @param authorId   the member who does it
+     * @param authorId   the account that does it
      * @return the template as it now stands
      */
-    public DocumentTemplateResponse setArchived(Owner.Station owner, int templateId, boolean archived, int authorId) {
+    public DocumentTemplateResponse setArchived(Owner owner, int templateId, boolean archived, int authorId) {
         var template = requireOwned(owner, templateId);
-        if (!archived) checks.requireNameFree(owner.stationId(), template.name(), templateId);
+        if (!archived) checks.requireNameFree(owner, template.name(), templateId);
         templates.setArchived(templateId, archived, authorId);
         log.info("Document template {} {}", templateId, archived ? "archived" : "taken back into use");
         return detail(owner, templateId);
@@ -203,11 +257,22 @@ public class DocumentTemplateService {
     /**
      * The placeholders an owner's templates can name.
      *
-     * @param owner the owner
+     * @param owner the station or the association
      * @return the catalogue
      */
-    public PlaceholderCatalogueResponse catalogue(Owner.Station owner) {
-        return new PlaceholderCatalogueResponse(catalogue.forStation(owner.stationId()));
+    public PlaceholderCatalogueResponse catalogue(Owner owner) {
+        return new PlaceholderCatalogueResponse(catalogue.forOwner(owner));
+    }
+
+    /**
+     * Refuses a self service audience on a template of an association, which offers a template and leaves
+     * the audience to each station.
+     */
+    private static void requireAudienceAllowed(Owner owner, DocumentTemplateRequest request) {
+        var audience = request.audience();
+        if (owner instanceof Owner.Association && audience != null && !audience.namesNobody()) {
+            throw DocumentRefusal.DOCUMENT_ASSOCIATION_TEMPLATE_AUDIENCE.raise();
+        }
     }
 
     private void writeContent(int templateId, TemplateContent content) {
@@ -258,12 +323,14 @@ public class DocumentTemplateService {
     /**
      * A template as a list shows it.
      *
-     * @param id          the template
-     * @param name        what it is called
-     * @param kind        what it is made of
+     * @param id              the template
+     * @param name            what it is called
+     * @param kind            what it is made of
      * @param legal           whether it makes a legal document
      * @param forAppointments whether appointments may require it as a document to bring
-     * @param selfService     whether members may generate it for themselves
+     * @param selfService     whether members may generate it for themselves; for a template of the
+     *                        association listed at a station, whether the station offers it to them
+     * @param ofAssociation   whether the association keeps it, which a station uses but does not change
      * @param version         how often it was changed, counted from one
      * @param updatedAt       when it was last changed
      * @param archivedAt      when it was archived, or null while it is in use
@@ -275,18 +342,20 @@ public class DocumentTemplateService {
             boolean legal,
             boolean forAppointments,
             boolean selfService,
+            boolean ofAssociation,
             int version,
             Instant updatedAt,
             @Nullable Instant archivedAt) {
 
-        static DocumentTemplateSummary of(DocumentTemplate template) {
+        static DocumentTemplateSummary of(DocumentTemplate template, boolean selfService) {
             return new DocumentTemplateSummary(
                     template.id(),
                     template.name(),
                     template.kind(),
                     template.legal(),
                     template.forAppointments(),
-                    template.selfService(),
+                    selfService,
+                    template.ofAssociation(),
                     template.version(),
                     template.updatedAt(),
                     template.archivedAt());
@@ -306,9 +375,11 @@ public class DocumentTemplateService {
      * @param keepOnArchive   whether a generated document outlasts the membership
      * @param legal           whether it makes a legal document
      * @param forAppointments whether appointments may require it as a document to bring
-     * @param selfService     whether members may generate it for themselves
+     * @param selfService     whether members may generate it for themselves; for an association's
+     *                        template, whether it is offered to its stations for that
      * @param cooldownDays    the days between two self service documents for one member
-     * @param audience        who may generate it through self service
+     * @param audience        who may generate it through self service, always everybody for a template of
+     *                        an association
      * @param language        the language its documents are written in
      * @param header          the rows across the top of every page of a letter
      * @param footer          the rows across the bottom of every page of a letter

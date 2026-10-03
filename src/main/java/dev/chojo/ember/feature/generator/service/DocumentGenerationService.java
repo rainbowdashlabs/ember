@@ -105,9 +105,10 @@ public class DocumentGenerationService {
             int documentId, int generationId, String title, List<MissingValue> missing) {}
 
     /**
-     * The templates in use a manager can generate documents from.
+     * The templates in use a manager can generate documents from: the station's own and those of its
+     * association.
      *
-     * @param owner the owner
+     * @param owner the station
      * @return the templates by name
      */
     public List<DocumentTemplateService.DocumentTemplateSummary> usable(Owner.Station owner) {
@@ -118,12 +119,12 @@ public class DocumentGenerationService {
      * Draws a saved template for a member of the station, for a look before it is generated.
      *
      * @param session    the manager
-     * @param templateId the template
+     * @param templateId the template, the station's own or one of its association
      * @param memberId   the member, already checked to be of the station
      * @return the document and what is missing
      */
     public PreviewResponse preview(StationSession session, int templateId, int memberId) {
-        var template = templates.requireInUse(session.owner(), templateId);
+        var template = templates.requireInUse(session.stationId(), templateId);
         return generator.preview(
                 generator.sourceOf(template),
                 memberId,
@@ -148,24 +149,54 @@ public class DocumentGenerationService {
         if (memberId != null && !session.hasPermission(StationPermission.DOCUMENT_EDIT_MEMBER)) {
             throw DocumentRefusal.DOCUMENT_GENERATE_NOT_YOURS.raise();
         }
-        var saved = templateId == null ? null : templates.requireOwned(session.owner(), templateId);
-        var draft = checks.preview(session.stationId(), request, saved);
-        return generator.preview(
-                DocumentGeneratorService.sourceOf(session.stationId(), draft),
+        return previewDraft(
+                session.owner(),
+                request,
+                templateId,
                 memberId,
                 GenerationContext.by(session.member().id()));
+    }
+
+    /**
+     * Draws a template of an association still in its editor. The association has no members of its own,
+     * so it is drawn without one, its placeholders shown by their labels.
+     *
+     * @param owner      the association
+     * @param request    the template as the editor holds it
+     * @param templateId the saved template the draft changes, or null for one not saved yet
+     * @param memberId   a member asked for, which an association's preview refuses
+     * @return the document
+     */
+    public PreviewResponse previewAssociationDraft(
+            Owner.Association owner,
+            DocumentTemplateRequest request,
+            @Nullable Integer templateId,
+            @Nullable Integer memberId) {
+        if (memberId != null) throw DocumentRefusal.DOCUMENT_ASSOCIATION_PREVIEW_WITH_MEMBER.raise();
+        return previewDraft(owner, request, templateId, null, new GenerationContext(null, null));
+    }
+
+    private PreviewResponse previewDraft(
+            Owner owner,
+            DocumentTemplateRequest request,
+            @Nullable Integer templateId,
+            @Nullable Integer memberId,
+            GenerationContext context) {
+        var saved = templateId == null ? null : templates.requireOwned(owner, templateId);
+        var draft = checks.preview(owner, request, saved);
+        return generator.preview(DocumentGeneratorService.sourceOf(owner, draft), memberId, context);
     }
 
     /**
      * Generates a document for a member of the station and files it, as a manager does.
      *
      * @param session    the manager
-     * @param templateId the template
+     * @param templateId the template, the station's own or one of its association
      * @param memberId   the member, already checked to be of the station
      * @return the filed document and what was missing
      */
     public GeneratedDocumentResponse generate(StationSession session, int templateId, int memberId) {
-        var template = templates.requireInUse(session.owner(), templateId);
+        var template = templates.requireInUse(session.stationId(), templateId);
         var prepared = generator.prepare(
                 generator.sourceOf(template),
                 memberId,
@@ -174,7 +205,8 @@ public class DocumentGenerationService {
     }
 
     /**
-     * Draws a document and files it, with its entry in the generation log.
+     * Draws a document and files it, with its entry in the generation log, at the station of the member it
+     * is about, whoever keeps the template.
      *
      * @param template    the template
      * @param memberId    the member it is about
@@ -189,7 +221,7 @@ public class DocumentGenerationService {
             int generatedBy,
             GenerationOrigin origin,
             DocumentGeneratorService.Prepared prepared) {
-        int stationId = template.stationId();
+        int stationId = prepared.stationId();
         documents.requireKept(stationId, DocumentDoor.STATION);
         var rendered = generator.render(prepared);
         var upload = new DocumentIntake.Upload(rendered.fileName(), PDF, rendered.pdf());

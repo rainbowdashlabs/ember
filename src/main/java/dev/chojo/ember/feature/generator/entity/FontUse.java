@@ -5,11 +5,13 @@
  */
 package dev.chojo.ember.feature.generator.entity;
 
+import dev.chojo.ember.owner.Owner;
+
 /**
  * A template that prints in a family of uploaded fonts.
  *
  * @param templateId the template
- * @param stationId  the station that keeps it
+ * @param owner      the station or the association that keeps it
  * @param name       what it is called
  */
-public record FontUse(int templateId, int stationId, String name) {}
+public record FontUse(int templateId, Owner owner, String name) {}

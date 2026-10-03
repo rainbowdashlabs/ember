@@ -142,7 +142,7 @@ public class AppointmentDocumentService {
         }
         boolean required = inUse(event.id()).stream().anyMatch(template -> template.templateId() == templateId);
         if (!required) throw DocumentRefusal.DOCUMENT_REQUIREMENT_NOT_REQUIRED.raise();
-        var template = templates.requireInUse(session.owner(), templateId);
+        var template = templates.requireInUse(session.stationId(), templateId);
         var context = new GenerationContext(session.member().id(), facts(event, date));
         var prepared = generator.prepare(generator.sourceOf(template), memberId, context);
         return generation.file(

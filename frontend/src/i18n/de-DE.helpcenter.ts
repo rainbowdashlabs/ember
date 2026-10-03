@@ -1695,6 +1695,13 @@ volumes:
                 + 'Profil, erklärt Ember, welche, und erstellt erst, wenn sie eingetragen sind.',
             cooldownText: 'Damit niemand dasselbe Dokument ständig neu erstellt, hat jede Vorlage eine Wartezeit, '
                 + 'normal 30 Tage. Danach ist es wieder möglich, und Ember zeigt bis dahin das Datum an.',
+            associationTitle: 'Vorlagen des Verbands',
+            associationText: 'Gehört die Wache zu einem Verband, stehen dessen Vorlagen mit dem Zeichen „Vom Verband" '
+                + 'in der Liste. Die Wache erstellt sie für ihre Mitglieder wie eigene Vorlagen, geändert werden sie '
+                + 'nur im Verband. Platzhalter wie der Name der Wache füllt Ember mit den Daten der Wache des Mitglieds.',
+            associationSelfServiceText: 'Ob Mitglieder eine Vorlage des Verbands selbst erstellen, entscheidet die '
+                + 'Wache: Ein Klick auf die Vorlage öffnet die Einstellung, dort schaltet sie das Selbst-Erstellen ein '
+                + 'und wählt, für wen. Das geht nur, wenn der Verband die Vorlage dafür anbietet.',
             archiveTitle: 'Archivieren statt löschen',
             archiveText: 'Vorlagen werden nicht gelöscht, sondern archiviert. Eine archivierte Vorlage erstellt '
                 + 'nichts mehr, bleibt aber für die Dokumente erhalten, die aus ihr entstanden sind. Mit „Wieder '
@@ -1743,6 +1750,20 @@ volumes:
             deleteText: 'Solange eine Vorlage in Gebrauch eine Schrift verwendet, lässt sie sich nicht löschen. '
                 + 'Ember nennt dann die Vorlagen. Archivierte Vorlagen halten keine Schrift fest.',
             tip: 'Lade alle vier Schnitte einer Schrift hoch. Fehlt einer, druckt Ember dort den normalen Schnitt.',
+        },
+        documentTemplateUse: {
+            title: 'Vorlage des Verbands',
+            subtitle: 'Wie die Wache eine Vorlage ihres Verbands verwendet',
+            whatIs: 'Was die Wache hier festlegt',
+            whatIsText: 'Die Vorlage gehört dem Verband und wird dort geschrieben. Die Verwaltung der Wache erstellt '
+                + 'sie für Mitglieder auf deren Seite, ohne etwas einzustellen. Hier legt die Wache nur fest, ob ihre '
+                + 'Mitglieder sie selbst erstellen.',
+            selfServiceTitle: 'Selbst erstellen lassen',
+            selfServiceText: 'Mit dem Schalter erscheint die Vorlage im Profil der Mitglieder. Ohne Auswahl bei „Für '
+                + 'wen" gilt sie für alle Mitglieder, sonst nur für die gewählten Gruppen, Mitgliedsarten, Tags oder '
+                + 'Personen. Die Wartezeit legt der Verband fest.',
+            offeredText: 'Bietet der Verband die Vorlage nicht zum Selbst-Erstellen an, bleibt die Einstellung ohne '
+                + 'Wirkung, bis er es tut.',
         },
         documentTemplateEditor: {
             title: 'Vorlage bearbeiten',
@@ -4063,6 +4084,49 @@ volumes:
             whoTitle: 'Wer darf das ändern?',
             whoText: 'Die Einstellungen sieht nur, wer im Verband das Recht für allgemeine Einstellungen hat. Ohne dieses Recht taucht der Punkt in der Seitenleiste gar nicht erst auf.',
             tip: 'Der Name wird sofort übernommen, ein erneutes Anmelden ist nicht nötig.',
+        },
+        clusterDocumentTemplates: {
+            title: 'Dokumentvorlagen des Verbands',
+            subtitle: 'Briefe und PDFs, die alle Wachen des Verbands für ihre Mitglieder verwenden',
+            whatIs: 'Wofür Vorlagen des Verbands da sind',
+            whatIsText: 'Eine Vorlage des Verbands wird einmal geschrieben und von allen seinen Wachen verwendet, '
+                + 'zum Beispiel eine Bescheinigung im Briefkopf des Verbands oder ein Formular wie eine '
+                + 'Einverständniserklärung. Der Editor ist derselbe wie bei einer Wache.',
+            stationsText: 'Die Wachen sehen die Vorlage in ihrer Liste mit dem Zeichen „Vom Verband" und erstellen '
+                + 'daraus Dokumente für ihre Mitglieder. Ändern kann sie nur der Verband. Jedes Dokument wird bei der '
+                + 'Wache des Mitglieds abgelegt.',
+            placeholdersTitle: 'Platzhalter',
+            placeholdersText: 'Platzhalter füllt Ember mit den Daten des Mitglieds und seiner eigenen Wache: Name, '
+                + 'Anschrift und Logo der Wache sind für jedes Mitglied die richtigen. Dazu kommen Name und Anschrift '
+                + 'des Verbands und die Profilfelder des Verbands. Erreicht ein Profilfeld eine Wache nicht, fehlt der '
+                + 'Wert dort.',
+            previewText: 'Der Verband hat keine eigenen Mitglieder. Die Vorschau zeigt deshalb die Platzhalter mit '
+                + 'ihrem Namen.',
+            selfServiceTitle: 'Selbst erstellen',
+            selfServiceText: 'Der Verband bietet eine Vorlage zum Selbst-Erstellen an und legt die Wartezeit fest. Ob '
+                + 'und für wen Mitglieder sie selbst erstellen, entscheidet jede Wache für sich.',
+            filesTitle: 'Bilder und Schriften',
+            picturesText: 'Bilder für Briefkopf und Text kommen aus den Medien des Verbands. Was dort von einer '
+                + 'Vorlage verwendet wird, bleibt erhalten.',
+            fontsText: 'Vorlagen des Verbands verwenden die Schriften des Verbands und der Instanz, aber keine '
+                + 'Schrift einer einzelnen Wache.',
+            rightsTitle: 'Wer was darf',
+            rightsText: 'Vorlagen, Schriften und Medien des Verbands bearbeitet, wer im Verband „Dokumentvorlagen" '
+                + 'hat.',
+            tip: 'Lege Bescheinigungen, die alle Wachen gleich brauchen, im Verband an. Eine Änderung gilt dann für '
+                + 'alle Wachen auf einmal.',
+        },
+        clusterMedia: {
+            title: 'Medien des Verbands',
+            subtitle: 'Bilder und Dateien des Verbands',
+            whatIs: 'Wofür die Medien da sind',
+            whatIsText: 'Hier liegen die Bilder und Dateien des Verbands, etwa das Logo für den Briefkopf seiner '
+                + 'Vorlagen und die Bilder in seinem Wiki und seinen Neuigkeiten.',
+            uploadTitle: 'Hochladen und ordnen',
+            uploadText: 'Dateien werden hier hochgeladen, in Ordner sortiert und mit Tags versehen, genau wie in den '
+                + 'Medien einer Wache. Im Editor einer Vorlage stehen sie zur Auswahl.',
+            keptText: 'Ein Bild, das eine Vorlage verwendet, gilt als benutzt und wird beim Aufräumen nicht entfernt. '
+                + 'Die Dateien zählen zum Speicherplatz des Verbands.',
         },
         clusterDocumentFonts: {
             title: 'Schriftarten des Verbands',

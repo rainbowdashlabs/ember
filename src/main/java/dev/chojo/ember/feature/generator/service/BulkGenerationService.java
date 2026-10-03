@@ -185,7 +185,7 @@ public class BulkGenerationService {
      * @return the preview
      */
     public BulkPreviewResponse preview(StationSession session, int templateId, MemberSelection selection) {
-        var template = templates.requireInUse(session.owner(), templateId);
+        var template = templates.requireInUse(session.stationId(), templateId);
         var memberIds = chosen(session.stationId(), selection);
         var source = generator.sourceOf(template);
         var context = GenerationContext.by(session.member().id());
@@ -221,7 +221,7 @@ public class BulkGenerationService {
     public GenerationJobResponse start(
             StationSession session, int templateId, MemberSelection selection, boolean acceptMissing) {
         documents.requireKept(session.stationId(), DocumentDoor.STATION);
-        var template = templates.requireInUse(session.owner(), templateId);
+        var template = templates.requireInUse(session.stationId(), templateId);
         var memberIds = chosen(session.stationId(), selection);
         int jobId = Transactions.call(() ->
                 jobs.create(session.stationId(), template.id(), session.member().id(), acceptMissing, memberIds));

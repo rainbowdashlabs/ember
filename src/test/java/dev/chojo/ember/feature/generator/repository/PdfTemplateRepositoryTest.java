@@ -22,6 +22,7 @@ import dev.chojo.ember.feature.generator.entity.PdfPage;
 import dev.chojo.ember.feature.generator.entity.SignatureRole;
 import dev.chojo.ember.feature.generator.entity.TextAlign;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
+import dev.chojo.ember.owner.Owner;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -48,11 +49,8 @@ class PdfTemplateRepositoryTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         var station = stationRepo.create("PDF Ablage Wache");
-        author = stationMemberRepo
-                .create(
-                        station.id(),
-                        accountRepo.create("pdf-repo@test.com", "Pia", "Ablage").id())
-                .id();
+        author = accountRepo.create("pdf-repo@test.com", "Pia", "Ablage").id();
+        stationMemberRepo.create(station.id(), author);
         var draft = new DocumentTemplateDraft(
                 "Formular",
                 "t",
@@ -67,7 +65,7 @@ class PdfTemplateRepositoryTest extends RepositoryTestBase {
                 RestrictionMode.AND,
                 DocumentLanguage.DE,
                 new PdfContent(null, PdfLayout.empty()));
-        var template = templates.create(station.id(), draft, author);
+        var template = templates.create(new Owner.Station(station.id()), draft, author);
         assertEquals(DocumentTemplateKind.PDF, template.kind());
         templateId = template.id();
     }

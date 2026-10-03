@@ -112,8 +112,8 @@ public class EventRequirementService {
         var kept = before.stream().map(RequiredTemplate::templateId).toList();
         for (int templateId : chosen) {
             var template = kept.contains(templateId)
-                    ? templates.requireOwned(owner, templateId)
-                    : templates.requireInUse(owner, templateId);
+                    ? templates.requireUsable(owner.stationId(), templateId)
+                    : templates.requireInUse(owner.stationId(), templateId);
             if (!template.forAppointments()) {
                 throw DocumentRefusal.DOCUMENT_TEMPLATE_NOT_FOR_APPOINTMENTS.raise(RefusalDetail.text(template.name()));
             }

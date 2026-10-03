@@ -17,8 +17,12 @@ import dev.chojo.ember.feature.generator.service.DocumentTemplateService.Documen
 import dev.chojo.ember.feature.generator.service.DocumentTemplateService.DocumentTemplateSummary;
 import dev.chojo.ember.feature.generator.service.DocumentTemplateService.PlaceholderCatalogueResponse;
 import dev.chojo.ember.feature.generator.service.LetterImportService;
+import dev.chojo.ember.feature.generator.service.LetterImportService.Importer;
 import dev.chojo.ember.feature.generator.service.LetterImportService.LetterImport;
 import dev.chojo.ember.feature.generator.service.PdfTemplateService;
+import dev.chojo.ember.feature.generator.service.TemplateStationUseService;
+import dev.chojo.ember.feature.generator.service.TemplateStationUseService.TemplateUseRequest;
+import dev.chojo.ember.feature.generator.service.TemplateStationUseService.TemplateUseResponse;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -31,24 +35,35 @@ import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+import static dev.chojo.ember.api.RouteSupport.pathInt;
+
 /**
  * The station's document templates, for whoever may write them.
  *
  * <p>A template holds no member data, so writing one needs only the right to edit templates. Looking
  * at one rendered for a member is generating, which has routes of its own.
+ *
+ * <p>The list also holds the templates of the station's association, which the station uses but only
+ * the association changes. For one of those the station sets whether its members generate it through
+ * self service, and who of them ({@code /document-templates/{id}/use}).
  */
 @Singleton
 public class DocumentTemplateRoutes implements Routes {
     private final DocumentTemplateService templates;
     private final LetterImportService imports;
     private final PdfTemplateService pdfs;
+    private final TemplateStationUseService uses;
 
     @Inject
     public DocumentTemplateRoutes(
-            DocumentTemplateService templates, LetterImportService imports, PdfTemplateService pdfs) {
+            DocumentTemplateService templates,
+            LetterImportService imports,
+            PdfTemplateService pdfs,
+            TemplateStationUseService uses) {
         this.templates = templates;
         this.imports = imports;
         this.pdfs = pdfs;
+        this.uses = uses;
     }
 
     @Override
@@ -65,6 +80,38 @@ public class DocumentTemplateRoutes implements Routes {
                 prefix + "/document-templates/{id}/restore", this::restore, StationPermission.DOCUMENT_TEMPLATE_EDIT);
         routes.get(prefix + "/document-templates/{id}/pdf", this::pdf, StationPermission.DOCUMENT_TEMPLATE_EDIT);
         routes.post(prefix + "/document-templates/{id}/pdf", this::uploadPdf, StationPermission.DOCUMENT_TEMPLATE_EDIT);
+        routes.get(prefix + "/document-templates/{id}/use", this::use, StationPermission.DOCUMENT_TEMPLATE_EDIT);
+        routes.put(prefix + "/document-templates/{id}/use", this::setUse, StationPermission.DOCUMENT_TEMPLATE_EDIT);
+    }
+
+    @OpenApi(
+            path = "/api/v1/document-templates/{id}/use",
+            methods = HttpMethod.GET,
+            summary = "How the station uses a template of its association",
+            tags = {"Documents"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = TemplateUseResponse.class)),
+                @OpenApiResponse(status = "409", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void use(Context ctx) {
+        ctx.json(uses.useOf(StationSession.from(ctx).stationId(), pathInt(ctx, "id")));
+    }
+
+    @OpenApi(
+            path = "/api/v1/document-templates/{id}/use",
+            methods = HttpMethod.PUT,
+            summary = "Set whether and for whom the station offers a template of its association for self service",
+            tags = {"Documents"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = TemplateUseRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = TemplateUseResponse.class)),
+                @OpenApiResponse(status = "409", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void setUse(Context ctx) {
+        var request = ctx.bodyAsClass(TemplateUseRequest.class);
+        ctx.json(uses.setUse(StationSession.from(ctx).stationId(), pathInt(ctx, "id"), request));
     }
 
     @OpenApi(
@@ -95,11 +142,7 @@ public class DocumentTemplateRoutes implements Routes {
             })
     private void uploadPdf(Context ctx) {
         var session = StationSession.from(ctx);
-        ctx.json(pdfs.upload(
-                session.owner(),
-                templateId(ctx),
-                ctx.uploadedFile("file"),
-                session.member().id()));
+        ctx.json(pdfs.upload(session.owner(), templateId(ctx), ctx.uploadedFile("file"), session.accountId()));
     }
 
     @OpenApi(
@@ -126,7 +169,7 @@ public class DocumentTemplateRoutes implements Routes {
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void importLetter(Context ctx) {
-        ctx.json(imports.read(StationSession.from(ctx), ctx.uploadedFile("file")));
+        ctx.json(imports.read(Importer.of(StationSession.from(ctx)), ctx.uploadedFile("file")));
     }
 
     @OpenApi(
@@ -159,9 +202,7 @@ public class DocumentTemplateRoutes implements Routes {
     private void create(Context ctx) {
         var session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(DocumentTemplateRequest.class);
-        ctx.status(HttpStatus.CREATED)
-                .json(templates.create(
-                        session.owner(), request, session.member().id()));
+        ctx.status(HttpStatus.CREATED).json(templates.create(session.owner(), request, session.accountId()));
     }
 
     @OpenApi(
@@ -190,8 +231,7 @@ public class DocumentTemplateRoutes implements Routes {
     private void update(Context ctx) {
         var session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(DocumentTemplateRequest.class);
-        ctx.json(templates.update(
-                session.owner(), templateId(ctx), request, session.member().id()));
+        ctx.json(templates.update(session.owner(), templateId(ctx), request, session.accountId()));
     }
 
     @OpenApi(
@@ -204,8 +244,7 @@ public class DocumentTemplateRoutes implements Routes {
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = DocumentTemplateResponse.class)))
     private void archive(Context ctx) {
         var session = StationSession.from(ctx);
-        ctx.json(templates.setArchived(
-                session.owner(), templateId(ctx), true, session.member().id()));
+        ctx.json(templates.setArchived(session.owner(), templateId(ctx), true, session.accountId()));
     }
 
     @OpenApi(
@@ -218,8 +257,7 @@ public class DocumentTemplateRoutes implements Routes {
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = DocumentTemplateResponse.class)))
     private void restore(Context ctx) {
         var session = StationSession.from(ctx);
-        ctx.json(templates.setArchived(
-                session.owner(), templateId(ctx), false, session.member().id()));
+        ctx.json(templates.setArchived(session.owner(), templateId(ctx), false, session.accountId()));
     }
 
     /** The template behind the path, which has to be one of the reader's station. */

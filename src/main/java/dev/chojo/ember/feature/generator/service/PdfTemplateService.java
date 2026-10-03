@@ -16,9 +16,10 @@ import dev.chojo.ember.feature.generator.repository.PdfTemplateRepository;
 import dev.chojo.ember.feature.generator.service.DocumentTemplateService.DocumentTemplateResponse;
 import dev.chojo.ember.feature.generator.service.pdf.PdfFiles;
 import dev.chojo.ember.feature.generator.service.pdf.PdfInspector;
-import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.generator.service.store.OwnerStores;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageScope;
+import dev.chojo.ember.feature.storage.service.StorageQuotaService;
 import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.owner.Owner;
 import dev.chojo.ember.util.sql.Transactions;
@@ -43,6 +44,9 @@ import java.util.Optional;
  * <p>A new version never replaces the old one. It becomes the one the template fills, the template's
  * version counts up, and the fields stay as they were, to be checked over the new pages; documents
  * generated before keep naming the version they were filled from.
+ *
+ * <p>The file is kept by the template's owner: a station's in its own storage and room, an association's
+ * in the association scope of its home station, counted against the room it was given there.
  */
 @Singleton
 public class PdfTemplateService {
@@ -54,7 +58,7 @@ public class PdfTemplateService {
     private final PdfTemplateRepository pdfTemplates;
     private final DocumentIntake intake;
     private final StorageService storage;
-    private final StationRepository stations;
+    private final OwnerStores stores;
 
     @Inject
     public PdfTemplateService(
@@ -63,32 +67,33 @@ public class PdfTemplateService {
             PdfTemplateRepository pdfTemplates,
             DocumentIntake intake,
             StorageService storage,
-            StationRepository stations) {
+            OwnerStores stores) {
         this.templateService = templateService;
         this.templates = templates;
         this.pdfTemplates = pdfTemplates;
         this.intake = intake;
         this.storage = storage;
-        this.stations = stations;
+        this.stores = stores;
     }
 
     /**
      * Takes in a new version of a PDF template's PDF.
      *
-     * @param owner      the owner
+     * @param owner      the station or the association that keeps the template
      * @param templateId the template
      * @param file       the upload, or null where the request carried none
-     * @param authorId   the member who uploads it
+     * @param authorId   the account that uploads it
      * @return the template as it now stands
      */
-    public DocumentTemplateResponse upload(
-            Owner.Station owner, int templateId, @Nullable UploadedFile file, int authorId) {
+    public DocumentTemplateResponse upload(Owner owner, int templateId, @Nullable UploadedFile file, int authorId) {
         var template = templateService.requireOwned(owner, templateId);
         if (template.kind() != DocumentTemplateKind.PDF) throw DocumentRefusal.DOCUMENT_TEMPLATE_NOT_PDF.raise();
-        int stationId = owner.stationId();
+        var scope = scope(owner);
+        var category = categoryOf(owner);
+        int room = StorageQuotaService.roomOf(scope).orElseThrow(DocumentRefusal.DOCUMENT_TEMPLATE_NOT_HERE::raise);
         var refusals = DocumentDoor.STATION.intake();
-        var upload = intake.read(stationId, file, refusals);
-        String type = intake.take(stationId, StorageCategory.DOCUMENT_TEMPLATES, upload, refusals);
+        var upload = intake.read(room, file, refusals);
+        String type = intake.take(room, category, upload, refusals);
         if (!PDF.equals(type)) throw DocumentRefusal.DOCUMENT_TEMPLATE_PDF_NOT_A_PDF.raise();
         var inspection = inspect(upload.data());
         var original = Transactions.call(() -> {
@@ -100,23 +105,23 @@ public class PdfTemplateService {
                     inspection,
                     authorId);
             templates.countVersion(templateId, authorId);
-            storage.store(scope(stationId), StorageCategory.DOCUMENT_TEMPLATES, key(written), upload.data(), PDF);
+            storage.store(scope, category, key(written), upload.data(), PDF);
             return written;
         });
-        log.info("PDF {} uploaded for document template {} at station {}", original.id(), templateId, stationId);
+        log.info("PDF {} uploaded for document template {} of {}", original.id(), templateId, owner);
         return templateService.detail(owner, templateId);
     }
 
     /**
      * The PDF a PDF template fills now, as it was uploaded.
      *
-     * @param owner      the owner
+     * @param owner      the station or the association that keeps the template
      * @param templateId the template
      * @return the original and its bytes, or empty where none was uploaded
      */
-    public Optional<Download> current(Owner.Station owner, int templateId) {
+    public Optional<Download> current(Owner owner, int templateId) {
         templateService.requireOwned(owner, templateId);
-        return pdfTemplates.findCurrentOriginal(templateId).flatMap(original -> read(owner.stationId(), original)
+        return pdfTemplates.findCurrentOriginal(templateId).flatMap(original -> read(owner, original)
                 .map(data -> new Download(original.fileName(), data)));
     }
 
@@ -129,12 +134,12 @@ public class PdfTemplateService {
     public record Download(String fileName, byte[] data) {}
 
     /**
-     * @param stationId the station that keeps it
-     * @param original  an uploaded version of a template's PDF
+     * @param owner    the station or the association that keeps it
+     * @param original an uploaded version of a template's PDF
      * @return its bytes, or empty where the stored file is gone
      */
-    public Optional<byte[]> read(int stationId, PdfOriginal original) {
-        return storage.readAllBytes(scope(stationId), StorageCategory.DOCUMENT_TEMPLATES, key(original));
+    public Optional<byte[]> read(Owner owner, PdfOriginal original) {
+        return storage.readAllBytes(scope(owner), categoryOf(owner), key(original));
     }
 
     /**
@@ -152,8 +157,18 @@ public class PdfTemplateService {
         }
     }
 
-    private StorageScope.Station scope(int stationId) {
-        return new StorageScope.Station(stationId, stations.requireUid(stationId));
+    private StorageScope scope(Owner owner) {
+        return stores.scopeOf(owner, DocumentRefusal.DOCUMENT_TEMPLATE_NOT_HERE);
+    }
+
+    /**
+     * @param owner the station or the association that keeps the template
+     * @return what its PDFs are kept as
+     */
+    static StorageCategory categoryOf(Owner owner) {
+        return owner instanceof Owner.Association
+                ? StorageCategory.ASSOCIATION_DOCUMENT_TEMPLATES
+                : StorageCategory.DOCUMENT_TEMPLATES;
     }
 
     private static String key(PdfOriginal original) {

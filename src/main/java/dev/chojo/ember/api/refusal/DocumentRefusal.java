@@ -248,6 +248,26 @@ public enum DocumentRefusal implements Refusal {
             HttpStatus.CONFLICT,
             "For this member, two signature lines of the template ask the same person to sign, so nothing was produced"),
 
+    /** A station changing a template its association keeps. */
+    DOCUMENT_TEMPLATE_KEPT_BY_ASSOCIATION(
+            80, HttpStatus.FORBIDDEN, "This template belongs to the association and can only be changed there"),
+
+    /** A station setting how it uses a template, where the template is its own rather than its association's. */
+    DOCUMENT_TEMPLATE_USE_NOT_ASSOCIATION(
+            81,
+            HttpStatus.CONFLICT,
+            "Only a template of the association is switched on here; the station's own templates say this themselves"),
+
+    /** A template of an association drawn for a member at the association, which has no members of its own. */
+    DOCUMENT_ASSOCIATION_PREVIEW_WITH_MEMBER(
+            82, HttpStatus.BAD_REQUEST, "A template of the association is shown without a member"),
+
+    /** A template of an association given a self service audience, which each station chooses itself. */
+    DOCUMENT_ASSOCIATION_TEMPLATE_AUDIENCE(
+            83,
+            HttpStatus.BAD_REQUEST,
+            "The association only offers a template for self service; each station chooses who may use it"),
+
     /** A generation run that does not exist or is another station's. */
     DOCUMENT_JOB_NOT_HERE(90, HttpStatus.NOT_FOUND, "There is no such generation run"),
 

@@ -22,6 +22,8 @@ defineProps<{
   saved: DocumentTemplateResponse | null
   saving: boolean
   canSave: boolean
+  /** The route of the list the template belongs to. */
+  listRoute: string
 }>()
 
 const emit = defineEmits<{
@@ -40,7 +42,7 @@ const router = useRouter()
       <SecondaryBadge v-if="saved?.archivedAt">{{ t('documentTemplates.isArchived') }}</SecondaryBadge>
     </div>
     <ButtonRow align="end">
-      <SecondaryButton :icon="['fas', 'arrow-left']" @click="router.push({name: 'member-document-templates'})">
+      <SecondaryButton :icon="['fas', 'arrow-left']" @click="router.push({name: listRoute})">
         {{ t('documentTemplates.backToList') }}
       </SecondaryButton>
       <SecondaryButton v-if="saved" :icon="['fas', saved.archivedAt ? 'box-open' : 'box-archive']" data-testid="template-archive"

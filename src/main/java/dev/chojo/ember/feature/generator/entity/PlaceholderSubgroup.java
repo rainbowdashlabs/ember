@@ -13,7 +13,9 @@ public enum PlaceholderSubgroup {
     /** Names, dates and the kind of member, which every member has. */
     DETAILS("Stammdaten", "Basic details"),
     /** The answers to the station's profile questions, split by the headings of the form. */
-    PROFILE("Profil", "Profile");
+    PROFILE("Profil", "Profile"),
+    /** The answers to the association's profile questions, split by the headings of its form. */
+    ASSOCIATION_PROFILE("Profil des Verbands", "Association profile");
 
     private final String german;
     private final String english;

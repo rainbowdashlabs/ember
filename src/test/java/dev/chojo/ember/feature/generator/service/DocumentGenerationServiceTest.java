@@ -29,6 +29,7 @@ import dev.chojo.ember.feature.generator.entity.SubjectRole;
 import dev.chojo.ember.feature.generator.repository.DocumentGenerationRepository;
 import dev.chojo.ember.feature.generator.repository.DocumentTemplateRepository;
 import dev.chojo.ember.feature.generator.repository.PdfTemplateRepository;
+import dev.chojo.ember.feature.generator.repository.TemplateStationUseRepository;
 import dev.chojo.ember.feature.generator.service.font.FontLibrary;
 import dev.chojo.ember.feature.generator.service.pdf.PdfStamper;
 import dev.chojo.ember.feature.generator.service.pdf.StampFonts;
@@ -41,7 +42,6 @@ import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.PronounSet;
 import dev.chojo.ember.feature.members.entity.StationMember;
-import dev.chojo.ember.feature.members.service.GenderFields;
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
@@ -72,6 +72,7 @@ import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
@@ -119,6 +120,8 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
     private static Station station;
     private static Owner.Station owner;
     private static StationMember manager;
+    private static int author;
+    private static TemplateStationUseService stationUses;
     private static StationMember lena;
     private static StationMember max;
     private static StationMember guardian;
@@ -132,6 +135,7 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
         stationRepo.updateLocation(station.id(), "Dönhoffstr. 31", "10318", "Berlin", "DE", null, null);
         owner = new Owner.Station(station.id());
         manager = member("gen-manager@test.com", "Nora", "Fülling");
+        author = Objects.requireNonNull(manager.accountId());
         lena = member("gen-lena@test.com", "Lena", "Sch*midt_#1");
         max = member("gen-max@test.com", "Max", "Weiß");
         guardian = member("gen-guardian@test.com", "Anna", "Schmidt");
@@ -182,9 +186,10 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
         when(pictures.place(anyInt(), anyString(), anyString()))
                 .thenAnswer(call -> new KbPdfPictures.Placed(call.getArgument(1), Map.of()));
 
-        var catalogue = new PlaceholderCatalogue(profileFieldRepo, stationRepo);
+        var catalogue = newPlaceholderCatalogue();
         var templateRepository = new DocumentTemplateRepository();
         var pdfTemplates = new PdfTemplateRepository();
+        var uses = new TemplateStationUseRepository();
         fonts = newFontLibrary(storage);
         var checks = new TemplateChecks(
                 templateRepository,
@@ -192,19 +197,21 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
                 new LetterChecks(contentBlocks(), media),
                 stationRepo,
                 catalogue,
-                fonts);
-        templates =
-                new DocumentTemplateService(templateRepository, pdfTemplates, checks, restrictionService, catalogue);
+                fonts,
+                newOwnerStores());
+        templates = new DocumentTemplateService(
+                templateRepository, pdfTemplates, uses, checks, restrictionService, catalogue, newOwnerStores());
+        stationUses = new TemplateStationUseService(templates, uses, restrictionService);
         pdfRenderer = new PdfTemplateRenderer(
                 new PdfTemplateService(
-                        templates, templateRepository, pdfTemplates, newDocumentIntake(), storage, stationRepo),
+                        templates, templateRepository, pdfTemplates, newDocumentIntake(), storage, newOwnerStores()),
                 new PdfStamper(new StampFonts()),
                 fonts);
         var generator = new DocumentGeneratorService(
                 templates,
-                resolver(),
+                newPlaceholderResolver(clock),
                 catalogue,
-                new LetterRenderer(pictures, media, logos, fonts),
+                new LetterRenderer(pictures, media, logos, fonts, newOwnerStores()),
                 pdfRenderer,
                 stationRepo,
                 restrictionService,
@@ -215,6 +222,7 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
         selfService = new SelfServiceDocumentService(
                 templateRepository,
                 templates,
+                stationUses,
                 generator,
                 generation,
                 log,
@@ -228,16 +236,6 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
     private static StationMember member(String email, String first, String last) {
         return stationMemberRepo.create(
                 station.id(), accountRepo.create(email, first, last).id());
-    }
-
-    private static PlaceholderResolver resolver() {
-        return new PlaceholderResolver(
-                stationRepo,
-                stationMemberRepo,
-                memberNameResolver,
-                profileFieldRepo,
-                new GenderFields(profileFieldCore, stationRepo),
-                clock);
     }
 
     private static byte[] png() throws IOException {
@@ -279,7 +277,7 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
     private static int template(String name, boolean selfServiceOn, boolean hidden, int cooldown, String body) {
         var request =
                 letterOf(name, selfServiceOn, hidden, cooldown, rowsOf(body)).build();
-        return templates.create(owner, request, manager.id()).id();
+        return templates.create(owner, request, author).id();
     }
 
     private static int certificate(String name) {
@@ -367,7 +365,7 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
 
     private static int templateOf(String name, BlockRowRequest... body) {
         return templates
-                .create(owner, letterOf(name, false, false, 0, List.of(body)).build(), manager.id())
+                .create(owner, letterOf(name, false, false, 0, List.of(body)).build(), author)
                 .id();
     }
 
@@ -540,7 +538,7 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
                                         row(divider("Termine")),
                                         row(text("Darunter"))))
                                 .build(),
-                        manager.id())
+                        author)
                 .id();
         int plain = templates
                 .create(
@@ -548,7 +546,7 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
                         letter("Ohne Linien")
                                 .body(List.of(row(text("Links"), text("Rechts"))))
                                 .build(),
-                        manager.id())
+                        author)
                 .id();
 
         byte[] withLines =
@@ -622,7 +620,7 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
                                 row(text("Für alle: {{member.fullName}}")),
                                 row(text("Nur zur Probe an der {{profile.%d}}".formatted(schoolField), trialOnly))))
                 .build();
-        int templateId = templates.create(owner, request, manager.id()).id();
+        int templateId = templates.create(owner, request, author).id();
 
         var generated = generation.generate(as(manager), templateId, max.id());
 
@@ -674,12 +672,12 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
         var pictures = mock(KbPdfPictures.class);
         when(pictures.place(anyInt(), anyString(), anyString()))
                 .thenAnswer(call -> new KbPdfPictures.Placed(call.getArgument(1), Map.of()));
-        var catalogue = new PlaceholderCatalogue(profileFieldRepo, stationRepo);
         return new DocumentGeneratorService(
                 templates,
-                resolver(),
-                catalogue,
-                new LetterRenderer(pictures, mock(MediaLibraryService.class), newStationLogoService(), fonts),
+                newPlaceholderResolver(clock),
+                newPlaceholderCatalogue(),
+                new LetterRenderer(
+                        pictures, mock(MediaLibraryService.class), newStationLogoService(), fonts, newOwnerStores()),
                 pdfRenderer,
                 stationRepo,
                 restrictionService,
@@ -689,7 +687,7 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
     @Test
     void anArchivedTemplateGeneratesNothing() {
         int templateId = certificate("Alt");
-        templates.setArchived(owner, templateId, true, manager.id());
+        templates.setArchived(owner, templateId, true, author);
 
         refused(
                 DocumentRefusal.DOCUMENT_TEMPLATE_ARCHIVED,
@@ -734,7 +732,7 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
                         LetterImportService.blocks("{{member.calledName}}"),
                         LetterPage.defaults()));
         var repository = new DocumentTemplateRepository();
-        int templateId = repository.create(station.id(), draft, manager.id()).id();
+        int templateId = repository.create(owner, draft, author).id();
         repository.writeLetter(templateId, (LetterContent) draft.content());
 
         refused(
@@ -870,7 +868,7 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
                                 List.of(),
                                 RestrictionMode.AND))
                         .build(),
-                manager.id());
+                author);
 
         refused(
                 DocumentRefusal.DOCUMENT_SELF_SERVICE_NOT_OFFERED,

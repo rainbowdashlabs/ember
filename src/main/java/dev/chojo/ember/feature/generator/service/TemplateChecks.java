@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.generator.entity.TemplateContent;
 import dev.chojo.ember.feature.generator.repository.DocumentTemplateRepository;
 import dev.chojo.ember.feature.generator.repository.PdfTemplateRepository;
 import dev.chojo.ember.feature.generator.service.font.FontLibrary;
+import dev.chojo.ember.feature.generator.service.store.OwnerStores;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -27,13 +28,15 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * Turns what the editor sends into a template a station may keep, refusing what it may not.
+ * Turns what the editor sends into a template a station or an association may keep, refusing what it may
+ * not.
  *
  * <p>Every check names its own refusal, so the editor can say which part of the template is wrong.
- * Placeholders are checked against the catalogue of the station by {@link PlaceholderCatalogue}: a
+ * Placeholders are checked against the catalogue of the owner by {@link PlaceholderCatalogue}: a
  * placeholder the catalogue does not know would only ever print as a gap. A letter's rows are checked
- * by {@link LetterChecks}, a PDF template's fields by {@link PdfLayoutChecks}. A font family the template
- * names has to be one the station reaches ({@link FontLibrary}).
+ * by {@link LetterChecks}, its pictures against the owner's media library, a PDF template's fields by
+ * {@link PdfLayoutChecks}. A font family the template names has to be one the owner reaches
+ * ({@link FontLibrary}).
  *
  * <p>A template for appointments is a legal one whatever the request says, since its copies are handed
  * to participants to sign. It stays one for as long as an appointment or an appointment template
@@ -65,6 +68,7 @@ public class TemplateChecks {
     private final StationRepository stations;
     private final PlaceholderCatalogue catalogue;
     private final FontLibrary fonts;
+    private final OwnerStores stores;
 
     @Inject
     public TemplateChecks(
@@ -73,54 +77,56 @@ public class TemplateChecks {
             LetterChecks letters,
             StationRepository stations,
             PlaceholderCatalogue catalogue,
-            FontLibrary fonts) {
+            FontLibrary fonts,
+            OwnerStores stores) {
         this.templates = templates;
         this.pdfTemplates = pdfTemplates;
         this.letters = letters;
         this.stations = stations;
         this.catalogue = catalogue;
         this.fonts = fonts;
+        this.stores = stores;
     }
 
     /**
      * Checks a template and fills in what was left out.
      *
-     * @param stationId the station that keeps the template
-     * @param request   what the editor sent
-     * @param existing  the template being changed, whose own name is not taken by itself and whose kind
-     *                  stays, or null for a new one
+     * @param owner    the station or the association that keeps the template
+     * @param request  what the editor sent
+     * @param existing the template being changed, whose own name is not taken by itself and whose kind
+     *                 stays, or null for a new one
      * @return the template as it is to be written
      */
     public DocumentTemplateDraft draft(
-            int stationId, DocumentTemplateRequest request, @Nullable DocumentTemplate existing) {
+            Owner owner, DocumentTemplateRequest request, @Nullable DocumentTemplate existing) {
         Integer exceptId = existing == null ? null : existing.id();
         if (existing != null && !request.forAppointments() && templates.requiredByAppointments(existing.id())) {
             throw DocumentRefusal.DOCUMENT_TEMPLATE_REQUIRED_BY_APPOINTMENTS.raise();
         }
-        return build(stationId, request, requireName(stationId, request.name(), exceptId), existing);
+        return build(owner, request, requireName(owner, request.name(), exceptId), existing);
     }
 
     /**
      * Checks a template the editor wants to look at before it is saved. Its name is not held to
      * anything, since a draft may still share it with the template it is a new version of.
      *
-     * @param stationId the station that keeps the template
-     * @param request   what the editor holds
-     * @param saved     the saved template the draft is a new version of, whose PDF a PDF template fills,
-     *                  or null for one not saved yet
+     * @param owner   the station or the association that keeps the template
+     * @param request what the editor holds
+     * @param saved   the saved template the draft is a new version of, whose PDF a PDF template fills,
+     *                or null for one not saved yet
      * @return the template as it would be written
      */
     public DocumentTemplateDraft preview(
-            int stationId, DocumentTemplateRequest request, @Nullable DocumentTemplate saved) {
+            Owner owner, DocumentTemplateRequest request, @Nullable DocumentTemplate saved) {
         String name = request.name();
-        return build(stationId, request, name == null || name.isBlank() ? "Vorschau" : name.strip(), saved);
+        return build(owner, request, name == null || name.isBlank() ? "Vorschau" : name.strip(), saved);
     }
 
     private DocumentTemplateDraft build(
-            int stationId, DocumentTemplateRequest request, String name, @Nullable DocumentTemplate existing) {
+            Owner owner, DocumentTemplateRequest request, String name, @Nullable DocumentTemplate existing) {
         String titlePattern = pattern(request.titlePattern(), name + " {{today}}");
         String fileNamePattern = pattern(request.fileNamePattern(), name + " {{member.lastName}} {{today}}");
-        var content = content(stationId, request, existing);
+        var content = content(owner, request, existing);
         int cooldown = Objects.requireNonNullElse(request.cooldownDays(), DEFAULT_COOLDOWN_DAYS);
         if (cooldown < 0) throw DocumentRefusal.DOCUMENT_TEMPLATE_COOLDOWN_NEGATIVE.raise();
         var audience = Objects.requireNonNullElse(request.audience(), RestrictionAudience.empty());
@@ -137,30 +143,30 @@ public class TemplateChecks {
                 request.selfService(),
                 cooldown,
                 audience.mode(),
-                language(stationId, request.language()),
+                language(owner, request.language()),
                 content);
-        catalogue.requireKnown(stationId, draft);
-        fonts.requireReachable(new Owner.Station(stationId), content);
+        catalogue.requireKnown(owner, draft);
+        fonts.requireReachable(owner, content);
         return draft;
     }
 
-    /** The language asked for, or the station's where none was. */
-    private DocumentLanguage language(int stationId, @Nullable DocumentLanguage asked) {
+    /** The language asked for, or that of the station, or of the association's home station, where none was. */
+    private DocumentLanguage language(Owner owner, @Nullable DocumentLanguage asked) {
         if (asked != null) return asked;
-        return DocumentLanguage.of(
-                StationFormat.languageOf(stations.findById(stationId).orElse(null)));
+        return DocumentLanguage.of(StationFormat.languageOf(
+                stations.findById(stores.libraryOf(owner)).orElse(null)));
     }
 
     /**
-     * What the template is made of, by the kind it has or, for a new one, the kind it asks for.
+     * What the template is made of, by the kind it has or, for a new one, the kind it asks for. A letter's
+     * pictures come from its owner's media library.
      */
-    private TemplateContent content(
-            int stationId, DocumentTemplateRequest request, @Nullable DocumentTemplate existing) {
+    private TemplateContent content(Owner owner, DocumentTemplateRequest request, @Nullable DocumentTemplate existing) {
         var kind = existing != null
                 ? existing.kind()
                 : Objects.requireNonNullElse(request.kind(), DocumentTemplateKind.LETTER);
         return switch (kind) {
-            case LETTER -> letters.letter(stationId, request);
+            case LETTER -> letters.letter(stores.libraryOf(owner), request);
             case PDF -> {
                 var original = existing == null
                         ? null
@@ -170,23 +176,23 @@ public class TemplateChecks {
         };
     }
 
-    private String requireName(int stationId, @Nullable String raw, @Nullable Integer exceptId) {
+    private String requireName(Owner owner, @Nullable String raw, @Nullable Integer exceptId) {
         String name = raw == null ? "" : raw.strip();
         if (name.isEmpty()) throw DocumentRefusal.DOCUMENT_TEMPLATE_NAME_MISSING.raise();
         requireLength(name, MAX_NAME);
-        requireNameFree(stationId, name, exceptId);
+        requireNameFree(owner, name, exceptId);
         return name;
     }
 
     /**
-     * Refuses a name another template in use at the station already carries.
+     * Refuses a name another template in use of the owner already carries.
      *
-     * @param stationId the station
-     * @param name      the name
-     * @param exceptId  the template that carries it itself, or null
+     * @param owner    the station or the association
+     * @param name     the name
+     * @param exceptId the template that carries it itself, or null
      */
-    public void requireNameFree(int stationId, String name, @Nullable Integer exceptId) {
-        if (templates.nameTaken(stationId, name, exceptId)) {
+    public void requireNameFree(Owner owner, String name, @Nullable Integer exceptId) {
+        if (templates.nameTaken(owner, name, exceptId)) {
             throw DocumentRefusal.DOCUMENT_TEMPLATE_NAME_TAKEN.raise(RefusalDetail.text(name));
         }
     }

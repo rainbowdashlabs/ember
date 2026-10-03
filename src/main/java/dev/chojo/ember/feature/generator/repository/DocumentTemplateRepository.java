@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.content.entity.ContentRows;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplate;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplateDraft;
 import dev.chojo.ember.feature.generator.entity.LetterContent;
+import dev.chojo.ember.owner.Owner;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
@@ -21,34 +22,40 @@ import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
 
 /**
- * The document templates of a station and the content of their letters.
+ * The document templates of a station or an association, and the content of their letters.
  *
  * <p>Nothing here deletes a template. The generation log points at every template a document came
- * from, so a template a station is done with is archived instead.
+ * from, so a template its owner is done with is archived instead.
+ *
+ * <p>An owner is a station or an association; the two columns are compared with
+ * {@code IS NOT DISTINCT FROM}, so one query finds the templates of either.
  */
 @Singleton
 public class DocumentTemplateRepository {
+    private static final String OWNED_BY = """
+            station_id IS NOT DISTINCT FROM :station_id::int
+            AND cluster_id IS NOT DISTINCT FROM :cluster_id::int""";
 
     /**
      * Writes a new template, without its content.
      *
-     * @param stationId the station that owns it
-     * @param draft     what it says
-     * @param authorId  the member who creates it
+     * @param owner    the station or the association that keeps it
+     * @param draft    what it says
+     * @param authorId the account that creates it
      * @return the template as written
      */
-    public DocumentTemplate create(int stationId, DocumentTemplateDraft draft, int authorId) {
+    public DocumentTemplate create(Owner owner, DocumentTemplateDraft draft, int authorId) {
         return query("""
-                        INSERT INTO document_template(station_id, kind, name, title_pattern, file_name_pattern, tags,
-                                                      hidden, keep_on_archive, legal, for_appointments, self_service,
-                                                      self_service_cooldown_days, restriction_mode, language,
-                                                      created_by, updated_by)
-                        VALUES (:station_id, :kind, :name, :title_pattern, :file_name_pattern, :tags,
-                                :hidden, :keep_on_archive, :legal, :for_appointments, :self_service,
-                                :cooldown_days, :restriction_mode, :language,
-                                :author, :author)
+                        INSERT INTO document_template(station_id, cluster_id, kind, name, title_pattern,
+                                                      file_name_pattern, tags, hidden, keep_on_archive, legal,
+                                                      for_appointments, self_service, self_service_cooldown_days,
+                                                      restriction_mode, language, created_by, updated_by)
+                        VALUES (:station_id, :cluster_id, :kind, :name, :title_pattern,
+                                :file_name_pattern, :tags, :hidden, :keep_on_archive, :legal,
+                                :for_appointments, :self_service, :cooldown_days, :restriction_mode,
+                                :language, :author, :author)
                         RETURNING %s;""", DocumentTemplate.COLUMNS)
-                .single(bindDraft(call().bind("station_id", stationId).bind("kind", draft.kind()), draft)
+                .single(bindDraft(owned(owner).bind("kind", draft.kind()), draft)
                         .bind("author", authorId))
                 .map(DocumentTemplate.map())
                 .first()
@@ -60,7 +67,7 @@ public class DocumentTemplateRepository {
      *
      * @param templateId the template
      * @param draft      what it says now
-     * @param authorId   the member who changes it
+     * @param authorId   the account that changes it
      * @return the template as written, or empty where it does not exist
      */
     public Optional<DocumentTemplate> update(int templateId, DocumentTemplateDraft draft, int authorId) {
@@ -93,7 +100,7 @@ public class DocumentTemplateRepository {
      * a new upload of its PDF.
      *
      * @param templateId the template
-     * @param authorId   the member who changed it
+     * @param authorId   the account that changed it
      * @return the template as it now stands, or empty where it does not exist
      */
     public Optional<DocumentTemplate> countVersion(int templateId, int authorId) {
@@ -159,20 +166,38 @@ public class DocumentTemplateRepository {
     }
 
     /**
-     * The templates of a station by name.
+     * The templates of an owner by name.
      *
-     * @param stationId the station
-     * @param archived  whether to list the archived ones instead of those in use
+     * @param owner    the station or the association
+     * @param archived whether to list the archived ones instead of those in use
      * @return the templates
      */
-    public List<DocumentTemplate> findByStation(int stationId, boolean archived) {
+    public List<DocumentTemplate> findByOwner(Owner owner, boolean archived) {
         return query("""
                 SELECT %s
                 FROM document_template
-                WHERE station_id = :station_id
+                WHERE %s
                   AND (archived_at IS NOT NULL) = :archived
+                ORDER BY lower(name), id;""", DocumentTemplate.COLUMNS, OWNED_BY)
+                .single(owned(owner).bind("archived", archived))
+                .map(DocumentTemplate.map())
+                .all();
+    }
+
+    /**
+     * The templates in use of the association a station belongs to, by name.
+     *
+     * @param stationId the station
+     * @return the templates, none where the station belongs to no association
+     */
+    public List<DocumentTemplate> findOfAssociationOf(int stationId) {
+        return query("""
+                SELECT %s
+                FROM document_template
+                WHERE archived_at IS NULL
+                  AND cluster_id = (SELECT cluster_id FROM station WHERE id = :station_id)
                 ORDER BY lower(name), id;""", DocumentTemplate.COLUMNS)
-                .single(call().bind("station_id", stationId).bind("archived", archived))
+                .single(call().bind("station_id", stationId))
                 .map(DocumentTemplate.map())
                 .all();
     }
@@ -196,7 +221,7 @@ public class DocumentTemplateRepository {
      *
      * @param templateId the template
      * @param archived   whether it is archived from now on
-     * @param authorId   the member who does it
+     * @param authorId   the account that does it
      * @return whether the template exists
      */
     public boolean setArchived(int templateId, boolean archived, int authorId) {
@@ -229,24 +254,30 @@ public class DocumentTemplateRepository {
     }
 
     /**
-     * Whether a station has another template in use by this name, ignoring case.
+     * Whether an owner has another template in use by this name, ignoring case.
      *
-     * @param stationId the station
-     * @param name      the name
-     * @param exceptId  a template to leave out, the one being renamed, or null
+     * @param owner    the station or the association
+     * @param name     the name
+     * @param exceptId a template to leave out, the one being renamed, or null
      * @return whether the name is taken
      */
-    public boolean nameTaken(int stationId, String name, @Nullable Integer exceptId) {
+    public boolean nameTaken(Owner owner, String name, @Nullable Integer exceptId) {
         return query("""
                 SELECT EXISTS (SELECT 1
                                FROM document_template
-                               WHERE station_id = :station_id
+                               WHERE %s
                                  AND archived_at IS NULL
                                  AND lower(name) = lower(:name)
-                                 AND id IS DISTINCT FROM :except::int) AS taken;""")
-                .single(call().bind("station_id", stationId).bind("name", name).bind("except", exceptId))
+                                 AND id IS DISTINCT FROM :except::int) AS taken;""", OWNED_BY)
+                .single(owned(owner).bind("name", name).bind("except", exceptId))
                 .map(row -> row.getBoolean("taken"))
                 .first()
                 .orElse(false);
+    }
+
+    private static Call owned(Owner owner) {
+        Integer stationId = owner instanceof Owner.Station station ? station.stationId() : null;
+        Integer clusterId = owner instanceof Owner.Association association ? association.clusterId() : null;
+        return call().bind("station_id", stationId).bind("cluster_id", clusterId);
     }
 }

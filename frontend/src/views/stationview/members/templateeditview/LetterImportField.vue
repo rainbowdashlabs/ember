@@ -9,7 +9,7 @@ import {useI18n} from 'vue-i18n'
 import FileInput from '@/components/input/FileInput.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
-import {documentTemplates} from '@/api'
+import type {TemplateSource} from '@/api/documentTemplates'
 import type {ContentRow, LetterImport} from '@/api/generated/schema'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 
@@ -19,6 +19,11 @@ import {useAsyncAction} from '@/composables/useAsyncAction'
  * text block, with a picture standing on its own line as a picture block. The header and the footer
  * are not part of the import; they are set up once above and below the body.
  */
+const props = defineProps<{
+  /** The owner whose template the text goes into, which keeps its pictures. */
+  source: TemplateSource
+}>()
+
 const emit = defineEmits<{
   imported: [rows: ContentRow[]]
 }>()
@@ -27,7 +32,7 @@ const {t} = useI18n()
 const result = ref<LetterImport | null>(null)
 
 const importing = useAsyncAction(async (file: File) => {
-  result.value = await documentTemplates.importLetter(file)
+  result.value = await props.source.importLetter(file)
   emit('imported', result.value.rows)
 })
 </script>

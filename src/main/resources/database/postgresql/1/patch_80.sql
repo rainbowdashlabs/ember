@@ -45,7 +45,8 @@ COMMENT ON COLUMN ember_schema.profile_field.field_type
 CREATE TABLE IF NOT EXISTS ember_schema.document_template
 (
     id                         SERIAL PRIMARY KEY,
-    station_id                 INTEGER     NOT NULL REFERENCES ember_schema.station (id) ON DELETE CASCADE,
+    station_id                 INTEGER     NULL REFERENCES ember_schema.station (id) ON DELETE CASCADE,
+    cluster_id                 INTEGER     NULL REFERENCES ember_schema.cluster (id) ON DELETE CASCADE,
     kind                       TEXT        NOT NULL DEFAULT 'LETTER' CHECK (kind IN ('LETTER', 'PDF')),
     name                       TEXT        NOT NULL,
     title_pattern              TEXT        NOT NULL,
@@ -61,18 +62,23 @@ CREATE TABLE IF NOT EXISTS ember_schema.document_template
     language                   TEXT        NOT NULL DEFAULT 'DE' CHECK (language IN ('DE', 'EN')),
     version                   INTEGER     NOT NULL DEFAULT 1,
     created_at                 TIMESTAMPTZ NOT NULL DEFAULT now(),
-    created_by                 INTEGER     NULL REFERENCES ember_schema.station_member (id) ON DELETE SET NULL,
+    created_by                 INTEGER     NULL REFERENCES ember_schema.account (id) ON DELETE SET NULL,
     updated_at                 TIMESTAMPTZ NOT NULL DEFAULT now(),
-    updated_by                 INTEGER     NULL REFERENCES ember_schema.station_member (id) ON DELETE SET NULL,
-    archived_at                TIMESTAMPTZ NULL
+    updated_by                 INTEGER     NULL REFERENCES ember_schema.account (id) ON DELETE SET NULL,
+    archived_at                TIMESTAMPTZ NULL,
+    CHECK (num_nonnulls(station_id, cluster_id) = 1)
 );
 
 CREATE INDEX IF NOT EXISTS idx_document_template_station ON ember_schema.document_template (station_id);
+CREATE INDEX IF NOT EXISTS idx_document_template_cluster ON ember_schema.document_template (cluster_id);
 
 COMMENT ON TABLE ember_schema.document_template IS
-    'A template a station turns into a PDF for one member at a time. Never deleted, only archived, so every generated document keeps pointing at the template it came from.';
+    'A template turned into a PDF for one member at a time, kept by a station (station_id) or by an association for all its stations (cluster_id). Never deleted, only archived, so every generated document keeps pointing at the template it came from.';
 COMMENT ON COLUMN ember_schema.document_template.id IS 'Auto-generated primary key.';
-COMMENT ON COLUMN ember_schema.document_template.station_id IS 'The station that owns the template.';
+COMMENT ON COLUMN ember_schema.document_template.station_id IS
+    'The station that owns the template. NULL for a template of an association.';
+COMMENT ON COLUMN ember_schema.document_template.cluster_id IS
+    'The association that owns the template, which its stations use but do not change. NULL for a template of a station.';
 COMMENT ON COLUMN ember_schema.document_template.kind IS
     'What the template is made of: LETTER, a letterhead and a body written in Ember (document_template_letter), or PDF, an uploaded PDF filled in place (document_template_pdf).';
 COMMENT ON COLUMN ember_schema.document_template.name IS 'What the template is called in the list of templates.';
@@ -91,7 +97,7 @@ COMMENT ON COLUMN ember_schema.document_template.legal IS
 COMMENT ON COLUMN ember_schema.document_template.for_appointments IS
     'Whether appointments may require the template as a document to bring. Only such a template names the values of an appointment, and it is always legal.';
 COMMENT ON COLUMN ember_schema.document_template.self_service IS
-    'Whether members of the audience may generate the document for themselves, and guardians for the members in their care.';
+    'Whether members of the audience may generate the document for themselves, and guardians for the members in their care. For a template of an association, whether it is offered for self service; each station then decides in document_template_station_use.';
 COMMENT ON COLUMN ember_schema.document_template.self_service_cooldown_days IS
     'How many days must pass before a member may generate the document again through self service. 0 means no wait.';
 COMMENT ON COLUMN ember_schema.document_template.restriction_mode IS
@@ -101,9 +107,9 @@ COMMENT ON COLUMN ember_schema.document_template.language IS
 COMMENT ON COLUMN ember_schema.document_template.version IS
     'Counts up with every change, so the generation log says which state of the template a document came from.';
 COMMENT ON COLUMN ember_schema.document_template.created_at IS 'When the template was created.';
-COMMENT ON COLUMN ember_schema.document_template.created_by IS 'The member who created the template. NULL once they are gone.';
+COMMENT ON COLUMN ember_schema.document_template.created_by IS 'The account that created the template. NULL once it is gone.';
 COMMENT ON COLUMN ember_schema.document_template.updated_at IS 'When the template was last changed.';
-COMMENT ON COLUMN ember_schema.document_template.updated_by IS 'The member who last changed the template. NULL once they are gone.';
+COMMENT ON COLUMN ember_schema.document_template.updated_by IS 'The account that last changed the template. NULL once it is gone.';
 COMMENT ON COLUMN ember_schema.document_template.archived_at IS
     'When the template was archived. An archived template generates nothing more and stays for the documents generated from it. NULL while in use.';
 
@@ -122,7 +128,7 @@ CREATE INDEX IF NOT EXISTS idx_document_template_restriction_template
     ON ember_schema.document_template_restriction (template_id);
 
 COMMENT ON TABLE ember_schema.document_template_restriction IS
-    'Who may generate a self service template for themselves. Empty means every member. Shaped like event_restriction.';
+    'Who may generate a self service template of a station for themselves. Empty means every member. A template of an association has none; each station sets its own audience in document_template_station_use_restriction. Shaped like event_restriction.';
 COMMENT ON COLUMN ember_schema.document_template_restriction.id IS 'Auto-generated primary key.';
 COMMENT ON COLUMN ember_schema.document_template_restriction.template_id IS 'References the document template.';
 COMMENT ON COLUMN ember_schema.document_template_restriction.user_type IS
@@ -130,6 +136,57 @@ COMMENT ON COLUMN ember_schema.document_template_restriction.user_type IS
 COMMENT ON COLUMN ember_schema.document_template_restriction.group_id IS 'Required group membership.';
 COMMENT ON COLUMN ember_schema.document_template_restriction.tag_id IS 'Required tag.';
 COMMENT ON COLUMN ember_schema.document_template_restriction.member_id IS
+    'Specific member (always OR-connected, bypasses AND/OR mode).';
+
+CREATE TABLE IF NOT EXISTS ember_schema.document_template_station_use
+(
+    id               SERIAL PRIMARY KEY,
+    template_id      INTEGER     NOT NULL REFERENCES ember_schema.document_template (id) ON DELETE CASCADE,
+    station_id       INTEGER     NOT NULL REFERENCES ember_schema.station (id) ON DELETE CASCADE,
+    self_service     BOOLEAN     NOT NULL DEFAULT FALSE,
+    restriction_mode TEXT        NOT NULL DEFAULT 'AND' CHECK (restriction_mode IN ('AND', 'OR')),
+    updated_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE (template_id, station_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_document_template_station_use_station
+    ON ember_schema.document_template_station_use (station_id);
+
+COMMENT ON TABLE ember_schema.document_template_station_use IS
+    'How a station uses a template of its association. Its managers generate every template of the association in use; whether its members generate one through self service, and who of them, the station decides here. A template without a row is not offered for self service at that station.';
+COMMENT ON COLUMN ember_schema.document_template_station_use.id IS 'Auto-generated primary key.';
+COMMENT ON COLUMN ember_schema.document_template_station_use.template_id IS 'The template of the association.';
+COMMENT ON COLUMN ember_schema.document_template_station_use.station_id IS 'The station that uses it.';
+COMMENT ON COLUMN ember_schema.document_template_station_use.self_service IS
+    'Whether members of the station generate the document for themselves, and guardians for the members in their care. Only takes effect while the association offers the template for self service.';
+COMMENT ON COLUMN ember_schema.document_template_station_use.restriction_mode IS
+    'AND or OR, how the parts of document_template_station_use_restriction combine.';
+COMMENT ON COLUMN ember_schema.document_template_station_use.updated_at IS 'When the station last changed how it uses the template.';
+
+CREATE TABLE IF NOT EXISTS ember_schema.document_template_station_use_restriction
+(
+    id        SERIAL PRIMARY KEY,
+    use_id    INT NOT NULL REFERENCES ember_schema.document_template_station_use (id) ON DELETE CASCADE,
+    user_type TEXT,
+    group_id  INT REFERENCES ember_schema.member_group (id) ON DELETE CASCADE,
+    tag_id    INT REFERENCES ember_schema.user_tag (id) ON DELETE CASCADE,
+    member_id INT REFERENCES ember_schema.station_member (id) ON DELETE CASCADE,
+    CHECK (num_nonnulls(user_type, group_id, tag_id, member_id) = 1)
+);
+
+CREATE INDEX IF NOT EXISTS idx_document_template_station_use_restriction_use
+    ON ember_schema.document_template_station_use_restriction (use_id);
+
+COMMENT ON TABLE ember_schema.document_template_station_use_restriction IS
+    'Who of a station may generate a template of its association through self service. Empty means every member. Shaped like event_restriction.';
+COMMENT ON COLUMN ember_schema.document_template_station_use_restriction.id IS 'Auto-generated primary key.';
+COMMENT ON COLUMN ember_schema.document_template_station_use_restriction.use_id IS
+    'References how the station uses the template.';
+COMMENT ON COLUMN ember_schema.document_template_station_use_restriction.user_type IS
+    'Required user type. Exactly one of user_type/group_id/tag_id/member_id must be set.';
+COMMENT ON COLUMN ember_schema.document_template_station_use_restriction.group_id IS 'Required group membership.';
+COMMENT ON COLUMN ember_schema.document_template_station_use_restriction.tag_id IS 'Required tag.';
+COMMENT ON COLUMN ember_schema.document_template_station_use_restriction.member_id IS
     'Specific member (always OR-connected, bypasses AND/OR mode).';
 
 CREATE TABLE IF NOT EXISTS ember_schema.document_template_letter
@@ -145,7 +202,7 @@ COMMENT ON TABLE ember_schema.document_template_letter IS
     'The content of a letter template: its header, its footer, its body and its page.';
 COMMENT ON COLUMN ember_schema.document_template_letter.template_id IS 'References the document template.';
 COMMENT ON COLUMN ember_schema.document_template_letter.header IS
-    'The rows drawn at the top of every page, shaped like the rows of a page: each row up to three columns with their width, optionally with a line between the columns (columnLines), each holding a text with placeholders written as {{key}}, a picture from the media library by its content hash or the station logo, a divider line with its label, a gap, or blocks stacked in it. A block may carry a restriction saying which members it is printed for, and a guardianCondition (SECOND_GUARDIAN or NO_SECOND_GUARDIAN) on whether the member has a second guardian.';
+    'The rows drawn at the top of every page, shaped like the rows of a page: each row up to three columns with their width, optionally with a line between the columns (columnLines), each holding a text with placeholders written as {{key}}, a picture from the media library by its content hash (an association''s template from the library of its home station) or the logo of the station the document is generated at, a divider line with its label, a gap, or blocks stacked in it. A block may carry a restriction saying which members it is printed for, and a guardianCondition (SECOND_GUARDIAN or NO_SECOND_GUARDIAN) on whether the member has a second guardian.';
 COMMENT ON COLUMN ember_schema.document_template_letter.footer IS
     'The rows drawn at the bottom of every page, shaped like the header.';
 COMMENT ON COLUMN ember_schema.document_template_letter.body IS
@@ -162,14 +219,14 @@ CREATE TABLE IF NOT EXISTS ember_schema.document_template_pdf_original
     sha256      TEXT        NOT NULL,
     inspection  JSONB       NOT NULL,
     uploaded_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    uploaded_by INTEGER     NULL REFERENCES ember_schema.station_member (id) ON DELETE SET NULL
+    uploaded_by INTEGER     NULL REFERENCES ember_schema.account (id) ON DELETE SET NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_document_template_pdf_original_template
     ON ember_schema.document_template_pdf_original (template_id);
 
 COMMENT ON TABLE ember_schema.document_template_pdf_original IS
-    'Every uploaded version of the PDF a PDF template fills in. The file is kept in the station storage under document-templates/<id>/original, as it arrived, and never changed; a new upload is a new row.';
+    'Every uploaded version of the PDF a PDF template fills in. The file is kept in the storage of the template''s owner under document-templates/<id>/original (an association''s in its home station), as it arrived, and never changed; a new upload is a new row.';
 COMMENT ON COLUMN ember_schema.document_template_pdf_original.id IS 'Auto-generated primary key, also the storage key of the file.';
 COMMENT ON COLUMN ember_schema.document_template_pdf_original.template_id IS 'The PDF template it was uploaded for.';
 COMMENT ON COLUMN ember_schema.document_template_pdf_original.file_name IS 'The name the file was uploaded under.';
@@ -178,7 +235,7 @@ COMMENT ON COLUMN ember_schema.document_template_pdf_original.sha256 IS 'The SHA
 COMMENT ON COLUMN ember_schema.document_template_pdf_original.inspection IS
     'What the PDF holds that fields care about, read at upload: each page with its crop box in points and its rotation, and the form fields it brings with their kind and where their first widget sits.';
 COMMENT ON COLUMN ember_schema.document_template_pdf_original.uploaded_at IS 'When the file was uploaded.';
-COMMENT ON COLUMN ember_schema.document_template_pdf_original.uploaded_by IS 'The member who uploaded the file. NULL once they are gone.';
+COMMENT ON COLUMN ember_schema.document_template_pdf_original.uploaded_by IS 'The account that uploaded the file. NULL once it is gone.';
 
 CREATE TABLE IF NOT EXISTS ember_schema.document_template_pdf
 (
@@ -282,8 +339,10 @@ CREATE INDEX IF NOT EXISTS idx_document_generation_station ON ember_schema.docum
 COMMENT ON TABLE ember_schema.document_generation IS
     'Every document generated from a template: which template and which state of it, about whom, by whom, when, and the file that came out.';
 COMMENT ON COLUMN ember_schema.document_generation.id IS 'Auto-generated primary key.';
-COMMENT ON COLUMN ember_schema.document_generation.station_id IS 'The station the document was filed at.';
-COMMENT ON COLUMN ember_schema.document_generation.template_id IS 'The template the document was generated from.';
+COMMENT ON COLUMN ember_schema.document_generation.station_id IS
+    'The station the document was filed at, the station of the member it is about, whoever owns the template.';
+COMMENT ON COLUMN ember_schema.document_generation.template_id IS
+    'The template the document was generated from, the station''s own or one of its association.';
 COMMENT ON COLUMN ember_schema.document_generation.template_version IS
     'The version of the template at the time, which a later change of the template does not touch.';
 COMMENT ON COLUMN ember_schema.document_generation.member_id IS

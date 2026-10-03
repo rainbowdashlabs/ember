@@ -22,6 +22,7 @@ import dev.chojo.ember.feature.generator.entity.Placeholder;
 import dev.chojo.ember.feature.generator.entity.SignatureRole;
 import dev.chojo.ember.feature.generator.repository.DocumentTemplateRepository;
 import dev.chojo.ember.feature.generator.repository.PdfTemplateRepository;
+import dev.chojo.ember.feature.generator.repository.TemplateStationUseRepository;
 import dev.chojo.ember.feature.media.entity.StationFile;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
@@ -86,7 +87,8 @@ class DocumentTemplateServiceTest extends RepositoryTestBase {
         station = stationRepo.create("Template Service Wache");
         owner = new Owner.Station(station.id());
         var account = accountRepo.create("template-service@test.com", "Tara", "Vorlage");
-        authorId = stationMemberRepo.create(station.id(), account.id()).id();
+        stationMemberRepo.create(station.id(), account.id());
+        authorId = account.id();
         textField = field("Schule", ProfileFieldScope.MEMBER, ProfileFieldScope.GUARDIAN);
         guardianField = field("Arbeitgeber", ProfileFieldScope.GUARDIAN);
         trialField = field("Schnupperwunsch", ProfileFieldScope.TRIAL);
@@ -99,21 +101,24 @@ class DocumentTemplateServiceTest extends RepositoryTestBase {
         when(media.findByHash(eq(station.id()), eq(PICTURE))).thenReturn(Optional.of(file(PICTURE, "image/png")));
         when(media.findByHash(eq(station.id()), eq(DOCUMENT)))
                 .thenReturn(Optional.of(file(DOCUMENT, "application/pdf")));
-        var catalogue = new PlaceholderCatalogue(profileFieldRepo, stationRepo);
+        var catalogue = newPlaceholderCatalogue();
         var templates = new DocumentTemplateRepository();
         var pdfTemplates = new PdfTemplateRepository();
         service = new DocumentTemplateService(
                 templates,
                 pdfTemplates,
+                new TemplateStationUseRepository(),
                 new TemplateChecks(
                         templates,
                         pdfTemplates,
                         new LetterChecks(contentBlocks(), media),
                         stationRepo,
                         catalogue,
-                        newFontLibrary(new StorageService(new StorageBackendResolver(localStorage()), localStorage()))),
+                        newFontLibrary(new StorageService(new StorageBackendResolver(localStorage()), localStorage())),
+                        newOwnerStores()),
                 restrictionService,
-                catalogue);
+                catalogue,
+                newOwnerStores());
     }
 
     private static StationFile file(String hash, String mime) {
@@ -229,7 +234,7 @@ class DocumentTemplateServiceTest extends RepositoryTestBase {
         assertNotNull(archived.archivedAt());
         assertTrue(service.list(owner, false).stream().noneMatch(template -> template.id() == created.id()));
         assertTrue(service.list(owner, true).stream().anyMatch(template -> template.id() == created.id()));
-        refused(DocumentRefusal.DOCUMENT_TEMPLATE_ARCHIVED, () -> service.requireInUse(owner, created.id()));
+        refused(DocumentRefusal.DOCUMENT_TEMPLATE_ARCHIVED, () -> service.requireInUse(station.id(), created.id()));
 
         var namesake = service.create(owner, letter("Archivierbar").build(), authorId);
         refused(

@@ -20,6 +20,8 @@ public enum PlaceholderCategory {
     GUARDIAN2(PlaceholderGroup.GUARDIAN, "Erziehungsberechtigte 2", "Guardian 2"),
     /** The station that files the document. */
     STATION(PlaceholderGroup.STATION, "Wache", "Station"),
+    /** The association the station of the member belongs to. */
+    ASSOCIATION(PlaceholderGroup.ASSOCIATION, "Verband", "Association"),
     /** The appointment a document is generated for. */
     APPOINTMENT(PlaceholderGroup.EVENT, "Termin", "Appointment"),
     /** The document itself. */

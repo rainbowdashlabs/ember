@@ -16,8 +16,11 @@ import dev.chojo.ember.feature.generator.entity.BuiltInPlaceholder;
 import dev.chojo.ember.feature.generator.entity.PossessiveEnding;
 import dev.chojo.ember.feature.generator.entity.PronounKey;
 import dev.chojo.ember.feature.generator.entity.PronounRole;
+import dev.chojo.ember.feature.generator.service.store.OwnerStores;
 import dev.chojo.ember.feature.media.image.ImageFormat;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
+import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.owner.Owner;
 import dev.chojo.ember.util.PandocConverter;
 import io.javalin.http.UploadedFile;
 import jakarta.inject.Inject;
@@ -35,6 +38,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -45,12 +49,13 @@ import java.util.regex.Pattern;
  * the one detection every document import shares; anything else is refused. Pandoc turns the body into
  * markdown; the header and the footer are not part of it and are set up in the editor once. The body
  * arrives as one text block, split where a picture stands on a line of its own: the pictures go into the
- * station's media library and become picture blocks, and a picture inside a paragraph stays in its text.
+ * media library of the template's owner (an association's into that of its home station) and become
+ * picture blocks, and a picture inside a paragraph stays in its text.
  *
  * <p>Gaps written in brackets, the way a form marks them ({@code [Vorname Nachname]},
  * {@code [Geburtsdatum]}, {@code [er/sie]}), become placeholders where their words are recognised:
- * the common German names of member data, the pronouns, and the names of the station's own profile
- * questions. Anything else stays as text and is listed, so it can be replaced by hand.
+ * the common German names of member data, the pronouns, and the names of the profile questions the
+ * owner's templates can name. Anything else stays as text and is listed, so it can be replaced by hand.
  */
 @Singleton
 public class LetterImportService {
@@ -74,14 +79,50 @@ public class LetterImportService {
     private final MediaLibraryService mediaLibrary;
     private final PlaceholderCatalogue catalogue;
     private final DocumentIntake intake;
+    private final OwnerStores stores;
+    private final StationRepository stations;
 
     @Inject
     public LetterImportService(
-            MediaLibraryService mediaLibrary, PlaceholderCatalogue catalogue, DocumentIntake intake) {
+            MediaLibraryService mediaLibrary,
+            PlaceholderCatalogue catalogue,
+            DocumentIntake intake,
+            OwnerStores stores,
+            StationRepository stations) {
         this.mediaLibrary = mediaLibrary;
         this.catalogue = catalogue;
         this.intake = intake;
+        this.stores = stores;
+        this.stations = stations;
     }
+
+    /**
+     * Who imports a document into a template.
+     *
+     * @param owner    the station or the association that keeps the template, whose media library takes
+     *                 the pictures and whose profile questions the gaps are matched against
+     * @param memberId the member who brings the pictures in, or null where nobody of a station does
+     */
+    public record Importer(Owner owner, @Nullable Integer memberId) {
+
+        /**
+         * @param session an editor of a station's templates
+         * @return the station, with the editor as the one who brings pictures in
+         */
+        public static Importer of(StationSession session) {
+            return new Importer(session.owner(), session.member().id());
+        }
+    }
+
+    /**
+     * Where the pictures of an import go.
+     *
+     * @param stationId  the station whose media library takes them
+     * @param stationUid that station's uid, which their addresses carry
+     * @param memberId   the member who brings them in, or null
+     */
+    private record Library(
+            int stationId, UUID stationUid, @Nullable Integer memberId) {}
 
     /**
      * A document read in as the body of a template.
@@ -123,26 +164,25 @@ public class LetterImportService {
     /**
      * Reads an uploaded document into the body of a template.
      *
-     * @param session the editor of templates, whose station keeps the pictures
-     * @param file    the upload, or null where the request carried none
+     * @param importer who imports it, and for whose template
+     * @param file     the upload, or null where the request carried none
      * @return the body and which gaps were recognised
      */
-    public LetterImport read(StationSession session, @Nullable UploadedFile file) {
-        var upload = intake.read(session.stationId(), file, DocumentDoor.STATION.intake());
-        return read(session, upload.fileName(), upload.declaredType(), upload.data());
+    public LetterImport read(Importer importer, @Nullable UploadedFile file) {
+        var upload = intake.read(stores.libraryOf(importer.owner()), file, DocumentDoor.STATION.intake());
+        return read(importer, upload.fileName(), upload.declaredType(), upload.data());
     }
 
     /**
      * Reads a document into the body of a template.
      *
-     * @param session  the editor of templates, whose station keeps the pictures
+     * @param importer who imports it, and for whose template
      * @param fileName the name the file arrived under
      * @param mimeType the type it was declared as
      * @param data     the bytes of the file
      * @return the body and which gaps were recognised
      */
-    public LetterImport read(
-            StationSession session, @Nullable String fileName, @Nullable String mimeType, byte[] data) {
+    public LetterImport read(Importer importer, @Nullable String fileName, @Nullable String mimeType, byte[] data) {
         String format = PandocConverter.formatOf(data, fileName, mimeType)
                 .filter(TAKEN::contains)
                 .orElseThrow(DocumentRefusal.DOCUMENT_IMPORT_KIND_NOT_TAKEN::raise);
@@ -150,53 +190,54 @@ public class LetterImportService {
         try {
             converted = PandocConverter.toMarkdownWithMedia(data, format);
         } catch (IOException e) {
-            log.warn("A {} document could not be read for station {}", format, session.stationId(), e);
+            log.warn("A {} document could not be read for {}", format, importer.owner(), e);
             throw DocumentRefusal.DOCUMENT_IMPORT_UNREADABLE.raise();
         }
-        return placeholders(session.stationId(), placePictures(session, converted));
+        int library = stores.libraryOf(importer.owner());
+        var pictures = new Library(library, stations.requireUid(library), importer.memberId());
+        return placeholders(importer.owner(), placePictures(pictures, converted));
     }
 
     /**
      * Stores every picture of the body in the media library and points the body at it. A picture the
      * library does not take is left out, and the body keeps its alternative text.
      */
-    private String placePictures(StationSession session, PandocConverter.WithMedia converted) {
+    private String placePictures(Library library, PandocConverter.WithMedia converted) {
         String markdown = converted.markdown();
         for (var picture : converted.media().entrySet()) {
-            String url = store(session, picture.getKey(), picture.getValue()).orElse("");
+            String url = store(library, picture.getKey(), picture.getValue()).orElse("");
             markdown = markdown.replace(picture.getKey(), url);
         }
         return markdown;
     }
 
-    private Optional<String> store(StationSession session, String path, byte[] data) {
+    private Optional<String> store(Library library, String path, byte[] data) {
         var format = ImageFormat.sniff(data);
         if (format.isEmpty()) return Optional.empty();
         String name = path.substring(path.lastIndexOf('/') + 1);
         try {
             var file = mediaLibrary.upload(
-                    session.stationId(),
+                    library.stationId(),
                     null,
-                    session.member().id(),
+                    library.memberId(),
                     name,
                     format.get().mimeType(),
                     data);
-            return Optional.of("/api/v1/public/media/%s/%s".formatted(session.stationUid(), file.contentHash()));
+            return Optional.of("/api/v1/public/media/%s/%s".formatted(library.stationUid(), file.contentHash()));
         } catch (IOException | RuntimeException e) {
             log.warn(
                     "A picture of an imported document was not taken by the media library of station {}",
-                    session.stationId(),
+                    library.stationId(),
                     e);
             return Optional.empty();
         }
     }
 
-    private LetterImport placeholders(int stationId, String markdown) {
+    private LetterImport placeholders(Owner owner, String markdown) {
         var fields = new LinkedHashMap<String, String>();
         catalogue
-                .answerable(stationId)
-                .forEach(field -> fields.putIfAbsent(
-                        field.name().toLowerCase(Locale.ROOT), PlaceholderCatalogue.PROFILE + field.id()));
+                .answerable(owner)
+                .forEach(field -> fields.putIfAbsent(field.label().toLowerCase(Locale.ROOT), field.key()));
         var recognised = new LinkedHashSet<String>();
         var unrecognised = new LinkedHashSet<String>();
         Matcher matcher = GAP.matcher(markdown);
