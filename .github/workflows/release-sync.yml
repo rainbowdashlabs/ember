@@ -1,9 +1,13 @@
 name: Release Sync
 
-# Brings the fixes released from main into every open release branch: rebased onto main, its own
-# migration renumbered above main's, pushed with a lease. A conflict it cannot resolve opens an issue.
-# The Release workflow runs it after every release.
+# Brings what lands on main into every open release branch: rebased onto main, its own migration
+# renumbered above main's, pushed with a lease. A conflict it cannot resolve opens an issue. It runs
+# after every push to main and after every release. A push to a release branch runs it too, because a
+# release branch is skipped until its version bump is merged and would otherwise wait for the next
+# push to main; a branch that contains main already is left alone, so its own push ends there.
 on:
+  push:
+    branches: [main, 'release/**']
   workflow_call:
   workflow_dispatch:
 

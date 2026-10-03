@@ -11,14 +11,15 @@
 #                                       from this commit
 #   fix/**                              the same for an urgent fix headed for main, or the version of
 #                                       an open release branch for a fix that ships with that release
-#   main, renovate/**, or a pull        the same, or still the newest release: dependency updates
-#     request from renovate/** into     collect on main without a bump until the next fix
+#   main, renovate/**, or a pull        the same, or still the newest release: main keeps it until
+#     request from renovate/** into     the bump pull request opened after the release is merged
 #     main
 #   feature/**                          the version is the one of the open release branch, when there
 #                                       is exactly one
 #   a pull request into anything else   refused
 #
-# Apart from the tag, the version must not be released yet, unless this very commit is that release.
+# Apart from the tag, the version must not be released yet, unless this very commit is that release:
+# that is also how a release branch opened at the release before it passes until its bump is merged.
 set -euo pipefail
 
 source "$(dirname "${BASH_SOURCE[0]}")/shared/repository.sh"
@@ -114,7 +115,11 @@ if [ "${REF_TYPE:-branch}" = "tag" ]; then
 fi
 
 if [ "$(released_commit "$version")" = "$(git rev-parse HEAD)" ]; then
-    echo "This commit is the release v$version."
+    if [[ "${REF_NAME:-}" == release/v* && "$REF_NAME" != "release/v$version" ]]; then
+        echo "$REF_NAME starts at the release v$version and has no commit of its own yet. Its version bump comes by pull request."
+    else
+        echo "This commit is the release v$version."
+    fi
     exit 0
 fi
 

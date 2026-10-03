@@ -49,6 +49,13 @@ next_patch() {
     printf '%s.%s.%s\n' "$major" "$minor" "$((patch + 1))"
 }
 
+# The version one minor above the given one, with patch 0.
+next_minor() {
+    local major minor
+    IFS=. read -r major minor _ <<< "$1"
+    printf '%s.%s.0\n' "$major" "$((minor + 1))"
+}
+
 # The patch numbers at the given commit, ascending.
 patch_numbers() {
     git ls-tree --name-only "$1" "$PATCH_DIR/" 2>/dev/null |

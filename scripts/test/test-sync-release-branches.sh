@@ -98,4 +98,10 @@ expect_pass "a released branch left over is skipped" sync
 expect_equal "the released branch is left as it was" "$leftover_head" \
     "$(git ls-remote origin refs/heads/release/v26.20.0 | cut -f1)"
 
+git push -q origin 'v26.20.0^{commit}:refs/heads/release/v26.21.0'
+expect_equal "a release branch without a commit of its own waits for its bump" "yes" \
+    "$(sync | grep -q 'release/v26.21.0 has no commit of its own yet' && echo yes)"
+expect_equal "the release branch without a commit of its own is left as it was" "$(git rev-parse 'v26.20.0^{commit}')" \
+    "$(git ls-remote origin refs/heads/release/v26.21.0 | cut -f1)"
+
 finish

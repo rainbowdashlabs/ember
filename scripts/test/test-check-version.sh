@@ -91,4 +91,31 @@ git checkout -q main
 expect_fail "a fix at a version released from another commit" "already released as v26.20.1" \
     check EVENT_NAME=push REF_NAME=fix/thing
 
+new_repository
+git push -q origin HEAD:refs/heads/release/v26.21.0
+expect_equal "a release branch opened at the release before it passes until its bump is merged" "yes" \
+    "$(check EVENT_NAME=push REF_NAME=release/v26.21.0 | grep -q 'starts at the release v26.20.0' && echo yes)"
+
+git checkout -q -b chore/bump-26.20.1
+set_version 26.20.1
+commit_all "Bump version to 26.20.1"
+expect_pass "the bump pull request into main after a release" \
+    check EVENT_NAME=pull_request BASE_REF=main HEAD_REF=chore/bump-26.20.1
+git push -q origin HEAD:main
+expect_pass "main at the bumped version" check EVENT_NAME=push REF_NAME=main
+expect_pass "a fix pull request into main at the version main carries" \
+    check EVENT_NAME=pull_request BASE_REF=main HEAD_REF=fix/thing
+expect_pass "a dependency update at the version main carries" \
+    check EVENT_NAME=pull_request BASE_REF=main HEAD_REF=renovate/thing
+set_version 26.20.2
+commit_all "Jump past main"
+expect_fail "a fix pull request into main past the version main carries" "should be 26.20.1" \
+    check EVENT_NAME=pull_request BASE_REF=main HEAD_REF=fix/thing
+
+git checkout -q -b chore/bump-26.21.0 v26.20.0
+set_version 26.21.0
+commit_all "Bump version to 26.21.0"
+expect_pass "the bump pull request into the new release branch" \
+    check EVENT_NAME=pull_request BASE_REF=release/v26.21.0 HEAD_REF=chore/bump-26.21.0
+
 finish

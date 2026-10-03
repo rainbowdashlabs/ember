@@ -14,8 +14,8 @@ its own as a patch; it reaches the release branch by the rebase described below.
 for the next feature release goes into the open release branch, branched from it, and carries its
 version. A pull request into any other branch fails CI.
 
-Dependency updates from Renovate go into `main` without a version bump. They collect there and ship
-with the next fix, which bumps the patch as usual.
+Dependency updates from Renovate go into `main` without a version bump of their own. They carry the
+version `main` carries and ship with the next fix release.
 
 ## Versions
 
@@ -23,8 +23,10 @@ The version lives in `build.gradle.kts`. CI checks it on every push and pull req
 
 - A release branch `release/vX.Y.Z` carries the version `X.Y.Z` from its first commit on.
 - A feature branch carries the version of the open release branch.
-- An urgent fix into `main` raises the patch above the newest release: after `v26.20.1`, it carries
-  `26.20.2`. Several fixes merged before that release share the same version.
+- `main` carries one patch above the newest release: after `v26.20.1`, it carries `26.20.2`, set by
+  the bump pull request opened after the release. An urgent fix into `main` carries that version too,
+  and several fixes merged before the next release share it. A fix never goes further than one patch
+  above the newest release.
 - A fix into the open release branch carries that branch's version, like a feature.
 - A version that is already tagged is never used again.
 
@@ -89,9 +91,31 @@ the label `release` to the merged pull request (before or after merging), or run
 workflow by hand without a pull request number. The workflow waits for CI on that commit, tags the
 version it carries and creates the GitHub release.
 
+### After a release
+
+The workflow opens the next versions. Nothing of it is merged automatically: both bump pull
+requests are opened for you and merged by hand.
+
+- After every release it opens the pull request `chore/bump-X.Y.Z` into `main`, with the one commit
+  `Bump version to X.Y.Z` that moves `main` to the next patch: `26.21.0` is followed by `26.21.1`,
+  `26.20.2` by `26.20.3`. When that pull request is open already, or `main` carries another version
+  than the released one, nothing happens.
+- After a feature release `X.Y.0` it also opens the next release branch `release/vX.(Y+1).0`, at the
+  released commit and without a commit of its own, and the pull request `chore/bump-X.(Y+1).0` into
+  it with the one commit that sets its version. Until that pull request is merged, the branch still
+  carries the released version, and CI accepts it. When a release branch for a later version exists
+  already, no new one is opened.
+
+`./toolchain.sh release-next --dry-run` shows locally what would be opened.
+
 ### Rebase of the release branch
 
-After every release, the workflow rebases each open `release/v*` branch onto `main`. When `main`
+After every push to `main` (a merged fix, a dependency update, a merged bump) and after every release,
+the `Release Sync` workflow rebases each open `release/v*` branch onto `main`, so the release branch
+always contains `main`. A branch that contains `main` already, a released one, and one without a
+commit of its own (a new release branch whose bump is not merged yet) are left alone. A push to a
+release branch runs the rebase too, which is how a new release branch catches up with `main` once its
+bump is merged. When `main`
 gained a patch with the number the release branch uses for its own, the release branch's patch is
 renumbered above it first. Three conflicts are resolved on the way: `build.gradle.kts` keeps the
 release branch's version, the migration version file names the newest patch, and two version blocks
@@ -108,6 +132,7 @@ as `Release Sync`.
 `RELEASE_TOKEN` is a fine-grained personal access token for this repository with read and write
 access to contents, pull requests, issues and workflows, and read access to actions. Workflows are
 only started by pushes, tags and releases made with such a token, which is how the release reaches
-CI and the Docker build, and only a token with workflow access may push commits that change files
-under `.github/workflows`. Without the secret, the workflows fall back to the built-in token, and
-none of that happens.
+CI and the Docker build, how the bump pull requests get their checks, and how a rebased release
+branch is verified. Only a token with workflow access may push commits that change files under
+`.github/workflows`. Without the secret, the workflows fall back to the built-in token, and none of
+that happens: the bump pull requests are still opened, but no check runs on them until a later push.

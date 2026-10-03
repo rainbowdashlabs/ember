@@ -102,6 +102,27 @@ jobs:
           } > "$RUNNER_TEMP/refusal.md"
           gh pr comment "$PR" --body-file "$RUNNER_TEMP/refusal.md"
 
+  # The bump pull requests are opened with the release token, because pull requests opened and
+  # branches pushed with the built-in token start no workflow, which would leave them without checks.
+  next:
+    name: Open the next versions
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.RELEASE_TOKEN || github.token }}
+      - name: Commit as the workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      - name: Open the version bumps and the next release branch
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN || github.token }}
+        run: ./toolchain.sh release-next
+
   sync:
     name: Rebase the release branches
     needs: release
