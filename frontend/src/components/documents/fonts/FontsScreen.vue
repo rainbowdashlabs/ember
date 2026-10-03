@@ -13,6 +13,7 @@ import type {DocumentFontView, DocumentFontsResponse, FontOrigin} from '@/api/ge
 import type {FontSource, FontUpload} from '@/api/documentFonts'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
+import {provideFontSamples} from '@/composables/useFontSamples'
 import {showToast} from '@/util/toast'
 import {DEFAULT_FONT} from './fontOptions'
 import FontUploadForm from './FontUploadForm.vue'
@@ -21,8 +22,9 @@ import ReachedFamilyList from './ReachedFamilyList.vue'
 
 /**
  * The fonts of one owner, the same screen for a station, an association and the instance: the upload,
- * the owner's own families with their styles, and the families its templates reach from further up.
- * What differs per owner is the source the screen reads and writes through.
+ * the owner's own families with their styles, and the families its templates reach from further up or
+ * that are built in, each with a line of sample text the server draws. What differs per owner is the
+ * source the screen reads, writes and draws its samples through.
  */
 const props = defineProps<{
   source: FontSource
@@ -30,6 +32,8 @@ const props = defineProps<{
 }>()
 
 const {t} = useI18n()
+
+provideFontSamples(props.source.sample)
 
 const fonts = ref<DocumentFontsResponse>({own: [], reachable: [], defaultFamily: DEFAULT_FONT})
 const pending = ref<DocumentFontView | null>(null)
@@ -69,7 +73,7 @@ async function remove() {
     <Spinner v-if="loading" size="lg"/>
     <template v-else>
       <FontUploadForm :busy="uploading.running.value" @upload="upload"/>
-      <OwnFontList :fonts="fonts.own" @remove="font => pending = font"/>
+      <OwnFontList :fonts="fonts.own" :reachable="fonts.reachable" @remove="font => pending = font"/>
       <ReachedFamilyList v-if="reached.length > 0" :families="reached"/>
     </template>
     <ConfirmDeleteModal

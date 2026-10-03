@@ -24,8 +24,8 @@ import java.util.function.UnaryOperator;
  *
  * <p>The PDF is read from its owner's storage as it was uploaded and filled by {@link PdfStamper}. A
  * template no PDF was uploaded for generates nothing; one whose stored file cannot be read or filled
- * fails like a letter Typst could not produce. A text field naming a family of uploaded fonts draws in
- * the file the owner reaches under that name; one that is gone prints in the default font.
+ * fails like a letter Typst could not produce. A text field naming a family draws in the file the owner
+ * reaches under that name, uploaded or built in; one that is gone prints in the default font.
  */
 @Singleton
 public class PdfTemplateRenderer {

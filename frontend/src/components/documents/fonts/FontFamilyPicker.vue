@@ -4,18 +4,20 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed} from 'vue'
+import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import LabelledField from '@/components/input/LabelledField.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
+import DropdownPanel from '@/components/input/select/dropdown/DropdownPanel.vue'
+import DropdownTrigger from '@/components/input/select/dropdown/DropdownTrigger.vue'
 import type {FontFamilyOption} from '@/api/generated/schema'
-import {DEFAULT_FONT, choiceValue, familyChoices, familyOf, type FamilyChoice} from './fontOptions'
+import FontChoiceList from './FontChoiceList.vue'
+import {DEFAULT_FONT, choiceValue, familyChoices, familyOf, fontEntries} from './fontOptions'
 
 /**
- * Picks the family of uploaded fonts a text prints in, or the default font, named by the family the
- * instance prints in. Every family the template reaches is offered with who uploaded it; one the
- * template names but no longer reaches is kept and marked, since the document prints it in the default
- * font until it is back or replaced.
+ * Picks the family a text prints in, or the default font, named by the family the instance prints in.
+ * Every family the template reaches is offered with where it comes from and a line of sample text the
+ * server draws in it; one the template names but no longer reaches is kept and marked, since the
+ * document prints it in the default font until it is back or replaced.
  */
 const family = defineModel<string | null>({required: true})
 
@@ -31,25 +33,40 @@ const props = defineProps<{
 
 const {t} = useI18n()
 
-const choices = computed(() => familyChoices(props.fonts, family.value, props.pdfOnly))
+const open = ref(false)
 const defaultFamily = computed(() => props.defaultFamily ?? DEFAULT_FONT)
+const choices = computed(() => familyChoices(props.fonts, family.value, props.pdfOnly))
+const entries = computed(() => fontEntries(choices.value, {family: defaultFamily.value}))
 const selected = computed(() => choiceValue(choices.value, family.value))
 
-function labelOf(choice: FamilyChoice): string {
-  if (choice.missing) return t('documentFonts.missingFamily', {family: choice.value, defaultFamily: defaultFamily.value})
-  if (!choice.family) return t('documentFonts.defaultFont', {family: defaultFamily.value})
-  return t('documentFonts.familyOption', {family: choice.family.family, origin: t(`documentFonts.origin.${choice.family.origin}`)})
-}
+/** The current choice as the closed picker reads it, origin and all, the way the list marks it. */
+const current = computed(() => {
+  const entry = entries.value.find(candidate => candidate.value === selected.value)
+  if (!entry) return ''
+  if (entry.missing) return t('documentFonts.missingFamily', {family: entry.name, defaultFamily: defaultFamily.value})
+  if (entry.origin === 'DEFAULT') return t('documentFonts.defaultFont', {family: entry.name})
+  const origin = entry.origin ? t(`documentFonts.origin.${entry.origin}`) : ''
+  return t('documentFonts.familyOption', {family: entry.name, origin})
+})
 
-function choose(value: string | number | null | undefined) {
-  family.value = familyOf(String(value ?? ''))
+function choose(value: string) {
+  family.value = familyOf(value)
+  open.value = false
 }
 </script>
 
 <template>
   <LabelledField :label="label">
-    <SelectInput :model-value="selected" class="w-full" :data-testid="testId" @update:model-value="choose">
-      <option v-for="choice in choices" :key="choice.value" :value="choice.value">{{ labelOf(choice) }}</option>
-    </SelectInput>
+    <DropdownPanel v-model:open="open" match-width panel-class="max-h-80">
+      <template #trigger>
+        <DropdownTrigger :open="open" :aria-label="t('documentFonts.pickerLabel', {label, family: current})"
+                         :data-testid="testId">
+          {{ current }}
+        </DropdownTrigger>
+      </template>
+      <FontChoiceList :model-value="selected" :entries="entries" :label="label"
+                      :missing-note="t('documentFonts.printedIn', {family: defaultFamily})"
+                      @update:model-value="choose"/>
+    </DropdownPanel>
   </LabelledField>
 </template>

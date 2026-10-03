@@ -18,6 +18,7 @@ import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.feature.generator.entity.FontStyle;
 import dev.chojo.ember.feature.generator.service.font.DocumentFontService;
 import dev.chojo.ember.feature.generator.service.font.DocumentFontService.DocumentFontsResponse;
+import dev.chojo.ember.feature.generator.service.font.FontSampleService;
 import dev.chojo.ember.owner.Owner;
 import io.javalin.http.Context;
 import io.javalin.openapi.HttpMethod;
@@ -36,8 +37,9 @@ import static dev.chojo.ember.api.RouteSupport.pathInt;
  * an association for its own and its stations', and the instance for every station.
  *
  * <p>Each owner lists, uploads and deletes only its own fonts; the list also names every family its
- * templates reach, for the pickers. The owner comes from the session, never from the request. There is
- * no route that hands a font file out: the files are drawn with on the server and never reach a browser.
+ * templates reach, for the pickers, and draws a picture of sample text in any of them. The owner comes
+ * from the session, never from the request. There is no route that hands a font file out: the files are
+ * drawn with on the server and never reach a browser.
  *
  * <p>An upload is a form with the file ({@code file}), the family name ({@code family}), the style
  * ({@code style}, regular where left out) and the uploader's confirmation that the owner may use the
@@ -49,10 +51,12 @@ public class DocumentFontRoutes implements Routes {
             "a font of the association is looked up among the association's own, which the session names";
 
     private final DocumentFontService fonts;
+    private final FontSampleService samples;
 
     @Inject
-    public DocumentFontRoutes(DocumentFontService fonts) {
+    public DocumentFontRoutes(DocumentFontService fonts, FontSampleService samples) {
         this.fonts = fonts;
+        this.samples = samples;
     }
 
     @Override
@@ -75,6 +79,73 @@ public class DocumentFontRoutes implements Routes {
         routes.get(prefix + "/admin/document-fonts", this::instanceList, InstancePermission.ADMINISTRATOR);
         routes.post(prefix + "/admin/document-fonts", this::instanceUpload, InstancePermission.ADMINISTRATOR);
         routes.delete(prefix + "/admin/document-fonts/{id}", this::instanceDelete, InstancePermission.ADMINISTRATOR);
+        routes.get(prefix + "/document-fonts/sample", this::stationSample, StationPermission.DOCUMENT_TEMPLATE_EDIT);
+        routes.get(
+                prefix + "/cluster/document-fonts/sample",
+                this::associationSample,
+                ClusterPermission.CLUSTER_DOCUMENT_TEMPLATE_EDIT);
+        routes.get(prefix + "/admin/document-fonts/sample", this::instanceSample, InstancePermission.ADMINISTRATOR);
+    }
+
+    @OpenApi(
+            path = "/api/v1/document-fonts/sample",
+            methods = HttpMethod.GET,
+            summary = "A picture of sample text in a font family the station's templates reach, or the default font",
+            tags = {"Documents"},
+            queryParams = {
+                @OpenApiParam(name = "family", description = "The family, the default font where left out"),
+                @OpenApiParam(name = "style", description = "The style, regular where left out"),
+                @OpenApiParam(name = "v", description = "The version of the sample the list named, for caching")
+            },
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(type = "image/png")),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void stationSample(Context ctx) {
+        sample(ctx, StationSession.from(ctx).owner());
+    }
+
+    @OpenApi(
+            path = "/api/v1/cluster/document-fonts/sample",
+            methods = HttpMethod.GET,
+            summary =
+                    "A picture of sample text in a font family the association's templates reach, or the default font",
+            tags = {"Cluster"},
+            queryParams = {
+                @OpenApiParam(name = "family", description = "The family, the default font where left out"),
+                @OpenApiParam(name = "style", description = "The style, regular where left out"),
+                @OpenApiParam(name = "v", description = "The version of the sample the list named, for caching")
+            },
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(type = "image/png")),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void associationSample(Context ctx) {
+        sample(ctx, association(ctx));
+    }
+
+    @OpenApi(
+            path = "/api/v1/admin/document-fonts/sample",
+            methods = HttpMethod.GET,
+            summary = "A picture of sample text in a font family the instance offers, or the default font",
+            tags = {"Admin"},
+            queryParams = {
+                @OpenApiParam(name = "family", description = "The family, the default font where left out"),
+                @OpenApiParam(name = "style", description = "The style, regular where left out"),
+                @OpenApiParam(name = "v", description = "The version of the sample the list named, for caching")
+            },
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(type = "image/png")),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void instanceSample(Context ctx) {
+        sample(ctx, UserSession.from(ctx).instance());
+    }
+
+    private void sample(Context ctx, Owner owner) {
+        var style = FontStyle.parse(ctx.queryParam("style"))
+                .orElseThrow(DocumentRefusal.DOCUMENT_FONT_STYLE_UNKNOWN::raise);
+        ctx.contentType("image/png").result(samples.sample(owner, ctx.queryParam("family"), style));
     }
 
     @OpenApi(

@@ -2490,10 +2490,16 @@ export default {
         defaultFont: 'Standard ({family})',
         familyOption: '{family} ({origin})',
         missingFamily: '{family} (nicht mehr verfügbar, gedruckt in {defaultFamily})',
+        missing: 'Nicht mehr verfügbar',
+        printedIn: 'Gedruckt in {family}',
+        pickerLabel: '{label}: {family}',
+        sampleOf: 'Beispieltext in {family}',
         origin: {
             STATION: 'Wache',
             ASSOCIATION: 'Verband',
             INSTANCE: 'Instanz',
+            BUILT_IN: 'Mitgeliefert',
+            DEFAULT: 'Standard',
         },
         style: {
             REGULAR: 'Normal',
@@ -2503,8 +2509,7 @@ export default {
         },
         styleLabel: 'Schnitt',
         styleFallsBack: '{style} (fehlt, gedruckt in Normal)',
-        sample: 'Franz jagt im komplett verwahrlosten Taxi quer durch Bayern. 0123456789',
-        previewNote: 'Vorschau in einer Ersatzschrift. Im Dokument steht {family}.',
+        previewNote: 'So steht der Text in {family} im Dokument.',
         bodyFont: 'Schrift des Texts',
         headerFont: 'Schrift der Kopfzeile',
         footerFont: 'Schrift der Fußzeile',
@@ -2525,8 +2530,9 @@ export default {
         letterOnly: 'Nur in Briefen',
         fileLine: '{name}, {size}, hochgeladen am {date}',
         reachedTitle: 'Weitere verfügbare Schriften',
-        reachedHint: 'Diese Schriften kommen vom Verband oder von der Instanz. Eine eigene Schrift mit demselben '
-            + 'Namen ersetzt sie.',
+        reachedHint: 'Diese Schriften kommen vom Verband oder von der Instanz oder sind in Ember mitgeliefert. Eine '
+            + 'eigene Schrift mit demselben Namen ersetzt sie. Mitgelieferte Schriften lassen sich nicht löschen und '
+            + 'belegen keinen Speicherplatz.',
         deleteConfirm: 'Den Schnitt {style} der Schrift {family} löschen?',
         deleted: 'Schrift gelöscht.',
     },
@@ -8626,7 +8632,7 @@ export default {
         hexInvalid: 'Ein Hex-Code hat die Form #rgb oder #rrggbb.',
         font: 'Schriftart',
         fontOfTemplate: 'Schrift der Vorlage',
-        fontMissing: '{family} (nicht mehr verfügbar, gedruckt in der Schrift der Vorlage)',
+        fontMissing: 'Gedruckt in der Schrift der Vorlage',
         openLink: 'Link öffnen',
         editLink: 'Link bearbeiten',
         removeLink: 'Link entfernen',

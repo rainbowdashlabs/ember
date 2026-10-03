@@ -11,7 +11,7 @@ import FontPreview from '@/components/documents/fonts/FontPreview.vue'
 import LabelledField from '@/components/input/LabelledField.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import {FontStyle, type FontFamilyOption, type PdfField} from '@/api/generated/schema'
-import {FONT_STYLES, printedStyle, sameFamily} from '@/components/documents/fonts/fontOptions'
+import {FONT_STYLES, printedStyle, reachedFamily} from '@/components/documents/fonts/fontOptions'
 
 /**
  * The font a text field prints in: a family of uploaded fonts a field can embed, or the default font,
@@ -27,10 +27,7 @@ const props = defineProps<{
 const {t} = useI18n()
 
 const style = computed(() => field.value.fontStyle ?? FontStyle.REGULAR)
-const family = computed(() => {
-  const name = field.value.fontFamily
-  return name ? props.fonts.find(option => sameFamily(option.family, name)) ?? null : null
-})
+const family = computed(() => reachedFamily(props.fonts, field.value.fontFamily))
 
 function styleLabel(option: FontStyle): string {
   const label = t(`documentFonts.style.${option}`)
@@ -51,6 +48,6 @@ function styleLabel(option: FontStyle): string {
         </SelectInput>
       </LabelledField>
     </div>
-    <FontPreview :family="field.fontFamily" :default-family="defaultFamily" :font-style="printedStyle(family, style)"/>
+    <FontPreview :family="family" :default-family="defaultFamily" :font-style="printedStyle(family, style)"/>
   </div>
 </template>

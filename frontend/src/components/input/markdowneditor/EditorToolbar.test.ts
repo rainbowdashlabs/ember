@@ -10,7 +10,7 @@ import {FontOrigin, FontStyle, type FontFamilyOption} from '@/api/generated/sche
 import EditorToolbar from './EditorToolbar.vue'
 
 const FONTS: FontFamilyOption[] = [
-    {family: 'Hausschrift', origin: FontOrigin.ASSOCIATION, styles: [FontStyle.REGULAR], printsOnPdf: true},
+    {family: 'Hausschrift', origin: FontOrigin.ASSOCIATION, styles: [FontStyle.REGULAR], printsOnPdf: true, sample: 'v1'},
 ]
 
 /**
@@ -27,7 +27,7 @@ describe('EditorToolbar', () => {
         const wrapper = mount(EditorToolbar, {props: {editor: undefined, fonts: FONTS}})
         await wrapper.find('[data-testid="editor-font"]').trigger('click')
 
-        const entries = wrapper.findAll('[role="menuitemradio"]').map(entry => entry.text())
-        expect(entries).toEqual(['Schrift der Vorlage', 'Hausschrift (Verband)'])
+        const entries = wrapper.findAll('[role="option"]').map(entry => entry.text())
+        expect(entries).toEqual(['Schrift der Vorlage', 'HausschriftVerband'])
     })
 })

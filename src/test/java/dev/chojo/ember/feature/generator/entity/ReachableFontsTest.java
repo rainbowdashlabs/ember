@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -58,11 +59,11 @@ class ReachableFontsTest {
         var house = fonts.find("Hausschrift").orElseThrow();
         assertEquals(FontOrigin.STATION, house.origin());
         assertEquals(List.of(FontStyle.ITALIC), house.styles());
-        assertEquals(4, house.file(FontStyle.BOLD).id());
+        assertEquals(4, idOf(house.file(FontStyle.BOLD)));
 
         var association = fonts.find("VERBAND").orElseThrow();
         assertEquals(FontOrigin.ASSOCIATION, association.origin());
-        assertEquals(5, association.file(FontStyle.BOLD).id());
+        assertEquals(5, idOf(association.file(FontStyle.BOLD)));
         assertEquals(2, fonts.families().size());
     }
 
@@ -72,8 +73,8 @@ class ReachableFontsTest {
                         font(1, STATION, "Wache", FontStyle.BOLD), font(2, STATION, "Wache", FontStyle.REGULAR)))
                 .find("Wache")
                 .orElseThrow();
-        assertEquals(1, family.file(FontStyle.BOLD).id());
-        assertEquals(2, family.file(FontStyle.BOLD_ITALIC).id());
+        assertEquals(1, idOf(family.file(FontStyle.BOLD)));
+        assertEquals(2, idOf(family.file(FontStyle.BOLD_ITALIC)));
         assertEquals(List.of(FontStyle.REGULAR, FontStyle.BOLD), family.styles());
         assertEquals(List.of("Wache"), family.internalFamilies());
     }
@@ -88,8 +89,46 @@ class ReachableFontsTest {
         var mixed = fonts.find("Gemischt").orElseThrow();
         assertFalse(mixed.printsOnPdf());
         assertTrue(mixed.pdfFile(FontStyle.BOLD).isEmpty());
-        assertEquals(1, mixed.pdfFile(FontStyle.REGULAR).orElseThrow().id());
+        assertEquals(1, idOf(mixed.pdfFile(FontStyle.REGULAR).orElseThrow()));
         assertTrue(fonts.find("Glatt").orElseThrow().printsOnPdf());
         assertTrue(ReachableFonts.none().families().isEmpty());
+    }
+
+    /** A built-in family is offered where no owner uploaded one of its name, and gives way where one did. */
+    @Test
+    void aBuiltInFamilyGivesWayToAnUploadedOneOfItsName() {
+        var serif = new FontFamily(
+                "Liberation Serif",
+                FontOrigin.BUILT_IN,
+                Map.of(
+                        FontStyle.REGULAR,
+                        new BuiltInFace(
+                                "Liberation Serif",
+                                FontStyle.REGULAR,
+                                FontOutline.TRUETYPE,
+                                "LiberationSerif-Regular.ttf")));
+        var typst = new FontFamily(
+                "Libertinus Serif",
+                FontOrigin.BUILT_IN,
+                Map.of(
+                        FontStyle.REGULAR,
+                        new BuiltInFace("Libertinus Serif", FontStyle.REGULAR, FontOutline.CFF, null)));
+        var fonts = ReachableFonts.of(
+                List.of(font(1, INSTANCE, "liberation serif", FontStyle.REGULAR)), List.of(serif, typst));
+
+        assertEquals(
+                FontOrigin.INSTANCE,
+                fonts.find("Liberation Serif").orElseThrow().origin());
+        var builtIn = fonts.find("libertinus serif").orElseThrow();
+        assertEquals(FontOrigin.BUILT_IN, builtIn.origin());
+        assertFalse(builtIn.printsOnPdf(), "Typst carries the face, so there is no file to embed");
+        assertTrue(ReachableFonts.of(List.of(), List.of(serif))
+                .find("Liberation Serif")
+                .orElseThrow()
+                .printsOnPdf());
+    }
+
+    private static int idOf(FontFace face) {
+        return ((DocumentFont) face).id();
     }
 }

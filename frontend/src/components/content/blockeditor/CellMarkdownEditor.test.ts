@@ -13,7 +13,7 @@ import {provideBlockEditorOptions} from '@/composables/useBlockEditorOptions'
 import CellMarkdownEditor from './CellMarkdownEditor.vue'
 
 const FONTS: FontFamilyOption[] = [
-    {family: 'Hausschrift', origin: FontOrigin.STATION, styles: [FontStyle.REGULAR], printsOnPdf: true},
+    {family: 'Hausschrift', origin: FontOrigin.STATION, styles: [FontStyle.REGULAR], printsOnPdf: true, sample: 'v1'},
 ]
 
 /**

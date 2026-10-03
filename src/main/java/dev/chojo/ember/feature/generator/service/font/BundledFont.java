@@ -11,7 +11,8 @@ import java.util.Objects;
 
 /**
  * The font every document falls back to: Liberation Sans, shipped with the application
- * ({@code fonts/LiberationSans-Regular.ttf}, under the SIL Open Font License beside it), so a text reads
+ * ({@code fonts/LiberationSans-Regular.ttf}, under the SIL Open Font License in
+ * {@code fonts/Liberation-LICENSE.txt}), so a text reads
  * the same on every installation, whatever fonts the system has.
  */
 public final class BundledFont {
@@ -21,7 +22,7 @@ public final class BundledFont {
     /** The name the file is written under next to a document. */
     public static final String FILE_NAME = "LiberationSans-Regular.ttf";
 
-    private static final byte[] DATA = read("fonts/" + FILE_NAME);
+    private static final byte[] DATA = resource(FILE_NAME);
 
     private BundledFont() {}
 
@@ -30,7 +31,14 @@ public final class BundledFont {
         return DATA.clone();
     }
 
-    private static byte[] read(String resource) {
+    /**
+     * Reads a font file the application ships.
+     *
+     * @param fileName its name under {@code fonts/} in the application's resources
+     * @return the file
+     */
+    static byte[] resource(String fileName) {
+        String resource = "fonts/" + fileName;
         try (var in = Objects.requireNonNull(
                 BundledFont.class.getClassLoader().getResourceAsStream(resource),
                 "The application ships " + resource)) {

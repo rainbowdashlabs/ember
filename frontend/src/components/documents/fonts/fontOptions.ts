@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {FontStyle, type DocumentFontView, type FontFamilyOption} from '@/api/generated/schema'
+import {FontStyle, type DocumentFontView, type FontFamilyOption, type FontOrigin} from '@/api/generated/schema'
 
 /** The font every text prints in that names no family, and the fallback for what a family lacks. */
 export const DEFAULT_FONT = 'Liberation Sans'
@@ -55,6 +55,60 @@ export function familyChoices(
     return choices
 }
 
+/** Where a font of a list comes from: a family's origin, or the default font. */
+export type EntryOrigin = FontOrigin | 'DEFAULT'
+
+/**
+ * What a font list shows for one choice.
+ *
+ * @property value   the choice it stands for
+ * @property name    what it is called
+ * @property origin  where it comes from, or null where the list says nothing about it
+ * @property sample  the family a picture of sample text shows, null for the default font, and the
+ *                   version of that picture; null where the entry shows none
+ * @property missing whether the template names the family but no longer reaches it
+ */
+export interface FontEntry {
+    value: string
+    name: string
+    origin: EntryOrigin | null
+    sample: {family: string | null, version: string} | null
+    missing: boolean
+}
+
+/**
+ * How a list shows its default entry: by the family the default font is, with its origin and a sample,
+ * or, where the default is something the list cannot draw (the font around the words), by a name alone.
+ */
+export type DefaultEntry = {family: string} | {name: string}
+
+/**
+ * The entries of a font list, one per choice and in the same order.
+ *
+ * @param choices      the choices, as {@link familyChoices} makes them
+ * @param defaultEntry how the default entry reads
+ */
+export function fontEntries(choices: readonly FamilyChoice[], defaultEntry: DefaultEntry): FontEntry[] {
+    return choices.map(choice => {
+        if (choice.missing) return {value: choice.value, name: choice.value, origin: null, sample: null, missing: true}
+        const family = choice.family
+        if (family) {
+            return {
+                value: choice.value,
+                name: family.family,
+                origin: family.origin,
+                sample: {family: family.family, version: family.sample},
+                missing: false,
+            }
+        }
+        if ('family' in defaultEntry) {
+            const sample = {family: null, version: defaultEntry.family}
+            return {value: '', name: defaultEntry.family, origin: 'DEFAULT', sample, missing: false}
+        }
+        return {value: '', name: defaultEntry.name, origin: null, sample: null, missing: false}
+    })
+}
+
 /** The value a picker shows for a family a template names: the reached spelling, or the stored one. */
 export function choiceValue(choices: readonly FamilyChoice[], current: string | null): string {
     if (!current) return ''
@@ -77,13 +131,15 @@ export function printedStyle(family: FontFamilyOption | null, style: FontStyle):
 }
 
 /**
- * How the preview draws a style. The browser never has the uploaded file, so the preview is set in
- * the browser's own sans serif font with the weight and slant of the style.
+ * The family a template names, as it reaches it.
+ *
+ * @param reachable the families the template reaches
+ * @param family    the family it names, or null for the default font
+ * @returns the family, or null for the default font and a family no longer reached, which both print in it
  */
-export function previewStyle(style: FontStyle): {fontWeight: string; fontStyle: string} {
-    const bold = style === FontStyle.BOLD || style === FontStyle.BOLD_ITALIC
-    const italic = style === FontStyle.ITALIC || style === FontStyle.BOLD_ITALIC
-    return {fontWeight: bold ? '700' : '400', fontStyle: italic ? 'italic' : 'normal'}
+export function reachedFamily(reachable: readonly FontFamilyOption[], family: string | null): FontFamilyOption | null {
+    if (!family) return null
+    return reachable.find(option => sameFamily(option.family, family)) ?? null
 }
 
 /** One family of an owner's own fonts, with a file per style it has. */

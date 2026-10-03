@@ -2707,6 +2707,53 @@
         }
       }
     },
+    "/api/v1/admin/document-fonts/sample" : {
+      "get" : {
+        "summary" : "A picture of sample text in a font family the instance offers, or the default font",
+        "tags" : [ "Admin" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "image/png" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "family",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "style",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "v",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
+        } ]
+      }
+    },
     "/api/v1/admin/document-fonts/{id}" : {
       "delete" : {
         "summary" : "Delete a font of the instance that no template in use prints with",
@@ -10621,6 +10668,53 @@
         }
       }
     },
+    "/api/v1/cluster/document-fonts/sample" : {
+      "get" : {
+        "summary" : "A picture of sample text in a font family the association's templates reach, or the default font",
+        "tags" : [ "Cluster" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "image/png" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "family",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "style",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "v",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
+        } ]
+      }
+    },
     "/api/v1/cluster/document-fonts/{id}" : {
       "delete" : {
         "summary" : "Delete a font of the association that no template in use prints with",
@@ -13853,6 +13947,53 @@
             }
           }
         }
+      }
+    },
+    "/api/v1/document-fonts/sample" : {
+      "get" : {
+        "summary" : "A picture of sample text in a font family the station's templates reach, or the default font",
+        "tags" : [ "Documents" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "image/png" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "family",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "style",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "v",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
+        } ]
       }
     },
     "/api/v1/document-fonts/{id}" : {
@@ -53143,13 +53284,16 @@
           },
           "printsOnPdf" : {
             "type" : "boolean"
+          },
+          "sample" : {
+            "type" : "string"
           }
         },
-        "required" : [ "family", "origin", "styles", "printsOnPdf" ]
+        "required" : [ "family", "origin", "styles", "printsOnPdf", "sample" ]
       },
       "FontOrigin" : {
         "type" : "string",
-        "enum" : [ "STATION", "ASSOCIATION", "INSTANCE" ]
+        "enum" : [ "STATION", "ASSOCIATION", "INSTANCE", "BUILT_IN" ]
       },
       "FontOutline" : {
         "type" : "string",

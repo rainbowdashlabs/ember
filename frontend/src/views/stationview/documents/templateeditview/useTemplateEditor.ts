@@ -17,6 +17,7 @@ import type {
 } from '@/api/generated/schema'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
+import {provideFontSamples} from '@/composables/useFontSamples'
 import {DEFAULT_FONT} from '@/components/documents/fonts/fontOptions'
 import {draftOf, emptyDraft, requestOf, type TemplateDraft} from './templateDraft'
 import {placeholdersOfTemplate} from './placeholderpicker/placeholderTree'
@@ -54,6 +55,8 @@ async function stationChoices(): Promise<StationChoices> {
  * families they reach and the default font a text naming none prints in, the lists the audience and the
  * preview choose from, and for a PDF template the PDF it fills.
  *
+ * <p>The font pickers below draw their samples through the owner's font source, which this provides.
+ *
  * <p>An association has no members, groups or document tags of its own, so its lists stay empty; its
  * stations choose the audience of its templates themselves.
  *
@@ -78,6 +81,7 @@ export function useTemplateEditor(
     const choices = shallowRef<StationChoices>(noChoices())
     const fontList = shallowRef<DocumentFontsResponse | null>(null)
     const fonts = computed<readonly FontFamilyOption[]>(() => fontList.value?.reachable ?? [])
+    provideFontSamples(screens.fonts.sample)
 
     const labels = computed<ReadonlyMap<string, string>>(() =>
         new Map(catalogue.value.map(placeholder => [placeholder.key, placeholder.label])))

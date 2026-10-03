@@ -7,7 +7,9 @@ package dev.chojo.ember.feature.generator.service.font;
 
 import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.api.refusal.RefusalDetail;
+import dev.chojo.ember.feature.generator.entity.BuiltInFace;
 import dev.chojo.ember.feature.generator.entity.DocumentFont;
+import dev.chojo.ember.feature.generator.entity.FontFace;
 import dev.chojo.ember.feature.generator.entity.FontFamily;
 import dev.chojo.ember.feature.generator.entity.PdfContent;
 import dev.chojo.ember.feature.generator.entity.ReachableFonts;
@@ -31,8 +33,9 @@ import java.util.Optional;
  * <p>Reach adds up: a station reaches its own fonts, those of the association it belongs to and those
  * of the instance; an association reaches its own and the instance's; the instance only its own. Where
  * a family name is found at several of them, the nearest owner's family is taken whole (station over
- * association over instance). This is decided here and only here, so a template of an association is
- * served by handing in that association as the owner.
+ * association over instance). Every owner also reaches the {@link BuiltInFonts}, farthest of all, so an
+ * uploaded family of the same name takes their place. This is decided here and only here, so a template
+ * of an association is served by handing in that association as the owner.
  *
  * <p>An association keeps its fonts in its home station, the way it keeps its other files there; the
  * instance keeps them in its own storage.
@@ -72,7 +75,8 @@ public class FontLibrary {
                         fonts.findReachable(station.stationId(), associationOf(station.stationId()));
                     case Owner.Association association -> fonts.findReachable(null, association.clusterId());
                     case Owner.Instance ignored -> fonts.findReachable(null, null);
-                });
+                },
+                BuiltInFonts.families());
     }
 
     /**
@@ -121,13 +125,17 @@ public class FontLibrary {
     }
 
     /**
-     * Reads a font file.
+     * Reads the file of a face.
      *
-     * @param font the font
-     * @return its bytes, or empty where the stored file is gone
+     * @param face an uploaded font or a built-in face
+     * @return its bytes, or empty where the stored file is gone or the face is one Typst carries itself
      */
-    public Optional<byte[]> read(DocumentFont font) {
-        return storage.readAllBytes(scopeOf(font.owner()), categoryOf(font.owner()), key(font.id()));
+    public Optional<byte[]> read(FontFace face) {
+        return switch (face) {
+            case DocumentFont font ->
+                storage.readAllBytes(scopeOf(font.owner()), categoryOf(font.owner()), key(font.id()));
+            case BuiltInFace builtIn -> BuiltInFonts.data(builtIn);
+        };
     }
 
     /**
