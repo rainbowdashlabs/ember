@@ -6,10 +6,10 @@
 /** @vitest-environment happy-dom */
 import {describe, expect, it} from 'vitest'
 import {FontOrigin, FontOutline, FontStyle, type DocumentFontView, type FontFamilyOption} from '@/api/generated/schema'
-import {choiceValue, familyChoices, familyOf, groupByFamily, previewStyle, printedStyle} from './fontOptions'
+import {choiceValue, familyChoices, familyOf, fontEntries, groupByFamily, printedStyle, reachedFamily} from './fontOptions'
 
 function family(name: string, styles: FontStyle[] = [FontStyle.REGULAR], printsOnPdf = true): FontFamilyOption {
-    return {family: name, origin: FontOrigin.STATION, styles, printsOnPdf}
+    return {family: name, origin: FontOrigin.STATION, styles, printsOnPdf, sample: 'v1'}
 }
 
 function font(id: number, name: string, style: FontStyle): DocumentFontView {
@@ -60,9 +60,32 @@ describe('printedStyle', () => {
         expect(printedStyle(null, FontStyle.BOLD_ITALIC)).toBe(FontStyle.BOLD_ITALIC)
     })
 
-    it('previews a style with the weight and slant of the fallback', () => {
-        expect(previewStyle(FontStyle.BOLD_ITALIC)).toEqual({fontWeight: '700', fontStyle: 'italic'})
-        expect(previewStyle(FontStyle.REGULAR)).toEqual({fontWeight: '400', fontStyle: 'normal'})
+})
+
+describe('reachedFamily', () => {
+    it('finds the family a template names whatever its case, and nothing for the default font or one gone', () => {
+        const reachable = [family('Hausschrift')]
+        expect(reachedFamily(reachable, 'HAUSSCHRIFT')).toBe(reachable[0])
+        expect(reachedFamily(reachable, null)).toBeNull()
+        expect(reachedFamily(reachable, 'Gelöscht')).toBeNull()
+    })
+})
+
+describe('fontEntries', () => {
+    const reachable = [family('Hausschrift'), {...family('Liberation Serif'), origin: FontOrigin.BUILT_IN, sample: 'v2'}]
+
+    it('shows every family with its origin and its sample, the default font by the family it is', () => {
+        expect(fontEntries(familyChoices(reachable, null), {family: 'Berlin Type Office'})).toEqual([
+            {value: '', name: 'Berlin Type Office', origin: 'DEFAULT', sample: {family: null, version: 'Berlin Type Office'}, missing: false},
+            {value: 'Hausschrift', name: 'Hausschrift', origin: FontOrigin.STATION, sample: {family: 'Hausschrift', version: 'v1'}, missing: false},
+            {value: 'Liberation Serif', name: 'Liberation Serif', origin: FontOrigin.BUILT_IN, sample: {family: 'Liberation Serif', version: 'v2'}, missing: false},
+        ])
+    })
+
+    it('names a default it cannot draw and a family no longer reached without a sample', () => {
+        const entries = fontEntries(familyChoices(reachable, 'Gelöscht'), {name: 'Schrift der Vorlage'})
+        expect(entries[0]).toEqual({value: '', name: 'Schrift der Vorlage', origin: null, sample: null, missing: false})
+        expect(entries.at(-1)).toEqual({value: 'Gelöscht', name: 'Gelöscht', origin: null, sample: null, missing: true})
     })
 })
 

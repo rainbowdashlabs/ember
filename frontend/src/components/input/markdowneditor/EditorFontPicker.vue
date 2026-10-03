@@ -8,12 +8,14 @@ import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import type {Editor} from '@tiptap/vue-3'
 import type {FontFamilyOption} from '@/api/generated/schema'
-import {familyChoices, sameFamily, type FamilyChoice} from '@/components/documents/fonts/fontOptions'
+import FontChoiceList from '@/components/documents/fonts/FontChoiceList.vue'
+import {choiceValue, familyChoices, fontEntries} from '@/components/documents/fonts/fontOptions'
 import {TEXT_FONT} from './textFont'
 
 /**
  * The font entry of the text editor's menu: sets the selected words in a family the template reaches,
- * or back in the template's own font. A family the words name but the template no longer reaches stays
+ * or back in the template's own font. Each family is listed with where it comes from and a line of
+ * sample text the server draws in it. A family the words name but the template no longer reaches stays
  * listed and marked, as in the page's font pickers.
  *
  * <p>The font files never reach the browser, so the words keep the editor's look; the button names the
@@ -33,39 +35,27 @@ const current = computed(() => {
 })
 
 const choices = computed(() => familyChoices(props.fonts, current.value))
+const entries = computed(() => fontEntries(choices.value, {name: t('markdownEditor.fontOfTemplate')}))
 
-function labelOf(choice: FamilyChoice): string {
-  if (choice.missing) return t('markdownEditor.fontMissing', {family: choice.value})
-  if (!choice.family) return t('markdownEditor.fontOfTemplate')
-  return t('documentFonts.familyOption', {family: choice.family.family, origin: t(`documentFonts.origin.${choice.family.origin}`)})
-}
-
-function chosen(choice: FamilyChoice): boolean {
-  return current.value === null ? choice.value === '' : choice.value !== '' && sameFamily(choice.value, current.value)
-}
-
-function choose(choice: FamilyChoice) {
+function choose(value: string) {
   const chain = props.editor?.chain().focus()
-  if (choice.value === '') chain?.unsetMark(TEXT_FONT).run()
-  else chain?.setMark(TEXT_FONT, {family: choice.value}).run()
+  if (value === '') chain?.unsetMark(TEXT_FONT).run()
+  else chain?.setMark(TEXT_FONT, {family: value}).run()
   open.value = false
 }
 </script>
 
 <template>
   <div class="relative">
-    <button type="button" :title="t('markdownEditor.font')" data-testid="editor-font"
+    <button type="button" :title="t('markdownEditor.font')" data-testid="editor-font" aria-haspopup="listbox"
             :class="['p-1.5 rounded text-sm transition-colors inline-flex items-center gap-1', current ? 'text-primary bg-primary/10' : 'text-[var(--text)] hover:bg-[var(--bg-accent)]']"
             @mousedown.prevent @click="open = !open">
       <font-awesome-icon :icon="['fas', 'font']" class="w-3.5 h-3.5"/>
       <span v-if="current" class="text-xs max-w-32 truncate">{{ current }}</span>
     </button>
-    <div v-if="open" role="menu" class="absolute top-full left-0 mt-1 z-30 p-1 rounded-lg shadow-lg border border-[var(--border)] bg-[var(--bg)] min-w-56">
-      <button v-for="choice in choices" :key="choice.value" type="button" role="menuitemradio" :aria-checked="chosen(choice)"
-              :class="['block w-full text-left px-2 py-1 rounded text-sm', chosen(choice) ? 'text-primary bg-primary/10' : 'text-[var(--text)] hover:bg-[var(--bg-accent)]']"
-              @mousedown.prevent @click="choose(choice)">
-        {{ labelOf(choice) }}
-      </button>
+    <div v-if="open" class="absolute top-full left-0 mt-1 z-30 flex max-h-80 w-72 flex-col overflow-hidden rounded-lg shadow-lg border border-[var(--border)] bg-[var(--bg)]">
+      <FontChoiceList :model-value="choiceValue(choices, current)" :entries="entries" :label="t('markdownEditor.font')"
+                      :missing-note="t('markdownEditor.fontMissing')" @update:model-value="choose"/>
     </div>
   </div>
 </template>

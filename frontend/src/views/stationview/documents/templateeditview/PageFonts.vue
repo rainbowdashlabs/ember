@@ -4,9 +4,11 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import FontFamilyPicker from '@/components/documents/fonts/FontFamilyPicker.vue'
 import FontPreview from '@/components/documents/fonts/FontPreview.vue'
+import {reachedFamily} from '@/components/documents/fonts/fontOptions'
 import type {FontFamilyOption, LetterPage} from '@/api/generated/schema'
 
 /**
@@ -16,12 +18,14 @@ import type {FontFamilyOption, LetterPage} from '@/api/generated/schema'
  */
 const page = defineModel<LetterPage>({required: true})
 
-defineProps<{
+const props = defineProps<{
   fonts: readonly FontFamilyOption[]
   defaultFamily: string
 }>()
 
 const {t} = useI18n()
+
+const bodyFamily = computed(() => reachedFamily(props.fonts, page.value.bodyFont))
 
 type FontKey = 'bodyFont' | 'headerFont' | 'footerFont'
 
@@ -43,6 +47,6 @@ function set(key: FontKey, family: string | null) {
                         :fonts="fonts" :default-family="defaultFamily" :test-id="`letter-${part.key}`"
                         @update:model-value="family => set(part.key, family)"/>
     </div>
-    <FontPreview :family="page.bodyFont" :default-family="defaultFamily"/>
+    <FontPreview :family="bodyFamily" :default-family="defaultFamily"/>
   </div>
 </template>
