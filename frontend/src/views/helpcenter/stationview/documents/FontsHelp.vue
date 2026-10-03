@@ -17,6 +17,7 @@ const {t} = useI18n()
     <HelpSection :title="t('helpCenter.documentFonts.whatIs')">
       <p>{{ t('helpCenter.documentFonts.whatIsText') }}</p>
       <p>{{ t('helpCenter.documentFonts.defaultText') }}</p>
+      <p>{{ t('helpCenter.documentFonts.builtInText') }}</p>
       <p>{{ t('helpCenter.documentFonts.reachText') }}</p>
     </HelpSection>
 

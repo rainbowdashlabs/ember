@@ -1761,9 +1761,14 @@ volumes:
                 + 'beim Start selbst herunter. Gelingt das nicht, druckt Ember in Liberation Sans. Berlin Type hat '
                 + 'keinen kursiven Schnitt, kursiver Text erscheint deshalb in Liberation Sans. In der '
                 + 'Schriftauswahl einer Vorlage heißt sie „Standard".',
-            reachText: 'Vorlagen der Wache sehen ihre eigenen Schriften, die des Verbands und die der Instanz. Gibt '
-                + 'es eine Schrift mit demselben Namen an mehreren Stellen, gilt die eigene der Wache, dann die des '
-                + 'Verbands, dann die der Instanz.',
+            builtInText: 'Ohne etwas hochzuladen, stehen jeder Vorlage mitgelieferte Schriften zur Verfügung: '
+                + 'Liberation Sans, Liberation Serif und Liberation Mono für Briefe und PDF-Vorlagen, dazu '
+                + 'Libertinus Serif, New Computer Modern und DejaVu Sans Mono nur für Briefe. In der Schriftauswahl '
+                + 'tragen sie die Herkunft „Mitgeliefert". Sie lassen sich nicht löschen und belegen keinen '
+                + 'Speicherplatz.',
+            reachText: 'Vorlagen der Wache sehen ihre eigenen Schriften, die des Verbands, die der Instanz und die '
+                + 'mitgelieferten. Gibt es eine Schrift mit demselben Namen an mehreren Stellen, gilt die eigene der '
+                + 'Wache, dann die des Verbands, dann die der Instanz und zuletzt die mitgelieferte.',
             uploadTitle: 'Eine Schrift hochladen',
             uploadText: 'Wähle die Schriftdatei (.ttf oder .otf), gib den Familiennamen ein und wähle den Schnitt: '
                 + 'normal, fett, kursiv oder fett kursiv. Jeder Schnitt ist eine eigene Datei unter demselben '
@@ -1774,8 +1779,9 @@ volumes:
             useText: 'Im Editor eines Briefs wählst du unter Seite je eine Schrift für Text, Kopfzeile und '
                 + 'Fußzeile. Bei einer PDF-Vorlage wählst du für jedes Textfeld Schrift und Schnitt. Fehlt einer '
                 + 'Schrift ein Zeichen, druckt Ember es in Liberation Sans.',
-            previewText: 'Die Schriftdateien verlassen nie den Server. Der Editor zeigt die Vorschau deshalb in einer '
-                + 'Ersatzschrift, das erstellte Dokument steht in der gewählten Schrift.',
+            previewText: 'Die Schriftdateien verlassen nie den Server. Jede Schriftauswahl zeigt deshalb neben dem '
+                + 'Namen und der Herkunft einer Schrift eine Zeile Beispieltext, die der Server in ihr zeichnet, so '
+                + 'wie sie im Dokument steht. Dieselbe Zeile steht auf dieser Seite bei jeder Schrift.',
             deleteTitle: 'Eine Schrift löschen',
             deleteText: 'Solange eine Vorlage in Gebrauch eine Schrift verwendet, lässt sie sich nicht löschen. '
                 + 'Ember nennt dann die Vorlagen. Archivierte Vorlagen halten keine Schrift fest.',
@@ -1814,7 +1820,8 @@ volumes:
                 + 'Zeile steht zwischen ihren Spalten je eine senkrechte Linie. Kopf- und Fußzeile zeigen sich, wie '
                 + 'sie gedruckt werden, und öffnen sich zum Bearbeiten per Klick.',
             pageText: 'Unter Seite stellst du die Ränder und die Schriftgröße ein. Kopf- und Fußzeile stehen im '
-                + 'oberen und unteren Rand, lass dort also genug Platz.',
+                + 'oberen und unteren Rand, lass dort also genug Platz. Dort wählst du auch die Schriften für Text, '
+                + 'Kopf- und Fußzeile. Die Auswahl zeigt jede Schrift mit ihrer Herkunft und einer Zeile Beispieltext.',
             bodyTitle: 'Text, Platzhalter und Sichtbarkeit',
             bodyText: 'Einen Text schreibst du im gewohnten Editor. Darüber stehen die Bereiche der Platzhalter, '
                 + 'etwa Mitglied, Pronomen oder Wache. Wähle einen Bereich und klicke dich weiter, zum Beispiel '
@@ -1831,7 +1838,7 @@ volumes:
                 + 'eingetragen sind. Namen sind immer die amtlichen Namen, nur der Rufname ist eine Ausnahme.',
             fontText: 'Einzelne Wörter druckst du in einer anderen Schrift. Markiere sie und wähle im Menü des '
                 + 'Editors unter „Schriftart" eine Schrift. Zur Auswahl stehen alle Schriften der Wache, ihres '
-                + 'Verbands und der Instanz. Im Editor sehen die Wörter aus wie immer: Sie sind gepunktet '
+                + 'Verbands und der Instanz und die mitgelieferten, jede mit einer Zeile Beispieltext. Im Editor sehen die Wörter aus wie immer: Sie sind gepunktet '
                 + 'unterstrichen, und zeigst du mit der Maus darauf, steht dort der Name der Schrift. Erst im PDF '
                 + 'erscheint die Schrift selbst. „Schrift der Vorlage" setzt die Wörter zurück. Gibt es eine '
                 + 'Schrift später nicht mehr, druckt Ember die Wörter in der Schrift der Vorlage.',
