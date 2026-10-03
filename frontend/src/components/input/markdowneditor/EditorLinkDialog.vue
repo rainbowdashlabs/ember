@@ -12,7 +12,7 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
-import MutedIconButton from '@/components/button/MutedIconButton.vue'
+import EditorCursorPanel from './EditorCursorPanel.vue'
 
 const props = defineProps<{
   initialText: string
@@ -63,18 +63,7 @@ function selectResult(result: SearchResultResponse) {
 </script>
 
 <template>
-  <div
-    class="absolute z-30 w-80 rounded-lg shadow-lg border border-[var(--border)] bg-[var(--bg)] p-3 space-y-2"
-    :style="{ top: position.top + 'px', left: position.left + 'px' }"
-  >
-    <div class="flex items-center justify-between">
-      <div class="flex items-center gap-2">
-        <font-awesome-icon :icon="['fas', 'link']" class="text-[var(--primary)] w-3.5 h-3.5" />
-        <span class="text-sm font-medium">{{ t('markdownEditor.link') }}</span>
-      </div>
-      <MutedIconButton :icon="['fas', 'xmark']" :label="t('common.close')" hover="text" @click="$emit('cancel')"/>
-    </div>
-
+  <EditorCursorPanel :position="position" :icon="['fas', 'link']" :title="t('markdownEditor.link')" @cancel="$emit('cancel')">
     <div>
       <label :for="`${fieldId}-text`" class="block text-xs text-[var(--text-muted)] mb-0.5">{{ t('markdownEditor.linkText') }}</label>
       <TextInput :id="`${fieldId}-text`" v-model="linkText" :placeholder="t('markdownEditor.linkTextPlaceholder')" class="!text-sm" />
@@ -107,5 +96,5 @@ function selectResult(result: SearchResultResponse) {
         <font-awesome-icon :icon="['fas', 'link-slash']" class="mr-0.5" /> {{ t('common.remove') }}
       </button>
     </ButtonRow>
-  </div>
+  </EditorCursorPanel>
 </template>

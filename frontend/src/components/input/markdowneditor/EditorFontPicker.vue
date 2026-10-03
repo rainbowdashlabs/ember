@@ -10,6 +10,7 @@ import type {Editor} from '@tiptap/vue-3'
 import type {FontFamilyOption} from '@/api/generated/schema'
 import FontChoiceList from '@/components/documents/fonts/FontChoiceList.vue'
 import {choiceValue, familyChoices, fontEntries} from '@/components/documents/fonts/fontOptions'
+import FloatingPanel from '@/components/feedback/FloatingPanel.vue'
 import {TEXT_FONT} from './textFont'
 
 /**
@@ -46,16 +47,17 @@ function choose(value: string) {
 </script>
 
 <template>
-  <div class="relative">
-    <button type="button" :title="t('markdownEditor.font')" data-testid="editor-font" aria-haspopup="listbox"
-            :class="['p-1.5 rounded text-sm transition-colors inline-flex items-center gap-1', current ? 'text-primary bg-primary/10' : 'text-[var(--text)] hover:bg-[var(--bg-accent)]']"
-            @mousedown.prevent @click="open = !open">
-      <font-awesome-icon :icon="['fas', 'font']" class="w-3.5 h-3.5"/>
-      <span v-if="current" class="text-xs max-w-32 truncate">{{ current }}</span>
-    </button>
-    <div v-if="open" class="absolute top-full left-0 mt-1 z-30 flex max-h-80 w-72 flex-col overflow-hidden rounded-lg shadow-lg border border-[var(--border)] bg-[var(--bg)]">
-      <FontChoiceList :model-value="choiceValue(choices, current)" :entries="entries" :label="t('markdownEditor.font')"
-                      :missing-note="t('markdownEditor.fontMissing')" @update:model-value="choose"/>
-    </div>
-  </div>
+  <FloatingPanel v-model:open="open" :label="t('markdownEditor.font')" role="dialog" align="start"
+                 panel-class="flex max-h-80 w-72 flex-col overflow-hidden">
+    <template #trigger="{triggerAttrs}">
+      <button type="button" :title="t('markdownEditor.font')" data-testid="editor-font" v-bind="triggerAttrs"
+              :class="['p-1.5 rounded text-sm transition-colors inline-flex items-center gap-1', current ? 'text-primary bg-primary/10' : 'text-[var(--text)] hover:bg-[var(--bg-accent)]']"
+              @mousedown.prevent @click="open = !open">
+        <font-awesome-icon :icon="['fas', 'font']" class="w-3.5 h-3.5"/>
+        <span v-if="current" class="text-xs max-w-32 truncate">{{ current }}</span>
+      </button>
+    </template>
+    <FontChoiceList :model-value="choiceValue(choices, current)" :entries="entries" :label="t('markdownEditor.font')"
+                    :missing-note="t('markdownEditor.fontMissing')" @update:model-value="choose"/>
+  </FloatingPanel>
 </template>

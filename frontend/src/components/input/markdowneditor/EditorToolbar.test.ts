@@ -4,10 +4,12 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 /** @vitest-environment happy-dom */
-import {describe, expect, it} from 'vitest'
-import {mount} from '@vue/test-utils'
+import {afterEach, describe, expect, it} from 'vitest'
+import {enableAutoUnmount, mount} from '@vue/test-utils'
 import {FontOrigin, FontStyle, type FontFamilyOption} from '@/api/generated/schema'
 import EditorToolbar from './EditorToolbar.vue'
+
+enableAutoUnmount(afterEach)
 
 const FONTS: FontFamilyOption[] = [
     {family: 'Hausschrift', origin: FontOrigin.ASSOCIATION, styles: [FontStyle.REGULAR], printsOnPdf: true, sample: 'v1'},
@@ -24,10 +26,10 @@ describe('EditorToolbar', () => {
     })
 
     it('offers the template font and every family given', async () => {
-        const wrapper = mount(EditorToolbar, {props: {editor: undefined, fonts: FONTS}})
+        const wrapper = mount(EditorToolbar, {props: {editor: undefined, fonts: FONTS}, attachTo: document.body})
         await wrapper.find('[data-testid="editor-font"]').trigger('click')
 
-        const entries = wrapper.findAll('[role="option"]').map(entry => entry.text())
+        const entries = [...document.querySelectorAll('[role="option"]')].map(entry => entry.textContent?.trim())
         expect(entries).toEqual(['Schrift der Vorlage', 'HausschriftVerband'])
     })
 })

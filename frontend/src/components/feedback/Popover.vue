@@ -4,16 +4,16 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {nextTick, ref, useId} from 'vue'
-import {useFloatingPanel} from '@/composables/useFloatingPanel'
-import {useDismiss} from '@/composables/useDismiss'
+import {ref} from 'vue'
+import type {DismissedBy} from '@/composables/useDismiss'
+import FloatingPanel from './FloatingPanel.vue'
 
 /**
- * A panel that hangs off a trigger: a row's menu, a table's column list.
+ * A panel that hangs off a trigger and opens and closes itself: a row's menu, a table's column list.
  *
- * <p>The panel is rendered at the body rather than beside its trigger, because a trigger usually
- * sits in something that scrolls, and a panel positioned inside a table with `overflow-x-auto` is
- * cut off at the edge of the table.
+ * <p>The panel is a {@link FloatingPanel}, rendered at the body rather than beside its trigger,
+ * because a trigger usually sits in something that scrolls, and a panel positioned inside a table
+ * with `overflow-x-auto` is cut off at the edge of the table.
  *
  * <p>Standing at the end of the body is also why focus is moved by hand. Tabbing on from the
  * trigger would otherwise walk the whole rest of the page before arriving at the panel that just
@@ -43,25 +43,21 @@ const props = withDefaults(defineProps<{
 const FOCUSABLE = 'button:not([disabled]), a[href], input:not([disabled])'
 
 const open = ref(false)
-const rootRef = ref<HTMLElement | null>(null)
-const {panel, style, place} = useFloatingPanel(rootRef, open)
-const panelId = useId()
+const floating = ref<InstanceType<typeof FloatingPanel> | null>(null)
 
 function triggerElement(): HTMLElement | null {
-  return rootRef.value?.querySelector<HTMLElement>('button, a[href]') ?? null
+  return floating.value?.anchor?.querySelector<HTMLElement>('button, a[href]') ?? null
 }
 
-async function toggle() {
-  if (open.value) {
-    close()
-    return
-  }
-  open.value = true
-  await nextTick()
-  place()
-  const first = panel.value?.querySelector<HTMLElement>(FOCUSABLE)
-  const landing = first ?? panel.value
-  landing?.focus()
+function toggle() {
+  if (open.value) close()
+  else open.value = true
+}
+
+function focusFirstControl(panel: HTMLElement) {
+  const first = panel.querySelector<HTMLElement>(FOCUSABLE)
+  const landing = first ?? panel
+  landing.focus()
 }
 
 /**
@@ -77,12 +73,8 @@ function close(restoreFocus = true) {
   if (restoreFocus) triggerElement()?.focus()
 }
 
-useDismiss(open, () => [rootRef.value, panel.value], by => close(by === 'escape'))
-
-function onFocusOut(event: FocusEvent) {
-  const next = event.relatedTarget as Node | null
-  if (!next || rootRef.value?.contains(next) || panel.value?.contains(next)) return
-  close(false)
+function onDismissed(by: DismissedBy) {
+  if (by === 'escape') triggerElement()?.focus()
 }
 
 function onPanelClick() {
@@ -91,30 +83,22 @@ function onPanelClick() {
 </script>
 
 <template>
-  <div ref="rootRef">
-    <slot
-        :toggle="toggle"
-        :trigger-attrs="{'aria-controls': panelId, 'aria-expanded': open, 'aria-haspopup': role}"
-        name="trigger"
-    />
-    <Teleport to="body">
-      <div
-          v-if="open"
-          :id="panelId"
-          ref="panel"
-          :aria-label="label"
-          :class="panelClass"
-          :data-testid="testId"
-          :role="role"
-          :style="style"
-          class="max-h-[60vh] overflow-y-auto rounded-theme border border-(--border) bg-(--bg) shadow-lg z-50 text-left"
-          tabindex="-1"
-          @focusout="onFocusOut"
-      >
-        <div role="presentation" @click="onPanelClick">
-          <slot :close="close"/>
-        </div>
-      </div>
-    </Teleport>
-  </div>
+  <FloatingPanel
+      ref="floating"
+      v-model:open="open"
+      :label="label"
+      :role="role"
+      :test-id="testId"
+      :panel-class="panelClass"
+      @opened="focusFirstControl"
+      @dismissed="onDismissed"
+      @focus-left="close(false)"
+  >
+    <template #trigger="{triggerAttrs}">
+      <slot :toggle="toggle" :trigger-attrs="triggerAttrs" name="trigger"/>
+    </template>
+    <div role="presentation" @click="onPanelClick">
+      <slot :close="close"/>
+    </div>
+  </FloatingPanel>
 </template>
