@@ -1,0 +1,22 @@
+name: Pull Request Meta Information
+
+# Labels every pull request by the branch it comes from and the parts of the code it touches, as
+# .github/labeler.yml defines them. Labels it set that no longer apply are taken off again; labels
+# set by hand, such as release, are left alone. It only reads the pull request's metadata and never
+# checks out its code, which is what makes pull_request_target safe here.
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, edited]
+
+jobs:
+  label:
+    name: Label the pull request
+    permissions:
+      contents: read
+      pull-requests: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Label the pull request by branch and changed files
+        uses: actions/labeler@v7
+        with:
+          sync-labels: true
