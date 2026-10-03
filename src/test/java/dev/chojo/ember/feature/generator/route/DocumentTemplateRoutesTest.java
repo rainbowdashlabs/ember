@@ -15,6 +15,8 @@ import dev.chojo.ember.feature.generator.entity.DocumentLanguage;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplate;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplateKind;
 import dev.chojo.ember.feature.generator.entity.LetterPage;
+import dev.chojo.ember.feature.generator.service.DocumentTemplateCopyService;
+import dev.chojo.ember.feature.generator.service.DocumentTemplateCopyService.DocumentTemplateCopy;
 import dev.chojo.ember.feature.generator.service.DocumentTemplateRequest;
 import dev.chojo.ember.feature.generator.service.DocumentTemplateService;
 import dev.chojo.ember.feature.generator.service.DocumentTemplateService.DocumentTemplateResponse;
@@ -86,6 +88,7 @@ class DocumentTemplateRoutesTest {
     private DocumentTemplateService service;
     private PdfTemplateService pdfs;
     private TemplateStationUseService uses;
+    private DocumentTemplateCopyService copies;
     private RouteHarness harness;
 
     @BeforeEach
@@ -100,8 +103,9 @@ class DocumentTemplateRoutesTest {
         when(service.catalogue(any())).thenReturn(new PlaceholderCatalogueResponse(List.of()));
         pdfs = mock(PdfTemplateService.class);
         uses = mock(TemplateStationUseService.class);
-        harness =
-                RouteHarness.serving(new DocumentTemplateRoutes(service, mock(LetterImportService.class), pdfs, uses));
+        copies = mock(DocumentTemplateCopyService.class);
+        harness = RouteHarness.serving(
+                new DocumentTemplateRoutes(service, mock(LetterImportService.class), pdfs, uses, copies));
     }
 
     static DocumentTemplate template(int id) {
@@ -236,6 +240,34 @@ class DocumentTemplateRoutesTest {
         var request = ArgumentCaptor.forClass(TemplateUseRequest.class);
         verify(uses).setUse(eq(3), eq(12), request.capture());
         assertTrue(request.getValue().selfService());
+    }
+
+    /**
+     * A template, the station's own or one of its association, is copied for the station of the session
+     * under the name the screen worded, and only by an editor of templates.
+     */
+    @Test
+    void anEditorOfTemplatesCopiesATemplateForTheStation() {
+        when(copies.duplicate(eq(OWNER), eq(12), any(), anyInt()))
+                .thenReturn(new DocumentTemplateCopy(TEMPLATE, List.of("Hausschrift"), 1));
+
+        harness.run((server, client) -> {
+            var editor = harness.as(TestSessions.member(3, StationPermission.DOCUMENT_TEMPLATE_EDIT));
+            var filer = harness.as(TestSessions.member(3, StationPermission.DOCUMENT_EDIT_MEMBER));
+            var copied = client.post(
+                    PREFIX + "/document-templates/12/duplicate", body("{\"name\": \"Kopie von Brief\"}"), editor);
+            assertEquals(201, copied.code());
+            var answer = json(copied);
+            assertEquals(8, answer.path("template").path("id").asInt());
+            assertEquals("Hausschrift", answer.path("fontsOutOfReach").path(0).asString());
+            assertEquals(1, answer.path("picturesOutOfReach").asInt());
+            assertEquals(
+                    403,
+                    client.post(PREFIX + "/document-templates/12/duplicate", body("{}"), filer)
+                            .code());
+        });
+
+        verify(copies).duplicate(eq(OWNER), eq(12), eq("Kopie von Brief"), anyInt());
     }
 
     /** Filing documents for members is not the same as writing the templates they come from. */

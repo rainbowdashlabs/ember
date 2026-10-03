@@ -15,11 +15,15 @@ import dev.chojo.ember.owner.Owner;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
+import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
+import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
 /**
  * The document templates of a station or an association, and the content of their letters.
@@ -234,6 +238,40 @@ public class DocumentTemplateRepository {
                 .single(call().bind("id", templateId).bind("archived", archived).bind("author", authorId))
                 .update()
                 .changed();
+    }
+
+    /**
+     * When each template was last generated from, by anybody and in any way: at the station for a
+     * station, which counts the templates of its association it uses there as well, and at any of its
+     * stations for an association.
+     *
+     * @param owner the station or the association
+     * @return the newest entry of the generation log by template, leaving out the templates never used
+     */
+    public Map<Integer, Instant> lastUsedAt(Owner owner) {
+        return switch (owner) {
+            case Owner.Station station -> lastUsed("""
+                        SELECT template_id, max(generated_at) AS last_used_at
+                        FROM document_generation
+                        WHERE station_id = :station_id
+                        GROUP BY template_id;""", call().bind("station_id", station.stationId()));
+            case Owner.Association association -> lastUsed("""
+                        SELECT g.template_id, max(g.generated_at) AS last_used_at
+                        FROM document_generation g
+                        JOIN document_template t ON t.id = g.template_id
+                        WHERE t.cluster_id = :cluster_id
+                        GROUP BY g.template_id;""", call().bind("cluster_id", association.clusterId()));
+            case Owner.Instance ignored -> Map.of();
+        };
+    }
+
+    private static Map<Integer, Instant> lastUsed(String sql, Call call) {
+        return query(sql)
+                .single(call)
+                .map(row -> Map.entry(row.getInt("template_id"), row.get("last_used_at", INSTANT_TIMESTAMP)))
+                .all()
+                .stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
     /**

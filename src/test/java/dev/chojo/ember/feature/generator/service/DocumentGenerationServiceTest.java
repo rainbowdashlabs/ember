@@ -817,6 +817,7 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
                 .findFirst()
                 .orElseThrow();
         assertEquals(NOW.plus(Duration.ofDays(30)), offer.availableFrom());
+        assertEquals(NOW, offer.lastUsedAt());
 
         clock.advance(Duration.ofDays(31));
         try {
@@ -832,6 +833,11 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
         int templateId = certificate("Verwaltung zählt nicht");
         generation.generate(as(manager), templateId, lena.id());
 
+        assertNull(selfService.offers(as(lena), lena.id()).stream()
+                .filter(candidate -> candidate.templateId() == templateId)
+                .findFirst()
+                .orElseThrow()
+                .lastUsedAt());
         assertTrue(selfService.generate(as(lena), templateId, lena.id()).documentId() > 0);
     }
 

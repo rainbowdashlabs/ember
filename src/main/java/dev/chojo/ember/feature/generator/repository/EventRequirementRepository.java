@@ -27,6 +27,13 @@ public class EventRequirementRepository {
     private static final String EVENT_TEMPLATE = "event_template_id";
 
     /**
+     * When the template {@code t} was last generated from. Appointments ask only for templates of their
+     * own station, so every entry of the log for one is the station's.
+     */
+    private static final String LAST_USED = """
+            (SELECT max(g.generated_at) FROM document_generation g WHERE g.template_id = t.id) AS last_used_at""";
+
+    /**
      * @param eventId the appointment
      * @return the templates it asks for, in their order
      */
@@ -47,11 +54,11 @@ public class EventRequirementRepository {
      */
     private static List<RequiredTemplate> required(String owner, int ownerId) {
         return query("""
-                SELECT t.id AS template_id, t.name, t.kind, t.version, t.archived_at IS NOT NULL AS archived
+                SELECT t.id AS template_id, t.name, t.kind, t.version, t.archived_at IS NOT NULL AS archived, %s
                 FROM event_document_requirement r
                          JOIN document_template t ON t.id = r.template_id
                 WHERE r.%s = :id
-                ORDER BY r.position, r.id;""", owner)
+                ORDER BY r.position, r.id;""", LAST_USED, owner)
                 .single(call().bind("id", ownerId))
                 .map(RequiredTemplate.map())
                 .all();
@@ -65,12 +72,12 @@ public class EventRequirementRepository {
      */
     public List<RequiredTemplate> offered(int stationId) {
         return query("""
-                SELECT id AS template_id, name, kind, version, FALSE AS archived
-                FROM document_template
-                WHERE station_id = :station_id
-                  AND for_appointments
-                  AND archived_at IS NULL
-                ORDER BY lower(name), id;""")
+                SELECT t.id AS template_id, t.name, t.kind, t.version, FALSE AS archived, %s
+                FROM document_template t
+                WHERE t.station_id = :station_id
+                  AND t.for_appointments
+                  AND t.archived_at IS NULL
+                ORDER BY lower(t.name), t.id;""", LAST_USED)
                 .single(call().bind("station_id", stationId))
                 .map(RequiredTemplate.map())
                 .all();

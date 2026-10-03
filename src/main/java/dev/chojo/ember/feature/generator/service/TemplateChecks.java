@@ -197,6 +197,30 @@ public class TemplateChecks {
         }
     }
 
+    /**
+     * The name a copy is written under: the one asked for where no template in use of the owner carries
+     * it, and otherwise that name with the first free count after it, {@code (2)}, {@code (3)} and so on.
+     * A name too long for the count is shortened to make room for it.
+     *
+     * @param owner  the station or the association the copy is for
+     * @param wanted the name the screen worded for the copy
+     * @return a name no template in use of the owner carries
+     */
+    public String freeCopyName(Owner owner, @Nullable String wanted) {
+        String base = wanted == null ? "" : wanted.strip();
+        if (base.isEmpty()) throw DocumentRefusal.DOCUMENT_TEMPLATE_NAME_MISSING.raise();
+        String name = fitted(base, "");
+        for (int count = 2; templates.nameTaken(owner, name, null); count++) {
+            name = fitted(base, " (%d)".formatted(count));
+        }
+        return name;
+    }
+
+    private static String fitted(String base, String suffix) {
+        int room = MAX_NAME - suffix.length();
+        return (base.length() > room ? base.substring(0, room).strip() : base) + suffix;
+    }
+
     private static String pattern(@Nullable String raw, String fallback) {
         String pattern = raw == null || raw.isBlank() ? fallback : raw.strip();
         requireLength(pattern, MAX_PATTERN);

@@ -22,6 +22,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -71,16 +72,29 @@ public class FontLibrary {
      * @param content what the template is made of
      */
     public void requireReachable(Owner owner, TemplateContent content) {
-        var families = content.fontFamilies().toList();
-        if (families.isEmpty()) return;
+        outOfReach(owner, content).stream().findFirst().ifPresent(family -> {
+            throw DocumentRefusal.DOCUMENT_TEMPLATE_FONT_UNKNOWN.raise(RefusalDetail.text(family));
+        });
+    }
+
+    /**
+     * The families a template names that its owner cannot print with: one it does not reach, or, on an
+     * uploaded PDF, one whose outlines a field cannot embed.
+     *
+     * @param owner   the owner the template belongs to
+     * @param content what the template is made of
+     * @return the family names, each once, in the order the content names them
+     */
+    public List<String> outOfReach(Owner owner, TemplateContent content) {
+        var families = content.fontFamilies().distinct().toList();
+        if (families.isEmpty()) return List.of();
         var reachable = reachable(owner);
-        for (var family : families) {
-            boolean usable = reachable
-                    .find(family)
-                    .map(found -> !(content instanceof PdfContent) || found.printsOnPdf())
-                    .orElse(false);
-            if (!usable) throw DocumentRefusal.DOCUMENT_TEMPLATE_FONT_UNKNOWN.raise(RefusalDetail.text(family));
-        }
+        return families.stream()
+                .filter(family -> !reachable
+                        .find(family)
+                        .map(found -> !(content instanceof PdfContent) || found.printsOnPdf())
+                        .orElse(false))
+                .toList();
     }
 
     /**

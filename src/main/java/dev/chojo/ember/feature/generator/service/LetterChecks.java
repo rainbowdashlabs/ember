@@ -159,12 +159,23 @@ public class LetterChecks {
     }
 
     private void requirePicture(int stationId, String content) {
-        if (ContentCell.STATION_LOGO.equals(content)) return;
-        boolean image = !content.isBlank()
+        if (!pictureReachable(stationId, content)) throw DocumentRefusal.DOCUMENT_TEMPLATE_PICTURE_NOT_HERE.raise();
+    }
+
+    /**
+     * Whether a picture block shows something from a media library: the station logo, or an image in
+     * that library.
+     *
+     * @param stationId the station whose media library the template takes its pictures from
+     * @param content   what the picture block names
+     * @return whether the picture is there
+     */
+    public boolean pictureReachable(int stationId, String content) {
+        if (ContentCell.STATION_LOGO.equals(content)) return true;
+        return !content.isBlank()
                 && mediaLibrary
                         .findByHash(stationId, content)
                         .map(file -> file.mimeType().startsWith("image/"))
                         .orElse(false);
-        if (!image) throw DocumentRefusal.DOCUMENT_TEMPLATE_PICTURE_NOT_HERE.raise();
     }
 }

@@ -125,6 +125,8 @@ public class SelfServiceDocumentService {
      * @param name          what it is called
      * @param legal         whether it makes a legal document
      * @param availableFrom when it can be generated again, or null where it can be now
+     * @param lastUsedAt    when it was last generated for the member through self service, by them or
+     *                      anybody acting for them, or null where it never was
      * @param missing       the data the profile still lacks, which keeps it from being generated
      */
     public record SelfServiceOffer(
@@ -132,6 +134,7 @@ public class SelfServiceDocumentService {
             String name,
             boolean legal,
             @Nullable Instant availableFrom,
+            @Nullable Instant lastUsedAt,
             List<MissingValue> missing) {}
 
     /**
@@ -166,7 +169,7 @@ public class SelfServiceDocumentService {
         if (!offered(template, session.stationId(), memberId)) {
             throw DocumentRefusal.DOCUMENT_SELF_SERVICE_NOT_OFFERED.raise();
         }
-        var openAgain = availableFrom(template, memberId);
+        var openAgain = availableFrom(template, generations.lastSelfService(template.id(), memberId));
         if (openAgain != null) {
             throw DocumentRefusal.DOCUMENT_SELF_SERVICE_COOLING_DOWN.raise(RefusalDetail.text(day(session, openAgain)));
         }
@@ -187,11 +190,13 @@ public class SelfServiceDocumentService {
                 generator.sourceOf(template),
                 memberId,
                 GenerationContext.by(session.member().id()));
+        var lastUsed = generations.lastSelfService(template.id(), memberId);
         return new SelfServiceOffer(
                 template.id(),
                 template.name(),
                 template.legal(),
-                availableFrom(template, memberId),
+                availableFrom(template, lastUsed),
+                lastUsed,
                 generator.missing(prepared));
     }
 
@@ -207,11 +212,11 @@ public class SelfServiceDocumentService {
 
     /**
      * When the template can be generated for the member again, or null where it can be now.
+     *
+     * @param last when it was last generated for the member through self service, or null
      */
-    private @Nullable Instant availableFrom(DocumentTemplate template, int memberId) {
-        if (template.cooldownDays() <= 0) return null;
-        var last = generations.lastSelfService(template.id(), memberId);
-        if (last == null) return null;
+    private @Nullable Instant availableFrom(DocumentTemplate template, @Nullable Instant last) {
+        if (template.cooldownDays() <= 0 || last == null) return null;
         var open = last.plus(Duration.ofDays(template.cooldownDays()));
         return open.isAfter(clock.instant()) ? open : null;
     }

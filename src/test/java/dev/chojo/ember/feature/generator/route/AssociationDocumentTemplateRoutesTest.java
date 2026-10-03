@@ -12,6 +12,8 @@ import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.generator.service.DocumentGenerationService;
 import dev.chojo.ember.feature.generator.service.DocumentGeneratorService.PreviewResponse;
+import dev.chojo.ember.feature.generator.service.DocumentTemplateCopyService;
+import dev.chojo.ember.feature.generator.service.DocumentTemplateCopyService.DocumentTemplateCopy;
 import dev.chojo.ember.feature.generator.service.DocumentTemplateService;
 import dev.chojo.ember.feature.generator.service.DocumentTemplateService.PlaceholderCatalogueResponse;
 import dev.chojo.ember.feature.generator.service.LetterImportService;
@@ -49,6 +51,7 @@ class AssociationDocumentTemplateRoutesTest {
     private DocumentGenerationService generation;
     private LetterImportService imports;
     private PdfTemplateService pdfs;
+    private DocumentTemplateCopyService copies;
     private RouteHarness harness;
 
     @BeforeEach
@@ -72,7 +75,11 @@ class AssociationDocumentTemplateRoutesTest {
         when(pdfs.current(OWNER, 8))
                 .thenReturn(Optional.of(
                         new PdfTemplateService.Download("form.pdf", "%PDF-1.7".getBytes(StandardCharsets.US_ASCII))));
-        harness = RouteHarness.serving(new AssociationDocumentTemplateRoutes(templates, generation, imports, pdfs));
+        copies = mock(DocumentTemplateCopyService.class);
+        when(copies.duplicate(any(), anyInt(), any(), anyInt()))
+                .thenReturn(new DocumentTemplateCopy(template, List.of(), 0));
+        harness = RouteHarness.serving(
+                new AssociationDocumentTemplateRoutes(templates, generation, imports, pdfs, copies));
     }
 
     @Test
@@ -95,6 +102,10 @@ class AssociationDocumentTemplateRoutesTest {
                     client.put(base + "/8", body("{\"name\": \"Neu\"}"), editor).code());
             assertEquals(200, client.post(base + "/8/archive", null, editor).code());
             assertEquals(200, client.post(base + "/8/restore", null, editor).code());
+            assertEquals(
+                    201,
+                    client.post(base + "/8/duplicate", body("{\"name\": \"Kopie von Verbandsbrief\"}"), editor)
+                            .code());
             assertEquals(
                     200,
                     client.post(PREFIX + "/cluster/document-template-preview", body("{}"), editor)
@@ -122,6 +133,7 @@ class AssociationDocumentTemplateRoutesTest {
         verify(generation).previewAssociationDraft(eq(OWNER), any(), isNull(), isNull());
         verify(imports).read(eq(new LetterImportService.Importer(OWNER, null)), any());
         verify(pdfs).upload(eq(OWNER), eq(8), any(), anyInt());
+        verify(copies).duplicate(eq(OWNER), eq(8), eq("Kopie von Verbandsbrief"), anyInt());
     }
 
     @Test
@@ -138,6 +150,10 @@ class AssociationDocumentTemplateRoutesTest {
             assertEquals(
                     403,
                     client.put(PREFIX + "/cluster/document-templates/8", body("{}"), station)
+                            .code());
+            assertEquals(
+                    403,
+                    client.post(PREFIX + "/cluster/document-templates/8/duplicate", body("{}"), station)
                             .code());
         });
     }

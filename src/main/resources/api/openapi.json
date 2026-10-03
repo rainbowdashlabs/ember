@@ -10902,6 +10902,52 @@
         } ]
       }
     },
+    "/api/v1/cluster/document-templates/{id}/duplicate" : {
+      "post" : {
+        "summary" : "Copy a document template of the association as a new template of the association",
+        "tags" : [ "Cluster" ],
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DocumentTemplateCopy"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/DocumentTemplateCopyRequest"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/cluster/document-templates/{id}/pdf" : {
       "post" : {
         "summary" : "Upload a new version of the PDF a PDF template of the association fills, keeping its fields",
@@ -14381,6 +14427,52 @@
             "format" : "int32"
           }
         } ]
+      }
+    },
+    "/api/v1/document-templates/{id}/duplicate" : {
+      "post" : {
+        "summary" : "Copy a template of the station, or one of its association, as a new template of the station",
+        "tags" : [ "Documents" ],
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DocumentTemplateCopy"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/DocumentTemplateCopyRequest"
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/document-templates/{id}/pdf" : {
@@ -50023,6 +50115,33 @@
         },
         "required" : [ "html", "version" ]
       },
+      "DocumentTemplateCopy" : {
+        "type" : "object",
+        "properties" : {
+          "template" : {
+            "$ref" : "#/components/schemas/DocumentTemplateResponse"
+          },
+          "fontsOutOfReach" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "picturesOutOfReach" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "template", "fontsOutOfReach", "picturesOutOfReach" ]
+      },
+      "DocumentTemplateCopyRequest" : {
+        "type" : "object",
+        "properties" : {
+          "name" : {
+            "type" : [ "string", "null" ]
+          }
+        }
+      },
       "DocumentTemplateKind" : {
         "type" : "string",
         "enum" : [ "LETTER", "PDF" ]
@@ -50260,8 +50379,18 @@
             "type" : "integer",
             "format" : "int32"
           },
+          "createdAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
           "updatedAt" : {
             "$ref" : "#/components/schemas/Instant"
+          },
+          "lastUsedAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
           },
           "archivedAt" : {
             "anyOf" : [ {
@@ -50271,7 +50400,7 @@
             } ]
           }
         },
-        "required" : [ "id", "name", "kind", "legal", "forAppointments", "selfService", "ofAssociation", "version", "updatedAt", "archivedAt" ]
+        "required" : [ "id", "name", "kind", "legal", "forAppointments", "selfService", "ofAssociation", "version", "createdAt", "updatedAt", "lastUsedAt", "archivedAt" ]
       },
       "DraftPreviewRequest" : {
         "type" : "object",
@@ -66763,9 +66892,16 @@
           },
           "archived" : {
             "type" : "boolean"
+          },
+          "lastUsedAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
-        "required" : [ "templateId", "name", "kind", "version", "archived" ]
+        "required" : [ "templateId", "name", "kind", "version", "archived", "lastUsedAt" ]
       },
       "RequirementItem" : {
         "type" : "object",
@@ -68369,6 +68505,13 @@
               "type" : "null"
             } ]
           },
+          "lastUsedAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          },
           "missing" : {
             "type" : "array",
             "items" : {
@@ -68376,7 +68519,7 @@
             }
           }
         },
-        "required" : [ "templateId", "name", "legal", "availableFrom", "missing" ]
+        "required" : [ "templateId", "name", "legal", "availableFrom", "lastUsedAt", "missing" ]
       },
       "SendReportRequest" : {
         "type" : "object",

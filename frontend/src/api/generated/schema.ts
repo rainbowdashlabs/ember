@@ -14002,6 +14002,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/cluster/document-templates/{id}/duplicate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Copy a document template of the association as a new template of the association */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["DocumentTemplateCopyRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DocumentTemplateCopy"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/cluster/document-templates/{id}/pdf": {
         parameters: {
             query?: never;
@@ -18833,6 +18884,57 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["DocumentTemplateResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/document-templates/{id}/duplicate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Copy a template of the station, or one of its association, as a new template of the station */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["DocumentTemplateCopyRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DocumentTemplateCopy"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
                     };
                 };
             };
@@ -59131,6 +59233,15 @@ export interface components {
             html: string;
             version: string;
         };
+        DocumentTemplateCopy: {
+            fontsOutOfReach: string[];
+            /** Format: int32 */
+            picturesOutOfReach: number;
+            template: components["schemas"]["DocumentTemplateResponse"];
+        };
+        DocumentTemplateCopyRequest: {
+            name?: string | null;
+        };
         /** @enum {string} */
         DocumentTemplateKind: "LETTER" | "PDF";
         DocumentTemplateRequest: {
@@ -59186,10 +59297,12 @@ export interface components {
         };
         DocumentTemplateSummary: {
             archivedAt: components["schemas"]["Instant"] | null;
+            createdAt: components["schemas"]["Instant"];
             forAppointments: boolean;
             /** Format: int32 */
             id: number;
             kind: components["schemas"]["DocumentTemplateKind"];
+            lastUsedAt: components["schemas"]["Instant"] | null;
             legal: boolean;
             name: string;
             ofAssociation: boolean;
@@ -64946,6 +65059,7 @@ export interface components {
         RequiredTemplate: {
             archived: boolean;
             kind: components["schemas"]["DocumentTemplateKind"];
+            lastUsedAt: components["schemas"]["Instant"] | null;
             name: string;
             /** Format: int32 */
             templateId: number;
@@ -65478,6 +65592,7 @@ export interface components {
         };
         SelfServiceOffer: {
             availableFrom: components["schemas"]["Instant"] | null;
+            lastUsedAt: components["schemas"]["Instant"] | null;
             legal: boolean;
             missing: components["schemas"]["MissingValue"][];
             name: string;
@@ -67933,6 +68048,8 @@ export type DocumentLanguage = components['schemas']['DocumentLanguage'];
 export type DocumentPage = components['schemas']['DocumentPage'];
 export type DocumentPlaceholder = components['schemas']['DocumentPlaceholder'];
 export type DocumentResponse = components['schemas']['DocumentResponse'];
+export type DocumentTemplateCopy = components['schemas']['DocumentTemplateCopy'];
+export type DocumentTemplateCopyRequest = components['schemas']['DocumentTemplateCopyRequest'];
 export type DocumentTemplateKind = components['schemas']['DocumentTemplateKind'];
 export type DocumentTemplateRequest = components['schemas']['DocumentTemplateRequest'];
 export type DocumentTemplateResponse = components['schemas']['DocumentTemplateResponse'];

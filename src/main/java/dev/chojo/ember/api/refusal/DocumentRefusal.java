@@ -311,7 +311,11 @@ public enum DocumentRefusal implements Refusal {
 
     /** More documents to bring than an appointment may name. */
     DOCUMENT_REQUIREMENTS_TOO_MANY(
-            100, HttpStatus.BAD_REQUEST, "An appointment asks for a limited number of documents, so nothing was saved");
+            100, HttpStatus.BAD_REQUEST, "An appointment asks for a limited number of documents, so nothing was saved"),
+
+    /** A PDF template being copied whose stored PDF cannot be read. */
+    DOCUMENT_TEMPLATE_COPY_PDF_GONE(
+            101, HttpStatus.CONFLICT, "The PDF of this template could not be read, so no copy was made");
 
     private final Definition definition;
 

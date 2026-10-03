@@ -11,6 +11,9 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.DocumentRefusal;
+import dev.chojo.ember.feature.generator.service.DocumentTemplateCopyService;
+import dev.chojo.ember.feature.generator.service.DocumentTemplateCopyService.DocumentTemplateCopy;
+import dev.chojo.ember.feature.generator.service.DocumentTemplateCopyService.DocumentTemplateCopyRequest;
 import dev.chojo.ember.feature.generator.service.DocumentTemplateRequest;
 import dev.chojo.ember.feature.generator.service.DocumentTemplateService;
 import dev.chojo.ember.feature.generator.service.DocumentTemplateService.DocumentTemplateResponse;
@@ -45,7 +48,8 @@ import static dev.chojo.ember.api.RouteSupport.pathInt;
  *
  * <p>The list also holds the templates of the station's association, which the station uses but only
  * the association changes. For one of those the station sets whether its members generate it through
- * self service, and who of them ({@code /document-templates/{id}/use}).
+ * self service, and who of them ({@code /document-templates/{id}/use}). Any template of the list can be
+ * copied into a new one of the station, which the station then changes like its own.
  */
 @Singleton
 public class DocumentTemplateRoutes implements Routes {
@@ -53,17 +57,20 @@ public class DocumentTemplateRoutes implements Routes {
     private final LetterImportService imports;
     private final PdfTemplateService pdfs;
     private final TemplateStationUseService uses;
+    private final DocumentTemplateCopyService copies;
 
     @Inject
     public DocumentTemplateRoutes(
             DocumentTemplateService templates,
             LetterImportService imports,
             PdfTemplateService pdfs,
-            TemplateStationUseService uses) {
+            TemplateStationUseService uses,
+            DocumentTemplateCopyService copies) {
         this.templates = templates;
         this.imports = imports;
         this.pdfs = pdfs;
         this.uses = uses;
+        this.copies = copies;
     }
 
     @Override
@@ -78,6 +85,10 @@ public class DocumentTemplateRoutes implements Routes {
                 prefix + "/document-templates/{id}/archive", this::archive, StationPermission.DOCUMENT_TEMPLATE_EDIT);
         routes.post(
                 prefix + "/document-templates/{id}/restore", this::restore, StationPermission.DOCUMENT_TEMPLATE_EDIT);
+        routes.post(
+                prefix + "/document-templates/{id}/duplicate",
+                this::duplicate,
+                StationPermission.DOCUMENT_TEMPLATE_EDIT);
         routes.get(prefix + "/document-templates/{id}/pdf", this::pdf, StationPermission.DOCUMENT_TEMPLATE_EDIT);
         routes.post(prefix + "/document-templates/{id}/pdf", this::uploadPdf, StationPermission.DOCUMENT_TEMPLATE_EDIT);
         routes.get(prefix + "/document-templates/{id}/use", this::use, StationPermission.DOCUMENT_TEMPLATE_EDIT);
@@ -258,6 +269,27 @@ public class DocumentTemplateRoutes implements Routes {
     private void restore(Context ctx) {
         var session = StationSession.from(ctx);
         ctx.json(templates.setArchived(session.owner(), templateId(ctx), false, session.accountId()));
+    }
+
+    @OpenApi(
+            path = "/api/v1/document-templates/{id}/duplicate",
+            methods = HttpMethod.POST,
+            summary = "Copy a template of the station, or one of its association, as a new template of the station",
+            description =
+                    "Everything the template says is copied, the PDF of a PDF template as a file of its own;"
+                            + " the generation log and the appointments that ask for it are not. The copy starts at version one.",
+            tags = {"Documents"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = DocumentTemplateCopyRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "201", content = @OpenApiContent(from = DocumentTemplateCopy.class)),
+                @OpenApiResponse(status = "409", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void duplicate(Context ctx) {
+        var session = StationSession.from(ctx);
+        var request = ctx.bodyAsClass(DocumentTemplateCopyRequest.class);
+        ctx.status(HttpStatus.CREATED)
+                .json(copies.duplicate(session.owner(), pathInt(ctx, "id"), request.name(), session.accountId()));
     }
 
     /** The template behind the path, which has to be one of the reader's station. */

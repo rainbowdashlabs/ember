@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.generator.service;
 import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.feature.documents.service.DocumentDoor;
 import dev.chojo.ember.feature.documents.service.DocumentIntake;
+import dev.chojo.ember.feature.generator.entity.DocumentTemplate;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplateKind;
 import dev.chojo.ember.feature.generator.entity.PdfInspection;
 import dev.chojo.ember.feature.generator.entity.PdfOriginal;
@@ -88,28 +89,64 @@ public class PdfTemplateService {
     public DocumentTemplateResponse upload(Owner owner, int templateId, @Nullable UploadedFile file, int authorId) {
         var template = templateService.requireOwned(owner, templateId);
         if (template.kind() != DocumentTemplateKind.PDF) throw DocumentRefusal.DOCUMENT_TEMPLATE_NOT_PDF.raise();
-        var scope = scope(owner);
-        var category = categoryOf(owner);
-        int room = StorageQuotaService.roomOf(scope).orElseThrow(DocumentRefusal.DOCUMENT_TEMPLATE_NOT_HERE::raise);
+        int room = roomOf(owner);
         var refusals = DocumentDoor.STATION.intake();
         var upload = intake.read(room, file, refusals);
-        String type = intake.take(room, category, upload, refusals);
+        String type = intake.take(room, categoryOf(owner), upload, refusals);
         if (!PDF.equals(type)) throw DocumentRefusal.DOCUMENT_TEMPLATE_PDF_NOT_A_PDF.raise();
         var inspection = inspect(upload.data());
         var original = Transactions.call(() -> {
-            var written = pdfTemplates.addOriginal(
-                    templateId,
-                    upload.fileName(),
-                    upload.data().length,
-                    DocumentGenerationService.sha256(upload.data()),
-                    inspection,
-                    authorId);
+            var written = keep(owner, templateId, upload, inspection, authorId);
             templates.countVersion(templateId, authorId);
-            storage.store(scope, category, key(written), upload.data(), PDF);
             return written;
         });
         log.info("PDF {} uploaded for document template {} of {}", original.id(), templateId, owner);
         return templateService.detail(owner, templateId);
+    }
+
+    /**
+     * Gives a copy of a PDF template the PDF the template fills now, as a stored file of its own in the
+     * storage of the copy's owner and counted against that owner's room, so neither template's file
+     * depends on the other's. Nothing happens where the template has no PDF yet.
+     *
+     * @param source   the template copied
+     * @param owner    the station or the association that keeps the copy
+     * @param copyId   the copy
+     * @param authorId the account that makes the copy
+     */
+    void copyCurrent(DocumentTemplate source, Owner owner, int copyId, int authorId) {
+        var original = pdfTemplates.findCurrentOriginal(source.id()).orElse(null);
+        if (original == null) return;
+        byte[] data =
+                read(source.owner(), original).orElseThrow(DocumentRefusal.DOCUMENT_TEMPLATE_COPY_PDF_GONE::raise);
+        var upload = new DocumentIntake.Upload(original.fileName(), PDF, data);
+        intake.take(roomOf(owner), categoryOf(owner), upload, DocumentDoor.STATION.intake());
+        var written = keep(owner, copyId, upload, original.inspection(), authorId);
+        log.info(
+                "PDF {} of document template {} copied as PDF {} for {}",
+                original.id(),
+                source.id(),
+                written.id(),
+                owner);
+    }
+
+    /** Writes a PDF as the one a template fills now and stores its bytes with the template's owner. */
+    private PdfOriginal keep(
+            Owner owner, int templateId, DocumentIntake.Upload upload, PdfInspection inspection, int authorId) {
+        var written = pdfTemplates.addOriginal(
+                templateId,
+                upload.fileName(),
+                upload.data().length,
+                DocumentGenerationService.sha256(upload.data()),
+                inspection,
+                authorId);
+        storage.store(scope(owner), categoryOf(owner), key(written), upload.data(), PDF);
+        return written;
+    }
+
+    /** The station whose room the owner's files are counted against. */
+    private int roomOf(Owner owner) {
+        return StorageQuotaService.roomOf(scope(owner)).orElseThrow(DocumentRefusal.DOCUMENT_TEMPLATE_NOT_HERE::raise);
     }
 
     /**

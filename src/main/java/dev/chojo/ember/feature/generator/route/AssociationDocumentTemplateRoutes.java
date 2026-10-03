@@ -16,6 +16,9 @@ import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.feature.generator.route.DocumentGenerationRoutes.DraftPreviewRequest;
 import dev.chojo.ember.feature.generator.service.DocumentGenerationService;
 import dev.chojo.ember.feature.generator.service.DocumentGeneratorService.PreviewResponse;
+import dev.chojo.ember.feature.generator.service.DocumentTemplateCopyService;
+import dev.chojo.ember.feature.generator.service.DocumentTemplateCopyService.DocumentTemplateCopy;
+import dev.chojo.ember.feature.generator.service.DocumentTemplateCopyService.DocumentTemplateCopyRequest;
 import dev.chojo.ember.feature.generator.service.DocumentTemplateRequest;
 import dev.chojo.ember.feature.generator.service.DocumentTemplateService;
 import dev.chojo.ember.feature.generator.service.DocumentTemplateService.DocumentTemplateResponse;
@@ -59,17 +62,20 @@ public class AssociationDocumentTemplateRoutes implements Routes {
     private final DocumentGenerationService generation;
     private final LetterImportService imports;
     private final PdfTemplateService pdfs;
+    private final DocumentTemplateCopyService copies;
 
     @Inject
     public AssociationDocumentTemplateRoutes(
             DocumentTemplateService templates,
             DocumentGenerationService generation,
             LetterImportService imports,
-            PdfTemplateService pdfs) {
+            PdfTemplateService pdfs,
+            DocumentTemplateCopyService copies) {
         this.templates = templates;
         this.generation = generation;
         this.imports = imports;
         this.pdfs = pdfs;
+        this.copies = copies;
     }
 
     @Override
@@ -85,6 +91,7 @@ public class AssociationDocumentTemplateRoutes implements Routes {
         routes.put(base + "/{id}", this::update, edit);
         routes.post(base + "/{id}/archive", this::archive, edit);
         routes.post(base + "/{id}/restore", this::restore, edit);
+        routes.post(base + "/{id}/duplicate", this::duplicate, edit);
         routes.get(base + "/{id}/pdf", this::pdf, edit);
         routes.post(base + "/{id}/pdf", this::uploadPdf, edit);
     }
@@ -218,6 +225,24 @@ public class AssociationDocumentTemplateRoutes implements Routes {
     @StationFree(KEPT_BY_THE_ASSOCIATION)
     private void restore(Context ctx) {
         ctx.json(templates.setArchived(association(ctx), pathInt(ctx, "id"), false, accountId(ctx)));
+    }
+
+    @OpenApi(
+            path = "/api/v1/cluster/document-templates/{id}/duplicate",
+            methods = HttpMethod.POST,
+            summary = "Copy a document template of the association as a new template of the association",
+            tags = {"Cluster"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = DocumentTemplateCopyRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "201", content = @OpenApiContent(from = DocumentTemplateCopy.class)),
+                @OpenApiResponse(status = "409", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    @StationFree(KEPT_BY_THE_ASSOCIATION)
+    private void duplicate(Context ctx) {
+        var request = ctx.bodyAsClass(DocumentTemplateCopyRequest.class);
+        ctx.status(HttpStatus.CREATED)
+                .json(copies.duplicate(association(ctx), pathInt(ctx, "id"), request.name(), accountId(ctx)));
     }
 
     @OpenApi(

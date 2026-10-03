@@ -94,4 +94,5 @@ export default {
     'D-098': 'Dieses Dokument bekommen nur angemeldete Teilnehmende und ihre Erziehungsberechtigten',
     'D-099': 'Der Termin verlangt dieses Dokument nicht',
     'D-100': 'Ein Termin verlangt nur eine begrenzte Zahl an Dokumenten, es wurde nichts gespeichert',
+    'D-101': 'Das PDF dieser Vorlage ließ sich nicht lesen, deshalb wurde keine Kopie angelegt',
 }

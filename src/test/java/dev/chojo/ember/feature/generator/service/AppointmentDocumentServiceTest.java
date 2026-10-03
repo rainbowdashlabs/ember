@@ -29,6 +29,7 @@ import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.l
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -183,6 +184,7 @@ class AppointmentDocumentServiceTest extends GeneratorTestBase {
         assertEquals(
                 List.of(lena.id()),
                 own.stream().map(ParticipantDocuments::memberId).toList());
+        assertNull(offeredTemplate(form).lastUsedAt());
 
         var generated = appointments.generate(as(lena), marathon, DAY, form, lena.id());
         assertEquals(
@@ -191,6 +193,17 @@ class AppointmentDocumentServiceTest extends GeneratorTestBase {
                         .findById(generated.documentId())
                         .orElseThrow()
                         .uploadedBy());
+        var lastUsed = offeredTemplate(form).lastUsedAt();
+        assertEquals(
+                wiring.log().findById(generated.generationId()).orElseThrow().generatedAt(), lastUsed);
+        assertEquals(lastUsed, requirements.forEvent(marathon.id()).getFirst().lastUsedAt());
+    }
+
+    private RequiredTemplate offeredTemplate(int templateId) {
+        return requirements.offered(wiring.owner()).stream()
+                .filter(template -> template.templateId() == templateId)
+                .findFirst()
+                .orElseThrow();
     }
 
     @Test
