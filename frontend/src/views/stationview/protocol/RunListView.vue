@@ -134,7 +134,7 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
       <div class="space-y-2">
         <RowLink v-for="run in runs" :key="run.id" :to="runPage(run)">
           <NeutralContainer
-            class="flex items-center gap-2 cursor-pointer hover:border-[var(--primary)] transition-colors"
+            class="flex items-center gap-2 cursor-pointer hover:border-[var(--color-primary)] transition-colors"
           >
             <div class="flex-1 min-w-0">
               <div class="font-medium">{{ run.name }}</div>

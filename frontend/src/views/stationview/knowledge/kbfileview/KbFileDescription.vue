@@ -47,7 +47,7 @@ const {t} = useI18n()
             v-if="canEdit"
             :icon="['fas', 'pen']"
             :label="t('kb.edit')"
-            class="opacity-0 group-hover/desc:opacity-100 ml-1 text-[var(--primary)] !p-0 text-xs"
+            class="opacity-0 group-hover/desc:opacity-100 ml-1 text-[var(--color-primary)] !p-0 text-xs"
             @click="emit('start')"
         />
     </MutedText>

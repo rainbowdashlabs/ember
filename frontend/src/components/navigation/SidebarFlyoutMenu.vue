@@ -131,7 +131,7 @@ function onHeaderClick() {
     >
       <div
           role="menu"
-          class="sidebar-flyout min-w-56 max-w-72 rounded-theme border bg-bg-light-accent dark:bg-bg-dark-accent shadow-xl py-1.5"
+          class="min-w-56 max-w-72 rounded-theme border border-(--bg) bg-bg-light-accent dark:bg-bg-dark-accent shadow-xl py-1.5"
       >
         <component
             :is="to ? 'router-link' : 'div'"
@@ -152,13 +152,3 @@ function onHeaderClick() {
     </div>
   </Teleport>
 </template>
-
-<style scoped>
-.sidebar-flyout {
-  border-color: var(--bg-light);
-}
-
-:global(.dark) .sidebar-flyout {
-  border-color: var(--bg-dark);
-}
-</style>

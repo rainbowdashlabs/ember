@@ -42,7 +42,7 @@ const emit = defineEmits<{
           v-for="choice in choices"
           :key="choice"
           class="rounded-theme border border-(--border) py-4 text-2xl font-bold transition
-                 hover:border-(--accent) hover:text-(--accent)
+                 hover:border-(--color-primary) hover:text-(--color-primary)
                  disabled:cursor-not-allowed disabled:opacity-50"
           :data-testid="`number-choice-${choice}`"
           :disabled="busy"

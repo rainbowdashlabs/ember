@@ -41,7 +41,7 @@ onBeforeUnmount(() => document.removeEventListener('click', closeMenu))
             <IconButton
                 :icon="['fas', isWatching ? 'eye-slash' : 'eye']"
                 :label="isWatching ? t('boards.unwatch') : t('boards.watch')"
-                :class="isWatching ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]'"
+                :class="isWatching ? 'text-[var(--color-primary)]' : 'text-[var(--text-muted)]'"
                 @click="emit('toggleWatch')"
             />
             <div v-if="canEdit" class="relative">

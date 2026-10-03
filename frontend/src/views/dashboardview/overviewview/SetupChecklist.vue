@@ -66,7 +66,7 @@ function resumeWizard() {
           :key="step.id"
           :to="stepPage(step.id)"
       >
-        <span :class="step.complete ? 'text-(--success)' : 'text-(--text-muted)'">
+        <span :class="step.complete ? 'text-(--color-success)' : 'text-(--text-muted)'">
           {{ step.complete ? '✓' : '○' }}
         </span>
         <span class="flex-1">{{ t(`setup.steps.${backendToFrontend(step.id)}.label`) }}</span>
@@ -78,7 +78,7 @@ function resumeWizard() {
           :disabled="!step.applicable"
           :to="stepPage(step.id)"
       >
-        <span :class="step.complete ? 'text-(--success)' : 'text-(--text-muted)'">
+        <span :class="step.complete ? 'text-(--color-success)' : 'text-(--text-muted)'">
           {{ step.complete ? '✓' : '○' }}
         </span>
         <span class="flex-1">{{ t(`setup.steps.${backendToFrontend(step.id)}.label`) }}</span>

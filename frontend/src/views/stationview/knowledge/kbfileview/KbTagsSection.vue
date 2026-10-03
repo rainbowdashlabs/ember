@@ -63,7 +63,7 @@ function onAddTag(name?: string) {
                 v-if="canManage"
                 :icon="['fas', 'xmark']"
                 :label="t('common.remove')"
-                class="!p-0 text-[10px] hover:text-[var(--error)]"
+                class="!p-0 text-[10px] hover:text-[var(--color-error)]"
                 @click="emit('removeTag', tag.name)"
             />
         </PillBadge>

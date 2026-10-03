@@ -90,7 +90,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onClickOutside))
       <DropdownMenuItem v-if="canCreatePolls && form.responseCount > 0" :icon="['fas', 'rotate-left']" @click="pick('clear')">
         {{ t('forms.clearResponses') }}
       </DropdownMenuItem>
-      <DropdownMenuItem v-if="canCreatePolls" :icon="['fas', 'trash']" icon-class="w-4 text-(--error)" @click="pick('delete')">
+      <DropdownMenuItem v-if="canCreatePolls" :icon="['fas', 'trash']" icon-class="w-4 text-(--color-error)" @click="pick('delete')">
         {{ t('forms.delete') }}
       </DropdownMenuItem>
     </div>

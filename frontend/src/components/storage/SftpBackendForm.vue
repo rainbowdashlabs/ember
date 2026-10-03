@@ -37,7 +37,7 @@ watch(authMode, (next) => {
             <FieldLabel>{{ t('stationStorageBackend.form.sftp.host') }}</FieldLabel>
             <TextInput v-model="model.host" placeholder="files.example.org" data-testid="sftp-host" />
             <MutedText tag="p" size="xs">{{ t('stationStorageBackend.form.sftp.hostHint') }}</MutedText>
-            <p v-if="hostInvalid" class="text-xs text-(--error)">
+            <p v-if="hostInvalid" class="text-xs text-(--color-error-badge)">
                 {{ t('stationStorageBackend.form.sftp.hostInvalid') }}
             </p>
         </div>

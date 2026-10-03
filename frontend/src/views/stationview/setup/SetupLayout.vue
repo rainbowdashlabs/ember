@@ -82,7 +82,7 @@ function goSkip() {
           </span>
         </div>
         <div class="h-1 bg-(--bg-accent) rounded-full overflow-hidden">
-          <div class="h-full bg-(--accent) transition-all" :style="{width: progressPct + '%'}"/>
+          <div class="h-full bg-(--color-primary) transition-all" :style="{width: progressPct + '%'}"/>
         </div>
         <p class="text-sm text-(--text-muted)">{{ t(`setup.steps.${stepId}.hint`) }}</p>
       </header>

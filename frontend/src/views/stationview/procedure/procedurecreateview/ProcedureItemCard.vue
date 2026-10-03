@@ -64,7 +64,7 @@ function removeDependency(depId: number) {
       <FieldLabel class="mb-1">{{ t('procedures.dependsOn') }}</FieldLabel>
       <div v-if="item.dependsOn.length > 0" class="flex flex-wrap gap-1 mb-1">
         <span v-for="depId in item.dependsOn" :key="depId"
-              class="inline-flex items-center gap-1 bg-(--bg-light-accent) dark:bg-(--bg-dark-accent) rounded px-2 py-0.5 text-xs">
+              class="inline-flex items-center gap-1 bg-(--bg-accent) rounded px-2 py-0.5 text-xs">
           {{ allItems.find(i => i.tempId === depId)?.title || '?' }}
           <IconButton :icon="['fas', 'xmark']" :label="t('common.remove')" class="!p-0" @click="removeDependency(depId)"/>
         </span>

@@ -49,7 +49,7 @@ const playlistUrl = `https://www.youtube.com/playlist?list=${PLAYLIST_ID}`
       </NeutralContainer>
       <p class="mt-3">
         <a :href="playlistUrl" target="_blank" rel="noopener"
-           class="text-(--primary) underline">{{ t('helpCenter.basics.videos.openOnYoutube') }}</a>
+           class="text-(--color-primary) underline">{{ t('helpCenter.basics.videos.openOnYoutube') }}</a>
       </p>
     </HelpSection>
 

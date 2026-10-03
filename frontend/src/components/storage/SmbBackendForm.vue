@@ -26,7 +26,7 @@ const hostInvalid = computed(() => (model.value.host ?? '').includes('://'))
             <FieldLabel>{{ t('stationStorageBackend.form.smb.host') }}</FieldLabel>
             <TextInput v-model="model.host" placeholder="files.example.org" />
             <MutedText tag="p" size="xs">{{ t('stationStorageBackend.form.smb.hostHint') }}</MutedText>
-            <p v-if="hostInvalid" class="text-xs text-(--error)">
+            <p v-if="hostInvalid" class="text-xs text-(--color-error-badge)">
                 {{ t('stationStorageBackend.form.smb.hostInvalid') }}
             </p>
         </div>

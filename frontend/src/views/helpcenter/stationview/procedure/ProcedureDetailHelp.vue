@@ -81,7 +81,7 @@ const LOCKED_ITEM: ProcedureItem = {
         <div class="flex items-center gap-3">
           <span class="text-sm font-medium">{{ t('procedures.progress') }}</span>
           <div class="flex-1 h-2 bg-(--bg-accent) rounded-full overflow-hidden">
-            <div class="h-full bg-(--success) rounded-full" style="width: 50%"/>
+            <div class="h-full bg-(--color-success) rounded-full" style="width: 50%"/>
           </div>
           <span class="text-sm text-(--text-muted)">1/2</span>
         </div>

@@ -40,7 +40,7 @@ const total = computed(() => props.checklist.length)
             <SubHeader>{{ t('boards.checklist') }} ({{ checked }}/{{ total }})</SubHeader>
             <IconButton v-if="!readonly" :icon="['fas', 'trash']" :label="t('common.delete')" class="text-xs text-(--text-muted)" @click="emit('removeAll')" />
         </div>
-        <div v-if="total > 0" class="h-1.5 bg-[var(--bg-muted)] rounded-full mb-3 overflow-hidden">
+        <div v-if="total > 0" class="h-1.5 bg-[var(--bg-accent)] rounded-full mb-3 overflow-hidden">
             <div class="h-full rounded-full transition-all" :class="checked === total ? 'bg-green-500' : 'bg-primary'" :style="{ width: (checked / total * 100) + '%' }" />
         </div>
         <template v-if="readonly">
