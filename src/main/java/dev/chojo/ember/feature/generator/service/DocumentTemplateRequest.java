@@ -35,6 +35,7 @@ import java.util.List;
  * @param hidden          whether a document a manager generates is hidden from the member
  * @param keepOnArchive   whether a generated document outlasts the membership
  * @param legal           whether the template makes a legal document
+ * @param forAppointments whether appointments may require it as a document to bring, which makes it legal
  * @param selfService     whether members may generate it for themselves and their children
  * @param cooldownDays    the days between two self service documents for one member
  * @param audience        who may generate it through self service
@@ -55,6 +56,7 @@ public record DocumentTemplateRequest(
         boolean hidden,
         @Nullable Boolean keepOnArchive,
         boolean legal,
+        boolean forAppointments,
         boolean selfService,
         @Nullable Integer cooldownDays,
         @Nullable RestrictionAudience audience,

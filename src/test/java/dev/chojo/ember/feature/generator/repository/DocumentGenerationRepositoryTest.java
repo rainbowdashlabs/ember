@@ -70,6 +70,7 @@ class DocumentGenerationRepositoryTest extends RepositoryTestBase {
                 false,
                 false,
                 false,
+                false,
                 30,
                 RestrictionMode.AND,
                 DocumentLanguage.EN,
@@ -88,6 +89,8 @@ class DocumentGenerationRepositoryTest extends RepositoryTestBase {
                 selfService,
                 null,
                 "ab".repeat(32),
+                null,
+                null,
                 null);
     }
 
@@ -113,13 +116,37 @@ class DocumentGenerationRepositoryTest extends RepositoryTestBase {
 
         log.log(
                 new DocumentGeneration(
-                        0, station.id(), otherTemplate, 1, child, child, Instant.EPOCH, false, null, "00", null),
+                        0,
+                        station.id(),
+                        otherTemplate,
+                        1,
+                        child,
+                        child,
+                        Instant.EPOCH,
+                        false,
+                        null,
+                        "00",
+                        null,
+                        null,
+                        null),
                 List.of());
         assertNull(log.lastSelfService(otherTemplate, child));
 
         var bySelf = log.log(
                 new DocumentGeneration(
-                        0, station.id(), otherTemplate, 1, child, child, Instant.EPOCH, true, null, "01", null),
+                        0,
+                        station.id(),
+                        otherTemplate,
+                        1,
+                        child,
+                        child,
+                        Instant.EPOCH,
+                        true,
+                        null,
+                        "01",
+                        null,
+                        null,
+                        null),
                 List.of());
         assertEquals(bySelf.generatedAt(), log.lastSelfService(otherTemplate, child));
     }

@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:4e4e8434064e7bce523e60a4bc6da2a10a0c26d804c8be3c2a790d1a3f9e428e",
-  "generatedAt": "2026-10-03T15:13:52Z",
+  "schemaHash": "sha256:9f65d09c2443517524425c2ea3020720b89c779dc53110a8e65d03bd22a39864",
+  "generatedAt": "2026-10-03T16:11:15Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -6325,7 +6325,7 @@
       "description": "A font uploaded for documents, one file per family and style. Owned by the instance (station_id and cluster_id both NULL), an association (cluster_id) or a station (station_id). A station reaches its own fonts, its association's and the instance's; on a family name found at several, the nearest owner wins. The file is kept in the owner's storage under fonts/<id> and never sent to a browser."
     },
     "document_generation": {
-      "tableHash": "sha256:d16baf399c70ae80e6114992b118f83386832999a059057a5bc0f5877b2f16ae",
+      "tableHash": "sha256:d1286e8ad1be47feddded112e5f57034cf767cd103eff88e9f5ded5fc2fe05d6",
       "columns": [
         {
           "name": "id",
@@ -6403,12 +6403,32 @@
           "nullable": true,
           "verified": true,
           "description": "The uploaded PDF the document was filled from, which a later upload of a new version does not touch. NULL for a letter."
+        },
+        {
+          "name": "event_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The appointment that requires the document and whose values it holds. NULL for a document generated on its own, and once the appointment was deleted."
+        },
+        {
+          "name": "event_date",
+          "type": "date",
+          "nullable": true,
+          "verified": true,
+          "description": "The day of the appointment the document was generated for, which tells the dates of a repeating appointment apart. NULL where event_id never was set."
         }
       ],
       "foreignKeys": [
         {
           "column": "document_id",
           "refTable": "member_document",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
+        {
+          "column": "event_id",
+          "refTable": "station_event",
           "refColumn": "id",
           "onDelete": "SET NULL"
         },
@@ -6476,6 +6496,199 @@
       },
       "description": "Every document generated from a template: which template and which state of it, about whom, by whom, when, and the file that came out."
     },
+    "document_generation_job": {
+      "tableHash": "sha256:d6b55b624e70e108739c176486081692f20a120d58086f482f1d685625d1ca15",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Auto-generated primary key."
+        },
+        {
+          "name": "station_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The station the documents are filed at."
+        },
+        {
+          "name": "template_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The template generated for every member of the run."
+        },
+        {
+          "name": "started_by",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The manager who started the run, who is the uploader of every document it files."
+        },
+        {
+          "name": "accept_missing",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether a member whose data the template needs is incomplete still gets a document, the gaps left to fill in by hand. Without it, such a member is listed as failed."
+        },
+        {
+          "name": "started_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the run was started."
+        },
+        {
+          "name": "finished_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When the last member of the run was done. NULL while it runs."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "started_by",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "station_id",
+          "refTable": "station",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "template_id",
+          "refTable": "document_template",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "Work state of a background run; the documents it filed and the generation log go with the station"
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Work state of a background run; the documents it filed and the generation log are exported"
+      },
+      "gdprDeletion": {
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "started_by",
+            "strategy": "CASCADE",
+            "reason": "FK ON DELETE CASCADE removes the runs a deleted member started; their documents stay"
+          }
+        ]
+      },
+      "description": "A run that generates one template for many members in the background and files each document with its member. Kept in the database so the run carries on after a restart and its progress survives a reload of the page."
+    },
+    "document_generation_job_member": {
+      "tableHash": "sha256:3b048a13894a21b82ed164c5d3c5de8ad67036d79cc020e787cba4566d6d468e",
+      "columns": [
+        {
+          "name": "job_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "References the run."
+        },
+        {
+          "name": "member_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The member a document is generated for."
+        },
+        {
+          "name": "position",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Where the member stands in the run, counted from 0. Members are generated in this order."
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "WAITING until the member is done, then FILED where the document was filed or FAILED where it could not be."
+        },
+        {
+          "name": "generation_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The entry in the generation log of the filed document. NULL while waiting, for a failure, and once the entry is gone."
+        },
+        {
+          "name": "refusal_code",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "The code of the refusal that kept the document from being filed, such as D-091 for missing data. NULL unless FAILED."
+        },
+        {
+          "name": "refusal_detail",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "What the refusal was about, such as the names of the missing values. NULL where it named nothing."
+        },
+        {
+          "name": "done_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When the member was done. NULL while waiting."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "generation_id",
+          "refTable": "document_generation",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
+        {
+          "column": "job_id",
+          "refTable": "document_generation_job",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "member_id",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "Work state of a background run; the documents it filed and the generation log go with the station"
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Work state of a background run; the documents it filed and the generation log are exported"
+      },
+      "gdprDeletion": {
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "member_id",
+            "strategy": "CASCADE",
+            "reason": "FK ON DELETE CASCADE on member delete"
+          }
+        ]
+      },
+      "description": "One member of a generation run and how it went for them."
+    },
     "document_generation_subject": {
       "tableHash": "sha256:8d08fa4935a21cb8d1e074c611d5a2b6bde8d694f391eac454bf6023e4f7895f",
       "columns": [
@@ -6540,7 +6753,7 @@
       "description": "Every person whose data went into a generated document: the member it is about and the guardians it names."
     },
     "document_template": {
-      "tableHash": "sha256:6772ea016088285a395368b402688e58a7d5d8b68ca49b302896e8ad880781b0",
+      "tableHash": "sha256:a2a72dbc6477dfdc15224909ab89d8a5f7418098efac09b815b1d3a60f4dad92",
       "columns": [
         {
           "name": "id",
@@ -6611,6 +6824,13 @@
           "nullable": false,
           "verified": true,
           "description": "Whether the template makes a legal document. A legal template uses official names only and may not use the name a member is called by."
+        },
+        {
+          "name": "for_appointments",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether appointments may require the template as a document to bring. Only such a template names the values of an appointment, and it is always legal."
         },
         {
           "name": "self_service",
@@ -7971,6 +8191,78 @@
         "reason": "Event structure data, not per-member"
       },
       "description": "Which run-out warnings have gone out for an event, so a sweep every few minutes warns once."
+    },
+    "event_document_requirement": {
+      "tableHash": "sha256:91ab1c3c04a2511d3b950589ee9b2953462f08b7a091d5daf23180e3b6a53280",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Auto-generated primary key."
+        },
+        {
+          "name": "event_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The appointment that requires the document. Exactly one of event_id and event_template_id is set."
+        },
+        {
+          "name": "event_template_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The appointment template that hands the requirement to every appointment made from it."
+        },
+        {
+          "name": "template_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The document template required, one marked for appointments."
+        },
+        {
+          "name": "position",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Where the document stands in the list, counted from 0."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "event_id",
+          "refTable": "station_event",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "event_template_id",
+          "refTable": "event_template",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "template_id",
+          "refTable": "document_template",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED"
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Event structure/template data, not per-member"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Event structure/template data, not per-member"
+      },
+      "description": "A document template an appointment or an appointment template names as a document to bring. Every registered participant gets a copy filled with their data. An appointment made from a template starts with the template's list."
     },
     "event_equipment_handover": {
       "feature": "events",

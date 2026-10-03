@@ -35,6 +35,7 @@ final class TemplateRequestBuilder {
     private boolean hidden;
     private @Nullable Boolean keepOnArchive;
     private boolean legal;
+    private boolean forAppointments;
     private boolean selfService;
     private @Nullable Integer cooldownDays;
     private @Nullable RestrictionAudience audience;
@@ -190,6 +191,11 @@ final class TemplateRequestBuilder {
         return this;
     }
 
+    TemplateRequestBuilder forAppointments(boolean forAppointments) {
+        this.forAppointments = forAppointments;
+        return this;
+    }
+
     TemplateRequestBuilder selfService(boolean selfService) {
         this.selfService = selfService;
         return this;
@@ -250,6 +256,7 @@ final class TemplateRequestBuilder {
                 hidden,
                 keepOnArchive,
                 legal,
+                forAppointments,
                 selfService,
                 cooldownDays,
                 audience,

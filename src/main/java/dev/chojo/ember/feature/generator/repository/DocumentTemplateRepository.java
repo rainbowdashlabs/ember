@@ -40,11 +40,11 @@ public class DocumentTemplateRepository {
     public DocumentTemplate create(int stationId, DocumentTemplateDraft draft, int authorId) {
         return query("""
                         INSERT INTO document_template(station_id, kind, name, title_pattern, file_name_pattern, tags,
-                                                      hidden, keep_on_archive, legal, self_service,
+                                                      hidden, keep_on_archive, legal, for_appointments, self_service,
                                                       self_service_cooldown_days, restriction_mode, language,
                                                       created_by, updated_by)
                         VALUES (:station_id, :kind, :name, :title_pattern, :file_name_pattern, :tags,
-                                :hidden, :keep_on_archive, :legal, :self_service,
+                                :hidden, :keep_on_archive, :legal, :for_appointments, :self_service,
                                 :cooldown_days, :restriction_mode, :language,
                                 :author, :author)
                         RETURNING %s;""", DocumentTemplate.COLUMNS)
@@ -73,6 +73,7 @@ public class DocumentTemplateRepository {
                             hidden                     = :hidden,
                             keep_on_archive            = :keep_on_archive,
                             legal                      = :legal,
+                            for_appointments           = :for_appointments,
                             self_service               = :self_service,
                             self_service_cooldown_days = :cooldown_days,
                             restriction_mode           = :restriction_mode,
@@ -116,6 +117,7 @@ public class DocumentTemplateRepository {
                 .bind("hidden", draft.hidden())
                 .bind("keep_on_archive", draft.keepOnArchive())
                 .bind("legal", draft.legal())
+                .bind("for_appointments", draft.forAppointments())
                 .bind("self_service", draft.selfService())
                 .bind("cooldown_days", draft.cooldownDays())
                 .bind("restriction_mode", draft.restrictionMode())
@@ -207,6 +209,23 @@ public class DocumentTemplateRepository {
                 .single(call().bind("id", templateId).bind("archived", archived).bind("author", authorId))
                 .update()
                 .changed();
+    }
+
+    /**
+     * Whether an appointment or an appointment template names the template as a document to bring.
+     *
+     * @param templateId the template
+     * @return whether anything requires it
+     */
+    public boolean requiredByAppointments(int templateId) {
+        return query("""
+                SELECT EXISTS (SELECT 1
+                               FROM event_document_requirement
+                               WHERE template_id = :template_id) AS required;""")
+                .single(call().bind("template_id", templateId))
+                .map(row -> row.getBoolean("required"))
+                .first()
+                .orElse(false);
     }
 
     /**

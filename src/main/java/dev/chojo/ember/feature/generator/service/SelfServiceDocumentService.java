@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.documents.service.DocumentDoor;
 import dev.chojo.ember.feature.documents.service.DocumentService;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplate;
 import dev.chojo.ember.feature.generator.entity.GenerationContext;
+import dev.chojo.ember.feature.generator.entity.GenerationOrigin;
 import dev.chojo.ember.feature.generator.entity.MissingValue;
 import dev.chojo.ember.feature.generator.repository.DocumentGenerationRepository;
 import dev.chojo.ember.feature.generator.repository.DocumentTemplateRepository;
@@ -166,7 +167,7 @@ public class SelfServiceDocumentService {
             String labels = missing.stream().map(MissingValue::label).collect(Collectors.joining(", "));
             throw DocumentRefusal.DOCUMENT_SELF_SERVICE_VALUES_MISSING.raise(RefusalDetail.text(labels));
         }
-        return generation.file(template, memberId, session.member().id(), true, prepared);
+        return generation.file(template, memberId, session.member().id(), GenerationOrigin.SELF_SERVICE, prepared);
     }
 
     private SelfServiceOffer offer(StationSession session, DocumentTemplate template, int memberId) {

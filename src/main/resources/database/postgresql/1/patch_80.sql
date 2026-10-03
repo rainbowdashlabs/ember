@@ -54,6 +54,7 @@ CREATE TABLE IF NOT EXISTS ember_schema.document_template
     hidden                     BOOLEAN     NOT NULL DEFAULT FALSE,
     keep_on_archive            BOOLEAN     NOT NULL DEFAULT FALSE,
     legal                      BOOLEAN     NOT NULL DEFAULT FALSE,
+    for_appointments           BOOLEAN     NOT NULL DEFAULT FALSE,
     self_service               BOOLEAN     NOT NULL DEFAULT FALSE,
     self_service_cooldown_days INTEGER     NOT NULL DEFAULT 30 CHECK (self_service_cooldown_days >= 0),
     restriction_mode           TEXT        NOT NULL DEFAULT 'AND' CHECK (restriction_mode IN ('AND', 'OR')),
@@ -87,6 +88,8 @@ COMMENT ON COLUMN ember_schema.document_template.keep_on_archive IS
     'Whether a generated document outlasts the membership of the member it names.';
 COMMENT ON COLUMN ember_schema.document_template.legal IS
     'Whether the template makes a legal document. A legal template uses official names only and may not use the name a member is called by.';
+COMMENT ON COLUMN ember_schema.document_template.for_appointments IS
+    'Whether appointments may require the template as a document to bring. Only such a template names the values of an appointment, and it is always legal.';
 COMMENT ON COLUMN ember_schema.document_template.self_service IS
     'Whether members of the audience may generate the document for themselves, and guardians for the members in their care.';
 COMMENT ON COLUMN ember_schema.document_template.self_service_cooldown_days IS
@@ -267,7 +270,9 @@ CREATE TABLE IF NOT EXISTS ember_schema.document_generation
     self_service     BOOLEAN     NOT NULL,
     document_id      INTEGER     NULL REFERENCES ember_schema.member_document (id) ON DELETE SET NULL,
     file_sha256      TEXT        NOT NULL,
-    pdf_original_id  INTEGER     NULL REFERENCES ember_schema.document_template_pdf_original (id) ON DELETE SET NULL
+    pdf_original_id  INTEGER     NULL REFERENCES ember_schema.document_template_pdf_original (id) ON DELETE SET NULL,
+    event_id         INTEGER     NULL REFERENCES ember_schema.station_event (id) ON DELETE SET NULL,
+    event_date       DATE        NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_document_generation_template_member
@@ -294,6 +299,10 @@ COMMENT ON COLUMN ember_schema.document_generation.file_sha256 IS
     'The SHA-256 of the generated file as lowercase hex, which ties the log to the exact bytes filed.';
 COMMENT ON COLUMN ember_schema.document_generation.pdf_original_id IS
     'The uploaded PDF the document was filled from, which a later upload of a new version does not touch. NULL for a letter.';
+COMMENT ON COLUMN ember_schema.document_generation.event_id IS
+    'The appointment that requires the document and whose values it holds. NULL for a document generated on its own, and once the appointment was deleted.';
+COMMENT ON COLUMN ember_schema.document_generation.event_date IS
+    'The day of the appointment the document was generated for, which tells the dates of a repeating appointment apart. NULL where event_id never was set.';
 
 CREATE TABLE IF NOT EXISTS ember_schema.document_generation_subject
 (
@@ -359,3 +368,91 @@ COMMENT ON COLUMN ember_schema.document_font.sha256 IS 'The SHA-256 of the file 
 COMMENT ON COLUMN ember_schema.document_font.uploaded_at IS 'When the file was uploaded.';
 COMMENT ON COLUMN ember_schema.document_font.uploaded_by IS
     'The account that uploaded the file, who confirmed that the owner may use the font. NULL once the account is gone.';
+
+CREATE INDEX IF NOT EXISTS idx_document_generation_event
+    ON ember_schema.document_generation (event_id, event_date) WHERE event_id IS NOT NULL;
+
+CREATE TABLE IF NOT EXISTS ember_schema.event_document_requirement
+(
+    id                SERIAL PRIMARY KEY,
+    event_id          INTEGER NULL REFERENCES ember_schema.station_event (id) ON DELETE CASCADE,
+    event_template_id INTEGER NULL REFERENCES ember_schema.event_template (id) ON DELETE CASCADE,
+    template_id       INTEGER NOT NULL REFERENCES ember_schema.document_template (id) ON DELETE CASCADE,
+    position          INTEGER NOT NULL,
+    CHECK (num_nonnulls(event_id, event_template_id) = 1)
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_event_document_requirement_event
+    ON ember_schema.event_document_requirement (event_id, template_id) WHERE event_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS uq_event_document_requirement_event_template
+    ON ember_schema.event_document_requirement (event_template_id, template_id) WHERE event_template_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_event_document_requirement_template
+    ON ember_schema.event_document_requirement (template_id);
+
+COMMENT ON TABLE ember_schema.event_document_requirement IS
+    'A document template an appointment or an appointment template names as a document to bring. Every registered participant gets a copy filled with their data. An appointment made from a template starts with the template''s list.';
+COMMENT ON COLUMN ember_schema.event_document_requirement.id IS 'Auto-generated primary key.';
+COMMENT ON COLUMN ember_schema.event_document_requirement.event_id IS
+    'The appointment that requires the document. Exactly one of event_id and event_template_id is set.';
+COMMENT ON COLUMN ember_schema.event_document_requirement.event_template_id IS
+    'The appointment template that hands the requirement to every appointment made from it.';
+COMMENT ON COLUMN ember_schema.event_document_requirement.template_id IS
+    'The document template required, one marked for appointments.';
+COMMENT ON COLUMN ember_schema.event_document_requirement.position IS 'Where the document stands in the list, counted from 0.';
+
+CREATE TABLE IF NOT EXISTS ember_schema.document_generation_job
+(
+    id             SERIAL PRIMARY KEY,
+    station_id     INTEGER     NOT NULL REFERENCES ember_schema.station (id) ON DELETE CASCADE,
+    template_id    INTEGER     NOT NULL REFERENCES ember_schema.document_template (id) ON DELETE CASCADE,
+    started_by     INTEGER     NOT NULL REFERENCES ember_schema.station_member (id) ON DELETE CASCADE,
+    accept_missing BOOLEAN     NOT NULL,
+    started_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+    finished_at    TIMESTAMPTZ NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_document_generation_job_station
+    ON ember_schema.document_generation_job (station_id, started_at);
+CREATE INDEX IF NOT EXISTS idx_document_generation_job_open
+    ON ember_schema.document_generation_job (id) WHERE finished_at IS NULL;
+
+COMMENT ON TABLE ember_schema.document_generation_job IS
+    'A run that generates one template for many members in the background and files each document with its member. Kept in the database so the run carries on after a restart and its progress survives a reload of the page.';
+COMMENT ON COLUMN ember_schema.document_generation_job.id IS 'Auto-generated primary key.';
+COMMENT ON COLUMN ember_schema.document_generation_job.station_id IS 'The station the documents are filed at.';
+COMMENT ON COLUMN ember_schema.document_generation_job.template_id IS 'The template generated for every member of the run.';
+COMMENT ON COLUMN ember_schema.document_generation_job.started_by IS
+    'The manager who started the run, who is the uploader of every document it files.';
+COMMENT ON COLUMN ember_schema.document_generation_job.accept_missing IS
+    'Whether a member whose data the template needs is incomplete still gets a document, the gaps left to fill in by hand. Without it, such a member is listed as failed.';
+COMMENT ON COLUMN ember_schema.document_generation_job.started_at IS 'When the run was started.';
+COMMENT ON COLUMN ember_schema.document_generation_job.finished_at IS 'When the last member of the run was done. NULL while it runs.';
+
+CREATE TABLE IF NOT EXISTS ember_schema.document_generation_job_member
+(
+    job_id         INTEGER     NOT NULL REFERENCES ember_schema.document_generation_job (id) ON DELETE CASCADE,
+    member_id      INTEGER     NOT NULL REFERENCES ember_schema.station_member (id) ON DELETE CASCADE,
+    position       INTEGER     NOT NULL,
+    status         TEXT        NOT NULL DEFAULT 'WAITING' CHECK (status IN ('WAITING', 'FILED', 'FAILED')),
+    generation_id  INTEGER     NULL REFERENCES ember_schema.document_generation (id) ON DELETE SET NULL,
+    refusal_code   TEXT        NULL,
+    refusal_detail TEXT        NULL,
+    done_at        TIMESTAMPTZ NULL,
+    PRIMARY KEY (job_id, member_id)
+);
+
+COMMENT ON TABLE ember_schema.document_generation_job_member IS
+    'One member of a generation run and how it went for them.';
+COMMENT ON COLUMN ember_schema.document_generation_job_member.job_id IS 'References the run.';
+COMMENT ON COLUMN ember_schema.document_generation_job_member.member_id IS 'The member a document is generated for.';
+COMMENT ON COLUMN ember_schema.document_generation_job_member.position IS
+    'Where the member stands in the run, counted from 0. Members are generated in this order.';
+COMMENT ON COLUMN ember_schema.document_generation_job_member.status IS
+    'WAITING until the member is done, then FILED where the document was filed or FAILED where it could not be.';
+COMMENT ON COLUMN ember_schema.document_generation_job_member.generation_id IS
+    'The entry in the generation log of the filed document. NULL while waiting, for a failure, and once the entry is gone.';
+COMMENT ON COLUMN ember_schema.document_generation_job_member.refusal_code IS
+    'The code of the refusal that kept the document from being filed, such as D-091 for missing data. NULL unless FAILED.';
+COMMENT ON COLUMN ember_schema.document_generation_job_member.refusal_detail IS
+    'What the refusal was about, such as the names of the missing values. NULL where it named nothing.';
+COMMENT ON COLUMN ember_schema.document_generation_job_member.done_at IS 'When the member was done. NULL while waiting.';

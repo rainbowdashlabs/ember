@@ -34,6 +34,10 @@ import java.util.Objects;
  * placeholder the catalogue does not know would only ever print as a gap. A letter's rows are checked
  * by {@link LetterChecks}, a PDF template's fields by {@link PdfLayoutChecks}. A font family the template
  * names has to be one the station reaches ({@link FontLibrary}).
+ *
+ * <p>A template for appointments is a legal one whatever the request says, since its copies are handed
+ * to participants to sign. It stays one for as long as an appointment or an appointment template
+ * requires it.
  */
 @Singleton
 public class TemplateChecks {
@@ -90,6 +94,9 @@ public class TemplateChecks {
     public DocumentTemplateDraft draft(
             int stationId, DocumentTemplateRequest request, @Nullable DocumentTemplate existing) {
         Integer exceptId = existing == null ? null : existing.id();
+        if (existing != null && !request.forAppointments() && templates.requiredByAppointments(existing.id())) {
+            throw DocumentRefusal.DOCUMENT_TEMPLATE_REQUIRED_BY_APPOINTMENTS.raise();
+        }
         return build(stationId, request, requireName(stationId, request.name(), exceptId), existing);
     }
 
@@ -117,14 +124,16 @@ public class TemplateChecks {
         int cooldown = Objects.requireNonNullElse(request.cooldownDays(), DEFAULT_COOLDOWN_DAYS);
         if (cooldown < 0) throw DocumentRefusal.DOCUMENT_TEMPLATE_COOLDOWN_NEGATIVE.raise();
         var audience = Objects.requireNonNullElse(request.audience(), RestrictionAudience.empty());
+        boolean legal = request.legal() || request.forAppointments();
         var draft = new DocumentTemplateDraft(
                 name,
                 titlePattern,
                 fileNamePattern,
                 tags(request.tags()),
                 request.hidden(),
-                Objects.requireNonNullElse(request.keepOnArchive(), request.legal()),
-                request.legal(),
+                Objects.requireNonNullElse(request.keepOnArchive(), legal),
+                legal,
+                request.forAppointments(),
                 request.selfService(),
                 cooldown,
                 audience.mode(),

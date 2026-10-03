@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
 import dev.chojo.ember.feature.members.service.MemberPermissionResolver;
+import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import dev.chojo.ember.feature.restriction.RestrictionMember;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
@@ -185,6 +186,20 @@ public class RestrictionService {
         if (member == null) return false;
         RestrictionMode mode = restrictionRepository.findMode(type, entityId);
         return restrictionRepository.matches(type, entityId, mode, member);
+    }
+
+    /**
+     * The current members of a station an audience takes in, with no manager bypass.
+     *
+     * @param stationId the station
+     * @param audience  the audience; one naming nobody takes in every current member
+     * @return the members' ids
+     */
+    public List<Integer> membersIn(int stationId, RestrictionAudience audience) {
+        return restrictionRepository.findStationMembers(stationId).stream()
+                .filter(audience::includes)
+                .map(RestrictionMember::memberId)
+                .toList();
     }
 
     /**

@@ -238,6 +238,7 @@ public class DocumentTemplateService {
                 template.hidden(),
                 template.keepOnArchive(),
                 template.legal(),
+                template.forAppointments(),
                 template.selfService(),
                 template.cooldownDays(),
                 audience,
@@ -260,17 +261,19 @@ public class DocumentTemplateService {
      * @param id          the template
      * @param name        what it is called
      * @param kind        what it is made of
-     * @param legal       whether it makes a legal document
-     * @param selfService whether members may generate it for themselves
-     * @param version     how often it was changed, counted from one
-     * @param updatedAt   when it was last changed
-     * @param archivedAt  when it was archived, or null while it is in use
+     * @param legal           whether it makes a legal document
+     * @param forAppointments whether appointments may require it as a document to bring
+     * @param selfService     whether members may generate it for themselves
+     * @param version         how often it was changed, counted from one
+     * @param updatedAt       when it was last changed
+     * @param archivedAt      when it was archived, or null while it is in use
      */
     public record DocumentTemplateSummary(
             int id,
             String name,
             DocumentTemplateKind kind,
             boolean legal,
+            boolean forAppointments,
             boolean selfService,
             int version,
             Instant updatedAt,
@@ -282,6 +285,7 @@ public class DocumentTemplateService {
                     template.name(),
                     template.kind(),
                     template.legal(),
+                    template.forAppointments(),
                     template.selfService(),
                     template.version(),
                     template.updatedAt(),
@@ -301,6 +305,7 @@ public class DocumentTemplateService {
      * @param hidden          whether a document a manager generates is hidden from the member
      * @param keepOnArchive   whether a generated document outlasts the membership
      * @param legal           whether it makes a legal document
+     * @param forAppointments whether appointments may require it as a document to bring
      * @param selfService     whether members may generate it for themselves
      * @param cooldownDays    the days between two self service documents for one member
      * @param audience        who may generate it through self service
@@ -326,6 +331,7 @@ public class DocumentTemplateService {
             boolean hidden,
             boolean keepOnArchive,
             boolean legal,
+            boolean forAppointments,
             boolean selfService,
             int cooldownDays,
             RestrictionAudience audience,

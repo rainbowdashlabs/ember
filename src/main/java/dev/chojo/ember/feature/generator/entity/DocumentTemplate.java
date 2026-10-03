@@ -27,7 +27,8 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param hidden           whether a document a manager generates is hidden from the member
  * @param keepOnArchive    whether a generated document outlasts the membership
  * @param legal            whether it makes a legal document, which uses official names only
- * @param selfService      whether members may generate it for themselves and their children
+ * @param forAppointments  whether appointments may require it as a document to bring
+ * @param selfService     whether members may generate it for themselves and their children
  * @param cooldownDays     how many days a member waits before generating it again through self service
  * @param restrictionMode  how the parts of the self service audience combine
  * @param language         the language its documents are written in
@@ -47,6 +48,7 @@ public record DocumentTemplate(
         boolean hidden,
         boolean keepOnArchive,
         boolean legal,
+        boolean forAppointments,
         boolean selfService,
         int cooldownDays,
         RestrictionMode restrictionMode,
@@ -59,7 +61,7 @@ public record DocumentTemplate(
     /** The columns {@link #map()} reads, in a form a query can splice in. */
     public static final String COLUMNS = """
             id, station_id, kind, name, title_pattern, file_name_pattern, tags, hidden, keep_on_archive, legal,
-            self_service, self_service_cooldown_days, restriction_mode, language, version, created_at, updated_at,
+            for_appointments, self_service,self_service_cooldown_days, restriction_mode, language, version, created_at, updated_at,
             archived_at""";
 
     /** Whether the template is archived and generates nothing more. */
@@ -79,6 +81,7 @@ public record DocumentTemplate(
                 row.getBoolean("hidden"),
                 row.getBoolean("keep_on_archive"),
                 row.getBoolean("legal"),
+                row.getBoolean("for_appointments"),
                 row.getBoolean("self_service"),
                 row.getInt("self_service_cooldown_days"),
                 row.getEnum("restriction_mode", RestrictionMode.class),

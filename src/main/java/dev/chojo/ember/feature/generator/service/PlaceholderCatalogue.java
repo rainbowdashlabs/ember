@@ -146,8 +146,9 @@ public class PlaceholderCatalogue {
     }
 
     /**
-     * Refuses a template naming a placeholder the station does not have, and a legal one naming the
-     * name a member is called by.
+     * Refuses a template naming a placeholder the station does not have, a legal one naming the name a
+     * member is called by, and one naming the values of an appointment without being meant for
+     * appointments, where they would never be filled.
      *
      * @param stationId the station
      * @param draft     the template
@@ -157,8 +158,13 @@ public class PlaceholderCatalogue {
         if (used.isEmpty()) return;
         var known = byKey(stationId);
         for (String key : used) {
-            if (!known.containsKey(key)) {
+            var placeholder = known.get(key);
+            if (placeholder == null) {
                 throw DocumentRefusal.DOCUMENT_TEMPLATE_PLACEHOLDER_UNKNOWN.raise(RefusalDetail.text(key));
+            }
+            if (placeholder.eventOnly() && !draft.forAppointments()) {
+                throw DocumentRefusal.DOCUMENT_TEMPLATE_APPOINTMENT_VALUES_OUTSIDE.raise(
+                        RefusalDetail.text(placeholder.label()));
             }
         }
         if (draft.legal()) requireOfficial(used);

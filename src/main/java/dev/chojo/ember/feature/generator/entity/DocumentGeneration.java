@@ -9,6 +9,7 @@ import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
+import java.time.LocalDate;
 
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
@@ -26,6 +27,8 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param documentId      the member document it was filed as, or null once that was deleted
  * @param fileSha256      the SHA-256 of the file as lowercase hex
  * @param pdfOriginalId   the uploaded PDF it was filled from, or null for a letter
+ * @param eventId         the appointment that asked for it, or null where none did or it is gone
+ * @param eventDate       the date of that appointment, or null where none asked for it
  */
 public record DocumentGeneration(
         int id,
@@ -38,7 +41,9 @@ public record DocumentGeneration(
         boolean selfService,
         @Nullable Integer documentId,
         String fileSha256,
-        @Nullable Integer pdfOriginalId) {
+        @Nullable Integer pdfOriginalId,
+        @Nullable Integer eventId,
+        @Nullable LocalDate eventDate) {
 
     public static RowMapping<DocumentGeneration> map() {
         return row -> new DocumentGeneration(
@@ -52,6 +57,8 @@ public record DocumentGeneration(
                 row.getBoolean("self_service"),
                 row.getObject("document_id", Integer.class),
                 row.getString("file_sha256"),
-                row.getObject("pdf_original_id", Integer.class));
+                row.getObject("pdf_original_id", Integer.class),
+                row.getObject("event_id", Integer.class),
+                row.getObject("event_date", LocalDate.class));
     }
 }

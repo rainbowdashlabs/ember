@@ -166,9 +166,12 @@ import dev.chojo.ember.feature.form.handler.FormPublishedHandler;
 import dev.chojo.ember.feature.form.route.FormRoutes;
 import dev.chojo.ember.feature.form.route.PublicFormRoutes;
 import dev.chojo.ember.feature.form.service.FormFeedDetails;
+import dev.chojo.ember.feature.generator.route.AppointmentDocumentRoutes;
 import dev.chojo.ember.feature.generator.route.DocumentFontRoutes;
 import dev.chojo.ember.feature.generator.route.DocumentGenerationRoutes;
 import dev.chojo.ember.feature.generator.route.DocumentTemplateRoutes;
+import dev.chojo.ember.feature.generator.route.GenerationJobRoutes;
+import dev.chojo.ember.feature.generator.service.GenerationJobRunner;
 import dev.chojo.ember.feature.insights.route.StationInsightsRoutes;
 import dev.chojo.ember.feature.insights.service.PageHitRecorder;
 import dev.chojo.ember.feature.inventory.handler.ClusterItemIssuedHandler;
@@ -432,6 +435,8 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(DocumentTemplateRoutes.class);
         routesBinder.addBinding().to(DocumentGenerationRoutes.class);
         routesBinder.addBinding().to(DocumentFontRoutes.class);
+        routesBinder.addBinding().to(GenerationJobRoutes.class);
+        routesBinder.addBinding().to(AppointmentDocumentRoutes.class);
         routesBinder.addBinding().to(MailImportRoutes.class);
         routesBinder.addBinding().to(AdminMonitoringCountRoutes.class);
         bind(MailFilingService.MemberNaming.class).to(StationMemberNaming.class);
@@ -747,6 +752,7 @@ public class EmberModule extends AbstractModule {
         taskSources.addBinding().to(KbTrashPurger.class);
         taskSources.addBinding().to(TransferTimeoutWatchdog.class);
         taskSources.addBinding().to(FeedMetricsService.class);
+        taskSources.addBinding().to(GenerationJobRunner.class);
 
         Multibinder<ShutdownFlush> flushes = Multibinder.newSetBinder(binder(), ShutdownFlush.class);
         flushes.addBinding().to(PageHitRecorder.class);

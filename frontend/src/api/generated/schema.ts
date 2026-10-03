@@ -17725,6 +17725,89 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/document-generation/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The latest runs that generate a template for many members, the newest first */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GenerationJobSummary"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/document-generation/jobs/{jobId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A run that generates a template for many members, with how it went for each */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    jobId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GenerationJobResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/document-generation/templates": {
         parameters: {
             query?: never;
@@ -17755,6 +17838,108 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/document-generation/templates/{templateId}/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start generating a template for many members in the background */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    templateId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["JobStartRequest"];
+                };
+            };
+            responses: {
+                /** @description Accepted */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GenerationJobResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/document-generation/templates/{templateId}/jobs/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Draw a template for the first of many members and list what every member lacks */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    templateId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["MemberSelection"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BulkPreviewResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -17872,6 +18057,42 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["PlaceholderCatalogueResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/document-requirements/templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The document templates appointments may ask participants to bring */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RequiredTemplate"][];
                     };
                 };
             };
@@ -18897,6 +19118,79 @@ export interface paths {
                 };
             };
         };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/event-templates/{id}/document-requirements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The documents an appointment template hands to the appointments made from it */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RequiredTemplate"][];
+                    };
+                };
+            };
+        };
+        /** Set the documents an appointment template hands to the appointments made from it */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["RequirementsRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RequiredTemplate"][];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -20719,6 +21013,179 @@ export interface paths {
                 };
                 /** @description Conflict */
                 409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/{id}/document-requirements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The documents an appointment asks participants to bring */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RequiredTemplate"][];
+                    };
+                };
+            };
+        };
+        /** Set the documents an appointment asks participants to bring */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["RequirementsRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RequiredTemplate"][];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/{id}/documents-to-bring": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The documents to bring for the reader and the members in their care who take part on a date */
+        get: {
+            parameters: {
+                query: {
+                    date: string;
+                };
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ParticipantDocuments"][];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/{id}/documents-to-bring/{templateId}/members/{memberId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Generate a participant's copy of a document the appointment asks for and file it with them */
+        post: {
+            parameters: {
+                query: {
+                    date: string;
+                };
+                header?: never;
+                path: {
+                    id: number;
+                    memberId: number;
+                    templateId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GeneratedDocumentResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -56657,6 +57124,14 @@ export interface components {
             /** Format: int32 */
             refusedTotal: number;
         };
+        BulkPreviewResponse: {
+            gaps: components["schemas"]["MemberGaps"][];
+            /** Format: int32 */
+            memberCount: number;
+            preview: components["schemas"]["PreviewResponse"] | null;
+            /** Format: int32 */
+            previewMemberId: number | null;
+        };
         BulkRetireResponse: {
             /** Format: int32 */
             passedOver: number;
@@ -58122,6 +58597,7 @@ export interface components {
             fields?: components["schemas"]["PdfField"][] | null;
             fileNamePattern?: string | null;
             footer?: components["schemas"]["BlockRowRequest"][] | null;
+            forAppointments?: boolean;
             formBindings?: components["schemas"]["FormBinding"][] | null;
             header?: components["schemas"]["BlockRowRequest"][] | null;
             hidden?: boolean;
@@ -58144,6 +58620,7 @@ export interface components {
             fields: components["schemas"]["PdfField"][];
             fileNamePattern: string;
             footer: components["schemas"]["ContentRow"][];
+            forAppointments: boolean;
             formBindings: components["schemas"]["FormBinding"][];
             header: components["schemas"]["ContentRow"][];
             hidden: boolean;
@@ -58165,6 +58642,7 @@ export interface components {
         };
         DocumentTemplateSummary: {
             archivedAt: components["schemas"]["Instant"] | null;
+            forAppointments: boolean;
             /** Format: int32 */
             id: number;
             kind: components["schemas"]["DocumentTemplateKind"];
@@ -59540,6 +60018,27 @@ export interface components {
             provider?: components["schemas"]["AiVendor"] | null;
             userPrompt?: string | null;
         };
+        GenerationJobResponse: {
+            job: components["schemas"]["GenerationJobSummary"];
+            members: components["schemas"]["JobMemberResult"][];
+        };
+        GenerationJobSummary: {
+            acceptMissing: boolean;
+            /** Format: int32 */
+            failed: number;
+            /** Format: int32 */
+            filed: number;
+            finishedAt: components["schemas"]["Instant"] | null;
+            /** Format: int32 */
+            id: number;
+            startedAt: components["schemas"]["Instant"];
+            startedByName: string;
+            /** Format: int32 */
+            templateId: number;
+            templateName: string;
+            /** Format: int32 */
+            total: number;
+        };
         GenerationPollResponse: {
             done: boolean;
             questions: components["schemas"]["GeneratedQuestionWithMeta"][];
@@ -60246,6 +60745,23 @@ export interface components {
         };
         JobIdResponse: {
             jobId: string;
+        };
+        JobMemberResult: {
+            detail: components["schemas"]["RefusalDetail"] | null;
+            /** Format: int32 */
+            documentId: number | null;
+            /** Format: int32 */
+            memberId: number;
+            name: string;
+            refusalCode: string | null;
+            status: components["schemas"]["JobMemberStatus"];
+        };
+        /** @enum {string} */
+        JobMemberStatus: "WAITING" | "FILED" | "FAILED";
+        JobStartRequest: {
+            acceptMissing?: boolean;
+            audience?: components["schemas"]["RestrictionAudience"] | null;
+            memberIds?: number[] | null;
         };
         /** @enum {string} */
         KbAccessLevel: "NONE" | "READ" | "WRITE" | "MANAGE";
@@ -61203,6 +61719,13 @@ export interface components {
             showName?: boolean | null;
             showSize?: boolean | null;
         };
+        MemberGaps: {
+            /** Format: int32 */
+            memberId: number;
+            missing: components["schemas"]["MissingValue"][];
+            name: string;
+            refusalCode: string | null;
+        };
         MemberGroup: {
             color: string | null;
             /** Format: int32 */
@@ -61364,6 +61887,10 @@ export interface components {
             memberUid: string;
             nameColor: string | null;
             userType: string | null;
+        };
+        MemberSelection: {
+            audience?: components["schemas"]["RestrictionAudience"] | null;
+            memberIds?: number[] | null;
         };
         MemberSpotlightConfig: {
             blurb?: string;
@@ -62192,6 +62719,12 @@ export interface components {
         ParseResult: {
             headers: string[];
             rows: string[][];
+        };
+        ParticipantDocuments: {
+            documents: components["schemas"]["RequiredDocumentStatus"][];
+            /** Format: int32 */
+            memberId: number;
+            name: string;
         };
         PartnerEventDetail: {
             event: components["schemas"]["SharedEvent"];
@@ -63822,6 +64355,16 @@ export interface components {
             /** Format: int32 */
             requeued: number;
         };
+        RequiredDocumentStatus: {
+            /** Format: int32 */
+            documentId: number | null;
+            generatedAt: components["schemas"]["Instant"] | null;
+            name: string;
+            outdated: boolean;
+            status: components["schemas"]["RequirementStatus"];
+            /** Format: int32 */
+            templateId: number;
+        };
         RequiredInventoryItem: {
             /** Format: int32 */
             assignedQuantity: number;
@@ -63836,6 +64379,15 @@ export interface components {
             /** Format: int32 */
             requiredQuantity: number;
             sizes: components["schemas"]["InventorySize"][];
+        };
+        RequiredTemplate: {
+            archived: boolean;
+            kind: components["schemas"]["DocumentTemplateKind"];
+            name: string;
+            /** Format: int32 */
+            templateId: number;
+            /** Format: int32 */
+            version: number;
         };
         RequirementItem: {
             /** Format: int32 */
@@ -63870,6 +64422,9 @@ export interface components {
             stationGroupId: number | null;
             userType: components["schemas"]["StationUserType"] | null;
         };
+        RequirementsRequest: {
+            templateIds?: number[] | null;
+        };
         RequirementsResponse: {
             forcedForms: components["schemas"]["RequirementItem"][];
             forcedQuizzes: components["schemas"]["RequirementItem"][];
@@ -63877,6 +64432,8 @@ export interface components {
             registrationUpdates: components["schemas"]["RegistrationUpdateItem"][];
             selfChecks: components["schemas"]["SelfCheckItem"][];
         };
+        /** @enum {string} */
+        RequirementStatus: "NOT_GENERATED" | "GENERATED";
         ResetPasswordRequest: {
             /** Format: int32 */
             accountId?: number;
@@ -66576,6 +67133,7 @@ export type BrowseResponse = components['schemas']['BrowseResponse'];
 export type BulkDeleteRequest = components['schemas']['BulkDeleteRequest'];
 export type BulkMoveRequest = components['schemas']['BulkMoveRequest'];
 export type BulkOutcome = components['schemas']['BulkOutcome'];
+export type BulkPreviewResponse = components['schemas']['BulkPreviewResponse'];
 export type BulkRetireResponse = components['schemas']['BulkRetireResponse'];
 export type BulkSetRequest = components['schemas']['BulkSetRequest'];
 export type BulkSetResponse = components['schemas']['BulkSetResponse'];
@@ -66985,6 +67543,8 @@ export type GeneratedDocumentResponse = components['schemas']['GeneratedDocument
 export type GeneratedQuestionWithMeta = components['schemas']['GeneratedQuestionWithMeta'];
 export type GenerateEntry = components['schemas']['GenerateEntry'];
 export type GenerateQuestionsRequest = components['schemas']['GenerateQuestionsRequest'];
+export type GenerationJobResponse = components['schemas']['GenerationJobResponse'];
+export type GenerationJobSummary = components['schemas']['GenerationJobSummary'];
 export type GenerationPollResponse = components['schemas']['GenerationPollResponse'];
 export type GeocodingProvider = components['schemas']['GeocodingProvider'];
 export type GrantRequest = components['schemas']['GrantRequest'];
@@ -67076,6 +67636,9 @@ export type ItemTagsRequest = components['schemas']['ItemTagsRequest'];
 export type ItemTagsResponse = components['schemas']['ItemTagsResponse'];
 export type ItemTextValue = components['schemas']['ItemTextValue'];
 export type JobIdResponse = components['schemas']['JobIdResponse'];
+export type JobMemberResult = components['schemas']['JobMemberResult'];
+export type JobMemberStatus = components['schemas']['JobMemberStatus'];
+export type JobStartRequest = components['schemas']['JobStartRequest'];
 export type KbAccessLevel = components['schemas']['KbAccessLevel'];
 export type KbArticleConfig = components['schemas']['KbArticleConfig'];
 export type KbFavourite = components['schemas']['KbFavourite'];
@@ -67206,6 +67769,7 @@ export type MemberCheckState = components['schemas']['MemberCheckState'];
 export type MemberCompletion = components['schemas']['MemberCompletion'];
 export type MemberDocumentResponse = components['schemas']['MemberDocumentResponse'];
 export type MemberExportRequest = components['schemas']['MemberExportRequest'];
+export type MemberGaps = components['schemas']['MemberGaps'];
 export type MemberGroup = components['schemas']['MemberGroup'];
 export type MemberGroupSet = components['schemas']['MemberGroupSet'];
 export type MemberGroupsRequest = components['schemas']['MemberGroupsRequest'];
@@ -67227,6 +67791,7 @@ export type MemberReceiptRequest = components['schemas']['MemberReceiptRequest']
 export type MemberRequirement = components['schemas']['MemberRequirement'];
 export type MemberRequirements = components['schemas']['MemberRequirements'];
 export type MemberSearchResult = components['schemas']['MemberSearchResult'];
+export type MemberSelection = components['schemas']['MemberSelection'];
 export type MemberSpotlightConfig = components['schemas']['MemberSpotlightConfig'];
 export type MemberStatus = components['schemas']['MemberStatus'];
 export type MemberStatusResponse = components['schemas']['MemberStatusResponse'];
@@ -67352,6 +67917,7 @@ export type PairRequestResponse = components['schemas']['PairRequestResponse'];
 export type PairRequestStatus = components['schemas']['PairRequestStatus'];
 export type PairRequestStatusQuery = components['schemas']['PairRequestStatusQuery'];
 export type ParseResult = components['schemas']['ParseResult'];
+export type ParticipantDocuments = components['schemas']['ParticipantDocuments'];
 export type PartnerEventDetail = components['schemas']['PartnerEventDetail'];
 export type PartnerPlacesView = components['schemas']['PartnerPlacesView'];
 export type PartnerResponse = components['schemas']['PartnerResponse'];
@@ -67568,11 +68134,15 @@ export type ReportData = components['schemas']['ReportData'];
 export type ReportPayload = components['schemas']['ReportPayload'];
 export type ReportRequest = components['schemas']['ReportRequest'];
 export type RequeuedMails = components['schemas']['RequeuedMails'];
+export type RequiredDocumentStatus = components['schemas']['RequiredDocumentStatus'];
 export type RequiredInventoryItem = components['schemas']['RequiredInventoryItem'];
+export type RequiredTemplate = components['schemas']['RequiredTemplate'];
 export type RequirementItem = components['schemas']['RequirementItem'];
 export type RequirementRequest = components['schemas']['RequirementRequest'];
 export type RequirementResponse = components['schemas']['RequirementResponse'];
+export type RequirementsRequest = components['schemas']['RequirementsRequest'];
 export type RequirementsResponse = components['schemas']['RequirementsResponse'];
+export type RequirementStatus = components['schemas']['RequirementStatus'];
 export type ResetPasswordRequest = components['schemas']['ResetPasswordRequest'];
 export type ResidueEntry = components['schemas']['ResidueEntry'];
 export type ResolvedMember = components['schemas']['ResolvedMember'];
@@ -68400,6 +68970,12 @@ export const ItemOwner = {
     STATION: "STATION",
 } as const;
 
+export const JobMemberStatus = {
+    FAILED: "FAILED",
+    FILED: "FILED",
+    WAITING: "WAITING",
+} as const;
+
 export const KbAccessLevel = {
     MANAGE: "MANAGE",
     NONE: "NONE",
@@ -68843,6 +69419,11 @@ export const RegistrationStatus = {
     DENIED: "DENIED",
     PENDING: "PENDING",
     WITHDRAWN: "WITHDRAWN",
+} as const;
+
+export const RequirementStatus = {
+    GENERATED: "GENERATED",
+    NOT_GENERATED: "NOT_GENERATED",
 } as const;
 
 export const RestrictionMode = {

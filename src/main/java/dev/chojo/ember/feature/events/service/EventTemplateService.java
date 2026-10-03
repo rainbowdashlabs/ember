@@ -87,8 +87,9 @@ public class EventTemplateService {
     }
 
     /**
-     * Hands a template's registration questions to an appointment made from it. The copies are
-     * independent: a later template edit never rewrites questions members have already answered.
+     * Hands a template's registration questions and documents to bring to an appointment made from
+     * it. The copies are independent: a later template edit never rewrites questions members have
+     * already answered, nor what an appointment already asks to bring.
      *
      * @param template the template, as {@link #requireOwn} found it for the appointment's station
      * @param eventId  the appointment being made from it
@@ -96,6 +97,8 @@ public class EventTemplateService {
     public void copyInto(EventTemplate template, int eventId) {
         int copied = repository.copyRegistrationFields(template.id(), eventId);
         if (copied > 0) log.info("Event {} took {} question(s) from template {}", eventId, copied, template.id());
+        int documents = repository.copyDocumentRequirements(template.id(), eventId);
+        if (documents > 0) log.info("Event {} took {} document(s) from template {}", eventId, documents, template.id());
     }
 
     public EventTemplate create(int stationId, String name) {

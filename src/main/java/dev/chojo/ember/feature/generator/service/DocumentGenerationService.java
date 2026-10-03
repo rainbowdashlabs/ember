@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.documents.service.DocumentService;
 import dev.chojo.ember.feature.generator.entity.DocumentGeneration;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplate;
 import dev.chojo.ember.feature.generator.entity.GenerationContext;
+import dev.chojo.ember.feature.generator.entity.GenerationOrigin;
 import dev.chojo.ember.feature.generator.entity.MissingValue;
 import dev.chojo.ember.feature.generator.repository.DocumentGenerationRepository;
 import dev.chojo.ember.feature.generator.service.DocumentGeneratorService.PreviewResponse;
@@ -169,7 +170,7 @@ public class DocumentGenerationService {
                 generator.sourceOf(template),
                 memberId,
                 GenerationContext.by(session.member().id()));
-        return file(template, memberId, session.member().id(), false, prepared);
+        return file(template, memberId, session.member().id(), GenerationOrigin.MANAGER, prepared);
     }
 
     /**
@@ -178,7 +179,7 @@ public class DocumentGenerationService {
      * @param template    the template
      * @param memberId    the member it is about
      * @param generatedBy the member who generates it
-     * @param selfService whether the member or their guardian generates it
+     * @param origin      in which role it is generated, and for which appointment
      * @param prepared    the values it is drawn from
      * @return the filed document
      */
@@ -186,7 +187,7 @@ public class DocumentGenerationService {
             DocumentTemplate template,
             int memberId,
             int generatedBy,
-            boolean selfService,
+            GenerationOrigin origin,
             DocumentGeneratorService.Prepared prepared) {
         int stationId = template.stationId();
         documents.requireKept(stationId, DocumentDoor.STATION);
@@ -201,7 +202,7 @@ public class DocumentGenerationService {
                 rendered.fileName(),
                 mimeType,
                 rendered.pdf(),
-                template.hidden() && !selfService,
+                template.hidden() && origin.byManager(),
                 template.keepOnArchive(),
                 Uploader.member(generatedBy),
                 template.tags());
@@ -214,10 +215,12 @@ public class DocumentGenerationService {
                         memberId,
                         generatedBy,
                         clock.instant(),
-                        selfService,
+                        origin.selfService(),
                         document.id(),
                         sha256(rendered.pdf()),
-                        prepared.source().pdfOriginalId()),
+                        prepared.source().pdfOriginalId(),
+                        origin.eventId(),
+                        origin.eventDate()),
                 rendered.resolved().subjects());
         log.info(
                 "Document {} generated from template {} (version {}) for member {}",

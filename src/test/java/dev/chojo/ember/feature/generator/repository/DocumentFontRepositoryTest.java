@@ -74,6 +74,7 @@ class DocumentFontRepositoryTest extends RepositoryTestBase {
                 false,
                 false,
                 false,
+                false,
                 30,
                 RestrictionMode.AND,
                 DocumentLanguage.DE,

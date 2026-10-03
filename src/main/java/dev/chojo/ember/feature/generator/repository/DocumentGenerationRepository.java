@@ -26,7 +26,7 @@ public class DocumentGenerationRepository {
 
     private static final String COLUMNS = """
             id, station_id, template_id, template_version, member_id, generated_by, generated_at, self_service,
-            document_id, file_sha256, pdf_original_id""";
+            document_id, file_sha256, pdf_original_id, event_id, event_date""";
 
     /**
      * Writes one entry of the log with the people whose data went into the document.
@@ -39,10 +39,10 @@ public class DocumentGenerationRepository {
         var written = query("""
                         INSERT INTO document_generation(station_id, template_id, template_version, member_id,
                                                         generated_by, generated_at, self_service, document_id,
-                                                        file_sha256, pdf_original_id)
+                                                        file_sha256, pdf_original_id, event_id, event_date)
                         VALUES (:station_id, :template_id, :template_version, :member_id,
                                 :generated_by, :generated_at, :self_service, :document_id, :file_hash,
-                                :pdf_original_id)
+                                :pdf_original_id, :event_id, :event_date)
                         RETURNING %s;""", COLUMNS)
                 .single(call().bind("station_id", entry.stationId())
                         .bind("generated_at", entry.generatedAt(), INSTANT_TIMESTAMP)
@@ -53,7 +53,9 @@ public class DocumentGenerationRepository {
                         .bind("self_service", entry.selfService())
                         .bind("document_id", entry.documentId())
                         .bind("file_hash", entry.fileSha256())
-                        .bind("pdf_original_id", entry.pdfOriginalId()))
+                        .bind("pdf_original_id", entry.pdfOriginalId())
+                        .bind("event_id", entry.eventId())
+                        .bind("event_date", entry.eventDate()))
                 .map(DocumentGeneration.map())
                 .first()
                 .orElseThrow();

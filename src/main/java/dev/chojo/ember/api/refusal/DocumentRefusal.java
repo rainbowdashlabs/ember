@@ -246,7 +246,52 @@ public enum DocumentRefusal implements Refusal {
     DOCUMENT_SIGNER_TWICE_FOR_MEMBER(
             72,
             HttpStatus.CONFLICT,
-            "For this member, two signature lines of the template ask the same person to sign, so nothing was produced");
+            "For this member, two signature lines of the template ask the same person to sign, so nothing was produced"),
+
+    /** A generation run that does not exist or is another station's. */
+    DOCUMENT_JOB_NOT_HERE(90, HttpStatus.NOT_FOUND, "There is no such generation run"),
+
+    /** A member of a generation run whose data is incomplete, where the run was not to file gaps. */
+    DOCUMENT_JOB_VALUES_MISSING(
+            91, HttpStatus.CONFLICT, "Data the template needs is missing for this member, so no document was filed"),
+
+    /** A generation run that names nobody. */
+    DOCUMENT_JOB_NO_MEMBERS(92, HttpStatus.BAD_REQUEST, "No member was chosen, so nothing was generated"),
+
+    /** A generation run for more members than one run takes. */
+    DOCUMENT_JOB_TOO_MANY_MEMBERS(
+            93, HttpStatus.BAD_REQUEST, "One run generates for a limited number of members, so nothing was started"),
+
+    /** A generation run naming somebody who is no current member of the station. */
+    DOCUMENT_JOB_MEMBER_NOT_HERE(
+            94,
+            HttpStatus.BAD_REQUEST,
+            "A chosen member is not a current member of this station, so nothing was started"),
+
+    /** A template named as a document to bring that is not meant for appointments. */
+    DOCUMENT_TEMPLATE_NOT_FOR_APPOINTMENTS(
+            95, HttpStatus.BAD_REQUEST, "Only a template for appointments can be a document to bring"),
+
+    /** A template that names the values of an appointment without being meant for appointments. */
+    DOCUMENT_TEMPLATE_APPOINTMENT_VALUES_OUTSIDE(
+            96, HttpStatus.BAD_REQUEST, "Only a template for appointments can use the values of an appointment"),
+
+    /** A template appointments still require, which was to stop being one for appointments. */
+    DOCUMENT_TEMPLATE_REQUIRED_BY_APPOINTMENTS(
+            97,
+            HttpStatus.CONFLICT,
+            "Appointments still require this template, so it stays a template for appointments"),
+
+    /** A document to bring asked for by somebody who is not a registered participant nor their guardian. */
+    DOCUMENT_REQUIREMENT_NOT_YOURS(
+            98, HttpStatus.FORBIDDEN, "Only a registered participant or their guardian gets this document"),
+
+    /** A template the appointment does not name as a document to bring. */
+    DOCUMENT_REQUIREMENT_NOT_REQUIRED(99, HttpStatus.NOT_FOUND, "The appointment does not ask for this document"),
+
+    /** More documents to bring than an appointment may name. */
+    DOCUMENT_REQUIREMENTS_TOO_MANY(
+            100, HttpStatus.BAD_REQUEST, "An appointment asks for a limited number of documents, so nothing was saved");
 
     private final Definition definition;
 

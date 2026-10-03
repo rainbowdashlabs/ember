@@ -724,6 +724,7 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
                 true,
                 true,
                 false,
+                false,
                 0,
                 RestrictionMode.AND,
                 DocumentLanguage.DE,
