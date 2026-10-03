@@ -72,6 +72,7 @@ class DocumentTemplateServiceTest extends RepositoryTestBase {
     private static int guardianField;
     private static int trialField;
     private static int unaskedField;
+    private static int allergiesField;
 
     @BeforeAll
     static void setup() {
@@ -83,6 +84,8 @@ class DocumentTemplateServiceTest extends RepositoryTestBase {
         guardianField = field("Arbeitgeber", ProfileFieldScope.GUARDIAN);
         trialField = field("Schnupperwunsch", ProfileFieldScope.TRIAL);
         unaskedField = field("Ungefragt");
+        memberQuestion("Medizinisches", FieldType.SECTION, 1);
+        allergiesField = memberQuestion("Allergien", FieldType.TEXT, 2);
 
         var media = mock(MediaLibraryService.class);
         when(media.findByHash(any(), anyString())).thenReturn(Optional.empty());
@@ -112,6 +115,22 @@ class DocumentTemplateServiceTest extends RepositoryTestBase {
                 .id();
         for (var role : roles) profileFieldRepo.assignToRole(id, role, 0, null, null, null);
         return id;
+    }
+
+    /** A question on the member's form, at the given place. */
+    private static int memberQuestion(String name, FieldType type, int position) {
+        int id = profileFieldRepo
+                .create(station.id(), name, type, ProfileFieldConfig.empty(), false, false, null)
+                .id();
+        profileFieldRepo.assignToRole(id, ProfileFieldScope.MEMBER, position, null, null, null);
+        return id;
+    }
+
+    private static Placeholder placeholder(String key) {
+        return service.catalogue(owner).placeholders().stream()
+                .filter(candidate -> candidate.key().equals(key))
+                .findFirst()
+                .orElseThrow();
     }
 
     private static void refused(Refusal refusal, Executable action) {
@@ -426,6 +445,38 @@ class DocumentTemplateServiceTest extends RepositoryTestBase {
         assertFalse(keys.contains("guardian2.profile." + trialField));
         assertFalse(keys.contains("profile." + unaskedField));
         assertFalse(keys.contains("guardian1.profile." + unaskedField));
+    }
+
+    @Test
+    void everyPlaceholderNamesThePathThePickerOffersItUnder() {
+        assertEquals(
+                List.of("Mitglied", "Stammdaten", "Vorname"),
+                placeholder("member.firstName").path());
+        assertEquals(
+                List.of("Mitglied", "Profil", "Schule"),
+                placeholder("profile." + textField).path());
+        assertEquals(
+                List.of("Mitglied", "Profil", "Medizinisches", "Allergien"),
+                placeholder("profile." + allergiesField).path());
+        var guardian = placeholder("guardian1.firstName");
+        assertEquals(List.of("Erziehungsberechtigte 1", "Stammdaten", "Vorname"), guardian.path());
+        assertEquals("Erziehungsberechtigte 1: Vorname", guardian.label());
+        assertEquals(
+                List.of("Erziehungsberechtigte 2", "Profil", "Schule"),
+                placeholder("guardian2.profile." + textField).path());
+        assertEquals(
+                List.of("Pronomen", "Wer (er / sie)", "Er / Sie / Vorname (Satzanfang)"),
+                placeholder("pronoun.subject.start").path());
+        assertEquals(
+                List.of("Pronomen", "Wessen (sein / ihr)", "Am Satzanfang", "Seinen / Ihren / Vornamens"),
+                placeholder("pronoun.possessive.start.en").path());
+        assertEquals(
+                List.of("Wache", "Name der Wache"), placeholder("station.name").path());
+
+        var categories = service.catalogue(owner).placeholders().stream()
+                .map(Placeholder::category)
+                .toList();
+        assertEquals(categories.stream().sorted().toList(), categories);
     }
 
     @Test

@@ -21,7 +21,7 @@ async function addRow(area: Locator, columns: number) {
 
 /**
  * Writes a text block: picks the text kind in an empty block, opens its editor and types, putting the
- * placeholders in with the picker above the text.
+ * placeholders in with the picker above the text, found by searching for their key.
  *
  * @param area  the part of the letter the editor writes
  * @param parts the words, and the placeholders by their key written as `{key}`
@@ -34,7 +34,9 @@ async function writeText(area: Locator, parts: string[]) {
     for (const part of parts) {
         const key = /^\{(.+)}$/.exec(part)?.[1]
         if (key) {
-            await dialog.getByTestId('placeholder-picker').selectOption(key)
+            const picker = dialog.getByTestId('placeholder-picker')
+            await picker.getByTestId('placeholder-picker-search').locator('input').fill(key)
+            await picker.getByTestId(`placeholder-${key}`).click()
         } else {
             await text.click()
             await area.page().keyboard.press('End')

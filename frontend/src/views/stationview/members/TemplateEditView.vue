@@ -93,7 +93,8 @@ async function upload(file: File) {
           @archive="setArchived"
       />
       <TabBar v-model="tab" :tabs="tabs"/>
-      <GeneralPanel v-if="tab === 'general'" v-model="draft" :document-tags="editor.documentTags.value"/>
+      <GeneralPanel v-if="tab === 'general'" v-model="draft" :document-tags="editor.documentTags.value"
+                    :placeholders="editor.placeholders.value"/>
       <LetterPanel v-if="tab === 'letter'" v-model="draft" :catalogue="editor.letterCatalogue.value"/>
       <PdfPanel v-if="tab === 'pdf'" v-model="draft" :saved="saved" :source="editor.pdf.value"
                 :placeholders="editor.placeholders.value" :labels="editor.labels.value" @upload="upload"/>

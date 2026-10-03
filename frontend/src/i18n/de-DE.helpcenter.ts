@@ -1722,9 +1722,12 @@ volumes:
             pageText: 'Unter Seite stellst du die Ränder und die Schriftgröße ein. Kopf- und Fußzeile stehen im '
                 + 'oberen und unteren Rand, lass dort also genug Platz.',
             bodyTitle: 'Text, Platzhalter und Sichtbarkeit',
-            bodyText: 'Einen Text schreibst du im gewohnten Editor. Über „Platzhalter einfügen" setzt du an der '
-                + 'Stelle des Cursors ein Feld ein, etwa Vorname oder Geburtsdatum. Im Text erscheint es als '
-                + 'farbiges Feld mit seinem Namen. Über „Sichtbarkeit" im Menü eines Bausteins erscheint er nur für '
+            bodyText: 'Einen Text schreibst du im gewohnten Editor. Darüber stehen die Bereiche der Platzhalter, '
+                + 'etwa Mitglied, Pronomen oder Wache. Wähle einen Bereich und klicke dich weiter, zum Beispiel '
+                + 'Mitglied › Profil › Medizinisches › Allergien, oder suche direkt nach einem Feld. Ein Klick setzt '
+                + 'das Feld an der Stelle des Cursors ein. Im Text erscheint es als farbiges Feld mit seinem Namen. '
+                + 'Bei Titel, Dateiname und PDF-Feldern öffnet „Platzhalter einfügen" dieselbe Auswahl. Über '
+                + '„Sichtbarkeit" im Menü eines Bausteins erscheint er nur für '
                 + 'bestimmte Gruppen, Mitgliedsarten oder Tags. Für andere Mitglieder fällt er weg, und eine Zeile '
                 + 'ohne Inhalt verschwindet ganz. Einen anderen Text für die übrigen Mitglieder schreibst du in einen '
                 + 'zweiten Baustein mit eigener Sichtbarkeit.',

@@ -8,7 +8,7 @@ import type {Content} from '@tiptap/vue-3'
 import {CellContentType, type Placeholder} from '@/api/generated/schema'
 import type {BlockEditorOptions, BlockRestrictionChoices} from '@/composables/useBlockEditorOptions'
 import {placeholderContent, placeholderTokens} from '@/components/input/markdowneditor/placeholderChip'
-import PlaceholderPicker from './PlaceholderPicker.vue'
+import PlaceholderPicker from './placeholderpicker/PlaceholderPicker.vue'
 
 /** The most columns a row of a letter holds, which is what the server takes. */
 export const LETTER_COLUMNS = 3

@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.generator.entity;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -18,66 +19,53 @@ import java.util.Optional;
  * <p>Names are official names throughout: the register's first name and surname, never the name a
  * member is called by. {@link #MEMBER_CALLED_NAME} is the one exception and is kept out of legal
  * templates.
+ *
+ * <p>The values of a person stand in the picker below the {@link PlaceholderSubgroup#DETAILS details}
+ * of the member or the guardian, the others right below their category. A guardian's value is named
+ * shortly there, and its label puts the guardian in front.
  */
 public enum BuiltInPlaceholder {
-    MEMBER_FIRST_NAME("member.firstName", PlaceholderGroup.MEMBER, "Vorname", "First name"),
-    MEMBER_LAST_NAME("member.lastName", PlaceholderGroup.MEMBER, "Nachname", "Last name"),
-    MEMBER_FULL_NAME("member.fullName", PlaceholderGroup.MEMBER, "Vor- und Nachname", "Full name"),
-    MEMBER_CALLED_NAME("member.calledName", PlaceholderGroup.MEMBER, "Rufname", "Called name"),
-    MEMBER_BIRTH_DATE("member.birthDate", PlaceholderGroup.MEMBER, "Geburtsdatum", "Date of birth"),
-    MEMBER_AGE("member.age", PlaceholderGroup.MEMBER, "Alter", "Age"),
-    MEMBER_JOIN_DATE("member.joinDate", PlaceholderGroup.MEMBER, "Mitglied seit", "Member since"),
+    MEMBER_FIRST_NAME("member.firstName", PlaceholderCategory.MEMBER, "Vorname", "First name"),
+    MEMBER_LAST_NAME("member.lastName", PlaceholderCategory.MEMBER, "Nachname", "Last name"),
+    MEMBER_FULL_NAME("member.fullName", PlaceholderCategory.MEMBER, "Vor- und Nachname", "Full name"),
+    MEMBER_CALLED_NAME("member.calledName", PlaceholderCategory.MEMBER, "Rufname", "Called name"),
+    MEMBER_BIRTH_DATE("member.birthDate", PlaceholderCategory.MEMBER, "Geburtsdatum", "Date of birth"),
+    MEMBER_AGE("member.age", PlaceholderCategory.MEMBER, "Alter", "Age"),
+    MEMBER_JOIN_DATE("member.joinDate", PlaceholderCategory.MEMBER, "Mitglied seit", "Member since"),
     MEMBER_JOIN_MONTH(
             "member.joinDate.monthYear",
-            PlaceholderGroup.MEMBER,
+            PlaceholderCategory.MEMBER,
             "Mitglied seit (Monat und Jahr)",
             "Member since (month and year)"),
-    MEMBER_USER_TYPE("member.userType", PlaceholderGroup.MEMBER, "Mitgliedsart", "Member type"),
-    GUARDIAN1_FULL_NAME(
-            "guardian1.fullName", PlaceholderGroup.GUARDIAN, "Erziehungsberechtigte 1: Name", "Guardian 1: name"),
-    GUARDIAN1_FIRST_NAME(
-            "guardian1.firstName",
-            PlaceholderGroup.GUARDIAN,
-            "Erziehungsberechtigte 1: Vorname",
-            "Guardian 1: first name"),
-    GUARDIAN1_LAST_NAME(
-            "guardian1.lastName",
-            PlaceholderGroup.GUARDIAN,
-            "Erziehungsberechtigte 1: Nachname",
-            "Guardian 1: last name"),
-    GUARDIAN2_FULL_NAME(
-            "guardian2.fullName", PlaceholderGroup.GUARDIAN, "Erziehungsberechtigte 2: Name", "Guardian 2: name"),
-    GUARDIAN2_FIRST_NAME(
-            "guardian2.firstName",
-            PlaceholderGroup.GUARDIAN,
-            "Erziehungsberechtigte 2: Vorname",
-            "Guardian 2: first name"),
-    GUARDIAN2_LAST_NAME(
-            "guardian2.lastName",
-            PlaceholderGroup.GUARDIAN,
-            "Erziehungsberechtigte 2: Nachname",
-            "Guardian 2: last name"),
-    STATION_NAME("station.name", PlaceholderGroup.STATION, "Name der Wache", "Station name"),
-    STATION_ADDRESS("station.address", PlaceholderGroup.STATION, "Straße der Wache", "Station street"),
+    MEMBER_USER_TYPE("member.userType", PlaceholderCategory.MEMBER, "Mitgliedsart", "Member type"),
+    GUARDIAN1_FULL_NAME("guardian1.fullName", PlaceholderCategory.GUARDIAN1, "Name", "Name"),
+    GUARDIAN1_FIRST_NAME("guardian1.firstName", PlaceholderCategory.GUARDIAN1, "Vorname", "First name"),
+    GUARDIAN1_LAST_NAME("guardian1.lastName", PlaceholderCategory.GUARDIAN1, "Nachname", "Last name"),
+    GUARDIAN2_FULL_NAME("guardian2.fullName", PlaceholderCategory.GUARDIAN2, "Name", "Name"),
+    GUARDIAN2_FIRST_NAME("guardian2.firstName", PlaceholderCategory.GUARDIAN2, "Vorname", "First name"),
+    GUARDIAN2_LAST_NAME("guardian2.lastName", PlaceholderCategory.GUARDIAN2, "Nachname", "Last name"),
+    STATION_NAME("station.name", PlaceholderCategory.STATION, "Name der Wache", "Station name"),
+    STATION_ADDRESS("station.address", PlaceholderCategory.STATION, "Straße der Wache", "Station street"),
     STATION_POSTAL_CODE(
-            "station.postalCode", PlaceholderGroup.STATION, "Postleitzahl der Wache", "Station postal code"),
-    STATION_CITY("station.city", PlaceholderGroup.STATION, "Ort der Wache", "Station city"),
-    EVENT_NAME("event.name", PlaceholderGroup.EVENT, "Termin", "Appointment"),
-    EVENT_START("event.start", PlaceholderGroup.EVENT, "Beginn des Termins", "Appointment start"),
-    EVENT_END("event.end", PlaceholderGroup.EVENT, "Ende des Termins", "Appointment end"),
-    EVENT_LOCATION("event.location", PlaceholderGroup.EVENT, "Ort des Termins", "Appointment location"),
-    TODAY("today", PlaceholderGroup.DOCUMENT, "Heutiges Datum", "Today's date"),
-    TODAY_LONG("today.long", PlaceholderGroup.DOCUMENT, "Heutiges Datum, ausgeschrieben", "Today's date, written out"),
-    GENERATED_BY("generatedBy.fullName", PlaceholderGroup.DOCUMENT, "Erstellt von", "Generated by");
+            "station.postalCode", PlaceholderCategory.STATION, "Postleitzahl der Wache", "Station postal code"),
+    STATION_CITY("station.city", PlaceholderCategory.STATION, "Ort der Wache", "Station city"),
+    EVENT_NAME("event.name", PlaceholderCategory.APPOINTMENT, "Termin", "Appointment"),
+    EVENT_START("event.start", PlaceholderCategory.APPOINTMENT, "Beginn des Termins", "Appointment start"),
+    EVENT_END("event.end", PlaceholderCategory.APPOINTMENT, "Ende des Termins", "Appointment end"),
+    EVENT_LOCATION("event.location", PlaceholderCategory.APPOINTMENT, "Ort des Termins", "Appointment location"),
+    TODAY("today", PlaceholderCategory.DOCUMENT, "Heutiges Datum", "Today's date"),
+    TODAY_LONG(
+            "today.long", PlaceholderCategory.DOCUMENT, "Heutiges Datum, ausgeschrieben", "Today's date, written out"),
+    GENERATED_BY("generatedBy.fullName", PlaceholderCategory.DOCUMENT, "Erstellt von", "Generated by");
 
     private final String key;
-    private final PlaceholderGroup group;
+    private final PlaceholderCategory category;
     private final String german;
     private final String english;
 
-    BuiltInPlaceholder(String key, PlaceholderGroup group, String german, String english) {
+    BuiltInPlaceholder(String key, PlaceholderCategory category, String german, String english) {
         this.key = key;
-        this.group = group;
+        this.category = category;
         this.german = german;
         this.english = english;
     }
@@ -92,10 +80,19 @@ public enum BuiltInPlaceholder {
      * @return the placeholder as the catalogue offers it in that language
      */
     public Placeholder in(String language) {
+        String name = "en".equals(language) ? english : german;
+        String categoryWord = category.word(language);
+        var group = category.group();
+        boolean guardian = group == PlaceholderGroup.GUARDIAN;
+        var path = guardian || group == PlaceholderGroup.MEMBER
+                ? List.of(categoryWord, PlaceholderSubgroup.DETAILS.word(language), name)
+                : List.of(categoryWord, name);
         return new Placeholder(
                 key,
-                "en".equals(language) ? english : german,
+                guardian ? categoryWord + ": " + name : name,
                 group,
+                category,
+                path,
                 this == MEMBER_CALLED_NAME,
                 group == PlaceholderGroup.EVENT);
     }
