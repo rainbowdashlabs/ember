@@ -1547,7 +1547,7 @@ volumes:
                 + 'schmaler. Beides gilt nur für dieses Formular, dieselbe Frage kann anderswo anders '
                 + 'stehen.',
             templatesTitle: 'Feld-Vorlagen',
-            templatesText: 'Wenn du noch keine Felder angelegt hast, kannst du aus vordefinierten Vorlagen wählen. Jede Vorlage erstellt ein oder mehrere Felder mit sinnvollen Voreinstellungen - zum Beispiel Adresse, Geburtsdatum, Notfallkontakt oder Jugendflamme. Führerschein, JuLeiCa und Erste Hilfe bringen ein Ablaufdatum mit.',
+            templatesText: 'Wenn du noch keine Felder angelegt hast, kannst du aus vordefinierten Vorlagen wählen. Jede Vorlage erstellt ein oder mehrere Felder mit sinnvollen Voreinstellungen - zum Beispiel Adresse, Geburtsdatum, Notfallkontakt oder Jugendflamme. Führerschein, JuLeiCa und Erste Hilfe bringen ein Ablaufdatum mit. Die neuen Felder werden noch niemandem gestellt: Wem du sie stellst, legst du danach bei jedem Feld fest.',
             expiryTitle: 'Ablaufdaten',
             expiryStates: 'Ein Ablaufdatum ist gültig, läuft bald ab oder ist abgelaufen. Ab wie vielen Tagen '
                 + 'vorher es als „läuft bald ab" gilt, stellst du bei „Warnen ab" ein. Dann steht es gelb, nach '
