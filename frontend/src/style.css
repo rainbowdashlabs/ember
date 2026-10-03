@@ -261,15 +261,27 @@ a:not(:has(button)):not(.row-link):hover {
     overflow-wrap: break-word;
 }
 
+/*
+ * A placeholder of a letter, as a pill tinted with the theme's primary colour over the page and edged in
+ * that colour drawn towards the text, darker in the light theme and lighter in the dark one, so it stands
+ * out from the words around it in either theme. The text keeps the theme's own colour, which the tint
+ * is mixed light or dark enough to carry.
+ */
 .markdown-content .placeholder-chip {
     display: inline-block;
     padding: 0 0.45em;
     margin: 0 0.1em;
     border-radius: 9999px;
     font-size: 0.85em;
-    background: color-mix(in srgb, var(--primary) 18%, transparent);
-    border: 1px solid color-mix(in srgb, var(--primary) 45%, transparent);
+    color: var(--text);
+    background: color-mix(in srgb, var(--color-primary) 35%, var(--bg));
+    border: 1px solid color-mix(in srgb, var(--color-primary) 70%, var(--text));
     white-space: nowrap;
+}
+
+.markdown-content .placeholder-chip.ProseMirror-selectednode {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 1px;
 }
 
 .markdown-content h1 {
