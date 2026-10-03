@@ -42,6 +42,8 @@ Wachen erstellen aus eigenen Vorlagen und denen ihres Verbands Dokumente für ih
 - **Escape schloss den Textdialog nicht.** Im Textdialog der Editoren für Seiten, Neuigkeiten, Wiki und Vorlagen tat die Escape-Taste nichts, solange der Cursor im Text stand. Jetzt schließt sie den Dialog auch von dort.
 - **Fenster im Editor wurden am Rand des Feldes abgeschnitten.** In manchen Fällen wurden die Farbauswahl, die Fenster für Links, Bilder und Videos im Texteditor und die Menüs von Zeilen und Bausteinen im Editor für Seiten vom Rand des Textfelds oder eines Dialogs abgeschnitten. Jetzt öffnen sie sich immer vollständig.
 - **Manche Themenfarben fehlten.** Auf vielen Seiten erschienen Hervorhebungen, Links, Hintergründe unter dem Mauszeiger, Fortschrittsbalken, Fehlermeldungen und Erfolgsmarkierungen ohne ihre Farbe. Jetzt erscheinen sie in den Themenfarben.
+- **Mehrere Leerzeichen wurden zu einem.** Mehrere hintereinander getippte Leerzeichen im Texteditor schrumpften nach dem Speichern zu einem einzigen, auf Seiten, in Briefen und in Wiki-PDFs. Jetzt bleiben sie wie getippt, im Editor, auf der Seite und im Druck.
+- **Text neben einem Bild begann tiefer.** In einer Zeile von Bausteinen auf Seiten und im Editor für Seiten begann Text neben einem Bild etwas unterhalb der Oberkante des Bildes. Jetzt beginnt er auf gleicher Höhe.
 
 ## v26.20.2
 

@@ -15,13 +15,15 @@ import {extendTurndownWithTextSize} from './textSize'
  * HTML the renderer already accepts, so a formatting choice the user made survives a round trip
  * instead of being silently dropped. Highlights are the one hybrid: the default yellow becomes
  * `==text==`, any other colour has to stay HTML to carry the colour. Colours are written as hex
- * codes, whatever form the browser reads them back in.
+ * codes, whatever form the browser reads them back in. Inline code keeps its spaces as written,
+ * several in a row included, the way a code block does.
  */
 export function createMarkdownTurndown(): TurndownService {
   const turndown = new TurndownService({
     headingStyle: 'atx',
     codeBlockStyle: 'fenced',
     bulletListMarker: '-',
+    preformattedCode: true,
   })
 
   turndown.addRule('strikethrough', {filter: ['del', 's'], replacement: (c) => `~~${c}~~`})

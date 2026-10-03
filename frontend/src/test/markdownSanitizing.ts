@@ -6,6 +6,8 @@
 import {describe, expect, it} from 'vitest'
 import {renderMarkdown} from '@/util/markdown'
 
+const NBSP = String.fromCodePoint(0xa0)
+
 /**
  * The stories every markdown rendering has to pass, wherever it runs.
  *
@@ -67,6 +69,20 @@ export function describeMarkdownRendering(side: string): void {
                 + '<span data-size="200">b</span><div data-size="14">c</div>')
 
             expect(html).not.toContain('style=')
+        })
+
+        /** The editor stores every space of a run but the last as a non-breaking one, which HTML does not fold. */
+        it.each([
+            ['two spaces', `Name:${NBSP} Anna`, 'Name:&nbsp; Anna'],
+            ['three spaces', `Name:${NBSP}${NBSP} Anna`, 'Name:&nbsp;&nbsp; Anna'],
+            ['leading spaces', `${NBSP}${NBSP} eingerückt`, '<p>&nbsp;&nbsp; eingerückt</p>'],
+            ['spaces in a coloured span', `<span style="color: #ff0000">rot${NBSP} rot</span>`, 'rot&nbsp; rot'],
+        ])('keeps %s the editor stored', (_name, markdown, shown) => {
+            expect(renderMarkdown(markdown)).toContain(shown)
+        })
+
+        it('keeps the spaces of inline code', () => {
+            expect(renderMarkdown('`a  b`')).toContain('<code>a  b</code>')
         })
 
         it('answers with nothing for nothing', () => {

@@ -117,7 +117,7 @@ function youtubeEmbedUrl(url: string): string | null {
             <div
                 v-for="(child, ci) in (row.cells ?? [])" :key="ci"
                 :style="{flex: `0 0 calc(${child.widthPercent}% - 0.5rem)`}"
-                class="min-w-0"
+                class="row-cell min-w-0"
                 :class="row.columnLines && ci > 0 ? 'border-l border-(--border) pl-2' : ''"
             >
                 <ContentCell :cell="child" :context="context"/>
