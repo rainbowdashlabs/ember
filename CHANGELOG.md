@@ -6,6 +6,7 @@ Theme colours show where they were missing.
 
 ### Fixes
 
+- **Field templates were asked of trial members.** Fields added from a profile field template were put to the form that was shown, which on opening was the one for trial members. Fields from a template are now created without an audience, and each is put to the right forms afterwards.
 - **Some theme colours were missing.** On many pages, highlights, links, backgrounds under the mouse pointer, progress bars, error messages and success marks were shown without their colour. They now show in the theme colours.
 
 ## v26.20.2

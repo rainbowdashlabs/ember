@@ -65,7 +65,7 @@ const audienceCount = computed(() => c.allAssignments.value.reduce<Record<number
           @toggle-required="c.toggleRequired"
           @toggle-readonly="c.toggleReadonly"
           @set-writability="c.setWritability"
-          @apply-template="(tpl: FieldTemplate) => c.applyTemplate(tpl, c.previewRole.value)"
+          @apply-template="(tpl: FieldTemplate) => c.applyTemplate(tpl)"
       />
 
       <AudiencesPanel

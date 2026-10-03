@@ -606,10 +606,11 @@ export function useFieldsConfig(port: FieldsPort) {
     }
 
     /**
-     * Writes a template's questions and puts them all to one audience.
+     * Writes a template's questions without putting them to anybody.
      *
-     * <p>A template is a set of questions somebody already decided belong together, so it names the
-     * audience once rather than leaving a dozen new questions asked of nobody.
+     * <p>Which audiences a question is asked of is the station's own decision, made per question; a
+     * template only saves writing the questions. They stand among the questions asked of nobody until
+     * they are put to an audience.
      *
      * <p>Whether an answer is expected and whether only the member management may write it travel on
      * the field, beside its settings, which name neither.
@@ -622,22 +623,17 @@ export function useFieldsConfig(port: FieldsPort) {
             required?: boolean
             readonly?: boolean
         }>},
-        role: ProfileFieldScope,
     ) {
         failure.value = null
         try {
-            const startPosition = formFor(role).length
-            for (const [i, f] of template.fields.entries()) {
-                const created = await port.create(withTarget({
+            for (const f of template.fields) {
+                await port.create(withTarget({
                     name: f.name,
                     fieldType: f.fieldType,
                     config: f.config,
                     required: f.required ?? false,
                     readonly: f.readonly ?? false,
                 }))
-                if (created?.id) {
-                    await port.assign(created.id, {role, position: startPosition + i})
-                }
             }
         } catch (e) {
             record(e)
