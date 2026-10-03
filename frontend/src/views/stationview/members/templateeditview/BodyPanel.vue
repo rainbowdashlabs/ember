@@ -47,7 +47,7 @@ function imported(body: string) {
     <SubHeader>{{ t('documentTemplates.bodyTitle') }}</SubHeader>
     <MutedText size="sm" tag="p">{{ t('documentTemplates.bodyHint') }}</MutedText>
     <div class="grid gap-3 sm:grid-cols-2">
-      <PlaceholderPicker :placeholders="placeholders" :legal="draft.legal" @pick="insert"/>
+      <PlaceholderPicker :placeholders="placeholders" :legal="draft.legal" signatures @pick="insert"/>
       <LetterImportField @imported="imported"/>
     </div>
     <MarkdownEditor ref="editor" v-model="draft.bodyMarkdown" :tokens="tokens" data-testid="template-body"

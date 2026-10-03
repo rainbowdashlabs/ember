@@ -16,6 +16,7 @@ import {mediaImageUrlAt} from '@/api/media'
 import {TextAlign, LetterCellKind, type LetterCell, type Placeholder, type StationFile} from '@/api/generated/schema'
 import {useSession} from '@/composables/useSession'
 import PlaceholderPicker from './PlaceholderPicker.vue'
+import {withPlaceholder} from './placeholderText'
 
 /**
  * One cell of the header or the footer: nothing, a picture from the media library, the station logo,
@@ -55,9 +56,7 @@ function pickPicture(payload: {file: StationFile}) {
 }
 
 function appendPlaceholder(placeholder: Placeholder) {
-  const text = cell.value.text ?? ''
-  const gap = text.length === 0 || text.endsWith(' ') || text.endsWith('\n') ? '' : ' '
-  cell.value = {...cell.value, text: `${text}${gap}{{${placeholder.key}}}`}
+  cell.value = {...cell.value, text: withPlaceholder(cell.value.text ?? '', placeholder.key)}
 }
 </script>
 

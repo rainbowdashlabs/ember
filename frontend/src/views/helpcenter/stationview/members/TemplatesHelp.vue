@@ -16,6 +16,7 @@ const {t} = useI18n()
   <HelpArticle :title="t('helpCenter.documentTemplates.title')" :subtitle="t('helpCenter.documentTemplates.subtitle')">
     <HelpSection :title="t('helpCenter.documentTemplates.whatIs')">
       <p>{{ t('helpCenter.documentTemplates.whatIsText') }}</p>
+      <p>{{ t('helpCenter.documentTemplates.whatIsPdfText') }}</p>
       <p>{{ t('helpCenter.documentTemplates.whatIsText2') }}</p>
     </HelpSection>
 

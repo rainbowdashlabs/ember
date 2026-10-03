@@ -100,6 +100,20 @@ describe('PdfCanvas', () => {
         expect(getPage).toHaveBeenCalledWith(4)
     })
 
+    /** Whoever lays something over the page needs the viewport the page was drawn through. */
+    it('announces the viewport of every page it has drawn', async () => {
+        opens(3)
+
+        const canvas = mount(PdfCanvas, {props: {source: new Blob(['pdf']), page: 2}})
+        await flushPromises()
+        await canvas.setProps({page: 3})
+        await flushPromises()
+
+        const drawn = canvas.emitted('drawn') ?? []
+        expect(drawn).toHaveLength(2)
+        expect(drawn[0]?.[0]).toMatchObject({width: expect.any(Number), height: expect.any(Number)})
+    })
+
     it('stays inside the document when asked for a page beyond it', async () => {
         opens(2)
 

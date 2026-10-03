@@ -1667,12 +1667,15 @@ volumes:
         },
         documentTemplates: {
             title: 'Dokumentvorlagen',
-            subtitle: 'Briefe, aus denen Ember Dokumente für Mitglieder erstellt',
+            subtitle: 'Briefe und PDFs, aus denen Ember Dokumente für Mitglieder erstellt',
             whatIs: 'Wofür Vorlagen da sind',
             whatIsText: 'Eine Vorlage ist ein Brief mit Briefkopf und Text, in dem Platzhalter für die Daten eines '
                 + 'Mitglieds stehen: Name, Geburtsdatum, Mitglied seit, Profilfelder, Erziehungsberechtigte und die '
                 + 'Wache. Daraus erstellt Ember für ein Mitglied ein fertiges PDF, zum Beispiel eine '
                 + 'Teilnahmebescheinigung.',
+            whatIsPdfText: 'Eine PDF-Vorlage ist ein fertiges Formular, etwa eine Einverständniserklärung. Du lädst '
+                + 'es als PDF hoch und setzt Felder auf seine Seiten. Ember füllt sie für jedes Mitglied aus, das '
+                + 'Formular selbst bleibt unverändert.',
             whatIsText2: 'Jedes erstellte Dokument landet in den Dokumenten des Mitglieds. Ember merkt sich, aus '
                 + 'welcher Fassung der Vorlage es stammt und wessen Daten darin stehen.',
             generateTitle: 'Ein Dokument erstellen',
@@ -1698,7 +1701,7 @@ volumes:
         },
         documentTemplateEditor: {
             title: 'Vorlage bearbeiten',
-            subtitle: 'Briefkopf, Text, Platzhalter und Pronomen einer Dokumentvorlage',
+            subtitle: 'Briefkopf, Text, PDF-Felder, Platzhalter und Pronomen einer Dokumentvorlage',
             generalTitle: 'Allgemein',
             generalText: 'Hier gibst du der Vorlage einen Namen und legst fest, unter welchem Titel und Dateinamen '
                 + 'die Dokumente abgelegt werden, mit welchen Tags, ob sie die Mitgliedschaft überdauern und ob sie '
@@ -1720,6 +1723,20 @@ volumes:
             importText: 'Hast du die Bescheinigung schon als Word- oder OpenDocument-Text, importiere sie. Lücken in '
                 + 'eckigen Klammern wie [Vorname Nachname] oder [Geburtsdatum] werden zu Platzhaltern, alles andere '
                 + 'bleibt Text. Kopf- und Fußzeile richtest du danach im Briefkopf ein.',
+            signatureText: 'Unter „Unterschrift" gibt es ein Unterschriftsfeld für die ausstellende Person. Setze es '
+                + 'über ihren Namen und ihre Funktion. Im Dokument steht dort eine Linie zum Unterschreiben, und das PDF '
+                + 'enthält ein leeres Unterschriftsfeld.',
+            pdfTitle: 'PDF und Felder',
+            pdfText: 'Eine PDF-Vorlage füllt ein hochgeladenes Formular aus. Speichere die Vorlage, lade das PDF hoch '
+                + 'und setze Felder auf seine Seiten: ein Textfeld schreibt Text mit Platzhaltern, ein Ankreuzfeld setzt '
+                + 'ein Kreuz, wenn sein Wert Ja ist, und ein Unterschriftsfeld bleibt leer zum Unterschreiben.',
+            pdfFieldsText: 'Ziehe ein Feld an seine Stelle und an der Ecke auf die richtige Größe. Mit den '
+                + 'Pfeiltasten verschiebst du es genauer. Ein Text, der nicht passt, wird kleiner oder bricht in weitere '
+                + 'Zeilen um. Jede Person, die unterschreibt, hat höchstens ein Unterschriftsfeld.',
+            pdfFormText: 'Hat das PDF eigene Formularfelder, stehen sie darunter. Du füllst sie mit Platzhaltern oder '
+                + 'lässt sie, wie sie sind. Beim Erstellen werden alle Felder fest in die Seite übernommen.',
+            pdfVersionText: 'Kommt eine neue Fassung des Formulars, lade sie einfach hoch. Die Felder bleiben, wo sie '
+                + 'waren, und du prüfst sie über den neuen Seiten. Schon erstellte Dokumente bleiben, wie sie sind.',
             pronounsTitle: 'Pronomen',
             pronounsText: 'Wähle ein Auswahlfeld, etwa „Geschlecht", und lege für jede Antwort fest, ob „er", „sie" '
                 + 'oder der Vorname geschrieben wird. Für ein leeres Feld gibt es eine eigene Wahl.',

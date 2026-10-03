@@ -11,22 +11,25 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import TabBar from '@/components/navigation/TabBar.vue'
+import {DocumentTemplateKind} from '@/api/generated/schema'
 import {showToast} from '@/util/toast'
 import {useTemplateEditor} from './templateeditview/useTemplateEditor'
 import GeneralPanel from './templateeditview/GeneralPanel.vue'
 import LetterheadPanel from './templateeditview/LetterheadPanel.vue'
 import BodyPanel from './templateeditview/BodyPanel.vue'
+import PdfPanel from './templateeditview/PdfPanel.vue'
 import PronounPanel from './templateeditview/PronounPanel.vue'
 import SelfServicePanel from './templateeditview/SelfServicePanel.vue'
 import PreviewPanel from './templateeditview/PreviewPanel.vue'
 import EditorActions from './templateeditview/EditorActions.vue'
 
 /**
- * Writes one letter template: what it is called and how its documents are filed, the letterhead, the
- * body with its placeholders, the pronouns, self service, and a look at the result for any member.
+ * Writes one template. A letter has its letterhead and its body; a PDF template has its uploaded PDF
+ * with the fields placed on it. Both have what they are called and how their documents are filed, the
+ * pronouns, self service, and a look at the result for any member.
  *
- * <p>The address names the template, or `new` for one that does not exist yet; saving a new one moves
- * the address to it, so a reload opens what was just saved.
+ * <p>The address names the template, or `new` for one that does not exist yet, with `?kind=PDF` for a
+ * PDF template; saving a new one moves the address to it, so a reload opens what was just saved.
  */
 const {t} = useI18n()
 const route = useRoute()
@@ -36,15 +39,18 @@ const templateId = computed(() => {
   const id = Number(route.params.id)
   return Number.isFinite(id) && id > 0 ? id : null
 })
+const newKind = computed(() => route.query.kind === DocumentTemplateKind.PDF ? DocumentTemplateKind.PDF : DocumentTemplateKind.LETTER)
 
-const editor = useTemplateEditor(templateId)
-const {draft, saved, loader, saving, archiving} = editor
+const editor = useTemplateEditor(templateId, newKind)
+const {draft, saved, loader, saving, archiving, uploading} = editor
 
+const isPdf = computed(() => draft.value.kind === DocumentTemplateKind.PDF)
 const tab = ref('general')
 const tabs = computed(() => [
   {key: 'general', label: t('documentTemplates.tabGeneral')},
-  {key: 'letterhead', label: t('documentTemplates.tabLetterhead')},
-  {key: 'body', label: t('documentTemplates.tabBody')},
+  ...(isPdf.value
+    ? [{key: 'pdf', label: t('documentTemplates.tabPdf')}]
+    : [{key: 'letterhead', label: t('documentTemplates.tabLetterhead')}, {key: 'body', label: t('documentTemplates.tabBody')}]),
   {key: 'pronouns', label: t('documentTemplates.tabPronouns')},
   {key: 'selfService', label: t('documentTemplates.tabSelfService')},
   {key: 'preview', label: t('documentTemplates.tabPreview')},
@@ -53,6 +59,9 @@ const tabs = computed(() => [
 const pageTitle = computed(() => saved.value
     ? t('pages.member-document-template-edit.titleNamed', {name: saved.value.name})
     : t('pages.member-document-template-edit.title'))
+
+const failure = computed(() => loader.failure.value ?? saving.failure.value ?? archiving.failure.value
+    ?? uploading.failure.value ?? editor.pdfLoader.failure.value)
 
 async function save() {
   const written = await saving.run()
@@ -67,12 +76,17 @@ async function setArchived(archived: boolean) {
   const written = await archiving.run(archived)
   if (written) showToast(t(archived ? 'documentTemplates.archived' : 'documentTemplates.restored'), 'success')
 }
+
+async function upload(file: File) {
+  const written = await uploading.run(file)
+  if (written) showToast(t('documentTemplates.pdfUploaded'), 'success')
+}
 </script>
 
 <template>
   <ViewContent :title="pageTitle" :subtitle="t('pages.member-document-template-edit.subtitle')">
     <Spinner v-if="loader.loading.value" size="lg"/>
-    <FailureAlert :failure="loader.failure.value ?? saving.failure.value ?? archiving.failure.value"/>
+    <FailureAlert :failure="failure"/>
     <div v-if="!loader.loading.value && !loader.failure.value" class="space-y-6">
       <EditorActions
           :saved="saved"
@@ -85,6 +99,8 @@ async function setArchived(archived: boolean) {
       <GeneralPanel v-if="tab === 'general'" v-model="draft" :document-tags="editor.documentTags.value"/>
       <LetterheadPanel v-if="tab === 'letterhead'" v-model="draft" :placeholders="editor.placeholders.value"/>
       <BodyPanel v-if="tab === 'body'" v-model="draft" :placeholders="editor.placeholders.value" :labels="editor.labels.value"/>
+      <PdfPanel v-if="tab === 'pdf'" v-model="draft" :saved="saved" :source="editor.pdf.value"
+                :placeholders="editor.placeholders.value" :labels="editor.labels.value" @upload="upload"/>
       <PronounPanel v-if="tab === 'pronouns'" v-model="draft" :choice-fields="editor.choiceFields.value"/>
       <SelfServicePanel
           v-if="tab === 'selfService'"
