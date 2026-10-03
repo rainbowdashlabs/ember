@@ -6,6 +6,7 @@ Themenfarben erscheinen dort, wo sie fehlten.
 
 ### Fehlerbehebungen
 
+- **Feld-Vorlagen wurden Probemitgliedern gestellt.** Felder aus einer Vorlage für Profilfelder kamen auf das gerade gezeigte Formular, und das war beim Öffnen das der Probemitglieder. Felder aus einer Vorlage entstehen jetzt ohne Zielgruppe und werden danach jeweils den passenden Formularen gestellt.
 - **Manche Themenfarben fehlten.** Auf vielen Seiten erschienen Hervorhebungen, Links, Hintergründe unter dem Mauszeiger, Fortschrittsbalken, Fehlermeldungen und Erfolgsmarkierungen ohne ihre Farbe. Jetzt erscheinen sie in den Themenfarben.
 
 ## v26.20.2
