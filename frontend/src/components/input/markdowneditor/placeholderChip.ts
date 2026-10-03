@@ -75,6 +75,17 @@ export function placeholderTokens(labels: ReadonlyMap<string, string>): EditorTo
 }
 
 /**
+ * A text with its placeholders written as what they are called, for a short look at it outside the
+ * editor, such as the label of a field over a PDF.
+ *
+ * @param text   the text with `{{key}}` in it
+ * @param labels the label of every key, from the station's catalogue
+ */
+export function labelledText(text: string, labels: ReadonlyMap<string, string>): string {
+    return text.replace(TOKEN, (_match, key: string) => labels.get(key) ?? key)
+}
+
+/**
  * The chip a placeholder is inserted as.
  *
  * @param key   the key it stands for

@@ -24,7 +24,7 @@ import java.util.List;
  * @param cooldownDays    the days between two self service generations for one member
  * @param restrictionMode how the parts of the self service audience combine
  * @param pronounSource   the field the pronouns follow, or null
- * @param letter          what the letter says and how it looks
+ * @param content         the letter, or the fields laid over the PDF
  */
 public record DocumentTemplateDraft(
         String name,
@@ -38,4 +38,10 @@ public record DocumentTemplateDraft(
         int cooldownDays,
         RestrictionMode restrictionMode,
         @Nullable PronounSource pronounSource,
-        LetterContent letter) {}
+        TemplateContent content) {
+
+    /** @return the kind of template the draft makes */
+    public DocumentTemplateKind kind() {
+        return content.kind();
+    }
+}

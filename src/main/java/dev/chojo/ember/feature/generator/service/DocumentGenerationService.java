@@ -45,7 +45,7 @@ import java.util.List;
  * file and everybody whose data went into it, which is what a signature later binds to.
  *
  * <p>A manager may generate a document whose values are not all there; the gaps print as lines to fill
- * in by hand, and the screen has warned before. Self service refuses that instead
+ * in by hand on a letter and stay empty on a filled-in PDF, and the screen has warned before. Self service refuses that instead
  * ({@link SelfServiceDocumentService}).
  */
 @Singleton
@@ -132,17 +132,23 @@ public class DocumentGenerationService {
     /**
      * Draws a template still in the editor, for a member or without one.
      *
-     * @param session  the editor of templates
-     * @param request  the template as the editor holds it
-     * @param memberId the member to draw it for, already checked to be of the station, or null
+     * @param session    the editor of templates
+     * @param request    the template as the editor holds it
+     * @param templateId the saved template the draft changes, whose kind it keeps and whose PDF a PDF
+     *                   template fills, or null for one not saved yet
+     * @param memberId   the member to draw it for, already checked to be of the station, or null
      * @return the document and what is missing
      */
     public PreviewResponse previewDraft(
-            StationSession session, DocumentTemplateRequest request, @Nullable Integer memberId) {
+            StationSession session,
+            DocumentTemplateRequest request,
+            @Nullable Integer templateId,
+            @Nullable Integer memberId) {
         if (memberId != null && !session.hasPermission(StationPermission.DOCUMENT_EDIT_MEMBER)) {
             throw DocumentRefusal.DOCUMENT_GENERATE_NOT_YOURS.raise();
         }
-        var draft = checks.preview(session.stationId(), request);
+        var saved = templateId == null ? null : templates.requireOwned(session.owner(), templateId);
+        var draft = checks.preview(session.stationId(), request, saved);
         return generator.preview(
                 DocumentGeneratorService.sourceOf(session.stationId(), draft),
                 memberId,
@@ -210,7 +216,8 @@ public class DocumentGenerationService {
                         clock.instant(),
                         selfService,
                         document.id(),
-                        sha256(rendered.pdf())),
+                        sha256(rendered.pdf()),
+                        prepared.source().pdfOriginalId()),
                 rendered.resolved().subjects());
         log.info(
                 "Document {} generated from template {} (version {}) for member {}",

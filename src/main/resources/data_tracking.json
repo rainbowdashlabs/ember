@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:42a83c0c3b88cfa78da484c8a27b2ff1c98fac3cd8a946c8f4235801744552ea",
-  "generatedAt": "2026-10-03T13:01:43Z",
+  "schemaHash": "sha256:b8efd7781f965959d216ab4a308383f23b9bb070cfbaa78094c40d675a31c751",
+  "generatedAt": "2026-10-03T13:14:19Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -6192,7 +6192,7 @@
       }
     },
     "document_generation": {
-      "tableHash": "sha256:6cfb882b901d7a3bfd4366ee3e36b9e8b24175a1cf7ae6321b1fa4630262548e",
+      "tableHash": "sha256:d16baf399c70ae80e6114992b118f83386832999a059057a5bc0f5877b2f16ae",
       "columns": [
         {
           "name": "id",
@@ -6263,6 +6263,13 @@
           "nullable": false,
           "verified": true,
           "description": "The SHA-256 of the generated file as lowercase hex, which ties the log to the exact bytes filed."
+        },
+        {
+          "name": "pdf_original_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The uploaded PDF the document was filled from, which a later upload of a new version does not touch. NULL for a letter."
         }
       ],
       "foreignKeys": [
@@ -6281,6 +6288,12 @@
         {
           "column": "member_id",
           "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
+        {
+          "column": "pdf_original_id",
+          "refTable": "document_template_pdf_original",
           "refColumn": "id",
           "onDelete": "SET NULL"
         },
@@ -6415,7 +6428,7 @@
           "type": "text",
           "nullable": false,
           "verified": true,
-          "description": "What the template is made of: LETTER, a letterhead and a body written in Ember (document_template_letter)."
+          "description": "What the template is made of: LETTER, a letterhead and a body written in Ember (document_template_letter), or PDF, an uploaded PDF filled in place (document_template_pdf)."
         },
         {
           "name": "name",
@@ -6604,6 +6617,175 @@
       },
       "description": "A template a station turns into a PDF for one member at a time. Never deleted, only archived, so every generated document keeps pointing at the template it came from."
     },
+    "document_template_field": {
+      "tableHash": "sha256:e9fe7d9a743426100f342499d5be98427c4633cf60ef9e53e5caf9af5fe3caf8",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Auto-generated primary key."
+        },
+        {
+          "name": "template_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "References the PDF template."
+        },
+        {
+          "name": "position",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The order of the fields as the editor lists them, counted from 0."
+        },
+        {
+          "name": "kind",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "TEXT prints a text with placeholders, CHECK prints a cross where its text says yes, SIGNATURE becomes an empty PDF signature field named after its role."
+        },
+        {
+          "name": "page",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The page the field is on, counted from 1."
+        },
+        {
+          "name": "x",
+          "type": "float8",
+          "nullable": false,
+          "verified": true,
+          "description": "The left edge in PDF points, in the user space of the page before rotation, crop box offset included."
+        },
+        {
+          "name": "y",
+          "type": "float8",
+          "nullable": false,
+          "verified": true,
+          "description": "The bottom edge in PDF points, in the user space of the page before rotation, crop box offset included."
+        },
+        {
+          "name": "width",
+          "type": "float8",
+          "nullable": false,
+          "verified": true,
+          "description": "The width in PDF points, before rotation."
+        },
+        {
+          "name": "height",
+          "type": "float8",
+          "nullable": false,
+          "verified": true,
+          "description": "The height in PDF points, before rotation."
+        },
+        {
+          "name": "text",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "The text with placeholders written as {{key}}, for TEXT and CHECK. NULL for SIGNATURE."
+        },
+        {
+          "name": "font_size",
+          "type": "float8",
+          "nullable": false,
+          "verified": true,
+          "description": "The size of the text in points, the largest it is drawn at."
+        },
+        {
+          "name": "align",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "LEFT, CENTER or RIGHT: where the text sits across the field."
+        },
+        {
+          "name": "wrap",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether a long text runs onto further lines. Otherwise it stays on one line and shrinks to fit."
+        },
+        {
+          "name": "role",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "Who signs in a SIGNATURE field: PARTICIPANT, GUARDIAN_1, GUARDIAN_2 or ISSUER. NULL for every other kind."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "template_id",
+          "refTable": "document_template",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED"
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Template content written by the station, not per-member data"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Template content written by the station, not per-member data"
+      },
+      "description": "The fields drawn on the pages of a PDF template. They are kept across new uploads of the PDF, so a new version can be checked against them."
+    },
+    "document_template_form_binding": {
+      "tableHash": "sha256:9c411435c72b32997a5aa59ff7bc5fa2be8e987bbd691f91f488d679b3ee7aab",
+      "columns": [
+        {
+          "name": "template_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "References the PDF template."
+        },
+        {
+          "name": "field_name",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The fully qualified name of the form field in the PDF."
+        },
+        {
+          "name": "text",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The text with placeholders written as {{key}}. A check box is ticked where the filled text says yes."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "template_id",
+          "refTable": "document_template",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED"
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Template content written by the station, not per-member data"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Template content written by the station, not per-member data"
+      },
+      "description": "What the form fields an uploaded PDF brings are filled with. Form fields without a row keep what they show; all of them are flattened."
+    },
     "document_template_letter": {
       "tableHash": "sha256:773fafe6c79360ae207b24d0a550e9bef1c886dae94535e5a9822c6346527b08",
       "columns": [
@@ -6656,6 +6838,149 @@
         "reason": "Template content written by the station, not per-member data"
       },
       "description": "The content of a letter template: its letterhead, its body and its page."
+    },
+    "document_template_pdf": {
+      "tableHash": "sha256:2230b32904807a7af57953d1ea09535b2bc40cf1a1106e6e558851b53e55b427",
+      "columns": [
+        {
+          "name": "template_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "References the PDF template."
+        },
+        {
+          "name": "original_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The uploaded PDF the template fills now."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "original_id",
+          "refTable": "document_template_pdf_original",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "template_id",
+          "refTable": "document_template",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED"
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Template content written by the station, not per-member data"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Template content written by the station, not per-member data"
+      },
+      "description": "Which uploaded version of its PDF a PDF template fills now. A PDF template without a row has no PDF yet."
+    },
+    "document_template_pdf_original": {
+      "tableHash": "sha256:ae4e5788bdb92cb710950b34397b229a56a5481e8b0a14b604d88d92b4bf8871",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Auto-generated primary key, also the storage key of the file."
+        },
+        {
+          "name": "template_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The PDF template it was uploaded for."
+        },
+        {
+          "name": "file_name",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The name the file was uploaded under."
+        },
+        {
+          "name": "size_bytes",
+          "type": "int8",
+          "nullable": false,
+          "verified": true,
+          "description": "The size of the file in bytes."
+        },
+        {
+          "name": "sha256",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The SHA-256 of the file as lowercase hex."
+        },
+        {
+          "name": "inspection",
+          "type": "jsonb",
+          "nullable": false,
+          "verified": true,
+          "description": "What the PDF holds that fields care about, read at upload: each page with its crop box in points and its rotation, and the form fields it brings with their kind and where their first widget sits."
+        },
+        {
+          "name": "uploaded_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the file was uploaded."
+        },
+        {
+          "name": "uploaded_by",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The member who uploaded the file. NULL once they are gone."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "template_id",
+          "refTable": "document_template",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "uploaded_by",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED"
+      },
+      "gdprExport": {
+        "status": "TRACKED",
+        "identityColumns": [
+          {
+            "type": "MEMBER_ID",
+            "column": "uploaded_by"
+          }
+        ]
+      },
+      "gdprDeletion": {
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "uploaded_by",
+            "strategy": "NULL",
+            "reason": "FK ON DELETE SET NULL keeps the PDF the template fills, who uploaded it unlinked"
+          }
+        ]
+      },
+      "description": "Every uploaded version of the PDF a PDF template fills in. The file is kept in the station storage under document-templates/<id>/original, as it arrived, and never changed; a new upload is a new row."
     },
     "document_template_restriction": {
       "tableHash": "sha256:9c35756d1fbb6fba6ea356c3fa0aa13d6548bb7792b18e5b54198effa3628aa3",

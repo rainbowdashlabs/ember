@@ -1,7 +1,22 @@
 #let data = json("data.json")
 
+#let signature(key) = box(
+  width: 6cm,
+  height: 1.6cm,
+  link(
+    "ember-signature:" + key.split(".").at(1),
+    box(width: 100%, height: 100%, stroke: (bottom: 0.6pt + black), inset: (bottom: 2pt), {
+      if data.showLabels {
+        align(bottom + left, text(size: 7pt, fill: luma(120), data.labels.at(key, default: key)))
+      }
+    }),
+  ),
+)
+
 #let placeholder(key) = {
-  if key in data.values {
+  if key.starts-with("signature.") {
+    signature(key)
+  } else if key in data.values {
     data.values.at(key)
   } else if data.showLabels {
     highlight(fill: luma(225), extent: 1pt)[\[#data.labels.at(key, default: key)\]]

@@ -5,7 +5,9 @@
  */
 package dev.chojo.ember.feature.generator.entity;
 
+import java.util.ArrayList;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
@@ -29,7 +31,15 @@ public final class PlaceholderTokens {
      * @return the keys it names, in the order they first appear
      */
     public static Set<String> keysIn(String text) {
-        var keys = new LinkedHashSet<String>();
+        return new LinkedHashSet<>(occurrences(text));
+    }
+
+    /**
+     * @param text a text of a template
+     * @return the key of every placeholder it holds, in order, a key named twice listed twice
+     */
+    public static List<String> occurrences(String text) {
+        var keys = new ArrayList<String>();
         Matcher matcher = TOKEN.matcher(text);
         while (matcher.find()) {
             keys.add(matcher.group(1));

@@ -21,7 +21,7 @@ public record LetterCell(
         LetterCellKind kind,
         @Nullable String mediaHash,
         @Nullable String text,
-        LetterCellAlign align,
+        TextAlign align,
         int imageHeightMm) {
 
     /** How tall a picture is drawn where nothing else was said. */
@@ -29,6 +29,6 @@ public record LetterCell(
 
     /** A cell holding nothing. */
     public static LetterCell empty() {
-        return new LetterCell(LetterCellKind.EMPTY, null, null, LetterCellAlign.LEFT, DEFAULT_IMAGE_HEIGHT_MM);
+        return new LetterCell(LetterCellKind.EMPTY, null, null, TextAlign.LEFT, DEFAULT_IMAGE_HEIGHT_MM);
     }
 }

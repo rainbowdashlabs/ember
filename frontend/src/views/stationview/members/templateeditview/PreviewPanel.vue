@@ -24,9 +24,10 @@ import {showToast} from '@/util/toast'
 import {requestOf, type TemplateDraft} from './templateDraft'
 
 /**
- * The letter as it will print: drawn from the editor's draft, for a member or, without one, with
- * every placeholder shown by its name. Whoever may file documents for members can generate the saved
- * template for the chosen member from here.
+ * The document as it will print: drawn from the editor's draft, for a member or, without one, with
+ * every placeholder shown by its name. A PDF template is filled from the PDF of the saved template.
+ * Whoever may file documents for members can generate the saved template for the chosen member from
+ * here.
  */
 const props = defineProps<{
   draft: TemplateDraft
@@ -44,7 +45,8 @@ const canGenerate = computed(() =>
     !!props.saved && !props.saved.archivedAt && !!memberId.value && hasPermission(StationPermission.DOCUMENT_EDIT_MEMBER))
 
 const drawing = useAsyncAction(async () => {
-  preview.value = await documentTemplates.previewDraft(requestOf(props.draft), memberId.value ? Number(memberId.value) : null)
+  preview.value = await documentTemplates.previewDraft(
+      requestOf(props.draft), props.saved?.id ?? null, memberId.value ? Number(memberId.value) : null)
 })
 
 const generating = useAsyncAction(async () => {

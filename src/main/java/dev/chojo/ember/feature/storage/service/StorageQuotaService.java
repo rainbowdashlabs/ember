@@ -364,7 +364,8 @@ public class StorageQuotaService {
             case IMAGE_LOST_AND_FOUND, IMAGE_QUIZ_QUESTION, IMAGE_KB_ICON, IMAGE_KB_IMAGE, IMAGE_LOGO_FRAGMENT ->
                 quota.images().bytes();
             case MEDIA_FILES, MEDIA_IMAGES -> quota.pages().bytes();
-            case MEMBER_DOCUMENTS, MOVEMENT_DOCUMENTS -> quota.kb().bytes();
+            case MEMBER_DOCUMENTS, MOVEMENT_DOCUMENTS, DOCUMENT_TEMPLATES ->
+                quota.kb().bytes();
             case IMAGE_KB_FILE_PICTURE,
                     IMAGE_AVATAR,
                     IMAGE_STATION_LOGO,

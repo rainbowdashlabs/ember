@@ -13612,6 +13612,71 @@
         } ]
       }
     },
+    "/api/v1/document-templates/{id}/pdf" : {
+      "post" : {
+        "summary" : "Upload a new version of the PDF a PDF template fills, keeping its fields",
+        "tags" : [ "Documents" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DocumentTemplateResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      },
+      "get" : {
+        "summary" : "The PDF a PDF template fills now, as it was uploaded",
+        "tags" : [ "Documents" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
     "/api/v1/document-templates/{id}/restore" : {
       "post" : {
         "summary" : "Take an archived document template back into use",
@@ -48767,11 +48832,18 @@
       },
       "DocumentTemplateKind" : {
         "type" : "string",
-        "enum" : [ "LETTER" ]
+        "enum" : [ "LETTER", "PDF" ]
       },
       "DocumentTemplateRequest" : {
         "type" : "object",
         "properties" : {
+          "kind" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/DocumentTemplateKind"
+            }, {
+              "type" : "null"
+            } ]
+          },
           "name" : {
             "type" : [ "string", "null" ]
           },
@@ -48833,6 +48905,18 @@
             }, {
               "type" : "null"
             } ]
+          },
+          "fields" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "$ref" : "#/components/schemas/PdfField"
+            }
+          },
+          "formBindings" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "$ref" : "#/components/schemas/FormBinding"
+            }
           }
         }
       },
@@ -48896,6 +48980,25 @@
           "page" : {
             "$ref" : "#/components/schemas/LetterPage"
           },
+          "pdf" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/PdfOriginal"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "fields" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/PdfField"
+            }
+          },
+          "formBindings" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/FormBinding"
+            }
+          },
           "version" : {
             "type" : "integer",
             "format" : "int32"
@@ -48911,7 +49014,7 @@
             } ]
           }
         },
-        "required" : [ "id", "name", "kind", "titlePattern", "fileNamePattern", "tags", "hidden", "keepOnArchive", "legal", "selfService", "cooldownDays", "audience", "pronounSource", "letterhead", "bodyMarkdown", "page", "version", "updatedAt", "archivedAt" ]
+        "required" : [ "id", "name", "kind", "titlePattern", "fileNamePattern", "tags", "hidden", "keepOnArchive", "legal", "selfService", "cooldownDays", "audience", "pronounSource", "letterhead", "bodyMarkdown", "page", "pdf", "fields", "formBindings", "version", "updatedAt", "archivedAt" ]
       },
       "DocumentTemplateSummary" : {
         "type" : "object",
@@ -48958,6 +49061,10 @@
             }, {
               "type" : "null"
             } ]
+          },
+          "templateId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
           },
           "memberId" : {
             "type" : [ "integer", "null" ],
@@ -51271,6 +51378,28 @@
         "type" : "string",
         "enum" : [ "STATION", "CLUSTER" ]
       },
+      "FieldRect" : {
+        "type" : "object",
+        "properties" : {
+          "page" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "x" : {
+            "type" : "number"
+          },
+          "y" : {
+            "type" : "number"
+          },
+          "width" : {
+            "type" : "number"
+          },
+          "height" : {
+            "type" : "number"
+          }
+        },
+        "required" : [ "page", "x", "y", "width", "height" ]
+      },
       "FieldRequest" : {
         "type" : "object",
         "properties" : {
@@ -51873,6 +52002,18 @@
         },
         "required" : [ "CHOICE", "TEXT", "RATING", "DATE", "RANKING", "LIKERT" ]
       },
+      "FormBinding" : {
+        "type" : "object",
+        "properties" : {
+          "fieldName" : {
+            "type" : "string"
+          },
+          "text" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "fieldName", "text" ]
+      },
       "FormDraft" : {
         "type" : "object",
         "properties" : {
@@ -51931,6 +52072,29 @@
             "type" : "string"
           }
         }
+      },
+      "FormField" : {
+        "type" : "object",
+        "properties" : {
+          "name" : {
+            "type" : "string"
+          },
+          "kind" : {
+            "$ref" : "#/components/schemas/FormFieldKind"
+          },
+          "rect" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/FieldRect"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "name", "kind", "rect" ]
+      },
+      "FormFieldKind" : {
+        "type" : "string",
+        "enum" : [ "TEXT", "CHECK", "SIGNATURE", "OTHER" ]
       },
       "FormLayout" : {
         "type" : "object",
@@ -55649,7 +55813,7 @@
             "type" : [ "string", "null" ]
           },
           "align" : {
-            "$ref" : "#/components/schemas/LetterCellAlign"
+            "$ref" : "#/components/schemas/TextAlign"
           },
           "imageHeightMm" : {
             "type" : "integer",
@@ -55657,10 +55821,6 @@
           }
         },
         "required" : [ "kind", "mediaHash", "text", "align", "imageHeightMm" ]
-      },
-      "LetterCellAlign" : {
-        "type" : "string",
-        "enum" : [ "LEFT", "CENTER", "RIGHT" ]
       },
       "LetterCellKind" : {
         "type" : "string",
@@ -60632,6 +60792,111 @@
           }
         }
       },
+      "PdfField" : {
+        "type" : "object",
+        "properties" : {
+          "kind" : {
+            "$ref" : "#/components/schemas/PdfFieldKind"
+          },
+          "rect" : {
+            "$ref" : "#/components/schemas/FieldRect"
+          },
+          "text" : {
+            "type" : [ "string", "null" ]
+          },
+          "fontSize" : {
+            "type" : "number"
+          },
+          "align" : {
+            "$ref" : "#/components/schemas/TextAlign"
+          },
+          "wrap" : {
+            "type" : "boolean"
+          },
+          "role" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/SignatureRole"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "kind", "rect", "text", "fontSize", "align", "wrap", "role" ]
+      },
+      "PdfFieldKind" : {
+        "type" : "string",
+        "enum" : [ "TEXT", "CHECK", "SIGNATURE" ]
+      },
+      "PdfInspection" : {
+        "type" : "object",
+        "properties" : {
+          "pages" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/PdfPage"
+            }
+          },
+          "formFields" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/FormField"
+            }
+          }
+        },
+        "required" : [ "pages", "formFields" ]
+      },
+      "PdfOriginal" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "templateId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "fileName" : {
+            "type" : "string"
+          },
+          "sizeBytes" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "sha256" : {
+            "type" : "string"
+          },
+          "inspection" : {
+            "$ref" : "#/components/schemas/PdfInspection"
+          },
+          "uploadedAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          }
+        },
+        "required" : [ "id", "templateId", "fileName", "sizeBytes", "sha256", "inspection", "uploadedAt" ]
+      },
+      "PdfPage" : {
+        "type" : "object",
+        "properties" : {
+          "x" : {
+            "type" : "number"
+          },
+          "y" : {
+            "type" : "number"
+          },
+          "width" : {
+            "type" : "number"
+          },
+          "height" : {
+            "type" : "number"
+          },
+          "rotation" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "x", "y", "width", "height", "rotation" ]
+      },
       "PeerAnnouncement" : {
         "type" : "object",
         "properties" : {
@@ -60823,7 +61088,7 @@
       },
       "PlaceholderGroup" : {
         "type" : "string",
-        "enum" : [ "MEMBER", "PROFILE", "GUARDIAN", "STATION", "EVENT", "DOCUMENT", "PRONOUN" ]
+        "enum" : [ "MEMBER", "PROFILE", "GUARDIAN", "STATION", "EVENT", "DOCUMENT", "PRONOUN", "SIGNATURE" ]
       },
       "PlaceholderValues" : {
         "type" : "object",
@@ -61031,9 +61296,15 @@
             "items" : {
               "$ref" : "#/components/schemas/MissingValue"
             }
+          },
+          "unprintable" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
           }
         },
-        "required" : [ "pdfBase64", "missing" ]
+        "required" : [ "pdfBase64", "missing", "unprintable" ]
       },
       "PreviewResult" : {
         "type" : "object",
@@ -67769,6 +68040,10 @@
           }
         }
       },
+      "SignatureRole" : {
+        "type" : "string",
+        "enum" : [ "PARTICIPANT", "GUARDIAN_1", "GUARDIAN_2", "ISSUER" ]
+      },
       "SigningSecretRequest" : {
         "type" : "object",
         "properties" : {
@@ -69083,7 +69358,7 @@
       },
       "StorageCategory" : {
         "type" : "string",
-        "enum" : [ "MEDIA_FILES", "INSTANCE_MEDIA_FILES", "MEDIA_IMAGES", "KB_FILES", "MEMBER_DOCUMENTS", "MOVEMENT_DOCUMENTS", "BOARD_ATTACHMENTS", "IMAGE_AVATAR", "IMAGE_LOST_AND_FOUND", "IMAGE_LOGO_FRAGMENT", "IMAGE_STATION_LOGO", "IMAGE_QUIZ_QUESTION", "IMAGE_KB_ICON", "IMAGE_KB_IMAGE", "IMAGE_KB_FILE_PICTURE", "DOCUMENT", "DISCOVERY_KEY", "MAP_TILE_CACHE", "DEMO_AVATAR", "IMAGE_DISCOVERY_LOGO" ]
+        "enum" : [ "MEDIA_FILES", "INSTANCE_MEDIA_FILES", "MEDIA_IMAGES", "KB_FILES", "MEMBER_DOCUMENTS", "DOCUMENT_TEMPLATES", "MOVEMENT_DOCUMENTS", "BOARD_ATTACHMENTS", "IMAGE_AVATAR", "IMAGE_LOST_AND_FOUND", "IMAGE_LOGO_FRAGMENT", "IMAGE_STATION_LOGO", "IMAGE_QUIZ_QUESTION", "IMAGE_KB_ICON", "IMAGE_KB_IMAGE", "IMAGE_KB_FILE_PICTURE", "DOCUMENT", "DISCOVERY_KEY", "MAP_TILE_CACHE", "DEMO_AVATAR", "IMAGE_DISCOVERY_LOGO" ]
       },
       "StorageQuotaPreset" : {
         "type" : "object",
@@ -70110,6 +70385,10 @@
           }
         },
         "required" : [ "questionType" ]
+      },
+      "TextAlign" : {
+        "type" : "string",
+        "enum" : [ "LEFT", "CENTER", "RIGHT" ]
       },
       "TextAnswer" : {
         "type" : "object",

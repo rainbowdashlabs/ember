@@ -148,9 +148,59 @@ public enum DocumentRefusal implements Refusal {
     /** A text of a kind that is taken and still could not be read. */
     DOCUMENT_IMPORT_UNREADABLE(41, HttpStatus.BAD_REQUEST, "The document could not be read, so nothing was imported"),
 
+    /** A file for a PDF template that is not a PDF. */
+    DOCUMENT_TEMPLATE_PDF_NOT_A_PDF(42, HttpStatus.BAD_REQUEST, "Only a PDF can be uploaded for a PDF template"),
+
+    /** A PDF for a template that could not be opened. */
+    DOCUMENT_TEMPLATE_PDF_UNREADABLE(
+            43, HttpStatus.BAD_REQUEST, "The PDF could not be read, so it was not taken as a template"),
+
+    /** A PDF for a template that opens only with a password. */
+    DOCUMENT_TEMPLATE_PDF_PASSWORD(
+            44, HttpStatus.BAD_REQUEST, "The PDF opens only with a password, so it cannot be used as a template"),
+
+    /** A PDF for a template whose protection could not be taken off. */
+    DOCUMENT_TEMPLATE_PDF_PROTECTED(
+            45,
+            HttpStatus.BAD_REQUEST,
+            "The PDF is protected in a way that cannot be removed, so it cannot be used as a template"),
+
+    /** A PDF or fields for a template that is a letter. */
+    DOCUMENT_TEMPLATE_NOT_PDF(46, HttpStatus.CONFLICT, "This template is a letter, not a PDF template"),
+
+    /** A document asked of a PDF template no PDF was uploaded for. */
+    DOCUMENT_TEMPLATE_PDF_MISSING(47, HttpStatus.CONFLICT, "No PDF has been uploaded for this template yet"),
+
+    /** A field that does not lie on a page of the PDF. */
+    DOCUMENT_TEMPLATE_FIELD_OFF_PAGE(48, HttpStatus.BAD_REQUEST, "A field lies outside the pages of the PDF"),
+
+    /** A text or check field without its text, or a signature field without its signer. */
+    DOCUMENT_TEMPLATE_FIELD_INCOMPLETE(
+            49, HttpStatus.BAD_REQUEST, "A text or check field needs its text and a signature field needs its signer"),
+
+    /** A field text size outside what a field may have. */
+    DOCUMENT_TEMPLATE_FIELD_SIZE_OUT_OF_BOUNDS(
+            50, HttpStatus.BAD_REQUEST, "The text size of a field lies between 4 and 72 points"),
+
+    /** Two signature fields for the same signer. */
+    DOCUMENT_TEMPLATE_SIGNER_TWICE(51, HttpStatus.BAD_REQUEST, "Each signer has at most one signature field"),
+
+    /** A form field the template fills that the PDF does not have, or that cannot be filled. */
+    DOCUMENT_TEMPLATE_FORM_FIELD_UNKNOWN(
+            52,
+            HttpStatus.BAD_REQUEST,
+            "The template fills a form field the PDF does not have or that cannot be filled"),
+
+    /** More fields than a template holds. */
+    DOCUMENT_TEMPLATE_TOO_MANY_FIELDS(53, HttpStatus.BAD_REQUEST, "A template holds at most 200 fields"),
+
+    /** A signature field written as a placeholder where only a value can stand. */
+    DOCUMENT_TEMPLATE_SIGNATURE_IN_TEXT(
+            54, HttpStatus.BAD_REQUEST, "A signature can only be placed as a signature field, not inside a text"),
+
     /** A block a letter does not print, such as a video or a map. */
     DOCUMENT_TEMPLATE_BLOCK_NOT_TAKEN(
-            60, HttpStatus.BAD_REQUEST, "A letter holds texts, pictures and blocks stacked in a column only");
+            55, HttpStatus.BAD_REQUEST, "A letter holds texts, pictures and blocks stacked in a column only");
 
     private final Definition definition;
 

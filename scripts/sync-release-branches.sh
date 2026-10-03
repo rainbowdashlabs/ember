@@ -116,7 +116,7 @@ renumber_own_patches() {
 
 # Rebases one release branch onto main and pushes it. Prints the files it could not resolve, if any.
 sync_branch() {
-    local branch="$1" old="$2" fork_point unresolved
+    local branch="$1" old="$2" fork_point unresolved refusal
     git checkout -q -B "$branch" "$old"
     fork_point=$(git merge-base "$MAIN_REF" HEAD)
 
@@ -151,9 +151,22 @@ sync_branch() {
 
     if [ "$dry_run" -eq 1 ]; then
         echo "Would push $branch at $(git rev-parse HEAD), leased on $old." >&2
-    elif ! git push -q --force-with-lease="refs/heads/$branch:$old" origin "HEAD:refs/heads/$branch" >&2; then
-        echo "(the push was refused: the branch moved while it was rebased; run the sync again)"
+    elif ! refusal=$(git push -q --force-with-lease="refs/heads/$branch:$old" origin "HEAD:refs/heads/$branch" 2>&1); then
+        printf '%s\n' "$refusal" >&2
+        push_refusal "$refusal"
     fi
+}
+
+# Names why a push was refused: a lease that no longer holds means the branch moved while it was
+# rebased; otherwise each reason the remote gave, such as a repository rule, or the bare refusal.
+push_refusal() {
+    local reasons
+    if grep -q "stale info" <<< "$1"; then
+        echo "(the push was refused: the branch moved while it was rebased; run the sync again)"
+        return
+    fi
+    reasons=$(sed -n 's/^remote: - \(.*[^[:space:]]\)[[:space:]]*$/(the push was refused: \1)/p' <<< "$1")
+    printf '%s\n' "${reasons:-(the push was refused by the remote)}"
 }
 
 # Opens an issue about a branch that could not be rebased, or comments on the one already open.

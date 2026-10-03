@@ -6,7 +6,7 @@
 /** @vitest-environment happy-dom */
 import {describe, expect, it} from 'vitest'
 import {createMarkdownTurndown} from './markdownTurndown'
-import {placeholderContent, placeholderTokens} from './placeholderChip'
+import {labelledText, placeholderContent, placeholderTokens} from './placeholderChip'
 
 const labels = new Map([
     ['member.firstName', 'Vorname'],
@@ -39,5 +39,9 @@ describe('placeholder chips', () => {
     it('are inserted with their key and label', () => {
         expect(placeholderContent('member.firstName', 'Vorname'))
             .toEqual({type: 'placeholderChip', attrs: {key: 'member.firstName', label: 'Vorname'}})
+    })
+
+    it('read as their labels in a plain text, a key without one as itself', () => {
+        expect(labelledText('{{member.firstName}}, {{ x.y }}', labels)).toBe('Vorname, x.y')
     })
 })

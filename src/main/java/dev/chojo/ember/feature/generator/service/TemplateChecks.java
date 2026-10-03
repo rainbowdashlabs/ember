@@ -7,15 +7,19 @@ package dev.chojo.ember.feature.generator.service;
 
 import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.api.refusal.RefusalDetail;
+import dev.chojo.ember.feature.generator.entity.DocumentTemplate;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplateDraft;
+import dev.chojo.ember.feature.generator.entity.DocumentTemplateKind;
 import dev.chojo.ember.feature.generator.entity.LetterCell;
-import dev.chojo.ember.feature.generator.entity.LetterCellAlign;
 import dev.chojo.ember.feature.generator.entity.LetterCellKind;
 import dev.chojo.ember.feature.generator.entity.LetterContent;
 import dev.chojo.ember.feature.generator.entity.LetterPage;
 import dev.chojo.ember.feature.generator.entity.Letterhead;
 import dev.chojo.ember.feature.generator.entity.PronounSource;
+import dev.chojo.ember.feature.generator.entity.TemplateContent;
+import dev.chojo.ember.feature.generator.entity.TextAlign;
 import dev.chojo.ember.feature.generator.repository.DocumentTemplateRepository;
+import dev.chojo.ember.feature.generator.repository.PdfTemplateRepository;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
 import dev.chojo.ember.feature.question.FieldType;
@@ -58,6 +62,7 @@ public class TemplateChecks {
     static final int DEFAULT_COOLDOWN_DAYS = 30;
 
     private final DocumentTemplateRepository templates;
+    private final PdfTemplateRepository pdfTemplates;
     private final MediaLibraryService mediaLibrary;
     private final ProfileFieldRepository profileFields;
     private final PlaceholderCatalogue catalogue;
@@ -65,10 +70,12 @@ public class TemplateChecks {
     @Inject
     public TemplateChecks(
             DocumentTemplateRepository templates,
+            PdfTemplateRepository pdfTemplates,
             MediaLibraryService mediaLibrary,
             ProfileFieldRepository profileFields,
             PlaceholderCatalogue catalogue) {
         this.templates = templates;
+        this.pdfTemplates = pdfTemplates;
         this.mediaLibrary = mediaLibrary;
         this.profileFields = profileFields;
         this.catalogue = catalogue;
@@ -79,11 +86,14 @@ public class TemplateChecks {
      *
      * @param stationId the station that keeps the template
      * @param request   what the editor sent
-     * @param exceptId  the template being changed, whose own name is not taken by itself, or null
+     * @param existing  the template being changed, whose own name is not taken by itself and whose kind
+     *                  stays, or null for a new one
      * @return the template as it is to be written
      */
-    public DocumentTemplateDraft draft(int stationId, DocumentTemplateRequest request, @Nullable Integer exceptId) {
-        return build(stationId, request, requireName(stationId, request.name(), exceptId));
+    public DocumentTemplateDraft draft(
+            int stationId, DocumentTemplateRequest request, @Nullable DocumentTemplate existing) {
+        Integer exceptId = existing == null ? null : existing.id();
+        return build(stationId, request, requireName(stationId, request.name(), exceptId), existing);
     }
 
     /**
@@ -92,17 +102,21 @@ public class TemplateChecks {
      *
      * @param stationId the station that keeps the template
      * @param request   what the editor holds
+     * @param saved     the saved template the draft is a new version of, whose PDF a PDF template fills,
+     *                  or null for one not saved yet
      * @return the template as it would be written
      */
-    public DocumentTemplateDraft preview(int stationId, DocumentTemplateRequest request) {
+    public DocumentTemplateDraft preview(
+            int stationId, DocumentTemplateRequest request, @Nullable DocumentTemplate saved) {
         String name = request.name();
-        return build(stationId, request, name == null || name.isBlank() ? "Vorschau" : name.strip());
+        return build(stationId, request, name == null || name.isBlank() ? "Vorschau" : name.strip(), saved);
     }
 
-    private DocumentTemplateDraft build(int stationId, DocumentTemplateRequest request, String name) {
+    private DocumentTemplateDraft build(
+            int stationId, DocumentTemplateRequest request, String name, @Nullable DocumentTemplate existing) {
         String titlePattern = pattern(request.titlePattern(), name + " {{today}}");
         String fileNamePattern = pattern(request.fileNamePattern(), name + " {{member.lastName}} {{today}}");
-        var letter = letter(stationId, request);
+        var content = content(stationId, request, existing);
         var pronouns = pronouns(stationId, request.pronounSource());
         int cooldown = Objects.requireNonNullElse(request.cooldownDays(), DEFAULT_COOLDOWN_DAYS);
         if (cooldown < 0) throw DocumentRefusal.DOCUMENT_TEMPLATE_COOLDOWN_NEGATIVE.raise();
@@ -119,9 +133,28 @@ public class TemplateChecks {
                 cooldown,
                 audience.mode(),
                 pronouns,
-                letter);
+                content);
         catalogue.requireKnown(stationId, draft);
         return draft;
+    }
+
+    /**
+     * What the template is made of, by the kind it has or, for a new one, the kind it asks for.
+     */
+    private TemplateContent content(
+            int stationId, DocumentTemplateRequest request, @Nullable DocumentTemplate existing) {
+        var kind = existing != null
+                ? existing.kind()
+                : Objects.requireNonNullElse(request.kind(), DocumentTemplateKind.LETTER);
+        return switch (kind) {
+            case LETTER -> letter(stationId, request);
+            case PDF -> {
+                var original = existing == null
+                        ? null
+                        : pdfTemplates.findCurrentOriginal(existing.id()).orElse(null);
+                yield PdfLayoutChecks.check(original, request.fields(), request.formBindings(), MAX_CELL_TEXT);
+            }
+        };
     }
 
     private String requireName(int stationId, @Nullable String raw, @Nullable Integer exceptId) {
@@ -189,7 +222,7 @@ public class TemplateChecks {
      */
     private LetterCell cell(int stationId, @Nullable LetterCell cell) {
         if (cell == null || cell.kind() == null) return LetterCell.empty();
-        var align = Objects.requireNonNullElse(cell.align(), LetterCellAlign.LEFT);
+        var align = Objects.requireNonNullElse(cell.align(), TextAlign.LEFT);
         int height = cell.imageHeightMm() > 0 ? cell.imageHeightMm() : LetterCell.DEFAULT_IMAGE_HEIGHT_MM;
         return switch (cell.kind()) {
             case EMPTY -> new LetterCell(LetterCellKind.EMPTY, null, null, align, height);

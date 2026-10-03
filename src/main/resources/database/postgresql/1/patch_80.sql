@@ -46,7 +46,7 @@ CREATE TABLE IF NOT EXISTS ember_schema.document_template
 (
     id                         SERIAL PRIMARY KEY,
     station_id                 INTEGER     NOT NULL REFERENCES ember_schema.station (id) ON DELETE CASCADE,
-    kind                       TEXT        NOT NULL DEFAULT 'LETTER' CHECK (kind IN ('LETTER')),
+    kind                       TEXT        NOT NULL DEFAULT 'LETTER' CHECK (kind IN ('LETTER', 'PDF')),
     name                       TEXT        NOT NULL,
     title_pattern              TEXT        NOT NULL,
     file_name_pattern          TEXT        NOT NULL,
@@ -74,7 +74,7 @@ COMMENT ON TABLE ember_schema.document_template IS
 COMMENT ON COLUMN ember_schema.document_template.id IS 'Auto-generated primary key.';
 COMMENT ON COLUMN ember_schema.document_template.station_id IS 'The station that owns the template.';
 COMMENT ON COLUMN ember_schema.document_template.kind IS
-    'What the template is made of: LETTER, a letterhead and a body written in Ember (document_template_letter).';
+    'What the template is made of: LETTER, a letterhead and a body written in Ember (document_template_letter), or PDF, an uploaded PDF filled in place (document_template_pdf).';
 COMMENT ON COLUMN ember_schema.document_template.name IS 'What the template is called in the list of templates.';
 COMMENT ON COLUMN ember_schema.document_template.title_pattern IS
     'The title a generated document is filed under, with placeholders such as {{today}} filled in when it is generated.';
@@ -150,6 +150,104 @@ COMMENT ON COLUMN ember_schema.document_template_letter.body_markdown IS
 COMMENT ON COLUMN ember_schema.document_template_letter.page IS
     'The page margins in millimetres and the body font size in points. The paper is always A4.';
 
+CREATE TABLE IF NOT EXISTS ember_schema.document_template_pdf_original
+(
+    id          SERIAL PRIMARY KEY,
+    template_id INTEGER     NOT NULL REFERENCES ember_schema.document_template (id) ON DELETE CASCADE,
+    file_name   TEXT        NOT NULL,
+    size_bytes  BIGINT      NOT NULL,
+    sha256      TEXT        NOT NULL,
+    inspection  JSONB       NOT NULL,
+    uploaded_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    uploaded_by INTEGER     NULL REFERENCES ember_schema.station_member (id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_document_template_pdf_original_template
+    ON ember_schema.document_template_pdf_original (template_id);
+
+COMMENT ON TABLE ember_schema.document_template_pdf_original IS
+    'Every uploaded version of the PDF a PDF template fills in. The file is kept in the station storage under document-templates/<id>/original, as it arrived, and never changed; a new upload is a new row.';
+COMMENT ON COLUMN ember_schema.document_template_pdf_original.id IS 'Auto-generated primary key, also the storage key of the file.';
+COMMENT ON COLUMN ember_schema.document_template_pdf_original.template_id IS 'The PDF template it was uploaded for.';
+COMMENT ON COLUMN ember_schema.document_template_pdf_original.file_name IS 'The name the file was uploaded under.';
+COMMENT ON COLUMN ember_schema.document_template_pdf_original.size_bytes IS 'The size of the file in bytes.';
+COMMENT ON COLUMN ember_schema.document_template_pdf_original.sha256 IS 'The SHA-256 of the file as lowercase hex.';
+COMMENT ON COLUMN ember_schema.document_template_pdf_original.inspection IS
+    'What the PDF holds that fields care about, read at upload: each page with its crop box in points and its rotation, and the form fields it brings with their kind and where their first widget sits.';
+COMMENT ON COLUMN ember_schema.document_template_pdf_original.uploaded_at IS 'When the file was uploaded.';
+COMMENT ON COLUMN ember_schema.document_template_pdf_original.uploaded_by IS 'The member who uploaded the file. NULL once they are gone.';
+
+CREATE TABLE IF NOT EXISTS ember_schema.document_template_pdf
+(
+    template_id INTEGER PRIMARY KEY REFERENCES ember_schema.document_template (id) ON DELETE CASCADE,
+    original_id INTEGER NOT NULL REFERENCES ember_schema.document_template_pdf_original (id) ON DELETE CASCADE
+);
+
+COMMENT ON TABLE ember_schema.document_template_pdf IS
+    'Which uploaded version of its PDF a PDF template fills now. A PDF template without a row has no PDF yet.';
+COMMENT ON COLUMN ember_schema.document_template_pdf.template_id IS 'References the PDF template.';
+COMMENT ON COLUMN ember_schema.document_template_pdf.original_id IS 'The uploaded PDF the template fills now.';
+
+CREATE TABLE IF NOT EXISTS ember_schema.document_template_field
+(
+    id          SERIAL PRIMARY KEY,
+    template_id INTEGER          NOT NULL REFERENCES ember_schema.document_template (id) ON DELETE CASCADE,
+    position    INTEGER          NOT NULL,
+    kind        TEXT             NOT NULL CHECK (kind IN ('TEXT', 'CHECK', 'SIGNATURE')),
+    page        INTEGER          NOT NULL CHECK (page >= 1),
+    x           DOUBLE PRECISION NOT NULL,
+    y           DOUBLE PRECISION NOT NULL,
+    width       DOUBLE PRECISION NOT NULL CHECK (width > 0),
+    height      DOUBLE PRECISION NOT NULL CHECK (height > 0),
+    text        TEXT             NULL,
+    font_size   DOUBLE PRECISION NOT NULL,
+    align       TEXT             NOT NULL CHECK (align IN ('LEFT', 'CENTER', 'RIGHT')),
+    wrap        BOOLEAN          NOT NULL DEFAULT FALSE,
+    role        TEXT             NULL CHECK (role IN ('PARTICIPANT', 'GUARDIAN_1', 'GUARDIAN_2', 'ISSUER')),
+    CHECK ((kind = 'SIGNATURE') = (role IS NOT NULL))
+);
+
+CREATE INDEX IF NOT EXISTS idx_document_template_field_template
+    ON ember_schema.document_template_field (template_id, position);
+
+COMMENT ON TABLE ember_schema.document_template_field IS
+    'The fields drawn on the pages of a PDF template. They are kept across new uploads of the PDF, so a new version can be checked against them.';
+COMMENT ON COLUMN ember_schema.document_template_field.id IS 'Auto-generated primary key.';
+COMMENT ON COLUMN ember_schema.document_template_field.template_id IS 'References the PDF template.';
+COMMENT ON COLUMN ember_schema.document_template_field.position IS 'The order of the fields as the editor lists them, counted from 0.';
+COMMENT ON COLUMN ember_schema.document_template_field.kind IS
+    'TEXT prints a text with placeholders, CHECK prints a cross where its text says yes, SIGNATURE becomes an empty PDF signature field named after its role.';
+COMMENT ON COLUMN ember_schema.document_template_field.page IS 'The page the field is on, counted from 1.';
+COMMENT ON COLUMN ember_schema.document_template_field.x IS
+    'The left edge in PDF points, in the user space of the page before rotation, crop box offset included.';
+COMMENT ON COLUMN ember_schema.document_template_field.y IS
+    'The bottom edge in PDF points, in the user space of the page before rotation, crop box offset included.';
+COMMENT ON COLUMN ember_schema.document_template_field.width IS 'The width in PDF points, before rotation.';
+COMMENT ON COLUMN ember_schema.document_template_field.height IS 'The height in PDF points, before rotation.';
+COMMENT ON COLUMN ember_schema.document_template_field.text IS
+    'The text with placeholders written as {{key}}, for TEXT and CHECK. NULL for SIGNATURE.';
+COMMENT ON COLUMN ember_schema.document_template_field.font_size IS 'The size of the text in points, the largest it is drawn at.';
+COMMENT ON COLUMN ember_schema.document_template_field.align IS 'LEFT, CENTER or RIGHT: where the text sits across the field.';
+COMMENT ON COLUMN ember_schema.document_template_field.wrap IS
+    'Whether a long text runs onto further lines. Otherwise it stays on one line and shrinks to fit.';
+COMMENT ON COLUMN ember_schema.document_template_field.role IS
+    'Who signs in a SIGNATURE field: PARTICIPANT, GUARDIAN_1, GUARDIAN_2 or ISSUER. NULL for every other kind.';
+
+CREATE TABLE IF NOT EXISTS ember_schema.document_template_form_binding
+(
+    template_id INTEGER NOT NULL REFERENCES ember_schema.document_template (id) ON DELETE CASCADE,
+    field_name  TEXT    NOT NULL,
+    text        TEXT    NOT NULL,
+    PRIMARY KEY (template_id, field_name)
+);
+
+COMMENT ON TABLE ember_schema.document_template_form_binding IS
+    'What the form fields an uploaded PDF brings are filled with. Form fields without a row keep what they show; all of them are flattened.';
+COMMENT ON COLUMN ember_schema.document_template_form_binding.template_id IS 'References the PDF template.';
+COMMENT ON COLUMN ember_schema.document_template_form_binding.field_name IS 'The fully qualified name of the form field in the PDF.';
+COMMENT ON COLUMN ember_schema.document_template_form_binding.text IS
+    'The text with placeholders written as {{key}}. A check box is ticked where the filled text says yes.';
+
 CREATE TABLE IF NOT EXISTS ember_schema.document_generation
 (
     id               SERIAL PRIMARY KEY,
@@ -161,7 +259,8 @@ CREATE TABLE IF NOT EXISTS ember_schema.document_generation
     generated_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
     self_service     BOOLEAN     NOT NULL,
     document_id      INTEGER     NULL REFERENCES ember_schema.member_document (id) ON DELETE SET NULL,
-    file_sha256      TEXT        NOT NULL
+    file_sha256      TEXT        NOT NULL,
+    pdf_original_id  INTEGER     NULL REFERENCES ember_schema.document_template_pdf_original (id) ON DELETE SET NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_document_generation_template_member
@@ -186,6 +285,8 @@ COMMENT ON COLUMN ember_schema.document_generation.document_id IS
     'The member document the file was filed as. NULL once that document was deleted.';
 COMMENT ON COLUMN ember_schema.document_generation.file_sha256 IS
     'The SHA-256 of the generated file as lowercase hex, which ties the log to the exact bytes filed.';
+COMMENT ON COLUMN ember_schema.document_generation.pdf_original_id IS
+    'The uploaded PDF the document was filled from, which a later upload of a new version does not touch. NULL for a letter.';
 
 CREATE TABLE IF NOT EXISTS ember_schema.document_generation_subject
 (

@@ -11,9 +11,12 @@ import dev.chojo.ember.feature.generator.entity.BuiltInPlaceholder;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplateDraft;
 import dev.chojo.ember.feature.generator.entity.LetterCell;
 import dev.chojo.ember.feature.generator.entity.LetterContent;
+import dev.chojo.ember.feature.generator.entity.PdfContent;
 import dev.chojo.ember.feature.generator.entity.Placeholder;
 import dev.chojo.ember.feature.generator.entity.PlaceholderGroup;
 import dev.chojo.ember.feature.generator.entity.PlaceholderTokens;
+import dev.chojo.ember.feature.generator.entity.SignatureRole;
+import dev.chojo.ember.feature.generator.entity.TemplateContent;
 import dev.chojo.ember.feature.members.entity.ProfileField;
 import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
 import dev.chojo.ember.feature.question.FieldType;
@@ -24,6 +27,7 @@ import jakarta.inject.Singleton;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -68,6 +72,12 @@ public class PlaceholderCatalogue {
         Arrays.stream(BuiltInPlaceholder.values())
                 .map(value -> value.in(language))
                 .forEach(out::add);
+        out.add(new Placeholder(
+                SignatureRole.ISSUER.token(),
+                "en".equals(language) ? "Signature field: issuer" : "Unterschriftsfeld: Ausstellende Person",
+                PlaceholderGroup.SIGNATURE,
+                false,
+                false));
         var fields = answerable(stationId);
         for (var field : fields) {
             out.add(new Placeholder(PROFILE + field.id(), field.name(), PlaceholderGroup.PROFILE, false, false));
@@ -127,11 +137,15 @@ public class PlaceholderCatalogue {
      * Refuses a template naming a placeholder the station does not have, and a legal one naming the
      * name a member is called by.
      *
+     * <p>A signature field stands only where a letter's body names it, each signer once: it is a box
+     * on the page, and in a title, a file name, a letterhead cell or a text on a PDF there is nowhere to
+     * put one. A PDF template places its signature fields as fields of their own.
+     *
      * @param stationId the station
      * @param draft     the template
      */
     public void requireKnown(int stationId, DocumentTemplateDraft draft) {
-        var used = keysOf(draft.titlePattern(), draft.fileNamePattern(), draft.letter());
+        var used = keysOf(draft.titlePattern(), draft.fileNamePattern(), draft.content());
         if (used.isEmpty()) return;
         var known = byKey(stationId);
         for (String key : used) {
@@ -139,7 +153,30 @@ public class PlaceholderCatalogue {
                 throw DocumentRefusal.DOCUMENT_TEMPLATE_PLACEHOLDER_UNKNOWN.raise(RefusalDetail.text(key));
             }
         }
+        requireSignaturesInBody(draft);
         if (draft.legal()) requireOfficial(used);
+    }
+
+    private static void requireSignaturesInBody(DocumentTemplateDraft draft) {
+        String body = draft.content() instanceof LetterContent letter ? letter.bodyMarkdown() : "";
+        Stream<String> outsideTheBody =
+                switch (draft.content()) {
+                    case LetterContent letter ->
+                        letter.letterhead().cells().map(LetterCell::text).filter(Objects::nonNull);
+                    case PdfContent pdf -> pdf.texts();
+                };
+        var elsewhere = Stream.concat(Stream.of(draft.titlePattern(), draft.fileNamePattern()), outsideTheBody)
+                .map(PlaceholderTokens::keysIn)
+                .flatMap(Set::stream);
+        if (elsewhere.anyMatch(SignatureRole::isToken)) {
+            throw DocumentRefusal.DOCUMENT_TEMPLATE_SIGNATURE_IN_TEXT.raise();
+        }
+        var signers = PlaceholderTokens.occurrences(body).stream()
+                .filter(SignatureRole::isToken)
+                .toList();
+        if (signers.size() != new HashSet<>(signers).size()) {
+            throw DocumentRefusal.DOCUMENT_TEMPLATE_SIGNER_TWICE.raise();
+        }
     }
 
     /**
@@ -154,18 +191,16 @@ public class PlaceholderCatalogue {
     }
 
     /**
-     * Every key a template names anywhere: in its title, its file name, its letterhead and its body.
+     * Every key a template names anywhere: in its title, its file name and every text of its content.
      *
      * @param titlePattern    the title pattern
      * @param fileNamePattern the file name pattern
-     * @param letter          the letter
+     * @param content         the letter, or the fields laid over the PDF
      * @return the keys, in the order they first appear
      */
-    public static Set<String> keysOf(String titlePattern, String fileNamePattern, LetterContent letter) {
+    public static Set<String> keysOf(String titlePattern, String fileNamePattern, TemplateContent content) {
         var keys = new LinkedHashSet<String>();
-        Stream.concat(
-                        Stream.of(titlePattern, fileNamePattern, letter.bodyMarkdown()),
-                        letter.letterhead().cells().map(LetterCell::text).filter(Objects::nonNull))
+        Stream.concat(Stream.of(titlePattern, fileNamePattern), content.texts())
                 .map(PlaceholderTokens::keysIn)
                 .forEach(keys::addAll);
         return keys;

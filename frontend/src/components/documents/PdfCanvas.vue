@@ -5,7 +5,7 @@
  */
 <script lang="ts" setup>
 import {nextTick, onUnmounted, ref, watch} from 'vue'
-import type {PDFDocumentLoadingTask, PDFDocumentProxy, RenderTask} from 'pdfjs-dist'
+import type {PageViewport, PDFDocumentLoadingTask, PDFDocumentProxy, RenderTask} from 'pdfjs-dist'
 
 /**
  * A page of a PDF, drawn onto a canvas.
@@ -23,6 +23,11 @@ import type {PDFDocumentLoadingTask, PDFDocumentProxy, RenderTask} from 'pdfjs-d
  * before. The worker is asked for by its address only, from inside that same late import, because
  * an address written where the bundler can follow it from the start makes every page of the app
  * load the worker ahead of time, whether it ever shows a PDF or not.
+ *
+ * <p>Every page drawn is announced with the viewport it was drawn through, after the canvas holds it.
+ * The viewport is what maps the page's own coordinates (points, crop box and rotation included) onto
+ * the canvas, which is all a caller needs to lay something over the page in the right place. The
+ * canvas is drawn at one canvas pixel per CSS pixel, so its numbers are CSS pixels as they stand.
  */
 const props = defineProps<{
   /** The document's bytes. Nothing is drawn until they arrive. */
@@ -33,7 +38,7 @@ const props = defineProps<{
   scale?: number
 }>()
 
-const emit = defineEmits<{loaded: [pageCount: number]; failed: [error: unknown]}>()
+const emit = defineEmits<{loaded: [pageCount: number]; failed: [error: unknown]; drawn: [viewport: PageViewport]}>()
 
 const canvas = ref<HTMLCanvasElement | null>(null)
 
@@ -153,6 +158,7 @@ async function draw(mine: number) {
     renderTask = task
     try {
         await task.promise
+        if (!overtaken(mine, ticket)) emit('drawn', viewport)
     } catch {
         void 0
     } finally {

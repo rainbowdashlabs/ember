@@ -7,7 +7,9 @@ package dev.chojo.ember.feature.generator.route;
 
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.TestSessions;
+import dev.chojo.ember.api.TestUploads;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplate;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplateKind;
 import dev.chojo.ember.feature.generator.entity.LetterPage;
@@ -17,6 +19,7 @@ import dev.chojo.ember.feature.generator.service.DocumentTemplateService;
 import dev.chojo.ember.feature.generator.service.DocumentTemplateService.DocumentTemplateResponse;
 import dev.chojo.ember.feature.generator.service.DocumentTemplateService.PlaceholderCatalogueResponse;
 import dev.chojo.ember.feature.generator.service.LetterImportService;
+import dev.chojo.ember.feature.generator.service.PdfTemplateService;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.owner.Owner;
@@ -24,12 +27,15 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 
 import static dev.chojo.ember.api.RouteHarness.PREFIX;
 import static dev.chojo.ember.api.RouteHarness.body;
 import static dev.chojo.ember.api.RouteHarness.json;
+import static dev.chojo.ember.api.RouteHarness.refusalOf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -64,11 +70,15 @@ class DocumentTemplateRoutesTest {
             Letterhead.empty(),
             "",
             LetterPage.defaults(),
+            null,
+            List.of(),
+            List.of(),
             1,
             Instant.EPOCH,
             null);
 
     private DocumentTemplateService service;
+    private PdfTemplateService pdfs;
     private RouteHarness harness;
 
     @BeforeEach
@@ -81,7 +91,8 @@ class DocumentTemplateRoutesTest {
         when(service.update(any(), anyInt(), any(), anyInt())).thenReturn(TEMPLATE);
         when(service.setArchived(any(), anyInt(), anyBoolean(), anyInt())).thenReturn(TEMPLATE);
         when(service.catalogue(any())).thenReturn(new PlaceholderCatalogueResponse(List.of(), List.of()));
-        harness = RouteHarness.serving(new DocumentTemplateRoutes(service, mock(LetterImportService.class)));
+        pdfs = mock(PdfTemplateService.class);
+        harness = RouteHarness.serving(new DocumentTemplateRoutes(service, mock(LetterImportService.class), pdfs));
     }
 
     static DocumentTemplate template(int id) {
@@ -146,6 +157,37 @@ class DocumentTemplateRoutesTest {
         assertEquals(true, request.getValue().legal());
         verify(service).setArchived(eq(OWNER), eq(8), eq(true), anyInt());
         verify(service).setArchived(eq(OWNER), eq(8), eq(false), anyInt());
+    }
+
+    /** The PDF of a PDF template goes up as a file and comes back as one, to its editors only. */
+    @Test
+    void anEditorOfTemplatesUploadsAndReadsThePdf() {
+        byte[] pdf = "%PDF-1.7".getBytes(StandardCharsets.US_ASCII);
+        when(pdfs.upload(eq(OWNER), eq(8), any(), anyInt())).thenReturn(TEMPLATE);
+        when(pdfs.current(OWNER, 8)).thenReturn(Optional.of(new PdfTemplateService.Download("form.pdf", pdf)));
+        when(service.requireOwned(OWNER, 9)).thenReturn(template(9));
+        when(pdfs.current(OWNER, 9)).thenReturn(Optional.empty());
+
+        harness.run((server, client) -> {
+            var editor = harness.as(TestSessions.member(3, StationPermission.DOCUMENT_TEMPLATE_EDIT));
+            var filer = harness.as(TestSessions.member(3, StationPermission.DOCUMENT_EDIT_MEMBER));
+            assertEquals(
+                    200,
+                    client.request(
+                                    PREFIX + "/document-templates/8/pdf",
+                                    editor.andThen(TestUploads.multipart("form.pdf", pdf)))
+                            .code());
+            var download = client.get(PREFIX + "/document-templates/8/pdf", editor);
+            assertEquals(200, download.code());
+            assertEquals("%PDF-1.7", download.body().string());
+            assertEquals(
+                    DocumentRefusal.DOCUMENT_TEMPLATE_PDF_MISSING,
+                    refusalOf(client.get(PREFIX + "/document-templates/9/pdf", editor)));
+            assertEquals(
+                    403, client.get(PREFIX + "/document-templates/8/pdf", filer).code());
+        });
+
+        verify(pdfs).upload(eq(OWNER), eq(8), any(), anyInt());
     }
 
     /** Filing documents for members is not the same as writing the templates they come from. */

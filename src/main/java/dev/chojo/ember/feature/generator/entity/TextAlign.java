@@ -6,9 +6,9 @@
 package dev.chojo.ember.feature.generator.entity;
 
 /**
- * Where the content of a letterhead cell sits within its third of the row.
+ * Where a text sits across the room it is given: a third of a letterhead row, or a field on a PDF.
  */
-public enum LetterCellAlign {
+public enum TextAlign {
     LEFT,
     CENTER,
     RIGHT

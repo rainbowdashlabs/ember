@@ -25,6 +25,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param selfService     whether it was generated through self service
  * @param documentId      the member document it was filed as, or null once that was deleted
  * @param fileSha256      the SHA-256 of the file as lowercase hex
+ * @param pdfOriginalId   the uploaded PDF it was filled from, or null for a letter
  */
 public record DocumentGeneration(
         int id,
@@ -36,7 +37,8 @@ public record DocumentGeneration(
         Instant generatedAt,
         boolean selfService,
         @Nullable Integer documentId,
-        String fileSha256) {
+        String fileSha256,
+        @Nullable Integer pdfOriginalId) {
 
     public static RowMapping<DocumentGeneration> map() {
         return row -> new DocumentGeneration(
@@ -49,6 +51,7 @@ public record DocumentGeneration(
                 row.get("generated_at", INSTANT_TIMESTAMP),
                 row.getBoolean("self_service"),
                 row.getObject("document_id", Integer.class),
-                row.getString("file_sha256"));
+                row.getString("file_sha256"),
+                row.getObject("pdf_original_id", Integer.class));
     }
 }

@@ -17824,6 +17824,82 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/document-templates/{id}/pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The PDF a PDF template fills now, as it was uploaded */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Upload a new version of the PDF a PDF template fills, keeping its fields */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DocumentTemplateResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/document-templates/{id}/restore": {
         parameters: {
             query?: never;
@@ -57685,15 +57761,18 @@ export interface components {
             version: string;
         };
         /** @enum {string} */
-        DocumentTemplateKind: "LETTER";
+        DocumentTemplateKind: "LETTER" | "PDF";
         DocumentTemplateRequest: {
             audience?: components["schemas"]["RestrictionAudience"] | null;
             bodyMarkdown?: string | null;
             /** Format: int32 */
             cooldownDays?: number | null;
+            fields?: components["schemas"]["PdfField"][] | null;
             fileNamePattern?: string | null;
+            formBindings?: components["schemas"]["FormBinding"][] | null;
             hidden?: boolean;
             keepOnArchive?: boolean | null;
+            kind?: components["schemas"]["DocumentTemplateKind"] | null;
             legal?: boolean;
             letterhead?: components["schemas"]["Letterhead"] | null;
             name?: string | null;
@@ -57709,7 +57788,9 @@ export interface components {
             bodyMarkdown: string;
             /** Format: int32 */
             cooldownDays: number;
+            fields: components["schemas"]["PdfField"][];
             fileNamePattern: string;
+            formBindings: components["schemas"]["FormBinding"][];
             hidden: boolean;
             /** Format: int32 */
             id: number;
@@ -57719,6 +57800,7 @@ export interface components {
             letterhead: components["schemas"]["Letterhead"];
             name: string;
             page: components["schemas"]["LetterPage"];
+            pdf: components["schemas"]["PdfOriginal"] | null;
             pronounSource: components["schemas"]["PronounSource"] | null;
             selfService: boolean;
             tags: string[];
@@ -57743,6 +57825,8 @@ export interface components {
             /** Format: int32 */
             memberId?: number | null;
             template?: components["schemas"]["DocumentTemplateRequest"] | null;
+            /** Format: int32 */
+            templateId?: number | null;
         };
         EligibleMembers: {
             eligibleManagedMemberIds: number[];
@@ -58560,6 +58644,14 @@ export interface components {
         };
         /** @enum {string} */
         FieldOrigin: "STATION" | "CLUSTER";
+        FieldRect: {
+            height: number;
+            /** Format: int32 */
+            page: number;
+            width: number;
+            x: number;
+            y: number;
+        };
         FieldRequest: {
             config?: unknown;
             fieldType?: components["schemas"]["FieldType"];
@@ -58750,6 +58842,10 @@ export interface components {
             RATING: components["schemas"]["RatingAnswer"];
             TEXT: components["schemas"]["TextAnswer"];
         };
+        FormBinding: {
+            fieldName: string;
+            text: string;
+        };
         FormDraft: {
             answers: {
                 [key: string]: components["schemas"]["FormAnswerValue"];
@@ -58773,6 +58869,13 @@ export interface components {
             canMarkFormer: boolean;
             reason: string | null;
         };
+        FormField: {
+            kind: components["schemas"]["FormFieldKind"];
+            name: string;
+            rect: components["schemas"]["FieldRect"] | null;
+        };
+        /** @enum {string} */
+        FormFieldKind: "TEXT" | "CHECK" | "SIGNATURE" | "OTHER";
         FormLayout: {
             pages: components["schemas"]["FormPage"][];
             questions: components["schemas"]["FormQuestion"][];
@@ -60110,15 +60213,13 @@ export interface components {
             status: string;
         };
         LetterCell: {
-            align: components["schemas"]["LetterCellAlign"];
+            align: components["schemas"]["TextAlign"];
             /** Format: int32 */
             imageHeightMm: number;
             kind: components["schemas"]["LetterCellKind"];
             mediaHash: string | null;
             text: string | null;
         };
-        /** @enum {string} */
-        LetterCellAlign: "LEFT" | "CENTER" | "RIGHT";
         /** @enum {string} */
         LetterCellKind: "EMPTY" | "IMAGE" | "LOGO" | "TEXT";
         Letterhead: {
@@ -61842,6 +61943,41 @@ export interface components {
             heightPx?: number;
             url?: string;
         };
+        PdfField: {
+            align: components["schemas"]["TextAlign"];
+            fontSize: number;
+            kind: components["schemas"]["PdfFieldKind"];
+            rect: components["schemas"]["FieldRect"];
+            role: components["schemas"]["SignatureRole"] | null;
+            text: string | null;
+            wrap: boolean;
+        };
+        /** @enum {string} */
+        PdfFieldKind: "TEXT" | "CHECK" | "SIGNATURE";
+        PdfInspection: {
+            formFields: components["schemas"]["FormField"][];
+            pages: components["schemas"]["PdfPage"][];
+        };
+        PdfOriginal: {
+            fileName: string;
+            /** Format: int32 */
+            id: number;
+            inspection: components["schemas"]["PdfInspection"];
+            sha256: string;
+            /** Format: int64 */
+            sizeBytes: number;
+            /** Format: int32 */
+            templateId: number;
+            uploadedAt: components["schemas"]["Instant"];
+        };
+        PdfPage: {
+            height: number;
+            /** Format: int32 */
+            rotation: number;
+            width: number;
+            x: number;
+            y: number;
+        };
         PeerAnnouncement: {
             baseUrl?: string;
             firstSeenBy?: string;
@@ -61904,7 +62040,7 @@ export interface components {
             placeholders: components["schemas"]["Placeholder"][];
         };
         /** @enum {string} */
-        PlaceholderGroup: "MEMBER" | "PROFILE" | "GUARDIAN" | "STATION" | "EVENT" | "DOCUMENT" | "PRONOUN";
+        PlaceholderGroup: "MEMBER" | "PROFILE" | "GUARDIAN" | "STATION" | "EVENT" | "DOCUMENT" | "PRONOUN" | "SIGNATURE";
         PlaceholderValues: {
             values?: {
                 [key: string]: string;
@@ -61982,6 +62118,7 @@ export interface components {
         PreviewResponse: {
             missing: components["schemas"]["MissingValue"][];
             pdfBase64: string;
+            unprintable: string[];
         };
         PreviewResult: {
             members: components["schemas"]["MemberPreview"][];
@@ -64246,6 +64383,8 @@ export interface components {
             /** Format: int32 */
             waitingListEntries: number;
         };
+        /** @enum {string} */
+        SignatureRole: "PARTICIPANT" | "GUARDIAN_1" | "GUARDIAN_2" | "ISSUER";
         SignInClaimRequest: {
             claimToken?: string;
         };
@@ -64750,7 +64889,7 @@ export interface components {
         /** @enum {string} */
         StorageBackendType: "LOCAL" | "SMB" | "SFTP" | "S3";
         /** @enum {string} */
-        StorageCategory: "MEDIA_FILES" | "INSTANCE_MEDIA_FILES" | "MEDIA_IMAGES" | "KB_FILES" | "MEMBER_DOCUMENTS" | "MOVEMENT_DOCUMENTS" | "BOARD_ATTACHMENTS" | "IMAGE_AVATAR" | "IMAGE_LOST_AND_FOUND" | "IMAGE_LOGO_FRAGMENT" | "IMAGE_STATION_LOGO" | "IMAGE_QUIZ_QUESTION" | "IMAGE_KB_ICON" | "IMAGE_KB_IMAGE" | "IMAGE_KB_FILE_PICTURE" | "DOCUMENT" | "DISCOVERY_KEY" | "MAP_TILE_CACHE" | "DEMO_AVATAR" | "IMAGE_DISCOVERY_LOGO";
+        StorageCategory: "MEDIA_FILES" | "INSTANCE_MEDIA_FILES" | "MEDIA_IMAGES" | "KB_FILES" | "MEMBER_DOCUMENTS" | "DOCUMENT_TEMPLATES" | "MOVEMENT_DOCUMENTS" | "BOARD_ATTACHMENTS" | "IMAGE_AVATAR" | "IMAGE_LOST_AND_FOUND" | "IMAGE_LOGO_FRAGMENT" | "IMAGE_STATION_LOGO" | "IMAGE_QUIZ_QUESTION" | "IMAGE_KB_ICON" | "IMAGE_KB_IMAGE" | "IMAGE_KB_FILE_PICTURE" | "DOCUMENT" | "DISCOVERY_KEY" | "MAP_TILE_CACHE" | "DEMO_AVATAR" | "IMAGE_DISCOVERY_LOGO";
         StorageQuotaPreset: {
             /** Format: int64 */
             board: number;
@@ -65110,6 +65249,8 @@ export interface components {
              */
             questionType: "TEXT";
         };
+        /** @enum {string} */
+        TextAlign: "LEFT" | "CENTER" | "RIGHT";
         TextAnswer: {
             text: string;
             /**
@@ -66404,6 +66545,7 @@ export type FieldDefaultEntry = components['schemas']['FieldDefaultEntry'];
 export type FieldDefinitionRequest = components['schemas']['FieldDefinitionRequest'];
 export type FieldOrderRequest = components['schemas']['FieldOrderRequest'];
 export type FieldOrigin = components['schemas']['FieldOrigin'];
+export type FieldRect = components['schemas']['FieldRect'];
 export type FieldRequest = components['schemas']['FieldRequest'];
 export type FieldType = components['schemas']['FieldType'];
 export type FieldUpdateRequest = components['schemas']['FieldUpdateRequest'];
@@ -66432,11 +66574,14 @@ export type FormAnalytics = components['schemas']['FormAnalytics'];
 export type FormAnswer = components['schemas']['FormAnswer'];
 export type FormAnswerValue = components['schemas']['FormAnswerValue'];
 export type FormAnswerValueByType = components['schemas']['FormAnswerValueByType'];
+export type FormBinding = components['schemas']['FormBinding'];
 export type FormDraft = components['schemas']['FormDraft'];
 export type FormDraftRequest = components['schemas']['FormDraftRequest'];
 export type FormDraftResponse = components['schemas']['FormDraftResponse'];
 export type FormDuplicateRequest = components['schemas']['FormDuplicateRequest'];
 export type FormerCheckResponse = components['schemas']['FormerCheckResponse'];
+export type FormField = components['schemas']['FormField'];
+export type FormFieldKind = components['schemas']['FormFieldKind'];
 export type FormLayout = components['schemas']['FormLayout'];
 export type FormLayoutRequest = components['schemas']['FormLayoutRequest'];
 export type FormListEntry = components['schemas']['FormListEntry'];
@@ -66612,7 +66757,6 @@ export type LendingRequestResponse = components['schemas']['LendingRequestRespon
 export type LendingStatus = components['schemas']['LendingStatus'];
 export type LentOutItem = components['schemas']['LentOutItem'];
 export type LetterCell = components['schemas']['LetterCell'];
-export type LetterCellAlign = components['schemas']['LetterCellAlign'];
 export type LetterCellKind = components['schemas']['LetterCellKind'];
 export type Letterhead = components['schemas']['Letterhead'];
 export type LetterImport = components['schemas']['LetterImport'];
@@ -66866,6 +67010,11 @@ export type PasswordStepUpRequest = components['schemas']['PasswordStepUpRequest
 export type PastEventRecapConfig = components['schemas']['PastEventRecapConfig'];
 export type PatchItemRequest = components['schemas']['PatchItemRequest'];
 export type PdfConfig = components['schemas']['PdfConfig'];
+export type PdfField = components['schemas']['PdfField'];
+export type PdfFieldKind = components['schemas']['PdfFieldKind'];
+export type PdfInspection = components['schemas']['PdfInspection'];
+export type PdfOriginal = components['schemas']['PdfOriginal'];
+export type PdfPage = components['schemas']['PdfPage'];
 export type PeerAnnouncement = components['schemas']['PeerAnnouncement'];
 export type PeerResponse = components['schemas']['PeerResponse'];
 export type PeerSource = components['schemas']['PeerSource'];
@@ -67181,6 +67330,7 @@ export type SharePartner = components['schemas']['SharePartner'];
 export type ShareScope = components['schemas']['ShareScope'];
 export type ShareSetting = components['schemas']['ShareSetting'];
 export type SidebarCounts = components['schemas']['SidebarCounts'];
+export type SignatureRole = components['schemas']['SignatureRole'];
 export type SignInClaimRequest = components['schemas']['SignInClaimRequest'];
 export type SignInFinishRequest = components['schemas']['SignInFinishRequest'];
 export type SigningSecretRequest = components['schemas']['SigningSecretRequest'];
@@ -67295,6 +67445,7 @@ export type TestResult = components['schemas']['TestResult'];
 export type TestStatus = components['schemas']['TestStatus'];
 export type TestTileResult = components['schemas']['TestTileResult'];
 export type Text = components['schemas']['Text'];
+export type TextAlign = components['schemas']['TextAlign'];
 export type TextAnswer = components['schemas']['TextAnswer'];
 export type TextConfig = components['schemas']['TextConfig'];
 export type TextDetail = components['schemas']['TextDetail'];
@@ -67666,6 +67817,7 @@ export const DiscoveryVisibility = {
 
 export const DocumentTemplateKind = {
     LETTER: "LETTER",
+    PDF: "PDF",
 } as const;
 
 export const EmailChangeResult = {
@@ -67763,6 +67915,13 @@ export const FilterTableType = {
     MEMBERS: "MEMBERS",
     NEWS: "NEWS",
     QUIZ: "QUIZ",
+} as const;
+
+export const FormFieldKind = {
+    CHECK: "CHECK",
+    OTHER: "OTHER",
+    SIGNATURE: "SIGNATURE",
+    TEXT: "TEXT",
 } as const;
 
 export const FormPurpose = {
@@ -67912,12 +68071,6 @@ export const LendingStatus = {
     LENT: "LENT",
     REQUESTED: "REQUESTED",
     RETURNED: "RETURNED",
-} as const;
-
-export const LetterCellAlign = {
-    CENTER: "CENTER",
-    LEFT: "LEFT",
-    RIGHT: "RIGHT",
 } as const;
 
 export const LetterCellKind = {
@@ -68201,6 +68354,12 @@ export const PairRequestStatus = {
     PENDING: "PENDING",
 } as const;
 
+export const PdfFieldKind = {
+    CHECK: "CHECK",
+    SIGNATURE: "SIGNATURE",
+    TEXT: "TEXT",
+} as const;
+
 export const PeerSource = {
     BOOTSTRAP: "BOOTSTRAP",
     GOSSIP: "GOSSIP",
@@ -68214,6 +68373,7 @@ export const PlaceholderGroup = {
     MEMBER: "MEMBER",
     PROFILE: "PROFILE",
     PRONOUN: "PRONOUN",
+    SIGNATURE: "SIGNATURE",
     STATION: "STATION",
 } as const;
 
@@ -68404,6 +68564,13 @@ export const ShareGrant = {
 export const ShareScope = {
     ALL_PARTNERS: "ALL_PARTNERS",
     SPECIFIC: "SPECIFIC",
+} as const;
+
+export const SignatureRole = {
+    GUARDIAN_1: "GUARDIAN_1",
+    GUARDIAN_2: "GUARDIAN_2",
+    ISSUER: "ISSUER",
+    PARTICIPANT: "PARTICIPANT",
 } as const;
 
 export const SmtpEncryption = {
@@ -68599,6 +68766,7 @@ export const StorageCategory = {
     DEMO_AVATAR: "DEMO_AVATAR",
     DISCOVERY_KEY: "DISCOVERY_KEY",
     DOCUMENT: "DOCUMENT",
+    DOCUMENT_TEMPLATES: "DOCUMENT_TEMPLATES",
     IMAGE_AVATAR: "IMAGE_AVATAR",
     IMAGE_DISCOVERY_LOGO: "IMAGE_DISCOVERY_LOGO",
     IMAGE_KB_FILE_PICTURE: "IMAGE_KB_FILE_PICTURE",
@@ -68652,6 +68820,12 @@ export const TestStatus = {
     ACTIVE: "ACTIVE",
     CLOSED: "CLOSED",
     DRAFT: "DRAFT",
+} as const;
+
+export const TextAlign = {
+    CENTER: "CENTER",
+    LEFT: "LEFT",
+    RIGHT: "RIGHT",
 } as const;
 
 export const ThemeFeel = {

@@ -58,9 +58,27 @@ export async function importLetter(file: File): Promise<LetterImport> {
     return uploadFile<LetterImport>('/document-template-import', {file})
 }
 
-/** Draws a template as the editor holds it, for a member or with its placeholders shown by name. */
-export async function previewDraft(template: DocumentTemplateRequest, memberId: number | null): Promise<PreviewResponse> {
-    const res = await client.post<PreviewResponse>('/document-template-preview', {template, memberId})
+/**
+ * Draws a template as the editor holds it, for a member or with its placeholders shown by name. A PDF
+ * template is filled from the PDF of the saved template it changes.
+ */
+export async function previewDraft(
+    template: DocumentTemplateRequest,
+    templateId: number | null,
+    memberId: number | null,
+): Promise<PreviewResponse> {
+    const res = await client.post<PreviewResponse>('/document-template-preview', {template, templateId, memberId})
+    return res.data
+}
+
+/** Uploads a new version of the PDF a PDF template fills; its fields stay as they were. */
+export async function uploadPdf(templateId: number, file: File): Promise<DocumentTemplateResponse> {
+    return uploadFile<DocumentTemplateResponse>(`/document-templates/${templateId}/pdf`, {file})
+}
+
+/** The PDF a PDF template fills now, as it was uploaded. */
+export async function templatePdf(templateId: number): Promise<Blob> {
+    const res = await client.get<Blob>(`/document-templates/${templateId}/pdf`, {responseType: 'blob'})
     return res.data
 }
 
