@@ -206,6 +206,37 @@ class BulkGenerationServiceTest extends GeneratorTestBase {
         assertFalse(jobs.unfinished().contains(jobId));
     }
 
+    /**
+     * A run cut off after filing a document but before marking the member filed leaves nothing filed,
+     * so the member is generated once when the run carries on rather than twice.
+     */
+    @Test
+    void aDocumentIsNotKeptWhenTheMemberCannotBeMarkedFiled() {
+        int jobId = jobs.create(wiring.station().id(), templateId, manager.id(), true, List.of(anna.id()));
+        var filedGeneration = new int[] {0};
+        var failing = new GenerationJobRepository() {
+            @Override
+            public void markFiled(int job, int memberId, int generationId) {
+                filedGeneration[0] = generationId;
+                throw new IllegalStateException("cut off");
+            }
+        };
+        var runner = new GenerationJobRunner(
+                failing,
+                new DocumentTemplateRepository(),
+                wiring.generator(),
+                wiring.generation(),
+                new TaskScheduler());
+
+        runner.run(jobId);
+
+        assertTrue(filedGeneration[0] > 0);
+        assertTrue(wiring.log().findById(filedGeneration[0]).isEmpty());
+        assertEquals(
+                JobMemberStatus.FAILED,
+                resultOf(bulk.job(wiring.station().id(), jobId), anna).status());
+    }
+
     @Test
     void aRunOfAnArchivedTemplateFailsItsMembers() {
         int archived = template("Archiviert");

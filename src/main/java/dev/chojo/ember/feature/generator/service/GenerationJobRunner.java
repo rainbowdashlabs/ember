@@ -20,6 +20,7 @@ import dev.chojo.ember.lifecycle.ScheduledTask;
 import dev.chojo.ember.lifecycle.SerialLane;
 import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.lifecycle.TaskSource;
+import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -37,7 +38,9 @@ import java.util.stream.Collectors;
  * holds a request and two runs never draw at once.
  *
  * <p>Everything a run needs lives in the database: each member is marked filed or failed as soon as it
- * is done, and a run picked up again generates only the members still waiting. A run is handed in when
+ * is done, and a run picked up again generates only the members still waiting. Filing a member's
+ * document and marking the member filed are one transaction, so a run cut off between the two leaves
+ * the member waiting with nothing filed rather than filed twice once it carries on. A run is handed in when
  * it is started, and a periodic task hands in every run that is not finished and not already queued,
  * which is what carries a run on after a restart.
  *
@@ -119,8 +122,11 @@ public class GenerationJobRunner implements TaskSource {
                 if (template.archived()) throw DocumentRefusal.DOCUMENT_TEMPLATE_ARCHIVED.raise();
                 var prepared = generator.prepare(source, memberId, context);
                 if (!job.acceptMissing()) requireComplete(prepared);
-                var filed = generation.file(template, memberId, job.startedBy(), GenerationOrigin.MANAGER, prepared);
-                jobs.markFiled(job.id(), memberId, filed.generationId());
+                Transactions.run(() -> {
+                    var filed =
+                            generation.file(template, memberId, job.startedBy(), GenerationOrigin.MANAGER, prepared);
+                    jobs.markFiled(job.id(), memberId, filed.generationId());
+                });
             } catch (RefusalResponse refused) {
                 jobs.markFailed(job.id(), memberId, refused.refusal().code(), detailOf(refused.detail()));
             } catch (RuntimeException e) {
