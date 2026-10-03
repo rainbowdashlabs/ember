@@ -61019,6 +61019,15 @@
           "group" : {
             "$ref" : "#/components/schemas/PlaceholderGroup"
           },
+          "category" : {
+            "$ref" : "#/components/schemas/PlaceholderCategory"
+          },
+          "path" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
           "informal" : {
             "type" : "boolean"
           },
@@ -61026,7 +61035,7 @@
             "type" : "boolean"
           }
         },
-        "required" : [ "key", "label", "group", "informal", "eventOnly" ]
+        "required" : [ "key", "label", "group", "category", "path", "informal", "eventOnly" ]
       },
       "PlaceholderCatalogueResponse" : {
         "type" : "object",
@@ -61039,6 +61048,10 @@
           }
         },
         "required" : [ "placeholders" ]
+      },
+      "PlaceholderCategory" : {
+        "type" : "string",
+        "enum" : [ "MEMBER", "PRONOUNS", "GUARDIAN1", "GUARDIAN2", "STATION", "APPOINTMENT", "DOCUMENT", "SIGNATURE" ]
       },
       "PlaceholderGroup" : {
         "type" : "string",

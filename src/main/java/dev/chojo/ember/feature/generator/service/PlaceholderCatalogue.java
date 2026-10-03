@@ -12,11 +12,14 @@ import dev.chojo.ember.feature.generator.entity.DocumentTemplateDraft;
 import dev.chojo.ember.feature.generator.entity.LetterContent;
 import dev.chojo.ember.feature.generator.entity.PdfContent;
 import dev.chojo.ember.feature.generator.entity.Placeholder;
+import dev.chojo.ember.feature.generator.entity.PlaceholderCategory;
 import dev.chojo.ember.feature.generator.entity.PlaceholderGroup;
+import dev.chojo.ember.feature.generator.entity.PlaceholderSubgroup;
 import dev.chojo.ember.feature.generator.entity.PlaceholderTokens;
 import dev.chojo.ember.feature.generator.entity.PronounKey;
 import dev.chojo.ember.feature.generator.entity.SignatureRole;
 import dev.chojo.ember.feature.generator.entity.TemplateContent;
+import dev.chojo.ember.feature.generator.service.OfferedFields.SectionedField;
 import dev.chojo.ember.feature.members.entity.ProfileField;
 import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
 import dev.chojo.ember.feature.station.entity.StationFormat;
@@ -26,6 +29,7 @@ import jakarta.inject.Singleton;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -38,8 +42,13 @@ import java.util.stream.Stream;
  * The values a template of one station can name, with the words the editor shows for them.
  *
  * <p>Keys are English and never change; labels are in the station's language. The built-in keys are
- * the same everywhere ({@link BuiltInPlaceholder}), and every profile question of the station that
- * holds an answer adds one key for the member and one for each of the two guardians.
+ * the same everywhere ({@link BuiltInPlaceholder}). A profile question that holds an answer adds a key for
+ * the member where it is put to the member, and one for each of the two guardians where it is put to
+ * guardians ({@link OfferedFields}). A key the catalogue does not hold is refused when a template is saved,
+ * so a template names only answers somebody is asked for.
+ *
+ * <p>The questions of an association are not offered: a template is the station's and names the
+ * station's questions only.
  */
 @Singleton
 public class PlaceholderCatalogue {
@@ -59,7 +68,9 @@ public class PlaceholderCatalogue {
     }
 
     /**
-     * Every placeholder a template of the station can name, in the order the picker shows them.
+     * Every placeholder a template of the station can name, in the order the picker shows them: by
+     * category, and within the member and each guardian the values every member has before the profile
+     * answers in the order of the form.
      *
      * @param stationId the station
      * @return the placeholders
@@ -71,29 +82,51 @@ public class PlaceholderCatalogue {
                 .map(value -> value.in(language))
                 .forEach(out::add);
         PronounKey.all().stream().map(pronoun -> pronoun.in(language)).forEach(out::add);
-        out.add(new Placeholder(
-                SignatureRole.ISSUER.token(),
-                "en".equals(language) ? "Signature field: issuer" : "Unterschriftsfeld: Ausstellende Person",
-                PlaceholderGroup.SIGNATURE,
-                false,
-                false));
-        var fields = answerable(stationId);
-        for (var field : fields) {
-            out.add(new Placeholder(PROFILE + field.id(), field.name(), PlaceholderGroup.PROFILE, false, false));
-        }
+        out.add(signature(language));
+        var offered = offered(stationId);
+        offered.member().forEach(field -> out.add(answer(field, PROFILE, PlaceholderCategory.MEMBER, language)));
         for (int index = 0; index < GUARDIANS.size(); index++) {
-            String prefix = GUARDIANS.get(index);
-            String who = guardianWord(language, index + 1);
-            for (var field : fields) {
-                out.add(new Placeholder(
-                        prefix + PROFILE + field.id(),
-                        who + ": " + field.name(),
-                        PlaceholderGroup.GUARDIAN,
-                        false,
-                        false));
-            }
+            String prefix = GUARDIANS.get(index) + PROFILE;
+            var category = PlaceholderCategory.guardian(index);
+            offered.guardians().forEach(field -> out.add(answer(field, prefix, category, language)));
         }
+        out.sort(Comparator.comparing(Placeholder::category));
         return out;
+    }
+
+    private static Placeholder signature(String language) {
+        boolean english = "en".equals(language);
+        String signer = english ? "Issuer" : "Ausstellende Person";
+        return new Placeholder(
+                SignatureRole.ISSUER.token(),
+                english ? "Signature field: issuer" : "Unterschriftsfeld: Ausstellende Person",
+                PlaceholderGroup.SIGNATURE,
+                PlaceholderCategory.SIGNATURE,
+                List.of(PlaceholderCategory.SIGNATURE.word(language), signer),
+                false,
+                false);
+    }
+
+    /**
+     * The placeholder of an answer to a profile question, below the profile of the member or a guardian
+     * and below the heading the question stands under on the form.
+     */
+    private static Placeholder answer(
+            SectionedField sectioned, String prefix, PlaceholderCategory category, String language) {
+        var field = sectioned.field();
+        String who = category.word(language);
+        var path = new ArrayList<>(List.of(who, PlaceholderSubgroup.PROFILE.word(language)));
+        if (sectioned.section() != null) path.add(sectioned.section());
+        path.add(field.name());
+        boolean member = category == PlaceholderCategory.MEMBER;
+        return new Placeholder(
+                prefix + field.id(),
+                member ? field.name() : who + ": " + field.name(),
+                member ? PlaceholderGroup.PROFILE : PlaceholderGroup.GUARDIAN,
+                category,
+                List.copyOf(path),
+                false,
+                false);
     }
 
     /**
@@ -109,15 +142,25 @@ public class PlaceholderCatalogue {
     }
 
     /**
-     * The profile questions of the station that hold an answer, which is every one a template can name.
+     * The profile questions of the station a template can name, for the member and for a guardian: those
+     * that hold an answer and are put to the member or to guardians.
      *
      * @param stationId the station
-     * @return the questions
+     * @return the questions by whom they are put to
+     */
+    public OfferedFields offered(int stationId) {
+        return OfferedFields.of(
+                profileFields.findByStation(stationId), profileFields.findAssignmentsByStation(stationId));
+    }
+
+    /**
+     * The profile questions a template can name for the member.
+     *
+     * @param stationId the station
+     * @return the questions in the order of the member's form
      */
     public List<ProfileField> answerable(int stationId) {
-        return profileFields.findByStation(stationId).stream()
-                .filter(field -> field.fieldType().holdsValue())
-                .toList();
+        return offered(stationId).member().stream().map(SectionedField::field).toList();
     }
 
     /**
@@ -214,9 +257,5 @@ public class PlaceholderCatalogue {
 
     private String languageOf(int stationId) {
         return StationFormat.languageOf(stations.findById(stationId).orElse(null));
-    }
-
-    private static String guardianWord(String language, int number) {
-        return ("en".equals(language) ? "Guardian " : "Erziehungsberechtigte ") + number;
     }
 }

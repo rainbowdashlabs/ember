@@ -13,7 +13,7 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import ToggleSetting from '@/components/input/toggle/ToggleSetting.vue'
 import {PdfFieldKind, TextAlign, type PdfField, type Placeholder, type SignatureRole} from '@/api/generated/schema'
-import PlaceholderPicker from './PlaceholderPicker.vue'
+import PlaceholderPopover from './placeholderpicker/PlaceholderPopover.vue'
 import {DEFAULT_FONT_SIZE, SIGNERS} from './pdfFields'
 import {withPlaceholder} from './placeholderText'
 
@@ -64,7 +64,7 @@ function append(placeholder: Placeholder) {
                      :help="t(field.kind === PdfFieldKind.CHECK ? 'documentTemplates.checkWhenHelp' : 'documentTemplates.fieldTextHelp')">
         <TextInput :model-value="field.text ?? ''" data-testid="pdf-field-text" @update:model-value="setText"/>
       </LabelledField>
-      <PlaceholderPicker :placeholders="placeholders" :legal="legal" @pick="append"/>
+      <PlaceholderPopover :placeholders="placeholders" :legal="legal" @pick="append"/>
     </template>
     <template v-if="field.kind === PdfFieldKind.TEXT">
       <div class="grid gap-3 sm:grid-cols-2">

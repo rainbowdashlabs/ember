@@ -62013,15 +62013,19 @@ export interface components {
             updatedAt: components["schemas"]["Instant"];
         };
         Placeholder: {
+            category: components["schemas"]["PlaceholderCategory"];
             eventOnly: boolean;
             group: components["schemas"]["PlaceholderGroup"];
             informal: boolean;
             key: string;
             label: string;
+            path: string[];
         };
         PlaceholderCatalogueResponse: {
             placeholders: components["schemas"]["Placeholder"][];
         };
+        /** @enum {string} */
+        PlaceholderCategory: "MEMBER" | "PRONOUNS" | "GUARDIAN1" | "GUARDIAN2" | "STATION" | "APPOINTMENT" | "DOCUMENT" | "SIGNATURE";
         /** @enum {string} */
         PlaceholderGroup: "MEMBER" | "PROFILE" | "GUARDIAN" | "STATION" | "EVENT" | "DOCUMENT" | "PRONOUN" | "SIGNATURE";
         PlaceholderValues: {
@@ -66995,6 +66999,7 @@ export type PickerEvent = components['schemas']['PickerEvent'];
 export type PickerPage = components['schemas']['PickerPage'];
 export type Placeholder = components['schemas']['Placeholder'];
 export type PlaceholderCatalogueResponse = components['schemas']['PlaceholderCatalogueResponse'];
+export type PlaceholderCategory = components['schemas']['PlaceholderCategory'];
 export type PlaceholderGroup = components['schemas']['PlaceholderGroup'];
 export type PlaceholderValues = components['schemas']['PlaceholderValues'];
 export type PlacementResponse = components['schemas']['PlacementResponse'];
@@ -68330,6 +68335,17 @@ export const PeerSource = {
     BOOTSTRAP: "BOOTSTRAP",
     GOSSIP: "GOSSIP",
     MANUAL: "MANUAL",
+} as const;
+
+export const PlaceholderCategory = {
+    APPOINTMENT: "APPOINTMENT",
+    DOCUMENT: "DOCUMENT",
+    GUARDIAN1: "GUARDIAN1",
+    GUARDIAN2: "GUARDIAN2",
+    MEMBER: "MEMBER",
+    PRONOUNS: "PRONOUNS",
+    SIGNATURE: "SIGNATURE",
+    STATION: "STATION",
 } as const;
 
 export const PlaceholderGroup = {

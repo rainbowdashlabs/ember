@@ -86,6 +86,12 @@ public record PronounKey(PronounRole role, boolean sentenceStart, PossessiveEndi
     }
 
     /**
+     * The pronoun as the catalogue offers it.
+     *
+     * <p>The picker reaches it through its role. A possessive, which has six endings in each place, is
+     * then split by whether it opens a sentence, and named by its words alone; every other role offers its
+     * two forms right below the role.
+     *
      * @param language {@code de} or {@code en}, the language the editor speaks
      * @return the pronoun as the catalogue offers it
      */
@@ -98,11 +104,21 @@ public record PronounKey(PronounRole role, boolean sentenceStart, PossessiveEndi
         String name = role == PronounRole.POSSESSIVE
                 ? (english ? "first name's" : "Vornamens")
                 : (english ? "first name" : "Vorname");
-        var label = new StringBuilder(male + " / " + female + " / " + name);
+        var forms = new StringBuilder(male + " / " + female + " / " + name);
         if (english && ending != PossessiveEnding.NONE)
-            label.append(" (+").append(ending.suffix()).append(')');
-        if (sentenceStart) label.append(english ? " (sentence start)" : " (Satzanfang)");
-        return new Placeholder(key(), label.toString(), PlaceholderGroup.PRONOUN, false, false);
+            forms.append(" (+").append(ending.suffix()).append(')');
+        String label = sentenceStart ? forms + (english ? " (sentence start)" : " (Satzanfang)") : forms.toString();
+        String category = PlaceholderCategory.PRONOUNS.word(language);
+        var path = role == PronounRole.POSSESSIVE
+                ? List.of(category, role.title(language), place(english), forms.toString())
+                : List.of(category, role.title(language), label);
+        return new Placeholder(
+                key(), label, PlaceholderGroup.PRONOUN, PlaceholderCategory.PRONOUNS, path, false, false);
+    }
+
+    private String place(boolean english) {
+        if (sentenceStart) return english ? "At the start of a sentence" : "Am Satzanfang";
+        return english ? "Within a sentence" : "Im Satz";
     }
 
     private String shaped(String word) {
