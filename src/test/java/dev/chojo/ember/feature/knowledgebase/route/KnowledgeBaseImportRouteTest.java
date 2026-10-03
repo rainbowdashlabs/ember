@@ -106,7 +106,7 @@ class KnowledgeBaseImportRouteTest {
         harness.run((server, client) -> {
             var read = client.request(
                     PREFIX + "/kb/files/import-document", editor.andThen(TestUploads.multipart("notiz.odt", word)));
-            assertEquals(200, read.code());
+            assertEquals(200, read.code(), () -> read.body().string());
             assertEquals(
                     KnowledgeBaseRefusal.KB_IMPORT_KIND_UNKNOWN,
                     refusalOf(client.request(

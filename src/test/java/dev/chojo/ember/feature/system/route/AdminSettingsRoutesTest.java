@@ -371,7 +371,7 @@ class AdminSettingsRoutesTest {
 
         harness.run((server, client) -> {
             var read = client.request(PREFIX + "/admin/legal/privacy/de/import", upload("datenschutz.odt", word));
-            assertEquals(200, read.code());
+            assertEquals(200, read.code(), () -> read.body().string());
             assertTrue(json(read).toString().contains("Bescheinigung"));
             assertEquals(
                     SystemRefusal.LEGAL_DOCUMENT_NOT_READ,
