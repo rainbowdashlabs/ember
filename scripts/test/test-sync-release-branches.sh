@@ -104,4 +104,16 @@ expect_equal "a release branch without a commit of its own waits for its bump" "
 expect_equal "the release branch without a commit of its own is left as it was" "$(git rev-parse 'v26.20.0^{commit}')" \
     "$(git ls-remote origin refs/heads/release/v26.21.0 | cut -f1)"
 
+git checkout -q -B release/v26.21.0 'v26.20.0^{commit}'
+set_version 26.21.0
+commit_all "Open the release"
+git push -q origin release/v26.21.0
+git checkout -q main
+hook="$(git remote get-url origin)/hooks/pre-receive"
+printf '#!/usr/bin/env bash\necho "- Cannot force-push to this branch"\nexit 1\n' > "$hook"
+chmod +x "$hook"
+expect_fail "a push refused by a repository rule names the rule" \
+    "the push was refused: Cannot force-push to this branch" sync
+rm "$hook"
+
 finish
