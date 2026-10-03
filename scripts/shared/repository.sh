@@ -80,12 +80,15 @@ ensure_main_ref() {
 
 # The changelog block of a version as release notes: the block without its heading, with `###`
 # headings raised to `#` and the blank lines around it trimmed. Empty when the version has no block.
+# The whole changelog is read even after the block ends: stopping early would leave `git show`
+# writing into a closed pipe, which fails the release under pipefail once the changelog outgrows the
+# pipe's buffer.
 release_notes() {
     local version="$1" commit="${2:-HEAD}"
     git show "$commit:CHANGELOG.md" |
         awk -v heading="## v$version" '
             $0 == heading { inside = 1; next }
-            inside && /^## / { exit }
-            inside { sub(/^### /, "# "); print }' |
+            inside && /^## / { inside = 0; done = 1 }
+            inside && !done { sub(/^### /, "# "); print }' |
         sed -e '/./,$!d' | sed -e ':a' -e '/^\n*$/{$d;N;ba' -e '}'
 }
