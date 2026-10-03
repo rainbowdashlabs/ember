@@ -67,6 +67,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
@@ -728,7 +729,8 @@ class MailImportCycleTest extends RepositoryTestBase {
                 .notify(
                         eq(StationAudience.holders(station.id(), StationPermission.DOCUMENT_READ)),
                         eq(NotificationType.MAIL_IMPORT_UNBOUND),
-                        any(),
+                        argThat(data ->
+                                data.link() != null && data.link().route().equals("documents-store")),
                         eq(Delivery.EVERY_TIME));
     }
 

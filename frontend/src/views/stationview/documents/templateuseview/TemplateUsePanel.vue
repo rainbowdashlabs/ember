@@ -19,6 +19,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import type {MemberGroup, MemberWithName, TemplateUseResponse, UserTag} from '@/api/generated/schema'
 import type {RestrictionSelection} from '@/api/types'
+import {STATION_TEMPLATE_SCREENS} from '../templateScreens'
 
 /**
  * The station's choice for one template of its association: whether its members generate it for
@@ -59,7 +60,7 @@ const router = useRouter()
       <RestrictionPicker v-model="audience" :groups="groups" :tags="tags" :members="members" show-members/>
     </LabelledField>
     <ButtonRow align="end">
-      <SecondaryButton :icon="['fas', 'arrow-left']" @click="router.push({name: 'member-document-templates'})">
+      <SecondaryButton :icon="['fas', 'arrow-left']" @click="router.push({name: STATION_TEMPLATE_SCREENS.listRoute})">
         {{ t('documentTemplates.backToList') }}
       </SecondaryButton>
       <PrimaryButton :icon="['fas', 'floppy-disk']" :disabled="saving" data-testid="template-use-save" @click="emit('save')">

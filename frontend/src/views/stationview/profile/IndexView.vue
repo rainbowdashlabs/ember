@@ -4,14 +4,12 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {describeFailure} from '@/util/failure'
-import { managedMembers as managedMembersApi } from '@/api'
-import { StationPermission, type ManagedMember } from '@/api/generated/schema'
 import { useSession } from '@/composables/useSession'
 import { useProfileAnswers } from '@/composables/useProfileAnswers'
 import { ownProfileAnswers } from '@/composables/profileAnswerPorts'
@@ -20,8 +18,8 @@ import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import AccountCard from './indexview/AccountCard.vue'
 import IncompleteFieldsAlert from './indexview/IncompleteFieldsAlert.vue'
 import ProfileFieldsForm from './indexview/ProfileFieldsForm.vue'
-import OwnDocuments from './indexview/OwnDocuments.vue'
-import {usePermissions} from '@/composables/usePermissions'
+import ReaderDocuments from '@/components/documents/ReaderDocuments.vue'
+import SelfServiceCentreLink from './indexview/SelfServiceCentreLink.vue'
 
 const { t } = useI18n()
 const { sessionInfo } = useSession()
@@ -31,24 +29,6 @@ const answers = useProfileAnswers(ownProfileAnswers)
 const {fields, valueOf: getValue, update: setValue} = answers
 
 const memberId = computed(() => sessionInfo.value?.member?.id ?? null)
-
-/** Reading one's own documents needs nothing; adding to them is a right a station grants. */
-const {hasPermission, isGuardian} = usePermissions()
-
-const canUploadOwn = computed(() => hasPermission(StationPermission.MEMBER_SELF_UPLOAD))
-
-/**
- * The people this reader answers for, whose paperwork is shown under their own.
- *
- * <p>The forms a station holds for a child are the forms the person answering for that child needs,
- * and until now there was nowhere to read them: the panel existed and was only ever drawn with the
- * reader's own member. Adding is still the member's own to do, so these panels only read.
- */
-const managed = ref<ManagedMember[]>([])
-
-watch(() => sessionInfo.value?.member?.id, async id => {
-  managed.value = id && isGuardian() ? await managedMembersApi.listManaged() : []
-}, {immediate: true})
 
 const fullName = computed(() => {
   const account = sessionInfo.value?.account
@@ -123,15 +103,8 @@ watch(memberId, (newId) => {
             @update="setValue"
         />
 
-        <OwnDocuments :member-id="memberId" :can-upload="canUploadOwn"/>
-
-        <OwnDocuments
-            v-for="child in managed"
-            :key="child.id"
-            :can-upload="false"
-            :member-id="child.id"
-            :title="t('profile.documentsOf', {name: child.name})"
-        />
+        <ReaderDocuments :offers="false"/>
+        <SelfServiceCentreLink/>
       </template>
     </div>
   </ViewContent>

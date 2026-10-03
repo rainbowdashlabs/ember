@@ -4,14 +4,14 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import TemplateUseHelp from '~/views/helpcenter/stationview/members/TemplateUseHelp.vue'
+import TemplateEditorHelp from '~/views/helpcenter/stationview/documents/TemplateEditorHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',
-  name: 'help-member-document-template-use',
+  name: 'help-documents-template-edit',
 })
 </script>
 
 <template>
-  <TemplateUseHelp />
+  <TemplateEditorHelp />
 </template>

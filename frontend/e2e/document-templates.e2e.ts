@@ -56,9 +56,9 @@ async function writeText(area: Locator, parts: string[]) {
  * @param name what the template is called
  */
 async function setUpCertificate(page: Page, name: string) {
-    await page.goto('/station/members/templates')
+    await page.goto('/station/documents/templates')
     await page.getByTestId('template-new').click()
-    await page.waitForURL(/\/station\/members\/template-editor\/new/)
+    await page.waitForURL(/\/station\/documents\/templates\/new/)
     await page.getByTestId('template-name').fill(name)
 
     await page.getByRole('tab', {name: 'Brief'}).click()
@@ -84,13 +84,13 @@ async function setUpCertificate(page: Page, name: string) {
     await expect(page.getByTestId('template-cooldown')).toHaveValue('30')
 
     await page.getByTestId('template-save').click()
-    await page.waitForURL(/\/station\/members\/template-editor\/\d+/)
+    await page.waitForURL(/\/station\/documents\/templates\/\d+/)
     await expect(page.getByText('Version 1')).toBeVisible()
 }
 
 /**
  * Document templates: a letter set up once in Ember, turned into a PDF for a member and filed with
- * them, by a manager from the member page and by the member themselves from their profile.
+ * them, by a manager from the member page and by the member themselves from their own documents.
  */
 test.describe('Document templates', () => {
 
@@ -113,7 +113,7 @@ test.describe('Document templates', () => {
         await expect(managerPage.getByText('Dokument erstellt und abgelegt.')).toBeVisible()
         await expect(managerPage.getByText(name).first()).toBeVisible()
 
-        await memberPage.goto('/station/profile')
+        await memberPage.goto('/station/documents')
         const offer = memberPage.getByTestId('self-service-offer').filter({hasText: name})
         await offer.getByTestId('self-service-generate').click()
         await expect(memberPage.getByText(name).first()).toBeVisible()

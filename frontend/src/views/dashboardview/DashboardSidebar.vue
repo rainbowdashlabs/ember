@@ -15,6 +15,7 @@ import SetupSidebarGroup from '@/views/dashboardview/SetupSidebarGroup.vue'
 import DashboardSidebarGroup from '@/views/dashboardview/DashboardSidebarGroup.vue'
 import ProfileSidebarGroup from '@/views/dashboardview/ProfileSidebarGroup.vue'
 import MembersSidebarGroup from '@/views/dashboardview/MembersSidebarGroup.vue'
+import DocumentsSidebarGroup from '@/views/dashboardview/DocumentsSidebarGroup.vue'
 import InventorySidebarGroup from '@/views/dashboardview/InventorySidebarGroup.vue'
 import AttendanceSidebarGroup from '@/views/dashboardview/AttendanceSidebarGroup.vue'
 import EventsSidebarGroup from '@/views/dashboardview/EventsSidebarGroup.vue'
@@ -107,6 +108,8 @@ function canBrowseMedia() {
     <ProfileSidebarGroup v-bind="groupBindings"/>
 
     <MembersSidebarGroup v-if="hasAnyMemberPermission() || hasAnyWaitlistPermission()" v-bind="groupBindings"/>
+
+    <DocumentsSidebarGroup v-if="isModuleEnabled(StationModule.DOCUMENTS)" v-bind="groupBindings"/>
 
     <InventorySidebarGroup v-if="isModuleEnabled(StationModule.INVENTORY)" v-bind="groupBindings"/>
 

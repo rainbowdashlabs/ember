@@ -4,8 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import TemplatesView from '~/views/stationview/members/TemplatesView.vue'
-import {ASSOCIATION_TEMPLATE_SCREENS} from '~/views/stationview/members/templateScreens'
+import TemplatesView from '~/views/stationview/documents/TemplatesView.vue'
+import {ASSOCIATION_TEMPLATE_SCREENS} from '~/views/stationview/documents/templateScreens'
 
 definePageMeta({
   layout: 'cluster',

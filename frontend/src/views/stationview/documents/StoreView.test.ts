@@ -6,7 +6,7 @@
 import {beforeEach, describe, expect, it, vi} from 'vitest'
 import {flushPromises, type VueWrapper} from '@vue/test-utils'
 import {mountSuspended} from '@nuxt/test-utils/runtime'
-import DocumentsView from './DocumentsView.vue'
+import StoreView from './StoreView.vue'
 
 const listStation = vi.fn()
 
@@ -43,14 +43,14 @@ function boxes(view: VueWrapper) {
  * was dropped when the search went out or, when the answer was slower, stayed chosen while the new
  * list no longer showed it, and was then deleted unseen.
  */
-describe('DocumentsView', () => {
+describe('StoreView', () => {
     beforeEach(() => {
         vi.clearAllMocks()
         listStation.mockResolvedValueOnce({documents: [documentTitled(1, 'Anderes'), documentTitled(2, 'Altlast')], total: 2})
     })
 
     it('lets nothing be chosen on a list a search is about to replace', async () => {
-        const view = await mountSuspended(DocumentsView)
+        const view = await mountSuspended(StoreView)
         await flushPromises()
         expect(boxes(view).every(box => !box.element.disabled)).toBe(true)
 

@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.generator.entity.DataSubject;
 import dev.chojo.ember.feature.generator.entity.DocumentGeneration;
 import dev.chojo.ember.feature.generator.entity.DocumentLanguage;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplateDraft;
+import dev.chojo.ember.feature.generator.entity.GenerationLogEntry;
 import dev.chojo.ember.feature.generator.entity.LetterContent;
 import dev.chojo.ember.feature.generator.entity.LetterPage;
 import dev.chojo.ember.feature.generator.entity.SubjectRole;
@@ -27,6 +28,7 @@ import java.time.Instant;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -147,6 +149,35 @@ class DocumentGenerationRepositoryTest extends RepositoryTestBase {
                         null),
                 List.of());
         assertEquals(bySelf.generatedAt(), log.lastSelfService(otherTemplate, child));
+    }
+
+    /** The list of generated documents reads a station's own entries, the newest first, named by template. */
+    @Test
+    void aStationsLogListsItsOwnEntriesTheNewestFirst() {
+        var other = stationRepo.create("Generation Log Nachbarwache");
+        var older = log.log(entryAt(station.id(), Instant.parse("2026-01-01T10:00:00Z")), List.of());
+        var newer = log.log(entryAt(station.id(), Instant.parse("2026-02-01T10:00:00Z")), List.of());
+        log.log(entryAt(other.id(), Instant.parse("2026-03-01T10:00:00Z")), List.of());
+
+        var listed = log.forStation(station.id()).stream()
+                .filter(entry -> entry.id() == older.id() || entry.id() == newer.id())
+                .toList();
+
+        assertEquals(
+                List.of(newer.id(), older.id()),
+                listed.stream().map(GenerationLogEntry::id).toList());
+        var first = listed.getFirst();
+        assertEquals("Log", first.templateName());
+        assertEquals(3, first.templateVersion());
+        assertEquals(child, first.memberId());
+        assertEquals(guardian, first.generatedBy());
+        assertFalse(first.ofAssociation());
+        assertTrue(log.forStation(other.id()).stream().noneMatch(entry -> entry.id() == older.id()));
+    }
+
+    private static DocumentGeneration entryAt(int stationId, Instant at) {
+        return new DocumentGeneration(
+                0, stationId, templateId, 3, child, guardian, at, false, null, "cd".repeat(32), null, null, null);
     }
 
     @Test

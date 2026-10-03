@@ -28,7 +28,7 @@ const KNOWN_MISSING_HELP = new Set([])
  * association writes its document templates with the station's template editor too.
  */
 const KNOWN_SHARED_HELP_COMPONENTS = new Set([
-    'helpcenter/stationview/members/TemplateEditorHelp.vue',
+    'helpcenter/stationview/documents/TemplateEditorHelp.vue',
     'helpcenter/stationview/events/EventDetailHelp.vue',
     'helpcenter/stationview/events/EventDetailDateHelp.vue',
     'helpcenter/stationview/events/EventEditHelp.vue',

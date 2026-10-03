@@ -60,12 +60,12 @@ const saving = useAsyncAction(async () => {
 })
 
 const pageTitle = computed(() => use.value
-    ? t('pages.member-document-template-use.titleNamed', {name: use.value.name})
-    : t('pages.member-document-template-use.title'))
+    ? t('pages.documents-template-use.titleNamed', {name: use.value.name})
+    : t('pages.documents-template-use.title'))
 </script>
 
 <template>
-  <ViewContent :title="pageTitle" :subtitle="t('pages.member-document-template-use.subtitle')">
+  <ViewContent :title="pageTitle" :subtitle="t('pages.documents-template-use.subtitle')">
     <Spinner v-if="loader.loading.value" size="lg"/>
     <FailureAlert :failure="loader.failure.value ?? saving.failure.value"/>
     <TemplateUsePanel

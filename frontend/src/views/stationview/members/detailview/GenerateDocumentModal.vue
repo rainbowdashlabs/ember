@@ -78,7 +78,9 @@ watch(templateId, id => {
         <SelectInput :model-value="templateId" data-testid="generate-template"
                      @update:model-value="value => templateId = value === null ? null : Number(value)">
           <option :value="null" disabled>{{ t('documentTemplates.chooseTemplate') }}</option>
-          <option v-for="template in templates" :key="template.id" :value="template.id">{{ template.name }}</option>
+          <option v-for="template in templates" :key="template.id" :value="template.id">
+            {{ template.ofAssociation ? t('documentTemplates.namedOfAssociation', {name: template.name}) : template.name }}
+          </option>
         </SelectInput>
       </LabelledField>
       <GeneratedPreview v-if="preview && chosen" :preview="preview" :title="chosen.name"/>

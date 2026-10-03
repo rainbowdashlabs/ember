@@ -4,14 +4,14 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import DocumentsHelp from '~/views/helpcenter/stationview/members/DocumentsHelp.vue'
+import FontsHelp from '~/views/helpcenter/stationview/documents/FontsHelp.vue'
 
 definePageMeta({
   layout: 'helpcenter',
-  name: 'help-member-documents',
+  name: 'help-documents-fonts',
 })
 </script>
 
 <template>
-  <DocumentsHelp />
+  <FontsHelp />
 </template>

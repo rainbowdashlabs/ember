@@ -13904,6 +13904,27 @@
         } ]
       }
     },
+    "/api/v1/document-generation/log" : {
+      "get" : {
+        "summary" : "Every document the station generated from a template, the newest first",
+        "tags" : [ "Documents" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/GeneratedDocumentEntry"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/document-generation/templates" : {
       "get" : {
         "summary" : "The document templates a manager can generate documents from",
@@ -54241,6 +54262,50 @@
             }
           }
         }
+      },
+      "GeneratedDocumentEntry" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "generatedAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "templateId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "templateName" : {
+            "type" : "string"
+          },
+          "templateVersion" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "ofAssociation" : {
+            "type" : "boolean"
+          },
+          "memberId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "memberName" : {
+            "type" : [ "string", "null" ]
+          },
+          "generatedByName" : {
+            "type" : [ "string", "null" ]
+          },
+          "selfService" : {
+            "type" : "boolean"
+          },
+          "documentId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          }
+        },
+        "required" : [ "id", "generatedAt", "templateId", "templateName", "templateVersion", "ofAssociation", "memberId", "memberName", "generatedByName", "selfService", "documentId" ]
       },
       "GeneratedDocumentResponse" : {
         "type" : "object",

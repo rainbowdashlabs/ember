@@ -4,8 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import TemplateEditView from '~/views/stationview/members/TemplateEditView.vue'
-import {ASSOCIATION_TEMPLATE_SCREENS} from '~/views/stationview/members/templateScreens'
+import TemplateEditView from '~/views/stationview/documents/TemplateEditView.vue'
+import {ASSOCIATION_TEMPLATE_SCREENS} from '~/views/stationview/documents/templateScreens'
 import {useClusterHomeStation} from '~/composables/useClusterHomeStation'
 
 definePageMeta({

@@ -15,7 +15,7 @@ const {t} = useI18n()
 </script>
 
 <template>
-  <ViewContent :title="t('pages.member-document-fonts.title')" :subtitle="t('pages.member-document-fonts.subtitle')">
+  <ViewContent :title="t('pages.documents-fonts.title')" :subtitle="t('pages.documents-fonts.subtitle')">
     <FontsScreen :source="stationFontSource" :origin="FontOrigin.STATION"/>
   </ViewContent>
 </template>

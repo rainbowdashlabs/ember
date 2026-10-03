@@ -42,6 +42,15 @@ ALTER TABLE ember_schema.cluster_profile_field
 COMMENT ON COLUMN ember_schema.profile_field.field_type
     IS 'What kind of answer it takes, by its shared type name: TEXT, NUMBER, DATE, BOOLEAN, CHOICE, GENDER (a choice whose answers carry the pronouns documents use, one per station), AGE, BIRTH_DATE, EXPIRY_DATE, SECTION or SPACER.';
 
+WITH renamed AS (SELECT id, jsonb_set(data, '{link,route}', '"documents-store"') AS data
+                 FROM ember_schema.notification
+                 WHERE data -> 'link' ->> 'route' = 'member-documents')
+UPDATE ember_schema.notification n
+SET data      = renamed.data,
+    dedup_key = CASE WHEN n.dedup_key IS NOT NULL THEN md5(n.type || renamed.data::TEXT) END
+FROM renamed
+WHERE renamed.id = n.id;
+
 CREATE TABLE IF NOT EXISTS ember_schema.document_template
 (
     id                         SERIAL PRIMARY KEY,

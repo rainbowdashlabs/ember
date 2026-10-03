@@ -12,6 +12,7 @@ import SidebarExpandableLink from '@/components/navigation/SidebarExpandableLink
 import BaseButton from '@/components/button/BaseButton.vue'
 import SearchInput from '@/components/input/text/SearchInput.vue'
 import MembersSidebarGroup from '@/views/helpcenterstationview/MembersSidebarGroup.vue'
+import DocumentsSidebarGroup from '@/views/helpcenterstationview/DocumentsSidebarGroup.vue'
 import InventorySidebarGroup from '@/views/helpcenterstationview/InventorySidebarGroup.vue'
 import ModuleSidebarGroups from '@/views/helpcenterstationview/ModuleSidebarGroups.vue'
 import {useHelpSearch} from '@/composables/useHelpSearch'
@@ -224,6 +225,8 @@ function escapeHtml(text: string): string {
     </SidebarGroup>
 
     <MembersSidebarGroup :close="close"/>
+
+    <DocumentsSidebarGroup :close="close"/>
 
     <InventorySidebarGroup :close="close"/>
 
