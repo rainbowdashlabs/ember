@@ -101,3 +101,9 @@ jobs:
             echo "Run: $RUN_URL"
           } > "$RUNNER_TEMP/refusal.md"
           gh pr comment "$PR" --body-file "$RUNNER_TEMP/refusal.md"
+
+  sync:
+    name: Rebase the release branches
+    needs: release
+    uses: ./.github/workflows/release-sync.yml
+    secrets: inherit

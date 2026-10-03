@@ -257,6 +257,11 @@ Release
   release-fix [--commit <sha>] [--wait] [--dry-run]
                         The fix release the Release workflow runs: tag main's head (or the commit) with
                         its version and publish the GitHub release; --wait waits for its CI run
+  release-sync [--dry-run]
+                        Rebase every open release branch onto main, renumbering its own patch above
+                        main's, and push it with a lease; a conflict opens an issue instead. The
+                        Release Sync workflow runs it after each release. --dry-run neither pushes
+                        nor opens issues
   db-renumber-patch [--dry-run] <from> <to>
                         Rename this branch's unreleased patch, the version file and the tests naming
                         it. Refuses a patch that is on main
@@ -622,6 +627,7 @@ case "$cmd" in
     release-check)      cd "$ROOT"; run bash scripts/release.sh check "$@" ;;
     release-feature)    cd "$ROOT"; run bash scripts/release.sh feature "$@" ;;
     release-fix)        cd "$ROOT"; run bash scripts/release.sh fix "$@" ;;
+    release-sync)       cd "$ROOT"; run bash scripts/sync-release-branches.sh "$@" ;;
     db-renumber-patch)  cd "$ROOT"; run bash scripts/renumber-patch.sh "$@" ;;
 
     verify)
