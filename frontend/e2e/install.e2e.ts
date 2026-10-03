@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {test, expect} from '@playwright/test'
+import {hydrated} from './fixtures/hydrated'
 
 /**
  * Putting an installation together before there is anything to log in to.
@@ -14,6 +15,7 @@ import {test, expect} from '@playwright/test'
 test.describe('Install page', () => {
     test('a stranger can put an installation together and gets a code', async ({page}) => {
         await page.goto('/install')
+        await hydrated(page)
 
         await expect(page.getByText('Erreichbarkeit')).toBeVisible()
 
@@ -27,6 +29,7 @@ test.describe('Install page', () => {
     /** Traefik has nothing to route without a hostname, so the code is not offered until there is one. */
     test('the traefik arrangement asks for a hostname first', async ({page}) => {
         await page.goto('/install')
+        await hydrated(page)
 
         await page.getByRole('combobox').first().selectOption('traefik')
 
