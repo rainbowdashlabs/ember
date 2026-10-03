@@ -23,7 +23,7 @@ class ReachableFontsTest {
     private static final Owner INSTANCE = new Owner.Instance();
 
     private static DocumentFont font(int id, Owner owner, String family, FontStyle style, FontOutline outline) {
-        return new DocumentFont(id, owner, family, style, "f.ttf", outline, family, 1, "x", Instant.EPOCH);
+        return new DocumentFont(id, owner, family, style, "f.ttf", outline, family, 1, "x", Instant.EPOCH, null);
     }
 
     private static DocumentFont font(int id, Owner owner, String family, FontStyle style) {

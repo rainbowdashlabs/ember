@@ -14,13 +14,15 @@ import MutedText from '@/components/typography/MutedText.vue'
 import type {ContentRow} from '@/api/generated/schema'
 import type {RowEditData} from '@/components/content/blockeditor/EditorRow.vue'
 import {provideBlockEditorOptions} from '@/composables/useBlockEditorOptions'
+import {useEditorFontArea} from '@/composables/useEditorFonts'
 import {internalContentContext} from '@/util/contentContext'
 import {letterBlockOptions, type LetterCatalogue} from './letterBlockOptions'
 
 /**
  * The header or the footer of a letter, shown as it prints until it is clicked, then edited with the
  * block editor in place. Its texts take placeholders but no signature field, which has no place on
- * every page.
+ * every page. Shown or edited, they appear in the font the page names for the part, where the template
+ * editor could load it.
  */
 const rows = defineModel<RowEditData[]>({required: true})
 
@@ -28,19 +30,22 @@ const props = defineProps<{
   title: string
   stationUid: string
   catalogue: LetterCatalogue
+  /** The family the part prints in, null for the default font. */
+  family: string | null
 }>()
 
 const {t} = useI18n()
 const editing = ref(false)
 
 provideBlockEditorOptions(() => letterBlockOptions(props.catalogue, false))
+const font = useEditorFontArea(() => props.family)
 
 const context = computed(() => internalContentContext(props.stationUid, props.title))
 const rendered = computed(() => rows.value as unknown as ContentRow[])
 </script>
 
 <template>
-  <div class="space-y-2" :data-testid="`letter-edge-${editing ? 'editing' : 'shown'}`">
+  <div class="space-y-2" :data-testid="`letter-edge-${editing ? 'editing' : 'shown'}`" v-bind="font">
     <div class="flex flex-wrap items-center justify-between gap-2">
       <SubHeader>{{ title }}</SubHeader>
       <SecondaryButton v-if="editing" :icon="['fas', 'check']" data-testid="letter-edge-done" @click="editing = false">

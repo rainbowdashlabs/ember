@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.generator.entity.DocumentTemplate;
 import dev.chojo.ember.feature.generator.entity.FontOutline;
 import dev.chojo.ember.feature.generator.entity.FontStyle;
 import dev.chojo.ember.feature.generator.entity.FontUse;
+import dev.chojo.ember.feature.generator.entity.WebFontFormat;
 import dev.chojo.ember.owner.Owner;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -142,6 +143,59 @@ public class DocumentFontRepository {
                 .single(owned(owner).bind("id", id))
                 .map(DocumentFont.map())
                 .first();
+    }
+
+    /**
+     * What a new web version of a font style is.
+     *
+     * @param fileName  the name it was uploaded under
+     * @param format    what it is
+     * @param sizeBytes its size
+     * @param sha256    its SHA-256 as lowercase hex
+     */
+    public record NewWebFont(String fileName, WebFontFormat format, long sizeBytes, String sha256) {}
+
+    /**
+     * Gives a font style its web version, in place of the one it had.
+     *
+     * @param id  the font
+     * @param web what the web version is
+     * @return the font as it now stands
+     */
+    public DocumentFont setWeb(int id, NewWebFont web) {
+        return query("""
+                        UPDATE document_font
+                        SET web_file_name = :web_file_name, web_format = :web_format, web_size_bytes = :web_size_bytes,
+                            web_sha256 = :web_hash, web_uploaded_at = now()
+                        WHERE id = :id
+                        RETURNING %s;""", DocumentFont.COLUMNS)
+                .single(call().bind("id", id)
+                        .bind("web_file_name", web.fileName())
+                        .bind("web_format", web.format())
+                        .bind("web_size_bytes", web.sizeBytes())
+                        .bind("web_hash", web.sha256()))
+                .map(DocumentFont.map())
+                .first()
+                .orElseThrow();
+    }
+
+    /**
+     * Takes the web version of a font style away.
+     *
+     * @param id the font
+     * @return the font as it now stands
+     */
+    public DocumentFont clearWeb(int id) {
+        return query("""
+                        UPDATE document_font
+                        SET web_file_name = NULL, web_format = NULL, web_size_bytes = NULL, web_sha256 = NULL,
+                            web_uploaded_at = NULL
+                        WHERE id = :id
+                        RETURNING %s;""", DocumentFont.COLUMNS)
+                .single(call().bind("id", id))
+                .map(DocumentFont.map())
+                .first()
+                .orElseThrow();
     }
 
     /**

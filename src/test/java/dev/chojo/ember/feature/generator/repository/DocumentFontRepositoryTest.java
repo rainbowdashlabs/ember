@@ -22,6 +22,7 @@ import dev.chojo.ember.feature.generator.entity.PdfFieldKind;
 import dev.chojo.ember.feature.generator.entity.PdfLayout;
 import dev.chojo.ember.feature.generator.entity.TemplateContent;
 import dev.chojo.ember.feature.generator.entity.TextAlign;
+import dev.chojo.ember.feature.generator.entity.WebFontFormat;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.owner.Owner;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -32,6 +33,8 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Fonts by owner, the fonts several owners reach together, and the templates that name a family. */
@@ -114,6 +117,33 @@ class DocumentFontRepositoryTest extends RepositoryTestBase {
         assertTrue(fonts.delete(written.id()));
         assertFalse(fonts.delete(written.id()));
         assertTrue(fonts.findOwned(station).stream().noneMatch(font -> font.id() == written.id()));
+    }
+
+    /** A style gets a web version, keeps the next one in its place and loses it again, its file untouched. */
+    @Test
+    void aWebVersionIsSetReplacedAndCleared() {
+        var font = insert(station, "Webablage", FontStyle.REGULAR);
+        assertNull(font.web());
+
+        var first = fonts.setWeb(
+                font.id(), new DocumentFontRepository.NewWebFont("a.woff2", WebFontFormat.WOFF2, 30, "cd"));
+        var web = first.web();
+        assertNotNull(web);
+        assertEquals("a.woff2", web.fileName());
+        assertEquals(WebFontFormat.WOFF2, web.format());
+        assertEquals(30, web.sizeBytes());
+        assertEquals("cd", web.sha256());
+        assertEquals(42, first.storedBytes());
+
+        var second =
+                fonts.setWeb(font.id(), new DocumentFontRepository.NewWebFont("b.woff", WebFontFormat.WOFF, 8, "ef"));
+        assertEquals(WebFontFormat.WOFF, second.web().format());
+        assertEquals(second, fonts.find(station, font.id()).orElseThrow());
+
+        var cleared = fonts.clearWeb(font.id());
+        assertNull(cleared.web());
+        assertEquals(font.fileName(), cleared.fileName());
+        assertEquals(12, cleared.storedBytes());
     }
 
     @Test

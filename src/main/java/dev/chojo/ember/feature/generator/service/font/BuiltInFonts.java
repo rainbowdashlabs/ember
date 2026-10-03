@@ -33,12 +33,6 @@ import java.util.stream.Collectors;
  * family takes the place of a farther one's.
  */
 public final class BuiltInFonts {
-    private static final Map<FontStyle, String> STYLE_SUFFIXES = Map.of(
-            FontStyle.REGULAR, "Regular",
-            FontStyle.BOLD, "Bold",
-            FontStyle.ITALIC, "Italic",
-            FontStyle.BOLD_ITALIC, "BoldItalic");
-
     private static final List<FontFamily> FAMILIES = List.of(
             bundled("Liberation Sans", "LiberationSans"),
             bundled("Liberation Serif", "LiberationSerif"),
@@ -61,6 +55,14 @@ public final class BuiltInFonts {
         return FAMILIES;
     }
 
+    /** @return Liberation Sans, which a text naming no family prints in where there is no default font */
+    public static FontFamily fallback() {
+        return FAMILIES.stream()
+                .filter(family -> family.name().equals(BundledFont.FAMILY))
+                .findFirst()
+                .orElseThrow();
+    }
+
     /**
      * @param face a built-in face
      * @return its file, a copy the caller may keep, or empty for a face Typst carries itself
@@ -75,7 +77,7 @@ public final class BuiltInFonts {
         return family(
                 family,
                 style -> new BuiltInFace(
-                        family, style, FontOutline.TRUETYPE, filePrefix + "-" + STYLE_SUFFIXES.get(style) + ".ttf"));
+                        family, style, FontOutline.TRUETYPE, filePrefix + "-" + style.fileSuffix() + ".ttf"));
     }
 
     private static FontFamily carriedByTypst(String family, FontOutline outline) {

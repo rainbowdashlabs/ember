@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.generator.entity.FontOrigin;
 import dev.chojo.ember.feature.generator.entity.FontOutline;
 import dev.chojo.ember.feature.generator.entity.FontStyle;
 import dev.chojo.ember.feature.generator.entity.FontUse;
+import dev.chojo.ember.feature.generator.entity.WebFontFormat;
 import dev.chojo.ember.feature.generator.repository.DocumentFontRepository;
 import dev.chojo.ember.feature.storage.service.StorageQuotaService;
 import dev.chojo.ember.feature.storage.service.StorageService;
@@ -38,13 +39,16 @@ import java.util.stream.Collectors;
  * The fonts a station, an association or the instance uploads for its documents.
  *
  * <p>A font is one file per style of a family. It is taken only with the uploader's word that the owner
- * may use it, since the licence is the owner's to know. The file has to be a TrueType or OpenType font
+ * may use it for documents and show it in the template editor to those who edit templates, since the
+ * licence is the owner's to know. The file has to be a TrueType or OpenType font
  * whose licence bits allow embedding it in a document, no larger than {@link #MAX_BYTES}, and the owner
  * must have room for it: a station in its own room, an association in its home station's, the instance
  * without limit. A family has one file per style at one owner.
  *
- * <p>The files are never sent to a browser. The screens list the families by name with a picture of
- * sample text the server draws ({@link FontSampleService}); only the server draws with the real file.
+ * <p>The screens list the families by name with a picture of sample text the server draws
+ * ({@link FontSampleService}). The files reach a browser only in the template editor
+ * ({@link EditorFontService}), which shows the words of a template in the family they print in. A style
+ * may have a web version beside its file ({@link WebFontService}), which the editor loads instead.
  *
  * <p>The families every installation has built in ({@link BuiltInFonts}) are listed among those the
  * templates reach, but they are nobody's own: they cannot be deleted and take no room.
@@ -88,6 +92,7 @@ public class DocumentFontService {
      * @param outline    how its glyphs are drawn, which decides whether fields on a PDF can print in it
      * @param sizeBytes  the size of the file
      * @param uploadedAt when it was uploaded
+     * @param web        the web version the template editor shows the style in, or null where it has none
      */
     public record DocumentFontView(
             int id,
@@ -96,19 +101,38 @@ public class DocumentFontService {
             String fileName,
             FontOutline outline,
             long sizeBytes,
-            Instant uploadedAt) {}
+            Instant uploadedAt,
+            @Nullable WebFontView web) {}
+
+    /**
+     * The web version of a font style as the owner's screen lists it.
+     *
+     * @param fileName   the name it was uploaded under
+     * @param format     what it is
+     * @param sizeBytes  its size
+     * @param uploadedAt when it was uploaded
+     */
+    public record WebFontView(String fileName, WebFontFormat format, long sizeBytes, Instant uploadedAt) {}
 
     /**
      * A family a template of the owner can print in, as the pickers offer it.
      *
-     * @param family      the family name
-     * @param origin      who uploaded it, or that it is built in
-     * @param styles      the styles it has
-     * @param printsOnPdf whether fields on an uploaded PDF can print in it
-     * @param sample      the version of its sample picture, which changes whenever its files do
+     * @param family        the family name
+     * @param origin        who uploaded it, or that it is built in
+     * @param styles        the styles it has
+     * @param printsOnPdf   whether fields on an uploaded PDF can print in it
+     * @param sample        the version of its sample picture, which changes whenever its files do
+     * @param editorVersion the version of the files the template editor loads, which changes whenever one
+     *                      of them does, or null where it cannot load the family, as for a family Typst
+     *                      carries inside itself
      */
     public record FontFamilyOption(
-            String family, FontOrigin origin, List<FontStyle> styles, boolean printsOnPdf, String sample) {}
+            String family,
+            FontOrigin origin,
+            List<FontStyle> styles,
+            boolean printsOnPdf,
+            String sample,
+            @Nullable String editorVersion) {}
 
     /**
      * The fonts of an owner and those its templates can print in.
@@ -116,9 +140,14 @@ public class DocumentFontService {
      * @param own           the owner's own fonts, by family and style
      * @param reachable     every family its templates can print in, its own and those it reaches
      * @param defaultFamily the family a text that names none prints in
+     * @param defaultStyles the styles the template editor can load the default font in, empty where it
+     *                      only names it
      */
     public record DocumentFontsResponse(
-            List<DocumentFontView> own, List<FontFamilyOption> reachable, String defaultFamily) {}
+            List<DocumentFontView> own,
+            List<FontFamilyOption> reachable,
+            String defaultFamily,
+            List<FontStyle> defaultStyles) {}
 
     /**
      * @param owner the owner
@@ -129,7 +158,11 @@ public class DocumentFontService {
         var reachable = library.reachable(owner).families().stream()
                 .map(DocumentFontService::option)
                 .toList();
-        return new DocumentFontsResponse(own, reachable, library.defaultFont().printedFamily());
+        var defaultFont = library.defaultFont();
+        var defaultStyles = defaultFont.present()
+                ? defaultFont.webStyles()
+                : BuiltInFonts.fallback().styles();
+        return new DocumentFontsResponse(own, reachable, defaultFont.printedFamily(), defaultStyles);
     }
 
     /**
@@ -152,7 +185,7 @@ public class DocumentFontService {
             int accountId) {
         if (!confirmed) throw DocumentRefusal.DOCUMENT_FONT_LICENCE_NOT_CONFIRMED.raise();
         String name = requireFamily(family);
-        byte[] data = read(file);
+        byte[] data = readUpload(file);
         var inspection = FontFiles.inspect(data);
         if (fonts.exists(owner, name, style)) {
             throw DocumentRefusal.DOCUMENT_FONT_TAKEN.raise(RefusalDetail.text(name));
@@ -171,7 +204,12 @@ public class DocumentFontService {
             var written = Transactions.call(() -> {
                 var row = fonts.insert(owner, font, accountId);
                 quota.onFileUploaded(scope, category, data.length);
-                storage.store(scope, category, FontLibrary.key(row.id()), data, mimeOf(inspection.outline()));
+                storage.store(
+                        scope,
+                        category,
+                        FontLibrary.key(row.id()),
+                        data,
+                        inspection.outline().mediaType());
                 return row;
             });
             log.info("Font {} ({} {}) uploaded for {}", written.id(), name, style, owner);
@@ -200,9 +238,10 @@ public class DocumentFontService {
         var category = FontLibrary.categoryOf(owner);
         Transactions.run(() -> {
             fonts.delete(font.id());
-            quota.onFileDeleted(scope, category, font.sizeBytes());
+            quota.onFileDeleted(scope, category, font.storedBytes());
         });
         storage.delete(scope, category, FontLibrary.key(font.id()));
+        if (font.web() != null) storage.delete(scope, category, FontLibrary.webKey(font.id()));
         log.info(
                 "Font {} ({} {}) of {} deleted by account {}",
                 font.id(),
@@ -234,7 +273,13 @@ public class DocumentFontService {
         return name;
     }
 
-    private static byte[] read(@Nullable UploadedFile file) {
+    /**
+     * Reads an uploaded font file, refusing a missing one and one larger than a font may be.
+     *
+     * @param file the upload, or null where the request carried none
+     * @return its bytes
+     */
+    static byte[] readUpload(@Nullable UploadedFile file) {
         if (file == null) throw DocumentRefusal.DOCUMENT_FONT_MISSING_FILE.raise();
         if (file.size() > MAX_BYTES) throw DocumentRefusal.DOCUMENT_FONT_TOO_LARGE.raise();
         try (var in = file.content()) {
@@ -246,16 +291,17 @@ public class DocumentFontService {
         }
     }
 
-    private static String fileNameOf(@Nullable UploadedFile file) {
+    /**
+     * @param file an upload, or null where the request carried none
+     * @return the name it is kept under
+     */
+    static String fileNameOf(@Nullable UploadedFile file) {
         String name = file == null ? null : file.filename();
         return name == null || name.isBlank() ? "font" : name.strip();
     }
 
-    private static String mimeOf(FontOutline outline) {
-        return outline == FontOutline.CFF ? "font/otf" : "font/ttf";
-    }
-
     private static DocumentFontView view(DocumentFont font) {
+        var web = font.web();
         return new DocumentFontView(
                 font.id(),
                 font.family(),
@@ -263,7 +309,8 @@ public class DocumentFontService {
                 font.fileName(),
                 font.outline(),
                 font.sizeBytes(),
-                font.uploadedAt());
+                font.uploadedAt(),
+                web == null ? null : new WebFontView(web.fileName(), web.format(), web.sizeBytes(), web.uploadedAt()));
     }
 
     private static FontFamilyOption option(FontFamily family) {
@@ -272,6 +319,7 @@ public class DocumentFontService {
                 family.origin(),
                 family.styles(),
                 family.printsOnPdf(),
-                FontSampleService.versionOf(family));
+                FontSampleService.versionOf(family),
+                EditorFontService.versionOf(family));
     }
 }

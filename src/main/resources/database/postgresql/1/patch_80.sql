@@ -432,7 +432,13 @@ CREATE TABLE IF NOT EXISTS ember_schema.document_font
     sha256          TEXT        NOT NULL,
     uploaded_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
     uploaded_by     INTEGER     NULL REFERENCES ember_schema.account (id) ON DELETE SET NULL,
-    CHECK (num_nonnulls(station_id, cluster_id) <= 1)
+    web_file_name   TEXT        NULL,
+    web_format      TEXT        NULL CHECK (web_format IN ('WOFF2', 'WOFF', 'TRUETYPE', 'CFF')),
+    web_size_bytes  BIGINT      NULL,
+    web_sha256      TEXT        NULL,
+    web_uploaded_at TIMESTAMPTZ NULL,
+    CHECK (num_nonnulls(station_id, cluster_id) <= 1),
+    CHECK (num_nulls(web_file_name, web_format, web_size_bytes, web_sha256, web_uploaded_at) IN (0, 5))
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS uq_document_font_station
@@ -443,7 +449,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_document_font_instance
     ON ember_schema.document_font (lower(family), style) WHERE station_id IS NULL AND cluster_id IS NULL;
 
 COMMENT ON TABLE ember_schema.document_font IS
-    'A font uploaded for documents, one file per family and style. Owned by the instance (station_id and cluster_id both NULL), an association (cluster_id) or a station (station_id). A station reaches its own fonts, its association''s and the instance''s; on a family name found at several, the nearest owner wins. The file is kept in the owner''s storage under fonts/<id> and never sent to a browser.';
+    'A font uploaded for documents, one file per family and style. Owned by the instance (station_id and cluster_id both NULL), an association (cluster_id) or a station (station_id). A station reaches its own fonts, its association''s and the instance''s; on a family name found at several, the nearest owner wins. The file is kept in the owner''s storage under fonts/<id>, an optional web version beside it under fonts/<id>-web. A browser receives either only in the template editor, the web version where there is one.';
 COMMENT ON COLUMN ember_schema.document_font.id IS 'Auto-generated primary key, also the storage key of the file.';
 COMMENT ON COLUMN ember_schema.document_font.station_id IS 'The station that owns the font. NULL for a font of an association or of the instance.';
 COMMENT ON COLUMN ember_schema.document_font.cluster_id IS 'The association that owns the font. NULL for a font of a station or of the instance.';
@@ -460,6 +466,14 @@ COMMENT ON COLUMN ember_schema.document_font.sha256 IS 'The SHA-256 of the file 
 COMMENT ON COLUMN ember_schema.document_font.uploaded_at IS 'When the file was uploaded.';
 COMMENT ON COLUMN ember_schema.document_font.uploaded_by IS
     'The account that uploaded the file, who confirmed that the owner may use the font. NULL once the account is gone.';
+COMMENT ON COLUMN ember_schema.document_font.web_file_name IS
+    'The name the web version of the style was uploaded under, which the template editor shows the style in instead of the file documents print with. NULL where the style has no web version; the web columns are all set or all NULL.';
+COMMENT ON COLUMN ember_schema.document_font.web_format IS
+    'WOFF2, WOFF, TRUETYPE or CFF: what the web version is, which decides the media type it is served as. NULL without a web version.';
+COMMENT ON COLUMN ember_schema.document_font.web_size_bytes IS
+    'The size of the web version in bytes, counted against the owner''s room like the file itself. NULL without a web version.';
+COMMENT ON COLUMN ember_schema.document_font.web_sha256 IS 'The SHA-256 of the web version as lowercase hex. NULL without a web version.';
+COMMENT ON COLUMN ember_schema.document_font.web_uploaded_at IS 'When the web version was uploaded. NULL without a web version.';
 
 CREATE INDEX IF NOT EXISTS idx_document_generation_event
     ON ember_schema.document_generation (event_id, event_date) WHERE event_id IS NOT NULL;

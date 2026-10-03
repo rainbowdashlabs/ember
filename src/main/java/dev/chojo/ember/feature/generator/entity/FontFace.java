@@ -22,6 +22,9 @@ public sealed interface FontFace permits DocumentFont, BuiltInFace {
     /** @return whether a field on an uploaded PDF can be drawn in it */
     boolean printsOnPdf();
 
+    /** @return whether the server holds a file of it, rather than Typst carrying it inside itself */
+    boolean hasFile();
+
     /**
      * @return what the face is, the same for the same file wherever it is kept, so a sample drawn in
      *         it can be kept and found again

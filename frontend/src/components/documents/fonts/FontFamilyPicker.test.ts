@@ -15,9 +15,9 @@ import {options, page, panelIsOpen, press} from '@/test/dropdown'
 enableAutoUnmount(afterEach)
 
 const FONTS: FontFamilyOption[] = [
-    {family: 'Hausschrift', origin: FontOrigin.ASSOCIATION, styles: [FontStyle.REGULAR], printsOnPdf: true, sample: 'a1'},
-    {family: 'Liberation Serif', origin: FontOrigin.BUILT_IN, styles: [FontStyle.REGULAR], printsOnPdf: true, sample: 'b2'},
-    {family: 'Zierschrift', origin: FontOrigin.STATION, styles: [FontStyle.REGULAR], printsOnPdf: false, sample: 'c3'},
+    {family: 'Hausschrift', origin: FontOrigin.ASSOCIATION, styles: [FontStyle.REGULAR], printsOnPdf: true, sample: 'a1', editorVersion: 'e1'},
+    {family: 'Liberation Serif', origin: FontOrigin.BUILT_IN, styles: [FontStyle.REGULAR], printsOnPdf: true, sample: 'b2', editorVersion: 'e2'},
+    {family: 'Zierschrift', origin: FontOrigin.STATION, styles: [FontStyle.REGULAR], printsOnPdf: false, sample: 'c3', editorVersion: 'e3'},
 ]
 
 /** Draws the picture where it is asked for, so a test reads the address a sample is drawn from. */

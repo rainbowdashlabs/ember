@@ -27,6 +27,16 @@ public enum FontStyle {
         return this == ITALIC || this == BOLD_ITALIC;
     }
 
+    /** @return how the name of a font file of the style ends before its extension, as in {@code Family-BoldItalic.ttf} */
+    public String fileSuffix() {
+        return switch (this) {
+            case REGULAR -> "Regular";
+            case BOLD -> "Bold";
+            case ITALIC -> "Italic";
+            case BOLD_ITALIC -> "BoldItalic";
+        };
+    }
+
     /**
      * Reads a style as a form sends it.
      *

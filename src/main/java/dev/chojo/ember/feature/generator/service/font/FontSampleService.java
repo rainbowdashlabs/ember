@@ -26,7 +26,7 @@ import java.util.stream.Collectors;
 
 /**
  * Pictures of a line of sample text in each font a template can print in, so a picker shows what a
- * family looks like without the font ever reaching a browser.
+ * family looks like without the browser loading its files, which only the template editor does.
  *
  * <p>An owner sees samples only of the families its templates reach, looked up the way a template
  * looks them up, and of the default font. A sample is drawn as a document prints the family

@@ -2791,6 +2791,78 @@
         } ]
       }
     },
+    "/api/v1/admin/document-fonts/{id}/web" : {
+      "post" : {
+        "summary" : "Give a font style of the instance the web version the template editor loads instead",
+        "tags" : [ "Admin" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DocumentFontsResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      },
+      "delete" : {
+        "summary" : "Remove the web version of a font style of the instance",
+        "tags" : [ "Admin" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DocumentFontsResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
     "/api/v1/admin/feed-metrics" : {
       "get" : {
         "summary" : "Get the personal feed render histogram per day",
@@ -10668,6 +10740,53 @@
         }
       }
     },
+    "/api/v1/cluster/document-fonts/file" : {
+      "get" : {
+        "summary" : "A font file of a family the association's templates reach, or of the default font, for the template editor",
+        "tags" : [ "Cluster" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "font/ttf" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "family",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "style",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "v",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
+        } ]
+      }
+    },
     "/api/v1/cluster/document-fonts/sample" : {
       "get" : {
         "summary" : "A picture of sample text in a font family the association's templates reach, or the default font",
@@ -10732,6 +10851,78 @@
           },
           "409" : {
             "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/cluster/document-fonts/{id}/web" : {
+      "post" : {
+        "summary" : "Give a font style of the association the web version the template editor loads instead",
+        "tags" : [ "Cluster" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DocumentFontsResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      },
+      "delete" : {
+        "summary" : "Remove the web version of a font style of the association",
+        "tags" : [ "Cluster" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DocumentFontsResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -13949,6 +14140,53 @@
         }
       }
     },
+    "/api/v1/document-fonts/file" : {
+      "get" : {
+        "summary" : "A font file of a family the station's templates reach, or of the default font, for the template editor",
+        "tags" : [ "Documents" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "font/ttf" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "family",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "style",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "v",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
+        } ]
+      }
+    },
     "/api/v1/document-fonts/sample" : {
       "get" : {
         "summary" : "A picture of sample text in a font family the station's templates reach, or the default font",
@@ -14013,6 +14251,78 @@
           },
           "409" : {
             "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/document-fonts/{id}/web" : {
+      "post" : {
+        "summary" : "Give a font style of the station the web version the template editor loads instead",
+        "tags" : [ "Documents" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DocumentFontsResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      },
+      "delete" : {
+        "summary" : "Remove the web version of a font style of the station",
+        "tags" : [ "Documents" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DocumentFontsResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -50241,9 +50551,16 @@
           },
           "uploadedAt" : {
             "$ref" : "#/components/schemas/Instant"
+          },
+          "web" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/WebFontView"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
-        "required" : [ "id", "family", "style", "fileName", "outline", "sizeBytes", "uploadedAt" ]
+        "required" : [ "id", "family", "style", "fileName", "outline", "sizeBytes", "uploadedAt", "web" ]
       },
       "DocumentFontsResponse" : {
         "type" : "object",
@@ -50262,9 +50579,15 @@
           },
           "defaultFamily" : {
             "type" : "string"
+          },
+          "defaultStyles" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/FontStyle"
+            }
           }
         },
-        "required" : [ "own", "reachable", "defaultFamily" ]
+        "required" : [ "own", "reachable", "defaultFamily", "defaultStyles" ]
       },
       "DocumentLanguage" : {
         "type" : "string",
@@ -53358,9 +53681,12 @@
           },
           "sample" : {
             "type" : "string"
+          },
+          "editorVersion" : {
+            "type" : [ "string", "null" ]
           }
         },
-        "required" : [ "family", "origin", "styles", "printsOnPdf", "sample" ]
+        "required" : [ "family", "origin", "styles", "printsOnPdf", "sample", "editorVersion" ]
       },
       "FontOrigin" : {
         "type" : "string",
@@ -74605,6 +74931,29 @@
             "type" : "string"
           }
         }
+      },
+      "WebFontFormat" : {
+        "type" : "string",
+        "enum" : [ "WOFF2", "WOFF", "TRUETYPE", "CFF" ]
+      },
+      "WebFontView" : {
+        "type" : "object",
+        "properties" : {
+          "fileName" : {
+            "type" : "string"
+          },
+          "format" : {
+            "$ref" : "#/components/schemas/WebFontFormat"
+          },
+          "sizeBytes" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "uploadedAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          }
+        },
+        "required" : [ "fileName", "format", "sizeBytes", "uploadedAt" ]
       },
       "WebhookUrl" : {
         "type" : "object",

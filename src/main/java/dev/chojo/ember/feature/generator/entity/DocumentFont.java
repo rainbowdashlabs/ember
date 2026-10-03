@@ -6,8 +6,11 @@
 package dev.chojo.ember.feature.generator.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import de.chojo.sadu.mapper.wrapper.Row;
 import dev.chojo.ember.owner.Owner;
+import org.jspecify.annotations.Nullable;
 
+import java.sql.SQLException;
 import java.time.Instant;
 
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
@@ -25,6 +28,8 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param sizeBytes      the size of the file
  * @param sha256         the SHA-256 of the file as lowercase hex
  * @param uploadedAt     when it was uploaded
+ * @param web            the web version the template editor shows the style in, or null where it shows
+ *                       the file itself
  */
 public record DocumentFont(
         int id,
@@ -36,17 +41,29 @@ public record DocumentFont(
         String internalFamily,
         long sizeBytes,
         String sha256,
-        Instant uploadedAt)
+        Instant uploadedAt,
+        @Nullable WebFont web)
         implements FontFace {
 
     /** The columns {@link #map()} reads, in a form a query can splice in. */
-    public static final String COLUMNS =
-            "id, station_id, cluster_id, family, style, file_name, outline, internal_family, size_bytes, sha256, uploaded_at";
+    public static final String COLUMNS = """
+            id, station_id, cluster_id, family, style, file_name, outline, internal_family, size_bytes, sha256,
+            uploaded_at, web_file_name, web_format, web_size_bytes, web_sha256, web_uploaded_at""";
+
+    /** @return the room the style takes: its file and its web version */
+    public long storedBytes() {
+        return sizeBytes + (web == null ? 0 : web.sizeBytes());
+    }
 
     /** Fields on an uploaded PDF are embedded by PDFBox, which takes TrueType outlines only. */
     @Override
     public boolean printsOnPdf() {
         return outline == FontOutline.TRUETYPE;
+    }
+
+    @Override
+    public boolean hasFile() {
+        return true;
     }
 
     @Override
@@ -80,7 +97,19 @@ public record DocumentFont(
                     row.getString("internal_family"),
                     row.getLong("size_bytes"),
                     row.getString("sha256"),
-                    row.get("uploaded_at", INSTANT_TIMESTAMP));
+                    row.get("uploaded_at", INSTANT_TIMESTAMP),
+                    webOf(row));
         };
+    }
+
+    private static @Nullable WebFont webOf(Row row) throws SQLException {
+        String fileName = row.getString("web_file_name");
+        if (fileName == null) return null;
+        return new WebFont(
+                fileName,
+                row.getEnum("web_format", WebFontFormat.class),
+                row.getLong("web_size_bytes"),
+                row.getString("web_sha256"),
+                row.get("web_uploaded_at", INSTANT_TIMESTAMP));
     }
 }

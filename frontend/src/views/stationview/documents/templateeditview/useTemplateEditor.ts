@@ -21,8 +21,10 @@ import type {PlaceholderLabels} from '@/components/input/markdowneditor/placehol
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {provideFontSamples} from '@/composables/useFontSamples'
+import {useEditorFonts} from '@/composables/useEditorFonts'
 import {DEFAULT_FONT} from '@/components/documents/fonts/fontOptions'
 import {draftOf, emptyDraft, requestOf, type TemplateDraft} from './templateDraft'
+import {letterFamilies} from './letterFonts'
 import {placeholdersOfTemplate} from './placeholderpicker/placeholderTree'
 import {placeholderLabels, providePlaceholderDates, type PlaceholderDates} from './placeholderpicker/placeholderDates'
 import type {TemplateScreens} from '../templateScreens'
@@ -59,7 +61,9 @@ async function stationChoices(): Promise<StationChoices> {
  * families they reach and the default font a text naming none prints in, the lists the audience and the
  * preview choose from, and for a PDF template the PDF it fills.
  *
- * <p>The font pickers below draw their samples through the owner's font source, which this provides. The
+ * <p>The font pickers below draw their samples through the owner's font source, which this provides.
+ * While the editor is open, the font files of the families the letter uses are loaded through the same
+ * source, so its text shows in them ({@link useEditorFonts}); they go when the editor closes. The
  * placeholder pickers below get the date formats of the catalogue and the language their examples are
  * written in: the template's, or the owner's until the template names one. The labels of keys carry the
  * example of their date format the same way.
@@ -90,6 +94,8 @@ export function useTemplateEditor(
     const fontList = shallowRef<DocumentFontsResponse | null>(null)
     const fonts = computed<readonly FontFamilyOption[]>(() => fontList.value?.reachable ?? [])
     provideFontSamples(screens.fonts.sample)
+    const usedFamilies = computed(() => letterFamilies(draft.value))
+    useEditorFonts(screens.fonts.file, () => fontList.value, () => usedFamilies.value)
 
     const dates = computed<PlaceholderDates>(() => ({
         formats: offer.value.dateFormats,

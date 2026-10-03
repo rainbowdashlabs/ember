@@ -16,7 +16,8 @@ import {groupByFamily, reachedFamily} from './fontOptions'
 
 /**
  * The owner's own fonts, one block per family with a line of sample text and a row per style. A font
- * is deleted from its row; the server refuses while a template in use prints with it.
+ * is deleted from its row, where its web version is also uploaded, replaced and removed; the server
+ * refuses deleting a font while a template in use prints with it.
  */
 const props = defineProps<{
   fonts: readonly DocumentFontView[]
@@ -26,6 +27,8 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   remove: [font: DocumentFontView]
+  web: [font: DocumentFontView]
+  removeWeb: [font: DocumentFontView]
 }>()
 
 const {t} = useI18n()
@@ -41,7 +44,8 @@ const families = computed(() => groupByFamily(props.fonts))
       <p class="font-semibold">{{ group.family }}</p>
       <FontPreview :family="reachedFamily(reachable, group.family)"/>
       <ul class="divide-y divide-(--border)">
-        <FontFileRow v-for="font in group.fonts" :key="font.id" :font="font" @remove="emit('remove', font)"/>
+        <FontFileRow v-for="font in group.fonts" :key="font.id" :font="font" @remove="emit('remove', font)"
+                     @web="emit('web', font)" @remove-web="emit('removeWeb', font)"/>
       </ul>
     </section>
   </NeutralContainer>

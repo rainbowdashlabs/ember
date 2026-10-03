@@ -61,6 +61,11 @@ public record FontFamily(String name, FontOrigin origin, Map<FontStyle, FontFace
         return files.values().stream().allMatch(FontFace::printsOnPdf);
     }
 
+    /** @return whether the server holds a file of every style, which the template editor can load */
+    public boolean hasFiles() {
+        return files.values().stream().allMatch(FontFace::hasFile);
+    }
+
     /** @return the styles the family has, in their natural order */
     public List<FontStyle> styles() {
         return List.copyOf(files.keySet());

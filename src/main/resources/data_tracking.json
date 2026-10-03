@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:d3086be593ca10bbef247d5d2b4e001b84afa152666d5eddc0212da0b04ad059",
-  "generatedAt": "2026-10-03T20:04:13Z",
+  "schemaHash": "sha256:a2d80b782a3897407d977a07e70af52f6380ec02780491b25f64f354f4f643f4",
+  "generatedAt": "2026-10-03T21:52:28Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -6192,7 +6192,7 @@
       }
     },
     "document_font": {
-      "tableHash": "sha256:ce481dff41b12828a00914aae6e5f08b5ce9836563543b1f5d8dd1fdc481b064",
+      "tableHash": "sha256:2cbcf4185eb955a47005b3741ca4d43908e922068dd1081033b06b7149595edf",
       "columns": [
         {
           "name": "id",
@@ -6277,6 +6277,41 @@
           "nullable": true,
           "verified": true,
           "description": "The account that uploaded the file, who confirmed that the owner may use the font. NULL once the account is gone."
+        },
+        {
+          "name": "web_file_name",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "The name the web version of the style was uploaded under, which the template editor shows the style in instead of the file documents print with. NULL where the style has no web version; the web columns are all set or all NULL."
+        },
+        {
+          "name": "web_format",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "WOFF2, WOFF, TRUETYPE or CFF: what the web version is, which decides the media type it is served as. NULL without a web version."
+        },
+        {
+          "name": "web_size_bytes",
+          "type": "int8",
+          "nullable": true,
+          "verified": true,
+          "description": "The size of the web version in bytes, counted against the owner's room like the file itself. NULL without a web version."
+        },
+        {
+          "name": "web_sha256",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "The SHA-256 of the web version as lowercase hex. NULL without a web version."
+        },
+        {
+          "name": "web_uploaded_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When the web version was uploaded. NULL without a web version."
         }
       ],
       "foreignKeys": [
@@ -6322,7 +6357,7 @@
           }
         ]
       },
-      "description": "A font uploaded for documents, one file per family and style. Owned by the instance (station_id and cluster_id both NULL), an association (cluster_id) or a station (station_id). A station reaches its own fonts, its association's and the instance's; on a family name found at several, the nearest owner wins. The file is kept in the owner's storage under fonts/<id> and never sent to a browser."
+      "description": "A font uploaded for documents, one file per family and style. Owned by the instance (station_id and cluster_id both NULL), an association (cluster_id) or a station (station_id). A station reaches its own fonts, its association's and the instance's; on a family name found at several, the nearest owner wins. The file is kept in the owner's storage under fonts/<id>, an optional web version beside it under fonts/<id>-web. A browser receives either only in the template editor, the web version where there is one."
     },
     "document_generation": {
       "tableHash": "sha256:432d4f9379816a510702311d3709173ce94e38bfd59b604700e8fca381e4f0ac",
