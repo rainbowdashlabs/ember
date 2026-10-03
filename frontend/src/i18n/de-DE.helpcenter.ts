@@ -1806,7 +1806,8 @@ volumes:
                 + 'der Editor dann nicht an, und Ember erstellt kein rechtliches Dokument, das ihn enthält.',
             letterheadTitle: 'Brief, Kopf- und Fußzeile',
             letterheadText: 'Unter Brief stehen Kopfzeile, Text und Fußzeile so untereinander wie auf dem Papier. '
-                + 'Alle drei bestehen aus Zeilen mit bis zu drei Spalten, wie die Seiten der Wache. Eine Spalte '
+                + 'Alle drei bestehen aus Zeilen mit Spalten, wie die Seiten der Wache: bis zu drei im Text, '
+                + 'bis zu vier in Kopf- und Fußzeile. Eine Spalte '
                 + 'hält einen Text, ein Bild aus der Mediathek oder das Logo der Wache, eine Trennlinie mit oder '
                 + 'ohne Beschriftung, einen Abstand, oder mehrere davon untereinander. Die Breite einer Spalte '
                 + 'ziehst du am Rand oder gibst sie im Menü ein. Über „Linien zwischen den Spalten" im Menü einer '

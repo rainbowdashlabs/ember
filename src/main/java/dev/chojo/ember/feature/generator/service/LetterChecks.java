@@ -42,8 +42,11 @@ import java.util.stream.Stream;
  */
 @Singleton
 public class LetterChecks {
-    /** The most columns a row of a letter holds. */
+    /** The most columns a row of a letter's body holds. */
     static final int MAX_COLUMNS = 3;
+
+    /** The most columns a row of the header or the footer holds, for the rare letterhead that needs four. */
+    static final int MAX_LETTERHEAD_COLUMNS = 4;
 
     /** The longest text of a block in the header or the footer. */
     static final int MAX_LETTERHEAD_TEXT = 600;
@@ -90,22 +93,23 @@ public class LetterChecks {
     }
 
     /**
-     * The parts of a letter, which differ in how long a text may be and whether a signature line stands
-     * in them.
+     * The parts of a letter, which differ in how long a text may be, how many columns a row holds and
+     * whether a signature line stands in them.
      *
      * @param maxText    the longest text of a block
+     * @param maxColumns the most columns a row holds
      * @param signatures whether signature lines stand here
      */
-    private record Part(int maxText, boolean signatures) {
-        static final Part LETTERHEAD = new Part(MAX_LETTERHEAD_TEXT, false);
-        static final Part BODY = new Part(MAX_BODY_TEXT, true);
+    private record Part(int maxText, int maxColumns, boolean signatures) {
+        static final Part LETTERHEAD = new Part(MAX_LETTERHEAD_TEXT, MAX_LETTERHEAD_COLUMNS, false);
+        static final Part BODY = new Part(MAX_BODY_TEXT, MAX_COLUMNS, true);
     }
 
     private List<ContentRow> rows(int stationId, @Nullable List<BlockRowRequest> sent, Part part) {
         var data = BlockRowRequest.toRowData(Objects.requireNonNullElse(sent, List.of()));
         blocks.requireFits(stationId, data, ContentBlockService.Scope.LETTER);
         var rows = ContentBlockService.rowsOf(data);
-        requireColumns(rows);
+        requireColumns(rows, part.maxColumns());
         if (!part.signatures()
                 && LetterContent.blocks(rows).anyMatch(cell -> cell.contentType() == CellContentType.SIGNATURE)) {
             throw DocumentRefusal.DOCUMENT_TEMPLATE_SIGNATURE_OUTSIDE_BODY.raise();
@@ -125,12 +129,12 @@ public class LetterChecks {
         }
     }
 
-    private static void requireColumns(List<ContentRow> rows) {
+    private static void requireColumns(List<ContentRow> rows, int maxColumns) {
         for (var row : rows) {
-            if (row.cells().size() > MAX_COLUMNS) throw DocumentRefusal.DOCUMENT_TEMPLATE_TOO_MANY_CELLS.raise();
+            if (row.cells().size() > maxColumns) throw DocumentRefusal.DOCUMENT_TEMPLATE_TOO_MANY_CELLS.raise();
             for (var cell : row.cells()) {
                 if (cell.config() instanceof CellConfig.NestedRowsConfig nested) {
-                    requireColumns(ContentRows.read(nested.rows()));
+                    requireColumns(ContentRows.read(nested.rows()), maxColumns);
                 }
             }
         }

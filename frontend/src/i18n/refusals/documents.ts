@@ -38,7 +38,7 @@ export default {
     'D-025': 'Diese Dokumentvorlage ist archiviert und erstellt keine Dokumente mehr',
     'D-026': 'Die Vorlage verwendet einen Platzhalter, den es nicht gibt',
     'D-027': 'Ein rechtliches Dokument verwendet nur amtliche Namen, nicht den Rufnamen',
-    'D-028': 'Eine Zeile eines Briefs hat höchstens drei Spalten',
+    'D-028': 'Eine Zeile eines Briefs hat im Text höchstens drei Spalten, in Kopf- und Fußzeile höchstens vier',
     'D-029': 'Ein Bild des Briefs ist kein Bild aus der Mediathek',
     'D-030': 'Ränder liegen zwischen 5 und 80 Millimetern, die Schriftgröße zwischen 8 und 16 Punkt',
     'D-032': 'Die Wartezeit zwischen zwei Dokumenten kann nicht negativ sein',

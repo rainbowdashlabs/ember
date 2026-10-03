@@ -10,8 +10,11 @@ import type {BlockEditorOptions, BlockRestrictionChoices} from '@/composables/us
 import {placeholderContent, placeholderTokens} from '@/components/input/markdowneditor/placeholderChip'
 import PlaceholderPicker from './placeholderpicker/PlaceholderPicker.vue'
 
-/** The most columns a row of a letter holds, which is what the server takes. */
+/** The most columns a row of a letter's body holds, which is what the server takes. */
 export const LETTER_COLUMNS = 3
+
+/** The most columns a row of the header or the footer holds, for the rare letterhead that needs four. */
+export const LETTERHEAD_COLUMNS = 4
 
 /**
  * The blocks the header and the footer of a letter print: texts, pictures, lines and gaps, and blocks
@@ -38,7 +41,8 @@ export interface LetterCatalogue {
 }
 
 /**
- * The block editor as a letter uses it: texts, pictures, lines and gaps in up to three columns, with
+ * The block editor as a letter uses it: texts, pictures, lines and gaps in up to three columns in the
+ * body and four in the header and the footer, with
  * lines between the columns where a row asks for them, placeholders as chips with their picker above
  * every text, a font for selected words from the families the template reaches, a visibility on every
  * block that may also depend on a second guardian, and the station logo as a picture.
@@ -55,7 +59,7 @@ export function letterBlockOptions(catalogue: LetterCatalogue, signatures: boole
     tools.props = ['insert']
     return {
         allowedKinds: signatures ? BODY_KINDS : LETTERHEAD_KINDS,
-        maxColumns: LETTER_COLUMNS,
+        maxColumns: signatures ? LETTER_COLUMNS : LETTERHEAD_COLUMNS,
         tokens: placeholderTokens(catalogue.labels),
         markdownTools: tools,
         textFonts: catalogue.fonts,

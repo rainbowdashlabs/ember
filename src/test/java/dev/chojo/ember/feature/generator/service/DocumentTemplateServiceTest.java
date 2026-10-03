@@ -487,6 +487,29 @@ class DocumentTemplateServiceTest extends RepositoryTestBase {
                         authorId));
     }
 
+    /** The header and the footer hold four columns for the rare letterhead that needs them, and no more. */
+    @Test
+    void theHeaderAndFooterHoldFourColumns() {
+        var four = service.create(
+                owner,
+                letter("Vier im Kopf")
+                        .header(List.of(row(text("a"), text("b"), text("c"), text("d"))))
+                        .footer(List.of(row(text("e"), text("f"), text("g"), text("h"))))
+                        .build(),
+                authorId);
+        assertEquals(4, four.header().getFirst().cells().size());
+        assertEquals(4, four.footer().getFirst().cells().size());
+
+        refused(
+                DocumentRefusal.DOCUMENT_TEMPLATE_TOO_MANY_CELLS,
+                () -> service.create(
+                        owner,
+                        letter("Fünf im Fuß")
+                                .footer(List.of(row(text("a"), text("b"), text("c"), text("d"), text("e"))))
+                                .build(),
+                        authorId));
+    }
+
     @Test
     void aLetterHoldsTextsAndPicturesOfTheLibraryOnly() {
         refused(

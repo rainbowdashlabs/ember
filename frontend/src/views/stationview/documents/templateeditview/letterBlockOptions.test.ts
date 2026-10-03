@@ -6,7 +6,7 @@
 /** @vitest-environment happy-dom */
 import {describe, expect, it} from 'vitest'
 import {CellContentType, FontOrigin, FontStyle} from '@/api/generated/schema'
-import {LETTER_COLUMNS, letterBlockOptions} from './letterBlockOptions'
+import {LETTER_COLUMNS, LETTERHEAD_COLUMNS, letterBlockOptions} from './letterBlockOptions'
 
 const catalogue = {
     placeholders: [],
@@ -17,7 +17,7 @@ const catalogue = {
 }
 
 describe('the block editor of a letter', () => {
-    it('offers texts, pictures, lines and gaps in up to three columns, the logo and a visibility', () => {
+    it('offers texts, pictures, lines and gaps in four letterhead and three body columns, the logo and a visibility', () => {
         const options = letterBlockOptions(catalogue, false)
 
         expect(options.allowedKinds).toEqual([
@@ -26,7 +26,8 @@ describe('the block editor of a letter', () => {
             CellContentType.DIVIDER,
             CellContentType.SPACER,
         ])
-        expect(options.maxColumns).toBe(LETTER_COLUMNS)
+        expect(options.maxColumns).toBe(LETTERHEAD_COLUMNS)
+        expect(letterBlockOptions(catalogue, true).maxColumns).toBe(LETTER_COLUMNS)
         expect(options.stationLogo).toBe(true)
         expect(options.restrictable).toBe(catalogue.choices)
         expect(options.guardianCondition).toBe(true)

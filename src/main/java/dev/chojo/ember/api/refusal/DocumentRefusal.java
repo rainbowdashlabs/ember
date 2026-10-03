@@ -95,8 +95,14 @@ public enum DocumentRefusal implements Refusal {
             HttpStatus.BAD_REQUEST,
             "A legal document uses official names only, not the name a member is called by"),
 
-    /** A row of a letter, or of blocks stacked in one of its columns, of more than three columns. */
-    DOCUMENT_TEMPLATE_TOO_MANY_CELLS(28, HttpStatus.BAD_REQUEST, "A row of a letter holds at most three columns"),
+    /**
+     * A row of a letter, or of blocks stacked in one of its columns, of more columns than its part holds:
+     * three in the text, four in the header and the footer.
+     */
+    DOCUMENT_TEMPLATE_TOO_MANY_CELLS(
+            28,
+            HttpStatus.BAD_REQUEST,
+            "A row of a letter holds at most three columns in the text and four in the header and footer"),
 
     /** A picture block of a letter that is neither the station logo nor an image in the media library. */
     DOCUMENT_TEMPLATE_PICTURE_NOT_HERE(
