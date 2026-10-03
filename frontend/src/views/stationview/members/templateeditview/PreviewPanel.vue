@@ -17,6 +17,7 @@ import MutedText from '@/components/typography/MutedText.vue'
 import GeneratedPreview from '@/components/documents/GeneratedPreview.vue'
 import {fromMember} from '@/components/input/select/memberOption'
 import {documentTemplates} from '@/api'
+import type {TemplateSource} from '@/api/documentTemplates'
 import {StationPermission, type DocumentTemplateResponse, type MemberWithName, type PreviewResponse} from '@/api/generated/schema'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {usePermissions} from '@/composables/usePermissions'
@@ -27,12 +28,15 @@ import {requestOf, type TemplateDraft} from './templateDraft'
  * The document as it will print: drawn from the editor's draft, for a member or, without one, with
  * every placeholder shown by its name. A PDF template is filled from the PDF of the saved template.
  * Whoever may file documents for members can generate the saved template for the chosen member from
- * here.
+ * here. An association has no members of its own, so its template is always drawn without one.
  */
 const props = defineProps<{
   draft: TemplateDraft
   saved: DocumentTemplateResponse | null
   members: MemberWithName[]
+  source: TemplateSource
+  /** Whether the owner has members to draw the template for. */
+  hasMembers: boolean
 }>()
 
 const {t} = useI18n()
@@ -42,10 +46,11 @@ const memberId = ref('')
 const preview = ref<PreviewResponse | null>(null)
 const memberOptions = computed(() => props.members.map(fromMember))
 const canGenerate = computed(() =>
-    !!props.saved && !props.saved.archivedAt && !!memberId.value && hasPermission(StationPermission.DOCUMENT_EDIT_MEMBER))
+    props.hasMembers && !!props.saved && !props.saved.archivedAt && !!memberId.value
+    && hasPermission(StationPermission.DOCUMENT_EDIT_MEMBER))
 
 const drawing = useAsyncAction(async () => {
-  preview.value = await documentTemplates.previewDraft(
+  preview.value = await props.source.previewDraft(
       requestOf(props.draft), props.saved?.id ?? null, memberId.value ? Number(memberId.value) : null)
 })
 
@@ -58,10 +63,11 @@ const generating = useAsyncAction(async () => {
 
 <template>
   <NeutralContainer class="space-y-4">
-    <LabelledField :label="t('documentTemplates.previewMember')" :help="t('documentTemplates.previewMemberHelp')" hint>
+    <LabelledField v-if="hasMembers" :label="t('documentTemplates.previewMember')" :help="t('documentTemplates.previewMemberHelp')" hint>
       <MemberSelectInput v-model="memberId" :members="memberOptions" clearable data-testid="preview-member"
                          :placeholder="t('documentTemplates.previewWithoutMember')"/>
     </LabelledField>
+    <MutedText v-else size="sm" tag="p">{{ t('documentTemplates.previewOfAssociation') }}</MutedText>
     <ButtonRow>
       <SecondaryButton :icon="['fas', 'eye']" :disabled="drawing.running.value" data-testid="template-preview" @click="drawing.run()">
         {{ t('documentTemplates.showPreview') }}

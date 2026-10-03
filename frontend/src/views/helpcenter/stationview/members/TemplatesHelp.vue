@@ -30,6 +30,11 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.documentTemplates.cooldownText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.documentTemplates.associationTitle')">
+      <p>{{ t('helpCenter.documentTemplates.associationText') }}</p>
+      <p>{{ t('helpCenter.documentTemplates.associationSelfServiceText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.documentTemplates.archiveTitle')">
       <p>{{ t('helpCenter.documentTemplates.archiveText') }}</p>
     </HelpSection>

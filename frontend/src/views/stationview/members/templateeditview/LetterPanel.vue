@@ -10,6 +10,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import ContentBlockEditor from '@/components/content/ContentBlockEditor.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
+import type {TemplateSource} from '@/api/documentTemplates'
 import type {ContentRow, FontFamilyOption} from '@/api/generated/schema'
 import {provideBlockEditorOptions} from '@/composables/useBlockEditorOptions'
 import {useSession} from '@/composables/useSession'
@@ -25,17 +26,21 @@ import type {TemplateDraft} from './templateDraft'
  * three columns of texts and pictures, written with the block editor pages use. A block can be meant
  * for some members only and is left out for the others. The header and the footer show as they print
  * until they are clicked. A Word or OpenDocument text fills the body.
+ *
+ * <p>The pictures come from the media library of the station the screen acts for: the reader's own
+ * station, or the home station of the association whose template this is.
  */
 const draft = defineModel<TemplateDraft>({required: true})
 
 const props = defineProps<{
   catalogue: Omit<LetterCatalogue, 'legal'>
   fonts: readonly FontFamilyOption[]
+  source: TemplateSource
 }>()
 
 const {t} = useI18n()
-const {sessionInfo} = useSession()
-const stationUid = computed(() => sessionInfo.value?.stationId ?? '')
+const {sessionInfo, actingStation} = useSession()
+const stationUid = computed(() => actingStation() ?? sessionInfo.value?.stationId ?? '')
 const catalogue = computed<LetterCatalogue>(() => ({...props.catalogue, legal: draft.value.legal}))
 
 provideBlockEditorOptions(() => letterBlockOptions(catalogue.value, true))
@@ -54,7 +59,7 @@ function imported(rows: ContentRow[]) {
     <NeutralContainer class="space-y-4">
       <SubHeader>{{ t('documentTemplates.bodyTitle') }}</SubHeader>
       <MutedText size="sm" tag="p">{{ t('documentTemplates.bodyHint') }}</MutedText>
-      <LetterImportField @imported="imported"/>
+      <LetterImportField :source="source" @imported="imported"/>
       <div data-testid="letter-body">
         <ContentBlockEditor v-model:rows="draft.body" :station-uid="stationUid"/>
       </div>

@@ -5,6 +5,7 @@
  */
 <script setup lang="ts">
 import TemplateEditView from '~/views/stationview/members/TemplateEditView.vue'
+import {STATION_TEMPLATE_SCREENS} from '~/views/stationview/members/templateScreens'
 
 definePageMeta({
   layout: 'station',
@@ -13,5 +14,5 @@ definePageMeta({
 </script>
 
 <template>
-  <TemplateEditView />
+  <TemplateEditView :screens="STATION_TEMPLATE_SCREENS" />
 </template>
