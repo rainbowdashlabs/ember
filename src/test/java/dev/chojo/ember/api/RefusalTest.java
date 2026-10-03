@@ -10,6 +10,7 @@ import dev.chojo.ember.api.refusal.BoardRefusal;
 import dev.chojo.ember.api.refusal.BodyRefusal;
 import dev.chojo.ember.api.refusal.ChecklistRefusal;
 import dev.chojo.ember.api.refusal.ClusterRefusal;
+import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.api.refusal.FederationRefusal;
 import dev.chojo.ember.api.refusal.FeedRefusal;
@@ -166,6 +167,7 @@ class RefusalTest {
                         TestProtocolRefusal.PROTOCOL_RUN_NOT_EXPORTED,
                         ChecklistRefusal.CHECKLIST_PDF_NOT_MADE,
                         ChecklistRefusal.CHECKLIST_PDF_INTERRUPTED,
+                        DocumentRefusal.DOCUMENT_RENDER_FAILED,
                         NewsRefusal.BLOG_FEED_NOT_MADE,
                         BoardRefusal.TICKET_UPLOAD_NOT_READ,
                         BoardRefusal.TICKET_ATTACHMENT_NOT_READ,

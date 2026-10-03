@@ -502,7 +502,8 @@ public class StationMemberRoutes implements Routes {
         var request = ctx.bodyAsClass(SetManagersRequest.class);
         List<Integer> managerIds = request.managerIds() != null ? request.managerIds() : List.of();
         requireOwnedMembers(ctx, managerIds);
-        ctx.json(memberViews.withCompleteness(memberService.setManagers(managedId, managerIds)));
+        int actorId = StationSession.from(ctx).member().id();
+        ctx.json(memberViews.withCompleteness(memberService.setManagers(managedId, managerIds, actorId)));
     }
 
     @OpenApi(
@@ -519,7 +520,8 @@ public class StationMemberRoutes implements Routes {
         var request = ctx.bodyAsClass(SetManagedRequest.class);
         List<Integer> managedIds = request.managedIds() != null ? request.managedIds() : List.of();
         requireOwnedMembers(ctx, managedIds);
-        ctx.json(memberViews.withCompleteness(memberService.setManaged(managerId, managedIds)));
+        int actorId = StationSession.from(ctx).member().id();
+        ctx.json(memberViews.withCompleteness(memberService.setManaged(managerId, managedIds, actorId)));
     }
 
     @OpenApi(

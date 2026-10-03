@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.util.PermissionValidation;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -287,7 +288,15 @@ public class StationMemberService {
         return memberRepository.findManagers(managedId);
     }
 
-    public List<StationMember> setManaged(int managerId, List<Integer> desiredManagedIds) {
+    /**
+     * Sets whom a member looks after, linking the new ones behind the guardians each already has.
+     *
+     * @param managerId         the guardian
+     * @param desiredManagedIds everybody in their care from now on
+     * @param actorId           the member who sets it, recorded on every new link, or null
+     * @return everybody in their care
+     */
+    public List<StationMember> setManaged(int managerId, List<Integer> desiredManagedIds, @Nullable Integer actorId) {
         for (int managedId : desiredManagedIds) {
             requireManageableType(managedId);
         }
@@ -301,7 +310,7 @@ public class StationMemberService {
         }
         for (int managedId : desiredManagedIds) {
             if (!currentManagedIds.contains(managedId)) {
-                memberRepository.addManager(managerId, managedId);
+                memberRepository.addManager(managerId, managedId, actorId);
             }
         }
 
@@ -309,23 +318,35 @@ public class StationMemberService {
         return memberRepository.findManaged(managerId);
     }
 
-    public List<StationMember> setManagers(int managedId, List<Integer> desiredManagerIds) {
+    /**
+     * Sets the guardians of a member, in the order given: the first of the list is the first guardian,
+     * whom documents name as guardian 1.
+     *
+     * @param managedId         the member looked after
+     * @param desiredManagerIds their guardians from now on, in order
+     * @param actorId           the member who sets them, recorded on every new link, or null
+     * @return their guardians in order
+     */
+    public List<StationMember> setManagers(int managedId, List<Integer> desiredManagerIds, @Nullable Integer actorId) {
         if (!desiredManagerIds.isEmpty()) {
             requireManageableType(managedId);
         }
         List<StationMember> currentManagers = memberRepository.findManagers(managedId);
         var currentManagerIds = currentManagers.stream().map(StationMember::id).toList();
 
-        for (int managerId : currentManagerIds) {
-            if (!desiredManagerIds.contains(managerId)) {
-                memberRepository.removeManager(managerId, managedId);
+        Transactions.run(() -> {
+            for (int managerId : currentManagerIds) {
+                if (!desiredManagerIds.contains(managerId)) {
+                    memberRepository.removeManager(managerId, managedId);
+                }
             }
-        }
-        for (int managerId : desiredManagerIds) {
-            if (!currentManagerIds.contains(managerId)) {
-                memberRepository.addManager(managerId, managedId);
+            for (int managerId : desiredManagerIds) {
+                if (!currentManagerIds.contains(managerId)) {
+                    memberRepository.addManager(managerId, managedId, actorId);
+                }
             }
-        }
+            memberRepository.orderManagers(managedId, desiredManagerIds);
+        });
 
         log.info("Manager relations updated for member {}: {}", managedId, desiredManagerIds);
         return memberRepository.findManagers(managedId);

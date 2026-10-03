@@ -71,7 +71,82 @@ public enum DocumentRefusal implements Refusal {
             20, HttpStatus.FORBIDDEN, "You may not tag a document or keep it past the membership"),
 
     /** A list of members that is not a list of numbers. */
-    DOCUMENT_MEMBERS_NOT_NUMBERS(21, HttpStatus.BAD_REQUEST, "The members were not given as numbers");
+    DOCUMENT_MEMBERS_NOT_NUMBERS(21, HttpStatus.BAD_REQUEST, "The members were not given as numbers"),
+
+    /** A document template that does not exist at the reader's station. */
+    DOCUMENT_TEMPLATE_NOT_HERE(22, HttpStatus.NOT_FOUND, "There is no such document template"),
+
+    /** A document template written without a name. */
+    DOCUMENT_TEMPLATE_NAME_MISSING(23, HttpStatus.BAD_REQUEST, "A document template needs a name"),
+
+    /** A document template named like another one in use at the station. */
+    DOCUMENT_TEMPLATE_NAME_TAKEN(24, HttpStatus.CONFLICT, "Another document template already has that name"),
+
+    /** A document asked of a template that was archived. */
+    DOCUMENT_TEMPLATE_ARCHIVED(25, HttpStatus.CONFLICT, "This document template is archived and generates nothing"),
+
+    /** A template naming a placeholder the catalogue does not know. */
+    DOCUMENT_TEMPLATE_PLACEHOLDER_UNKNOWN(
+            26, HttpStatus.BAD_REQUEST, "The template uses a placeholder that does not exist"),
+
+    /** A legal template, or a document of one, using the name a member is called by. */
+    DOCUMENT_TEMPLATE_CALLED_NAME_IN_LEGAL(
+            27,
+            HttpStatus.BAD_REQUEST,
+            "A legal document uses official names only, not the name a member is called by"),
+
+    /** A header or footer of more than three cells. */
+    DOCUMENT_TEMPLATE_TOO_MANY_CELLS(28, HttpStatus.BAD_REQUEST, "A header or footer holds at most three cells"),
+
+    /** A letterhead picture that is not an image in the station's media library. */
+    DOCUMENT_TEMPLATE_PICTURE_NOT_HERE(
+            29, HttpStatus.BAD_REQUEST, "A picture of the letterhead is not an image in the media library"),
+
+    /** Page margins or a text size outside what a letter may have. */
+    DOCUMENT_TEMPLATE_PAGE_OUT_OF_BOUNDS(
+            30,
+            HttpStatus.BAD_REQUEST,
+            "Margins lie between 5 and 80 millimetres and the text size between 8 and 16 points"),
+
+    /** Pronouns following a field that is not a choice field of the station. */
+    DOCUMENT_TEMPLATE_PRONOUN_FIELD_NOT_CHOICE(
+            31, HttpStatus.BAD_REQUEST, "Pronouns can only follow a choice field of this station"),
+
+    /** A self service wait below zero days. */
+    DOCUMENT_TEMPLATE_COOLDOWN_NEGATIVE(
+            32, HttpStatus.BAD_REQUEST, "The wait between two documents cannot be negative"),
+
+    /** A text of a template longer than a template takes. */
+    DOCUMENT_TEMPLATE_TEXT_TOO_LONG(33, HttpStatus.BAD_REQUEST, "A text of the template is too long"),
+
+    /** A document Typst could not produce. */
+    DOCUMENT_RENDER_FAILED(34, HttpStatus.INTERNAL_SERVER_ERROR, "The document could not be produced"),
+
+    /** A document generated for somebody the reader may not file documents for. */
+    DOCUMENT_GENERATE_NOT_YOURS(35, HttpStatus.FORBIDDEN, Sentences.DOCUMENT_NOT_YOURS_TO_ADD),
+
+    /** A template members may not generate for themselves, or not this member. */
+    DOCUMENT_SELF_SERVICE_NOT_OFFERED(
+            36, HttpStatus.FORBIDDEN, "This document cannot be generated through self service for this member"),
+
+    /** A self service document whose data is not complete. */
+    DOCUMENT_SELF_SERVICE_VALUES_MISSING(
+            37, HttpStatus.BAD_REQUEST, "Some data this document needs is missing in the profile"),
+
+    /** A self service document asked for again before the template's wait is over. */
+    DOCUMENT_SELF_SERVICE_COOLING_DOWN(
+            38, HttpStatus.TOO_MANY_REQUESTS, "This document was generated recently and can be generated again from"),
+
+    /** A self service document for somebody who is neither the reader nor in their care. */
+    DOCUMENT_SELF_SERVICE_NOT_YOURS(
+            39, HttpStatus.FORBIDDEN, "Documents can only be generated for yourself and the members in your care"),
+
+    /** An import of something that is neither a Word nor an OpenDocument text. */
+    DOCUMENT_IMPORT_KIND_NOT_TAKEN(
+            40, HttpStatus.BAD_REQUEST, "Only Word (.docx) and OpenDocument (.odt) texts can be imported"),
+
+    /** A text of a kind that is taken and still could not be read. */
+    DOCUMENT_IMPORT_UNREADABLE(41, HttpStatus.BAD_REQUEST, "The document could not be read, so nothing was imported");
 
     private final Definition definition;
 

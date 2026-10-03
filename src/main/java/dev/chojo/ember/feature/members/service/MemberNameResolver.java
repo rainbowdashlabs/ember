@@ -110,6 +110,16 @@ public class MemberNameResolver {
     }
 
     /**
+     * The halves of a member's name, for a document that prints the official first name and surname
+     * apart. Everything that wants a whole name asks for it by its form instead.
+     *
+     * @return the halves, unknown where the member is not known
+     */
+    public NameParts parts(int memberId) {
+        return partsOf(memberId);
+    }
+
+    /**
      * The halves a member's name is written from, read once and kept.
      *
      * <p>What is cached is the parts rather than a finished name, because the same member is

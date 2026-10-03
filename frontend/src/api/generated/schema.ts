@@ -17389,6 +17389,307 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/document-placeholders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The placeholders a document template of the station can name */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PlaceholderCatalogueResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/document-template-import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Read the body of a Word or OpenDocument text into a letter template, gaps in brackets as placeholders */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LetterImport"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/document-templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The document templates of the station */
+        get: {
+            parameters: {
+                query?: {
+                    archived?: boolean;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DocumentTemplateSummary"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Create a document template */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["DocumentTemplateRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DocumentTemplateResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/document-templates/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A document template with its letter */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DocumentTemplateResponse"];
+                    };
+                };
+            };
+        };
+        /** Change a document template, counting its version up */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["DocumentTemplateRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DocumentTemplateResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/document-templates/{id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive a document template, which then generates nothing more */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DocumentTemplateResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/document-templates/{id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Take an archived document template back into use */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DocumentTemplateResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/documents": {
         parameters: {
             query?: never;
@@ -55950,6 +56251,12 @@ export interface components {
              */
             type: "CHOICE";
         };
+        ChoiceField: {
+            /** Format: int32 */
+            id: number;
+            name: string;
+            options: string[];
+        };
         ChoiceOption: {
             correct: boolean;
             text: string;
@@ -57107,6 +57414,61 @@ export interface components {
         DocumentResponse: {
             html: string;
             version: string;
+        };
+        /** @enum {string} */
+        DocumentTemplateKind: "LETTER";
+        DocumentTemplateRequest: {
+            audience?: components["schemas"]["RestrictionAudience"] | null;
+            bodyMarkdown?: string | null;
+            /** Format: int32 */
+            cooldownDays?: number | null;
+            fileNamePattern?: string | null;
+            hidden?: boolean;
+            keepOnArchive?: boolean | null;
+            legal?: boolean;
+            letterhead?: components["schemas"]["Letterhead"] | null;
+            name?: string | null;
+            page?: components["schemas"]["LetterPage"] | null;
+            pronounSource?: components["schemas"]["PronounSource"] | null;
+            selfService?: boolean;
+            tags?: string[] | null;
+            titlePattern?: string | null;
+        };
+        DocumentTemplateResponse: {
+            archivedAt: components["schemas"]["Instant"] | null;
+            audience: components["schemas"]["RestrictionAudience"];
+            bodyMarkdown: string;
+            /** Format: int32 */
+            cooldownDays: number;
+            fileNamePattern: string;
+            hidden: boolean;
+            /** Format: int32 */
+            id: number;
+            keepOnArchive: boolean;
+            kind: components["schemas"]["DocumentTemplateKind"];
+            legal: boolean;
+            letterhead: components["schemas"]["Letterhead"];
+            name: string;
+            page: components["schemas"]["LetterPage"];
+            pronounSource: components["schemas"]["PronounSource"] | null;
+            selfService: boolean;
+            tags: string[];
+            titlePattern: string;
+            updatedAt: components["schemas"]["Instant"];
+            /** Format: int32 */
+            version: number;
+        };
+        DocumentTemplateSummary: {
+            archivedAt: components["schemas"]["Instant"] | null;
+            /** Format: int32 */
+            id: number;
+            kind: components["schemas"]["DocumentTemplateKind"];
+            legal: boolean;
+            name: string;
+            selfService: boolean;
+            updatedAt: components["schemas"]["Instant"];
+            /** Format: int32 */
+            version: number;
         };
         EligibleMembers: {
             eligibleManagedMemberIds: number[];
@@ -59465,6 +59827,39 @@ export interface components {
             requestItemId: number;
             status: string;
         };
+        LetterCell: {
+            align: components["schemas"]["LetterCellAlign"];
+            /** Format: int32 */
+            imageHeightMm: number;
+            kind: components["schemas"]["LetterCellKind"];
+            mediaHash: string | null;
+            text: string | null;
+        };
+        /** @enum {string} */
+        LetterCellAlign: "LEFT" | "CENTER" | "RIGHT";
+        /** @enum {string} */
+        LetterCellKind: "EMPTY" | "IMAGE" | "LOGO" | "TEXT";
+        Letterhead: {
+            footer: components["schemas"]["LetterCell"][];
+            header: components["schemas"]["LetterCell"][];
+        };
+        LetterImport: {
+            bodyMarkdown: string;
+            recognised: string[];
+            unrecognised: string[];
+        };
+        LetterPage: {
+            /** Format: int32 */
+            fontSizePt: number;
+            /** Format: int32 */
+            marginBottomMm: number;
+            /** Format: int32 */
+            marginLeftMm: number;
+            /** Format: int32 */
+            marginRightMm: number;
+            /** Format: int32 */
+            marginTopMm: number;
+        };
         Likert: {
             /**
              * @description discriminator enum property added by openapi-typescript
@@ -61211,6 +61606,19 @@ export interface components {
             title: string;
             updatedAt: components["schemas"]["Instant"];
         };
+        Placeholder: {
+            eventOnly: boolean;
+            group: components["schemas"]["PlaceholderGroup"];
+            informal: boolean;
+            key: string;
+            label: string;
+        };
+        PlaceholderCatalogueResponse: {
+            choiceFields: components["schemas"]["ChoiceField"][];
+            placeholders: components["schemas"]["Placeholder"][];
+        };
+        /** @enum {string} */
+        PlaceholderGroup: "MEMBER" | "PROFILE" | "GUARDIAN" | "STATION" | "EVENT" | "DOCUMENT" | "PRONOUN";
         PlaceholderValues: {
             values?: {
                 [key: string]: string;
@@ -61552,6 +61960,16 @@ export interface components {
             /** Format: int32 */
             memberId: number;
             value: string;
+        };
+        /** @enum {string} */
+        PronounForm: "ER" | "SIE" | "NAME";
+        PronounSource: {
+            answers: {
+                [key: string]: components["schemas"]["PronounForm"];
+            };
+            fallback: components["schemas"]["PronounForm"];
+            /** Format: int32 */
+            fieldId: number;
         };
         ProtocolChecksRequest: {
             checks?: {
@@ -62762,7 +63180,7 @@ export interface components {
             userTypes?: components["schemas"]["StationUserType"][] | null;
         };
         /** @enum {string} */
-        RestrictionType: "EVENT" | "EVENT_VIEW" | "EVENT_TEMPLATE" | "EVENT_TEMPLATE_VIEW" | "QUIZ_TEST" | "FORM" | "NEWS" | "KB_FOLDER" | "KB_FILE";
+        RestrictionType: "EVENT" | "EVENT_VIEW" | "EVENT_TEMPLATE" | "EVENT_TEMPLATE_VIEW" | "QUIZ_TEST" | "FORM" | "NEWS" | "KB_FOLDER" | "KB_FILE" | "DOCUMENT_TEMPLATE";
         ResultFieldCondition: {
             /** Format: int32 */
             fieldId?: number;
@@ -63857,7 +64275,7 @@ export interface components {
             visibility: components["schemas"]["PageVisibility"];
         };
         /** @enum {string} */
-        StationPermission: "USER" | "LOGIN" | "ATTENDANCE_READ" | "ATTENDANCE_EDIT" | "ATTENDANCE_CONFIGURE" | "ATTENDANCE_EXPORT" | "ATTENDANCE_MANAGER" | "INVENTORY_CREATE_EXTERNAL" | "INVENTORY_CREATE_INTERNAL" | "INVENTORY_READ" | "INVENTORY_CREATE" | "INVENTORY_MOVEMENTS" | "INVENTORY_PROCUREMENT" | "INVENTORY_CHECK" | "INVENTORY_LENDING_REQUEST" | "INVENTORY_LENDING_MANAGER" | "INVENTORY_EDIT" | "INVENTORY_ASSIGN" | "INVENTORY_STORAGE" | "INVENTORY_MANAGER" | "EVENT_MANAGE_TEMPLATE" | "EVENT_MANAGE_CATEGORY" | "EVENT_INTERNAL" | "EVENT_EDIT" | "EVENT_REGISTRATION" | "EVENTS_FEDERATE" | "EVENT_MANAGER" | "DOCUMENT_READ" | "DOCUMENT_READ_MEMBER" | "DOCUMENT_EDIT" | "DOCUMENT_EDIT_MEMBER" | "DOCUMENT_MANAGER" | "MEMBER_READ" | "MEMBER_NOTES" | "MEMBER_GUARDIAN" | "MEMBER_CHANGES" | "MEMBER_MANAGE_GROUP" | "MEMBER_MANAGE_TAGS" | "MEMBER_SELF_UPLOAD" | "MEMBER_EDIT" | "MEMBER_FIELDS" | "MEMBER_EXPORT" | "MEMBER_MANAGER" | "WAITLIST_READ" | "WAITLIST_ADD" | "WAITLIST_EDIT" | "WAITLIST_MANAGER" | "NEWS_EDIT" | "NEWS_FEDERATE" | "NEWS_MANAGER" | "POLL_VIEW_RESULTS" | "POLL_CREATE" | "POLL_MANAGER" | "LOST_AND_FOUND_CREATE" | "LOST_AND_FOUND_MANAGE" | "LOST_AND_FOUND_MANAGER" | "CHECKLIST_READ" | "CHECKLIST_MANAGE" | "CHECKLIST_MANAGER" | "TEST_CATALOG_VIEW" | "TEST_CATALOG_EDIT" | "TEST_CONFIGURE" | "TEST_RESULT_READ" | "TEST_REVIEW" | "TEST_MANAGER" | "PROTOCOL_TESTER" | "PROTOCOL_CREATE" | "PROTOCOL_CONFIGURE" | "PROTOCOL_MANAGER" | "BOARD_USE" | "BOARD_EDIT" | "BOARD_FEDERATE" | "BOARD_MANAGER" | "PAGE_EDIT" | "PAGE_FORMS_VIEW" | "PAGE_POLLS_VIEW" | "PAGE_MANAGER" | "PROCEDURE_READ" | "PROCEDURE_EDIT" | "PROCEDURE_MANAGER" | "KNOWLEDGE_EDIT" | "KNOWLEDGE_FEDERATE" | "KNOWLEDGE_MANAGER" | "STATION_LOOK_AND_FEEL" | "STATION_GENERAL" | "STATION_MAIL" | "STATION_FEDERATION" | "STATION_MODULES" | "STATION_IMPORT_EXPORT" | "STATION_STATISTICS" | "STATION_MANAGER" | "STATION_ADMINISTRATOR";
+        StationPermission: "USER" | "LOGIN" | "ATTENDANCE_READ" | "ATTENDANCE_EDIT" | "ATTENDANCE_CONFIGURE" | "ATTENDANCE_EXPORT" | "ATTENDANCE_MANAGER" | "INVENTORY_CREATE_EXTERNAL" | "INVENTORY_CREATE_INTERNAL" | "INVENTORY_READ" | "INVENTORY_CREATE" | "INVENTORY_MOVEMENTS" | "INVENTORY_PROCUREMENT" | "INVENTORY_CHECK" | "INVENTORY_LENDING_REQUEST" | "INVENTORY_LENDING_MANAGER" | "INVENTORY_EDIT" | "INVENTORY_ASSIGN" | "INVENTORY_STORAGE" | "INVENTORY_MANAGER" | "EVENT_MANAGE_TEMPLATE" | "EVENT_MANAGE_CATEGORY" | "EVENT_INTERNAL" | "EVENT_EDIT" | "EVENT_REGISTRATION" | "EVENTS_FEDERATE" | "EVENT_MANAGER" | "DOCUMENT_READ" | "DOCUMENT_READ_MEMBER" | "DOCUMENT_EDIT" | "DOCUMENT_EDIT_MEMBER" | "DOCUMENT_TEMPLATE_EDIT" | "DOCUMENT_MANAGER" | "MEMBER_READ" | "MEMBER_NOTES" | "MEMBER_GUARDIAN" | "MEMBER_CHANGES" | "MEMBER_MANAGE_GROUP" | "MEMBER_MANAGE_TAGS" | "MEMBER_SELF_UPLOAD" | "MEMBER_EDIT" | "MEMBER_FIELDS" | "MEMBER_EXPORT" | "MEMBER_MANAGER" | "WAITLIST_READ" | "WAITLIST_ADD" | "WAITLIST_EDIT" | "WAITLIST_MANAGER" | "NEWS_EDIT" | "NEWS_FEDERATE" | "NEWS_MANAGER" | "POLL_VIEW_RESULTS" | "POLL_CREATE" | "POLL_MANAGER" | "LOST_AND_FOUND_CREATE" | "LOST_AND_FOUND_MANAGE" | "LOST_AND_FOUND_MANAGER" | "CHECKLIST_READ" | "CHECKLIST_MANAGE" | "CHECKLIST_MANAGER" | "TEST_CATALOG_VIEW" | "TEST_CATALOG_EDIT" | "TEST_CONFIGURE" | "TEST_RESULT_READ" | "TEST_REVIEW" | "TEST_MANAGER" | "PROTOCOL_TESTER" | "PROTOCOL_CREATE" | "PROTOCOL_CONFIGURE" | "PROTOCOL_MANAGER" | "BOARD_USE" | "BOARD_EDIT" | "BOARD_FEDERATE" | "BOARD_MANAGER" | "PAGE_EDIT" | "PAGE_FORMS_VIEW" | "PAGE_POLLS_VIEW" | "PAGE_MANAGER" | "PROCEDURE_READ" | "PROCEDURE_EDIT" | "PROCEDURE_MANAGER" | "KNOWLEDGE_EDIT" | "KNOWLEDGE_FEDERATE" | "KNOWLEDGE_MANAGER" | "STATION_LOOK_AND_FEEL" | "STATION_GENERAL" | "STATION_MAIL" | "STATION_FEDERATION" | "STATION_MODULES" | "STATION_IMPORT_EXPORT" | "STATION_STATISTICS" | "STATION_MANAGER" | "STATION_ADMINISTRATOR";
         StationPermissionsRequest: {
             permissions?: string[];
         };
@@ -65395,6 +65813,7 @@ export type ChecklistSummaryResponse = components['schemas']['ChecklistSummaryRe
 export type CheckResult = components['schemas']['CheckResult'];
 export type Choice = components['schemas']['Choice'];
 export type ChoiceAnswer = components['schemas']['ChoiceAnswer'];
+export type ChoiceField = components['schemas']['ChoiceField'];
 export type ChoiceOption = components['schemas']['ChoiceOption'];
 export type ChoiceOptionView = components['schemas']['ChoiceOptionView'];
 export type ChosenLanding = components['schemas']['ChosenLanding'];
@@ -65570,6 +65989,10 @@ export type DividerConfig = components['schemas']['DividerConfig'];
 export type DocumentPage = components['schemas']['DocumentPage'];
 export type DocumentPlaceholder = components['schemas']['DocumentPlaceholder'];
 export type DocumentResponse = components['schemas']['DocumentResponse'];
+export type DocumentTemplateKind = components['schemas']['DocumentTemplateKind'];
+export type DocumentTemplateRequest = components['schemas']['DocumentTemplateRequest'];
+export type DocumentTemplateResponse = components['schemas']['DocumentTemplateResponse'];
+export type DocumentTemplateSummary = components['schemas']['DocumentTemplateSummary'];
 export type EligibleMembers = components['schemas']['EligibleMembers'];
 export type EmailChangeResponse = components['schemas']['EmailChangeResponse'];
 export type EmailChangeResult = components['schemas']['EmailChangeResult'];
@@ -65877,6 +66300,12 @@ export type LendingRequestItem = components['schemas']['LendingRequestItem'];
 export type LendingRequestResponse = components['schemas']['LendingRequestResponse'];
 export type LendingStatus = components['schemas']['LendingStatus'];
 export type LentOutItem = components['schemas']['LentOutItem'];
+export type LetterCell = components['schemas']['LetterCell'];
+export type LetterCellAlign = components['schemas']['LetterCellAlign'];
+export type LetterCellKind = components['schemas']['LetterCellKind'];
+export type Letterhead = components['schemas']['Letterhead'];
+export type LetterImport = components['schemas']['LetterImport'];
+export type LetterPage = components['schemas']['LetterPage'];
 export type Likert = components['schemas']['Likert'];
 export type LikertAnswer = components['schemas']['LikertAnswer'];
 export type LineCheck = components['schemas']['LineCheck'];
@@ -66133,6 +66562,9 @@ export type PermissionNode = components['schemas']['PermissionNode'];
 export type PermissionsByMember = components['schemas']['PermissionsByMember'];
 export type PickerEvent = components['schemas']['PickerEvent'];
 export type PickerPage = components['schemas']['PickerPage'];
+export type Placeholder = components['schemas']['Placeholder'];
+export type PlaceholderCatalogueResponse = components['schemas']['PlaceholderCatalogueResponse'];
+export type PlaceholderGroup = components['schemas']['PlaceholderGroup'];
 export type PlaceholderValues = components['schemas']['PlaceholderValues'];
 export type PlacementResponse = components['schemas']['PlacementResponse'];
 export type PlannedLanding = components['schemas']['PlannedLanding'];
@@ -66170,6 +66602,8 @@ export type ProfileFieldRequest = components['schemas']['ProfileFieldRequest'];
 export type ProfileFieldScope = components['schemas']['ProfileFieldScope'];
 export type ProfileFieldTarget = components['schemas']['ProfileFieldTarget'];
 export type ProfileFieldValue = components['schemas']['ProfileFieldValue'];
+export type PronounForm = components['schemas']['PronounForm'];
+export type PronounSource = components['schemas']['PronounSource'];
 export type ProtocolChecksRequest = components['schemas']['ProtocolChecksRequest'];
 export type ProtocolDetailResponse = components['schemas']['ProtocolDetailResponse'];
 export type ProtocolItemRequest = components['schemas']['ProtocolItemRequest'];
@@ -66915,6 +67349,10 @@ export const DiscoveryVisibility = {
     PUBLIC: "PUBLIC",
 } as const;
 
+export const DocumentTemplateKind = {
+    LETTER: "LETTER",
+} as const;
+
 export const EmailChangeResult = {
     COMMITTED: "COMMITTED",
     DUPLICATE: "DUPLICATE",
@@ -67158,6 +67596,19 @@ export const LendingStatus = {
     LENT: "LENT",
     REQUESTED: "REQUESTED",
     RETURNED: "RETURNED",
+} as const;
+
+export const LetterCellAlign = {
+    CENTER: "CENTER",
+    LEFT: "LEFT",
+    RIGHT: "RIGHT",
+} as const;
+
+export const LetterCellKind = {
+    EMPTY: "EMPTY",
+    IMAGE: "IMAGE",
+    LOGO: "LOGO",
+    TEXT: "TEXT",
 } as const;
 
 export const LinkType = {
@@ -67440,6 +67891,16 @@ export const PeerSource = {
     MANUAL: "MANUAL",
 } as const;
 
+export const PlaceholderGroup = {
+    DOCUMENT: "DOCUMENT",
+    EVENT: "EVENT",
+    GUARDIAN: "GUARDIAN",
+    MEMBER: "MEMBER",
+    PROFILE: "PROFILE",
+    PRONOUN: "PRONOUN",
+    STATION: "STATION",
+} as const;
+
 export const PolicyScope = {
     INSTANCE: "INSTANCE",
     STATION: "STATION",
@@ -67469,6 +67930,12 @@ export const ProfileFieldScope = {
 export const ProfileFieldTarget = {
     GROUP: "GROUP",
     ROLE: "ROLE",
+} as const;
+
+export const PronounForm = {
+    ER: "ER",
+    NAME: "NAME",
+    SIE: "SIE",
 } as const;
 
 export const PublicFormState = {
@@ -67524,6 +67991,7 @@ export const RestrictionMode = {
 } as const;
 
 export const RestrictionType = {
+    DOCUMENT_TEMPLATE: "DOCUMENT_TEMPLATE",
     EVENT: "EVENT",
     EVENT_TEMPLATE: "EVENT_TEMPLATE",
     EVENT_TEMPLATE_VIEW: "EVENT_TEMPLATE_VIEW",
@@ -67662,6 +68130,7 @@ export const StationPermission = {
     DOCUMENT_MANAGER: "DOCUMENT_MANAGER",
     DOCUMENT_READ: "DOCUMENT_READ",
     DOCUMENT_READ_MEMBER: "DOCUMENT_READ_MEMBER",
+    DOCUMENT_TEMPLATE_EDIT: "DOCUMENT_TEMPLATE_EDIT",
     EVENTS_FEDERATE: "EVENTS_FEDERATE",
     EVENT_EDIT: "EVENT_EDIT",
     EVENT_INTERNAL: "EVENT_INTERNAL",

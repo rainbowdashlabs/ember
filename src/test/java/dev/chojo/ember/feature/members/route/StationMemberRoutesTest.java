@@ -40,6 +40,7 @@ import static dev.chojo.ember.api.RouteHarness.refusalOf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -211,7 +212,7 @@ class StationMemberRoutesTest {
 
     @Test
     void typeJoinDateAndManagedAreWrittenThroughTheService() {
-        when(memberService.setManaged(7, List.of())).thenReturn(List.of());
+        when(memberService.setManaged(eq(7), eq(List.of()), any())).thenReturn(List.of());
 
         harness.run((server, client) -> {
             assertEquals(

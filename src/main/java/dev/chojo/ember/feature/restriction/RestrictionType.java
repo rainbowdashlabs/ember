@@ -48,7 +48,14 @@ public enum RestrictionType {
     NEWS("news_restriction", "news_id", "news", "id", "restriction_mode", StationPermission.NEWS_MANAGER),
     KB_FOLDER(
             "kb_access_grant", "folder_id", "kb_folder", "id", "restriction_mode", StationPermission.KNOWLEDGE_MANAGER),
-    KB_FILE("kb_access_grant", "file_id", "kb_file", "id", "restriction_mode", StationPermission.KNOWLEDGE_MANAGER);
+    KB_FILE("kb_access_grant", "file_id", "kb_file", "id", "restriction_mode", StationPermission.KNOWLEDGE_MANAGER),
+    DOCUMENT_TEMPLATE(
+            "document_template_restriction",
+            "template_id",
+            "document_template",
+            "id",
+            "restriction_mode",
+            StationPermission.DOCUMENT_TEMPLATE_EDIT);
 
     private final String table;
     private final String fkColumn;

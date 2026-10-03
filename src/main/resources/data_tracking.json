@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:dd9c05e42033382908f405361113dd797777c919566fc017f495f56af4827713",
-  "generatedAt": "2026-10-02T23:16:13Z",
+  "schemaHash": "sha256:42a83c0c3b88cfa78da484c8a27b2ff1c98fac3cd8a946c8f4235801744552ea",
+  "generatedAt": "2026-10-03T09:32:26Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -6190,6 +6190,557 @@
         "status": "IGNORED",
         "reason": "Cache of publicly-exposed remote station cards, not personal data"
       }
+    },
+    "document_generation": {
+      "tableHash": "sha256:6cfb882b901d7a3bfd4366ee3e36b9e8b24175a1cf7ae6321b1fa4630262548e",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Auto-generated primary key."
+        },
+        {
+          "name": "station_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The station the document was filed at."
+        },
+        {
+          "name": "template_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The template the document was generated from."
+        },
+        {
+          "name": "template_version",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The version of the template at the time, which a later change of the template does not touch."
+        },
+        {
+          "name": "member_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The member the document is about and was filed for. NULL once that member was deleted."
+        },
+        {
+          "name": "generated_by",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The member who generated it: a manager, the member themselves or their guardian. NULL once they are gone."
+        },
+        {
+          "name": "generated_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the document was generated."
+        },
+        {
+          "name": "self_service",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether it was generated through self service, which is what the cooldown of the template counts."
+        },
+        {
+          "name": "document_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The member document the file was filed as. NULL once that document was deleted."
+        },
+        {
+          "name": "file_sha256",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The SHA-256 of the generated file as lowercase hex, which ties the log to the exact bytes filed."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "document_id",
+          "refTable": "member_document",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
+        {
+          "column": "generated_by",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
+        {
+          "column": "member_id",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
+        {
+          "column": "station_id",
+          "refTable": "station",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "template_id",
+          "refTable": "document_template",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED"
+      },
+      "gdprExport": {
+        "status": "TRACKED",
+        "identityColumns": [
+          {
+            "type": "MEMBER_ID",
+            "column": "member_id"
+          },
+          {
+            "type": "MEMBER_ID",
+            "column": "generated_by"
+          }
+        ]
+      },
+      "gdprDeletion": {
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "member_id",
+            "strategy": "NULL",
+            "reason": "FK ON DELETE SET NULL keeps the log of what the station generated, the member unlinked"
+          },
+          {
+            "column": "generated_by",
+            "strategy": "NULL",
+            "reason": "FK ON DELETE SET NULL keeps the log, who generated it unlinked"
+          }
+        ]
+      },
+      "description": "Every document generated from a template: which template and which state of it, about whom, by whom, when, and the file that came out."
+    },
+    "document_generation_subject": {
+      "tableHash": "sha256:8d08fa4935a21cb8d1e074c611d5a2b6bde8d694f391eac454bf6023e4f7895f",
+      "columns": [
+        {
+          "name": "generation_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "References the generated document."
+        },
+        {
+          "name": "member_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "A person whose data went into the document."
+        },
+        {
+          "name": "role",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "MEMBER for the member the document is about, GUARDIAN for a guardian whose data it holds."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "generation_id",
+          "refTable": "document_generation",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "member_id",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED"
+      },
+      "gdprExport": {
+        "status": "TRACKED",
+        "identityColumns": [
+          {
+            "type": "MEMBER_ID",
+            "column": "member_id"
+          }
+        ]
+      },
+      "gdprDeletion": {
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "member_id",
+            "strategy": "CASCADE",
+            "reason": "FK ON DELETE CASCADE on member delete"
+          }
+        ]
+      },
+      "description": "Every person whose data went into a generated document: the member it is about and the guardians it names."
+    },
+    "document_template": {
+      "tableHash": "sha256:dafc5d9441f40734006ad8d8ed7f57932d920285e0b356977695fb388850eb19",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Auto-generated primary key."
+        },
+        {
+          "name": "station_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The station that owns the template."
+        },
+        {
+          "name": "kind",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "What the template is made of: LETTER, a letterhead and a body written in Ember (document_template_letter)."
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "What the template is called in the list of templates."
+        },
+        {
+          "name": "title_pattern",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The title a generated document is filed under, with placeholders such as {{today}} filled in when it is generated."
+        },
+        {
+          "name": "file_name_pattern",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The file name a generated document is filed under, with placeholders filled in when it is generated. The file always ends in .pdf."
+        },
+        {
+          "name": "tags",
+          "type": "_text",
+          "nullable": false,
+          "verified": true,
+          "description": "The names of the document tags a generated document is filed with. Tags missing at the station are created when a document is filed."
+        },
+        {
+          "name": "hidden",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether a document generated by a manager is hidden from the member it names. Documents a member generates through self service are never hidden."
+        },
+        {
+          "name": "keep_on_archive",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether a generated document outlasts the membership of the member it names."
+        },
+        {
+          "name": "legal",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether the template makes a legal document. A legal template uses official names only and may not use the name a member is called by."
+        },
+        {
+          "name": "self_service",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether members of the audience may generate the document for themselves, and guardians for the members in their care."
+        },
+        {
+          "name": "self_service_cooldown_days",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "How many days must pass before a member may generate the document again through self service. 0 means no wait."
+        },
+        {
+          "name": "restriction_mode",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "AND or OR, how the parts of document_template_restriction combine."
+        },
+        {
+          "name": "pronoun_field_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The choice profile field the pronouns of the template follow. NULL where the pronouns always use the first name, also once that field was deleted."
+        },
+        {
+          "name": "pronoun_mapping",
+          "type": "jsonb",
+          "nullable": true,
+          "verified": true,
+          "description": "Which pronoun (ER, SIE or NAME) each answer of the pronoun field stands for, and the one used for an empty or unmapped answer. NULL where the template names no pronoun field."
+        },
+        {
+          "name": "version",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Counts up with every change, so the generation log says which state of the template a document came from."
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the template was created."
+        },
+        {
+          "name": "created_by",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The member who created the template. NULL once they are gone."
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the template was last changed."
+        },
+        {
+          "name": "updated_by",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The member who last changed the template. NULL once they are gone."
+        },
+        {
+          "name": "archived_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When the template was archived. An archived template generates nothing more and stays for the documents generated from it. NULL while in use."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "created_by",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
+        {
+          "column": "pronoun_field_id",
+          "refTable": "profile_field",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
+        {
+          "column": "station_id",
+          "refTable": "station",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "updated_by",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED",
+        "rationale": "Placeholders of profile questions name the question by its id inside the texts, which a transfer does not rewrite; they print as gaps until the template is saved again with the questions picked anew."
+      },
+      "gdprExport": {
+        "status": "TRACKED",
+        "identityColumns": [
+          {
+            "type": "MEMBER_ID",
+            "column": "created_by"
+          },
+          {
+            "type": "MEMBER_ID",
+            "column": "updated_by"
+          }
+        ]
+      },
+      "gdprDeletion": {
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "created_by",
+            "strategy": "NULL",
+            "reason": "FK ON DELETE SET NULL keeps the template, its author unlinked"
+          },
+          {
+            "column": "updated_by",
+            "strategy": "NULL",
+            "reason": "FK ON DELETE SET NULL keeps the template, its last editor unlinked"
+          }
+        ]
+      },
+      "description": "A template a station turns into a PDF for one member at a time. Never deleted, only archived, so every generated document keeps pointing at the template it came from."
+    },
+    "document_template_letter": {
+      "tableHash": "sha256:773fafe6c79360ae207b24d0a550e9bef1c886dae94535e5a9822c6346527b08",
+      "columns": [
+        {
+          "name": "template_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "References the document template."
+        },
+        {
+          "name": "letterhead",
+          "type": "jsonb",
+          "nullable": false,
+          "verified": true,
+          "description": "The header and the footer, each a row of up to three cells. A cell is empty, a picture from the media library by its content hash, the station logo, or a short text with placeholders, aligned left, centre or right."
+        },
+        {
+          "name": "body_markdown",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The body as markdown, with placeholders written as {{key}}. Pictures point at the station media library."
+        },
+        {
+          "name": "page",
+          "type": "jsonb",
+          "nullable": false,
+          "verified": true,
+          "description": "The page margins in millimetres and the body font size in points. The paper is always A4."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "template_id",
+          "refTable": "document_template",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED"
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Template content written by the station, not per-member data"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Template content written by the station, not per-member data"
+      },
+      "description": "The content of a letter template: its letterhead, its body and its page."
+    },
+    "document_template_restriction": {
+      "tableHash": "sha256:9c35756d1fbb6fba6ea356c3fa0aa13d6548bb7792b18e5b54198effa3628aa3",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Auto-generated primary key."
+        },
+        {
+          "name": "template_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "References the document template."
+        },
+        {
+          "name": "user_type",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "Required user type. Exactly one of user_type/group_id/tag_id/member_id must be set."
+        },
+        {
+          "name": "group_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "Required group membership."
+        },
+        {
+          "name": "tag_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "Required tag."
+        },
+        {
+          "name": "member_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "Specific member (always OR-connected, bypasses AND/OR mode)."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "group_id",
+          "refTable": "member_group",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "member_id",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "tag_id",
+          "refTable": "user_tag",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "template_id",
+          "refTable": "document_template",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED"
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Template structure data, not per-member"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Template structure data, not per-member"
+      },
+      "description": "Who may generate a self service template for themselves. Empty means every member. Shaped like event_restriction."
     },
     "email_daily_count": {
       "feature": "mail",
@@ -16903,7 +17454,7 @@
     "member_manager": {
       "feature": "members",
       "scope": "STATION",
-      "tableHash": "sha256:1e6b45c21adc59fd51b0c6de8919222f59dce8e55fb8a811585c67d99e5b54cb",
+      "tableHash": "sha256:19b6949f25856ae3858c4f6be65fa0bd6de054dd8ffb807294b3191b98a2a2a2",
       "columns": [
         {
           "name": "manager_id",
@@ -16918,9 +17469,36 @@
           "nullable": false,
           "verified": true,
           "description": "The managed member (e.g. child)."
+        },
+        {
+          "name": "position",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The order of the guardians of one member, counted from 0. The guardian at 0 is the first guardian, which documents name as guardian 1."
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When the guardian was linked to the member. NULL for links made before this was recorded."
+        },
+        {
+          "name": "created_by",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The member who linked the guardian. NULL where nobody did (an import, a waiting list, a link made before this was recorded) or once they are gone."
         }
       ],
       "foreignKeys": [
+        {
+          "column": "created_by",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
         {
           "column": "managed_id",
           "refTable": "station_member",
@@ -16957,6 +17535,11 @@
             "column": "managed_id",
             "strategy": "CASCADE",
             "reason": "FK ON DELETE CASCADE on member/account delete"
+          },
+          {
+            "column": "created_by",
+            "strategy": "NULL",
+            "reason": "FK ON DELETE SET NULL keeps the link, who made it unlinked"
           }
         ]
       },

@@ -2468,6 +2468,7 @@ export default {
         noFields: 'Keine Felder für diesen Nutzer.',
         managers: 'Verwalter',
         noManagers: 'Keine Verwalter zugewiesen.',
+        guardianPlace: 'Erziehungsberechtigte {place}',
         changesUnreadable: 'Der Änderungsverlauf konnte nicht geladen werden. Er steht deshalb leer da, was nicht heißt, dass an diesem Profil nie etwas geändert wurde.',
         inventoryUnreadable: 'Die Ausrüstung dieses Mitglieds konnte nicht geladen werden. Die Liste ist deshalb leer, was nicht heißt, dass das Mitglied nichts hat.',
         managerDetailsUnreadable: 'Zu mindestens einer betreuenden Person konnten die Angaben nicht geladen werden. Ihre Felder stehen deshalb leer da, auch wenn etwas eingetragen ist.',

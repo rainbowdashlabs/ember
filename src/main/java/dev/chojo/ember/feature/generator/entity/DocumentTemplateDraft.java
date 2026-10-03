@@ -1,0 +1,41 @@
+/*
+ *     SPDX-License-Identifier: AGPL-3.0-only
+ *
+ *     Copyright (C) RainbowDashLabs and Contributor
+ */
+package dev.chojo.ember.feature.generator.entity;
+
+import dev.chojo.ember.feature.restriction.RestrictionMode;
+import org.jspecify.annotations.Nullable;
+
+import java.util.List;
+
+/**
+ * Everything written about a template when it is created or changed, already checked.
+ *
+ * @param name            what it is called
+ * @param titlePattern    the title a generated document is filed under
+ * @param fileNamePattern the file name a generated document is filed under
+ * @param tags            the document tags a generated document is filed with
+ * @param hidden          whether a document a manager generates is hidden from the member
+ * @param keepOnArchive   whether a generated document outlasts the membership
+ * @param legal           whether it makes a legal document
+ * @param selfService     whether members may generate it for themselves
+ * @param cooldownDays    the days between two self service generations for one member
+ * @param restrictionMode how the parts of the self service audience combine
+ * @param pronounSource   the field the pronouns follow, or null
+ * @param letter          what the letter says and how it looks
+ */
+public record DocumentTemplateDraft(
+        String name,
+        String titlePattern,
+        String fileNamePattern,
+        List<String> tags,
+        boolean hidden,
+        boolean keepOnArchive,
+        boolean legal,
+        boolean selfService,
+        int cooldownDays,
+        RestrictionMode restrictionMode,
+        @Nullable PronounSource pronounSource,
+        LetterContent letter) {}
