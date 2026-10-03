@@ -25,6 +25,7 @@ import static dev.chojo.ember.api.RouteHarness.body;
 import static dev.chojo.ember.api.RouteHarness.json;
 import static dev.chojo.ember.api.RouteHarness.refusalOf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -41,8 +42,7 @@ class StationRouteLookupsTest {
     @Test
     void discoveryAnswersStrangersAndStationsAndSendsFederationRequestsForTheStationAsking() {
         var discovery = mock(StationDiscoveryService.class);
-        when(discovery.list(false, null)).thenReturn(List.of());
-        when(discovery.list(true, 3)).thenReturn(List.of());
+        when(discovery.list(any())).thenReturn(List.of());
         when(discovery.inviteCode(false, TARGET)).thenReturn("CODE");
         var harness = RouteHarness.serving(new DiscoveryRoutes(discovery));
         var request = body("{\"stationUid\": \"" + TARGET + "\"}");
@@ -63,7 +63,8 @@ class StationRouteLookupsTest {
                             .code());
         });
 
-        verify(discovery).list(true, 3);
+        verify(discovery).list(StationDiscoveryService.Viewer.anonymous());
+        verify(discovery).list(new StationDiscoveryService.Viewer(true, 3, true));
         verify(discovery).requestFederation(3, TARGET);
     }
 

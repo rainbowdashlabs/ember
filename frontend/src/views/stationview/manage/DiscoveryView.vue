@@ -11,44 +11,48 @@ import MutedText from '@/components/typography/MutedText.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
-import DiscoveryGroups from '@/components/discovery/DiscoveryGroups.vue'
-import {discovery, federation} from '@/api'
+import DiscoveryExplorer from '@/components/discovery/DiscoveryExplorer.vue'
+import {discovery} from '@/api'
 import type {DiscoveryEntry} from '@/api/generated/schema'
 import {useSession} from '@/composables/useSession'
+import {useDiscoveryViewer} from '@/composables/useDiscoveryViewer'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useFlashMessage} from '@/composables/useFlashMessage'
 import {describeFailure} from '@/util/failure'
+import {apiErrorBody} from '@/util/apiError'
+
+/**
+ * The chosen station's place in the address. Not `station`, which on a station page names the station
+ * the reader acts for and would switch it.
+ */
+const SELECTION_KEY = 'selected'
 
 const {t} = useI18n()
-const {loaded, canManageFederation} = useSession()
+const {loaded} = useSession()
+const viewer = useDiscoveryViewer(false)
 
 const stations = ref<DiscoveryEntry[]>([])
+const search = ref('')
 const {message: success, flash} = useFlashMessage(3000)
 
 const {loading, failure, reload: loadAll} = useAsyncLoader(async () => {
-  const [stationsList, partners] = await Promise.all([
-    discovery.listDiscoverable(),
-    federation.listPartners(),
-  ])
-  const partnerUids = new Set(partners.map(p => p.partner.partnerStationId))
-  stations.value = stationsList.map(s => ({
-    ...s,
-    alreadyFederated: s.alreadyFederated || partnerUids.has(s.stationUid),
-  }))
+  stations.value = await discovery.listDiscoverable()
 }, {autoLoad: false})
 
 /**
  * Asks a station to federate, then reads the list back.
  *
  * <p>The read is answered for separately: a request that went out and a list that then failed to
- * refresh used to report a request that did not, and the reader asks the same station twice.
+ * refresh used to report a request that did not, and the reader asks the same station twice. A named
+ * refusal keeps its own sentence, since it says what to do next, such as asking for an invite code.
  */
 async function handleConnect(station: DiscoveryEntry) {
   try {
     await discovery.requestFederation(station.stationUid)
     flash(t('discovery.requestSent'))
   } catch (e) {
-    failure.value = {...describeFailure(e, t), message: t('discovery.requestError')}
+    const described = describeFailure(e, t)
+    failure.value = apiErrorBody(e)?.code ? described : {...described, message: t('discovery.requestError')}
     return
   }
   await loadAll()
@@ -69,7 +73,13 @@ watch(loaded, (v) => { if (v) loadAll() }, {immediate: true})
     <Alert v-if="success" variant="success" class="mb-2">{{ success }}</Alert>
 
     <AsyncSection :empty="stations.length === 0" :empty-message="t('discovery.empty')" :loading="loading">
-      <DiscoveryGroups :stations="stations" :can-connect="canManageFederation()" :show-invite="false" @connect="handleConnect"/>
+      <DiscoveryExplorer
+          v-model:search="search"
+          :stations="stations"
+          :viewer="viewer"
+          :selection-key="SELECTION_KEY"
+          @connect="handleConnect"
+      />
     </AsyncSection>
   </ViewContent>
 </template>

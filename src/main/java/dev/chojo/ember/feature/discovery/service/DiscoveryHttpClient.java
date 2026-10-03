@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.discovery.service;
 
 import dev.chojo.ember.api.Failures;
+import dev.chojo.ember.feature.discovery.entity.PictureTags;
 import dev.chojo.ember.feature.federation.service.OutboundHttp;
 import dev.chojo.ember.feature.federation.service.RefusedDestinationException;
 import dev.chojo.ember.feature.federation.service.RemoteUrlValidator;
@@ -17,13 +18,17 @@ import org.slf4j.LoggerFactory;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.ConnectException;
+import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.UnknownHostException;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.net.http.HttpTimeoutException;
 import java.time.Duration;
+import java.util.Map;
 import java.util.Optional;
 
 import javax.net.ssl.SSLException;
@@ -88,6 +93,88 @@ public class DiscoveryHttpClient {
             log.debug("Discovery GET {} on {} failed: {}", path, baseUrl, e.getMessage());
             return null;
         }
+    }
+
+    /**
+     * Fetches a picture a peer publishes, unsigned like every other read of what a peer publishes.
+     *
+     * <p>The request goes out the way {@link #get} does, so the same timeout and the same refusal of
+     * private addresses hold, and a redirect is never followed: a picture comes from the address asked
+     * or not at all. The body is read up to {@code maxBytes} and no further, so a peer cannot make this
+     * instance hold more than that.
+     *
+     * @param url      the picture's address
+     * @param known    what was sent with the copy kept here, asked back with so an unchanged picture is
+     *                 not sent again; {@link PictureTags#NONE} where no copy is kept
+     * @param maxBytes the most the picture may weigh
+     * @return what came of it
+     */
+    public PictureFetch fetchPicture(String url, PictureTags known, int maxBytes) {
+        try {
+            var request = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .timeout(REQUEST_TIMEOUT)
+                    .GET();
+            String etag = known.etag();
+            if (etag != null) request.header("If-None-Match", etag);
+            String lastModified = known.lastModified();
+            if (lastModified != null) request.header("If-Modified-Since", lastModified);
+            var response = outbound.send(request.build(), HttpResponse.BodyHandlers.ofInputStream());
+            try (InputStream body = response.body()) {
+                return pictureFrom(response, body, maxBytes);
+            }
+        } catch (RefusedDestinationException e) {
+            log.warn("Discovery picture {} refused: {}", url, e.getMessage());
+            return new PictureFetch.Failed();
+        } catch (Exception e) {
+            log.debug("Discovery picture {} failed: {}", url, e.getMessage());
+            return new PictureFetch.Failed();
+        }
+    }
+
+    private static PictureFetch pictureFrom(HttpResponse<InputStream> response, InputStream body, int maxBytes)
+            throws IOException {
+        int status = response.statusCode();
+        if (status == HttpURLConnection.HTTP_NOT_MODIFIED) return new PictureFetch.Unchanged();
+        if (status == HttpURLConnection.HTTP_NO_CONTENT
+                || status == HttpURLConnection.HTTP_NOT_FOUND
+                || status == HttpURLConnection.HTTP_GONE) {
+            return new PictureFetch.Absent();
+        }
+        if (status != HttpURLConnection.HTTP_OK) return new PictureFetch.Failed();
+        if (response.headers().firstValueAsLong("Content-Length").orElse(0) > maxBytes) {
+            return new PictureFetch.Failed();
+        }
+        byte[] data = body.readNBytes(maxBytes + 1);
+        if (data.length > maxBytes) return new PictureFetch.Failed();
+        var headers = response.headers();
+        return new PictureFetch.Fetched(
+                data,
+                new PictureTags(
+                        headers.firstValue("ETag").orElse(null),
+                        headers.firstValue("Last-Modified").orElse(null)));
+    }
+
+    /**
+     * What came of fetching a picture a peer publishes.
+     */
+    public sealed interface PictureFetch {
+        /**
+         * The picture, with what the peer sent to recognise it by next time.
+         *
+         * @param data the bytes, no more than were allowed
+         * @param tags what the peer sent to recognise this picture by
+         */
+        record Fetched(byte[] data, PictureTags tags) implements PictureFetch {}
+
+        /** The peer says the copy kept here is still the picture it publishes. */
+        record Unchanged() implements PictureFetch {}
+
+        /** The peer says it publishes no picture there. */
+        record Absent() implements PictureFetch {}
+
+        /** Nothing usable came back: no answer, a refused address, an error, a redirect or too many bytes. */
+        record Failed() implements PictureFetch {}
     }
 
     /**
@@ -258,25 +345,14 @@ public class DiscoveryHttpClient {
      * @return what the beacon answered, or empty where it could not be reached
      */
     public Optional<Answer> beaconPost(String baseUrl, String path, Object body) {
-        try {
-            String json = mapper.writeValueAsString(body);
-            var request = HttpRequest.newBuilder()
-                    .uri(URI.create(OutboundHttp.join(baseUrl, path)))
-                    .timeout(REQUEST_TIMEOUT)
-                    .header("Content-Type", "application/json")
-                    .header(DiscoverySigningService.SIGNATURE_HEADER, signingService.sign(json))
-                    .header(DiscoverySigningService.BEACON_KEY_HEADER, signingService.publicKeyBase64())
-                    .POST(HttpRequest.BodyPublishers.ofString(json))
-                    .build();
-            var response = outbound.send(request, HttpResponse.BodyHandlers.ofString());
-            return Optional.of(new Answer(response.statusCode(), response.body()));
-        } catch (RefusedDestinationException e) {
-            log.warn("Beacon POST {} on {} refused: {}", path, baseUrl, e.getMessage());
-            return Optional.empty();
-        } catch (Exception e) {
-            log.debug("Beacon POST {} on {} failed: {}", path, baseUrl, e.getMessage(), e);
-            return Optional.empty();
-        }
+        String json = mapper.writeValueAsString(body);
+        var headers = Map.of(
+                DiscoverySigningService.SIGNATURE_HEADER, signingService.sign(json),
+                DiscoverySigningService.BEACON_KEY_HEADER, signingService.publicKeyBase64());
+        return switch (outbound.postJson(OutboundHttp.join(baseUrl, path), json, REQUEST_TIMEOUT, headers)) {
+            case OutboundHttp.JsonPost.Answered answered -> Optional.of(new Answer(answered.status(), answered.body()));
+            case OutboundHttp.JsonPost.Failed _ -> Optional.empty();
+        };
     }
 
     /**

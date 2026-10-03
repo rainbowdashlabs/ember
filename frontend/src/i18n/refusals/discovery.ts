@@ -27,4 +27,5 @@ export default {
     'DC-012': PEER_NOT_HERE,
     'DC-013': PEER_NOT_HERE,
     'DC-014': 'Sag, was blockiert wird und um welche Art es sich handelt, es wurde nichts gespeichert',
+    'DC-015': 'Für diese Wache liegt hier kein Logo vor',
 }

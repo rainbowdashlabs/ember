@@ -55,6 +55,7 @@ public class FederationEnrollmentService {
     private final FederationSigningService signingService;
     private final StationSigner signer;
     private final RemoteUrlValidator urlValidator;
+    private final OutgoingPairRequestService outgoingRequests;
     private final String localBaseUrl;
     private final String remoteScheme;
 
@@ -67,6 +68,7 @@ public class FederationEnrollmentService {
             FederationSigningService signingService,
             StationSigner signer,
             RemoteUrlValidator urlValidator,
+            OutgoingPairRequestService outgoingRequests,
             Api apiConfig,
             Federation federationConfig) {
         this.federationService = federationService;
@@ -76,6 +78,7 @@ public class FederationEnrollmentService {
         this.signingService = signingService;
         this.signer = signer;
         this.urlValidator = urlValidator;
+        this.outgoingRequests = outgoingRequests;
         this.localBaseUrl = apiConfig.baseUrl();
         this.remoteScheme = federationConfig.allowPrivateHosts() ? "http://" : "https://";
     }
@@ -180,11 +183,13 @@ public class FederationEnrollmentService {
 
     /**
      * Calls the instance that issued the code, lets it redeem the token, and writes this side of the
-     * partnership from what it answers.
+     * partnership from what it answers. A plain pairing code carries no token to redeem, so it sends
+     * that instance a request to federate instead, which its station answers when it chooses.
      */
     private CodeOutcome joinRemoteInstance(int enteringStationId, FederationService.PairingCodeParts parts) {
         if (!parts.isStationInvite()) {
-            return new CodeOutcome.Refused(CodeRefusal.OTHER_INSTANCE, parts.host());
+            return new CodeOutcome.RequestedRemotely(
+                    outgoingRequests.sendToCode(enteringStationId, parts.stationUid(), parts.host()));
         }
         String remoteBaseUrl = remoteScheme + parts.host();
         if (!urlValidator.isAllowed(remoteBaseUrl)) {
@@ -298,15 +303,8 @@ public class FederationEnrollmentService {
     }
 
     private boolean signatureHolds(HandshakeRequest request) {
-        try {
-            return signingService.verifyEnrollmentPayload(
-                    enrollmentPayload(request),
-                    request.signature(),
-                    signingService.decodePublicKey(request.publicKey()));
-        } catch (RuntimeException e) {
-            log.warn("Federation handshake carried a public key that could not be read", e);
-            return false;
-        }
+        return signingService.enrollmentSignatureHolds(
+                enrollmentPayload(request), request.signature(), request.publicKey());
     }
 
     /** The refusal a reader is shown for each way a handshake can fail. */

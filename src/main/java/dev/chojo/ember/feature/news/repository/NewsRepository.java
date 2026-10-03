@@ -22,6 +22,7 @@ import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
@@ -334,17 +335,27 @@ public class NewsRepository {
     }
 
     public boolean hasPublicBlogEntries(int stationId) {
-        return query("""
-                SELECT exists(
-                    SELECT 1 FROM news n
-                    WHERE n.station_id = :station_id AND n.public_blog = TRUE
-                    AND n.published_at IS NOT NULL
-                    AND %s
-                ) AS exists;""", NEWS_UNRESTRICTED)
-                .single(call().bind("station_id", stationId))
-                .map(row -> row.getBoolean("exists"))
-                .first()
-                .orElse(false);
+        return withPublicBlogEntries(List.of(stationId)).contains(stationId);
+    }
+
+    /**
+     * The stations among the given ones with at least one published, unrestricted entry on their public
+     * blog.
+     *
+     * @param stationIds the stations asked about
+     * @return those of them with a public blog entry
+     */
+    public Set<Integer> withPublicBlogEntries(Collection<Integer> stationIds) {
+        if (stationIds.isEmpty()) return Set.of();
+        return Set.copyOf(query("""
+                SELECT DISTINCT n.station_id
+                FROM news n
+                WHERE n.station_id = ANY(:station_ids) AND n.public_blog = TRUE
+                  AND n.published_at IS NOT NULL
+                  AND %s;""", NEWS_UNRESTRICTED)
+                .single(call().bind("station_ids", List.copyOf(stationIds), PostgreSqlTypes.INTEGER))
+                .map(row -> row.getInt("station_id"))
+                .all());
     }
 
     /**

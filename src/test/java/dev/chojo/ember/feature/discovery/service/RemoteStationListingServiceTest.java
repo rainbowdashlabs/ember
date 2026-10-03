@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.discovery.service;
 
+import dev.chojo.ember.feature.discovery.TestDiscoveryCards;
 import dev.chojo.ember.feature.discovery.entity.DiscoveryStationCard;
 import dev.chojo.ember.feature.discovery.entity.PublishedRemoteStation;
 import dev.chojo.ember.feature.discovery.protocol.DiscoveryIdentity;
@@ -13,11 +14,12 @@ import dev.chojo.ember.feature.discovery.service.RemoteStationListingService.Rem
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -43,24 +45,18 @@ class RemoteStationListingServiceTest {
     }
 
     private static DiscoveryStationCard card(String uid, String slug) {
-        return new DiscoveryStationCard(
-                uid,
-                "Wache Nord",
-                "Wir sind da",
-                "https://elsewhere.example/logo",
-                "DE",
-                null,
-                "Nordstadt",
-                "https://elsewhere.example/anything",
-                List.of(),
-                "<10",
-                Instant.now(),
-                null,
-                null,
-                null,
-                null,
-                null,
-                slug);
+        return TestDiscoveryCards.card(uid)
+                .name("Wache Nord")
+                .slogan("Wir sind da")
+                .logoUrl("https://elsewhere.example/logo")
+                .city("Nordstadt")
+                .contactUrl("https://elsewhere.example/anything")
+                .publicSlug(slug)
+                .build();
+    }
+
+    private static PublishedRemoteStation published(String baseUrl, DiscoveryStationCard card) {
+        return new PublishedRemoteStation("k", baseUrl, card, false);
     }
 
     private List<RemoteStation> listing(PublishedRemoteStation... stations) {
@@ -77,8 +73,7 @@ class RemoteStationListingServiceTest {
 
     @Test
     void linksThePublicPageOnTheInstanceTheCardCameFrom() {
-        var listed = listing(
-                new PublishedRemoteStation("k", "https://feuer.example:8443/", card(STATION.toString(), "wache-nord")));
+        var listed = listing(published("https://feuer.example:8443/", card(STATION.toString(), "wache-nord")));
 
         assertEquals(1, listed.size());
         var station = listed.getFirst();
@@ -89,7 +84,7 @@ class RemoteStationListingServiceTest {
 
     @Test
     void aStationWithoutReadableAddressIsLinkedByItsIdentifier() {
-        var listed = listing(new PublishedRemoteStation("k", "http://feuer.example", card(STATION.toString(), null)));
+        var listed = listing(published("http://feuer.example", card(STATION.toString(), null)));
 
         assertEquals(
                 "http://feuer.example/public/station/" + STATION,
@@ -98,8 +93,7 @@ class RemoteStationListingServiceTest {
 
     @Test
     void anAddressIsWrittenAsOnePathSegment() {
-        var listed = listing(new PublishedRemoteStation(
-                "k", "https://feuer.example", card(STATION.toString(), "wache nord/../admin?x")));
+        var listed = listing(published("https://feuer.example", card(STATION.toString(), "wache nord/../admin?x")));
 
         assertEquals(
                 "https://feuer.example/public/station/wache%20nord%2F..%2Fadmin%3Fx",
@@ -107,15 +101,52 @@ class RemoteStationListingServiceTest {
     }
 
     @Test
+    void aStationWhoseCardNamesNoPublicPageIsNotLinked() {
+        var withoutPage = TestDiscoveryCards.card(STATION.toString())
+                .name("Wache Nord")
+                .city("Nordstadt")
+                .publicSlug("wache-nord")
+                .build();
+
+        var listed = listing(published("https://feuer.example", withoutPage));
+
+        assertEquals(1, listed.size());
+        assertNull(listed.getFirst().publicPageUrl());
+    }
+
+    @Test
+    void aKeptLogoIsAddressedOnThisInstanceAndNeverOnTheOther() {
+        var listed = listing(
+                new PublishedRemoteStation("k", "https://feuer.example", card(STATION.toString(), null), true),
+                published("https://feuer.example", card(STATION.toString(), null)));
+
+        assertEquals(
+                "/api/v1/public/discovery/remote/" + RemoteStationLogoService.fingerprint("k") + "/" + STATION
+                        + "/logo?size=128",
+                listed.getFirst().logoUrl());
+        assertNull(listed.get(1).logoUrl());
+    }
+
+    @Test
     void cardsThatCannotBeLinkedSafelyAreLeftOut() {
         var listed = listing(
-                new PublishedRemoteStation("k", "javascript:alert(1)", card(STATION.toString(), null)),
-                new PublishedRemoteStation("k", "ftp://feuer.example", card(STATION.toString(), null)),
-                new PublishedRemoteStation("k", "not a url", card(STATION.toString(), null)),
-                new PublishedRemoteStation("k", null, card(STATION.toString(), null)),
-                new PublishedRemoteStation("k", "https://feuer.example", card("not-a-uuid", null)),
-                new PublishedRemoteStation("k", "https://feuer.example", card(null, null)));
+                published("javascript:alert(1)", card(STATION.toString(), null)),
+                published("ftp://feuer.example", card(STATION.toString(), null)),
+                published("not a url", card(STATION.toString(), null)),
+                published(null, card(STATION.toString(), null)),
+                published("https://feuer.example", card("not-a-uuid", null)),
+                published("https://feuer.example", card(null, null)));
 
         assertTrue(listed.isEmpty(), listed.toString());
+    }
+
+    @Test
+    void aPublishedStationIsLookedUpByItsIdentifierOnAnInstanceThatCanBeLinked() {
+        var linked = published("https://feuer.example", card(STATION.toString(), null));
+        when(cache.findPublishedElsewhere(OWN_KEY, OWN_URL, STATION))
+                .thenReturn(List.of(published("ftp://feuer.example", card(STATION.toString(), null)), linked));
+
+        assertEquals(Optional.of(linked), service.findPublished(STATION));
+        assertTrue(service.findPublished(UUID.randomUUID()).isEmpty());
     }
 }

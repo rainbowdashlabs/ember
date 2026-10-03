@@ -43,8 +43,10 @@ import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -327,6 +329,16 @@ public class NewsService {
 
     public boolean hasPublicBlogEntries(int stationId) {
         return newsRepository.hasPublicBlogEntries(stationId);
+    }
+
+    /**
+     * The stations among the given ones with at least one entry on their public blog, in one query.
+     *
+     * @param stationIds the stations asked about
+     * @return those of them with a public blog entry
+     */
+    public Set<Integer> withPublicBlogEntries(Collection<Integer> stationIds) {
+        return newsRepository.withPublicBlogEntries(stationIds);
     }
 
     /**

@@ -166,6 +166,34 @@ class StationRepositoryTest extends RepositoryTestBase {
     }
 
     @Test
+    @Order(21)
+    void findDiscoverableByUid() {
+        var open = stationRepo.create("Uid Discoverable Station");
+        stationRepo.updateDiscoverySettings(open.id(), DiscoveryVisibility.INSTANCE, "Instance", false);
+        var hidden = stationRepo.create("Uid Hidden Station");
+        stationRepo.updateDiscoverySettings(hidden.id(), DiscoveryVisibility.NONE, "Hidden", false);
+
+        assertEquals(
+                open.id(),
+                stationRepo
+                        .findDiscoverableByUid(open.uid(), DiscoveryVisibility.INSTANCE, DiscoveryVisibility.PUBLIC)
+                        .orElseThrow()
+                        .id());
+        assertTrue(stationRepo
+                .findDiscoverableByUid(open.uid(), DiscoveryVisibility.PUBLIC, DiscoveryVisibility.PUBLIC)
+                .isEmpty());
+        assertTrue(stationRepo
+                .findDiscoverableByUid(hidden.uid(), DiscoveryVisibility.INSTANCE, DiscoveryVisibility.PUBLIC)
+                .isEmpty());
+        assertTrue(stationRepo
+                .findDiscoverableByUid(UUID.randomUUID(), DiscoveryVisibility.INSTANCE, DiscoveryVisibility.PUBLIC)
+                .isEmpty());
+
+        stationRepo.delete(open.id());
+        stationRepo.delete(hidden.id());
+    }
+
+    @Test
     @Order(22)
     void findWithPublicContent() {
         var other = stationRepo.create("Public Calendar Station");

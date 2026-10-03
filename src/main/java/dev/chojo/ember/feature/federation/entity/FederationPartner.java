@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.federation.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
+import dev.chojo.ember.util.WebOrigins;
 import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
@@ -87,6 +88,20 @@ public record FederationPartner(
      */
     public boolean isRemote() {
         return remoteHost != null;
+    }
+
+    /**
+     * Whether this row partners with the given station: the same identifier, on the given instance or,
+     * where none is given, on this one.
+     *
+     * @param stationUid  the station's identifier
+     * @param instanceUrl the address of the instance the station lives on, or {@code null} for this one
+     * @return true when the row names that station on that instance
+     */
+    public boolean partnersWith(UUID stationUid, @Nullable String instanceUrl) {
+        if (!stationUid.equals(partnerStationId)) return false;
+        if (instanceUrl == null) return !isRemote();
+        return WebOrigins.sameOrigin(remoteHost, instanceUrl);
     }
 
     /**

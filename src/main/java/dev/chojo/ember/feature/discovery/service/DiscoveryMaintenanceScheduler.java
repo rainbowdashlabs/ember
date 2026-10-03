@@ -8,6 +8,8 @@ package dev.chojo.ember.feature.discovery.service;
 import dev.chojo.ember.auth.signing.DatabaseReplayStore;
 import dev.chojo.ember.feature.discovery.repository.DiscoveryPeerRepository;
 import dev.chojo.ember.feature.discovery.repository.DiscoveryPingRepository;
+import dev.chojo.ember.feature.federation.entity.PairRequest;
+import dev.chojo.ember.feature.federation.repository.PairRequestRepository;
 import dev.chojo.ember.lifecycle.Schedule;
 import dev.chojo.ember.lifecycle.ScheduledTask;
 import dev.chojo.ember.lifecycle.TaskSource;
@@ -17,11 +19,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 
 /**
  * Periodic housekeeping for discovery state: every five minutes it drops the expired nonces of pings and of
- * every signed request from another instance, and once a day it decays negative reputations toward zero.
+ * every signed request from another instance, together with the requests to federate whose answer is older
+ * than the cooldown after a decline, and once a day it decays negative reputations toward zero.
  */
 @Singleton
 public class DiscoveryMaintenanceScheduler implements TaskSource {
@@ -31,21 +35,26 @@ public class DiscoveryMaintenanceScheduler implements TaskSource {
     private final DiscoveryPingRepository pingRepository;
     private final DiscoveryPeerRepository peerRepository;
     private final DatabaseReplayStore replayStore;
+    private final PairRequestRepository pairRequests;
 
     @Inject
     public DiscoveryMaintenanceScheduler(
             DiscoveryPingRepository pingRepository,
             DiscoveryPeerRepository peerRepository,
-            DatabaseReplayStore replayStore) {
+            DatabaseReplayStore replayStore,
+            PairRequestRepository pairRequests) {
         this.pingRepository = pingRepository;
         this.peerRepository = peerRepository;
         this.replayStore = replayStore;
+        this.pairRequests = pairRequests;
     }
 
     void forgetExpiredNonces() {
         try {
             int n = pingRepository.deleteExpired() + replayStore.forgetExpired();
             if (n > 0) log.debug("Discovery nonce GC: {} expired entries removed", n);
+            int settled = pairRequests.deleteAnsweredBefore(Instant.now().minus(PairRequest.DECLINE_COOLDOWN));
+            if (settled > 0) log.debug("Removed {} requests to federate answered long ago", settled);
         } catch (Exception e) {
             log.warn("Discovery nonce GC failed: {}", e.getMessage());
         }

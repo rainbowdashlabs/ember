@@ -17,11 +17,13 @@ import type {
     KbFile,
     KbShareRequest,
     KbShareResponse,
+    OutgoingPairRequestResponse,
     PairRequestResponse,
     PartnerResponse,
     ProtocolShareRequest,
     QuizCatalog,
     QuizShareRequest,
+    RemotePairRequestResponse,
     StationPickerResult,
     TestProtocol,
 } from './generated/schema'
@@ -49,8 +51,12 @@ export async function createInvite(): Promise<InviteCodeResponse> {
     return res.data
 }
 
-export async function acceptInvite(inviteCode: string): Promise<FederationPartner> {
-    const res = await client.post<FederationPartner>('/federation/accept', { inviteCode })
+/**
+ * Enters a code. A code of this instance or an invite code answers with the partnership; a pairing
+ * code of another instance answers with the request it sent there.
+ */
+export async function acceptInvite(inviteCode: string): Promise<FederationPartner | OutgoingPairRequestResponse> {
+    const res = await client.post<FederationPartner | OutgoingPairRequestResponse>('/federation/accept', { inviteCode })
     return res.data
 }
 
@@ -138,6 +144,24 @@ export async function acceptPairRequest(id: number): Promise<void> {
 
 export async function declinePairRequest(id: number): Promise<void> {
     await client.post(`/federation/requests/${id}/decline`)
+}
+
+export async function listRemotePairRequests(): Promise<RemotePairRequestResponse[]> {
+    const res = await client.get<RemotePairRequestResponse[]>('/federation/remote-requests')
+    return res.data
+}
+
+export async function acceptRemotePairRequest(id: number): Promise<void> {
+    await client.post(`/federation/remote-requests/${id}/accept`)
+}
+
+export async function declineRemotePairRequest(id: number): Promise<void> {
+    await client.post(`/federation/remote-requests/${id}/decline`)
+}
+
+export async function listOutgoingPairRequests(): Promise<OutgoingPairRequestResponse[]> {
+    const res = await client.get<OutgoingPairRequestResponse[]>('/federation/outgoing-requests')
+    return res.data
 }
 
 export async function getFederationInfo(): Promise<FederationInfoResponse> {

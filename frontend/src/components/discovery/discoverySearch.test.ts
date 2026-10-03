@@ -4,8 +4,9 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {describe, expect, it} from 'vitest'
-import {initialSearchTerm, searchDiscovery} from './discoverySearch'
+import {initialSearchTerm, searchDiscovery, searchIndex} from './discoverySearch'
 import type {DiscoveryEntry} from '@/api/generated/schema'
+import {createDiscoveryEntry} from '@/test/mocks/discovery'
 
 /**
  * The search on the public discovery page reaches the stations of other instances as it reaches
@@ -15,26 +16,7 @@ import type {DiscoveryEntry} from '@/api/generated/schema'
  */
 describe('searchDiscovery', () => {
     function entry(name: string, overrides: Partial<DiscoveryEntry> = {}): DiscoveryEntry {
-        return {
-            stationUid: name,
-            name,
-            description: null,
-            hasLogo: false,
-            hasPublicKb: false,
-            hasPublicCalendar: false,
-            alreadyFederated: false,
-            isOwnStation: false,
-            publicSlug: null,
-            city: null,
-            country: null,
-            latitude: null,
-            longitude: null,
-            clusterUid: null,
-            clusterName: null,
-            instanceHost: null,
-            publicPageUrl: null,
-            ...overrides,
-        }
+        return createDiscoveryEntry({stationUid: name, name, publicSlug: null, ...overrides})
     }
 
     const local = entry('Wache Hier', {city: 'Südstadt'})
@@ -45,18 +27,25 @@ describe('searchDiscovery', () => {
         description: 'Jugendfeuerwehr am Hafen',
     })
 
+    const index = searchIndex([local, remote])
+
     it('keeps every station for a blank term', () => {
-        expect(searchDiscovery([local, remote], '  ')).toEqual([local, remote])
+        expect(searchDiscovery(index, '  ')).toEqual([local, remote])
     })
 
     it('finds a remote station by name, place, association, description and instance', () => {
         for (const term of ['dort', 'NORDSTADT', 'kreis nord', 'hafen', 'feuer.example']) {
-            expect(searchDiscovery([local, remote], term)).toEqual([remote])
+            expect(searchDiscovery(index, term)).toEqual([remote])
         }
     })
 
     it('finds a local station the same way', () => {
-        expect(searchDiscovery([local, remote], 'süd')).toEqual([local])
+        expect(searchDiscovery(index, 'süd')).toEqual([local])
+    })
+
+    it('puts the text of each station together once, lowercased', () => {
+        expect(index.map(({entry}) => entry)).toEqual([local, remote])
+        expect(index[1]!.text).toBe('wache dort\njugendfeuerwehr am hafen\nnordstadt\nkreis nord\nfeuer.example')
     })
 
     it('reads the term a link hands over', () => {

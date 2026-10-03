@@ -751,6 +751,31 @@ public class StationRepository {
     }
 
     /**
+     * One station by its identifier, as long as it may appear as a card of its own in discovery under
+     * one of the given visibilities: the same stations {@link #findDiscoverable} lists.
+     *
+     * @param uid  the station
+     * @param visA one visibility that counts
+     * @param visB the other visibility that counts
+     * @return the station, or empty where it is not one discovery lists
+     */
+    public Optional<Station> findDiscoverableByUid(UUID uid, DiscoveryVisibility visA, DiscoveryVisibility visB) {
+        return query("""
+                SELECT
+                    %s
+                FROM
+                    station
+                WHERE uid = :uid::UUID
+                  AND discovery_visibility IN (:vis_a, :vis_b)
+                  AND station_kind = 'REGULAR';""", STATION_COLUMNS)
+                .single(call().bind("uid", uid, StandardValueConverter.UUID_STRING)
+                        .bind("vis_a", visA)
+                        .bind("vis_b", visB))
+                .map(Station.map())
+                .first();
+    }
+
+    /**
      * Returns {@code true} when {@code station.read_only_for_transfer} is set, meaning the
      * source operator has created a transfer token for this station and no fresh uploads must
      * land while the destination instance is pulling the data over. Cached for 30 seconds so

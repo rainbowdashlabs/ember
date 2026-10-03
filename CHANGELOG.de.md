@@ -1,5 +1,25 @@
 # Änderungsprotokoll
 
+## v26.20.1
+
+Wachen anderer Instanzen zeigen auf der Discovery-Seite ihr Logo. Die Logos kommen von dieser Instanz, ein Besuch der Seite erreicht also nie eine andere Instanz. Links zur öffentlichen Seite einer Wache führen nur noch zu Seiten, die es gibt. Die Kacheln auf der Discovery-Seite zeigen, was eine Wache öffentlich anbietet, und sehen für Wachen jeder Instanz gleich aus. Die Seite beginnt mit einer Karte, auf der jede Wache mit Namen steht. Wachen anderer Instanzen lassen sich wie Wachen dieser Instanz um eine Partnerschaft bitten. Anfragen und Antworten kommen als Benachrichtigung an.
+
+### Verbesserungen
+
+- **Kacheln zeigen, was öffentlich ist.** Auf der Discovery-Seite hat jede Kachel Chips für eine offene Warteliste, das Wiki, den Kalender und den Blog, die jeweils direkt dorthin führen, und zeigt die Adresse der Wache, wenn sie veröffentlicht ist. Wachen anderer Instanzen sehen aus wie Wachen dieser Instanz, nur die Adresse ihres Servers steht dabei.
+- **Die Discovery-Seite beginnt mit der Karte.** Die Karte steht oben auf der Seite, jede Markierung trägt den Namen ihrer Wache, und die Suche darunter filtert Karte und Liste zugleich. Ein Klick auf eine Markierung öffnet die Kachel der Wache direkt unter der Karte, und die Adresse der Seite behält die Auswahl zum Teilen.
+- **Partnerschaftsanfragen erreichen Wachen anderer Instanzen.** Eine Wache einer anderen Instanz lässt sich über die Discovery-Seite oder mit ihrem Verzeichnis-Code anfragen, genau wie eine Wache dieser Instanz. Ihre Verwaltung nimmt auf der Föderations-Seite an oder lehnt ab, gesendete Anfragen stehen dort mit ihrem Stand, und nach einer Ablehnung kann dieselbe Wache erst nach 30 Tagen wieder fragen.
+- **Benachrichtigungen zu Partnerschaftsanfragen.** Wer die Föderation einer Wache verwaltet, wird über neue Anfragen benachrichtigt, die anfragende Wache über die Antwort. Die Benachrichtigung führt zur Föderations-Seite und geht auch per Mail raus, wo Benachrichtigungen per Mail eingeschaltet sind.
+
+### Sicherheit
+
+- **Discovery-Antworten kommen nur von der gefragten Instanz.** Eine Antwort auf einen Discovery-Ping wurde von jeder Instanz angenommen, die den Einmalcode des Pings kannte, nicht nur von der Instanz, an die er ging. Antworten anderer Instanzen werden jetzt abgelehnt.
+
+### Fehlerbehebungen
+
+- **Wachen anderer Instanzen hatten kein Logo.** Auf der Discovery-Seite erschienen Wachen anderer Instanzen ohne ihr Logo. Ihre Logos werden jetzt auf dieser Instanz aufbewahrt und von hier gezeigt, auch wenn die andere Instanz gerade nicht erreichbar ist.
+- **Links zu öffentlichen Seiten, die es nicht gab.** Wachen auf den Discovery-Seiten anderer Instanzen konnten auf eine öffentliche Seite verlinken, die es nicht gab. Der Link wird jetzt nur gesendet, wenn die Wache eine öffentliche Seite hat.
+
 ## v26.20.0
 
 Wachen, Verbände und die Instanz folgen jetzt denselben Regeln für Profilfragen, Speicher, Benachrichtigungen, Dokumente und Gruppen. Über zwanzig Sicherheitslücken wurden gefunden und geschlossen, von verborgenen Terminen bis zu Profilen, die jedes angemeldete Mitglied lesen konnte. Formulare haben Seiten, Verzweigungen, eine Vorschau und Entwürfe, an denen man später weiterarbeiten kann. Das neue Ablaufdatum erinnert rechtzeitig, und einzelne Termine einer Serie lassen sich absagen und zurückholen. Der Verband bekommt eigene Benachrichtigungen, einen Speicherverlauf und Dokumente wie eine Wache. Wachen ohne Mailserver können Leute mit Einmalpasswörtern aufnehmen. Beim Löschen einer Vorlage oder eines Felds bleiben alle Einträge erhalten. Und wenn Ember etwas ablehnt, sagt es jetzt, warum, auf Deutsch und mit einem einmaligen Fehlercode, der Entwicklern eine schnelle Identifizierung erlaubt. DeepSeek und Mistral wurden als KI-Anbieter hinzugefügt.

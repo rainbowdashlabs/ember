@@ -18,6 +18,7 @@ import {
     instantToDate,
     instantToLocalInput,
     localInputToInstant,
+    placeLine,
     stationClock,
     stationDayOf,
     stationToday,
@@ -307,5 +308,17 @@ describe('today', () => {
         const now = new Date()
         expect(todayIsoDate()).toBe(
             `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`)
+    })
+})
+
+describe('placeLine', () => {
+    it('writes every known part of a place on one line', () => {
+        expect(placeLine({addressLine: 'Hauptstraße 1', city: 'Musterstadt', country: 'Deutschland'}))
+            .toBe('Hauptstraße 1, Musterstadt, Deutschland')
+    })
+
+    it('leaves out the parts that are missing or empty', () => {
+        expect(placeLine({addressLine: null, city: 'Musterstadt', country: ''})).toBe('Musterstadt')
+        expect(placeLine({})).toBe('')
     })
 })

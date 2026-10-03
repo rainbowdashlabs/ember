@@ -5,12 +5,11 @@
  */
 package dev.chojo.ember.feature.federation.service;
 
-import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
-import dev.chojo.ember.util.TestStationKeys;
+import dev.chojo.ember.util.TestFederationServices;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -40,7 +39,7 @@ class FederationPairingCodeTest extends RepositoryTestBase {
     @BeforeEach
     void setup() {
         federationRepo = new FederationRepository();
-        service = new FederationService(federationRepo, stationRepo, TestStationKeys.store(), new Api());
+        service = TestFederationServices.of(federationRepo, stationRepo);
         issuer = stationRepo.create("PairingCodeIssuer" + UUID.randomUUID());
         enterer = stationRepo.create("PairingCodeEnterer" + UUID.randomUUID());
     }

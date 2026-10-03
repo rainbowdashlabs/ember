@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.form.service.FormService;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.news.service.NewsService;
 import dev.chojo.ember.feature.page.service.PageService;
+import dev.chojo.ember.feature.station.entity.PublicOffer;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -18,6 +19,14 @@ import dev.chojo.ember.feature.waitinglist.service.WaitingListService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
+
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.function.Predicate;
 
 /**
  * What a station tells the open web about itself, and whether it answers the open web at all.
@@ -61,18 +70,10 @@ public class PublicStationInfoService {
      */
     public PublicStationInfo info(String address) {
         var station = stations.findByAddress(address).orElseThrow(StationRefusal.PUBLIC_STATION_NOTHING_TO_SHOW::raise);
-        boolean hasPublicKb = station.publicKbMode() != PublicKbMode.OFF;
-        if (station.stationKind() == StationKind.CLUSTER_HOME) {
-            if (!hasPublicKb) throw StationRefusal.PUBLIC_STATION_NOTHING_TO_SHOW.raise();
-            return publicInfo(station, new Offer(true, false, false, false, false), null);
-        }
-        var offer = new Offer(
-                hasPublicKb,
-                station.publicCalendarEnabled(),
-                station.publicPagesEnabled() && pageService.hasListedPages(station.id()),
-                station.publicWaitlistEnabled() && waitingListService.hasPublicWaitlists(station.id()),
-                station.publicBlogEnabled() && newsService.hasPublicBlogEntries(station.id()));
-        if (offer.isEmpty() && !formService.hasOpenlyAddressedForms(station.id())) {
+        var offer = offer(station);
+        boolean reachableByForms =
+                station.stationKind() != StationKind.CLUSTER_HOME && formService.hasOpenlyAddressedForms(station.id());
+        if (offer.isEmpty() && !reachableByForms) {
             throw StationRefusal.PUBLIC_STATION_NOTHING_TO_SHOW.raise();
         }
         String landingPageSlug =
@@ -80,7 +81,56 @@ public class PublicStationInfoService {
         return publicInfo(station, offer, landingPageSlug);
     }
 
-    private PublicStationInfo publicInfo(Station station, Offer offer, @Nullable String landingPageSlug) {
+    /**
+     * What of the station is on the public web. An association's own station offers its wiki at most.
+     * A form reached only by its link is no part of it, since the public page would show nothing to go
+     * to; a link to that page leads somewhere exactly when the offer is not empty.
+     *
+     * @param station the station
+     * @return each public part and whether the station has it
+     */
+    public PublicOffer offer(Station station) {
+        return Objects.requireNonNull(offers(List.of(station)).get(station.id()), "every station given has an offer");
+    }
+
+    /**
+     * What of each station is on the public web, the same as {@link #offer(Station)} answers for one,
+     * with one query per kind of content for all of them together. A station is only asked about a kind
+     * it has switched on.
+     *
+     * @param stations the stations
+     * @return each station's offer by station id
+     */
+    public Map<Integer, PublicOffer> offers(Collection<Station> stations) {
+        var regular = stations.stream()
+                .filter(station -> station.stationKind() != StationKind.CLUSTER_HOME)
+                .toList();
+        Set<Integer> pages = pageService.withListedPages(idsWhere(regular, Station::publicPagesEnabled));
+        Set<Integer> waitlists =
+                waitingListService.withPublicWaitlists(idsWhere(regular, Station::publicWaitlistEnabled));
+        Set<Integer> blogs = newsService.withPublicBlogEntries(idsWhere(regular, Station::publicBlogEnabled));
+        Map<Integer, PublicOffer> offers = new HashMap<>();
+        for (var station : stations) {
+            boolean hasPublicKb = station.publicKbMode() != PublicKbMode.OFF;
+            offers.put(
+                    station.id(),
+                    station.stationKind() == StationKind.CLUSTER_HOME
+                            ? new PublicOffer(hasPublicKb, false, false, false, false)
+                            : new PublicOffer(
+                                    hasPublicKb,
+                                    station.publicCalendarEnabled(),
+                                    pages.contains(station.id()),
+                                    waitlists.contains(station.id()),
+                                    blogs.contains(station.id())));
+        }
+        return offers;
+    }
+
+    private static List<Integer> idsWhere(List<Station> stations, Predicate<Station> switchedOn) {
+        return stations.stream().filter(switchedOn).map(Station::id).toList();
+    }
+
+    private PublicStationInfo publicInfo(Station station, PublicOffer offer, @Nullable String landingPageSlug) {
         return new PublicStationInfo(
                 station.uid().toString(),
                 station.name(),
@@ -97,13 +147,6 @@ public class PublicStationInfoService {
                 station.defaultFeel() != null ? station.defaultFeel().name() : null,
                 station.customThemeColors(),
                 StationFormat.timezoneNameOf(station));
-    }
-
-    /** What of a station is on the public web. */
-    private record Offer(boolean knowledgeBase, boolean calendar, boolean pages, boolean waitlist, boolean blog) {
-        boolean isEmpty() {
-            return !knowledgeBase && !calendar && !pages && !waitlist && !blog;
-        }
     }
 
     /**

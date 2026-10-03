@@ -19,6 +19,8 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
+import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -258,6 +260,19 @@ class PageRepositoryTest extends RepositoryTestBase {
 
         pageRepo.setVisibility(pageId, PageVisibility.PUBLIC, null);
         assertTrue(pageRepo.anyListed(station.id()));
+    }
+
+    /** Which of many stations have anything in their menu, in one query. */
+    @Test
+    @Order(92)
+    void saysWhichStationsListAPage() {
+        var without = stationRepo.create("Page Repo Without " + UUID.randomUUID());
+
+        assertEquals(Set.of(station.id()), pageRepo.withListedPages(List.of(station.id(), without.id())));
+        assertEquals(Set.of(), pageRepo.withListedPages(List.of(without.id())));
+        assertEquals(Set.of(), pageRepo.withListedPages(List.of()));
+
+        stationRepo.delete(without.id());
     }
 
     @Test

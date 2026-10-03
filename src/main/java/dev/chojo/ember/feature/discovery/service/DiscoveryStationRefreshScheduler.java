@@ -21,6 +21,9 @@ import java.util.List;
  */
 @Singleton
 public class DiscoveryStationRefreshScheduler implements TaskSource {
+    /** How long after one refresh has finished the next one starts. */
+    public static final Duration REFRESH_INTERVAL = Duration.ofHours(6);
+
     private static final Logger log = LoggerFactory.getLogger(DiscoveryStationRefreshScheduler.class);
 
     private final DiscoveryStationFetcher fetcher;
@@ -34,7 +37,7 @@ public class DiscoveryStationRefreshScheduler implements TaskSource {
     public List<ScheduledTask> scheduledTasks() {
         return List.of(new ScheduledTask(
                 "discovery-station-refresh",
-                Schedule.fixedDelay(Duration.ofMinutes(10), Duration.ofHours(6)),
+                Schedule.fixedDelay(Duration.ofMinutes(10), REFRESH_INTERVAL),
                 this::refresh));
     }
 

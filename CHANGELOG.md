@@ -1,5 +1,25 @@
 # Changelog
 
+## v26.20.1
+
+Stations of other instances show their logos on the discovery page. The logos come from this instance, so a visit to the page never reaches another instance. Links to a station's public page lead only to pages that exist. Tiles on the discovery page show what each station offers publicly and look the same for stations of every instance. The page opens with a map that names every station on it. Stations of other instances can be asked to federate like stations of this instance. Requests and their answers arrive as notifications.
+
+### Improvements
+
+- **Station tiles show what is public.** On the discovery page, each tile has chips for an open waiting list, the wiki, the calendar and the blog, each leading straight there, and shows the station's address when it is published. Stations of other instances look the same as stations of this instance, apart from the address of their server.
+- **The discovery page opens with the map.** The map sits on top of the page with every station's name on its marker, and the search below it filters the map and the list together. A click on a marker opens that station's tile right below the map, and the page address keeps the choice for sharing.
+- **Federation requests reach stations of other instances.** A station of another instance can be asked to federate from the discovery page or with its pairing code, the same way as a station of this instance. Its managers accept or decline on the federation page, sent requests are listed there with their state, and after a decline the same station can ask again after 30 days.
+- **Federation requests and their answers are notified.** Whoever manages a station's federation is notified of a new request, and the asking station of the answer. The notification links to the federation page and also goes out by mail where notifications by mail are switched on.
+
+### Security
+
+- **Discovery answers come only from the instance asked.** An answer to a discovery ping was accepted from any instance that knew the ping's one-time code, not only from the instance the ping went to. Answers from any other instance are now refused.
+
+### Fixes
+
+- **Stations of other instances showed no logo.** On the discovery page, stations of other instances appeared without their logo. Their logos are now kept on this instance and shown from there, even while the other instance is down.
+- **Links to public pages that did not exist.** Stations listed on the discovery pages of other instances could link to a public page that did not exist. The link is now only sent when the station has a public page.
+
 ## v26.20.0
 
 Stations, associations and the instance now follow the same rules for profile questions, storage, notifications, documents and groups. More than twenty security gaps were found and closed, from hidden appointments to profiles any signed-in member could read. Forms have pages, branching, a preview and drafts that can be continued later. The new expiry date reminds in time, and single dates of a series can be cancelled and restored. The association gets its own notifications, a storage history and documents like a station. Stations without a mail server can take in people with one-time passwords. Deleting a template or a field keeps every entry. When Ember refuses something, it now says why, in the reader's language and with a unique error code that lets developers identify it quickly. DeepSeek and Mistral were added as AI providers.

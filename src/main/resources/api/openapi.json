@@ -19384,6 +19384,16 @@
               }
             }
           },
+          "202" : {
+            "description" : "Accepted",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OutgoingPairRequestResponse"
+                }
+              }
+            }
+          },
           "400" : {
             "description" : "Bad Request",
             "content" : {
@@ -19435,6 +19445,27 @@
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/InviteCodeResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/federation/outgoing-requests" : {
+      "get" : {
+        "summary" : "List the requests this station sent to stations of other instances",
+        "tags" : [ "Federation" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/OutgoingPairRequestResponse"
+                  }
                 }
               }
             }
@@ -19616,6 +19647,81 @@
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/FederationPartner"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/federation/remote-requests" : {
+      "get" : {
+        "summary" : "List the requests from stations of other instances waiting for this station",
+        "tags" : [ "Federation" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/RemotePairRequestResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/federation/remote-requests/{id}/accept" : {
+      "post" : {
+        "summary" : "Accept a request from a station of another instance",
+        "tags" : [ "Federation" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FederationPartner"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/federation/remote-requests/{id}/decline" : {
+      "post" : {
+        "summary" : "Decline a request from a station of another instance",
+        "tags" : [ "Federation" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MessageResponse"
                 }
               }
             }
@@ -32431,6 +32537,248 @@
             }
           }
         }
+      }
+    },
+    "/api/v1/public/discovery/pair-request" : {
+      "post" : {
+        "summary" : "Receive a signed request to federate from a station of another instance",
+        "tags" : [ "Discovery" ],
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PairRequestReceipt"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PairRequestRefusal"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PairRequestRefusal"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PairRequestRefusal"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PairRequestRefusal"
+                }
+              }
+            }
+          },
+          "429" : {
+            "description" : "Too Many Requests",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PairRequestRefusal"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PairRequestMessage"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/public/discovery/pair-request/answer" : {
+      "post" : {
+        "summary" : "Receive the signed answer to a request to federate",
+        "tags" : [ "Discovery" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PairRequestRefusal"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PairRequestRefusal"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PairRequestRefusal"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PairRequestAnswer"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/public/discovery/pair-request/status" : {
+      "post" : {
+        "summary" : "Answer the asking instance where its request to federate stands",
+        "tags" : [ "Discovery" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PairRequestAnswer"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PairRequestRefusal"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PairRequestRefusal"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PairRequestRefusal"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PairRequestStatusQuery"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/public/discovery/remote/{instance}/{stationUid}/logo" : {
+      "get" : {
+        "summary" : "Get the copy of the logo of a station of another instance",
+        "tags" : [ "Discovery" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "image/*" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "instance",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "stationUid",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "size",
+          "in" : "query",
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
       }
     },
     "/api/v1/public/discovery/stations" : {
@@ -47511,7 +47859,7 @@
             "type" : [ "string", "null" ]
           },
           "logoUrl" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "country" : {
             "type" : [ "string", "null" ]
@@ -47523,7 +47871,7 @@
             "type" : [ "string", "null" ]
           },
           "contactUrl" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "tags" : {
             "type" : "array",
@@ -47591,10 +47939,22 @@
           "hasLogo" : {
             "type" : "boolean"
           },
-          "hasPublicKb" : {
+          "logoUrl" : {
+            "type" : [ "string", "null" ]
+          },
+          "hasPublicWiki" : {
             "type" : "boolean"
           },
           "hasPublicCalendar" : {
+            "type" : "boolean"
+          },
+          "hasPublicBlog" : {
+            "type" : "boolean"
+          },
+          "waitingListOpen" : {
+            "type" : "boolean"
+          },
+          "acceptsFederation" : {
             "type" : "boolean"
           },
           "alreadyFederated" : {
@@ -47603,7 +47963,19 @@
           "isOwnStation" : {
             "type" : "boolean"
           },
+          "canRequest" : {
+            "type" : "boolean"
+          },
+          "canInvite" : {
+            "type" : "boolean"
+          },
           "publicSlug" : {
+            "type" : [ "string", "null" ]
+          },
+          "publicPageUrl" : {
+            "type" : [ "string", "null" ]
+          },
+          "addressLine" : {
             "type" : [ "string", "null" ]
           },
           "city" : {
@@ -47628,11 +48000,11 @@
           "instanceHost" : {
             "type" : [ "string", "null" ]
           },
-          "publicPageUrl" : {
+          "instanceUrl" : {
             "type" : [ "string", "null" ]
           }
         },
-        "required" : [ "stationUid", "name", "description", "hasLogo", "hasPublicKb", "hasPublicCalendar", "alreadyFederated", "isOwnStation", "publicSlug", "city", "country", "latitude", "longitude", "clusterUid", "clusterName", "instanceHost", "publicPageUrl" ]
+        "required" : [ "stationUid", "name", "description", "hasLogo", "logoUrl", "hasPublicWiki", "hasPublicCalendar", "hasPublicBlog", "waitingListOpen", "acceptsFederation", "alreadyFederated", "isOwnStation", "canRequest", "canInvite", "publicSlug", "publicPageUrl", "addressLine", "city", "country", "latitude", "longitude", "clusterUid", "clusterName", "instanceHost", "instanceUrl" ]
       },
       "DiscoveryIdentity" : {
         "type" : "object",
@@ -47741,7 +48113,7 @@
             "type" : [ "string", "null" ]
           },
           "logoUrl" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "country" : {
             "type" : [ "string", "null" ]
@@ -47753,7 +48125,7 @@
             "type" : [ "string", "null" ]
           },
           "contactUrl" : {
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "tags" : {
             "type" : "array",
@@ -47784,9 +48156,24 @@
           },
           "publicSlug" : {
             "type" : [ "string", "null" ]
+          },
+          "hasPublicWiki" : {
+            "type" : "boolean"
+          },
+          "hasPublicCalendar" : {
+            "type" : "boolean"
+          },
+          "hasPublicBlog" : {
+            "type" : "boolean"
+          },
+          "waitingListOpen" : {
+            "type" : "boolean"
+          },
+          "acceptsFederation" : {
+            "type" : "boolean"
           }
         },
-        "required" : [ "stationUid", "name", "slogan", "logoUrl", "country", "region", "city", "contactUrl", "tags", "memberCount", "publishedAt", "addressLine", "latitude", "longitude", "clusterUid", "clusterName", "publicSlug" ]
+        "required" : [ "stationUid", "name", "slogan", "logoUrl", "country", "region", "city", "contactUrl", "tags", "memberCount", "publishedAt", "addressLine", "latitude", "longitude", "clusterUid", "clusterName", "publicSlug", "hasPublicWiki", "hasPublicCalendar", "hasPublicBlog", "waitingListOpen", "acceptsFederation" ]
       },
       "DiscoveryStationsResponse" : {
         "type" : "object",
@@ -58488,7 +58875,7 @@
       },
       "NotificationType" : {
         "type" : "string",
-        "enum" : [ "NEW_NEWS", "NEWS_COMMENT", "COMMENT_MENTION", "EVENT_REGISTRATION_STATUS", "MOVEMENT_ADVANCED", "MOVEMENT_RAISED", "MOVEMENT_DECLINED", "MOVEMENT_CANCELLED", "NEW_EVENT", "NEW_EVENTS_BATCH", "MEMBER_ADDED_TO_GROUP", "PROFILE_FIELD_CHANGED", "PROCUREMENT_REQUESTED", "PROCUREMENT_FULFILLED", "NEW_FORM", "LOST_AND_FOUND_NEW", "LOST_AND_FOUND_CLAIMED", "WAITLIST_NEW_ENTRY", "LENDING_NEW_REQUEST", "LENDING_STATUS_CHANGE", "LENDING_NEW_MESSAGE", "BOARD_TICKET_UPDATE", "REGISTRATION_DEADLINE_EXPIRED", "EVENT_CANCELLED", "EVENT_REMINDER", "REGISTRATION_CLOSING", "REGISTRATION_ANSWER_MISSING", "EVENT_DATE_DROPPED", "EVENT_MOVED", "EVENT_DATE_RESTORED", "PROCEDURE_ASSIGNED", "PROCEDURE_RESOLVED", "PROCEDURE_REOPENED", "PROCEDURE_ITEM_CHECKED", "SELF_CHECK_ASSIGNED", "SELF_CHECK_SUBMITTED", "SELF_CHECK_ROW_REFUSED", "WAITLIST_PUBLIC_REGISTRATION", "WAITLIST_INVITATION_ANSWERED", "STORAGE_WARNING", "MAILBOX_SUSPENDED", "MAIL_IMPORT_UNBOUND", "CLUSTER_APPLICATION_SUBMITTED", "CLUSTER_APPLICATION_APPROVED", "CLUSTER_APPLICATION_DENIED", "CLUSTER_APPLICATION_WITHDRAWN", "CLUSTER_STATION_RELEASED", "CLUSTER_MODULE_DENIED", "CLUSTER_ITEM_ISSUED", "CLUSTER_ITEM_LOST", "CLUSTER_QUOTA_CHANGED", "CLUSTER_MEMBER_ROLE_CHANGED", "CLUSTER_FIELD_VALUE_CHANGED", "EXPIRY_REMINDER" ]
+        "enum" : [ "NEW_NEWS", "NEWS_COMMENT", "COMMENT_MENTION", "EVENT_REGISTRATION_STATUS", "MOVEMENT_ADVANCED", "MOVEMENT_RAISED", "MOVEMENT_DECLINED", "MOVEMENT_CANCELLED", "NEW_EVENT", "NEW_EVENTS_BATCH", "MEMBER_ADDED_TO_GROUP", "PROFILE_FIELD_CHANGED", "PROCUREMENT_REQUESTED", "PROCUREMENT_FULFILLED", "NEW_FORM", "LOST_AND_FOUND_NEW", "LOST_AND_FOUND_CLAIMED", "WAITLIST_NEW_ENTRY", "LENDING_NEW_REQUEST", "LENDING_STATUS_CHANGE", "LENDING_NEW_MESSAGE", "BOARD_TICKET_UPDATE", "REGISTRATION_DEADLINE_EXPIRED", "EVENT_CANCELLED", "EVENT_REMINDER", "REGISTRATION_CLOSING", "REGISTRATION_ANSWER_MISSING", "EVENT_DATE_DROPPED", "EVENT_MOVED", "EVENT_DATE_RESTORED", "PROCEDURE_ASSIGNED", "PROCEDURE_RESOLVED", "PROCEDURE_REOPENED", "PROCEDURE_ITEM_CHECKED", "SELF_CHECK_ASSIGNED", "SELF_CHECK_SUBMITTED", "SELF_CHECK_ROW_REFUSED", "WAITLIST_PUBLIC_REGISTRATION", "WAITLIST_INVITATION_ANSWERED", "STORAGE_WARNING", "MAILBOX_SUSPENDED", "MAIL_IMPORT_UNBOUND", "CLUSTER_APPLICATION_SUBMITTED", "CLUSTER_APPLICATION_APPROVED", "CLUSTER_APPLICATION_DENIED", "CLUSTER_APPLICATION_WITHDRAWN", "CLUSTER_STATION_RELEASED", "CLUSTER_MODULE_DENIED", "CLUSTER_ITEM_ISSUED", "CLUSTER_ITEM_LOST", "CLUSTER_QUOTA_CHANGED", "CLUSTER_MEMBER_ROLE_CHANGED", "CLUSTER_FIELD_VALUE_CHANGED", "EXPIRY_REMINDER", "FEDERATION_REQUEST_RECEIVED", "FEDERATION_REQUEST_ACCEPTED", "FEDERATION_REQUEST_DECLINED" ]
       },
       "NumberConfig" : {
         "type" : "object",
@@ -58684,6 +59071,35 @@
           }
         },
         "required" : [ "items" ]
+      },
+      "OutgoingPairRequestResponse" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "stationName" : {
+            "type" : "string"
+          },
+          "instanceHost" : {
+            "type" : "string"
+          },
+          "status" : {
+            "$ref" : "#/components/schemas/PairRequestStatus"
+          },
+          "createdAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "answeredAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "id", "stationName", "instanceHost", "status", "createdAt", "answeredAt" ]
       },
       "OutputShape" : {
         "type" : "string",
@@ -58902,6 +59318,126 @@
         },
         "required" : [ "left", "right" ]
       },
+      "PairRequestAnswer" : {
+        "type" : "object",
+        "properties" : {
+          "requesterStationUid" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "targetStationUid" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "status" : {
+            "$ref" : "#/components/schemas/PairRequestStatus"
+          },
+          "stationName" : {
+            "type" : "string"
+          },
+          "baseUrl" : {
+            "type" : "string"
+          },
+          "publicKey" : {
+            "type" : [ "string", "null" ]
+          },
+          "contract" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/FederationContract"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "issuedAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "nonce" : {
+            "type" : "string"
+          },
+          "stationSignature" : {
+            "type" : [ "string", "null" ]
+          },
+          "instanceSignature" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "requesterStationUid", "targetStationUid", "status", "stationName", "baseUrl", "publicKey", "contract", "issuedAt", "nonce", "stationSignature", "instanceSignature" ]
+      },
+      "PairRequestMessage" : {
+        "type" : "object",
+        "properties" : {
+          "requesterStationUid" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "requesterStationName" : {
+            "type" : "string"
+          },
+          "requesterPublicKey" : {
+            "type" : "string"
+          },
+          "requesterBaseUrl" : {
+            "type" : "string"
+          },
+          "requesterInstanceKey" : {
+            "type" : "string"
+          },
+          "targetStationUid" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "contract" : {
+            "$ref" : "#/components/schemas/FederationContract"
+          },
+          "issuedAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "nonce" : {
+            "type" : "string"
+          },
+          "stationSignature" : {
+            "type" : "string"
+          },
+          "instanceSignature" : {
+            "type" : "string"
+          }
+        }
+      },
+      "PairRequestReason" : {
+        "type" : "string",
+        "enum" : [ "INCOMPLETE", "TOO_LARGE", "OUT_OF_TIME", "INSTANCE_UNKNOWN", "INSTANCE_BLOCKED", "INSTANCE_SIGNATURE_NOT_GOOD", "STATION_SIGNATURE_NOT_GOOD", "ADDRESS_NOT_THE_INSTANCES", "CONTRACT_MISMATCH", "TOO_MANY_FROM_INSTANCE", "TOO_MANY_FOR_STATION", "STATION_NOT_HERE", "ALREADY_PARTNERS", "ALREADY_WAITING", "DECLINED_RECENTLY", "STATUS_NOT_HERE", "ANSWER_NOT_EXPECTED", "ANSWER_SIGNATURE_NOT_GOOD" ]
+      },
+      "PairRequestReceipt" : {
+        "type" : "object",
+        "properties" : {
+          "stationName" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "stationName" ]
+      },
+      "PairRequestRefusal" : {
+        "type" : "object",
+        "properties" : {
+          "error" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "reason" : {
+            "$ref" : "#/components/schemas/PairRequestReason"
+          },
+          "retryAfterSeconds" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        },
+        "required" : [ "error", "message", "code", "reason" ]
+      },
       "PairRequestResponse" : {
         "type" : "object",
         "properties" : {
@@ -58917,6 +59453,35 @@
           }
         },
         "required" : [ "id", "stationName", "createdAt" ]
+      },
+      "PairRequestStatus" : {
+        "type" : "string",
+        "enum" : [ "PENDING", "ACCEPTED", "DECLINED" ]
+      },
+      "PairRequestStatusQuery" : {
+        "type" : "object",
+        "properties" : {
+          "requesterStationUid" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "targetStationUid" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "issuedAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "nonce" : {
+            "type" : "string"
+          },
+          "stationSignature" : {
+            "type" : "string"
+          },
+          "instanceSignature" : {
+            "type" : "string"
+          }
+        }
       },
       "ParseResult" : {
         "type" : "object",
@@ -63200,6 +63765,25 @@
           }
         },
         "required" : [ "eventId", "remoteMemberId", "eventDate", "status", "partnerId" ]
+      },
+      "RemotePairRequestResponse" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "stationName" : {
+            "type" : "string"
+          },
+          "instanceHost" : {
+            "type" : "string"
+          },
+          "createdAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          }
+        },
+        "required" : [ "id", "stationName", "instanceHost", "createdAt" ]
       },
       "RemotePlaces" : {
         "type" : "object",
@@ -67546,7 +68130,7 @@
       },
       "StorageCategory" : {
         "type" : "string",
-        "enum" : [ "MEDIA_FILES", "INSTANCE_MEDIA_FILES", "MEDIA_IMAGES", "KB_FILES", "MEMBER_DOCUMENTS", "MOVEMENT_DOCUMENTS", "BOARD_ATTACHMENTS", "IMAGE_AVATAR", "IMAGE_LOST_AND_FOUND", "IMAGE_LOGO_FRAGMENT", "IMAGE_STATION_LOGO", "IMAGE_QUIZ_QUESTION", "IMAGE_KB_ICON", "IMAGE_KB_IMAGE", "IMAGE_KB_FILE_PICTURE", "DOCUMENT", "DISCOVERY_KEY", "MAP_TILE_CACHE", "DEMO_AVATAR" ]
+        "enum" : [ "MEDIA_FILES", "INSTANCE_MEDIA_FILES", "MEDIA_IMAGES", "KB_FILES", "MEMBER_DOCUMENTS", "MOVEMENT_DOCUMENTS", "BOARD_ATTACHMENTS", "IMAGE_AVATAR", "IMAGE_LOST_AND_FOUND", "IMAGE_LOGO_FRAGMENT", "IMAGE_STATION_LOGO", "IMAGE_QUIZ_QUESTION", "IMAGE_KB_ICON", "IMAGE_KB_IMAGE", "IMAGE_KB_FILE_PICTURE", "DOCUMENT", "DISCOVERY_KEY", "MAP_TILE_CACHE", "DEMO_AVATAR", "IMAGE_DISCOVERY_LOGO" ]
       },
       "StorageQuotaPreset" : {
         "type" : "object",

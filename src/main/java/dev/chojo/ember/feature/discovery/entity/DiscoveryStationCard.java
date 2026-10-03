@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.discovery.entity;
 
+import dev.chojo.ember.feature.station.entity.StationAddresses;
 import dev.chojo.ember.util.Json;
 import org.jspecify.annotations.Nullable;
 import tools.jackson.databind.JsonNode;
@@ -21,16 +22,31 @@ import java.util.List;
  *
  * <p>{@code publicSlug} is the readable address of the station's public page. A peer that predates it
  * sends nothing, and a reader then addresses the page by {@code stationUid}, which the page accepts too.
+ *
+ * <p>{@code logoUrl} is sent only for a station that has a logo, and {@code contactUrl} only for one
+ * whose public page shows something. A reader takes a missing one as "nothing there"; peers that
+ * predate this send both for every station.
+ *
+ * <p>The last five fields say which parts of the public page a tile may link to and whether the station
+ * takes federation requests. A peer that predates them sends none of them, and a reader takes each
+ * missing one as "no". The addresses of those parts are never taken from the card: a reader builds them
+ * from the instance it fetched the card from.
+ *
+ * @param hasPublicWiki     whether the station shows its public wiki in discovery
+ * @param hasPublicCalendar whether its appointments are public
+ * @param hasPublicBlog     whether its blog has public entries
+ * @param waitingListOpen   whether a public waiting list takes registrations
+ * @param acceptsFederation whether other stations may ask it to federate
  */
 public record DiscoveryStationCard(
         String stationUid,
         String name,
         @Nullable String slogan,
-        String logoUrl,
+        @Nullable String logoUrl,
         @Nullable String country,
         @Nullable String region,
         @Nullable String city,
-        String contactUrl,
+        @Nullable String contactUrl,
         List<String> tags,
         String memberCount,
         Instant publishedAt,
@@ -39,7 +55,12 @@ public record DiscoveryStationCard(
         @Nullable BigDecimal longitude,
         @Nullable String clusterUid,
         @Nullable String clusterName,
-        @Nullable String publicSlug) {
+        @Nullable String publicSlug,
+        boolean hasPublicWiki,
+        boolean hasPublicCalendar,
+        boolean hasPublicBlog,
+        boolean waitingListOpen,
+        boolean acceptsFederation) {
 
     /**
      * A card from a peer that predates the public address, which reads as "addressed by its identifier".
@@ -78,7 +99,12 @@ public record DiscoveryStationCard(
                 longitude,
                 clusterUid,
                 clusterName,
-                null);
+                null,
+                false,
+                false,
+                false,
+                false,
+                false);
     }
 
     /**
@@ -119,19 +145,28 @@ public record DiscoveryStationCard(
                 longitude,
                 null,
                 null,
-                null);
+                null,
+                false,
+                false,
+                false,
+                false,
+                false);
     }
 
     /**
      * The address of the station's public page: its readable name where it has one, its identifier otherwise.
      */
     public String publicAddress() {
-        return publicSlug != null && !publicSlug.isBlank() ? publicSlug : stationUid;
+        return StationAddresses.pageAddress(publicSlug, stationUid);
     }
 
+    /**
+     * Reads a stored card. Leniently, since a card stored before the public offers carries none of
+     * them, and each then reads as "no".
+     */
     public static DiscoveryStationCard parse(String json) {
         try {
-            return Json.MAPPER.readValue(json, DiscoveryStationCard.class);
+            return Json.LENIENT.readValue(json, DiscoveryStationCard.class);
         } catch (Exception e) {
             throw new RuntimeException("Failed to parse DiscoveryStationCard", e);
         }

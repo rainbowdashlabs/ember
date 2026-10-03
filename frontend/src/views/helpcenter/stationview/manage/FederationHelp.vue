@@ -127,6 +127,12 @@ const dummyPausedExport = ref(false)
       <p>{{ t('helpCenter.federation.acrossInstancesText3') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.federation.requestsTitle')">
+      <p>{{ t('helpCenter.federation.requestsText') }}</p>
+      <p>{{ t('helpCenter.federation.requestsText2') }}</p>
+      <p>{{ t('helpCenter.federation.requestsText3') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.federation.capabilitiesTitle')">
       <p>{{ t('helpCenter.federation.capabilitiesText') }}</p>
       <p>{{ t('helpCenter.federation.capabilitiesText2') }}</p>

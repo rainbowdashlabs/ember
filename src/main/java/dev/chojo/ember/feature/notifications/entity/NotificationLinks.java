@@ -207,4 +207,14 @@ public final class NotificationLinks {
     public static NotificationLink commentAlone(NotificationLink link) {
         return new NotificationLink(link.route(), Map.of(), link.query());
     }
+
+    /**
+     * The federation page of the station told, where its partners and its requests to federate are
+     * listed.
+     *
+     * @return the link its notifications carry
+     */
+    public static NotificationLink federation() {
+        return new NotificationLink("station-federation", Map.of());
+    }
 }

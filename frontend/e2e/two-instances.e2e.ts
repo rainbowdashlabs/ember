@@ -15,9 +15,9 @@ import {
     stationManagerOf,
     test,
 } from './fixtures/peer'
-import {proveFreshly} from './fixtures/auth'
+import {apiHeaders, proveFreshly} from './fixtures/auth'
 import {unique} from './fixtures/unique'
-import type {APIRequestContext} from '@playwright/test'
+import {request, type APIRequestContext, type Page} from '@playwright/test'
 import {must} from './fixtures/must'
 
 /** What a station says about a partner. Only the parts a story here reads. */
@@ -189,8 +189,9 @@ test.describe('Two instances', () => {
      * A station the second instance publishes shows on the first instance's discovery page.
      *
      * <p>The first instance learns of the second as a peer, fetches its published stations into its
-     * own cache and lists them from there, marked with the instance they belong to and linked to
-     * their page on it. A station made on the second instance is listed publicly from the start,
+     * own cache and lists them from there, marked with the instance they belong to. A new station
+     * shows nothing public yet, so its tile offers no link to a page that would lead nowhere.
+     * A station made on the second instance is listed publicly from the start,
      * which is what puts it on the card the second instance publishes. It is made for the story
      * because the seeded stations of the two share their identities, and a card naming a station of
      * the first instance is one the first instance already lists as its own.
@@ -215,18 +216,23 @@ test.describe('Two instances', () => {
         try {
             const listed = await visitor.get('/api/v1/public/discovery')
             expect(listed.ok()).toBe(true)
-            const entries: {stationUid: string; instanceHost: string | null; publicPageUrl: string | null}[] =
+            const entries: {
+                stationUid: string
+                instanceHost: string | null
+                instanceUrl: string | null
+                publicPageUrl: string | null
+            }[] =
                 await listed.json()
             const entry = must(entries.find(e => e.stationUid === uid), 'the station of the other instance')
             const host = new URL(peerInternalUrl()).hostname
             expect(entry.instanceHost).toBe(host)
-            expect(entry.publicPageUrl?.startsWith(`${peerInternalUrl()}/public/station/`)).toBe(true)
+            expect(entry.instanceUrl).toBe(peerInternalUrl())
+            expect(entry.publicPageUrl).toBeNull()
 
             await page.goto(`/discovery?q=${encodeURIComponent(name)}`)
             await expect(page.getByText(name, {exact: true})).toBeVisible()
-            await expect(page.getByText(`Auf der Instanz ${host}`)).toBeVisible()
-            await expect(page.getByRole('link', {name: `Zur Wache ${name} auf ${host}`}))
-                .toHaveAttribute('href', must(entry.publicPageUrl, 'the link to the station'))
+            await expect(page.getByText(`Instanz: ${host}`)).toBeVisible()
+            await expect(page.getByRole('link', {name: `Zur Wache ${name} auf ${host}`})).toHaveCount(0)
         } finally {
             await visitor.dispose()
         }
@@ -398,6 +404,154 @@ test.describe('Two instances', () => {
             expect(again.ok(), 'and the one place it was given is spent exactly once').toBe(false)
         } finally {
             await owner.dispose()
+        }
+    })
+})
+
+/** A station the second instance made for a story, with its manager signed in there. */
+interface PeerStation {
+    uid: string
+    name: string
+    api: APIRequestContext
+}
+
+/**
+ * A fresh station of the second instance, run by a seeded manager of that instance.
+ *
+ * Fresh because the seeded stations of the two instances share their identities, and a station
+ * asked to federate with one of those would be asked to federate with itself.
+ */
+async function stationOnPeer(peerAdminApi: APIRequestContext, prefix: string): Promise<PeerStation> {
+    const name = unique(prefix)
+    const manager = await stationManagerOf(peerBaseUrl())
+    const created = await peerAdminApi.post('/api/v1/stations', {data: {name, managerEmail: manager.email}})
+    expect(created.status()).toBe(201)
+    const {id: uid} = await created.json()
+    const api = await instanceRequestAs(peerBaseUrl(), {email: manager.email, stationId: uid})
+    return {uid, name, api}
+}
+
+/**
+ * The first instance takes the second as a discovery peer and fetches what it publishes.
+ *
+ * Adding the peer pings it, and the ping is what introduces the first instance to the second: a
+ * request to federate is only taken from an instance the receiver knows from discovery.
+ */
+async function knowEachOther(homeAdminApi: APIRequestContext): Promise<void> {
+    await proveFreshly(homeAdminApi)
+    const added = await homeAdminApi.post('/api/v1/admin/discovery/peers', {data: {baseUrl: peerInternalUrl()}})
+    expect(added.ok(), await added.text()).toBe(true)
+    const fetched = await homeAdminApi.post('/api/v1/admin/discovery/discover-now')
+    expect(fetched.ok(), await fetched.text()).toBe(true)
+}
+
+/** The first instance's backend, asked as whoever the page is signed in as and for the station it chose. */
+async function asThePage(page: Page): Promise<APIRequestContext> {
+    return request.newContext({
+        baseURL: homeBaseUrl(),
+        storageState: await page.context().storageState(),
+        extraHTTPHeaders: await apiHeaders(page),
+    })
+}
+
+/** Whether the signed-in member of this context was told something of the given kind. */
+async function wasTold(api: APIRequestContext, type: string): Promise<boolean> {
+    const response = await api.get('/api/v1/notifications')
+    expect(response.ok(), await response.text()).toBe(true)
+    return ((await response.json()) as {type: string}[]).some(entry => entry.type === type)
+}
+
+/**
+ * Asking a station of another instance to federate, the way a station of the same instance is asked.
+ *
+ * <p>The request goes from the first instance to the second, where the asked station's managers are
+ * told and answer. The answer cannot be pushed back here: the second instance knows the first only
+ * by the address the browser uses, which no container can reach. The first instance asks for it
+ * instead when its federation page lists what it sent, which is the same way a real instance learns
+ * an answer whose push did not arrive.
+ */
+test.describe('Federation requests between instances', () => {
+    test('a station asks a station of the other instance from its tile and both become partners', async ({
+        peerAdminApi,
+        homeAdminApi,
+        managerPage: page,
+    }) => {
+        const asked = await stationOnPeer(peerAdminApi, 'E2E-Anfragewache')
+        try {
+            await knowEachOther(homeAdminApi)
+
+            await page.goto(`/discovery?q=${encodeURIComponent(asked.name)}`)
+            await expect(page.getByText(asked.name, {exact: true}).first()).toBeVisible()
+            await page.getByRole('button', {name: 'Verbinden', exact: true}).click()
+            await expect(page.getByText('Föderationsanfrage gesendet!')).toBeVisible()
+            const homeManagerApi = await asThePage(page)
+
+            expect(await wasTold(asked.api, 'FEDERATION_REQUEST_RECEIVED'), 'the asked station is told').toBe(true)
+            const waiting = await asked.api.get('/api/v1/federation/remote-requests')
+            expect(waiting.ok(), await waiting.text()).toBe(true)
+            const requests: {id: number; instanceHost: string}[] = await waiting.json()
+            expect(requests).toHaveLength(1)
+            const request = must(requests[0], 'the request waiting at the asked station')
+            expect(request.instanceHost).toBe(new URL(homePublishedUrl()).host)
+
+            await proveFreshly(asked.api)
+            const accepted = await asked.api.post(`/api/v1/federation/remote-requests/${request.id}/accept`)
+            expect(accepted.ok(), await accepted.text()).toBe(true)
+
+            await expect.poll(async () => {
+                const outgoing = await homeManagerApi.get('/api/v1/federation/outgoing-requests')
+                expect(outgoing.ok(), await outgoing.text()).toBe(true)
+                const stillSent: {stationName: string}[] = await outgoing.json()
+                return stillSent.map(entry => entry.stationName)
+            }, {message: 'the answer is fetched in the background once the list is read'}).not.toContain(asked.name)
+
+            const here = await partnerWith(homeManagerApi, asked.uid)
+            expect(here.status).toBe('ACTIVE')
+            expect(here.remoteHost).toBe(peerInternalUrl())
+            const there = await partnersOf(asked.api)
+            expect(there).toHaveLength(1)
+            const theirs = must(there[0], 'the partner the asked station now holds')
+            expect(theirs.status).toBe('ACTIVE')
+            expect(theirs.remoteHost).toBe(homePublishedUrl())
+
+            expect(await wasTold(homeManagerApi, 'FEDERATION_REQUEST_ACCEPTED'), 'the asking station is told')
+                .toBe(true)
+            await homeManagerApi.dispose()
+        } finally {
+            await asked.api.dispose()
+        }
+    })
+
+    test('a pairing code from the public page asks a station of the other instance', async ({
+        peerAdminApi,
+        homeAdminApi,
+        managerPage: page,
+    }) => {
+        const asked = await stationOnPeer(peerAdminApi, 'E2E-Codewache')
+        try {
+            await knowEachOther(homeAdminApi)
+            await page.goto(`/discovery?q=${encodeURIComponent(asked.name)}`)
+            await expect(page.getByText(asked.name, {exact: true}).first()).toBeVisible()
+            await page.getByRole('button', {name: 'Code anfordern'}).click()
+            const shownCode = page.locator('code').filter({hasText: 'ember-'})
+            await expect(shownCode).toBeVisible()
+            const inviteCode = must(await shownCode.textContent(), 'the pairing code the page shows').trim()
+
+            await page.goto('/station/federate')
+            await page.getByRole('button', {name: 'Partner hinzufügen'}).click()
+            await page.getByPlaceholder('Einladungscode einfügen...').fill(inviteCode)
+            await page.getByRole('button', {name: 'Verbinden', exact: true}).click()
+
+            await expect(page.getByText('Föderationsanfrage gesendet!')).toBeVisible()
+            const sentRow = page.locator('main').getByText(asked.name, {exact: true})
+            await expect(sentRow).toBeVisible()
+            await expect(page.locator('main').getByText('Wartet auf Antwort').first()).toBeVisible()
+
+            const waiting = await asked.api.get('/api/v1/federation/remote-requests')
+            expect(waiting.ok(), await waiting.text()).toBe(true)
+            expect(await waiting.json()).toHaveLength(1)
+        } finally {
+            await asked.api.dispose()
         }
     })
 })

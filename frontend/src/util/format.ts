@@ -379,3 +379,15 @@ export function formatSize(bytes: number): string {
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
     return `${(bytes / 1024 / 1024).toFixed(1)} MB`
 }
+
+/** The parts of a place, as far as they are known. */
+export interface Place {
+    addressLine?: string | null
+    city?: string | null
+    country?: string | null
+}
+
+/** A place as one line, from the parts it has: `Hauptstraße 1, Musterstadt, Deutschland`. */
+export function placeLine(place: Place): string {
+    return [place.addressLine, place.city, place.country].filter(Boolean).join(', ')
+}

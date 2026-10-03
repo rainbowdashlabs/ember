@@ -7,7 +7,11 @@ package dev.chojo.ember.feature.discovery.service;
 
 import dev.chojo.ember.conf.Conf;
 import dev.chojo.ember.feature.discovery.entity.DiscoveryStationCard;
+import dev.chojo.ember.feature.station.TestPublicOffers;
 import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
+import dev.chojo.ember.feature.station.entity.PublicOffer;
+import dev.chojo.ember.feature.station.service.PublicStationInfoService;
+import dev.chojo.ember.feature.station.service.StationLogoService;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -21,6 +25,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
 
 /**
  * What a discovery card says about the cluster a station answers to.
@@ -35,7 +40,15 @@ class DiscoveryClusterGroupingTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        service = new DiscoveryStationProjectionService(stationRepo, clusterRepo, new Conf(configDir));
+        var publicInfo = mock(PublicStationInfoService.class);
+        TestPublicOffers.stub(publicInfo, new PublicOffer(false, false, false, false, false));
+        service = new DiscoveryStationProjectionService(
+                stationRepo,
+                clusterRepo,
+                stationMemberRepo,
+                new Conf(configDir),
+                mock(StationLogoService.class),
+                publicInfo);
     }
 
     @Test

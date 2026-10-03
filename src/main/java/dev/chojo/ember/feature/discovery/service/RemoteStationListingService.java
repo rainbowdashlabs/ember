@@ -8,8 +8,11 @@ package dev.chojo.ember.feature.discovery.service;
 import dev.chojo.ember.feature.discovery.entity.DiscoveryStationCard;
 import dev.chojo.ember.feature.discovery.entity.PublishedRemoteStation;
 import dev.chojo.ember.feature.discovery.repository.DiscoveryStationCacheRepository;
+import dev.chojo.ember.feature.station.entity.StationAddresses;
+import dev.chojo.ember.util.WebOrigins;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -32,8 +35,6 @@ import java.util.UUID;
  */
 @Singleton
 public class RemoteStationListingService {
-    private static final String PUBLIC_STATION_PATH = "/public/station/";
-
     private final DiscoveryStationCacheRepository cacheRepository;
     private final DiscoveryPingService pingService;
 
@@ -57,14 +58,47 @@ public class RemoteStationListingService {
         return stations;
     }
 
+    /**
+     * The card another trusted instance publishes for the given station, with the instance it was
+     * fetched from: the same cards {@link #list()} shows, so a station a visitor can see is one a
+     * request or a pairing code can be made for.
+     *
+     * @param stationUid the station
+     * @return the published card, or empty when no trusted instance publishes it
+     */
+    public Optional<PublishedRemoteStation> findPublished(UUID stationUid) {
+        var self = pingService.selfIdentity();
+        return cacheRepository.findPublishedElsewhere(self.publicKey(), self.baseUrl(), stationUid).stream()
+                .filter(published -> webAddress(published.instanceBaseUrl()).isPresent())
+                .findFirst();
+    }
+
     private static Optional<RemoteStation> toRemoteStation(PublishedRemoteStation published) {
         var card = published.card();
         var uid = parseUid(card.stationUid());
         var instance = webAddress(published.instanceBaseUrl());
         if (uid.isEmpty() || instance.isEmpty()) return Optional.empty();
-        var base = stripTrailingSlash(published.instanceBaseUrl());
+        String logoUrl = published.logoStored()
+                ? RemoteStationLogoService.publicAddress(published.instancePublicKey(), uid.get())
+                : null;
         return Optional.of(new RemoteStation(
-                uid.get(), card, instance.get().getHost(), base + PUBLIC_STATION_PATH + pathSegment(card)));
+                uid.get(),
+                card,
+                instance.get().getHost(),
+                WebOrigins.stripTrailingSlash(published.instanceBaseUrl()),
+                publicPageUrl(published),
+                logoUrl));
+    }
+
+    /**
+     * The station's public page on its instance, where the card says it has one. The address is built
+     * from the instance as it is known here and never taken from the card itself.
+     */
+    private static @Nullable String publicPageUrl(PublishedRemoteStation published) {
+        var named = published.card().contactUrl();
+        if (named == null || named.isBlank()) return null;
+        return StationAddresses.publicPageAt(
+                WebOrigins.stripTrailingSlash(published.instanceBaseUrl()), pathSegment(published.card()));
     }
 
     private static Optional<UUID> parseUid(String uid) {
@@ -92,18 +126,24 @@ public class RemoteStationListingService {
         return URLEncoder.encode(card.publicAddress(), StandardCharsets.UTF_8).replace("+", "%20");
     }
 
-    private static String stripTrailingSlash(String url) {
-        return url.endsWith("/") ? url.substring(0, url.length() - 1) : url;
-    }
-
     /**
      * One station of another instance.
      *
      * @param stationUid     the station's identifier
      * @param card           what the instance publishes about it
      * @param instanceHost   the host name of the instance it belongs to
-     * @param publicPageUrl  the station's public page on that instance
+     * @param instanceUrl    the address that instance is known by here, with its port and without a
+     *                       trailing slash
+     * @param publicPageUrl  the station's public page on that instance, or {@code null} where it has
+     *                       none to show
+     * @param logoUrl        where this instance serves its copy of the station's logo, or {@code null}
+     *                       where it keeps none
      */
     public record RemoteStation(
-            UUID stationUid, DiscoveryStationCard card, String instanceHost, String publicPageUrl) {}
+            UUID stationUid,
+            DiscoveryStationCard card,
+            String instanceHost,
+            String instanceUrl,
+            @Nullable String publicPageUrl,
+            @Nullable String logoUrl) {}
 }

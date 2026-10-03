@@ -9,8 +9,11 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.RemovalCause;
 import dev.chojo.ember.util.Json;
+import dev.chojo.ember.util.WebOrigins;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import tools.jackson.databind.JacksonModule;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -21,11 +24,13 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.net.http.HttpTimeoutException;
 import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import javax.net.ssl.SNIHostName;
 import javax.net.ssl.SSLContext;
@@ -64,6 +69,7 @@ import javax.net.ssl.SSLContext;
  */
 @Singleton
 public class OutboundHttp {
+    private static final Logger log = LoggerFactory.getLogger(OutboundHttp.class);
     private static final String RESTRICTED_HEADERS = "jdk.httpclient.allowRestrictedHeaders";
     private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(10);
     private static final int DEFAULT_HTTPS_PORT = 443;
@@ -175,8 +181,94 @@ public class OutboundHttp {
      * @return the joined URL
      */
     public static String join(String baseUrl, String path) {
-        String base = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
-        return base + path;
+        return WebOrigins.stripTrailingSlash(baseUrl) + path;
+    }
+
+    /**
+     * Posts a JSON body that carries no request signature and reports how the call ended: what the
+     * other side answered, or why nothing could be had. Every failure is told apart from an answer,
+     * so a caller whose reader is waiting can say whether the address was refused, the other side
+     * took too long, or it could not be reached at all.
+     *
+     * @param url     where the body goes
+     * @param json    the body, already written as JSON
+     * @param timeout how long the answer may take
+     * @param headers further headers the call carries, such as a signature over the body
+     * @return the answer, or the reason there is none
+     */
+    public JsonPost postJson(String url, String json, Duration timeout, Map<String, String> headers) {
+        try {
+            var request = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .timeout(timeout)
+                    .header("Content-Type", "application/json");
+            headers.forEach(request::header);
+            var response = send(
+                    request.POST(HttpRequest.BodyPublishers.ofString(json)).build(),
+                    HttpResponse.BodyHandlers.ofString());
+            return new JsonPost.Answered(response.statusCode(), response.body());
+        } catch (RefusedDestinationException e) {
+            log.warn("POST to {} refused: {}", url, e.getMessage());
+            return new JsonPost.Failed(PostFailure.ADDRESS_REFUSED);
+        } catch (HttpTimeoutException e) {
+            log.debug("POST to {} timed out", url);
+            return new JsonPost.Failed(PostFailure.TIMED_OUT);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return new JsonPost.Failed(PostFailure.UNREACHABLE);
+        } catch (IOException | RuntimeException e) {
+            log.debug("POST to {} failed: {}", url, e.getMessage());
+            return new JsonPost.Failed(PostFailure.UNREACHABLE);
+        }
+    }
+
+    /**
+     * Posts a JSON body with no further headers; see {@link #postJson(String, String, Duration, Map)}.
+     *
+     * @param url     where the body goes
+     * @param json    the body, already written as JSON
+     * @param timeout how long the answer may take
+     * @return the answer, or the reason there is none
+     */
+    public JsonPost postJson(String url, String json, Duration timeout) {
+        return postJson(url, json, timeout, Map.of());
+    }
+
+    /** How an unsigned JSON POST ended. */
+    public sealed interface JsonPost {
+        /**
+         * The other side answered.
+         *
+         * @param status what it answered with
+         * @param body   what it said
+         */
+        record Answered(int status, String body) implements JsonPost {
+            /**
+             * Whether the answer is a success.
+             *
+             * @return true for a 2xx status
+             */
+            public boolean successful() {
+                return status >= 200 && status < 300;
+            }
+        }
+
+        /**
+         * No answer could be had.
+         *
+         * @param failure why
+         */
+        record Failed(PostFailure failure) implements JsonPost {}
+    }
+
+    /** Why a POST had no answer. */
+    public enum PostFailure {
+        /** The address is not one this instance calls. */
+        ADDRESS_REFUSED,
+        /** The other side did not answer in time. */
+        TIMED_OUT,
+        /** The other side could not be reached. */
+        UNREACHABLE
     }
 
     /**

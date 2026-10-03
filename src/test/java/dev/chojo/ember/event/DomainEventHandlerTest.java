@@ -18,6 +18,8 @@ import dev.chojo.ember.event.events.EventCreated;
 import dev.chojo.ember.event.events.EventDeleted;
 import dev.chojo.ember.event.events.EventRegistrationStatusChanged;
 import dev.chojo.ember.event.events.EventsBatchCreated;
+import dev.chojo.ember.event.events.FederationRequestAnswered;
+import dev.chojo.ember.event.events.FederationRequestReceived;
 import dev.chojo.ember.event.events.FormDeleted;
 import dev.chojo.ember.event.events.FormPublished;
 import dev.chojo.ember.event.events.LendingMessageSent;
@@ -56,6 +58,8 @@ import dev.chojo.ember.feature.events.handler.RegistrationDeadlineExpiredHandler
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.events.repository.EventRepository;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
+import dev.chojo.ember.feature.federation.handler.FederationRequestAnsweredHandler;
+import dev.chojo.ember.feature.federation.handler.FederationRequestReceivedHandler;
 import dev.chojo.ember.feature.federation.handler.LendingMessageSentHandler;
 import dev.chojo.ember.feature.federation.handler.LendingRequestedHandler;
 import dev.chojo.ember.feature.federation.handler.LendingStatusChangedHandler;
@@ -1230,6 +1234,37 @@ class DomainEventHandlerTest {
         handler.handle(new MembersAddedToGroup(STATION_ID, "Anfänger", memberIds, null));
 
         verifyTold(StationAudience.members(memberIds), NotificationType.MEMBER_ADDED_TO_GROUP, Delivery.EVERY_TIME);
+    }
+
+    @Test
+    void aRequestToFederateTellsWhoeverManagesTheAskedStationsFederation() {
+        var handler = new FederationRequestReceivedHandler(notifier);
+        assertEquals(FederationRequestReceived.class, handler.eventType());
+
+        handler.handle(new FederationRequestReceived(STATION_ID, "Feuerwehr Fern"));
+
+        verifyTold(
+                StationAudience.holders(STATION_ID, StationPermission.STATION_FEDERATION),
+                NotificationType.FEDERATION_REQUEST_RECEIVED,
+                Delivery.EVERY_TIME);
+    }
+
+    @Test
+    void anAnswerToARequestToFederateTellsTheAskingStationWhichAnswerItWas() {
+        var handler = new FederationRequestAnsweredHandler(notifier);
+        assertEquals(FederationRequestAnswered.class, handler.eventType());
+
+        handler.handle(new FederationRequestAnswered(STATION_ID, "Feuerwehr Fern", true));
+        verifyTold(
+                StationAudience.holders(STATION_ID, StationPermission.STATION_FEDERATION),
+                NotificationType.FEDERATION_REQUEST_ACCEPTED,
+                Delivery.EVERY_TIME);
+
+        handler.handle(new FederationRequestAnswered(STATION_ID, "Feuerwehr Fern", false));
+        verifyTold(
+                StationAudience.holders(STATION_ID, StationPermission.STATION_FEDERATION),
+                NotificationType.FEDERATION_REQUEST_DECLINED,
+                Delivery.EVERY_TIME);
     }
 
     @Test

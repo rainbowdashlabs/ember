@@ -24585,6 +24585,15 @@ export interface paths {
                         "application/json": components["schemas"]["FederationPartner"];
                     };
                 };
+                /** @description Accepted */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OutgoingPairRequestResponse"];
+                    };
+                };
                 /** @description Bad Request */
                 400: {
                     headers: {
@@ -24668,6 +24677,42 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/federation/outgoing-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the requests this station sent to stations of other instances */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OutgoingPairRequestResponse"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -24898,6 +24943,118 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["FederationPartner"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/federation/remote-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the requests from stations of other instances waiting for this station */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RemotePairRequestResponse"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/federation/remote-requests/{id}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Accept a request from a station of another instance */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FederationPartner"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/federation/remote-requests/{id}/decline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decline a request from a station of another instance */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MessageResponse"];
                     };
                 };
             };
@@ -42503,6 +42660,275 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/public/discovery/pair-request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Receive a signed request to federate from a station of another instance */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["PairRequestMessage"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PairRequestReceipt"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PairRequestRefusal"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PairRequestRefusal"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PairRequestRefusal"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PairRequestRefusal"];
+                    };
+                };
+                /** @description Too Many Requests */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PairRequestRefusal"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/discovery/pair-request/answer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Receive the signed answer to a request to federate */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["PairRequestAnswer"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MessageResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PairRequestRefusal"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PairRequestRefusal"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PairRequestRefusal"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/discovery/pair-request/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Answer the asking instance where its request to federate stands */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["PairRequestStatusQuery"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PairRequestAnswer"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PairRequestRefusal"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PairRequestRefusal"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PairRequestRefusal"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/discovery/remote/{instance}/{stationUid}/logo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get the copy of the logo of a station of another instance */
+        get: {
+            parameters: {
+                query?: {
+                    size?: number;
+                };
+                header?: never;
+                path: {
+                    instance: string;
+                    stationUid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "image/*": string;
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/public/discovery/stations": {
         parameters: {
             query?: never;
@@ -56533,12 +56959,12 @@ export interface components {
         DiscoveredStationResponse: {
             addressLine: string | null;
             city: string | null;
-            contactUrl: string;
+            contactUrl: string | null;
             country: string | null;
             fetchedAt: components["schemas"]["Instant"];
             instancePublicKey: string;
             latitude: number | null;
-            logoUrl: string;
+            logoUrl: string | null;
             longitude: number | null;
             memberCount: string;
             name: string;
@@ -56561,7 +56987,11 @@ export interface components {
             peers?: components["schemas"]["PeerAnnouncement"][];
         };
         DiscoveryEntry: {
+            acceptsFederation: boolean;
+            addressLine: string | null;
             alreadyFederated: boolean;
+            canInvite: boolean;
+            canRequest: boolean;
             city: string | null;
             clusterName: string | null;
             /** Format: uuid */
@@ -56569,17 +56999,21 @@ export interface components {
             country: string | null;
             description: string | null;
             hasLogo: boolean;
+            hasPublicBlog: boolean;
             hasPublicCalendar: boolean;
-            hasPublicKb: boolean;
+            hasPublicWiki: boolean;
             instanceHost: string | null;
+            instanceUrl: string | null;
             isOwnStation: boolean;
             latitude: number | null;
+            logoUrl: string | null;
             longitude: number | null;
             name: string;
             publicPageUrl: string | null;
             publicSlug: string | null;
             /** Format: uuid */
             stationUid: string;
+            waitingListOpen: boolean;
         };
         DiscoveryIdentity: {
             baseUrl: string;
@@ -56618,14 +57052,18 @@ export interface components {
             pingIntervalMinutes: number;
         };
         DiscoveryStationCard: {
+            acceptsFederation: boolean;
             addressLine: string | null;
             city: string | null;
             clusterName: string | null;
             clusterUid: string | null;
-            contactUrl: string;
+            contactUrl: string | null;
             country: string | null;
+            hasPublicBlog: boolean;
+            hasPublicCalendar: boolean;
+            hasPublicWiki: boolean;
             latitude: number | null;
-            logoUrl: string;
+            logoUrl: string | null;
             longitude: number | null;
             memberCount: string;
             name: string;
@@ -56635,6 +57073,7 @@ export interface components {
             slogan: string | null;
             stationUid: string;
             tags: string[];
+            waitingListOpen: boolean;
         };
         DiscoveryStationsResponse: {
             instance: components["schemas"]["DiscoveryIdentity"];
@@ -60400,7 +60839,7 @@ export interface components {
             feed: boolean;
         };
         /** @enum {string} */
-        NotificationType: "NEW_NEWS" | "NEWS_COMMENT" | "COMMENT_MENTION" | "EVENT_REGISTRATION_STATUS" | "MOVEMENT_ADVANCED" | "MOVEMENT_RAISED" | "MOVEMENT_DECLINED" | "MOVEMENT_CANCELLED" | "NEW_EVENT" | "NEW_EVENTS_BATCH" | "MEMBER_ADDED_TO_GROUP" | "PROFILE_FIELD_CHANGED" | "PROCUREMENT_REQUESTED" | "PROCUREMENT_FULFILLED" | "NEW_FORM" | "LOST_AND_FOUND_NEW" | "LOST_AND_FOUND_CLAIMED" | "WAITLIST_NEW_ENTRY" | "LENDING_NEW_REQUEST" | "LENDING_STATUS_CHANGE" | "LENDING_NEW_MESSAGE" | "BOARD_TICKET_UPDATE" | "REGISTRATION_DEADLINE_EXPIRED" | "EVENT_CANCELLED" | "EVENT_REMINDER" | "REGISTRATION_CLOSING" | "REGISTRATION_ANSWER_MISSING" | "EVENT_DATE_DROPPED" | "EVENT_MOVED" | "EVENT_DATE_RESTORED" | "PROCEDURE_ASSIGNED" | "PROCEDURE_RESOLVED" | "PROCEDURE_REOPENED" | "PROCEDURE_ITEM_CHECKED" | "SELF_CHECK_ASSIGNED" | "SELF_CHECK_SUBMITTED" | "SELF_CHECK_ROW_REFUSED" | "WAITLIST_PUBLIC_REGISTRATION" | "WAITLIST_INVITATION_ANSWERED" | "STORAGE_WARNING" | "MAILBOX_SUSPENDED" | "MAIL_IMPORT_UNBOUND" | "CLUSTER_APPLICATION_SUBMITTED" | "CLUSTER_APPLICATION_APPROVED" | "CLUSTER_APPLICATION_DENIED" | "CLUSTER_APPLICATION_WITHDRAWN" | "CLUSTER_STATION_RELEASED" | "CLUSTER_MODULE_DENIED" | "CLUSTER_ITEM_ISSUED" | "CLUSTER_ITEM_LOST" | "CLUSTER_QUOTA_CHANGED" | "CLUSTER_MEMBER_ROLE_CHANGED" | "CLUSTER_FIELD_VALUE_CHANGED" | "EXPIRY_REMINDER";
+        NotificationType: "NEW_NEWS" | "NEWS_COMMENT" | "COMMENT_MENTION" | "EVENT_REGISTRATION_STATUS" | "MOVEMENT_ADVANCED" | "MOVEMENT_RAISED" | "MOVEMENT_DECLINED" | "MOVEMENT_CANCELLED" | "NEW_EVENT" | "NEW_EVENTS_BATCH" | "MEMBER_ADDED_TO_GROUP" | "PROFILE_FIELD_CHANGED" | "PROCUREMENT_REQUESTED" | "PROCUREMENT_FULFILLED" | "NEW_FORM" | "LOST_AND_FOUND_NEW" | "LOST_AND_FOUND_CLAIMED" | "WAITLIST_NEW_ENTRY" | "LENDING_NEW_REQUEST" | "LENDING_STATUS_CHANGE" | "LENDING_NEW_MESSAGE" | "BOARD_TICKET_UPDATE" | "REGISTRATION_DEADLINE_EXPIRED" | "EVENT_CANCELLED" | "EVENT_REMINDER" | "REGISTRATION_CLOSING" | "REGISTRATION_ANSWER_MISSING" | "EVENT_DATE_DROPPED" | "EVENT_MOVED" | "EVENT_DATE_RESTORED" | "PROCEDURE_ASSIGNED" | "PROCEDURE_RESOLVED" | "PROCEDURE_REOPENED" | "PROCEDURE_ITEM_CHECKED" | "SELF_CHECK_ASSIGNED" | "SELF_CHECK_SUBMITTED" | "SELF_CHECK_ROW_REFUSED" | "WAITLIST_PUBLIC_REGISTRATION" | "WAITLIST_INVITATION_ANSWERED" | "STORAGE_WARNING" | "MAILBOX_SUSPENDED" | "MAIL_IMPORT_UNBOUND" | "CLUSTER_APPLICATION_SUBMITTED" | "CLUSTER_APPLICATION_APPROVED" | "CLUSTER_APPLICATION_DENIED" | "CLUSTER_APPLICATION_WITHDRAWN" | "CLUSTER_STATION_RELEASED" | "CLUSTER_MODULE_DENIED" | "CLUSTER_ITEM_ISSUED" | "CLUSTER_ITEM_LOST" | "CLUSTER_QUOTA_CHANGED" | "CLUSTER_MEMBER_ROLE_CHANGED" | "CLUSTER_FIELD_VALUE_CHANGED" | "EXPIRY_REMINDER" | "FEDERATION_REQUEST_RECEIVED" | "FEDERATION_REQUEST_ACCEPTED" | "FEDERATION_REQUEST_DECLINED";
         NumberConfig: {
             /**
              * @description discriminator enum property added by openapi-typescript
@@ -60467,6 +60906,15 @@ export interface components {
         };
         OrderRequest: {
             needIds?: number[];
+        };
+        OutgoingPairRequestResponse: {
+            answeredAt: components["schemas"]["Instant"] | null;
+            createdAt: components["schemas"]["Instant"];
+            /** Format: int32 */
+            id: number;
+            instanceHost: string;
+            stationName: string;
+            status: components["schemas"]["PairRequestStatus"];
         };
         /** @enum {string} */
         OutputShape: "ROWS" | "SINGLE" | "FLAT";
@@ -60541,11 +60989,66 @@ export interface components {
             left: string;
             right: string;
         };
+        PairRequestAnswer: {
+            baseUrl: string;
+            contract: components["schemas"]["FederationContract"] | null;
+            instanceSignature: string;
+            issuedAt: components["schemas"]["Instant"];
+            nonce: string;
+            publicKey: string | null;
+            /** Format: uuid */
+            requesterStationUid: string;
+            stationName: string;
+            stationSignature: string | null;
+            status: components["schemas"]["PairRequestStatus"];
+            /** Format: uuid */
+            targetStationUid: string;
+        };
+        PairRequestMessage: {
+            contract?: components["schemas"]["FederationContract"];
+            instanceSignature?: string;
+            issuedAt?: components["schemas"]["Instant"];
+            nonce?: string;
+            requesterBaseUrl?: string;
+            requesterInstanceKey?: string;
+            requesterPublicKey?: string;
+            requesterStationName?: string;
+            /** Format: uuid */
+            requesterStationUid?: string;
+            stationSignature?: string;
+            /** Format: uuid */
+            targetStationUid?: string;
+        };
+        /** @enum {string} */
+        PairRequestReason: "INCOMPLETE" | "TOO_LARGE" | "OUT_OF_TIME" | "INSTANCE_UNKNOWN" | "INSTANCE_BLOCKED" | "INSTANCE_SIGNATURE_NOT_GOOD" | "STATION_SIGNATURE_NOT_GOOD" | "ADDRESS_NOT_THE_INSTANCES" | "CONTRACT_MISMATCH" | "TOO_MANY_FROM_INSTANCE" | "TOO_MANY_FOR_STATION" | "STATION_NOT_HERE" | "ALREADY_PARTNERS" | "ALREADY_WAITING" | "DECLINED_RECENTLY" | "STATUS_NOT_HERE" | "ANSWER_NOT_EXPECTED" | "ANSWER_SIGNATURE_NOT_GOOD";
+        PairRequestReceipt: {
+            stationName: string;
+        };
+        PairRequestRefusal: {
+            code: string;
+            error: string;
+            message: string;
+            reason: components["schemas"]["PairRequestReason"];
+            /** Format: int64 */
+            retryAfterSeconds?: number;
+        };
         PairRequestResponse: {
             createdAt: string;
             /** Format: int32 */
             id: number;
             stationName: string;
+        };
+        /** @enum {string} */
+        PairRequestStatus: "PENDING" | "ACCEPTED" | "DECLINED";
+        PairRequestStatusQuery: {
+            instanceSignature?: string;
+            issuedAt?: components["schemas"]["Instant"];
+            nonce?: string;
+            /** Format: uuid */
+            requesterStationUid?: string;
+            stationSignature?: string;
+            /** Format: uuid */
+            targetStationUid?: string;
         };
         ParseResult: {
             headers: string[];
@@ -62022,6 +62525,13 @@ export interface components {
             partnerId: number;
             remoteMemberId: string;
             status: components["schemas"]["RegistrationStatus"];
+        };
+        RemotePairRequestResponse: {
+            createdAt: components["schemas"]["Instant"];
+            /** Format: int32 */
+            id: number;
+            instanceHost: string;
+            stationName: string;
         };
         RemotePlaces: {
             decidesItself: boolean;
@@ -63513,7 +64023,7 @@ export interface components {
         /** @enum {string} */
         StorageBackendType: "LOCAL" | "SMB" | "SFTP" | "S3";
         /** @enum {string} */
-        StorageCategory: "MEDIA_FILES" | "INSTANCE_MEDIA_FILES" | "MEDIA_IMAGES" | "KB_FILES" | "MEMBER_DOCUMENTS" | "MOVEMENT_DOCUMENTS" | "BOARD_ATTACHMENTS" | "IMAGE_AVATAR" | "IMAGE_LOST_AND_FOUND" | "IMAGE_LOGO_FRAGMENT" | "IMAGE_STATION_LOGO" | "IMAGE_QUIZ_QUESTION" | "IMAGE_KB_ICON" | "IMAGE_KB_IMAGE" | "IMAGE_KB_FILE_PICTURE" | "DOCUMENT" | "DISCOVERY_KEY" | "MAP_TILE_CACHE" | "DEMO_AVATAR";
+        StorageCategory: "MEDIA_FILES" | "INSTANCE_MEDIA_FILES" | "MEDIA_IMAGES" | "KB_FILES" | "MEMBER_DOCUMENTS" | "MOVEMENT_DOCUMENTS" | "BOARD_ATTACHMENTS" | "IMAGE_AVATAR" | "IMAGE_LOST_AND_FOUND" | "IMAGE_LOGO_FRAGMENT" | "IMAGE_STATION_LOGO" | "IMAGE_QUIZ_QUESTION" | "IMAGE_KB_ICON" | "IMAGE_KB_IMAGE" | "IMAGE_KB_FILE_PICTURE" | "DOCUMENT" | "DISCOVERY_KEY" | "MAP_TILE_CACHE" | "DEMO_AVATAR" | "IMAGE_DISCOVERY_LOGO";
         StorageQuotaPreset: {
             /** Format: int64 */
             board: number;
@@ -65574,6 +66084,7 @@ export type Option = components['schemas']['Option'];
 export type Ordering = components['schemas']['Ordering'];
 export type OrderingView = components['schemas']['OrderingView'];
 export type OrderRequest = components['schemas']['OrderRequest'];
+export type OutgoingPairRequestResponse = components['schemas']['OutgoingPairRequestResponse'];
 export type OutputShape = components['schemas']['OutputShape'];
 export type OverviewResponse = components['schemas']['OverviewResponse'];
 export type OwnerAboveResponse = components['schemas']['OwnerAboveResponse'];
@@ -65588,7 +66099,14 @@ export type PageUsingForm = components['schemas']['PageUsingForm'];
 export type PageVisibility = components['schemas']['PageVisibility'];
 export type PageVisibilityRequest = components['schemas']['PageVisibilityRequest'];
 export type Pair = components['schemas']['Pair'];
+export type PairRequestAnswer = components['schemas']['PairRequestAnswer'];
+export type PairRequestMessage = components['schemas']['PairRequestMessage'];
+export type PairRequestReason = components['schemas']['PairRequestReason'];
+export type PairRequestReceipt = components['schemas']['PairRequestReceipt'];
+export type PairRequestRefusal = components['schemas']['PairRequestRefusal'];
 export type PairRequestResponse = components['schemas']['PairRequestResponse'];
+export type PairRequestStatus = components['schemas']['PairRequestStatus'];
+export type PairRequestStatusQuery = components['schemas']['PairRequestStatusQuery'];
 export type ParseResult = components['schemas']['ParseResult'];
 export type PartnerEventDetail = components['schemas']['PartnerEventDetail'];
 export type PartnerPlacesView = components['schemas']['PartnerPlacesView'];
@@ -65777,6 +66295,7 @@ export type RemoteBoard = components['schemas']['RemoteBoard'];
 export type RemoteCatalogDetail = components['schemas']['RemoteCatalogDetail'];
 export type RemoteKbFile = components['schemas']['RemoteKbFile'];
 export type RemoteMemberRegistration = components['schemas']['RemoteMemberRegistration'];
+export type RemotePairRequestResponse = components['schemas']['RemotePairRequestResponse'];
 export type RemotePlaces = components['schemas']['RemotePlaces'];
 export type RemoteProtocolDetail = components['schemas']['RemoteProtocolDetail'];
 export type RemovalResponse = components['schemas']['RemovalResponse'];
@@ -66819,6 +67338,9 @@ export const NotificationType = {
     EVENT_REGISTRATION_STATUS: "EVENT_REGISTRATION_STATUS",
     EVENT_REMINDER: "EVENT_REMINDER",
     EXPIRY_REMINDER: "EXPIRY_REMINDER",
+    FEDERATION_REQUEST_ACCEPTED: "FEDERATION_REQUEST_ACCEPTED",
+    FEDERATION_REQUEST_DECLINED: "FEDERATION_REQUEST_DECLINED",
+    FEDERATION_REQUEST_RECEIVED: "FEDERATION_REQUEST_RECEIVED",
     LENDING_NEW_MESSAGE: "LENDING_NEW_MESSAGE",
     LENDING_NEW_REQUEST: "LENDING_NEW_REQUEST",
     LENDING_STATUS_CHANGE: "LENDING_STATUS_CHANGE",
@@ -66883,6 +67405,33 @@ export const PageVisibility = {
     DRAFT: "DRAFT",
     PUBLIC: "PUBLIC",
     UNLISTED: "UNLISTED",
+} as const;
+
+export const PairRequestReason = {
+    ADDRESS_NOT_THE_INSTANCES: "ADDRESS_NOT_THE_INSTANCES",
+    ALREADY_PARTNERS: "ALREADY_PARTNERS",
+    ALREADY_WAITING: "ALREADY_WAITING",
+    ANSWER_NOT_EXPECTED: "ANSWER_NOT_EXPECTED",
+    ANSWER_SIGNATURE_NOT_GOOD: "ANSWER_SIGNATURE_NOT_GOOD",
+    CONTRACT_MISMATCH: "CONTRACT_MISMATCH",
+    DECLINED_RECENTLY: "DECLINED_RECENTLY",
+    INCOMPLETE: "INCOMPLETE",
+    INSTANCE_BLOCKED: "INSTANCE_BLOCKED",
+    INSTANCE_SIGNATURE_NOT_GOOD: "INSTANCE_SIGNATURE_NOT_GOOD",
+    INSTANCE_UNKNOWN: "INSTANCE_UNKNOWN",
+    OUT_OF_TIME: "OUT_OF_TIME",
+    STATION_NOT_HERE: "STATION_NOT_HERE",
+    STATION_SIGNATURE_NOT_GOOD: "STATION_SIGNATURE_NOT_GOOD",
+    STATUS_NOT_HERE: "STATUS_NOT_HERE",
+    TOO_LARGE: "TOO_LARGE",
+    TOO_MANY_FOR_STATION: "TOO_MANY_FOR_STATION",
+    TOO_MANY_FROM_INSTANCE: "TOO_MANY_FROM_INSTANCE",
+} as const;
+
+export const PairRequestStatus = {
+    ACCEPTED: "ACCEPTED",
+    DECLINED: "DECLINED",
+    PENDING: "PENDING",
 } as const;
 
 export const PeerSource = {
@@ -67266,6 +67815,7 @@ export const StorageCategory = {
     DISCOVERY_KEY: "DISCOVERY_KEY",
     DOCUMENT: "DOCUMENT",
     IMAGE_AVATAR: "IMAGE_AVATAR",
+    IMAGE_DISCOVERY_LOGO: "IMAGE_DISCOVERY_LOGO",
     IMAGE_KB_FILE_PICTURE: "IMAGE_KB_FILE_PICTURE",
     IMAGE_KB_ICON: "IMAGE_KB_ICON",
     IMAGE_KB_IMAGE: "IMAGE_KB_IMAGE",

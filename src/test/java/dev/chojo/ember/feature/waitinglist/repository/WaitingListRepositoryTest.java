@@ -25,6 +25,7 @@ import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -53,6 +54,23 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
         var found = waitingListRepo.findById(list.id());
         assertTrue(found.isPresent());
         assertEquals(list.id(), found.get().id());
+    }
+
+    @Test
+    void saysWhichStationsHaveAPublicList() {
+        var quiet = stationRepo.create("Quiet Station " + UUID.randomUUID());
+        waitingListRepo.create(stationId, "Internal", "", null, 180, null, null, 5, false, true, null, null);
+        waitingListRepo.create(quiet.id(), "Internal", "", null, 180, null, null, 5, false, true, null, null);
+        assertTrue(waitingListRepo
+                .withPublicWaitlists(List.of(stationId, quiet.id()))
+                .isEmpty());
+
+        waitingListRepo.create(stationId, "Open", "", null, 180, null, null, 5, true, true, null, null);
+
+        assertEquals(Set.of(stationId), waitingListRepo.withPublicWaitlists(List.of(stationId, quiet.id())));
+        assertTrue(waitingListRepo.hasPublicWaitlists(stationId));
+        assertFalse(waitingListRepo.hasPublicWaitlists(quiet.id()));
+        assertTrue(waitingListRepo.withPublicWaitlists(List.of()).isEmpty());
     }
 
     @Test

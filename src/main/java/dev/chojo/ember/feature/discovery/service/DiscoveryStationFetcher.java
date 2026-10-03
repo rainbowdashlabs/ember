@@ -24,7 +24,8 @@ import java.util.List;
  * refreshes the local cache.
  *
  * <p>Failures bump {@code reachable=false} and decrement reputation. Successful fetches
- * upsert each card and prune entries the peer no longer reports.
+ * upsert each card, prune entries the peer no longer reports together with their logo copies, and
+ * bring the logo copies of the remaining cards up to date through {@link RemoteStationLogoService}.
  */
 @Singleton
 public class DiscoveryStationFetcher {
@@ -36,6 +37,7 @@ public class DiscoveryStationFetcher {
     private final DiscoveryStationCacheRepository cacheRepository;
     private final DiscoveryReputationService reputationService;
     private final DiscoverySettingsService settingsService;
+    private final RemoteStationLogoService logos;
 
     @Inject
     public DiscoveryStationFetcher(
@@ -43,12 +45,14 @@ public class DiscoveryStationFetcher {
             DiscoveryPeerRepository peerRepository,
             DiscoveryStationCacheRepository cacheRepository,
             DiscoveryReputationService reputationService,
-            DiscoverySettingsService settingsService) {
+            DiscoverySettingsService settingsService,
+            RemoteStationLogoService logos) {
         this.httpClient = httpClient;
         this.peerRepository = peerRepository;
         this.cacheRepository = cacheRepository;
         this.reputationService = reputationService;
         this.settingsService = settingsService;
+        this.logos = logos;
     }
 
     /**
@@ -76,9 +80,12 @@ public class DiscoveryStationFetcher {
             cacheRepository.upsert(peer.publicKey(), card, now);
             presentUids.add(card.stationUid());
         }
-        cacheRepository.deleteMissing(peer.publicKey(), presentUids);
+        for (var dropped : cacheRepository.deleteMissing(peer.publicKey(), presentUids)) {
+            logos.forget(peer.publicKey(), dropped);
+        }
         peerRepository.markReached(peer.publicKey(), now);
         reputationService.recordSuccessfulFetch(peer.publicKey());
+        logos.refresh(peer, now);
         return cards.size();
     }
 

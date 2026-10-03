@@ -20,6 +20,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -91,6 +92,19 @@ class StationMemberRepositoryTest extends RepositoryTestBase {
     @Order(4)
     void findByStation() {
         assertEquals(2, stationMemberRepo.findByStation(station.id()).size());
+    }
+
+    /** The current members of many stations are counted in one go; a station without any is left out. */
+    @Test
+    @Order(4)
+    void countCurrent() {
+        var empty = stationRepo.create("Member Test Empty Station");
+
+        var counts = stationMemberRepo.countCurrent(List.of(station.id(), empty.id()));
+
+        assertEquals(Map.of(station.id(), 2), counts);
+        assertTrue(stationMemberRepo.countCurrent(List.of()).isEmpty());
+        stationRepo.delete(empty.id());
     }
 
     @Test

@@ -57,6 +57,7 @@ final class NotificationPages {
             Map.entry("station-modules", "/station/manage/modules"),
             Map.entry("station-mail-import", "/station/manage/mail-import"),
             Map.entry("station-storage", "/station/monitoring/storage"),
+            Map.entry("station-federation", "/station/federate"),
             Map.entry("cluster-overview", CLUSTER_LANDING),
             Map.entry("cluster-applications", "/cluster/applications"),
             Map.entry("cluster-members", "/cluster/members"),

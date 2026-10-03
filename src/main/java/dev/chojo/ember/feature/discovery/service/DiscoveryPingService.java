@@ -22,6 +22,7 @@ import dev.chojo.ember.feature.discovery.repository.DiscoveryPingRepository;
 import dev.chojo.ember.feature.federation.service.RemoteUrlValidator;
 import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.util.RandomTokens;
+import dev.chojo.ember.util.WebOrigins;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -197,7 +198,7 @@ public class DiscoveryPingService {
 
     /**
      * Inbound callback handler. Validates the signature against {@code from.publicKey}, checks
-     * that we actually sent a ping with that nonce and the window hasn't elapsed, and merges
+     * that we actually sent a ping with that nonce to that very peer and the window hasn't elapsed, and merges
      * the announced peers into the local registry.
      */
     public boolean handleCallback(String rawBody, DiscoveryCallbackMessage message, @Nullable String signatureHeader) {
@@ -226,6 +227,11 @@ public class DiscoveryPingService {
             log.debug("Callback nonce {} doesn't match an outbound ping", message.inReplyTo());
             return false;
         }
+        if (!outboundPing.peerKey().equals(message.from().publicKey())) {
+            log.debug("Callback nonce {} was sent to another peer", message.inReplyTo());
+            reputationService.recordInvalidAnnouncement(message.from().publicKey());
+            return false;
+        }
         if (now.isAfter(outboundPing.expiresAt())) {
             log.debug("Callback nonce {} is past the 60s window", message.inReplyTo());
             return false;
@@ -249,8 +255,7 @@ public class DiscoveryPingService {
     }
 
     public String selfBaseUrl() {
-        var base = conf.main().api().baseUrl();
-        return base.endsWith("/") ? base.substring(0, base.length() - 1) : base;
+        return WebOrigins.stripTrailingSlash(conf.main().api().baseUrl());
     }
 
     /**

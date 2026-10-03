@@ -7,6 +7,9 @@ package dev.chojo.ember.feature.federation.service;
 
 import dev.chojo.ember.api.refusal.FederationRefusal;
 import dev.chojo.ember.conf.file.elements.Api;
+import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.FederationRequestAnswered;
+import dev.chojo.ember.event.events.FederationRequestReceived;
 import dev.chojo.ember.feature.federation.contract.FederationContractVersions;
 import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.ChangeType;
@@ -17,18 +20,19 @@ import dev.chojo.ember.feature.federation.entity.FederationChangeLog;
 import dev.chojo.ember.feature.federation.entity.FederationMetadataCache;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.entity.FederationShare;
+import dev.chojo.ember.feature.federation.entity.PairRequest;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.util.RandomTokens;
+import dev.chojo.ember.util.WebOrigins;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -45,6 +49,7 @@ public class FederationService {
     private final FederationRepository repository;
     private final StationRepository stationRepository;
     private final StationKeyStore stationKeys;
+    private final DomainEventBus eventBus;
     private final String instanceHost;
 
     @Inject
@@ -52,11 +57,13 @@ public class FederationService {
             FederationRepository repository,
             StationRepository stationRepository,
             StationKeyStore stationKeys,
+            DomainEventBus eventBus,
             Api apiConfig) {
         this.repository = repository;
         this.stationRepository = stationRepository;
         this.stationKeys = stationKeys;
-        this.instanceHost = extractHost(apiConfig.baseUrl());
+        this.eventBus = eventBus;
+        this.instanceHost = WebOrigins.hostAndPort(apiConfig.baseUrl());
     }
 
     /**
@@ -72,33 +79,31 @@ public class FederationService {
     }
 
     /**
-     * The address this instance goes by in a code, taken from the one it publishes.
-     *
-     * <p>The port comes with it when the base URL names one. Without it a code from an instance
-     * that does not sit on the standard port names something nobody can reach: the side entering
-     * the code has only the code to go by, and would call the same host on a port it was never
-     * told about.
-     */
-    private static String extractHost(String baseUrl) {
-        try {
-            var uri = URI.create(baseUrl);
-            if (uri.getHost() == null) return baseUrl;
-            return uri.getPort() == -1 ? uri.getHost() : uri.getHost() + ":" + uri.getPort();
-        } catch (Exception e) {
-            return baseUrl;
-        }
-    }
-
-    /**
      * Generates a discovery/pairing code: ember-BASE64(stationUid)-BASE64(host).
      * Stateless - entering this creates a PENDING request that the target station must accept.
      */
     public String generatePairingCode(UUID stationUid) {
+        return pairingCode(stationUid, instanceHost);
+    }
+
+    /**
+     * A pairing code for a station of another instance, which names that instance's address
+     * instead of this one's. Entering it at a station sends that instance a request to federate.
+     *
+     * @param stationUid the station of the other instance
+     * @param baseUrl    where the other instance is reached
+     * @return the pairing code
+     */
+    public String generateRemotePairingCode(UUID stationUid, String baseUrl) {
+        return pairingCode(stationUid, WebOrigins.hostAndPort(baseUrl));
+    }
+
+    private static String pairingCode(UUID stationUid, String host) {
         String encodedUid = Base64.getUrlEncoder()
                 .withoutPadding()
                 .encodeToString(stationUid.toString().getBytes(StandardCharsets.UTF_8));
         String encodedHost =
-                Base64.getUrlEncoder().withoutPadding().encodeToString(instanceHost.getBytes(StandardCharsets.UTF_8));
+                Base64.getUrlEncoder().withoutPadding().encodeToString(host.getBytes(StandardCharsets.UTF_8));
         return "ember-" + encodedUid + "-" + encodedHost;
     }
 
@@ -198,6 +203,12 @@ public class FederationService {
 
         /** The code only named a station, so it is now waiting for that station to answer. */
         record Requested(FederationPartner partner) implements CodeOutcome {}
+
+        /**
+         * The code only named a station of another instance, so that instance was sent a request and
+         * it now waits for its station to answer.
+         */
+        record RequestedRemotely(PairRequest request) implements CodeOutcome {}
 
         /** The code was turned away, for the named reason. */
         record Refused(CodeRefusal reason, @Nullable String detail) implements CodeOutcome {}
@@ -372,6 +383,7 @@ public class FederationService {
                 partner.id(),
                 requestingStationId,
                 targetStationId);
+        eventBus.publish(new FederationRequestReceived(targetStationId, stationName(requestingStationId)));
         return partner;
     }
 
@@ -386,23 +398,34 @@ public class FederationService {
         }
 
         int requestingStationId = partner.stationId();
-        int targetStationId = stationRepository
-                .findByUid(partner.partnerStationId())
-                .orElseThrow()
-                .id();
+        var target = stationRepository.findByUid(partner.partnerStationId()).orElseThrow();
 
         repository.deletePartner(partnerId);
 
         var keyPair = generateKeyPair();
-        return acceptInvite(targetStationId, requestingStationId, encodePublicKey(keyPair), null, null);
+        var established = acceptInvite(target.id(), requestingStationId, encodePublicKey(keyPair), null, null);
+        eventBus.publish(new FederationRequestAnswered(requestingStationId, target.name(), true));
+        return established;
     }
 
     /**
-     * Declines a pending pair request.
+     * Declines a pending pair request and tells the asking station.
      */
     public void declinePairRequest(int partnerId) {
+        var request = repository.findPartnerById(partnerId);
         repository.deletePartner(partnerId);
         log.info("Declined federation pair request {}", partnerId);
+        request.ifPresent(declined -> eventBus.publish(new FederationRequestAnswered(
+                declined.stationId(),
+                stationRepository
+                        .findByUid(declined.partnerStationId())
+                        .map(Station::name)
+                        .orElse("Unknown"),
+                false)));
+    }
+
+    private String stationName(int stationId) {
+        return stationRepository.findById(stationId).map(Station::name).orElse("Unknown");
     }
 
     /**
