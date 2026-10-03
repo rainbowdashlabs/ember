@@ -30,6 +30,9 @@ interface FakeLayer {
 const drawn = vi.hoisted(() => ({
     layers: [] as FakeLayer[],
     pannedTo: [] as [number, number][],
+    created: [] as FakeMarker[],
+    restyled: [] as FakeMarker[],
+    framed: [] as [number, number][][],
 }))
 
 function fakeLayer(kind: string, options: Record<string, unknown> = {}): FakeLayer & Record<string, unknown> {
@@ -44,6 +47,9 @@ function fakeLayer(kind: string, options: Record<string, unknown> = {}): FakeLay
         addLayer: (marker: FakeMarker) => {
             layer.markers.push(marker)
         },
+        removeLayer: (marker: FakeMarker) => {
+            layer.markers = layer.markers.filter(drawnMarker => drawnMarker !== marker)
+        },
     }
     drawn.layers.push(layer)
     return layer
@@ -51,7 +57,7 @@ function fakeLayer(kind: string, options: Record<string, unknown> = {}): FakeLay
 
 const fakeLeaflet = {
     map: () => ({
-        fitBounds: () => undefined,
+        fitBounds: (bounds: [number, number][]) => drawn.framed.push(bounds),
         panTo: (latLng: [number, number]) => drawn.pannedTo.push(latLng),
         setView: () => undefined,
         getZoom: () => 5,
@@ -70,6 +76,13 @@ const fakeLeaflet = {
             bindTooltip: (content: string, tooltipOptions: {permanent: boolean; className: string}) => {
                 marker.tooltip = {content, options: tooltipOptions}
             },
+            unbindTooltip: () => {
+                marker.tooltip = null
+            },
+            setIcon: (icon: {className: string}) => {
+                marker.options = {...marker.options, icon}
+                drawn.restyled.push(marker)
+            },
             bindPopup: (content: string) => {
                 marker.popup = content
             },
@@ -79,6 +92,7 @@ const fakeLeaflet = {
             getLatLng: () => latLng,
             openPopup: () => undefined,
         }
+        drawn.created.push(marker)
         return marker
     },
 }
@@ -93,14 +107,16 @@ vi.mock('@/composables/useMapsConfig', () => ({
 }))
 
 describe('StationMap', () => {
-    const stations: MapStation[] = [
-        {uid: 'nord', name: 'Wache <Nord>', latitude: 53.5, longitude: 10.0},
-        {uid: 'sued', name: 'Wache Süd', latitude: 48.1, longitude: 11.6},
-    ]
+    const nord: MapStation = {uid: 'nord', name: 'Wache <Nord>', latitude: 53.5, longitude: 10.0}
+    const sued: MapStation = {uid: 'sued', name: 'Wache Süd', latitude: 48.1, longitude: 11.6}
+    const stations: MapStation[] = [nord, sued]
 
     beforeEach(() => {
         drawn.layers.length = 0
         drawn.pannedTo.length = 0
+        drawn.created.length = 0
+        drawn.restyled.length = 0
+        drawn.framed.length = 0
     })
 
     async function drawnMap(props: Record<string, unknown>) {
@@ -172,5 +188,67 @@ describe('StationMap', () => {
         wrapper.vm.center('nord')
 
         expect(drawn.pannedTo).toEqual([[53.5, 10.0]])
+    })
+
+    it('adds only the pin of a station that joins the list and keeps the others as they are', async () => {
+        const wrapper = await drawnMap({labels: true})
+        const before = [...cluster().markers]
+
+        await wrapper.setProps({stations: [...stations, {uid: 'west', name: 'Wache West', latitude: 51.2, longitude: 6.8}]})
+        await flushPromises()
+
+        expect(drawn.created).toHaveLength(3)
+        expect(cluster().markers.slice(0, 2)).toEqual(before)
+        expect(cluster().markers.map(marker => marker.options.title)).toEqual(['Wache <Nord>', 'Wache Süd', 'Wache West'])
+    })
+
+    it('takes off only the pin of a station that leaves the list', async () => {
+        const wrapper = await drawnMap({labels: true})
+        const kept = cluster().markers[1]
+
+        await wrapper.setProps({stations: [sued]})
+        await flushPromises()
+
+        expect(drawn.created).toHaveLength(2)
+        expect(cluster().markers).toEqual([kept])
+    })
+
+    it('draws a pin anew when its station changes', async () => {
+        const wrapper = await drawnMap({labels: true})
+
+        await wrapper.setProps({stations: [nord, {...sued, name: 'Wache Mitte'}]})
+        await flushPromises()
+
+        expect(drawn.created).toHaveLength(3)
+        expect(cluster().markers.map(marker => marker.options.title)).toEqual(['Wache <Nord>', 'Wache Mitte'])
+    })
+
+    it('touches only the pin chosen before and the pin chosen now when the choice moves', async () => {
+        const three = [...stations, {uid: 'west', name: 'Wache West', latitude: 51.2, longitude: 6.8}]
+        const wrapper = await drawnMap({stations: three, labels: true, selectedUid: 'sued'})
+
+        await wrapper.setProps({selectedUid: 'nord'})
+        await flushPromises()
+
+        expect(drawn.created).toHaveLength(3)
+        expect(drawn.restyled.map(marker => marker.options.title)).toEqual(['Wache Süd', 'Wache <Nord>'])
+        expect(cluster().markers.map(marker => marker.options.title)).toEqual(['Wache West', 'Wache Süd'])
+        expect(cluster().markers[1]!.options.icon.className).not.toContain('station-map-pin-selected')
+        expect(cluster().markers[1]!.tooltip?.options.className).not.toContain('station-map-label-selected')
+        expect(chosenLayer().markers[0]!.tooltip?.options.className).toContain('station-map-label-selected')
+    })
+
+    it('frames the pins when the stations change and leaves the view alone when only the choice does', async () => {
+        const wrapper = await drawnMap({labels: true})
+        expect(drawn.framed).toHaveLength(1)
+
+        await wrapper.setProps({selectedUid: 'nord'})
+        await wrapper.setProps({stations: [...stations]})
+        await flushPromises()
+        expect(drawn.framed).toHaveLength(1)
+
+        await wrapper.setProps({stations: [nord]})
+        await flushPromises()
+        expect(drawn.framed).toEqual([[[53.5, 10.0], [48.1, 11.6]], [[53.5, 10.0]]])
     })
 })
