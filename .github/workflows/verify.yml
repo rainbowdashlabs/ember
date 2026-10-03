@@ -3,7 +3,8 @@ name: Verify
 on:
   push:
     # The dependency branches carry no pull request, so a push is the only thing that verifies them.
-    branches: [main, 'feature/**', 'fix/**', 'renovate/**']
+    # Release branches are verified on push because main is fast-forwarded to exactly that commit.
+    branches: [main, 'release/**', 'feature/**', 'fix/**', 'renovate/**']
     tags: ['v*']
   pull_request:
   merge_group:
@@ -313,7 +314,8 @@ jobs:
       # A database that has run a patch is never offered it again, so a patch may not change once it
       # exists on main. Every test builds its database from nothing, which is the one path where such
       # an edit is invisible: the from-nothing database runs the edited file and looks correct, while
-      # every running instance skips it and silently lacks whatever was added.
+      # every running instance skips it and silently lacks whatever was added. A release branch's own
+      # patch is not on main yet, so the features going into it may still change it.
       - name: Check that no existing migration was changed
         if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
         env:
@@ -322,7 +324,10 @@ jobs:
           base=$(git merge-base "$BASE_SHA" HEAD)
           touched=$(git diff --name-only --diff-filter=MDR "$base" HEAD -- \
             'src/main/resources/database/postgresql/**/patch_*.sql' \
-            'src/main/resources/database/postgresql/**/setup.sql')
+            'src/main/resources/database/postgresql/**/setup.sql' |
+            while read -r path; do
+              if git cat-file -e "origin/main:$path" 2> /dev/null; then echo "$path"; fi
+            done)
 
           if [ -z "$touched" ]; then
             echo "No existing migration was changed."
@@ -371,32 +376,27 @@ jobs:
           echo "statements into the lowest-numbered patch, delete the rest, and set"
           echo "src/main/resources/database/version to that one number."
           exit 1
+      # A release branch carries its own name's version, main and fixes one patch above the newest
+      # release, and nothing a version that is already tagged.
       - name: Check the project version against the released tags
         env:
+          EVENT_NAME: ${{ github.event_name }}
           REF_TYPE: ${{ github.ref_type }}
           REF_NAME: ${{ github.ref_name }}
-        run: |
-          version=$(sed -n 's/^version = "\(.*\)"$/\1/p' build.gradle.kts)
-
-          if [ -z "$version" ]; then
-            echo "::error::No version line found in build.gradle.kts."
-            exit 1
-          fi
-
-          if [ "$REF_TYPE" = "tag" ]; then
-            if [ "$REF_NAME" != "v$version" ]; then
-              echo "::error::Tag $REF_NAME was cut from a build that says $version. Bump the version before tagging."
-              exit 1
-            fi
-            echo "Tag $REF_NAME matches the project version."
-            exit 0
-          fi
-
-          if git ls-remote --exit-code --tags origin "refs/tags/v$version" > /dev/null; then
-            echo "::error::Version $version is already released as v$version. Bump the version in build.gradle.kts."
-            exit 1
-          fi
-          echo "Version $version is not released yet."
+          BASE_REF: ${{ github.base_ref || github.event.merge_group.base_ref }}
+          HEAD_REF: ${{ github.head_ref }}
+        run: ./toolchain.sh ci-version
+      # A fix may add a patch to main while a release branch is open, so the release branch has to
+      # build on it: main's patches unchanged, and its own one above them.
+      - name: Check the release branch migrations against main
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+          BASE_REF: ${{ github.base_ref || github.event.merge_group.base_ref }}
+          HEAD_REF: ${{ github.head_ref }}
+        run: ./toolchain.sh ci-migration-order
+      - name: Test the release scripts
+        run: ./toolchain.sh ci-test
 
   verify-docker:
     runs-on: ubuntu-latest

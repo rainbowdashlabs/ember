@@ -238,6 +238,15 @@ Docker
   docker-app-logs       Follow what the containers print, which is where the first start is
                         watched: `up -d` returns long before the backend has finished building
 
+Release
+  ci-version            The version check CI runs, for the event it reads from EVENT_NAME, REF_TYPE,
+                        REF_NAME, BASE_REF and HEAD_REF: a release branch carries its own version,
+                        main and fixes one patch above the newest release, nothing a released one
+  ci-migration-order    The migration check CI runs on a release branch: main's patches unchanged,
+                        and at most one patch of its own, numbered above main's newest
+  ci-test [name]        The tests of the scripts under scripts/, or those whose file name contains
+                        the given word
+
 Combined
   verify                be-verify then fe-build
   api-types             be-api-spec then fe-api-types: the API description and the frontend types
@@ -267,7 +276,7 @@ e2e_distribution() {
 # The command names are hyphenated, and the first hyphen also reads as a group: `docker app` is
 # accepted for `docker-app`, and both reach the same arm below. Naming the group alone lists what
 # is in it.
-COMMAND_GROUPS=(fe be docker)
+COMMAND_GROUPS=(fe be docker ci)
 
 is_group() {
     local candidate
@@ -592,6 +601,10 @@ case "$cmd" in
     docker-app-logs)
         cd "$ROOT/docker"; run docker compose -f compose.dev.yaml --profile full logs -f "$@"
         ;;
+
+    ci-version)         cd "$ROOT"; run bash scripts/check-version.sh "$@" ;;
+    ci-migration-order) cd "$ROOT"; run bash scripts/check-migration-order.sh "$@" ;;
+    ci-test)            cd "$ROOT"; run bash scripts/test/run.sh "$@" ;;
 
     verify)
         "$ROOT/toolchain.sh" be-verify
