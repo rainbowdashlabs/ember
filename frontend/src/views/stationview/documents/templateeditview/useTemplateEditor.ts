@@ -79,11 +79,12 @@ export function useTemplateEditor(
     const labels = computed<ReadonlyMap<string, string>>(() =>
         new Map(catalogue.value.map(placeholder => [placeholder.key, placeholder.label])))
 
-    /** What a letter's blocks can name and be restricted to. */
+    /** What a letter's blocks can name, set words in and be restricted to. */
     const letterCatalogue = computed(() => ({
         placeholders: placeholders.value,
         labels: labels.value,
         choices: {groups: choices.value.groups, tags: choices.value.tags},
+        fonts: fonts.value,
     }))
 
     const loader = useAsyncLoader(async () => {

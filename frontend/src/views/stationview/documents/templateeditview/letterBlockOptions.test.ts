@@ -5,7 +5,7 @@
  */
 /** @vitest-environment happy-dom */
 import {describe, expect, it} from 'vitest'
-import {CellContentType} from '@/api/generated/schema'
+import {CellContentType, FontOrigin, FontStyle} from '@/api/generated/schema'
 import {LETTER_COLUMNS, letterBlockOptions} from './letterBlockOptions'
 
 const catalogue = {
@@ -13,6 +13,7 @@ const catalogue = {
     labels: new Map([['member.firstName', 'Vorname']]),
     legal: false,
     choices: {groups: [], tags: []},
+    fonts: [{family: 'Hausschrift', origin: FontOrigin.INSTANCE, styles: [FontStyle.REGULAR], printsOnPdf: true}],
 }
 
 describe('the block editor of a letter', () => {
@@ -36,6 +37,10 @@ describe('the block editor of a letter', () => {
     it('offers signature lines in the body only', () => {
         expect(letterBlockOptions(catalogue, true).allowedKinds).toContain(CellContentType.SIGNATURE)
         expect(letterBlockOptions(catalogue, false).allowedKinds).not.toContain(CellContentType.SIGNATURE)
+    })
+
+    it('offers the families the template reaches for selected words', () => {
+        expect(letterBlockOptions(catalogue, false).textFonts).toBe(catalogue.fonts)
     })
 
     it('shows placeholders as chips with their labels', () => {

@@ -6,6 +6,7 @@
 import {mergeAttributes, Node} from '@tiptap/vue-3'
 import type TurndownService from 'turndown'
 import type {EditorTokens} from './editorTokens'
+import {escapeHtml} from './escapeHtml'
 
 /** How a placeholder is written in the stored markdown: `{{key}}`, spaces inside the braces allowed. */
 const TOKEN = /\{\{\s*([A-Za-z0-9_.]+)\s*}}/g
@@ -48,11 +49,6 @@ export const PlaceholderChip = Node.create({
         return ['span', mergeAttributes(HTMLAttributes, {class: 'placeholder-chip'}), node.attrs.label || node.attrs.key]
     },
 })
-
-/** Escapes a label for the HTML the stored markdown is turned into before the editor reads it. */
-function escapeHtml(text: string): string {
-    return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
-}
 
 /**
  * Placeholders as chips in the markdown editor: stored markdown turns its `{{key}}` into chips with

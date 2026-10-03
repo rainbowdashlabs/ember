@@ -5,7 +5,7 @@
  */
 import {h, type FunctionalComponent} from 'vue'
 import type {Content} from '@tiptap/vue-3'
-import {CellContentType, type Placeholder} from '@/api/generated/schema'
+import {CellContentType, type FontFamilyOption, type Placeholder} from '@/api/generated/schema'
 import type {BlockEditorOptions, BlockRestrictionChoices} from '@/composables/useBlockEditorOptions'
 import {placeholderContent, placeholderTokens} from '@/components/input/markdowneditor/placeholderChip'
 import PlaceholderPicker from './placeholderpicker/PlaceholderPicker.vue'
@@ -33,13 +33,15 @@ export interface LetterCatalogue {
     labels: ReadonlyMap<string, string>
     legal: boolean
     choices: BlockRestrictionChoices
+    /** The font families the template reaches: the instance's, the association's and the station's. */
+    fonts: readonly FontFamilyOption[]
 }
 
 /**
  * The block editor as a letter uses it: texts, pictures, lines and gaps in up to three columns, with
  * lines between the columns where a row asks for them, placeholders as chips with their picker above
- * every text, a visibility on every block that may also depend on a second guardian, and the station
- * logo as a picture.
+ * every text, a font for selected words from the families the template reaches, a visibility on every
+ * block that may also depend on a second guardian, and the station logo as a picture.
  *
  * @param catalogue  what the station's letters can name and restrict blocks to
  * @param signatures whether signature lines are offered, which stand in the body only
@@ -56,6 +58,7 @@ export function letterBlockOptions(catalogue: LetterCatalogue, signatures: boole
         maxColumns: LETTER_COLUMNS,
         tokens: placeholderTokens(catalogue.labels),
         markdownTools: tools,
+        textFonts: catalogue.fonts,
         restrictable: catalogue.choices,
         guardianCondition: true,
         columnLines: true,

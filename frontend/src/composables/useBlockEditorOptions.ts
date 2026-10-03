@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {computed, inject, provide, toValue, type Component, type ComputedRef, type InjectionKey, type MaybeRefOrGetter} from 'vue'
-import type {CellContentType, MemberGroup, UserTag} from '@/api/generated/schema'
+import type {CellContentType, FontFamilyOption, MemberGroup, UserTag} from '@/api/generated/schema'
 import type {EditorTokens} from '@/components/input/markdowneditor/editorTokens'
 
 /** What a block's visibility is chosen from: the station's groups and tags. */
@@ -40,6 +40,11 @@ export interface BlockEditorOptions {
     columnLines?: boolean
     /** Whether a picture block may show the station's logo. */
     stationLogo?: boolean
+    /**
+     * The font families the selected words of a text block can be set in; the text editor's menu offers
+     * no font where left out.
+     */
+    textFonts?: readonly FontFamilyOption[]
 }
 
 const DEFAULT_MAX_COLUMNS = 4
