@@ -2645,8 +2645,6 @@ export default {
         previewWithoutMember: 'Ohne Mitglied',
         showPreview: 'Vorschau zeigen',
         preview: 'Vorschau',
-        generateForMember: 'Für dieses Mitglied erstellen und ablegen',
-        generateUsesSaved: 'Erstellt wird aus der gespeicherten Fassung der Vorlage.',
         generated: 'Dokument erstellt und abgelegt.',
         missingValues: 'Es fehlen Angaben: {values}. Ein Brief zeigt dort Linien zum Ausfüllen, ein PDF lässt die Stellen leer.',
         unprintable: 'Diese Zeichen kann keine Schrift drucken, sie fehlen im Dokument: {characters}',

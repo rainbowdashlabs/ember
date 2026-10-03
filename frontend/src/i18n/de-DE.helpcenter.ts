@@ -1695,9 +1695,8 @@ volumes:
                 + 'welcher Fassung der Vorlage es stammt und wessen Daten darin stehen.',
             generateTitle: 'Ein Dokument erstellen',
             generateText: 'Auf der Seite eines Mitglieds öffnest du im Reiter Dokumente „Dokument erstellen", '
-                + 'wählst die Vorlage und siehst sofort eine Vorschau. Mit „Erstellen" wird das PDF abgelegt. Aus '
-                + 'dem Editor einer Vorlage geht das genauso, über die Vorschau. Unter Dokumente → Ablage gibt es '
-                + '„Dokument erstellen" auch, dort wählst du zusätzlich das Mitglied.',
+                + 'wählst die Vorlage und siehst sofort eine Vorschau. Mit „Erstellen" wird das PDF abgelegt. Unter '
+                + 'Dokumente → Ablage gibt es „Dokument erstellen" auch, dort wählst du zusätzlich das Mitglied.',
             missingText: 'Fehlen Angaben, nennt Ember sie vor dem Erstellen. Du kannst trotzdem erstellen, die '
                 + 'Lücken stehen dann als Linien zum Ausfüllen im Dokument. Vorlagen für Termine stehen beim '
                 + 'Erstellen für ein Mitglied nicht zur Wahl, ihnen fehlen ohne Termin die Angaben.',
@@ -1877,7 +1876,9 @@ volumes:
                 + 'wen das gilt und wie viele Tage bis zum nächsten Mal vergehen müssen.',
             previewTitle: 'Vorschau',
             previewText: 'Die Vorschau zeigt den Brief so, wie er gedruckt wird. Ohne Mitglied stehen die Namen der '
-                + 'Platzhalter darin, mit einem Mitglied seine Daten. Fehlende Angaben werden genannt.',
+                + 'Platzhalter darin, mit einem Mitglied seine Daten. Fehlende Angaben werden genannt. Abgelegt '
+                + 'wird hier nichts: Dokumente erstellst du unter Dokumente → Ablage oder auf der Seite eines '
+                + 'Mitglieds.',
             tip: 'Speichere nach jeder Änderung: Erstellt wird immer aus der gespeicherten Fassung.',
         },
         documents: {
