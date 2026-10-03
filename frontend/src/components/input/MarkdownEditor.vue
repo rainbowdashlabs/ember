@@ -331,5 +331,5 @@ function applyVideo(url: string) {
 .markdown-editor-content .tiptap pre code { background: none; border: none; padding: 0; font-size: 0.875em; color: var(--text); font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace; }
 .markdown-editor-content .tiptap code { background: var(--bg-accent); border: 1px solid var(--border); border-radius: 0.25rem; padding: 0.1em 0.3em; font-size: 0.875em; font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace; }
 .markdown-editor-content .tiptap hr { border: none; border-top: 2px solid color-mix(in srgb, var(--text) 25%, transparent); margin: 1.5em 0; }
-.markdown-editor-content .tiptap .text-font { text-decoration: underline dotted var(--primary); text-underline-offset: 3px; cursor: help; }
+.markdown-editor-content .tiptap .text-font { text-decoration: underline dotted var(--color-primary); text-underline-offset: 3px; cursor: help; }
 </style>
