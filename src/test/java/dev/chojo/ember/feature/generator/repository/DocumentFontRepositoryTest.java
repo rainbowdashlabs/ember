@@ -79,6 +79,8 @@ class DocumentFontRepositoryTest extends RepositoryTestBase {
                 30,
                 RestrictionMode.AND,
                 DocumentLanguage.DE,
+                null,
+                null,
                 content);
         int id = templates.create(owner, draft, author).id();
         switch (content) {

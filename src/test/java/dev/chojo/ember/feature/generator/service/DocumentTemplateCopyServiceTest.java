@@ -139,15 +139,16 @@ class DocumentTemplateCopyServiceTest extends RepositoryTestBase {
         var catalogue = newPlaceholderCatalogue();
         var fonts = newFontLibrary(storage);
         var letters = new LetterChecks(contentBlocks(), media);
+        var issuers = new DocumentIssuerService(stationMemberRepo, uses);
         var checks = new TemplateChecks(
-                templateRepository, pdfTemplates, letters, stationRepo, catalogue, fonts, newOwnerStores());
+                templateRepository, pdfTemplates, letters, stationRepo, catalogue, fonts, newOwnerStores(), issuers);
         templates = new DocumentTemplateService(
                 templateRepository, pdfTemplates, uses, checks, restrictionService, catalogue, newOwnerStores());
-        stationUses = new TemplateStationUseService(templates, uses, restrictionService);
+        stationUses = new TemplateStationUseService(templates, uses, restrictionService, issuers);
         pdfs = new PdfTemplateService(
                 templates, templateRepository, pdfTemplates, newDocumentIntake(), storage, newOwnerStores());
-        copies =
-                new DocumentTemplateCopyService(templates, pdfs, stationUses, checks, letters, fonts, newOwnerStores());
+        copies = new DocumentTemplateCopyService(
+                templates, pdfs, stationUses, checks, letters, fonts, newOwnerStores(), issuers);
         log = new DocumentGenerationRepository();
         var quota = new StorageQuotaService(storageUsageRepo, new Storage(), new DomainEventBus(Set.of()));
         fontService = new DocumentFontService(new DocumentFontRepository(), fonts, storage, quota);
@@ -189,7 +190,11 @@ class DocumentTemplateCopyServiceTest extends RepositoryTestBase {
                         "a".repeat(64),
                         null,
                         null,
-                        null),
+                        null,
+                        null,
+                        null,
+                        false,
+                        false),
                 List.of());
     }
 
@@ -345,6 +350,44 @@ class DocumentTemplateCopyServiceTest extends RepositoryTestBase {
         assertTrue(copy.fields().isEmpty());
     }
 
+    /**
+     * A copy keeps the issuer where it stays at the station that named them: the station's own template,
+     * or the association's with the issuer the station chose for it. A station that named nobody, and an
+     * association, which names nobody, copy without one.
+     */
+    @Test
+    void aCopyKeepsTheIssuerTheStationNamed() {
+        int warden = stationMemberRepo
+                .create(
+                        north.stationId(),
+                        accountRepo
+                                .create("copy-warden@test.com", "Erika", "Wehr")
+                                .id())
+                .id();
+        var own = templates.create(
+                north,
+                letter("Eigene Urkunde", "{{issuer.fullName}}")
+                        .issuer(warden, "Jugendwartin")
+                        .build(),
+                author);
+        var ofAssociation = templates.create(
+                association, letter("Verbandsurkunde", "{{issuer.fullName}}").build(), author);
+        stationUses.setUse(
+                north.stationId(), ofAssociation.id(), new TemplateUseRequest(false, null, warden, "Jugendwart"));
+
+        var ownCopy = copy(north, own.id(), "Kopie von Eigene Urkunde");
+        var northCopy = copy(north, ofAssociation.id(), "Kopie von Verbandsurkunde");
+        var southCopy = copy(south, ofAssociation.id(), "Kopie von Verbandsurkunde");
+        var associationCopy = copy(association, ofAssociation.id(), "Kopie von Verbandsurkunde");
+
+        assertEquals(warden, ownCopy.issuerId());
+        assertEquals("Jugendwartin", ownCopy.issuerFunction());
+        assertEquals(warden, northCopy.issuerId());
+        assertEquals("Jugendwart", northCopy.issuerFunction());
+        assertNull(southCopy.issuerId());
+        assertNull(associationCopy.issuerId());
+    }
+
     @Test
     void aStationCopiesATemplateOfItsAssociationIntoOneOfItsOwn() {
         var source = templates.create(
@@ -356,7 +399,7 @@ class DocumentTemplateCopyServiceTest extends RepositoryTestBase {
                         .cooldown(7)
                         .build(),
                 author);
-        stationUses.setUse(north.stationId(), source.id(), new TemplateUseRequest(true, TRIALS));
+        stationUses.setUse(north.stationId(), source.id(), new TemplateUseRequest(true, TRIALS, null, null));
 
         var copied = copies.duplicate(north, source.id(), "Kopie von Verbandsbrief", author);
         var copy = copied.template();

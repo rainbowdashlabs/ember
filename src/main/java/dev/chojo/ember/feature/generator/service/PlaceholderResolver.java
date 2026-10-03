@@ -62,8 +62,9 @@ import java.util.stream.Stream;
  * Fills the placeholders a template names with what is known about one member, at the moment the
  * document is generated.
  *
- * <p>Names are official names: the register's first name and surname, for the member, the guardians
- * and whoever generates the document. Only {@code member.calledName} reads the name a member is called
+ * <p>Names are official names: the register's first name and surname, for the member, the guardians,
+ * the issuer and whoever generates the document. The issuer is named only while they are a current
+ * member of the station the document is drawn at; otherwise their name is missing. Only {@code member.calledName} reads the name a member is called
  * by, and only an informal template may name it. Profile answers are written the way exports write
  * them ({@link QuestionText#format}), so a date reads as a day and yes as a word of the template's
  * language. The pronouns follow the member's answer to the station's gender field ({@link GenderFields}),
@@ -197,8 +198,8 @@ public class PlaceholderResolver {
                     case Owner.Association own -> clusters.findById(own.clusterId());
                     case Owner.Instance ignored -> Optional.<Cluster>empty();
                 };
-        var reading = new Reading(
-                new Subject(station, association.orElse(null), 0, language, new GenerationContext(null, null)));
+        var reading =
+                new Reading(new Subject(station, association.orElse(null), 0, language, GenerationContext.NOBODY));
         var values = new HashMap<String, String>();
         for (var placeholder : List.of(
                 BuiltInPlaceholder.STATION_NAME,
@@ -326,6 +327,8 @@ public class PlaceholderResolver {
                 case EVENT_LOCATION -> event(GenerationContext.EventFacts::location);
                 case TODAY -> DAY.format(today());
                 case TODAY_LONG -> longDay(today());
+                case ISSUER_FULL_NAME -> issuer().map(names::official).orElse(null);
+                case ISSUER_FUNCTION -> context.issuer().function();
                 case GENERATED_BY -> {
                     Integer by = context.generatedBy();
                     yield by == null ? null : names.official(by);
@@ -460,6 +463,18 @@ public class PlaceholderResolver {
 
         private Optional<StationMember> membership(int id) {
             return memberships.computeIfAbsent(id, members::findById);
+        }
+
+        /**
+         * The issuer, where they are still a current member of the station the document is drawn at; one
+         * who left or belongs elsewhere issues nothing there.
+         */
+        private Optional<Integer> issuer() {
+            Integer id = context.issuer().memberId();
+            if (id == null) return Optional.empty();
+            return membership(id)
+                    .filter(member -> member.stationId() == stationId() && !member.former())
+                    .map(StationMember::id);
         }
 
         private Optional<StationMember> guardian(int index) {

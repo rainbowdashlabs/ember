@@ -14218,7 +14218,7 @@
           "content" : {
             "application/json" : {
               "schema" : {
-                "$ref" : "#/components/schemas/MemberSelection"
+                "$ref" : "#/components/schemas/JobPreviewRequest"
               }
             }
           }
@@ -14267,7 +14267,16 @@
             "type" : "integer",
             "format" : "int32"
           }
-        } ]
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ManagerGenerationRequest"
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/document-generation/templates/{templateId}/members/{memberId}/preview" : {
@@ -14281,6 +14290,16 @@
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/PreviewResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
                 }
               }
             }
@@ -14302,7 +14321,16 @@
             "type" : "integer",
             "format" : "int32"
           }
-        } ]
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ManagerGenerationRequest"
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/document-placeholders" : {
@@ -50348,6 +50376,13 @@
               "type" : "null"
             } ]
           },
+          "issuerId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "issuerFunction" : {
+            "type" : [ "string", "null" ]
+          },
           "header" : {
             "type" : [ "array", "null" ],
             "items" : {
@@ -50437,6 +50472,13 @@
           "language" : {
             "$ref" : "#/components/schemas/DocumentLanguage"
           },
+          "issuerId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "issuerFunction" : {
+            "type" : [ "string", "null" ]
+          },
           "header" : {
             "type" : "array",
             "items" : {
@@ -50492,7 +50534,7 @@
             } ]
           }
         },
-        "required" : [ "id", "name", "kind", "titlePattern", "fileNamePattern", "tags", "hidden", "keepOnArchive", "legal", "forAppointments", "selfService", "cooldownDays", "audience", "language", "header", "footer", "body", "page", "pdf", "fields", "formBindings", "version", "updatedAt", "archivedAt" ]
+        "required" : [ "id", "name", "kind", "titlePattern", "fileNamePattern", "tags", "hidden", "keepOnArchive", "legal", "forAppointments", "selfService", "cooldownDays", "audience", "language", "issuerId", "issuerFunction", "header", "footer", "body", "page", "pdf", "fields", "formBindings", "version", "updatedAt", "archivedAt" ]
       },
       "DocumentTemplateSummary" : {
         "type" : "object",
@@ -54579,9 +54621,15 @@
           "documentId" : {
             "type" : [ "integer", "null" ],
             "format" : "int32"
+          },
+          "issuerName" : {
+            "type" : [ "string", "null" ]
+          },
+          "issuerFunction" : {
+            "type" : [ "string", "null" ]
           }
         },
-        "required" : [ "id", "generatedAt", "templateId", "templateName", "templateVersion", "ofAssociation", "memberId", "memberName", "generatedByName", "selfService", "documentId" ]
+        "required" : [ "id", "generatedAt", "templateId", "templateName", "templateVersion", "ofAssociation", "memberId", "memberName", "generatedByName", "selfService", "documentId", "issuerName", "issuerFunction" ]
       },
       "GeneratedDocumentResponse" : {
         "type" : "object",
@@ -56265,6 +56313,18 @@
         },
         "required" : [ "accountId", "name", "loginName", "password", "expiresAt" ]
       },
+      "IssuerChoice" : {
+        "type" : "object",
+        "properties" : {
+          "memberId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "function" : {
+            "type" : [ "string", "null" ]
+          }
+        }
+      },
       "ItemAssignment" : {
         "type" : "object",
         "properties" : {
@@ -56561,6 +56621,32 @@
         "type" : "string",
         "enum" : [ "WAITING", "FILED", "FAILED" ]
       },
+      "JobPreviewRequest" : {
+        "type" : "object",
+        "properties" : {
+          "memberIds" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          },
+          "audience" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/RestrictionAudience"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "issuer" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/IssuerChoice"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        }
+      },
       "JobStartRequest" : {
         "type" : "object",
         "properties" : {
@@ -56580,6 +56666,13 @@
           },
           "acceptMissing" : {
             "type" : "boolean"
+          },
+          "issuer" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/IssuerChoice"
+            }, {
+              "type" : "null"
+            } ]
           }
         }
       },
@@ -58833,6 +58926,18 @@
         },
         "required" : [ "email", "firstName", "lastName", "accountReady" ]
       },
+      "ManagerGenerationRequest" : {
+        "type" : "object",
+        "properties" : {
+          "issuer" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/IssuerChoice"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        }
+      },
       "MapConfig" : {
         "type" : "object",
         "properties" : {
@@ -59713,25 +59818,6 @@
           }
         },
         "required" : [ "memberUid", "displayName", "userType", "nameColor", "displayTag", "displayTagColor", "avatarUrl" ]
-      },
-      "MemberSelection" : {
-        "type" : "object",
-        "properties" : {
-          "memberIds" : {
-            "type" : [ "array", "null" ],
-            "items" : {
-              "type" : "integer",
-              "format" : "int32"
-            }
-          },
-          "audience" : {
-            "anyOf" : [ {
-              "$ref" : "#/components/schemas/RestrictionAudience"
-            }, {
-              "type" : "null"
-            } ]
-          }
-        }
       },
       "MemberSpotlightConfig" : {
         "type" : "object",
@@ -62823,11 +62909,11 @@
       },
       "PlaceholderCategory" : {
         "type" : "string",
-        "enum" : [ "MEMBER", "PRONOUNS", "GUARDIAN1", "GUARDIAN2", "STATION", "ASSOCIATION", "APPOINTMENT", "DOCUMENT" ]
+        "enum" : [ "MEMBER", "PRONOUNS", "GUARDIAN1", "GUARDIAN2", "STATION", "ASSOCIATION", "APPOINTMENT", "ISSUER", "DOCUMENT" ]
       },
       "PlaceholderGroup" : {
         "type" : "string",
-        "enum" : [ "MEMBER", "PROFILE", "GUARDIAN", "STATION", "ASSOCIATION", "EVENT", "DOCUMENT", "PRONOUN" ]
+        "enum" : [ "MEMBER", "PROFILE", "GUARDIAN", "STATION", "ASSOCIATION", "EVENT", "ISSUER", "DOCUMENT", "PRONOUN" ]
       },
       "PlaceholderValues" : {
         "type" : "object",
@@ -63024,6 +63110,25 @@
           }
         }
       },
+      "PreviewIssuer" : {
+        "type" : "object",
+        "properties" : {
+          "memberId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : [ "string", "null" ]
+          },
+          "function" : {
+            "type" : [ "string", "null" ]
+          },
+          "fixed" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "memberId", "name", "function", "fixed" ]
+      },
       "PreviewResponse" : {
         "type" : "object",
         "properties" : {
@@ -63041,9 +63146,16 @@
             "items" : {
               "type" : "string"
             }
+          },
+          "issuer" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/PreviewIssuer"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
-        "required" : [ "pdfBase64", "missing", "unprintable" ]
+        "required" : [ "pdfBase64", "missing", "unprintable", "issuer" ]
       },
       "PreviewResult" : {
         "type" : "object",
@@ -71958,6 +72070,13 @@
             }, {
               "type" : "null"
             } ]
+          },
+          "issuerId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "issuerFunction" : {
+            "type" : [ "string", "null" ]
           }
         }
       },
@@ -71989,9 +72108,16 @@
           },
           "audience" : {
             "$ref" : "#/components/schemas/RestrictionAudience"
+          },
+          "issuerId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "issuerFunction" : {
+            "type" : [ "string", "null" ]
           }
         },
-        "required" : [ "templateId", "name", "kind", "legal", "offered", "cooldownDays", "selfService", "audience" ]
+        "required" : [ "templateId", "name", "kind", "legal", "offered", "cooldownDays", "selfService", "audience", "issuerId", "issuerFunction" ]
       },
       "TestProtocol" : {
         "type" : "object",

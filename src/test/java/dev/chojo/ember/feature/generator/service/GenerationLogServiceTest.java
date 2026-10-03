@@ -33,17 +33,42 @@ class GenerationLogServiceTest {
         var at = Instant.parse("2026-10-01T08:00:00Z");
         when(generations.forStation(3))
                 .thenReturn(List.of(
-                        new GenerationLogEntry(1, at, 8, "Bescheinigung", 2, false, 11, 12, false, 21),
-                        new GenerationLogEntry(2, at, 9, "Einverständnis", 1, true, null, 11, true, null)));
+                        new GenerationLogEntry(
+                                1, at, 8, "Bescheinigung", 2, false, 11, 12, false, 21, 12, "Jugendwartin"),
+                        new GenerationLogEntry(2, at, 9, "Einverständnis", 1, true, null, 11, true, null, null, null)));
 
         var listed = new GenerationLogService(generations, names).list(3);
 
         assertEquals(
                 List.of(
                         new GeneratedDocumentEntry(
-                                1, at, 8, "Bescheinigung", 2, false, 11, "Erika Muster", "Nora Fülling", false, 21),
+                                1,
+                                at,
+                                8,
+                                "Bescheinigung",
+                                2,
+                                false,
+                                11,
+                                "Erika Muster",
+                                "Nora Fülling",
+                                false,
+                                21,
+                                "Nora Fülling",
+                                "Jugendwartin"),
                         new GeneratedDocumentEntry(
-                                2, at, 9, "Einverständnis", 1, true, null, null, "Erika Muster", true, null)),
+                                2,
+                                at,
+                                9,
+                                "Einverständnis",
+                                1,
+                                true,
+                                null,
+                                null,
+                                "Erika Muster",
+                                true,
+                                null,
+                                null,
+                                null)),
                 listed);
     }
 }

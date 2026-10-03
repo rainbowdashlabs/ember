@@ -21,6 +21,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param templateName  what the template is called
  * @param startedBy     the manager who started it and is the uploader of its documents
  * @param acceptMissing whether a member whose data is incomplete still gets a document with gaps
+ * @param issuer        who issues every document of the run, taken when it was started
  * @param startedAt     when it was started
  * @param finishedAt    when the last member was done, or null while it runs
  * @param total         how many members it generates for
@@ -34,6 +35,7 @@ public record GenerationJob(
         String templateName,
         int startedBy,
         boolean acceptMissing,
+        DocumentIssuer issuer,
         Instant startedAt,
         @Nullable Instant finishedAt,
         int total,
@@ -53,6 +55,10 @@ public record GenerationJob(
                 row.getString("template_name"),
                 row.getInt("started_by"),
                 row.getBoolean("accept_missing"),
+                new DocumentIssuer(
+                        row.getObject("issuer_id", Integer.class),
+                        row.getString("issuer_function"),
+                        row.getBoolean("issuer_fixed")),
                 row.get("started_at", INSTANT_TIMESTAMP),
                 row.get("finished_at", INSTANT_TIMESTAMP),
                 row.getInt("total"),

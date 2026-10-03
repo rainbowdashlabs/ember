@@ -15,6 +15,7 @@ import {DocumentTemplateKind} from '@/api/generated/schema'
 import {showToast} from '@/util/toast'
 import {useTemplateEditor} from './templateeditview/useTemplateEditor'
 import GeneralPanel from './templateeditview/GeneralPanel.vue'
+import IssuerPanel from './templateeditview/IssuerPanel.vue'
 import LetterPanel from './templateeditview/LetterPanel.vue'
 import PdfPanel from './templateeditview/PdfPanel.vue'
 import SelfServicePanel from './templateeditview/SelfServicePanel.vue'
@@ -110,8 +111,10 @@ async function upload(file: File) {
           @archive="setArchived"
       />
       <TabBar v-model="tab" :tabs="tabs"/>
-      <GeneralPanel v-if="tab === 'general'" v-model="draft" :document-tags="editor.documentTags.value"
-                    :placeholders="editor.placeholders.value"/>
+      <template v-if="tab === 'general'">
+        <GeneralPanel v-model="draft" :document-tags="editor.documentTags.value" :placeholders="editor.placeholders.value"/>
+        <IssuerPanel v-model="draft" :members="editor.members.value" :chooses-issuer="screens.hasMembers"/>
+      </template>
       <LetterPanel v-if="tab === 'letter'" v-model="draft" :catalogue="editor.letterCatalogue.value"
                    :default-family="editor.defaultFamily.value" :source="screens.source"/>
       <PdfPanel v-if="tab === 'pdf'" v-model="draft" :saved="saved" :source="editor.pdf.value"

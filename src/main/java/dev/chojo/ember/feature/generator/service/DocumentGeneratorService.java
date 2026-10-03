@@ -7,6 +7,8 @@ package dev.chojo.ember.feature.generator.service;
 
 import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.api.refusal.MemberRefusal;
+import dev.chojo.ember.feature.generator.entity.BuiltInPlaceholder;
+import dev.chojo.ember.feature.generator.entity.DocumentIssuer;
 import dev.chojo.ember.feature.generator.entity.DocumentLanguage;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplate;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplateDraft;
@@ -18,6 +20,7 @@ import dev.chojo.ember.feature.generator.entity.PdfContent;
 import dev.chojo.ember.feature.generator.entity.Placeholder;
 import dev.chojo.ember.feature.generator.entity.PlaceholderTokens;
 import dev.chojo.ember.feature.generator.entity.ResolvedValues;
+import dev.chojo.ember.feature.generator.entity.SignatureRole;
 import dev.chojo.ember.feature.generator.entity.TemplateContent;
 import dev.chojo.ember.feature.generator.service.pdf.PdfStamper;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
@@ -123,7 +126,48 @@ public class DocumentGeneratorService {
      * @param view      which blocks of a letter the member sees and how many guardians sign for them
      * @param resolved  the values and what is missing
      */
-    public record Prepared(Source source, int stationId, MemberView view, ResolvedValues resolved) {}
+    public record Prepared(Source source, int stationId, MemberView view, ResolvedValues resolved, IssuerUse issuer) {}
+
+    /**
+     * The issuer as one member's document names them.
+     *
+     * @param issuer who issues it, as the template names them or a manager picked them
+     * @param named  whether the document names the issuer at all, by one of their values or by their
+     *               signature field, which is what makes a missing issuer missing data
+     * @param signs  whether the document carries the signature field named {@code issuer}
+     * @param name   the issuer's official name as the document prints it, or null where nobody could be
+     *               named: none was chosen, or the one chosen is no current member of the station
+     */
+    public record IssuerUse(
+            DocumentIssuer issuer,
+            boolean named,
+            boolean signs,
+            @Nullable String name) {
+
+        /** @return the member the document is issued by, as the generation log keeps it, or null */
+        public @Nullable Integer memberOfRecord() {
+            return named && name != null ? issuer.memberId() : null;
+        }
+
+        /** @return the issuer as a preview shows it, or null where the document names none */
+        public @Nullable PreviewIssuer preview() {
+            return named ? new PreviewIssuer(memberOfRecord(), name, issuer.function(), issuer.fixed()) : null;
+        }
+    }
+
+    /**
+     * The issuer a drawn document names, for the screen to show beside it.
+     *
+     * @param memberId the member, or null where nobody could be named
+     * @param name     their official name, or null where nobody could be named
+     * @param function what they do at the station, or null where nothing is said
+     * @param fixed    whether it is the issuer the template names, rather than one picked for this document
+     */
+    public record PreviewIssuer(
+            @Nullable Integer memberId,
+            @Nullable String name,
+            @Nullable String function,
+            boolean fixed) {}
 
     /**
      * A template as the generator reads it, saved or still a draft in the editor.
@@ -167,6 +211,20 @@ public class DocumentGeneratorService {
             return keys;
         }
 
+        /**
+         * @param view what of a letter the member sees
+         * @return whether the member's document carries the signature field of the issuer
+         */
+        public boolean asksIssuerToSign(MemberView view) {
+            return switch (content) {
+                case LetterContent letter ->
+                    LetterLayout.signatureFields(letter, view).stream()
+                            .anyMatch(SignatureRole.ISSUER.fieldNames(view.guardians())::contains);
+                case PdfContent pdf ->
+                    pdf.layout().fields().stream().anyMatch(field -> field.role() == SignatureRole.ISSUER);
+            };
+        }
+
         /** @return the uploaded PDF the document is filled from, or null for a letter */
         public @Nullable Integer pdfOriginalId() {
             if (!(content instanceof PdfContent pdf)) return null;
@@ -193,8 +251,14 @@ public class DocumentGeneratorService {
      * @param pdfBase64   the PDF, Base64 encoded
      * @param missing     the placeholders without a value
      * @param unprintable the characters no font could print, which the document leaves out
+     * @param issuer      the issuer the document names, or null where it names none or is drawn without a
+     *                    member
      */
-    public record PreviewResponse(String pdfBase64, List<MissingValue> missing, List<String> unprintable) {}
+    public record PreviewResponse(
+            String pdfBase64,
+            List<MissingValue> missing,
+            List<String> unprintable,
+            @Nullable PreviewIssuer issuer) {}
 
     /**
      * @param template a saved template
@@ -236,9 +300,12 @@ public class DocumentGeneratorService {
      * here: two lines for one signer may stand in a template as alternatives, but never meet in one
      * document.
      *
+     * <p>A document that names its issuer, by a value or by the issuer's signature field, needs the
+     * issuer's name: where nobody can be named, that name is missing like any other value.
+     *
      * @param source   the template
      * @param memberId the member the document is about
-     * @param context  who generates it and for which appointment
+     * @param context  who generates it, for which appointment and who issues it
      * @return the values and what is missing
      */
     public Prepared prepare(Source source, int memberId, GenerationContext context) {
@@ -250,10 +317,15 @@ public class DocumentGeneratorService {
         if (source.content() instanceof LetterContent letter) {
             LetterLayout.requireSignersOnce(letter, view, DocumentRefusal.DOCUMENT_SIGNER_TWICE_FOR_MEMBER);
         }
-        var keys = source.valueKeys(view);
+        var keys = new LinkedHashSet<>(source.valueKeys(view));
         if (source.legal()) PlaceholderCatalogue.requireOfficial(keys);
-        return new Prepared(
-                source, stationId, view, resolver.resolve(stationId, memberId, keys, source.language(), context));
+        boolean signs = source.asksIssuerToSign(view);
+        boolean named = signs || BuiltInPlaceholder.namesIssuer(keys);
+        if (named) keys.add(BuiltInPlaceholder.ISSUER_FULL_NAME.key());
+        var resolved = resolver.resolve(stationId, memberId, keys, source.language(), context);
+        var issuer = new IssuerUse(
+                context.issuer(), named, signs, resolved.values().get(BuiltInPlaceholder.ISSUER_FULL_NAME.key()));
+        return new Prepared(source, stationId, view, resolved, issuer);
     }
 
     /**
@@ -298,14 +370,18 @@ public class DocumentGeneratorService {
         if (memberId != null) {
             var prepared = prepare(source, memberId, context);
             var rendered = render(prepared);
-            return new PreviewResponse(encode(rendered.pdf()), missing(prepared), rendered.unprintable());
+            return new PreviewResponse(
+                    encode(rendered.pdf()),
+                    missing(prepared),
+                    rendered.unprintable(),
+                    prepared.issuer().preview());
         }
         var values = resolver.withoutMember(source.owner(), source.language());
         var labels = new LinkedHashMap<String, String>();
         catalogue.forOwner(source.owner()).forEach(placeholder -> labels.put(placeholder.key(), placeholder.label()));
         Integer stationId = source.owner() instanceof Owner.Station station ? station.stationId() : null;
         var drawn = draw(source, stationId, MemberView.EVERYBODY, title(source, values), values, labels, true);
-        return new PreviewResponse(encode(drawn.pdf()), List.of(), drawn.unprintable());
+        return new PreviewResponse(encode(drawn.pdf()), List.of(), drawn.unprintable(), null);
     }
 
     private PdfStamper.Stamped draw(

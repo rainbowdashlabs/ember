@@ -9,6 +9,8 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.api.refusal.RefusalDetail;
+import dev.chojo.ember.feature.generator.entity.DocumentIssuer;
+import dev.chojo.ember.feature.generator.entity.GenerationLogEntry;
 import dev.chojo.ember.feature.generator.entity.JobMemberStatus;
 import dev.chojo.ember.feature.generator.entity.MissingValue;
 import dev.chojo.ember.feature.generator.entity.SignatureRole;
@@ -31,6 +33,7 @@ import tools.jackson.databind.node.StringNode;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.Objects;
 
 import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.letter;
 import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.row;
@@ -97,7 +100,8 @@ class BulkGenerationServiceTest extends GeneratorTestBase {
                 runner(),
                 restrictionService,
                 memberNameResolver,
-                wiring.documents());
+                wiring.documents(),
+                wiring.issuers());
     }
 
     /**
@@ -112,8 +116,14 @@ class BulkGenerationServiceTest extends GeneratorTestBase {
                         row(text("{{member.fullName}} besucht die {{profile.%d}}.".formatted(school))),
                         row(signature(SignatureRole.ISSUER, "Jugendwartin")),
                         row(signature(SignatureRole.ISSUER, "Für Eltern", guardians))))
+                .issuer(manager.id(), "Jugendwartin")
                 .build();
         return wiring.templates().create(wiring.owner(), request, manager.id()).id();
+    }
+
+    /** The issuer the template names, as a run started without picking another one keeps it. */
+    private static DocumentIssuer issuer() {
+        return DocumentIssuer.ofTemplate(manager.id(), "Jugendwartin");
     }
 
     /** A runner as a fresh start of the application has it, knowing of no run. */
@@ -145,7 +155,8 @@ class BulkGenerationServiceTest extends GeneratorTestBase {
                 as(manager, StationPermission.DOCUMENT_EDIT_MEMBER),
                 templateId,
                 new MemberSelection(List.of(anna.id(), ben.id(), carla.id()), null),
-                false);
+                false,
+                null);
         assertEquals(3, started.job().total());
         assertEquals(
                 List.of(anna.id(), ben.id(), carla.id()),
@@ -176,8 +187,8 @@ class BulkGenerationServiceTest extends GeneratorTestBase {
 
     @Test
     void aRunThatAcceptsGapsFilesThemAsWell() throws InterruptedException {
-        var started =
-                bulk.start(as(manager), templateId, new MemberSelection(List.of(ben.id(), anna.id()), null), true);
+        var started = bulk.start(
+                as(manager), templateId, new MemberSelection(List.of(ben.id(), anna.id()), null), true, null);
 
         var job = finished(started.job().id());
 
@@ -187,10 +198,51 @@ class BulkGenerationServiceTest extends GeneratorTestBase {
         assertEquals(JobMemberStatus.FILED, resultOf(job, ben).status());
     }
 
+    /** A run is issued by the template's issuer, or by the member the manager picked for the whole run. */
+    @Test
+    void aRunKeepsTheIssuerItWasStartedWith() throws InterruptedException {
+        var picked = new DocumentIssuerService.IssuerChoice(ben.id(), "Kassenwart");
+        var selection = new MemberSelection(List.of(anna.id()), null);
+
+        var preview = bulk.preview(as(manager), templateId, selection, picked);
+        var byTemplate = finished(
+                bulk.start(as(manager), templateId, selection, true, null).job().id());
+        var byPicked = finished(bulk.start(as(manager), templateId, selection, true, picked)
+                .job()
+                .id());
+
+        assertEquals(
+                new DocumentGeneratorService.PreviewIssuer(ben.id(), "Ben Brandt", "Kassenwart", false),
+                Objects.requireNonNull(preview.preview()).issuer());
+        var fromTemplate = logged(resultOf(byTemplate, anna));
+        assertEquals(manager.id(), fromTemplate.issuerId());
+        assertEquals("Jugendwartin", fromTemplate.issuerFunction());
+        var fromPicked = logged(resultOf(byPicked, anna));
+        assertEquals(ben.id(), fromPicked.issuerId());
+        assertEquals("Kassenwart", fromPicked.issuerFunction());
+        refused(
+                DocumentRefusal.DOCUMENT_ISSUER_NOT_HERE,
+                () -> bulk.start(
+                        as(manager),
+                        templateId,
+                        selection,
+                        true,
+                        new DocumentIssuerService.IssuerChoice(stranger.id(), null)));
+    }
+
+    /** The entry of the generation log of the document a run filed for a member. */
+    private static GenerationLogEntry logged(JobMemberResult result) {
+        return wiring.log().forStation(wiring.station().id()).stream()
+                .filter(entry -> Objects.equals(entry.documentId(), result.documentId()))
+                .findFirst()
+                .orElseThrow();
+    }
+
     /** What a run did before the restart stays done; what was still waiting is generated after it. */
     @Test
     void aRunCarriesOnAfterARestart() throws InterruptedException {
-        int jobId = jobs.create(wiring.station().id(), templateId, manager.id(), true, List.of(anna.id(), ben.id()));
+        int jobId = jobs.create(
+                wiring.station().id(), templateId, manager.id(), true, issuer(), List.of(anna.id(), ben.id()));
         jobs.markFailed(jobId, anna.id(), "D-034", null);
 
         var restarted = runner();
@@ -212,7 +264,7 @@ class BulkGenerationServiceTest extends GeneratorTestBase {
      */
     @Test
     void aDocumentIsNotKeptWhenTheMemberCannotBeMarkedFiled() {
-        int jobId = jobs.create(wiring.station().id(), templateId, manager.id(), true, List.of(anna.id()));
+        int jobId = jobs.create(wiring.station().id(), templateId, manager.id(), true, issuer(), List.of(anna.id()));
         var filedGeneration = new int[] {0};
         var failing = new GenerationJobRepository() {
             @Override
@@ -240,7 +292,7 @@ class BulkGenerationServiceTest extends GeneratorTestBase {
     @Test
     void aRunOfAnArchivedTemplateFailsItsMembers() {
         int archived = template("Archiviert");
-        int jobId = jobs.create(wiring.station().id(), archived, manager.id(), true, List.of(anna.id()));
+        int jobId = jobs.create(wiring.station().id(), archived, manager.id(), true, issuer(), List.of(anna.id()));
         wiring.templates().setArchived(wiring.owner(), archived, true, manager.id());
 
         runner().run(jobId);
@@ -252,13 +304,13 @@ class BulkGenerationServiceTest extends GeneratorTestBase {
                 resultOf(job, anna).refusalCode());
         refused(
                 DocumentRefusal.DOCUMENT_TEMPLATE_ARCHIVED,
-                () -> bulk.start(as(manager), archived, new MemberSelection(List.of(anna.id()), null), true));
+                () -> bulk.start(as(manager), archived, new MemberSelection(List.of(anna.id()), null), true, null));
     }
 
     @Test
     void thePreviewDrawsTheFirstMemberAndListsWhatEveryMemberLacks() {
         var preview = bulk.preview(
-                as(manager), templateId, new MemberSelection(List.of(carla.id(), ben.id(), anna.id()), null));
+                as(manager), templateId, new MemberSelection(List.of(carla.id(), ben.id(), anna.id()), null), null);
 
         assertEquals(3, preview.memberCount());
         assertEquals(ben.id(), preview.previewMemberId(), "the first member whose document can be drawn");
@@ -280,7 +332,7 @@ class BulkGenerationServiceTest extends GeneratorTestBase {
     void thePreviewOfAnAudienceListsTheGapsOfEveryMemberItTakesIn() {
         var youth = new RestrictionAudience(List.of(), List.of(youthGroup), List.of(), List.of(), RestrictionMode.AND);
 
-        var preview = bulk.preview(as(manager), templateId, new MemberSelection(null, youth));
+        var preview = bulk.preview(as(manager), templateId, new MemberSelection(null, youth), null);
 
         assertEquals(6, preview.memberCount());
         assertEquals(6, preview.gaps().size());
@@ -293,21 +345,21 @@ class BulkGenerationServiceTest extends GeneratorTestBase {
         var session = as(manager);
         refused(
                 DocumentRefusal.DOCUMENT_JOB_NO_MEMBERS,
-                () -> bulk.preview(session, templateId, new MemberSelection(List.of(), null)));
+                () -> bulk.preview(session, templateId, new MemberSelection(List.of(), null), null));
         refused(
                 DocumentRefusal.DOCUMENT_JOB_MEMBER_NOT_HERE,
-                () -> bulk.start(session, templateId, new MemberSelection(List.of(stranger.id()), null), true));
+                () -> bulk.start(session, templateId, new MemberSelection(List.of(stranger.id()), null), true, null));
         int emptyGroup = memberGroupRepo.create(wiring.station().id(), "Leer").id();
         var nobody = new RestrictionAudience(List.of(), List.of(emptyGroup), List.of(), List.of(), RestrictionMode.AND);
         refused(
                 DocumentRefusal.DOCUMENT_JOB_NO_MEMBERS,
-                () -> bulk.preview(session, templateId, new MemberSelection(null, nobody)));
+                () -> bulk.preview(session, templateId, new MemberSelection(null, nobody), null));
     }
 
     @Test
     void aRunIsReadOnlyAtItsOwnStationAndListedNewestFirst() {
-        int older = jobs.create(wiring.station().id(), templateId, manager.id(), true, List.of(anna.id()));
-        int newer = jobs.create(wiring.station().id(), templateId, manager.id(), false, List.of(ben.id()));
+        int older = jobs.create(wiring.station().id(), templateId, manager.id(), true, issuer(), List.of(anna.id()));
+        int newer = jobs.create(wiring.station().id(), templateId, manager.id(), false, issuer(), List.of(ben.id()));
 
         var recent = bulk.recent(as(manager));
         var ids = recent.stream()

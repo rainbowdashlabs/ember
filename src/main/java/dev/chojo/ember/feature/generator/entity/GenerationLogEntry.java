@@ -26,6 +26,8 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param generatedBy     who generated it, or null once they are gone
  * @param selfService     whether it was generated through self service
  * @param documentId      the member document it was filed as, or null once that was deleted
+ * @param issuerId        the member who issued it, or null where it names none or they are gone
+ * @param issuerFunction  what the issuer does at the station, as printed, or null
  */
 public record GenerationLogEntry(
         int id,
@@ -37,7 +39,9 @@ public record GenerationLogEntry(
         @Nullable Integer memberId,
         @Nullable Integer generatedBy,
         boolean selfService,
-        @Nullable Integer documentId) {
+        @Nullable Integer documentId,
+        @Nullable Integer issuerId,
+        @Nullable String issuerFunction) {
 
     public static RowMapping<GenerationLogEntry> map() {
         return row -> new GenerationLogEntry(
@@ -50,6 +54,8 @@ public record GenerationLogEntry(
                 row.getObject("member_id", Integer.class),
                 row.getObject("generated_by", Integer.class),
                 row.getBoolean("self_service"),
-                row.getObject("document_id", Integer.class));
+                row.getObject("document_id", Integer.class),
+                row.getObject("issuer_id", Integer.class),
+                row.getString("issuer_function"));
     }
 }

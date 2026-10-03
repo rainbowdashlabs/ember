@@ -59,6 +59,7 @@ import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotationLink;
 import org.apache.pdfbox.pdmodel.interactive.form.PDSignatureField;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
@@ -192,6 +193,7 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
         var pdfTemplates = new PdfTemplateRepository();
         var uses = new TemplateStationUseRepository();
         fonts = newFontLibrary(storage);
+        var issuers = new DocumentIssuerService(stationMemberRepo, uses);
         var checks = new TemplateChecks(
                 templateRepository,
                 pdfTemplates,
@@ -199,10 +201,11 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
                 stationRepo,
                 catalogue,
                 fonts,
-                newOwnerStores());
+                newOwnerStores(),
+                issuers);
         templates = new DocumentTemplateService(
                 templateRepository, pdfTemplates, uses, checks, restrictionService, catalogue, newOwnerStores());
-        stationUses = new TemplateStationUseService(templates, uses, restrictionService);
+        stationUses = new TemplateStationUseService(templates, uses, restrictionService, issuers);
         pdfRenderer = new PdfTemplateRenderer(
                 new PdfTemplateService(
                         templates, templateRepository, pdfTemplates, newDocumentIntake(), storage, newOwnerStores()),
@@ -218,8 +221,8 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
                 restrictionService,
                 clock);
         log = new DocumentGenerationRepository();
-        generation =
-                new DocumentGenerationService(templates, generator, documents, newDocumentIntake(), log, checks, clock);
+        generation = new DocumentGenerationService(
+                templates, generator, documents, newDocumentIntake(), log, checks, issuers, clock);
         selfService = new SelfServiceDocumentService(
                 templateRepository,
                 templates,
@@ -231,6 +234,7 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
                 new GuardianPolicy(stationMemberRepo),
                 documents,
                 stationRepo,
+                issuers,
                 clock);
     }
 
@@ -302,7 +306,8 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
     void aManagerGeneratesAndFilesADocument() throws IOException {
         int templateId = certificate("Teilnahme");
 
-        var generated = generation.generate(as(manager, StationPermission.DOCUMENT_EDIT_MEMBER), templateId, lena.id());
+        var generated =
+                generation.generate(as(manager, StationPermission.DOCUMENT_EDIT_MEMBER), templateId, lena.id(), null);
 
         var document = memberDocumentRepo.findById(generated.documentId()).orElseThrow();
         assertEquals("Teilnahme Lena Sch*midt_#1 02.10.2026", document.title());
@@ -332,7 +337,7 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
     void valuesPrintLiterallyAndTheLetterheadIsDrawn() throws IOException {
         int templateId = certificate("Literal");
 
-        var generated = generation.generate(as(manager), templateId, lena.id());
+        var generated = generation.generate(as(manager), templateId, lena.id(), null);
 
         byte[] pdf = fileOf(generated.documentId());
         String text = PdfText.extract(pdf);
@@ -354,7 +359,7 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
     /** The file is PDF/A-3b, which a sealed copy stays conformant to when signing adds to it. */
     @Test
     void theFileIsPdfA3b() throws IOException {
-        var generated = generation.generate(as(manager), certificate("Archiv"), lena.id());
+        var generated = generation.generate(as(manager), certificate("Archiv"), lena.id(), null);
 
         try (var document = Loader.loadPDF(fileOf(generated.documentId()))) {
             var metadata = document.getDocumentCatalog().getMetadata();
@@ -365,9 +370,161 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
     }
 
     private static int templateOf(String name, BlockRowRequest... body) {
-        return templates
-                .create(owner, letterOf(name, false, false, 0, List.of(body)).build(), author)
-                .id();
+        var request = letterOf(name, false, false, 0, List.of(body))
+                .issuer(manager.id(), "Jugendwartin")
+                .build();
+        return templates.create(owner, request, author).id();
+    }
+
+    /**
+     * A self service letter naming its issuer by name and function, with the issuer's signature line.
+     *
+     * @param issuer the member the template names as its issuer, or null for nobody
+     */
+    private static int issued(String name, @Nullable StationMember issuer) {
+        var builder = letterOf(
+                name,
+                true,
+                false,
+                0,
+                List.of(
+                        row(text("Ausgestellt von {{issuer.fullName}}, {{issuer.function}}")),
+                        row(signature(SignatureRole.ISSUER, "Unterschrift"))));
+        if (issuer != null) builder.issuer(issuer.id(), "Jugendwartin");
+        return templates.create(owner, builder.build(), author).id();
+    }
+
+    private static String textOf(int documentId) {
+        return Objects.requireNonNull(PdfText.extract(fileOf(documentId)));
+    }
+
+    @Test
+    void theTemplatesIssuerIsNamedAndOwnsTheSignatureField() throws IOException {
+        var warden = member("gen-warden@test.com", "Erika", "Wehr");
+        stationMemberRepo.setNickname(warden.id(), "Eri", warden.id());
+        int templateId = issued("Ausgestellt", warden);
+
+        var generated = generation.generate(as(manager), templateId, lena.id(), null);
+
+        assertTrue(generated.missing().isEmpty(), generated.missing().toString());
+        assertTrue(textOf(generated.documentId()).contains("Ausgestellt von Erika Wehr, Jugendwartin"));
+        assertEquals(List.of("issuer"), signatureFields(generated.documentId()));
+        var logged = log.findById(generated.generationId()).orElseThrow();
+        assertEquals(warden.id(), logged.issuerId());
+        assertEquals("Jugendwartin", logged.issuerFunction());
+        assertTrue(logged.issuerFixed());
+        assertTrue(logged.issuerSigns());
+    }
+
+    @Test
+    void aManagerMayPickAnotherIssuerForOneDocument() {
+        int templateId = issued("Vertretung", guardian);
+        var instead = new DocumentIssuerService.IssuerChoice(max.id(), " Kassenwart ");
+
+        var preview = generation.preview(as(manager), templateId, lena.id(), instead);
+        var generated = generation.generate(as(manager), templateId, lena.id(), instead);
+
+        assertEquals(
+                new DocumentGeneratorService.PreviewIssuer(max.id(), "Max Weiß", "Kassenwart", false),
+                preview.issuer());
+        assertTrue(textOf(generated.documentId()).contains("Ausgestellt von Max Weiß, Kassenwart"));
+        var logged = log.findById(generated.generationId()).orElseThrow();
+        assertEquals(max.id(), logged.issuerId());
+        assertFalse(logged.issuerFixed(), "picked for this document");
+        assertEquals(
+                new DocumentGeneratorService.PreviewIssuer(guardian.id(), "Anna Schmidt", "Jugendwartin", true),
+                generation.preview(as(manager), templateId, lena.id(), null).issuer());
+        var elsewhere = stationMemberRepo.create(
+                stationRepo.create("Fremde Generator Wache").id(),
+                accountRepo.create("gen-elsewhere@test.com", "Fred", "Fremd").id());
+        refused(
+                DocumentRefusal.DOCUMENT_ISSUER_NOT_HERE,
+                () -> generation.generate(
+                        as(manager),
+                        templateId,
+                        lena.id(),
+                        new DocumentIssuerService.IssuerChoice(elsewhere.id(), null)));
+    }
+
+    @Test
+    void selfServiceAlwaysTakesTheTemplatesIssuer() {
+        int templateId = issued("Selbst ausgestellt", guardian);
+
+        var generated = selfService.generate(as(lena), templateId, lena.id());
+
+        assertTrue(textOf(generated.documentId()).contains("Ausgestellt von Anna Schmidt, Jugendwartin"));
+        var logged = log.findById(generated.generationId()).orElseThrow();
+        assertEquals(guardian.id(), logged.issuerId());
+        assertTrue(logged.issuerFixed());
+        assertTrue(logged.selfService());
+    }
+
+    /** A document that names its issuer, or asks them to sign, misses the issuer where nobody is named. */
+    @Test
+    void anIssuerNobodyIsNamedForIsMissingData() {
+        int named = issued("Ohne Aussteller", null);
+        var signedOnly = letterOf(
+                        "Nur Unterschrift",
+                        false,
+                        false,
+                        0,
+                        List.of(row(signature(SignatureRole.ISSUER, "Unterschrift"))))
+                .build();
+        int onlySigned = templates.create(owner, signedOnly, author).id();
+        var issuerMissing = new MissingValue("issuer.fullName", "Ausstellende Person: Name");
+
+        var preview = generation.preview(as(manager), named, lena.id(), null);
+        var signedPreview = generation.preview(as(manager), onlySigned, lena.id(), null);
+
+        assertTrue(preview.missing().contains(issuerMissing), preview.missing().toString());
+        assertTrue(preview.missing().contains(new MissingValue("issuer.function", "Ausstellende Person: Funktion")));
+        assertEquals(List.of(issuerMissing), signedPreview.missing());
+        assertEquals(new DocumentGeneratorService.PreviewIssuer(null, null, null, true), signedPreview.issuer());
+        var refusal = assertThrows(RefusalResponse.class, () -> selfService.generate(as(lena), named, lena.id()));
+        assertEquals(DocumentRefusal.DOCUMENT_SELF_SERVICE_VALUES_MISSING, refusal.refusal());
+        var filed = generation.generate(as(manager), onlySigned, lena.id(), null);
+        assertNull(log.findById(filed.generationId()).orElseThrow().issuerId());
+    }
+
+    /**
+     * An issuer who left is missing from then on: the template keeps naming them and can still be saved
+     * so, but nobody who left can be named anew. A deleted issuer leaves the template naming nobody.
+     */
+    @Test
+    void anIssuerWhoLeftOrWasDeletedIsMissing() {
+        var leaving = member("gen-leaving@test.com", "Lars", "Geht");
+        var deleted = member("gen-deleted@test.com", "Dora", "Weg");
+        int templateId = issued("Gegangen", leaving);
+        int deletedTemplate = issued("Gelöscht", deleted);
+        stationMemberRepo.setFormer(leaving.id(), true);
+        stationMemberRepo.delete(deleted.id());
+        var issuerMissing = new MissingValue("issuer.fullName", "Ausstellende Person: Name");
+
+        assertTrue(generation
+                .preview(as(manager), templateId, lena.id(), null)
+                .missing()
+                .contains(issuerMissing));
+        assertTrue(generation
+                .preview(as(manager), deletedTemplate, lena.id(), null)
+                .missing()
+                .contains(issuerMissing));
+        assertNull(templates.detail(owner, deletedTemplate).issuerId());
+        var unchanged = templates.detail(owner, templateId);
+        var again = letterOf("Gegangen", true, true, 0, List.of(row(text("{{issuer.fullName}}"))))
+                .issuer(leaving.id(), "Jugendwart")
+                .build();
+        assertEquals(
+                leaving.id(), templates.update(owner, templateId, again, author).issuerId());
+        assertEquals(
+                unchanged.version() + 1, templates.detail(owner, templateId).version());
+        refused(
+                DocumentRefusal.DOCUMENT_ISSUER_NOT_HERE,
+                () -> templates.create(
+                        owner,
+                        letterOf("Neu mit Gegangenem", false, false, 0, List.of(row(text("x"))))
+                                .issuer(leaving.id(), null)
+                                .build(),
+                        author));
     }
 
     /** The names of the signature fields of a filed document, in the order the form lists them. */
@@ -405,7 +562,7 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
                         text("Berlin, {{today}}"),
                         signature(SignatureRole.ISSUER, "{{generatedBy.fullName}}, Jugendwartin")));
 
-        var generated = generation.generate(as(manager), templateId, lena.id());
+        var generated = generation.generate(as(manager), templateId, lena.id(), null);
 
         assertTrue(generated.missing().isEmpty());
         try (var document = Loader.loadPDF(fileOf(generated.documentId()))) {
@@ -431,16 +588,19 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
 
         assertEquals(
                 List.of("guardian1", "guardian2"),
-                signatureFields(
-                        generation.generate(as(manager), templateId, kim.id()).documentId()));
+                signatureFields(generation
+                        .generate(as(manager), templateId, kim.id(), null)
+                        .documentId()));
         assertEquals(
                 List.of("guardian1"),
-                signatureFields(
-                        generation.generate(as(manager), templateId, lena.id()).documentId()));
+                signatureFields(generation
+                        .generate(as(manager), templateId, lena.id(), null)
+                        .documentId()));
         assertEquals(
                 List.of("guardian1"),
-                signatureFields(
-                        generation.generate(as(manager), templateId, max.id()).documentId()));
+                signatureFields(generation
+                        .generate(as(manager), templateId, max.id(), null)
+                        .documentId()));
     }
 
     @Test
@@ -448,7 +608,7 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
         int templateId = templateOf("Ein Elternteil", row(signature(SignatureRole.ANY_GUARDIAN, "")));
 
         var generated = generation.generate(
-                as(manager), templateId, withTwoGuardians("Ole").id());
+                as(manager), templateId, withTwoGuardians("Ole").id(), null);
 
         assertEquals(List.of("anyGuardian"), signatureFields(generated.documentId()));
     }
@@ -458,7 +618,7 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
         int templateId = templateOf(
                 "Teilnahme unterschrieben", row(signature(SignatureRole.PARTICIPANT, "{{member.fullName}}")));
 
-        var generated = generation.generate(as(manager), templateId, lena.id());
+        var generated = generation.generate(as(manager), templateId, lena.id(), null);
 
         assertEquals(List.of("participant"), signatureFields(generated.documentId()));
     }
@@ -480,9 +640,9 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
                         signature(SignatureRole.GUARDIAN_2, "{{guardian2.fullName}}")));
         var kim = withTwoGuardians("Ina");
 
-        var forLena = generation.generate(as(manager), templateId, lena.id());
-        var forKim = generation.generate(as(manager), templateId, kim.id());
-        var forMax = generation.generate(as(manager), templateId, max.id());
+        var forLena = generation.generate(as(manager), templateId, lena.id(), null);
+        var forKim = generation.generate(as(manager), templateId, kim.id(), null);
+        var forMax = generation.generate(as(manager), templateId, max.id(), null);
 
         assertTrue(forLena.missing().isEmpty());
         assertEquals(List.of("guardian1"), signatureFields(forLena.documentId()));
@@ -516,12 +676,12 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
 
         refused(
                 DocumentRefusal.DOCUMENT_SIGNER_TWICE_FOR_MEMBER,
-                () -> generation.generate(as(manager), templateId, guardian.id()));
+                () -> generation.generate(as(manager), templateId, guardian.id(), null));
         refused(
                 DocumentRefusal.DOCUMENT_SIGNER_TWICE_FOR_MEMBER,
-                () -> generation.preview(as(manager), templateId, guardian.id()));
+                () -> generation.preview(as(manager), templateId, guardian.id(), null));
         assertTrue(generation
-                .preview(as(manager), templateId, lena.id())
+                .preview(as(manager), templateId, lena.id(), null)
                 .pdfBase64()
                 .startsWith("JVBER"));
     }
@@ -551,9 +711,9 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
                 .id();
 
         byte[] withLines =
-                fileOf(generation.generate(as(manager), lined, lena.id()).documentId());
+                fileOf(generation.generate(as(manager), lined, lena.id(), null).documentId());
         byte[] without =
-                fileOf(generation.generate(as(manager), plain, lena.id()).documentId());
+                fileOf(generation.generate(as(manager), plain, lena.id(), null).documentId());
 
         String text = PdfText.extract(withLines);
         assertTrue(text.contains("TERMINE"), text);
@@ -576,7 +736,7 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
 
     @Test
     void aLetterWithoutASignatureFieldHasNoForm() throws IOException {
-        var generated = generation.generate(as(manager), certificate("Ohne Unterschrift"), lena.id());
+        var generated = generation.generate(as(manager), certificate("Ohne Unterschrift"), lena.id(), null);
 
         try (var document = Loader.loadPDF(fileOf(generated.documentId()))) {
             assertNull(document.getDocumentCatalog().getAcroForm(null));
@@ -587,8 +747,8 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
     void everyMemberGetsTheirOwnDocument() throws IOException {
         int templateId = certificate("Jeder");
 
-        var forLena = generation.generate(as(manager), templateId, lena.id());
-        var forMax = generation.generate(as(manager), templateId, max.id());
+        var forLena = generation.generate(as(manager), templateId, lena.id(), null);
+        var forMax = generation.generate(as(manager), templateId, max.id(), null);
 
         assertNotEquals(forLena.documentId(), forMax.documentId());
         assertTrue(PdfText.extract(fileOf(forMax.documentId())).contains("Max Weiß"));
@@ -599,7 +759,7 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
     /** A manager is warned and may still generate; the gaps print as lines to fill in. */
     @Test
     void aManagerMayGenerateWithGaps() {
-        var generated = generation.generate(as(manager), certificate("Lücke"), max.id());
+        var generated = generation.generate(as(manager), certificate("Lücke"), max.id(), null);
 
         assertEquals(List.of(new MissingValue("profile." + schoolField, "Schule")), generated.missing());
     }
@@ -623,7 +783,7 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
                 .build();
         int templateId = templates.create(owner, request, author).id();
 
-        var generated = generation.generate(as(manager), templateId, max.id());
+        var generated = generation.generate(as(manager), templateId, max.id(), null);
 
         String text = PdfText.extract(fileOf(generated.documentId()));
         assertTrue(text.contains("Für alle: Max Weiß"), text);
@@ -632,7 +792,7 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
 
         stationMemberRepo.setUserType(max.id(), StationUserType.TRIAL);
         try {
-            var forTrial = generation.preview(as(manager), templateId, max.id());
+            var forTrial = generation.preview(as(manager), templateId, max.id(), null);
             assertEquals(List.of(new MissingValue("profile." + schoolField, "Schule")), forTrial.missing());
         } finally {
             stationMemberRepo.setUserType(max.id(), StationUserType.MEMBER);
@@ -644,7 +804,7 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
         int templateId =
                 template("Eltern", false, false, 0, "{{member.fullName}}, vertreten durch {{guardian1.fullName}}");
 
-        var generated = generation.generate(as(manager), templateId, lena.id());
+        var generated = generation.generate(as(manager), templateId, lena.id(), null);
 
         assertEquals(
                 List.of(
@@ -658,12 +818,18 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
         var intake = mock(DocumentIntake.class);
         when(intake.take(anyInt(), any(), any(), any())).thenThrow(DocumentRefusal.DOCUMENT_UPLOAD_NO_ROOM.raise());
         var full = new DocumentGenerationService(
-                templates, generatorOf(), documents, intake, log, mock(TemplateChecks.class));
+                templates,
+                generatorOf(),
+                documents,
+                intake,
+                log,
+                mock(TemplateChecks.class),
+                new DocumentIssuerService(stationMemberRepo, new TemplateStationUseRepository()));
         int templateId = certificate("Voll");
         int before =
                 memberDocumentRepo.findByMember(station.id(), max.id(), true).size();
 
-        refused(DocumentRefusal.DOCUMENT_UPLOAD_NO_ROOM, () -> full.generate(as(manager), templateId, max.id()));
+        refused(DocumentRefusal.DOCUMENT_UPLOAD_NO_ROOM, () -> full.generate(as(manager), templateId, max.id(), null));
         assertEquals(
                 before,
                 memberDocumentRepo.findByMember(station.id(), max.id(), true).size());
@@ -692,7 +858,7 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
 
         refused(
                 DocumentRefusal.DOCUMENT_TEMPLATE_ARCHIVED,
-                () -> generation.generate(as(manager), templateId, lena.id()));
+                () -> generation.generate(as(manager), templateId, lena.id(), null));
         refused(
                 DocumentRefusal.DOCUMENT_TEMPLATE_ARCHIVED,
                 () -> selfService.generate(as(lena), templateId, lena.id()));
@@ -705,7 +871,7 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
         try {
             refused(
                     DocumentRefusal.DOCUMENTS_SWITCHED_OFF,
-                    () -> generation.generate(as(manager), templateId, lena.id()));
+                    () -> generation.generate(as(manager), templateId, lena.id(), null));
         } finally {
             stationRepo.setDisabledModules(station.id(), Set.of());
         }
@@ -727,6 +893,8 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
                 0,
                 RestrictionMode.AND,
                 DocumentLanguage.DE,
+                null,
+                null,
                 new LetterContent(
                         List.of(),
                         List.of(),
@@ -738,14 +906,14 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
 
         refused(
                 DocumentRefusal.DOCUMENT_TEMPLATE_CALLED_NAME_IN_LEGAL,
-                () -> generation.generate(as(manager), templateId, lena.id()));
+                () -> generation.generate(as(manager), templateId, lena.id(), null));
     }
 
     @Test
     void aPreviewIsDrawnForAMemberAndListsWhatIsMissing() {
         int templateId = certificate("Vorschau");
 
-        var preview = generation.preview(as(manager), templateId, max.id());
+        var preview = generation.preview(as(manager), templateId, max.id(), null);
 
         assertTrue(preview.pdfBase64().startsWith("JVBER"), "a PDF");
         assertEquals(List.of(new MissingValue("profile." + schoolField, "Schule")), preview.missing());
@@ -832,7 +1000,7 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
     @Test
     void onlySelfServiceCountsTowardsTheWait() {
         int templateId = certificate("Verwaltung zählt nicht");
-        generation.generate(as(manager), templateId, lena.id());
+        generation.generate(as(manager), templateId, lena.id(), null);
 
         assertNull(selfService.offers(as(lena), lena.id()).stream()
                 .filter(candidate -> candidate.templateId() == templateId)

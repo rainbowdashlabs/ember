@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.generator.service;
 
 import dev.chojo.ember.feature.content.entity.CellContentType;
+import dev.chojo.ember.feature.generator.entity.DocumentIssuer;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplate;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplateDraft;
 import dev.chojo.ember.feature.generator.entity.LetterContent;
@@ -37,7 +38,8 @@ import java.util.stream.Stream;
  *
  * <p>A station copies its own templates and those of its association it uses; the copy of an
  * association's template is the station's own, which it changes like any other, and takes the self
- * service the station chose for the original. An association copies its own templates. Nothing is
+ * service and the issuer the station chose for the original. A station's copy of its own template keeps
+ * the template's issuer. An association copies its own templates. Nothing is
  * checked again: fonts and pictures the new owner does not reach print as they would anywhere they
  * are missing, and the answer names them so the editor can say so.
  */
@@ -52,6 +54,7 @@ public class DocumentTemplateCopyService {
     private final LetterChecks letters;
     private final FontLibrary fonts;
     private final OwnerStores stores;
+    private final DocumentIssuerService issuers;
 
     @Inject
     public DocumentTemplateCopyService(
@@ -61,7 +64,8 @@ public class DocumentTemplateCopyService {
             TemplateChecks checks,
             LetterChecks letters,
             FontLibrary fonts,
-            OwnerStores stores) {
+            OwnerStores stores,
+            DocumentIssuerService issuers) {
         this.templates = templates;
         this.pdfs = pdfs;
         this.stationUses = stationUses;
@@ -69,6 +73,7 @@ public class DocumentTemplateCopyService {
         this.letters = letters;
         this.fonts = fonts;
         this.stores = stores;
+        this.issuers = issuers;
     }
 
     /**
@@ -85,6 +90,7 @@ public class DocumentTemplateCopyService {
         var source = templates.requireCopyable(owner, templateId);
         var content = templates.contentOf(source);
         var selfService = selfServiceFor(owner, source);
+        var issuer = issuerFor(owner, source);
         var draft = new DocumentTemplateDraft(
                 checks.freeCopyName(owner, name),
                 source.titlePattern(),
@@ -98,6 +104,8 @@ public class DocumentTemplateCopyService {
                 source.cooldownDays(),
                 selfService.audience().mode(),
                 source.language(),
+                issuer.memberId(),
+                issuer.function(),
                 content);
         var copy = Transactions.call(() -> {
             var written = templates.write(owner, draft, selfService.audience(), authorId);
@@ -121,6 +129,16 @@ public class DocumentTemplateCopyService {
         }
         var use = stationUses.useOf(station.stationId(), source.id());
         return new SelfService(use.offered() && use.selfService(), use.audience());
+    }
+
+    /**
+     * The issuer a copy starts with: for a station the one the template names at that station, its own
+     * template's or what it chose for one of its association, and nobody for an association, which names
+     * none.
+     */
+    private DocumentIssuer issuerFor(Owner owner, DocumentTemplate source) {
+        if (!(owner instanceof Owner.Station station)) return DocumentIssuer.NONE;
+        return issuers.ofTemplate(source, station.stationId());
     }
 
     /** How many pictures of a letter are not in the media library the owner's templates draw on. */

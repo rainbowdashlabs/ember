@@ -136,7 +136,8 @@ class DocumentFontServiceTest extends RepositoryTestBase {
                 stationRepo,
                 catalogue,
                 library,
-                newOwnerStores());
+                newOwnerStores(),
+                new DocumentIssuerService(stationMemberRepo, new TemplateStationUseRepository()));
         templates = new DocumentTemplateService(
                 templateRepository,
                 pdfTemplates,

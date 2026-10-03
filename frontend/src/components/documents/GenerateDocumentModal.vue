@@ -5,6 +5,7 @@
  */
 <script lang="ts" setup>
 import {computed, ref, watch} from 'vue'
+import {watchDebounced} from '@vueuse/core'
 import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
@@ -18,9 +19,11 @@ import type {MemberOption} from '@/components/input/select/memberOption'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import GeneratedPreview from './GeneratedPreview.vue'
+import IssuerOverride from './IssuerOverride.vue'
 import {recentlyUsedFirst} from './recentlyUsedFirst'
-import {documentTemplates} from '@/api'
-import type {DocumentTemplateSummary, PreviewResponse} from '@/api/generated/schema'
+import {fromCompletion} from '@/components/input/select/memberOption'
+import {documentTemplates, stationMembers} from '@/api'
+import type {DocumentTemplateSummary, IssuerChoice, PreviewIssuer, PreviewResponse} from '@/api/generated/schema'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {showToast} from '@/util/toast'
@@ -36,6 +39,9 @@ import {showToast} from '@/util/toast'
  *
  * <p>Templates for appointments are not offered: generated for a member alone, the appointment's own
  * values would all print as gaps.
+ *
+ * <p>Where the document names its issuer, the template's issuer is shown and another current member of
+ * the station can be picked for this one document; the preview follows the choice.
  */
 const open = defineModel<boolean>({required: true})
 
@@ -53,27 +59,37 @@ const emit = defineEmits<{
   filed: [documentId: number]
 }>()
 
+const ISSUER_SETTLE_MS = 400
+
 const {t} = useI18n()
 
 const templates = ref<DocumentTemplateSummary[]>([])
+const members = ref<MemberOption[]>([])
 const templateId = ref<number | null>(null)
 const chosenMember = ref('')
 const preview = ref<PreviewResponse | null>(null)
+const templateIssuer = ref<PreviewIssuer | null>(null)
+const issuer = ref<IssuerChoice | null>(null)
 const chosen = computed(() => templates.value.find(template => template.id === templateId.value) ?? null)
 const memberId = computed(() => props.memberId ?? (chosenMember.value ? Number(chosenMember.value) : null))
 
 const loader = useAsyncLoader(async () => {
-  const usable = await documentTemplates.usableTemplates()
+  const [usable, completions] = await Promise.all([
+    documentTemplates.usableTemplates(),
+    stationMembers.listCompletions().catch(() => []),
+  ])
   templates.value = recentlyUsedFirst(usable.filter(template => !template.forAppointments))
+  members.value = completions.map(fromCompletion)
 })
 
 const drawing = useAsyncAction(async (id: number, member: number) => {
-  preview.value = await documentTemplates.previewForMember(id, member)
+  preview.value = await documentTemplates.previewForMember(id, member, issuer.value)
+  if (issuer.value === null) templateIssuer.value = preview.value.issuer ?? null
 })
 
 const filing = useAsyncAction(async () => {
   if (templateId.value === null || memberId.value === null) return
-  const filed = await documentTemplates.generateForMember(templateId.value, memberId.value)
+  const filed = await documentTemplates.generateForMember(templateId.value, memberId.value, issuer.value)
   showToast(t('documentTemplates.generated'), 'success')
   emit('filed', filed.documentId)
   open.value = false
@@ -81,8 +97,14 @@ const filing = useAsyncAction(async () => {
 
 watch([templateId, memberId], ([id, member]) => {
   preview.value = null
+  templateIssuer.value = null
+  issuer.value = null
   if (id !== null && member !== null) drawing.run(id, member)
 })
+
+watchDebounced(issuer, () => {
+  if (templateId.value !== null && memberId.value !== null) drawing.run(templateId.value, memberId.value)
+}, {debounce: ISSUER_SETTLE_MS, deep: true})
 </script>
 
 <template>
@@ -105,6 +127,8 @@ watch([templateId, memberId], ([id, member]) => {
       <LabelledField v-if="props.memberId === null" :label="t('documentTemplates.generateMember')">
         <MemberSelectInput v-model="chosenMember" :members="props.members" data-testid="generate-member"/>
       </LabelledField>
+      <IssuerOverride v-if="templateIssuer" :key="templateId ?? 0" v-model="issuer" :template-issuer="templateIssuer"
+                      :members="members"/>
       <GeneratedPreview v-if="preview && chosen" :preview="preview" :title="chosen.name"/>
       <ButtonRow pair align="end">
         <SecondaryButton @click="open = false">{{ t('common.cancel') }}</SecondaryButton>

@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.generator.repository.TemplateStationUseRepository
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.restriction.service.RestrictionService;
+import dev.chojo.ember.owner.Owner;
 import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -30,6 +31,9 @@ import java.util.Optional;
  * its own members see it there and who of them. Until a station decides, a template of its association
  * is not offered to its members, whatever the association offers. Generating one for a member, as a
  * manager does, needs no decision: every template of the association in use is there for that.
+ *
+ * <p>An association has no members, so its template names no issuer; each station names its own here,
+ * who then issues the template's documents at that station ({@link DocumentIssuerService}).
  */
 @Singleton
 public class TemplateStationUseService {
@@ -38,27 +42,34 @@ public class TemplateStationUseService {
     private final DocumentTemplateService templates;
     private final TemplateStationUseRepository uses;
     private final RestrictionService restrictions;
+    private final DocumentIssuerService issuers;
 
     @Inject
     public TemplateStationUseService(
-            DocumentTemplateService templates, TemplateStationUseRepository uses, RestrictionService restrictions) {
+            DocumentTemplateService templates,
+            TemplateStationUseRepository uses,
+            RestrictionService restrictions,
+            DocumentIssuerService issuers) {
         this.templates = templates;
         this.uses = uses;
         this.restrictions = restrictions;
+        this.issuers = issuers;
     }
 
     /**
      * A template of the association as a station sees it, with how the station uses it.
      *
-     * @param templateId   the template
-     * @param name         what the association calls it
-     * @param kind         what it is made of
-     * @param legal        whether it makes a legal document
-     * @param offered      whether the association offers it for self service
-     * @param cooldownDays the days between two self service documents for one member, which the
-     *                     association sets
-     * @param selfService  whether the station offers it to its members for self service
-     * @param audience     who of the station's members may generate it for themselves
+     * @param templateId     the template
+     * @param name           what the association calls it
+     * @param kind           what it is made of
+     * @param legal          whether it makes a legal document
+     * @param offered        whether the association offers it for self service
+     * @param cooldownDays   the days between two self service documents for one member, which the
+     *                       association sets
+     * @param selfService    whether the station offers it to its members for self service
+     * @param audience       who of the station's members may generate it for themselves
+     * @param issuerId       the member of the station who issues its documents there, or null for nobody
+     * @param issuerFunction what the issuer does at the station, or null where nothing is said
      */
     public record TemplateUseResponse(
             int templateId,
@@ -68,16 +79,23 @@ public class TemplateStationUseService {
             boolean offered,
             int cooldownDays,
             boolean selfService,
-            RestrictionAudience audience) {}
+            RestrictionAudience audience,
+            @Nullable Integer issuerId,
+            @Nullable String issuerFunction) {}
 
     /**
      * How a station wants to use a template of its association.
      *
-     * @param selfService whether its members generate it for themselves, where the association offers it
-     * @param audience    who of its members may, everybody where left out
+     * @param selfService    whether its members generate it for themselves, where the association offers it
+     * @param audience       who of its members may, everybody where left out
+     * @param issuerId       the member of the station who issues its documents there, or null for nobody
+     * @param issuerFunction what the issuer does at the station, or null where nothing is said
      */
     public record TemplateUseRequest(
-            boolean selfService, @Nullable RestrictionAudience audience) {}
+            boolean selfService,
+            @Nullable RestrictionAudience audience,
+            @Nullable Integer issuerId,
+            @Nullable String issuerFunction) {}
 
     /**
      * How a station uses a template of its association.
@@ -102,8 +120,12 @@ public class TemplateStationUseService {
     public TemplateUseResponse setUse(int stationId, int templateId, TemplateUseRequest request) {
         var template = requireOfAssociation(stationId, templateId);
         var audience = Objects.requireNonNullElse(request.audience(), RestrictionAudience.empty());
+        var kept = uses.find(templateId, stationId)
+                .map(TemplateStationUse::issuerId)
+                .orElse(null);
+        var issuer = issuers.checked(new Owner.Station(stationId), request.issuerId(), request.issuerFunction(), kept);
         var written = Transactions.call(() -> {
-            var use = uses.write(templateId, stationId, request.selfService(), audience.mode());
+            var use = uses.write(templateId, stationId, request.selfService(), audience.mode(), issuer);
             restrictions.setRestrictions(
                     RestrictionType.DOCUMENT_TEMPLATE_STATION_USE, use.id(), audience.toSelection());
             return use;
@@ -152,6 +174,8 @@ public class TemplateStationUseService {
                 template.selfService(),
                 template.cooldownDays(),
                 use != null && use.selfService(),
-                audience);
+                audience,
+                use == null ? null : use.issuerId(),
+                use == null ? null : use.issuerFunction());
     }
 }

@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.generator.repository;
 
+import dev.chojo.ember.feature.generator.entity.DocumentIssuer;
 import dev.chojo.ember.feature.generator.entity.TemplateStationUse;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import jakarta.inject.Singleton;
@@ -59,22 +60,32 @@ public class TemplateStationUseRepository {
      * @param stationId       the station
      * @param selfService     whether its members generate it through self service
      * @param restrictionMode how the parts of its audience combine
+     * @param issuer          who of its members issues the documents, and what they do
      * @return the row as written
      */
     public TemplateStationUse write(
-            int templateId, int stationId, boolean selfService, RestrictionMode restrictionMode) {
+            int templateId,
+            int stationId,
+            boolean selfService,
+            RestrictionMode restrictionMode,
+            DocumentIssuer issuer) {
         return query("""
-                        INSERT INTO document_template_station_use(template_id, station_id, self_service, restriction_mode)
-                        VALUES (:template_id, :station_id, :self_service, :restriction_mode)
+                        INSERT INTO document_template_station_use(template_id, station_id, self_service, restriction_mode,
+                                                                  issuer_id, issuer_function)
+                        VALUES (:template_id, :station_id, :self_service, :restriction_mode, :issuer_id, :issuer_function)
                         ON CONFLICT (template_id, station_id) DO UPDATE
                             SET self_service     = excluded.self_service,
                                 restriction_mode = excluded.restriction_mode,
+                                issuer_id        = excluded.issuer_id,
+                                issuer_function  = excluded.issuer_function,
                                 updated_at       = now()
                         RETURNING %s;""", TemplateStationUse.COLUMNS)
                 .single(call().bind("template_id", templateId)
                         .bind("station_id", stationId)
                         .bind("self_service", selfService)
-                        .bind("restriction_mode", restrictionMode))
+                        .bind("restriction_mode", restrictionMode)
+                        .bind("issuer_id", issuer.memberId())
+                        .bind("issuer_function", issuer.function()))
                 .map(TemplateStationUse.map())
                 .first()
                 .orElseThrow();

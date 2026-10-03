@@ -31,7 +31,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * The certificate every demo station gets: one per station however often the demo is seeded, saved through
- * the checks a manager's template passes, and printed for a seeded member with invented data only.
+ * the checks a manager's template passes, and printed for a seeded member with invented data only, but for
+ * the carer of the station who issues it.
  */
 class DemoDocumentTemplateSeederTest extends RepositoryTestBase {
     private static DemoRunContext run;
@@ -82,12 +83,16 @@ class DemoDocumentTemplateSeederTest extends RepositoryTestBase {
         int id = certificates(station).getFirst().id();
         int author = Objects.requireNonNull(station.adminMember().accountId());
 
+        var warden = station.members().betreuer().get(1);
         var request = DemoDocumentTemplateSeeder.certificate(
                 station.members().groupAnfaenger().id(),
-                station.members().groupFortgeschritten().id());
+                station.members().groupFortgeschritten().id(),
+                warden.id());
 
         var saved = wiring.templates().update(owner, id, request, author);
 
+        assertEquals(warden.id(), saved.issuerId(), "a carer of the station issues it");
+        assertEquals("Jugendfeuerwehrwartin", saved.issuerFunction());
         assertTrue(saved.legal(), "a certificate handed to others is legal");
         assertFalse(saved.selfService(), "the youth warden issues and signs it");
         assertEquals(DocumentLanguage.DE, saved.language());
@@ -113,13 +118,37 @@ class DemoDocumentTemplateSeederTest extends RepositoryTestBase {
         var session = stationSession(station.adminMember(), StationPermission.DOCUMENT_EDIT_MEMBER);
 
         var generated = wiring.generation()
-                .generate(session, certificates(station).getFirst().id(), member.id());
+                .generate(session, certificates(station).getFirst().id(), member.id(), null);
         String text = wiring.textOf(generated.documentId());
 
         assertTrue(text.contains(account.firstName() + " " + account.lastName()), text);
         assertTrue(text.contains("Jugendfeuerwehr Musterstadt"), text);
-        assertTrue(text.contains("Erika Musterfrau"), text);
         assertTrue(text.contains("jugendwart@example.org"), text);
+        assertTrue(
+                generated.missing().stream().noneMatch(missing -> missing.key().startsWith("issuer.")),
+                "the issuer is named: " + generated.missing());
+    }
+
+    /** The youth warden the template names signs it and stands in the contacts, by name and function. */
+    @Test
+    void itPrintsTheIssuersNameAndFunction() {
+        var station = run.primaryStation();
+        var session = stationSession(station.adminMember(), StationPermission.DOCUMENT_EDIT_MEMBER);
+        var generated = wiring.generation()
+                .generate(
+                        session,
+                        certificates(station).getFirst().id(),
+                        station.members().anfaenger().getFirst().id(),
+                        null);
+        String text = wiring.textOf(generated.documentId());
+
+        assertTrue(text.contains("Anna Schmidt\nJugendfeuerwehrwartin der "), "under the signature line: " + text);
+        assertTrue(text.contains("Jugendfeuerwehrwartin\nAnna Schmidt\njugendwart@"), "in the contacts: " + text);
+        assertFalse(text.contains("Erika Musterfrau"), "the issuer is no longer invented: " + text);
+        var logged = wiring.log().findById(generated.generationId()).orElseThrow();
+        assertEquals(station.members().betreuer().get(1).id(), logged.issuerId());
+        assertTrue(logged.issuerFixed(), "the template's own issuer");
+        assertTrue(logged.issuerSigns(), "the signature field is the issuer's");
         assertTrue(text.contains("er sich") || text.contains("sie sich"), "the pronoun follows the gender: " + text);
         assertFalse(text.contains("Berlin"), "no real city and no real brigade, Berliner included: " + text);
     }
@@ -158,7 +187,7 @@ class DemoDocumentTemplateSeederTest extends RepositoryTestBase {
     private static String certificateFor(DemoStationContext station, StationMember member) {
         var session = stationSession(station.adminMember(), StationPermission.DOCUMENT_EDIT_MEMBER);
         var generated = wiring.generation()
-                .generate(session, certificates(station).getFirst().id(), member.id());
+                .generate(session, certificates(station).getFirst().id(), member.id(), null);
         return wiring.textOf(generated.documentId());
     }
 

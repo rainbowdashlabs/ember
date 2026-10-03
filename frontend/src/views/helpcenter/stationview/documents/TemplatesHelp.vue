@@ -23,6 +23,7 @@ const {t} = useI18n()
     <HelpSection :title="t('helpCenter.documentTemplates.generateTitle')">
       <p>{{ t('helpCenter.documentTemplates.generateText') }}</p>
       <p>{{ t('helpCenter.documentTemplates.missingText') }}</p>
+      <p>{{ t('helpCenter.documentTemplates.issuerText') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.documentTemplates.forAppointmentsTitle')">

@@ -1700,6 +1700,12 @@ volumes:
             missingText: 'Fehlen Angaben, nennt Ember sie vor dem Erstellen. Du kannst trotzdem erstellen, die '
                 + 'Lücken stehen dann als Linien zum Ausfüllen im Dokument. Vorlagen für Termine stehen beim '
                 + 'Erstellen für ein Mitglied nicht zur Wahl, ihnen fehlen ohne Termin die Angaben.',
+            issuerText: 'Nennt das Dokument eine ausstellende Person, zeigt der Dialog, wen die Vorlage dafür '
+                + 'vorsieht. Mit „Andere ausstellende Person" wählst du für dieses eine Dokument ein anderes '
+                + 'Mitglied der Wache und seine Funktion, die Vorschau zeigt sie sofort. Die Vorlage bleibt, wie sie '
+                + 'ist. Beim Erstellen für mehrere Mitglieder geht das genauso, nach der ersten Vorschau, und gilt dann '
+                + 'für die ganze Erstellung. Selbst erstellte und mitzubringende Dokumente stellt immer die Person '
+                + 'der Vorlage aus.',
             selfServiceTitle: 'Selbst erstellen lassen',
             selfServiceText: 'Ist eine Vorlage zum Selbst-Erstellen freigegeben, finden Mitglieder sie unter Dokumente → '
                 + 'Meine Dokumente neben ihren Dokumenten. Erziehungsberechtigte erstellen sie dort für jedes Kind. Fehlen Angaben im '
@@ -1783,14 +1789,18 @@ volumes:
             subtitle: 'Wie die Wache eine Vorlage ihres Verbands verwendet',
             whatIs: 'Was die Wache hier festlegt',
             whatIsText: 'Die Vorlage gehört dem Verband und wird dort geschrieben. Die Verwaltung der Wache erstellt '
-                + 'sie für Mitglieder auf deren Seite, ohne etwas einzustellen. Hier legt die Wache nur fest, ob ihre '
-                + 'Mitglieder sie selbst erstellen.',
+                + 'sie für Mitglieder auf deren Seite. Hier legt die Wache fest, ob ihre Mitglieder sie selbst '
+                + 'erstellen und wer ihre Dokumente an der Wache ausstellt.',
             selfServiceTitle: 'Selbst erstellen lassen',
             selfServiceText: 'Mit dem Schalter erscheint die Vorlage bei den Mitgliedern unter Meine Dokumente. Ohne Auswahl bei „Für '
                 + 'wen" gilt sie für alle Mitglieder, sonst nur für die gewählten Gruppen, Mitgliedsarten, Tags oder '
                 + 'Personen. Die Wartezeit legt der Verband fest.',
             offeredText: 'Bietet der Verband die Vorlage nicht zum Selbst-Erstellen an, bleibt die Einstellung ohne '
                 + 'Wirkung, bis er es tut.',
+            issuerTitle: 'Ausstellende Person',
+            issuerText: 'Der Verband hat keine eigenen Mitglieder, deshalb wählt die Wache hier, wer die Dokumente '
+                + 'der Vorlage an der Wache ausstellt, und dessen Funktion. Name und Funktion füllen die Platzhalter '
+                + 'der ausstellenden Person, auch in selbst erstellten Dokumenten. Ist niemand gewählt, fehlen sie.',
         },
         documentTemplateEditor: {
             title: 'Vorlage bearbeiten',
@@ -1801,6 +1811,19 @@ volumes:
                 + 'vor dem Mitglied verborgen sind.',
             legalText: 'Ein rechtliches Dokument nennt Mitglieder nur mit ihrem amtlichen Namen. Den Rufnamen bietet '
                 + 'der Editor dann nicht an, und Ember erstellt kein rechtliches Dokument, das ihn enthält.',
+            issuerTitle: 'Ausstellende Person',
+            issuerText: 'Unter Allgemein wählst du, wer die Dokumente der Vorlage ausstellt: ein aktuelles Mitglied '
+                + 'der Wache und seine Funktion, etwa „Jugendfeuerwehrwartin". Die Platzhalter „Ausstellende Person: '
+                + 'Name" und „Ausstellende Person: Funktion" stehen im eigenen Bereich Ausstellende Person. Sie füllen '
+                + 'sich in jedem Dokument der Vorlage mit dem amtlichen Namen und der Funktion, auch in selbst '
+                + 'erstellten. Die Unterschriftszeile der ausstellenden Person gehört ebenfalls dieser Person.',
+            issuerMissingText: 'Ist niemand gewählt, oder ist die gewählte Person kein Mitglied der Wache mehr, '
+                + 'fehlen Name und Funktion: Die Vorschau nennt sie als fehlend, Selbst-Erstellen wartet, bis jemand '
+                + 'gewählt ist, und die Verwaltung erstellt mit Linien zum Ausfüllen. Wird die Person gelöscht, ist '
+                + 'in der Vorlage niemand mehr gewählt. Beim Duplizieren an derselben Wache bleibt die ausstellende '
+                + 'Person erhalten.',
+            issuerAssociationText: 'Der Verband hat keine eigenen Mitglieder. Für seine Vorlagen wählt jede Wache '
+                + 'die ausstellende Person selbst, dort, wo sie die Vorlage freischaltet.',
             letterheadTitle: 'Brief, Kopf- und Fußzeile',
             letterheadText: 'Unter Brief stehen Kopfzeile, Text und Fußzeile so untereinander wie auf dem Papier. '
                 + 'Alle drei bestehen aus Zeilen mit Spalten, wie die Seiten der Wache: bis zu drei im Text, '

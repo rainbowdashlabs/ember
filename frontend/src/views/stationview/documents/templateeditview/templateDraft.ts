@@ -38,6 +38,10 @@ export interface TemplateDraft {
     audience: RestrictionSelection
     /** The language documents are written in, or null for the station's until the template is saved. */
     language: DocumentLanguage | null
+    /** The member of the station who issues the documents, or null for nobody; an association names none. */
+    issuerId: number | null
+    /** What the issuer does at the station, empty where nothing is said. */
+    issuerFunction: string
     header: RowEditData[]
     footer: RowEditData[]
     body: RowEditData[]
@@ -74,6 +78,8 @@ export function emptyDraft(kind: DocumentTemplateKind = DocumentTemplateKind.LET
         cooldownDays: 30,
         audience: emptyRestriction(),
         language: null,
+        issuerId: null,
+        issuerFunction: '',
         header: [],
         footer: [],
         body: [],
@@ -99,6 +105,8 @@ export function draftOf(template: DocumentTemplateResponse): TemplateDraft {
         cooldownDays: template.cooldownDays,
         audience: toRestriction(template.audience),
         language: template.language,
+        issuerId: template.issuerId ?? null,
+        issuerFunction: template.issuerFunction ?? '',
         header: toEditRows(template.header),
         footer: toEditRows(template.footer),
         body: toEditRows(template.body),
@@ -124,6 +132,8 @@ export function requestOf(draft: TemplateDraft): DocumentTemplateRequest {
         cooldownDays: draft.cooldownDays,
         audience: draft.audience,
         language: draft.language,
+        issuerId: draft.issuerId,
+        issuerFunction: draft.issuerFunction.trim() || null,
         header: toBlockRequests(draft.header),
         footer: toBlockRequests(draft.footer),
         body: toBlockRequests(draft.body),

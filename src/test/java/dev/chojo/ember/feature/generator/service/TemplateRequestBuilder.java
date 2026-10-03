@@ -40,6 +40,8 @@ final class TemplateRequestBuilder {
     private @Nullable Integer cooldownDays;
     private @Nullable RestrictionAudience audience;
     private @Nullable DocumentLanguage language;
+    private @Nullable Integer issuerId;
+    private @Nullable String issuerFunction;
     private @Nullable List<BlockRowRequest> header;
     private @Nullable List<BlockRowRequest> footer;
     private @Nullable List<BlockRowRequest> body;
@@ -216,6 +218,12 @@ final class TemplateRequestBuilder {
         return this;
     }
 
+    TemplateRequestBuilder issuer(int memberId, @Nullable String function) {
+        this.issuerId = memberId;
+        this.issuerFunction = function;
+        return this;
+    }
+
     TemplateRequestBuilder header(List<BlockRowRequest> rows) {
         this.header = rows;
         return this;
@@ -261,6 +269,8 @@ final class TemplateRequestBuilder {
                 cooldownDays,
                 audience,
                 language,
+                issuerId,
+                issuerFunction,
                 header,
                 footer,
                 body,

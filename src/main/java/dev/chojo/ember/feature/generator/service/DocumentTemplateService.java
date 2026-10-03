@@ -355,6 +355,8 @@ public class DocumentTemplateService {
                 template.cooldownDays(),
                 audience,
                 template.language(),
+                template.issuerId(),
+                template.issuerFunction(),
                 letter.header(),
                 letter.footer(),
                 letter.body(),
@@ -435,6 +437,9 @@ public class DocumentTemplateService {
      * @param audience        who may generate it through self service, always everybody for a template of
      *                        an association
      * @param language        the language its documents are written in
+     * @param issuerId        the member of the station who issues its documents, or null where it names
+     *                        nobody, for a template of an association, and once that member was deleted
+     * @param issuerFunction  what the issuer does at the station, or null where nothing is said
      * @param header          the rows across the top of every page of a letter
      * @param footer          the rows across the bottom of every page of a letter
      * @param body            the rows of a letter
@@ -461,6 +466,8 @@ public class DocumentTemplateService {
             int cooldownDays,
             RestrictionAudience audience,
             DocumentLanguage language,
+            @Nullable Integer issuerId,
+            @Nullable String issuerFunction,
             List<ContentRow> header,
             List<ContentRow> footer,
             List<ContentRow> body,

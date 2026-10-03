@@ -68,7 +68,7 @@ class AssociationDocumentTemplateRoutesTest {
         when(templates.setArchived(any(), anyInt(), anyBoolean(), anyInt())).thenReturn(template);
         when(templates.catalogue(any())).thenReturn(new PlaceholderCatalogueResponse(List.of()));
         when(generation.previewAssociationDraft(any(), any(), any(), any()))
-                .thenReturn(new PreviewResponse("JVBER", List.of(), List.of()));
+                .thenReturn(new PreviewResponse("JVBER", List.of(), List.of(), null));
         when(imports.read(any(LetterImportService.Importer.class), any()))
                 .thenReturn(new LetterImport(List.of(), List.of(), List.of()));
         when(pdfs.upload(any(), anyInt(), any(), anyInt())).thenReturn(template);

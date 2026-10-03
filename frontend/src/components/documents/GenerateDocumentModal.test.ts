@@ -8,6 +8,7 @@ import {flushPromises, type VueWrapper} from '@vue/test-utils'
 import {mountSuspended} from '@nuxt/test-utils/runtime'
 import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
 import GenerateDocumentModal from './GenerateDocumentModal.vue'
+import IssuerOverride from './IssuerOverride.vue'
 
 const previewForMember = vi.fn()
 const generateForMember = vi.fn()
@@ -22,6 +23,9 @@ vi.mock('@/api', () => ({
         ]),
         previewForMember: (...args: unknown[]) => previewForMember(...args),
         generateForMember: (...args: unknown[]) => generateForMember(...args),
+    },
+    stationMembers: {
+        listCompletions: vi.fn(async () => []),
     },
 }))
 
@@ -72,12 +76,12 @@ describe('GenerateDocumentModal', () => {
         expect(dialog.findComponent(MemberSelectInput).exists()).toBe(false)
 
         await chooseTemplate(dialog, 3)
-        expect(previewForMember).toHaveBeenCalledWith(3, 4)
+        expect(previewForMember).toHaveBeenCalledWith(3, 4, null)
 
         await dialog.find('[data-testid="generate-file"]').trigger('click')
         await flushPromises()
 
-        expect(generateForMember).toHaveBeenCalledWith(3, 4)
+        expect(generateForMember).toHaveBeenCalledWith(3, 4, null)
         expect(dialog.emitted('filed')).toEqual([[42]])
     })
 
@@ -89,12 +93,34 @@ describe('GenerateDocumentModal', () => {
 
         dialog.findComponent(MemberSelectInput).vm.$emit('update:modelValue', '9')
         await flushPromises()
-        expect(previewForMember).toHaveBeenCalledWith(1, 9)
+        expect(previewForMember).toHaveBeenCalledWith(1, 9, null)
 
         await dialog.find('[data-testid="generate-file"]').trigger('click')
         await flushPromises()
 
-        expect(generateForMember).toHaveBeenCalledWith(1, 9)
+        expect(generateForMember).toHaveBeenCalledWith(1, 9, null)
         expect(dialog.emitted('filed')).toEqual([[42]])
+    })
+
+    it('shows the template\'s issuer and files with the one picked instead', async () => {
+        previewForMember.mockResolvedValue({
+            missing: [],
+            pdfBase64: '',
+            unprintable: [],
+            issuer: {memberId: 5, name: 'Erika Wehr', function: 'Jugendwartin', fixed: true},
+        })
+        const dialog = await mountDialog({memberId: 4})
+
+        await chooseTemplate(dialog, 1)
+        expect(previewForMember).toHaveBeenLastCalledWith(1, 4, null)
+        const override = dialog.findComponent(IssuerOverride)
+        expect(override.text()).toContain('Erika Wehr, Jugendwartin')
+
+        override.vm.$emit('update:modelValue', {memberId: 7, function: 'Kassenwart'})
+        await flushPromises()
+        await dialog.find('[data-testid="generate-file"]').trigger('click')
+        await flushPromises()
+
+        expect(generateForMember).toHaveBeenCalledWith(1, 4, {memberId: 7, function: 'Kassenwart'})
     })
 })

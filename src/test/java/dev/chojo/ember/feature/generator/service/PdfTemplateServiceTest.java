@@ -107,6 +107,7 @@ class PdfTemplateServiceTest extends RepositoryTestBase {
         var uses = new TemplateStationUseRepository();
         var media = mock(MediaLibraryService.class);
         var fonts = newFontLibrary(storage);
+        var issuers = new DocumentIssuerService(stationMemberRepo, uses);
         var checks = new TemplateChecks(
                 templateRepository,
                 pdfTemplates,
@@ -114,7 +115,8 @@ class PdfTemplateServiceTest extends RepositoryTestBase {
                 stationRepo,
                 catalogue,
                 fonts,
-                newOwnerStores());
+                newOwnerStores(),
+                issuers);
         templates = new DocumentTemplateService(
                 templateRepository, pdfTemplates, uses, checks, restrictionService, catalogue, newOwnerStores());
         pdfs = new PdfTemplateService(
@@ -129,12 +131,12 @@ class PdfTemplateServiceTest extends RepositoryTestBase {
                 restrictionService,
                 clock);
         log = new DocumentGenerationRepository();
-        generation =
-                new DocumentGenerationService(templates, generator, documents, newDocumentIntake(), log, checks, clock);
+        generation = new DocumentGenerationService(
+                templates, generator, documents, newDocumentIntake(), log, checks, issuers, clock);
         selfService = new SelfServiceDocumentService(
                 templateRepository,
                 templates,
-                new TemplateStationUseService(templates, uses, restrictionService),
+                new TemplateStationUseService(templates, uses, restrictionService, issuers),
                 generator,
                 generation,
                 log,
@@ -142,6 +144,7 @@ class PdfTemplateServiceTest extends RepositoryTestBase {
                 new GuardianPolicy(stationMemberRepo),
                 documents,
                 stationRepo,
+                issuers,
                 clock);
     }
 
@@ -262,7 +265,7 @@ class PdfTemplateServiceTest extends RepositoryTestBase {
         var empty = templates.create(owner, request("Noch leer"), author);
         refused(
                 DocumentRefusal.DOCUMENT_TEMPLATE_PDF_MISSING,
-                () -> generation.generate(as(manager), empty.id(), lena.id()));
+                () -> generation.generate(as(manager), empty.id(), lena.id(), null));
     }
 
     @Test
@@ -364,11 +367,11 @@ class PdfTemplateServiceTest extends RepositoryTestBase {
         var template = withFields(
                 uploaded("Neue Fassung", TestPdfs.plain(1)),
                 request("Neue Fassung", text(NAME, "{{member.fullName}}")));
-        var before = generation.generate(as(manager), template.id(), lena.id());
+        var before = generation.generate(as(manager), template.id(), lena.id(), null);
 
         var reuploaded = pdfs.upload(
                 owner, template.id(), TestUploads.of("neu.pdf", "application/pdf", TestPdfs.plain(2)), author);
-        var after = generation.generate(as(manager), template.id(), lena.id());
+        var after = generation.generate(as(manager), template.id(), lena.id(), null);
 
         var oldOriginal = Objects.requireNonNull(template.pdf()).id();
         var newOriginal = Objects.requireNonNull(reuploaded.pdf()).id();
@@ -395,7 +398,7 @@ class PdfTemplateServiceTest extends RepositoryTestBase {
                         List.of(new FormBinding("person.name", "{{station.name}}")),
                         false));
 
-        var filed = generation.generate(as(manager), template.id(), lena.id());
+        var filed = generation.generate(as(manager), template.id(), lena.id(), null);
 
         assertEquals("Einverständnis Lena Schmidt", filed.title());
         var document = memberDocumentRepo.findById(filed.documentId()).orElseThrow();
@@ -432,7 +435,7 @@ class PdfTemplateServiceTest extends RepositoryTestBase {
                 uploaded("Vorschau PDF", TestPdfs.plain(1)),
                 request("Vorschau PDF", text(NAME, "{{member.fullName}}")));
 
-        var forRen = generation.preview(as(manager), template.id(), ren.id());
+        var forRen = generation.preview(as(manager), template.id(), ren.id(), null);
         var labelled = generation.previewDraft(
                 as(manager, StationPermission.DOCUMENT_TEMPLATE_EDIT),
                 request("Vorschau PDF", text(NAME, "{{member.fullName}}")),

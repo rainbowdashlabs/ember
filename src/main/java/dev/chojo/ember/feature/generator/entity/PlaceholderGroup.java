@@ -21,6 +21,8 @@ public enum PlaceholderGroup {
     ASSOCIATION,
     /** The appointment a document is generated for, where it is generated for one. */
     EVENT,
+    /** The member who issues the document for the station. */
+    ISSUER,
     /** The document itself: the day it is generated and who generates it. */
     DOCUMENT,
     /** A pronoun for the member, following the member's answer to the gender field. */

@@ -69,6 +69,8 @@ CREATE TABLE IF NOT EXISTS ember_schema.document_template
     self_service_cooldown_days INTEGER     NOT NULL DEFAULT 30 CHECK (self_service_cooldown_days >= 0),
     restriction_mode           TEXT        NOT NULL DEFAULT 'AND' CHECK (restriction_mode IN ('AND', 'OR')),
     language                   TEXT        NOT NULL DEFAULT 'DE' CHECK (language IN ('DE', 'EN')),
+    issuer_id                  INTEGER     NULL REFERENCES ember_schema.station_member (id) ON DELETE SET NULL,
+    issuer_function            TEXT        NULL,
     version                   INTEGER     NOT NULL DEFAULT 1,
     created_at                 TIMESTAMPTZ NOT NULL DEFAULT now(),
     created_by                 INTEGER     NULL REFERENCES ember_schema.account (id) ON DELETE SET NULL,
@@ -113,6 +115,10 @@ COMMENT ON COLUMN ember_schema.document_template.restriction_mode IS
     'AND or OR, how the parts of document_template_restriction combine.';
 COMMENT ON COLUMN ember_schema.document_template.language IS
     'DE or EN, the language the documents are written in: it picks the pronouns of the gender profile field, how dates are written, and the words the letter prints itself.';
+COMMENT ON COLUMN ember_schema.document_template.issuer_id IS
+    'The member of the station who issues the documents of a station''s template: their official name fills issuer.fullName and the signature field for the issuer is theirs. NULL where nobody is named, for a template of an association (each station names its own in document_template_station_use), and once that member was deleted, which the template then shows as missing.';
+COMMENT ON COLUMN ember_schema.document_template.issuer_function IS
+    'What the issuer does at the station, such as the title of their office, which fills issuer.function. NULL where none is given.';
 COMMENT ON COLUMN ember_schema.document_template.version IS
     'Counts up with every change, so the generation log says which state of the template a document came from.';
 COMMENT ON COLUMN ember_schema.document_template.created_at IS 'When the template was created.';
@@ -154,6 +160,8 @@ CREATE TABLE IF NOT EXISTS ember_schema.document_template_station_use
     station_id       INTEGER     NOT NULL REFERENCES ember_schema.station (id) ON DELETE CASCADE,
     self_service     BOOLEAN     NOT NULL DEFAULT FALSE,
     restriction_mode TEXT        NOT NULL DEFAULT 'AND' CHECK (restriction_mode IN ('AND', 'OR')),
+    issuer_id        INTEGER     NULL REFERENCES ember_schema.station_member (id) ON DELETE SET NULL,
+    issuer_function  TEXT        NULL,
     updated_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE (template_id, station_id)
 );
@@ -170,6 +178,10 @@ COMMENT ON COLUMN ember_schema.document_template_station_use.self_service IS
     'Whether members of the station generate the document for themselves, and guardians for the members in their care. Only takes effect while the association offers the template for self service.';
 COMMENT ON COLUMN ember_schema.document_template_station_use.restriction_mode IS
     'AND or OR, how the parts of document_template_station_use_restriction combine.';
+COMMENT ON COLUMN ember_schema.document_template_station_use.issuer_id IS
+    'The member of the station who issues the documents of the association''s template at this station, as document_template.issuer_id does for a station''s own template. NULL where the station named nobody, and once that member was deleted, which the template then shows as missing.';
+COMMENT ON COLUMN ember_schema.document_template_station_use.issuer_function IS
+    'What the issuer does at the station, which fills issuer.function. NULL where none is given.';
 COMMENT ON COLUMN ember_schema.document_template_station_use.updated_at IS 'When the station last changed how it uses the template.';
 
 CREATE TABLE IF NOT EXISTS ember_schema.document_template_station_use_restriction
@@ -338,7 +350,11 @@ CREATE TABLE IF NOT EXISTS ember_schema.document_generation
     file_sha256      TEXT        NOT NULL,
     pdf_original_id  INTEGER     NULL REFERENCES ember_schema.document_template_pdf_original (id) ON DELETE SET NULL,
     event_id         INTEGER     NULL REFERENCES ember_schema.station_event (id) ON DELETE SET NULL,
-    event_date       DATE        NULL
+    event_date       DATE        NULL,
+    issuer_id        INTEGER     NULL REFERENCES ember_schema.station_member (id) ON DELETE SET NULL,
+    issuer_function  TEXT        NULL,
+    issuer_fixed     BOOLEAN     NOT NULL DEFAULT FALSE,
+    issuer_signs     BOOLEAN     NOT NULL DEFAULT FALSE
 );
 
 CREATE INDEX IF NOT EXISTS idx_document_generation_template_member
@@ -371,6 +387,14 @@ COMMENT ON COLUMN ember_schema.document_generation.event_id IS
     'The appointment that requires the document and whose values it holds. NULL for a document generated on its own, and once the appointment was deleted.';
 COMMENT ON COLUMN ember_schema.document_generation.event_date IS
     'The day of the appointment the document was generated for, which tells the dates of a repeating appointment apart. NULL where event_id never was set.';
+COMMENT ON COLUMN ember_schema.document_generation.issuer_id IS
+    'The member who issues the document, whose name it prints and to whom the signature field named issuer belongs. NULL where the document names no issuer or none could be named, and once that member was deleted.';
+COMMENT ON COLUMN ember_schema.document_generation.issuer_function IS
+    'What the issuer does at the station, as the document printed it. NULL where it names no issuer function.';
+COMMENT ON COLUMN ember_schema.document_generation.issuer_fixed IS
+    'Whether the issuer is the one the template names for the station, as for every document of self service and every document to bring, rather than another member a manager picked for this one document. A signature of the template''s issuer may be applied without the issuer signing each document by hand.';
+COMMENT ON COLUMN ember_schema.document_generation.issuer_signs IS
+    'Whether the document carries the empty signature field named issuer, which issuer_id is to sign.';
 
 CREATE TABLE IF NOT EXISTS ember_schema.document_generation_subject
 (
@@ -475,6 +499,9 @@ CREATE TABLE IF NOT EXISTS ember_schema.document_generation_job
     template_id    INTEGER     NOT NULL REFERENCES ember_schema.document_template (id) ON DELETE CASCADE,
     started_by     INTEGER     NOT NULL REFERENCES ember_schema.station_member (id) ON DELETE CASCADE,
     accept_missing BOOLEAN     NOT NULL,
+    issuer_id       INTEGER     NULL REFERENCES ember_schema.station_member (id) ON DELETE SET NULL,
+    issuer_function TEXT        NULL,
+    issuer_fixed    BOOLEAN     NOT NULL DEFAULT TRUE,
     started_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
     finished_at    TIMESTAMPTZ NULL
 );
@@ -493,6 +520,12 @@ COMMENT ON COLUMN ember_schema.document_generation_job.started_by IS
     'The manager who started the run, who is the uploader of every document it files.';
 COMMENT ON COLUMN ember_schema.document_generation_job.accept_missing IS
     'Whether a member whose data the template needs is incomplete still gets a document, the gaps left to fill in by hand. Without it, such a member is listed as failed.';
+COMMENT ON COLUMN ember_schema.document_generation_job.issuer_id IS
+    'The member who issues every document of the run, taken when the run was started: the template''s issuer or another member the manager picked. NULL where there was none, and once that member was deleted, which every document still waiting then lacks.';
+COMMENT ON COLUMN ember_schema.document_generation_job.issuer_function IS
+    'What the issuer does at the station, printed in every document of the run. NULL where none is given.';
+COMMENT ON COLUMN ember_schema.document_generation_job.issuer_fixed IS
+    'Whether the issuer of the run is the one the template names for the station rather than one the manager picked.';
 COMMENT ON COLUMN ember_schema.document_generation_job.started_at IS 'When the run was started.';
 COMMENT ON COLUMN ember_schema.document_generation_job.finished_at IS 'When the last member of the run was done. NULL while it runs.';
 

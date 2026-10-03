@@ -16,9 +16,11 @@ import type {
     GeneratedDocumentResponse,
     GenerationJobResponse,
     GenerationJobSummary,
+    IssuerChoice,
+    JobPreviewRequest,
     JobStartRequest,
     LetterImport,
-    MemberSelection,
+    ManagerGenerationRequest,
     PlaceholderCatalogueResponse,
     PreviewResponse,
     SelfServiceOffer,
@@ -155,13 +157,25 @@ export async function usableTemplates(): Promise<DocumentTemplateSummary[]> {
     return res.data
 }
 
-export async function previewForMember(templateId: number, memberId: number): Promise<PreviewResponse> {
-    const res = await client.post<PreviewResponse>(`/document-generation/templates/${templateId}/members/${memberId}/preview`)
+/**
+ * Draws a document for a member without filing it.
+ *
+ * @param issuer the member to issue it instead of the template's issuer, or null to keep the template's
+ */
+export async function previewForMember(templateId: number, memberId: number, issuer: IssuerChoice | null): Promise<PreviewResponse> {
+    const request: ManagerGenerationRequest = {issuer}
+    const res = await client.post<PreviewResponse>(`/document-generation/templates/${templateId}/members/${memberId}/preview`, request)
     return res.data
 }
 
-export async function generateForMember(templateId: number, memberId: number): Promise<GeneratedDocumentResponse> {
-    const res = await client.post<GeneratedDocumentResponse>(`/document-generation/templates/${templateId}/members/${memberId}`)
+/**
+ * Generates a document for a member and files it with them.
+ *
+ * @param issuer the member to issue it instead of the template's issuer, or null to keep the template's
+ */
+export async function generateForMember(templateId: number, memberId: number, issuer: IssuerChoice | null): Promise<GeneratedDocumentResponse> {
+    const request: ManagerGenerationRequest = {issuer}
+    const res = await client.post<GeneratedDocumentResponse>(`/document-generation/templates/${templateId}/members/${memberId}`, request)
     return res.data
 }
 
@@ -177,8 +191,8 @@ export async function generateForSelf(memberId: number, templateId: number): Pro
 }
 
 /** Draws a template for the first of many members and lists what every member lacks. */
-export async function previewJob(templateId: number, selection: MemberSelection): Promise<BulkPreviewResponse> {
-    const res = await client.post<BulkPreviewResponse>(`/document-generation/templates/${templateId}/jobs/preview`, selection)
+export async function previewJob(templateId: number, request: JobPreviewRequest): Promise<BulkPreviewResponse> {
+    const res = await client.post<BulkPreviewResponse>(`/document-generation/templates/${templateId}/jobs/preview`, request)
     return res.data
 }
 

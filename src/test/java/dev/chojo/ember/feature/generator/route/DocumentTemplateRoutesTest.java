@@ -74,6 +74,8 @@ class DocumentTemplateRoutesTest {
             30,
             RestrictionAudience.empty(),
             DocumentLanguage.DE,
+            null,
+            null,
             List.of(),
             List.of(),
             List.of(),
@@ -125,6 +127,8 @@ class DocumentTemplateRoutesTest {
                 30,
                 RestrictionMode.AND,
                 DocumentLanguage.DE,
+                null,
+                null,
                 1,
                 Instant.EPOCH,
                 Instant.EPOCH,
@@ -217,7 +221,16 @@ class DocumentTemplateRoutesTest {
     @Test
     void anEditorOfTemplatesSetsHowTheStationUsesAnAssociationsTemplate() {
         var use = new TemplateUseResponse(
-                12, "Verbandsbrief", DocumentTemplateKind.LETTER, false, true, 30, true, RestrictionAudience.empty());
+                12,
+                "Verbandsbrief",
+                DocumentTemplateKind.LETTER,
+                false,
+                true,
+                30,
+                true,
+                RestrictionAudience.empty(),
+                null,
+                null);
         when(uses.useOf(3, 12)).thenReturn(use);
         when(uses.setUse(eq(3), eq(12), any())).thenReturn(use);
 

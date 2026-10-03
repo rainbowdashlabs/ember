@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.generator.service.BulkGenerationService.BulkPrevi
 import dev.chojo.ember.feature.generator.service.BulkGenerationService.GenerationJobResponse;
 import dev.chojo.ember.feature.generator.service.BulkGenerationService.GenerationJobSummary;
 import dev.chojo.ember.feature.generator.service.BulkGenerationService.MemberSelection;
+import dev.chojo.ember.feature.generator.service.DocumentIssuerService.IssuerChoice;
 import dev.chojo.ember.feature.generator.service.DocumentTemplateService;
 import dev.chojo.ember.owner.Owner;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,6 +32,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -55,8 +57,8 @@ class GenerationJobRoutesTest {
         var templates = mock(DocumentTemplateService.class);
         when(templates.requireOwned(OWNER, 8)).thenReturn(DocumentTemplateRoutesTest.template(8));
         when(templates.requireOwned(OWNER, 9)).thenThrow(DocumentRefusal.DOCUMENT_TEMPLATE_NOT_HERE.raise());
-        when(bulk.preview(any(), eq(8), any())).thenReturn(new BulkPreviewResponse(2, 11, null, List.of()));
-        when(bulk.start(any(), eq(8), any(), eq(true))).thenReturn(JOB);
+        when(bulk.preview(any(), eq(8), any(), any())).thenReturn(new BulkPreviewResponse(2, 11, null, List.of()));
+        when(bulk.start(any(), eq(8), any(), eq(true), any())).thenReturn(JOB);
         when(bulk.recent(any())).thenReturn(List.of(SUMMARY));
         when(bulk.job(3, 5)).thenReturn(JOB);
         when(bulk.job(3, 6)).thenThrow(DocumentRefusal.DOCUMENT_JOB_NOT_HERE.raise());
@@ -73,7 +75,8 @@ class GenerationJobRoutesTest {
             var started = client.post(
                     PREFIX + "/document-generation/templates/8/jobs",
                     body("{\"audience\": {\"userTypes\": [], \"groupIds\": [4], \"tagIds\": [], \"memberIds\": [],"
-                            + " \"mode\": \"AND\"}, \"acceptMissing\": true}"),
+                            + " \"mode\": \"AND\"}, \"acceptMissing\": true,"
+                            + " \"issuer\": {\"memberId\": 14, \"function\": \"Kassenwart\"}}"),
                     filer);
             assertEquals(202, started.code());
             assertEquals(5, json(started).path("job").path("id").asInt());
@@ -95,9 +98,9 @@ class GenerationJobRoutesTest {
                             PREFIX + "/document-generation/templates/9/jobs", body("{\"memberIds\": [11]}"), filer)));
         });
 
-        verify(bulk).preview(any(), eq(8), eq(new MemberSelection(List.of(11, 12), null)));
-        verify(bulk).start(any(), eq(8), any(), eq(true));
-        verify(bulk, never()).start(any(), eq(9), any(), anyBoolean());
+        verify(bulk).preview(any(), eq(8), eq(new MemberSelection(List.of(11, 12), null)), isNull());
+        verify(bulk).start(any(), eq(8), any(), eq(true), eq(new IssuerChoice(14, "Kassenwart")));
+        verify(bulk, never()).start(any(), eq(9), any(), anyBoolean(), any());
     }
 
     @Test
@@ -113,6 +116,6 @@ class GenerationJobRoutesTest {
                     client.get(PREFIX + "/document-generation/jobs", reader).code());
         });
 
-        verify(bulk, never()).start(any(), anyInt(), any(), anyBoolean());
+        verify(bulk, never()).start(any(), anyInt(), any(), anyBoolean(), any());
     }
 }

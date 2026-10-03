@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.generator.service;
 import dev.chojo.ember.MovableClock;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.generator.entity.DataSubject;
+import dev.chojo.ember.feature.generator.entity.DocumentIssuer;
 import dev.chojo.ember.feature.generator.entity.DocumentLanguage;
 import dev.chojo.ember.feature.generator.entity.GenerationContext;
 import dev.chojo.ember.feature.generator.entity.SubjectRole;
@@ -118,7 +119,7 @@ class PlaceholderResolverTest extends RepositoryTestBase {
                         member.id(),
                         new LinkedHashSet<>(List.of(keys)),
                         language,
-                        GenerationContext.by(manager.id()))
+                        GenerationContext.by(manager.id(), DocumentIssuer.NONE))
                 .values();
     }
 
@@ -236,7 +237,7 @@ class PlaceholderResolverTest extends RepositoryTestBase {
                 new LinkedHashSet<>(
                         List.of("member.firstName", "member.birthDate", "guardian1.fullName", "event.name")),
                 DocumentLanguage.DE,
-                new GenerationContext(null, null));
+                GenerationContext.NOBODY);
 
         assertEquals(List.of("member.birthDate", "guardian1.fullName", "event.name"), resolved.missing());
         assertFalse(resolved.complete());
@@ -253,11 +254,51 @@ class PlaceholderResolverTest extends RepositoryTestBase {
                 lena.id(),
                 Set.of("event.name", "event.start", "event.location"),
                 DocumentLanguage.DE,
-                new GenerationContext(manager.id(), event));
+                new GenerationContext(manager.id(), event, DocumentIssuer.NONE));
 
         assertEquals("Berlin Marathon", resolved.values().get("event.name"));
         assertEquals("27.09.2026 09:00", resolved.values().get("event.start"));
         assertEquals(List.of("event.location"), resolved.missing());
+    }
+
+    @Test
+    void theIssuerIsNamedOfficiallyWithTheirFunction() {
+        var issuer = member("warden.resolver@test.com", "Erika", "Wehr");
+        stationMemberRepo.setNickname(issuer.id(), "Eri", issuer.id());
+
+        var resolved = resolver.resolve(
+                station.id(),
+                lena.id(),
+                Set.of("issuer.fullName", "issuer.function"),
+                DocumentLanguage.DE,
+                GenerationContext.by(manager.id(), DocumentIssuer.ofTemplate(issuer.id(), "Jugendwartin")));
+
+        assertEquals("Erika Wehr", resolved.values().get("issuer.fullName"));
+        assertEquals("Jugendwartin", resolved.values().get("issuer.function"));
+        assertTrue(resolved.complete());
+    }
+
+    /** Nobody named, a member who left and a member of another station all leave the issuer missing. */
+    @Test
+    void anIssuerWhoIsNoCurrentMemberIsMissing() {
+        var left = member("left.resolver@test.com", "Gerd", "Gegangen");
+        stationMemberRepo.setFormer(left.id(), true);
+        var elsewhere = stationMemberRepo.create(
+                stationRepo.create("Andere Resolver Wache").id(),
+                accountRepo
+                        .create("elsewhere.resolver@test.com", "Fred", "Fremd")
+                        .id());
+        var keys = Set.of("issuer.fullName", "issuer.function");
+
+        for (var issuer : List.of(
+                DocumentIssuer.NONE,
+                DocumentIssuer.ofTemplate(left.id(), null),
+                DocumentIssuer.picked(elsewhere.id(), null))) {
+            var resolved = resolver.resolve(
+                    station.id(), lena.id(), keys, DocumentLanguage.DE, GenerationContext.by(manager.id(), issuer));
+            assertTrue(resolved.missing().contains("issuer.fullName"), issuer.toString());
+            assertTrue(resolved.missing().contains("issuer.function"), issuer.toString());
+        }
     }
 
     /** A guardian is among the people a document is about only where the template reads their data. */
@@ -268,13 +309,13 @@ class PlaceholderResolverTest extends RepositoryTestBase {
                 lena.id(),
                 Set.of("member.fullName", "guardian2.fullName"),
                 DocumentLanguage.DE,
-                GenerationContext.by(manager.id()));
+                GenerationContext.by(manager.id(), DocumentIssuer.NONE));
         var withoutGuardian = resolver.resolve(
                 station.id(),
                 lena.id(),
                 Set.of("member.fullName"),
                 DocumentLanguage.DE,
-                GenerationContext.by(manager.id()));
+                GenerationContext.by(manager.id(), DocumentIssuer.NONE));
 
         assertEquals(
                 List.of(

@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.owner.Owner;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -62,6 +63,10 @@ class DocumentGenerationRepositoryTest extends RepositoryTestBase {
     }
 
     private static DocumentTemplateDraft draft(String name) {
+        return draft(name, null);
+    }
+
+    private static DocumentTemplateDraft draft(String name, @Nullable Integer issuer) {
         return new DocumentTemplateDraft(
                 name,
                 name,
@@ -75,6 +80,8 @@ class DocumentGenerationRepositoryTest extends RepositoryTestBase {
                 30,
                 RestrictionMode.AND,
                 DocumentLanguage.EN,
+                issuer,
+                issuer == null ? null : "Jugendwart",
                 LetterContent.blank());
     }
 
@@ -92,7 +99,61 @@ class DocumentGenerationRepositoryTest extends RepositoryTestBase {
                 "ab".repeat(32),
                 null,
                 null,
-                null);
+                null,
+                guardian,
+                "Jugendwart",
+                true,
+                true);
+    }
+
+    /**
+     * A deleted member leaves the template that names them as its issuer without one, its function kept,
+     * and the documents they issued with nobody named, so the template shows the issuer as missing and the
+     * log keeps what it can.
+     */
+    @Test
+    void aDeletedIssuerLeavesTheTemplateAndTheLogWithoutOne() {
+        int issuer = stationMemberRepo
+                .create(
+                        station.id(),
+                        accountRepo
+                                .create("log-issuer@test.com", "Erika", "Wehr")
+                                .id())
+                .id();
+        int issued =
+                templates.create(owner, draft("Ausgestellt", issuer), author).id();
+        var entry = entry(false);
+        var written = log.log(
+                new DocumentGeneration(
+                        0,
+                        entry.stationId(),
+                        issued,
+                        1,
+                        child,
+                        guardian,
+                        Instant.EPOCH,
+                        false,
+                        null,
+                        entry.fileSha256(),
+                        null,
+                        null,
+                        null,
+                        issuer,
+                        "Jugendwart",
+                        false,
+                        true),
+                List.of());
+        assertEquals(issuer, templates.findById(issued).orElseThrow().issuerId());
+
+        stationMemberRepo.delete(issuer);
+
+        var template = templates.findById(issued).orElseThrow();
+        assertNull(template.issuerId());
+        assertEquals("Jugendwart", template.issuerFunction());
+        var kept = log.findById(written.id()).orElseThrow();
+        assertNull(kept.issuerId());
+        assertEquals("Jugendwart", kept.issuerFunction());
+        assertTrue(kept.issuerSigns());
     }
 
     @Test
@@ -128,7 +189,11 @@ class DocumentGenerationRepositoryTest extends RepositoryTestBase {
                         "00",
                         null,
                         null,
-                        null),
+                        null,
+                        null,
+                        null,
+                        false,
+                        false),
                 List.of());
         assertNull(log.lastSelfService(otherTemplate, child));
 
@@ -146,7 +211,11 @@ class DocumentGenerationRepositoryTest extends RepositoryTestBase {
                         "01",
                         null,
                         null,
-                        null),
+                        null,
+                        null,
+                        null,
+                        false,
+                        false),
                 List.of());
         assertEquals(bySelf.generatedAt(), log.lastSelfService(otherTemplate, child));
     }
@@ -177,7 +246,23 @@ class DocumentGenerationRepositoryTest extends RepositoryTestBase {
 
     private static DocumentGeneration entryAt(int stationId, Instant at) {
         return new DocumentGeneration(
-                0, stationId, templateId, 3, child, guardian, at, false, null, "cd".repeat(32), null, null, null);
+                0,
+                stationId,
+                templateId,
+                3,
+                child,
+                guardian,
+                at,
+                false,
+                null,
+                "cd".repeat(32),
+                null,
+                null,
+                null,
+                null,
+                null,
+                false,
+                false);
     }
 
     @Test

@@ -64,6 +64,8 @@ class PdfTemplateRepositoryTest extends RepositoryTestBase {
                 30,
                 RestrictionMode.AND,
                 DocumentLanguage.DE,
+                null,
+                null,
                 new PdfContent(null, PdfLayout.empty()));
         var template = templates.create(new Owner.Station(station.id()), draft, author);
         assertEquals(DocumentTemplateKind.PDF, template.kind());

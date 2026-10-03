@@ -21,5 +21,9 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.documentTemplateUse.selfServiceText') }}</p>
       <p>{{ t('helpCenter.documentTemplateUse.offeredText') }}</p>
     </HelpSection>
+
+    <HelpSection :title="t('helpCenter.documentTemplateUse.issuerTitle')">
+      <p>{{ t('helpCenter.documentTemplateUse.issuerText') }}</p>
+    </HelpSection>
   </HelpArticle>
 </template>
