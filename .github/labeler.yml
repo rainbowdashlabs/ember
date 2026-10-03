@@ -56,6 +56,20 @@
           - "frontend/src/composables/helpPages.generated.ts"
           - "frontend/src/composables/useHelp*.ts"
           - "frontend/src/composables/useHelpcenter*.ts"
+"a:federation":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "**/federation/**"
+          - "**/federate/**"
+          - "**/discovery/**"
+          - "**/*Federat*"
+          - "**/*federat*"
+          - "**/*Discovery*"
+          - "**/*discovery*"
+          - "**/*PairRequest*"
+          - "**/*pairRequest*"
+          - "**/Remote*"
+          - "src/main/java/dev/chojo/ember/auth/signing/**"
 "a:tests":
   - changed-files:
       - any-glob-to-any-file:
