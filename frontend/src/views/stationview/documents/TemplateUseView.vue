@@ -22,7 +22,8 @@ import TemplateUsePanel from './templateuseview/TemplateUsePanel.vue'
 /**
  * How the station uses a template of its association. The association writes the template and offers
  * it for self service; the station decides whether its members see it there, and who of them. The
- * station's managers generate it for members either way, from the member page.
+ * station's managers generate it for members either way, from the member page. The station also names
+ * who of its members issues the template's documents, since the association has no members to name.
  */
 const {t} = useI18n()
 const route = useRoute()
@@ -31,6 +32,8 @@ const templateId = computed(() => Number(route.params.id))
 const use = shallowRef<TemplateUseResponse | null>(null)
 const selfService = ref(false)
 const audience = ref<RestrictionSelection>(toRestriction(null))
+const issuerId = ref<number | null>(null)
+const issuerFunction = ref('')
 const groups = ref<MemberGroup[]>([])
 const tags = ref<UserTag[]>([])
 const members = ref<MemberWithName[]>([])
@@ -39,6 +42,8 @@ function take(loaded: TemplateUseResponse) {
   use.value = loaded
   selfService.value = loaded.selfService
   audience.value = toRestriction(loaded.audience)
+  issuerId.value = loaded.issuerId ?? null
+  issuerFunction.value = loaded.issuerFunction ?? ''
 }
 
 const loader = useAsyncLoader(async () => {
@@ -55,7 +60,12 @@ const loader = useAsyncLoader(async () => {
 })
 
 const saving = useAsyncAction(async () => {
-  take(await documentTemplates.setTemplateUse(templateId.value, {selfService: selfService.value, audience: audience.value}))
+  take(await documentTemplates.setTemplateUse(templateId.value, {
+    selfService: selfService.value,
+    audience: audience.value,
+    issuerId: issuerId.value,
+    issuerFunction: issuerFunction.value.trim() || null,
+  }))
   showToast(t('documentTemplates.use.saved'), 'success')
 })
 
@@ -72,6 +82,8 @@ const pageTitle = computed(() => use.value
         v-if="use"
         v-model:self-service="selfService"
         v-model:audience="audience"
+        v-model:issuer-id="issuerId"
+        v-model:issuer-function="issuerFunction"
         :use="use"
         :groups="groups"
         :tags="tags"

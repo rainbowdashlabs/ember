@@ -13,13 +13,22 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import ToggleSetting from '@/components/input/toggle/ToggleSetting.vue'
-import {documentTemplates, memberGroups, userTags} from '@/api'
-import type {BulkPreviewResponse, DocumentTemplateSummary, GroupEntry, TagEntry} from '@/api/generated/schema'
+import {fromCompletion, type MemberOption} from '@/components/input/select/memberOption'
+import {documentTemplates, memberGroups, stationMembers, userTags} from '@/api'
+import type {
+  BulkPreviewResponse,
+  DocumentTemplateSummary,
+  GroupEntry,
+  IssuerChoice,
+  PreviewIssuer,
+  TagEntry,
+} from '@/api/generated/schema'
 import type {RestrictionSelection} from '@/api/types'
 import {emptyRestriction} from '@/components/input/restriction'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {showToast} from '@/util/toast'
+import IssuerOverride from '../IssuerOverride.vue'
 import {recentlyUsedFirst} from '../recentlyUsedFirst'
 import {selectionFor} from './bulkGeneration'
 import BulkMemberChoice from './BulkMemberChoice.vue'
@@ -32,6 +41,9 @@ import BulkTemplateChoice from './BulkTemplateChoice.vue'
  * document of the first member with the data every member still lacks, decide whether gaps are filed
  * as lines to fill in by hand, and start. The run goes on without the screen; its progress and results
  * stand on the templates page. The templates used most recently at the station come first.
+ *
+ * <p>Where the document names its issuer, the first look shows the template's issuer, and another
+ * current member of the station can be picked for the whole run; a new pick asks for a new look.
  */
 const open = defineModel<boolean>({required: true})
 
@@ -49,29 +61,35 @@ const {t} = useI18n()
 const templates = ref<DocumentTemplateSummary[]>([])
 const groups = ref<GroupEntry[]>([])
 const tags = ref<TagEntry[]>([])
+const members = ref<MemberOption[]>([])
 const templateId = ref<number | null>(null)
 const audience = ref<RestrictionSelection>(emptyRestriction())
 const acceptMissing = ref(false)
 const preview = ref<BulkPreviewResponse | null>(null)
+const templateIssuer = ref<PreviewIssuer | null>(null)
+const issuer = ref<IssuerChoice | null>(null)
 
 const chosen = computed(() => props.memberIds ?? null)
 const selection = computed(() => selectionFor(chosen.value, audience.value))
 const templateName = computed(() => templates.value.find(template => template.id === templateId.value)?.name ?? '')
 
 const loader = useAsyncLoader(async () => {
-  const [usable, groupList, tagList] = await Promise.all([
+  const [usable, groupList, tagList, completions] = await Promise.all([
     documentTemplates.usableTemplates(),
     memberGroups.listGroups().catch(() => []),
     userTags.listTags().catch(() => []),
+    stationMembers.listCompletions().catch(() => []),
   ])
   templates.value = recentlyUsedFirst(usable)
   groups.value = groupList
   tags.value = tagList
+  members.value = completions.map(fromCompletion)
 })
 
 const looking = useAsyncAction(async () => {
   if (templateId.value === null) return
-  preview.value = await documentTemplates.previewJob(templateId.value, selection.value)
+  preview.value = await documentTemplates.previewJob(templateId.value, {...selection.value, issuer: issuer.value})
+  if (issuer.value === null) templateIssuer.value = preview.value.preview?.issuer ?? null
 })
 
 const starting = useAsyncAction(async () => {
@@ -79,15 +97,21 @@ const starting = useAsyncAction(async () => {
   const started = await documentTemplates.startJob(templateId.value, {
     ...selection.value,
     acceptMissing: acceptMissing.value,
+    issuer: issuer.value,
   })
   showToast(t('documentTemplates.bulk.started', {count: started.job.total}), 'success')
   emit('started', started.job.id)
   open.value = false
 })
 
-watch([templateId, audience], () => {
-  preview.value = null
+watch(templateId, () => {
+  templateIssuer.value = null
+  issuer.value = null
 })
+
+watch([templateId, audience, issuer], () => {
+  preview.value = null
+}, {deep: true})
 </script>
 
 <template>
@@ -97,6 +121,8 @@ watch([templateId, audience], () => {
       <FailureAlert :failure="loader.failure.value ?? looking.failure.value ?? starting.failure.value"/>
       <BulkTemplateChoice v-model="templateId" :templates="templates" :loading="loader.loading.value"/>
       <BulkMemberChoice v-model="audience" :member-ids="chosen" :groups="groups" :tags="tags"/>
+      <IssuerOverride v-if="templateIssuer" :key="templateId ?? 0" v-model="issuer" :template-issuer="templateIssuer"
+                      :members="members"/>
       <BulkPreviewSummary v-if="preview" :preview="preview" :template-name="templateName"/>
       <ToggleSetting v-model="acceptMissing" :label="t('documentTemplates.bulk.acceptMissing')"
                      :hint="t('documentTemplates.bulk.acceptMissingHint')" data-testid="bulk-accept-missing"/>

@@ -56,7 +56,7 @@ const drawing = useAsyncAction(async () => {
 
 const generating = useAsyncAction(async () => {
   if (!props.saved || !memberId.value) return
-  await documentTemplates.generateForMember(props.saved.id, Number(memberId.value))
+  await documentTemplates.generateForMember(props.saved.id, Number(memberId.value), null)
   showToast(t('documentTemplates.generated'), 'success')
 })
 </script>

@@ -95,4 +95,5 @@ export default {
     'D-099': 'Der Termin verlangt dieses Dokument nicht',
     'D-100': 'Ein Termin verlangt nur eine begrenzte Zahl an Dokumenten, es wurde nichts gespeichert',
     'D-101': 'Das PDF dieser Vorlage ließ sich nicht lesen, deshalb wurde keine Kopie angelegt',
+    'D-102': 'Die ausstellende Person ist kein aktuelles Mitglied dieser Wache',
 }

@@ -9,9 +9,9 @@ import type {Translate} from '@/util/failure'
 
 /**
  * The columns of the list of generated documents: whom a document is about, which template and which
- * version of it, whether the template is the association's, who generated it and when, whether it was
- * created through self service and whether it is still in the member's documents. A person who is gone
- * is named as such.
+ * version of it, whether the template is the association's, who generated it and who issued it, when,
+ * whether it was created through self service and whether it is still in the member's documents. A person
+ * who is gone is named as such; a document that names no issuer leaves its issuer empty.
  *
  * @param t translates the labels
  */
@@ -23,8 +23,15 @@ export function generatedColumns(t: Translate): TableColumn<GeneratedDocumentEnt
         {key: 'version', label: t('documentTemplates.versionColumn'), type: ColumnTypes.NUMBER, value: entry => entry.templateVersion},
         {key: 'ofAssociation', label: t('documentTemplates.ofAssociation'), type: ColumnTypes.BOOLEAN, value: entry => entry.ofAssociation},
         {key: 'generatedBy', label: t('generatedDocuments.generatedBy'), type: ColumnTypes.TEXT, value: entry => entry.generatedByName ?? gone},
+        {key: 'issuer', label: t('generatedDocuments.issuer'), type: ColumnTypes.TEXT, value: issuerOf},
         {key: 'generatedAt', label: t('generatedDocuments.generatedAt'), type: ColumnTypes.DATE_TIME, value: entry => entry.generatedAt},
         {key: 'selfService', label: t('generatedDocuments.selfService'), type: ColumnTypes.BOOLEAN, value: entry => entry.selfService},
         {key: 'filed', label: t('generatedDocuments.filed'), type: ColumnTypes.BOOLEAN, value: entry => entry.documentId !== null},
     ]
+}
+
+/** The issuer of a document with what they do, as the document printed it. */
+export function issuerOf(entry: GeneratedDocumentEntry): string {
+    const name = entry.issuerName ?? ''
+    return entry.issuerFunction && name ? `${name}, ${entry.issuerFunction}` : name
 }

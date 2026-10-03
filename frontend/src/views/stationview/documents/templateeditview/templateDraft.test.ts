@@ -32,6 +32,8 @@ const saved: DocumentTemplateResponse = {
     cooldownDays: 14,
     audience: {userTypes: [StationUserType.MEMBER], groupIds: [], tagIds: [], memberIds: [], mode: 'OR'},
     language: DocumentLanguage.EN,
+    issuerId: 12,
+    issuerFunction: 'Jugendfeuerwehrwartin',
     header: [],
     footer: [],
     body: [{
@@ -73,6 +75,8 @@ describe('template drafts', () => {
         expect(request.audience?.mode).toBe('OR')
         expect(request.language).toBe(DocumentLanguage.EN)
         expect(request.forAppointments).toBe(true)
+        expect(request.issuerId).toBe(12)
+        expect(request.issuerFunction).toBe('Jugendfeuerwehrwartin')
         const cells = request.body?.[0]?.cells ?? []
         expect(cells.map(cell => cell.content)).toEqual(['Hallo {{member.firstName}}', 'Nur zur Probe'])
         expect(cells[0]?.restriction).toBeUndefined()
@@ -83,9 +87,11 @@ describe('template drafts', () => {
     })
 
     it('leave empty patterns to the server', () => {
-        const request = requestOf({...emptyDraft(), name: 'Neu', titlePattern: '  '})
+        const request = requestOf({...emptyDraft(), name: 'Neu', titlePattern: '  ', issuerFunction: ' '})
 
         expect(request.titlePattern).toBeNull()
         expect(request.fileNamePattern).toBeNull()
+        expect(request.issuerId).toBeNull()
+        expect(request.issuerFunction).toBeNull()
     })
 })

@@ -5,6 +5,7 @@
  */
 <script lang="ts" setup>
 import {computed, ref, watch} from 'vue'
+import {watchDebounced} from '@vueuse/core'
 import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
@@ -16,9 +17,11 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import GeneratedPreview from '@/components/documents/GeneratedPreview.vue'
+import IssuerOverride from '@/components/documents/IssuerOverride.vue'
 import {recentlyUsedFirst} from '@/components/documents/recentlyUsedFirst'
-import {documentTemplates} from '@/api'
-import type {DocumentTemplateSummary, PreviewResponse} from '@/api/generated/schema'
+import {fromCompletion, type MemberOption} from '@/components/input/select/memberOption'
+import {documentTemplates, stationMembers} from '@/api'
+import type {DocumentTemplateSummary, IssuerChoice, PreviewIssuer, PreviewResponse} from '@/api/generated/schema'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {showToast} from '@/util/toast'
@@ -28,6 +31,9 @@ import {showToast} from '@/util/toast'
  * the data it still lacks, and file it with the member. Missing data prints as lines to fill in, so a
  * manager may still file the document after the warning. The templates used most recently at the
  * station come first.
+ *
+ * <p>Where the document names its issuer, the template's issuer is shown and another current member of
+ * the station can be picked for this one document; the preview follows the choice.
  */
 const open = defineModel<boolean>({required: true})
 
@@ -39,24 +45,35 @@ const emit = defineEmits<{
   filed: []
 }>()
 
+const ISSUER_SETTLE_MS = 400
+
 const {t} = useI18n()
 
 const templates = ref<DocumentTemplateSummary[]>([])
+const members = ref<MemberOption[]>([])
 const templateId = ref<number | null>(null)
 const preview = ref<PreviewResponse | null>(null)
+const templateIssuer = ref<PreviewIssuer | null>(null)
+const issuer = ref<IssuerChoice | null>(null)
 const chosen = computed(() => templates.value.find(template => template.id === templateId.value) ?? null)
 
 const loader = useAsyncLoader(async () => {
-  templates.value = recentlyUsedFirst(await documentTemplates.usableTemplates())
+  const [usable, completions] = await Promise.all([
+    documentTemplates.usableTemplates(),
+    stationMembers.listCompletions().catch(() => []),
+  ])
+  templates.value = recentlyUsedFirst(usable)
+  members.value = completions.map(fromCompletion)
 })
 
 const drawing = useAsyncAction(async (id: number) => {
-  preview.value = await documentTemplates.previewForMember(id, props.memberId)
+  preview.value = await documentTemplates.previewForMember(id, props.memberId, issuer.value)
+  if (issuer.value === null) templateIssuer.value = preview.value.issuer ?? null
 })
 
 const filing = useAsyncAction(async () => {
   if (templateId.value === null) return
-  await documentTemplates.generateForMember(templateId.value, props.memberId)
+  await documentTemplates.generateForMember(templateId.value, props.memberId, issuer.value)
   showToast(t('documentTemplates.generated'), 'success')
   emit('filed')
   open.value = false
@@ -64,8 +81,14 @@ const filing = useAsyncAction(async () => {
 
 watch(templateId, id => {
   preview.value = null
+  templateIssuer.value = null
+  issuer.value = null
   if (id !== null) drawing.run(id)
 })
+
+watchDebounced(issuer, () => {
+  if (templateId.value !== null) drawing.run(templateId.value)
+}, {debounce: ISSUER_SETTLE_MS, deep: true})
 </script>
 
 <template>
@@ -85,6 +108,8 @@ watch(templateId, id => {
           </option>
         </SelectInput>
       </LabelledField>
+      <IssuerOverride v-if="templateIssuer" :key="templateId ?? 0" v-model="issuer" :template-issuer="templateIssuer"
+                      :members="members"/>
       <GeneratedPreview v-if="preview && chosen" :preview="preview" :title="chosen.name"/>
       <ButtonRow pair align="end">
         <SecondaryButton @click="open = false">{{ t('common.cancel') }}</SecondaryButton>

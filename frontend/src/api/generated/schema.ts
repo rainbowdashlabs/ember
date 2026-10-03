@@ -18429,7 +18429,7 @@ export interface paths {
             };
             requestBody?: {
                 content: {
-                    "application/json": components["schemas"]["MemberSelection"];
+                    "application/json": components["schemas"]["JobPreviewRequest"];
                 };
             };
             responses: {
@@ -18479,7 +18479,11 @@ export interface paths {
                 };
                 cookie?: never;
             };
-            requestBody?: never;
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ManagerGenerationRequest"];
+                };
+            };
             responses: {
                 /** @description Created */
                 201: {
@@ -18527,7 +18531,11 @@ export interface paths {
                 };
                 cookie?: never;
             };
-            requestBody?: never;
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ManagerGenerationRequest"];
+                };
+            };
             responses: {
                 /** @description OK */
                 200: {
@@ -18536,6 +18544,15 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["PreviewResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
                     };
                 };
             };
@@ -59257,6 +59274,9 @@ export interface components {
             formBindings?: components["schemas"]["FormBinding"][] | null;
             header?: components["schemas"]["BlockRowRequest"][] | null;
             hidden?: boolean;
+            issuerFunction?: string | null;
+            /** Format: int32 */
+            issuerId?: number | null;
             keepOnArchive?: boolean | null;
             kind?: components["schemas"]["DocumentTemplateKind"] | null;
             language?: components["schemas"]["DocumentLanguage"] | null;
@@ -59282,6 +59302,9 @@ export interface components {
             hidden: boolean;
             /** Format: int32 */
             id: number;
+            issuerFunction: string | null;
+            /** Format: int32 */
+            issuerId: number | null;
             keepOnArchive: boolean;
             kind: components["schemas"]["DocumentTemplateKind"];
             language: components["schemas"]["DocumentLanguage"];
@@ -60653,6 +60676,8 @@ export interface components {
             generatedByName: string | null;
             /** Format: int32 */
             id: number;
+            issuerFunction: string | null;
+            issuerName: string | null;
             /** Format: int32 */
             memberId: number | null;
             memberName: string | null;
@@ -61313,6 +61338,11 @@ export interface components {
             name: string;
             password: string;
         };
+        IssuerChoice: {
+            function?: string | null;
+            /** Format: int32 */
+            memberId?: number;
+        };
         ItemAssignment: {
             /** Format: int32 */
             itemId?: number;
@@ -61435,9 +61465,15 @@ export interface components {
         };
         /** @enum {string} */
         JobMemberStatus: "WAITING" | "FILED" | "FAILED";
+        JobPreviewRequest: {
+            audience?: components["schemas"]["RestrictionAudience"] | null;
+            issuer?: components["schemas"]["IssuerChoice"] | null;
+            memberIds?: number[] | null;
+        };
         JobStartRequest: {
             acceptMissing?: boolean;
             audience?: components["schemas"]["RestrictionAudience"] | null;
+            issuer?: components["schemas"]["IssuerChoice"] | null;
             memberIds?: number[] | null;
         };
         /** @enum {string} */
@@ -62262,6 +62298,9 @@ export interface components {
             firstName: string;
             lastName: string;
         };
+        ManagerGenerationRequest: {
+            issuer?: components["schemas"]["IssuerChoice"] | null;
+        };
         MapConfig: {
             /** Format: int32 */
             heightPx?: number;
@@ -62564,10 +62603,6 @@ export interface components {
             memberUid: string;
             nameColor: string | null;
             userType: string | null;
-        };
-        MemberSelection: {
-            audience?: components["schemas"]["RestrictionAudience"] | null;
-            memberIds?: number[] | null;
         };
         MemberSpotlightConfig: {
             blurb?: string;
@@ -63610,9 +63645,9 @@ export interface components {
             placeholders: components["schemas"]["Placeholder"][];
         };
         /** @enum {string} */
-        PlaceholderCategory: "MEMBER" | "PRONOUNS" | "GUARDIAN1" | "GUARDIAN2" | "STATION" | "ASSOCIATION" | "APPOINTMENT" | "DOCUMENT";
+        PlaceholderCategory: "MEMBER" | "PRONOUNS" | "GUARDIAN1" | "GUARDIAN2" | "STATION" | "ASSOCIATION" | "APPOINTMENT" | "ISSUER" | "DOCUMENT";
         /** @enum {string} */
-        PlaceholderGroup: "MEMBER" | "PROFILE" | "GUARDIAN" | "STATION" | "ASSOCIATION" | "EVENT" | "DOCUMENT" | "PRONOUN";
+        PlaceholderGroup: "MEMBER" | "PROFILE" | "GUARDIAN" | "STATION" | "ASSOCIATION" | "EVENT" | "ISSUER" | "DOCUMENT" | "PRONOUN";
         PlaceholderValues: {
             values?: {
                 [key: string]: string;
@@ -63687,7 +63722,15 @@ export interface components {
             /** Format: int64 */
             total?: number;
         };
+        PreviewIssuer: {
+            fixed: boolean;
+            function: string | null;
+            /** Format: int32 */
+            memberId: number | null;
+            name: string | null;
+        };
         PreviewResponse: {
+            issuer: components["schemas"]["PreviewIssuer"] | null;
             missing: components["schemas"]["MissingValue"][];
             pdfBase64: string;
             unprintable: string[];
@@ -66743,12 +66786,18 @@ export interface components {
         };
         TemplateUseRequest: {
             audience?: components["schemas"]["RestrictionAudience"] | null;
+            issuerFunction?: string | null;
+            /** Format: int32 */
+            issuerId?: number | null;
             selfService?: boolean;
         };
         TemplateUseResponse: {
             audience: components["schemas"]["RestrictionAudience"];
             /** Format: int32 */
             cooldownDays: number;
+            issuerFunction: string | null;
+            /** Format: int32 */
+            issuerId: number | null;
             kind: components["schemas"]["DocumentTemplateKind"];
             legal: boolean;
             name: string;
@@ -68317,6 +68366,7 @@ export type InviteCodeResponse = components['schemas']['InviteCodeResponse'];
 export type InviteEntry = components['schemas']['InviteEntry'];
 export type InviteRequest = components['schemas']['InviteRequest'];
 export type IssuedOneTimePassword = components['schemas']['IssuedOneTimePassword'];
+export type IssuerChoice = components['schemas']['IssuerChoice'];
 export type ItemAssignment = components['schemas']['ItemAssignment'];
 export type ItemBooleanValue = components['schemas']['ItemBooleanValue'];
 export type ItemCheckHistoryEntry = components['schemas']['ItemCheckHistoryEntry'];
@@ -68336,6 +68386,7 @@ export type ItemTextValue = components['schemas']['ItemTextValue'];
 export type JobIdResponse = components['schemas']['JobIdResponse'];
 export type JobMemberResult = components['schemas']['JobMemberResult'];
 export type JobMemberStatus = components['schemas']['JobMemberStatus'];
+export type JobPreviewRequest = components['schemas']['JobPreviewRequest'];
 export type JobStartRequest = components['schemas']['JobStartRequest'];
 export type KbAccessLevel = components['schemas']['KbAccessLevel'];
 export type KbArticleConfig = components['schemas']['KbArticleConfig'];
@@ -68448,6 +68499,7 @@ export type ManagedMemberResponse = components['schemas']['ManagedMemberResponse
 export type ManagedMemberSetValuesRequest = components['schemas']['ManagedMemberSetValuesRequest'];
 export type ManagedStationResponse = components['schemas']['ManagedStationResponse'];
 export type ManagerDetail = components['schemas']['ManagerDetail'];
+export type ManagerGenerationRequest = components['schemas']['ManagerGenerationRequest'];
 export type MapConfig = components['schemas']['MapConfig'];
 export type MapsGeocodingConfig = components['schemas']['MapsGeocodingConfig'];
 export type MapsTilesConfig = components['schemas']['MapsTilesConfig'];
@@ -68489,7 +68541,6 @@ export type MemberReceiptRequest = components['schemas']['MemberReceiptRequest']
 export type MemberRequirement = components['schemas']['MemberRequirement'];
 export type MemberRequirements = components['schemas']['MemberRequirements'];
 export type MemberSearchResult = components['schemas']['MemberSearchResult'];
-export type MemberSelection = components['schemas']['MemberSelection'];
 export type MemberSpotlightConfig = components['schemas']['MemberSpotlightConfig'];
 export type MemberStatus = components['schemas']['MemberStatus'];
 export type MemberStatusResponse = components['schemas']['MemberStatusResponse'];
@@ -68662,6 +68713,7 @@ export type PollEmbedConfig = components['schemas']['PollEmbedConfig'];
 export type PollStatus = components['schemas']['PollStatus'];
 export type PoolRequest = components['schemas']['PoolRequest'];
 export type PresetRequest = components['schemas']['PresetRequest'];
+export type PreviewIssuer = components['schemas']['PreviewIssuer'];
 export type PreviewResponse = components['schemas']['PreviewResponse'];
 export type PreviewResult = components['schemas']['PreviewResult'];
 export type ProbeRequest = components['schemas']['ProbeRequest'];
@@ -70029,6 +70081,7 @@ export const PlaceholderCategory = {
     DOCUMENT: "DOCUMENT",
     GUARDIAN1: "GUARDIAN1",
     GUARDIAN2: "GUARDIAN2",
+    ISSUER: "ISSUER",
     MEMBER: "MEMBER",
     PRONOUNS: "PRONOUNS",
     STATION: "STATION",
@@ -70039,6 +70092,7 @@ export const PlaceholderGroup = {
     DOCUMENT: "DOCUMENT",
     EVENT: "EVENT",
     GUARDIAN: "GUARDIAN",
+    ISSUER: "ISSUER",
     MEMBER: "MEMBER",
     PROFILE: "PROFILE",
     PRONOUN: "PRONOUN",

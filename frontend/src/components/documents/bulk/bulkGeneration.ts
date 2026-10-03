@@ -7,11 +7,14 @@ import {
     JobMemberStatus,
     type GenerationJobSummary,
     type JobMemberResult,
+    type JobPreviewRequest,
     type MemberGaps,
-    type MemberSelection,
 } from '@/api/generated/schema'
 import type {RestrictionSelection} from '@/api/types'
 import {refusalSentence, type Translate} from '@/util/failure'
+
+/** Whom a run generates for, as the requests to look at a run and to start one name it. */
+export type MemberSelection = Pick<JobPreviewRequest, 'memberIds' | 'audience'>
 
 /**
  * Whom a run generates for: the members chosen in the member list where there are any, otherwise the
