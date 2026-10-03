@@ -43794,7 +43794,14 @@
           "content" : {
             "type" : "string"
           },
-          "config" : { }
+          "config" : { },
+          "restriction" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/RestrictionAudience"
+            }, {
+              "type" : "null"
+            } ]
+          }
         }
       },
       "BlockRowRequest" : {
@@ -46742,6 +46749,9 @@
           },
           "config" : {
             "$ref" : "#/components/schemas/CellConfig"
+          },
+          "restriction" : {
+            "$ref" : "#/components/schemas/RestrictionAudience"
           }
         },
         "required" : [ "id", "rowId", "sortOrder", "widthPercent", "contentType", "content", "config" ]

@@ -15,8 +15,11 @@ import ImageDisplaySection from './cellimageeditor/ImageDisplaySection.vue'
 import ImageCropSection from './cellimageeditor/ImageCropSection.vue'
 import ImageStyleSection from './cellimageeditor/ImageStyleSection.vue'
 import ImageTextSection from './cellimageeditor/ImageTextSection.vue'
+import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import type {ImageConfig, StationFile} from '@/api/generated/schema'
 import {mediaFileUrl} from '@/api/media'
+import {useBlockEditorOptions} from '@/composables/useBlockEditorOptions'
+import {blockImageHash, blockImageUrl, STATION_LOGO} from './blockImage'
 
 const content = defineModel<string>('content', {required: true})
 const config = defineModel<Record<string, unknown>>('config', {required: true})
@@ -26,6 +29,7 @@ const props = defineProps<{
 }>()
 
 const {t} = useI18n()
+const options = useBlockEditorOptions()
 const settingsOpen = ref(false)
 
 function onPick(p: {file: StationFile; url: string}) {
@@ -34,10 +38,8 @@ function onPick(p: {file: StationFile; url: string}) {
 
 const imageConfig = computed<ImageConfig>(() => (config.value as ImageConfig) ?? {})
 
-const imageUrl = computed(() => {
-    if (!content.value) return ''
-    return mediaFileUrl(props.stationUid, content.value)
-})
+const imageUrl = computed(() => blockImageUrl(props.stationUid, content.value, hash => mediaFileUrl(props.stationUid, hash)))
+const imageHash = computed(() => blockImageHash(content.value))
 
 function updateConfig(patch: Record<string, unknown>) {
     config.value = {...config.value, ...patch}
@@ -52,19 +54,23 @@ function updateConfig(patch: Record<string, unknown>) {
                 :alt="imageConfig.altText ?? ''"
                 :config="imageConfig"
                 :station-uid="stationUid"
-                :content-hash="content"
+                :content-hash="imageHash"
                 :width-hint="256"
             />
             <p v-if="imageConfig.description" class="text-xs text-(--text-muted) italic text-center">
                 {{ imageConfig.description }}
             </p>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2">
             <MediaBrowseButton
                 :station-uid="stationUid"
                 mime-prefix="image/"
                 @pick="onPick"
             />
+            <SecondaryButton v-if="options.stationLogo" :icon="['fas', 'image']" data-testid="cell-image-logo"
+                             @click="content = STATION_LOGO">
+                {{ t('stationPages.editor.stationLogo') }}
+            </SecondaryButton>
             <MutedIconButton
                 v-if="imageUrl"
                 :icon="['fas', 'sliders']"
@@ -83,7 +89,7 @@ function updateConfig(patch: Record<string, unknown>) {
                     :alt="imageConfig.altText ?? ''"
                     :config="imageConfig"
                     :station-uid="stationUid"
-                    :content-hash="content"
+                    :content-hash="imageHash"
                     :width-hint="512"
                 />
             </div>

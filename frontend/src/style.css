@@ -261,6 +261,17 @@ a:not(:has(button)):not(.row-link):hover {
     overflow-wrap: break-word;
 }
 
+.markdown-content .placeholder-chip {
+    display: inline-block;
+    padding: 0 0.45em;
+    margin: 0 0.1em;
+    border-radius: 9999px;
+    font-size: 0.85em;
+    background: color-mix(in srgb, var(--primary) 18%, transparent);
+    border: 1px solid color-mix(in srgb, var(--primary) 45%, transparent);
+    white-space: nowrap;
+}
+
 .markdown-content h1 {
     font-size: 1.75rem;
     font-weight: 700;

@@ -64,7 +64,7 @@ export function placeholderTokens(labels: ReadonlyMap<string, string>): EditorTo
     return {
         extensions: [PlaceholderChip],
         prepare: (markdown: string) => markdown.replace(TOKEN, (_match, key: string) =>
-            `<span data-placeholder="${escapeHtml(key)}">${escapeHtml(labels.get(key) ?? key)}</span>`),
+            `<span class="placeholder-chip" data-placeholder="${escapeHtml(key)}">${escapeHtml(labels.get(key) ?? key)}</span>`),
         extendTurndown: (turndown: TurndownService) => {
             turndown.addRule('placeholderChip', {
                 filter: (node) => node.nodeName === 'SPAN' && (node as HTMLElement).hasAttribute('data-placeholder'),

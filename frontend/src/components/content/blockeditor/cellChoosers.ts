@@ -55,3 +55,20 @@ export const CHOOSER_CATEGORIES = [
         {type: 'FORMS_CTA', icon: 'clipboard-list', key: 'chooseFormsCta'},
     ]},
 ] as const
+
+/** One category of the chooser with the kinds of block it offers. */
+export type ChooserCategory = {key: string, items: readonly (typeof CHOOSER_CATEGORIES)[number]['items'][number][]}
+
+/**
+ * The chooser's categories, narrowed to the kinds an editor allows; a category left empty is left out.
+ *
+ * @param allowed the kinds allowed, every kind where none are named
+ */
+export function chooserCategories(allowed?: readonly string[]): ChooserCategory[] {
+    return CHOOSER_CATEGORIES
+        .map(category => ({
+            key: category.key,
+            items: category.items.filter(item => !allowed || allowed.includes(item.type)),
+        }))
+        .filter(category => category.items.length > 0)
+}

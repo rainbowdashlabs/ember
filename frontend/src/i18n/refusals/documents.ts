@@ -52,4 +52,5 @@ export default {
     'D-039': 'Dokumente lassen sich nur für dich selbst und die Mitglieder in deiner Obhut erstellen',
     'D-040': 'Nur Word- (.docx) und OpenDocument-Texte (.odt) lassen sich importieren',
     'D-041': 'Das Dokument konnte nicht gelesen werden, es wurde nichts importiert',
+    'D-060': 'Ein Brief enthält nur Texte, Bilder und untereinander gestapelte Bausteine',
 }

@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {computed} from 'vue'
+import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import CellImageEditor from './CellImageEditor.vue'
@@ -16,14 +16,19 @@ import CellActionsMenu from './CellActionsMenu.vue'
 import CellEmptyChooser from './CellEmptyChooser.vue'
 import CellMarkdownInline from './CellMarkdownInline.vue'
 import CellNestedRowsEditor from './CellNestedRowsEditor.vue'
+import CellRestrictionChips from './CellRestrictionChips.vue'
+import CellVisibilityDialog from './CellVisibilityDialog.vue'
 import type {RowEditData} from './EditorRow.vue'
 import {isLayoutKind, type LayoutKindName} from '@/api/pageManage'
 import {CellContentType} from '@/api/generated/schema'
+import type {RestrictionSelection} from '@/api/types'
 import {usePageClipboard} from '@/composables/usePageClipboard'
+import {useBlockEditorOptions} from '@/composables/useBlockEditorOptions'
 
 /**
  * Data shape passed between the page editor and a single cell. {@code id} is 0 for cells that
- * exist only in the draft and have not yet been persisted.
+ * exist only in the draft and have not yet been persisted. {@code restriction} says who the block is
+ * shown to, and is only ever set where the editor offers a visibility, which a letter does.
  */
 export interface CellEditData {
     id: number
@@ -32,6 +37,7 @@ export interface CellEditData {
     contentType: CellContentType
     content: string
     config: Record<string, unknown>
+    restriction?: RestrictionSelection | null
 }
 
 const cell = defineModel<CellEditData>('cell', {required: true})
@@ -50,6 +56,8 @@ const emit = defineEmits<{
 
 const {t} = useI18n()
 const {copyCell, cutCell, pasteCell, hasClipboard, clipboardType} = usePageClipboard()
+const options = useBlockEditorOptions()
+const visibilityOpen = ref(false)
 
 const canPaste = computed(() => hasClipboard.value && clipboardType.value === 'cell')
 
@@ -84,11 +92,18 @@ function emptyChild(sortOrder: number, widthPercent: number): CellEditData {
     return {id: 0, sortOrder, widthPercent, contentType: CellContentType.EMPTY, content: '', config: {}}
 }
 
+/** The current block as the first child of a nested row, taking who it is shown to along. */
 function selfAsChild(widthPercent: number): CellEditData {
     return {
         id: 0, sortOrder: 0, widthPercent,
         contentType: cell.value.contentType, content: cell.value.content, config: cell.value.config,
+        restriction: cell.value.restriction,
     }
+}
+
+/** The current cell turned into a nested-rows cell holding the given rows, shown to everybody. */
+function nestedAs(rows: RowEditData[]): CellEditData {
+    return {...cell.value, contentType: CellContentType.NESTED_ROWS, content: '', config: {rows}, restriction: undefined}
 }
 
 /**
@@ -99,8 +114,7 @@ function splitCell(columns: number) {
     const widthPercent = 100 / columns
     const cells: CellEditData[] = [selfAsChild(widthPercent)]
     for (let i = 1; i < columns; i++) cells.push(emptyChild(i, widthPercent))
-    const row: RowEditData = {id: 0, sortOrder: 0, cells}
-    cell.value = {...cell.value, contentType: CellContentType.NESTED_ROWS, content: '', config: {rows: [row]}}
+    cell.value = nestedAs([{id: 0, sortOrder: 0, cells}])
 }
 
 /**
@@ -110,8 +124,7 @@ function splitCell(columns: number) {
 function wrapAndAddSibling(position: 'above' | 'below') {
     const currentRow: RowEditData = {id: 0, sortOrder: 0, cells: [selfAsChild(100)]}
     const emptyRow: RowEditData = {id: 0, sortOrder: 1, cells: [emptyChild(0, 100)]}
-    const rows = position === 'above' ? [emptyRow, currentRow] : [currentRow, emptyRow]
-    cell.value = {...cell.value, contentType: CellContentType.NESTED_ROWS, content: '', config: {rows}}
+    cell.value = nestedAs(position === 'above' ? [emptyRow, currentRow] : [currentRow, emptyRow])
 }
 </script>
 
@@ -122,13 +135,21 @@ function wrapAndAddSibling(position: 'above' | 'below') {
             :width-percent="cell.widthPercent"
             :can-resize="canResize"
             :can-paste="canPaste"
+            :restrictable="!!options.restrictable"
             @copy="copyCell(cell)"
             @cut="cutCell(cell, () => emit('delete'))"
             @paste="onPasteHere"
             @delete="emit('delete')"
             @split="splitCell"
+            @visibility="visibilityOpen = true"
             @update:width-percent="emit('update:width', $event ?? 0)"
         />
+
+        <template v-if="options.restrictable">
+            <CellRestrictionChips :restriction="cell.restriction" :choices="options.restrictable"/>
+            <CellVisibilityDialog v-model="visibilityOpen" :restriction="cell.restriction" :choices="options.restrictable"
+                                  @update:restriction="updateField('restriction', $event)"/>
+        </template>
 
         <p v-if="showDepthWarning" class="text-[10px] text-error italic mb-2">
             <font-awesome-icon :icon="['fas', 'triangle-exclamation']" class="mr-1"/>

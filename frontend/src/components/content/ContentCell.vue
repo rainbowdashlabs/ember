@@ -13,6 +13,8 @@ import EnlargeableImage from '@/components/button/EnlargeableImage.vue'
 import {renderPageMarkdown} from '@/util/markdown'
 import {isYoutubeUrl, youtubeEmbedUrl as toYoutubeEmbedUrl} from '@/util/youtube'
 import {ENLARGED_WIDTH, type ContentRenderContext} from '@/util/contentContext'
+import {useBlockEditorOptions} from '@/composables/useBlockEditorOptions'
+import {blockImageHash, blockImageUrl} from '@/components/content/blockeditor/blockImage'
 
 /**
  * One block, rendered.
@@ -27,9 +29,12 @@ const props = defineProps<{
     context: ContentRenderContext
 }>()
 
+const options = useBlockEditorOptions()
+
+/** The text, with the tokens the editor names, such as a letter's placeholders, drawn as chips. */
 const markdownHtml = computed(() => {
     if (props.cell.contentType !== CellContentType.MARKDOWN) return ''
-    return renderPageMarkdown(props.cell.content)
+    return renderPageMarkdown(options.value.tokens?.prepare(props.cell.content) ?? props.cell.content)
 })
 
 /** A row inside a nested-rows block. The server keeps these as written, cells and all. */
@@ -42,7 +47,12 @@ const nestedRows = computed<NestedRow[]>(() => {
 
 const imageConfig = computed<ImageConfig>(() => configOf(props.cell, CellContentType.IMAGE) ?? {})
 
-const imageUrl = computed(() => props.cell.content ? props.context.fileUrl(props.cell.content) : '')
+const imageUrl = computed(() => blockImageUrl(props.context.stationUid, props.cell.content, props.context.fileUrl))
+const imageHash = computed(() => blockImageHash(props.cell.content))
+const enlargedUrl = computed(() => {
+    const hash = imageHash.value
+    return hash ? props.context.imageUrl(hash, ENLARGED_WIDTH) : imageUrl.value
+})
 
 function isYouTube(url: string): boolean {
     return isYoutubeUrl(url)
@@ -59,14 +69,14 @@ function youtubeEmbedUrl(url: string): string | null {
          v-html="markdownHtml"/>
 
     <figure v-else-if="cell.contentType === CellContentType.IMAGE && imageUrl" class="space-y-1">
-        <EnlargeableImage :src="context.imageUrl(cell.content, ENLARGED_WIDTH)"
+        <EnlargeableImage :src="enlargedUrl"
                           :alt="imageConfig.altText" :caption="imageConfig.description">
             <CellImagePreview
                 :src="imageUrl"
                 :alt="imageConfig.altText ?? ''"
                 :config="imageConfig"
                 :station-uid="context.stationUid"
-                :content-hash="cell.content"
+                :content-hash="imageHash"
                 :width-hint="context.widthHint"
             />
         </EnlargeableImage>

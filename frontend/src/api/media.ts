@@ -154,6 +154,11 @@ export function mediaFileUrl(stationUid: string, contentHash: string): string {
     return `/api/v1/public/media/${stationUid}/${contentHash}`
 }
 
+/** Public URL for a station's logo at a requested size in pixels. */
+export function stationLogoUrl(stationUid: string, size: number): string {
+    return `/api/v1/public/stations/${stationUid}/logo?size=${size}`
+}
+
 /**
  * Public URL for a media image at a requested CSS-pixel width. The backend picks the smallest
  * pre-generated variant at or above `width` and, when the client's `Accept` header advertises

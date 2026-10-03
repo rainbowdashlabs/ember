@@ -17,13 +17,14 @@ describe('placeholder chips', () => {
     it('turn every stored token into a chip with its label', () => {
         const html = placeholderTokens(labels).prepare('Hallo {{member.firstName}}, {{ pronoun.subject }} kommt.')
 
-        expect(html).toBe('Hallo <span data-placeholder="member.firstName">Vorname</span>, '
-            + '<span data-placeholder="pronoun.subject">er / sie / Name</span> kommt.')
+        expect(html).toBe('Hallo <span class="placeholder-chip" data-placeholder="member.firstName">Vorname</span>, '
+            + '<span class="placeholder-chip" data-placeholder="pronoun.subject">er / sie / Name</span> kommt.')
     })
 
     it('show a key without a label as the key itself, escaped', () => {
         expect(placeholderTokens(new Map([['a.b', '<b>']])).prepare('{{a.b}} {{x.y}}'))
-            .toBe('<span data-placeholder="a.b">&lt;b&gt;</span> <span data-placeholder="x.y">x.y</span>')
+            .toBe('<span class="placeholder-chip" data-placeholder="a.b">&lt;b&gt;</span> '
+                + '<span class="placeholder-chip" data-placeholder="x.y">x.y</span>')
     })
 
     it('are written back as the token they stand for', () => {

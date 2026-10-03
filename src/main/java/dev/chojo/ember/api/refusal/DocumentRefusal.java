@@ -146,7 +146,11 @@ public enum DocumentRefusal implements Refusal {
             40, HttpStatus.BAD_REQUEST, "Only Word (.docx) and OpenDocument (.odt) texts can be imported"),
 
     /** A text of a kind that is taken and still could not be read. */
-    DOCUMENT_IMPORT_UNREADABLE(41, HttpStatus.BAD_REQUEST, "The document could not be read, so nothing was imported");
+    DOCUMENT_IMPORT_UNREADABLE(41, HttpStatus.BAD_REQUEST, "The document could not be read, so nothing was imported"),
+
+    /** A block a letter does not print, such as a video or a map. */
+    DOCUMENT_TEMPLATE_BLOCK_NOT_TAKEN(
+            60, HttpStatus.BAD_REQUEST, "A letter holds texts, pictures and blocks stacked in a column only");
 
     private final Definition definition;
 

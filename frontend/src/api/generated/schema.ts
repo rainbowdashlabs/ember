@@ -55961,6 +55961,7 @@ export interface components {
             config?: unknown;
             content?: string;
             contentType?: string;
+            restriction?: components["schemas"]["RestrictionAudience"] | null;
             /** Format: int32 */
             sortOrder?: number;
             widthPercent?: number;
@@ -56968,6 +56969,7 @@ export interface components {
             contentType: components["schemas"]["CellContentType"];
             /** Format: int32 */
             id: number;
+            restriction?: components["schemas"]["RestrictionAudience"];
             /** Format: int32 */
             rowId: number;
             /** Format: int32 */
