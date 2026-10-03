@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 /** @vitest-environment happy-dom */
-import {afterEach, describe, expect, it} from 'vitest'
+import {afterEach, describe, expect, it, vi} from 'vitest'
 import {DOMWrapper, enableAutoUnmount, mount} from '@vue/test-utils'
 import EditorSizePicker from './EditorSizePicker.vue'
 
@@ -96,6 +96,38 @@ describe('EditorSizePicker', () => {
         await opened(null, 28)
 
         expect(field().element.value).toBe('28')
+    })
+
+    /** Counting up with the arrows sets the words in each size as it goes, without enter. */
+    it('applies a size counted with the arrows without confirming it', async () => {
+        vi.useFakeTimers()
+        try {
+            const wrapper = await opened(null, 15)
+            field().element.stepUp()
+            await field().trigger('input')
+            await vi.advanceTimersByTimeAsync(400)
+
+            expect(wrapper.emitted('pick')).toEqual([[16]])
+            expect(panel()).not.toBeNull()
+        } finally {
+            vi.useRealTimers()
+        }
+    })
+
+    /** A typed size waits for a short pause, so typing "16" never sets the words in 1 first. */
+    it('applies a typed size after a short pause', async () => {
+        vi.useFakeTimers()
+        try {
+            const wrapper = await opened()
+            await field().setValue('1')
+            await vi.advanceTimersByTimeAsync(100)
+            await field().setValue('16')
+            await vi.advanceTimersByTimeAsync(400)
+
+            expect(wrapper.emitted('pick')).toEqual([[16]])
+        } finally {
+            vi.useRealTimers()
+        }
     })
 
     it('counts on from the size the words are shown in', async () => {

@@ -5,6 +5,7 @@
  */
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { watchDebounced } from '@vueuse/core'
 import { useI18n } from 'vue-i18n'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import FloatingPanel from '@/components/feedback/FloatingPanel.vue'
@@ -13,9 +14,10 @@ import { LARGEST_TEXT_SIZE, pixelSize, SMALLEST_TEXT_SIZE } from '@/util/textSiz
 /**
  * The size entry of the editor's menu: a button opening a panel with a field for a size in pixels.
  *
- * <p>A size confirmed with enter applies and closes the panel; a size left by moving on applies and keeps
- * it open. An empty field and the reset entry give the words their normal size back. A size that is no
- * whole number within bounds is refused and the field says so. The panel is rendered at the end of the
+ * <p>A size applies as soon as it stands in the field, whether typed or counted with the arrows, after a
+ * short pause so typing "16" does not first set the words in 1. Enter closes the panel. An empty field
+ * and the reset entry give the words their normal size back. A size that is no whole number within
+ * bounds is refused and the field says so. The panel is rendered at the end of the
  * page, so the edge of the text field cannot cut it off.
  *
  * <p>The field opens on the size the words are shown in, their own or the one they inherit, so its
@@ -33,6 +35,8 @@ const emit = defineEmits<{
   pick: [size: number | null]
 }>()
 
+const TYPING_PAUSE_MS = 300
+
 const { t } = useI18n()
 
 const open = ref(false)
@@ -44,6 +48,10 @@ const label = computed(() => t('markdownEditor.textSize'))
 watch(open, isOpen => {
   if (isOpen) typed.value = props.current ?? props.shown
 })
+
+watchDebounced(typed, () => {
+  if (open.value && !blank.value) apply(false)
+}, {debounce: TYPING_PAUSE_MS})
 
 function pick(size: number | null) {
   const unchanged = size === props.current || (props.current === null && size === props.shown)

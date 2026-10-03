@@ -3937,7 +3937,8 @@ volumes:
                 sizeText: 'Markierte Wörter bekommen über den Button für die Schriftgröße eine eigene Größe in Pixeln, '
                     + 'als ganze Zahl von 6 bis 96. Steht nur der Cursor in einem Wort, gilt die Größe für dieses Wort. '
                     + 'Das Feld beginnt bei der Größe, in der die Wörter gerade stehen, und die Pfeile zählen von dort '
-                    + 'weiter. Enter übernimmt die Größe und schließt das Feld. Ein leeres Feld '
+                    + 'weiter. Jede Größe gilt sofort, ob getippt oder mit den Pfeilen gezählt; Enter schließt das '
+                    + 'Feld. Ein leeres Feld '
                     + 'oder „Normale Größe“ gibt den Wörtern die normale Größe zurück. Seiten, Artikel und PDFs zeigen '
                     + 'die Wörter in derselben Größe, im PDF als Punkte, ein Pixel als drei Viertel eines Punkts.',
                 alignTitle: 'Ausrichtung',
