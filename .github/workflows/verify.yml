@@ -4,7 +4,9 @@ on:
   push:
     # The dependency branches carry no pull request, so a push is the only thing that verifies them.
     # Release branches are verified on push because main is fast-forwarded to exactly that commit.
-    branches: [main, 'release/**', 'feature/**', 'fix/**', 'renovate/**']
+    # Feature and fix branches are verified by their pull request alone: a push run beside it would
+    # report every required check a second time, and a merge waits only for the first to pass.
+    branches: [main, 'release/**', 'renovate/**']
     tags: ['v*']
   pull_request:
   merge_group:

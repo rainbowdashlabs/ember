@@ -14,6 +14,9 @@ its own as a patch; it reaches the release branch by the rebase described below.
 for the next feature release goes into the open release branch, branched from it, and carries its
 version. A pull request into any other branch fails CI.
 
+CI verifies a feature or fix branch through its pull request only; pushing the branch alone runs
+nothing. Open a draft pull request to have a branch verified before it is ready for review.
+
 Dependency updates from Renovate go into `main` without a version bump of their own. They carry the
 version `main` carries and ship with the next fix release.
 
@@ -24,7 +27,7 @@ Pull requests are labelled automatically: by the branch they come from (`t:featu
 
 ## Versions
 
-The version lives in `build.gradle.kts`. CI checks it on every push and pull request.
+The version lives in `build.gradle.kts`. CI checks it on every pull request and every push it runs on.
 
 - A release branch `release/vX.Y.Z` carries the version `X.Y.Z` from its first commit on.
 - A feature branch carries the version of the open release branch.
