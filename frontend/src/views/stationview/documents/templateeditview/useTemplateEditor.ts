@@ -23,7 +23,6 @@ import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {provideFontSamples} from '@/composables/useFontSamples'
 import {useEditorFonts} from '@/composables/useEditorFonts'
-import {DEFAULT_FONT} from '@/components/documents/fonts/fontOptions'
 import {draftOf, emptyDraft, requestOf, type TemplateDraft} from './templateDraft'
 import {letterFamilies} from './letterFonts'
 import {placeholdersOfTemplate} from './placeholderpicker/placeholderTree'
@@ -67,6 +66,9 @@ async function stationChoices(): Promise<StationChoices> {
  * placeholder pickers below get the date formats of the catalogue and the language their examples are
  * written in: the template's, or the owner's until the template names one. The labels of keys carry the
  * example of their date format the same way.
+ *
+ * <p>The default font is named as the owner's font list names it, which knows the font this instance
+ * prints in; where the list cannot be read, the default font goes unnamed.
  *
  * <p>An association has no members, groups or document tags of its own, so its lists stay empty; its
  * stations choose the audience of its templates themselves.
@@ -175,7 +177,7 @@ export function useTemplateEditor(
         members: computed(() => choices.value.members),
         documentTags: computed(() => choices.value.documentTags),
         fonts,
-        defaultFamily: computed(() => fontList.value?.defaultFamily ?? DEFAULT_FONT),
+        defaultFamily: computed(() => fontList.value?.defaultFamily ?? ''),
         loader,
         saving,
         archiving,

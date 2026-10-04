@@ -5,9 +5,6 @@
  */
 import {FontStyle, type DocumentFontView, type FontFamilyOption, type FontOrigin} from '@/api/generated/schema'
 
-/** The font every text prints in that names no family, and the fallback for what a family lacks. */
-export const DEFAULT_FONT = 'Liberation Sans'
-
 /** The styles of a family in the order the screens list them. */
 export const FONT_STYLES: readonly FontStyle[] = [FontStyle.REGULAR, FontStyle.BOLD, FontStyle.ITALIC, FontStyle.BOLD_ITALIC]
 

@@ -42,7 +42,7 @@ describe('FontFamilyPicker', () => {
         const host = defineComponent({
             setup() {
                 if (samples) provideFontSamples(address)
-                return () => h(FontFamilyPicker, {modelValue: null, label: 'Schrift', fonts: FONTS, ...props})
+                return () => h(FontFamilyPicker, {modelValue: null, label: 'Schrift', fonts: FONTS, defaultFamily: 'Liberation Sans', ...props})
             },
         })
         const wrapper = mount(host, {attachTo: document.body, global: {stubs: {AuthImage: ShownImage}}})

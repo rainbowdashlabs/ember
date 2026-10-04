@@ -11,7 +11,7 @@ import DropdownPanel from '@/components/input/select/dropdown/DropdownPanel.vue'
 import DropdownTrigger from '@/components/input/select/dropdown/DropdownTrigger.vue'
 import type {FontFamilyOption} from '@/api/generated/schema'
 import FontChoiceList from './FontChoiceList.vue'
-import {DEFAULT_FONT, choiceValue, familyChoices, familyOf, fontEntries} from './fontOptions'
+import {choiceValue, familyChoices, familyOf, fontEntries} from './fontOptions'
 
 /**
  * Picks the family a text prints in, or the default font, named by the family the instance prints in.
@@ -24,8 +24,8 @@ const family = defineModel<string | null>({required: true})
 const props = defineProps<{
   label: string
   fonts: readonly FontFamilyOption[]
-  /** The family a text naming none prints in, Liberation Sans where not given. */
-  defaultFamily?: string
+  /** The family a text naming none prints in, as the owner's font list names it. */
+  defaultFamily: string
   /** Offer only families a field on an uploaded PDF can print in. */
   pdfOnly?: boolean
   testId?: string
@@ -34,16 +34,15 @@ const props = defineProps<{
 const {t} = useI18n()
 
 const open = ref(false)
-const defaultFamily = computed(() => props.defaultFamily ?? DEFAULT_FONT)
 const choices = computed(() => familyChoices(props.fonts, family.value, props.pdfOnly))
-const entries = computed(() => fontEntries(choices.value, {family: defaultFamily.value}))
+const entries = computed(() => fontEntries(choices.value, {family: props.defaultFamily}))
 const selected = computed(() => choiceValue(choices.value, family.value))
 
 /** The current choice as the closed picker reads it, origin and all, the way the list marks it. */
 const current = computed(() => {
   const entry = entries.value.find(candidate => candidate.value === selected.value)
   if (!entry) return ''
-  if (entry.missing) return t('documentFonts.missingFamily', {family: entry.name, defaultFamily: defaultFamily.value})
+  if (entry.missing) return t('documentFonts.missingFamily', {family: entry.name, defaultFamily: props.defaultFamily})
   if (entry.origin === 'DEFAULT') return t('documentFonts.defaultFont', {family: entry.name})
   const origin = entry.origin ? t(`documentFonts.origin.${entry.origin}`) : ''
   return t('documentFonts.familyOption', {family: entry.name, origin})

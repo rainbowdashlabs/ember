@@ -15,7 +15,6 @@ import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {provideFontSamples} from '@/composables/useFontSamples'
 import {showToast} from '@/util/toast'
-import {DEFAULT_FONT} from './fontOptions'
 import FontUploadForm from './FontUploadForm.vue'
 import OwnFontList from './OwnFontList.vue'
 import ReachedFamilyList from './ReachedFamilyList.vue'
@@ -37,7 +36,7 @@ const {t} = useI18n()
 
 provideFontSamples(props.source.sample)
 
-const fonts = ref<DocumentFontsResponse>({own: [], reachable: [], defaultFamily: DEFAULT_FONT, defaultStyles: []})
+const fonts = ref<DocumentFontsResponse>({own: [], reachable: [], defaultFamily: '', defaultStyles: []})
 const pending = ref<DocumentFontView | null>(null)
 
 const {loading, failure} = useAsyncLoader(async () => {
@@ -99,7 +98,7 @@ async function remove() {
     <Spinner v-if="loading" size="lg"/>
     <template v-else>
       <FontUploadForm :busy="uploading.running.value" @upload="upload"/>
-      <OwnFontList :fonts="fonts.own" :reachable="fonts.reachable" @remove="font => pending = font"
+      <OwnFontList :fonts="fonts.own" :reachable="fonts.reachable" :default-family="fonts.defaultFamily" @remove="font => pending = font"
                    @web="font => webTarget = font" @remove-web="removeWeb"/>
       <ReachedFamilyList v-if="reached.length > 0" :families="reached"/>
     </template>
