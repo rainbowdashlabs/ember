@@ -6,14 +6,14 @@
 import {afterEach, describe, expect, it, vi} from 'vitest'
 import {DOMWrapper, enableAutoUnmount, flushPromises, mount} from '@vue/test-utils'
 import MemberSelectInput from './MemberSelectInput.vue'
-import type {MemberOption} from './memberOption'
+import {fromMember, type MemberOption} from './memberOption'
 
 enableAutoUnmount(afterEach)
 
 const PEOPLE: MemberOption[] = [
-    {value: '3', name: 'Zoe Abel', email: 'zoe@example.org', userType: 'MEMBER'},
-    {value: '1', name: 'Anna Zimmer', email: 'anna@example.org', userType: 'GUARDIAN'},
-    {value: '2', name: 'Ben Müller', email: 'ben@example.org', userType: 'MEMBER'},
+    {value: '3', name: 'Zoe Abel', userType: 'MEMBER'},
+    {value: '1', name: 'Anna Zimmer', userType: 'GUARDIAN'},
+    {value: '2', name: 'Ben Müller', userType: 'MEMBER'},
 ]
 
 /**
@@ -87,10 +87,12 @@ describe('MemberSelectInput', () => {
         expect(rowTexts()[0]).toContain('Ben Müller')
     })
 
-    it('searches the address as well as the name', async () => {
-        await openMenu()
-        await searchBox().setValue('zoe@example')
-        expect(rowTexts()).toHaveLength(1)
+    it('names a member without a name by their address and shows no address otherwise', async () => {
+        await openMenu({members: [
+            fromMember({id: 4, name: '', email: 'nameless@example.org'}),
+            fromMember({id: 5, name: 'Zoe Abel', email: 'zoe@example.org'}),
+        ]})
+        expect(rowTexts()).toEqual(['nameless@example.org', 'Zoe Abel'])
     })
 
     it('says so when nobody matches', async () => {

@@ -2,7 +2,11 @@
 
 ## v26.21.0
 
-Themenfarben erscheinen dort, wo sie fehlten.
+Themenfarben erscheinen dort, wo sie fehlten. E-Mail-Adressen von Mitgliedern erreichen nur noch die, die das Mitgliederverzeichnis lesen dürfen.
+
+### Sicherheit
+
+- **Mitgliederlisten tragen keine E-Mail-Adressen mehr.** Seiten, auf denen nur ein Mitglied ausgewählt wird, etwa Inventar, Anwesenheit oder Sichtbarkeitsfilter, bekamen die E-Mail-Adresse jedes Mitglieds, und die Mitgliedermenüs zeigten sie an. Diese Adressen erreichen jetzt nur noch die, die das Mitgliederverzeichnis lesen dürfen, und Mitgliedermenüs zeigen nur Namen.
 
 ### Fehlerbehebungen
 

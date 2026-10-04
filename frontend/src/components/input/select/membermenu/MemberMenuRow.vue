@@ -44,7 +44,6 @@ const {t} = useI18n()
     />
     <template v-if="option">
       <MemberName :identity="identityOf(option)" class="min-w-0"/>
-      <MutedText v-if="option.email" class="truncate">{{ option.email }}</MutedText>
       <InfoBadge v-if="option.note" class="shrink-0">{{ option.note }}</InfoBadge>
     </template>
     <template v-else>

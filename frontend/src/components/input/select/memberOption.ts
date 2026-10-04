@@ -17,8 +17,6 @@ export interface MemberOption {
     /** What the menu reads and writes. A member id for most callers, a member UUID for the page editor. */
     value: string
     name: string
-    /** Shown beside the name where a call site knows it, which is how two people of one name are told apart. */
-    email?: string | null
     /** What kind of member they are, for the optional kind filter. */
     userType?: string | null
     identity?: PersonIdentity | null
@@ -60,15 +58,13 @@ export interface MemberLike {
 /**
  * A member as a list of them hands them over, which is the shape most screens already hold.
  *
- * <p>Somebody whose name was never filled in is called by their address, and then the address is not
- * repeated beneath it: a row reading the same thing twice looks like a fault rather than a fallback.
+ * <p>The address is not shown: a menu is for picking somebody, and it would hand every reader of it
+ * the address of everybody on it. It only stands in for a name that was never filled in.
  */
 export function fromMember(member: MemberLike): MemberOption {
-    const name = nameOrFallback(member.name, member.email, member.id)
     return {
         value: String(member.id),
-        name,
-        email: member.email === name ? null : member.email,
+        name: nameOrFallback(member.name, member.email, member.id),
         userType: member.userType,
         identity: member.identity ?? null,
     }
