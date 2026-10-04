@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.generator.repository.DocumentGenerationRepository
 import dev.chojo.ember.feature.generator.repository.DocumentTemplateRepository;
 import dev.chojo.ember.feature.generator.service.DocumentGenerationService.GeneratedDocumentResponse;
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
+import dev.chojo.ember.feature.restriction.RestrictionMember;
 import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.restriction.service.RestrictionService;
 import dev.chojo.ember.feature.station.entity.StationFormat;
@@ -154,11 +155,17 @@ public class SelfServiceDocumentService {
     public List<SelfServiceOffer> offers(StationSession session, int memberId) {
         requireMayActFor(session, memberId);
         documents.requireKept(session.stationId(), DocumentDoor.STATION);
-        return Stream.concat(
+        var member = restrictions.memberOf(memberId).orElse(null);
+        var offered = Stream.concat(
                         templates.findByOwner(session.owner(), false).stream(),
                         templates.findOfAssociationOf(session.stationId()).stream())
-                .filter(template -> offered(template, session.stationId(), memberId))
-                .map(template -> offer(session, template, memberId))
+                .filter(template -> offered(template, session.stationId(), member))
+                .toList();
+        var lastUsed = generations.lastSelfService(
+                offered.stream().map(DocumentTemplate::id).toList(), memberId);
+        var batch = generator.batch(List.of(memberId));
+        return offered.stream()
+                .map(template -> offer(session, template, memberId, batch, lastUsed.get(template.id())))
                 .toList();
     }
 
@@ -173,7 +180,8 @@ public class SelfServiceDocumentService {
     public GeneratedDocumentResponse generate(StationSession session, int templateId, int memberId) {
         requireMayActFor(session, memberId);
         var template = templateService.requireInUse(session.stationId(), templateId);
-        if (!offered(template, session.stationId(), memberId)) {
+        if (!offered(
+                template, session.stationId(), restrictions.memberOf(memberId).orElse(null))) {
             throw DocumentRefusal.DOCUMENT_SELF_SERVICE_NOT_OFFERED.raise();
         }
         var openAgain = availableFrom(template, generations.lastSelfService(template.id(), memberId));
@@ -187,31 +195,37 @@ public class SelfServiceDocumentService {
 
     /** The values of a document for the member, issued by the template's issuer at the station. */
     private DocumentGeneratorService.Prepared prepare(StationSession session, DocumentTemplate template, int memberId) {
-        var issuer = issuers.ofTemplate(template, session.stationId());
-        return generator.prepare(
-                template, memberId, GenerationContext.by(session.member().id(), issuer));
+        return generator.prepare(template, memberId, context(session, template));
     }
 
-    private SelfServiceOffer offer(StationSession session, DocumentTemplate template, int memberId) {
-        var prepared = prepare(session, template, memberId);
-        var lastUsed = generations.lastSelfService(template.id(), memberId);
+    private GenerationContext context(StationSession session, DocumentTemplate template) {
+        return GenerationContext.by(session.member().id(), issuers.ofTemplate(template, session.stationId()));
+    }
+
+    private SelfServiceOffer offer(
+            StationSession session,
+            DocumentTemplate template,
+            int memberId,
+            DocumentGeneratorService.Batch batch,
+            @Nullable Instant lastUsed) {
+        var prepared = batch.prepare(generator.sourceOf(template), memberId, context(session, template));
         return new SelfServiceOffer(
                 template.id(),
                 template.name(),
                 template.legal(),
                 availableFrom(template, lastUsed),
                 lastUsed,
-                generator.missing(prepared));
+                prepared.missing());
     }
 
     /**
      * Whether a template is offered to a member: a station's own by its flag and its audience, one of the
      * association by what the station chose for it.
      */
-    private boolean offered(DocumentTemplate template, int stationId, int memberId) {
-        if (template.ofAssociation()) return stationUses.offers(template, stationId, memberId);
+    private boolean offered(DocumentTemplate template, int stationId, @Nullable RestrictionMember member) {
+        if (template.ofAssociation()) return stationUses.offers(template, stationId, member);
         return template.selfService()
-                && restrictions.includes(RestrictionType.DOCUMENT_TEMPLATE, template.id(), memberId);
+                && restrictions.includes(RestrictionType.DOCUMENT_TEMPLATE, template.id(), member);
     }
 
     /**

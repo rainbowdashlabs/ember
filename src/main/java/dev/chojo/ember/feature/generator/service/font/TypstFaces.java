@@ -10,6 +10,8 @@ import dev.chojo.ember.feature.generator.entity.DocumentFont;
 import dev.chojo.ember.feature.generator.entity.FontFace;
 import dev.chojo.ember.feature.generator.entity.FontOutline;
 
+import java.nio.file.Path;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -38,6 +40,22 @@ public final class TypstFaces {
         var data = read.apply(face);
         data.ifPresent(bytes -> files.put(name, bytes));
         return data.isPresent();
+    }
+
+    /**
+     * Puts the kept file of a face among the files Typst is handed, where it needs one.
+     *
+     * @param face     the face
+     * @param keptFile the kept file of a face, empty where it is gone
+     * @param files    the files Typst is handed, which this adds to
+     * @return whether Typst can print in the face: it carries the face itself or its file is there
+     */
+    public static boolean supplyKept(
+            FontFace face, Function<FontFace, Optional<Path>> keptFile, Collection<Path> files) {
+        if (face instanceof BuiltInFace builtIn && !builtIn.bundled()) return true;
+        var file = keptFile.apply(face);
+        file.filter(path -> !files.contains(path)).ifPresent(files::add);
+        return file.isPresent();
     }
 
     private static String fileName(FontFace face) {

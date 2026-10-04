@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.generator.entity.DocumentTemplateKind;
 import dev.chojo.ember.feature.generator.entity.TemplateStationUse;
 import dev.chojo.ember.feature.generator.repository.TemplateStationUseRepository;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
+import dev.chojo.ember.feature.restriction.RestrictionMember;
 import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.restriction.service.RestrictionService;
 import dev.chojo.ember.owner.Owner;
@@ -144,14 +145,15 @@ public class TemplateStationUseService {
      *
      * @param template  a template of the station's association
      * @param stationId the station
-     * @param memberId  the member the document would be about
+     * @param member    the member the document would be about, as restrictions see them, or null where
+     *                  there is no such member
      * @return whether the member is offered it
      */
-    public boolean offers(DocumentTemplate template, int stationId, int memberId) {
+    public boolean offers(DocumentTemplate template, int stationId, @Nullable RestrictionMember member) {
         if (!template.selfService()) return false;
         return uses.find(template.id(), stationId)
                 .filter(TemplateStationUse::selfService)
-                .map(use -> restrictions.includes(RestrictionType.DOCUMENT_TEMPLATE_STATION_USE, use.id(), memberId))
+                .map(use -> restrictions.includes(RestrictionType.DOCUMENT_TEMPLATE_STATION_USE, use.id(), member))
                 .orElse(false);
     }
 

@@ -32,6 +32,7 @@ import org.junit.jupiter.api.Test;
 import tools.jackson.databind.node.StringNode;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -232,7 +233,7 @@ class BulkGenerationServiceTest extends GeneratorTestBase {
 
     /** The entry of the generation log of the document a run filed for a member. */
     private static GenerationLogEntry logged(JobMemberResult result) {
-        return wiring.log().forStation(wiring.station().id()).stream()
+        return wiring.log().forStation(wiring.station().id(), GenerationLogService.MAX_LIMIT, 0).stream()
                 .filter(entry -> Objects.equals(entry.documentId(), result.documentId()))
                 .findFirst()
                 .orElseThrow();
@@ -372,5 +373,24 @@ class BulkGenerationServiceTest extends GeneratorTestBase {
         refused(
                 DocumentRefusal.DOCUMENT_JOB_NOT_HERE,
                 () -> bulk.job(wiring.station().id(), -1));
+    }
+
+    /** The list holds the latest runs only, each counting its own members and naming who started it. */
+    @Test
+    void theListHoldsTheLatestRunsWithTheirOwnCounts() {
+        var created = new ArrayList<Integer>();
+        for (int run = 0; run <= BulkGenerationService.RECENT_RUNS; run++) {
+            created.add(jobs.create(
+                    wiring.station().id(), templateId, manager.id(), true, issuer(), List.of(anna.id(), ben.id())));
+        }
+
+        var recent = bulk.recent(as(manager));
+
+        assertEquals(BulkGenerationService.RECENT_RUNS, recent.size());
+        assertEquals(created.getLast(), recent.getFirst().id());
+        assertEquals(2, recent.getFirst().total());
+        assertEquals(0, recent.getFirst().filed());
+        assertEquals(
+                memberNameResolver.identified(manager.id()), recent.getFirst().startedByName());
     }
 }

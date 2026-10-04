@@ -23,11 +23,15 @@ import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.restriction.repository.RestrictionRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -182,7 +186,19 @@ public class RestrictionService {
      * @return {@code true} where the entity has no restrictions or the member passes them
      */
     public boolean includes(RestrictionType type, int entityId, int memberId) {
-        var member = memberOf(memberId).orElse(null);
+        return includes(type, entityId, memberOf(memberId).orElse(null));
+    }
+
+    /**
+     * Whether an entity's restrictions take in a member read before, as {@link #includes(RestrictionType,
+     * int, int)} answers it, for a caller that asks about several entities for one member.
+     *
+     * @param type     the restricted entity type
+     * @param entityId the entity
+     * @param member   the member as {@link #memberOf(int)} read them, or null where there is no such member
+     * @return {@code true} where the member exists and the entity has no restrictions or the member passes them
+     */
+    public boolean includes(RestrictionType type, int entityId, @Nullable RestrictionMember member) {
         if (member == null) return false;
         RestrictionMode mode = restrictionRepository.findMode(type, entityId);
         return restrictionRepository.matches(type, entityId, mode, member);
@@ -200,6 +216,19 @@ public class RestrictionService {
                 .filter(audience::includes)
                 .map(RestrictionMember::memberId)
                 .toList();
+    }
+
+    /**
+     * What a restriction can name of several members, as {@link #memberOf(int)} reads it for one, in one
+     * read.
+     *
+     * @param memberIds the members
+     * @return the members as restrictions see them, by member; one that does not exist is absent
+     */
+    public Map<Integer, RestrictionMember> membersOf(Collection<Integer> memberIds) {
+        var members = new HashMap<Integer, RestrictionMember>();
+        restrictionRepository.findMembers(memberIds).forEach(member -> members.put(member.memberId(), member));
+        return members;
     }
 
     /**

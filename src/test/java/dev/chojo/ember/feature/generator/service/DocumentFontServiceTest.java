@@ -651,7 +651,6 @@ class DocumentFontServiceTest extends RepositoryTestBase {
                 station.stationId(),
                 "Brief",
                 letter,
-                null,
                 MemberView.EVERYBODY,
                 DocumentLanguage.DE,
                 Map.of(),

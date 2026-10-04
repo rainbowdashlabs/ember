@@ -27,15 +27,21 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 @Singleton
 public class GenerationJobRepository {
 
+    /**
+     * A run with how far it got. The members are counted for each run picked, after the runs are picked,
+     * so a list of the latest runs counts the members of those runs only.
+     */
     private static final String JOB = """
             SELECT j.id, j.station_id, j.template_id, t.name AS template_name, j.started_by, j.accept_missing,
                    j.issuer_id, j.issuer_function, j.issuer_fixed, j.started_at, j.finished_at,
-                   count(m.member_id)::int                                AS total,
-                   (count(m.member_id) FILTER (WHERE m.status = 'FILED'))::int  AS filed,
-                   (count(m.member_id) FILTER (WHERE m.status = 'FAILED'))::int AS failed
+                   progress.total, progress.filed, progress.failed
             FROM document_generation_job j
                      JOIN document_template t ON t.id = j.template_id
-                     LEFT JOIN document_generation_job_member m ON m.job_id = j.id""";
+                     CROSS JOIN LATERAL (SELECT count(*)::int                                      AS total,
+                                                (count(*) FILTER (WHERE m.status = 'FILED'))::int  AS filed,
+                                                (count(*) FILTER (WHERE m.status = 'FAILED'))::int AS failed
+                                         FROM document_generation_job_member m
+                                         WHERE m.job_id = j.id) progress""";
 
     /**
      * Writes a new run with its members, all waiting.
@@ -86,8 +92,7 @@ public class GenerationJobRepository {
     public Optional<GenerationJob> find(int jobId) {
         return query("""
                 %s
-                WHERE j.id = :id
-                GROUP BY j.id, t.name;""", JOB)
+                WHERE j.id = :id;""", JOB)
                 .single(call().bind("id", jobId))
                 .map(GenerationJob.map())
                 .first();
@@ -104,7 +109,6 @@ public class GenerationJobRepository {
         return query("""
                 %s
                 WHERE j.station_id = :station_id
-                GROUP BY j.id, t.name
                 ORDER BY j.started_at DESC, j.id DESC
                 LIMIT :limit;""", JOB)
                 .single(call().bind("station_id", stationId).bind("limit", limit))

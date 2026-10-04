@@ -259,6 +259,30 @@ class ProfileFieldRepositoryTest extends RepositoryTestBase {
         assertEquals("\"test@test.com\"", values.getFirst().value());
     }
 
+    /** The values of several members are read in one go, each with its member. */
+    @Test
+    @Order(11)
+    void findValuesOfSeveralMembers() {
+        var other = stationMemberRepo.create(
+                station.id(),
+                accountRepo.create("profile-other@test.com", "Profile", "Other").id());
+        var silent = stationMemberRepo.create(
+                station.id(),
+                accountRepo
+                        .create("profile-silent@test.com", "Profile", "Silent")
+                        .id());
+        profileFieldRepo.setValue(other.id(), fieldId, StringNode.valueOf("other@test.com"));
+
+        var values = profileFieldRepo.findValuesOf(List.of(member.id(), other.id(), silent.id()));
+
+        assertEquals(2, values.size());
+        assertTrue(values.stream().anyMatch(value -> value.memberId() == member.id()));
+        assertTrue(values.stream()
+                .anyMatch(
+                        value -> value.memberId() == other.id() && value.value().equals("\"other@test.com\"")));
+        assertTrue(profileFieldRepo.findValuesOf(List.of()).isEmpty());
+    }
+
     @Test
     @Order(11)
     void findValue() {

@@ -51,7 +51,7 @@ class GenerationLogRoutesTest {
     @BeforeEach
     void setup() {
         log = mock(GenerationLogService.class);
-        when(log.list(3)).thenReturn(List.of(ENTRY));
+        when(log.list(3, GenerationLogService.DEFAULT_LIMIT, 0)).thenReturn(List.of(ENTRY));
         harness = RouteHarness.serving(new GenerationLogRoutes(log));
     }
 
@@ -67,6 +67,20 @@ class GenerationLogRoutesTest {
         });
     }
 
+    /** A page further down the log is asked for by how many entries it holds and how many it passes over. */
+    @Test
+    void aLaterPageIsAskedForByLimitAndOffset() {
+        harness.run((server, client) -> {
+            var reader = harness.as(TestSessions.member(3, StationPermission.DOCUMENT_READ_MEMBER));
+            assertEquals(
+                    200,
+                    client.get(PREFIX + "/document-generation/log?limit=20&offset=40", reader)
+                            .code());
+        });
+
+        verify(log).list(3, 20, 40);
+    }
+
     @Test
     void theLogNeedsTheRightToReadMemberDocuments() {
         harness.run((server, client) -> {
@@ -75,6 +89,6 @@ class GenerationLogRoutesTest {
                     403, client.get(PREFIX + "/document-generation/log", store).code());
         });
 
-        verify(log, never()).list(anyInt());
+        verify(log, never()).list(anyInt(), anyInt(), anyInt());
     }
 }

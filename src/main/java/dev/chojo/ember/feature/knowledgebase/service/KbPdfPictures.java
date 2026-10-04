@@ -96,6 +96,7 @@ public class KbPdfPictures {
      * @return the rewritten text with the pictures it now points at
      */
     public Placed place(int stationId, String markdown, String prefix) {
+        if (!showsPictures(markdown)) return new Placed(markdown, Map.of());
         var stationUid = stationRepository.requireUid(stationId).toString();
         var namesByUrl = new LinkedHashMap<String, String>();
         var pictures = new LinkedHashMap<String, byte[]>();
@@ -108,6 +109,12 @@ public class KbPdfPictures {
                 .orElse(u));
         String placed = rewriteSources(rewriteSources(markdown, MARKDOWN_IMAGE, localName), HTML_IMAGE, localName);
         return new Placed(placed, pictures);
+    }
+
+    /** Whether a text shows any picture, which spares a text without one every lookup. */
+    private static boolean showsPictures(String markdown) {
+        return MARKDOWN_IMAGE.matcher(markdown).find()
+                || HTML_IMAGE.matcher(markdown).find();
     }
 
     /**

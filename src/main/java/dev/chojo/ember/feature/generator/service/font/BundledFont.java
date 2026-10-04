@@ -5,6 +5,9 @@
  */
 package dev.chojo.ember.feature.generator.service.font;
 
+import dev.chojo.ember.feature.generator.entity.FontFace;
+import dev.chojo.ember.feature.generator.entity.FontStyle;
+
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.LinkedHashMap;
@@ -31,6 +34,11 @@ public final class BundledFont {
     /** @return the file, a copy the caller may keep */
     public static byte[] data() {
         return BuiltInFonts.bundledFile(FILE_NAME);
+    }
+
+    /** @return the face of the fallback's file */
+    public static FontFace face() {
+        return BuiltInFonts.fallback().file(FontStyle.REGULAR);
     }
 
     /** @return font files by the name they are written under, holding the fallback's, for the caller to add to */

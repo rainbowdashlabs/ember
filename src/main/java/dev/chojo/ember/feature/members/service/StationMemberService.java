@@ -72,6 +72,14 @@ public class StationMemberService {
         return memberRepository.findById(id);
     }
 
+    /**
+     * @param ids members
+     * @return those that exist, read in one go, in no particular order
+     */
+    public List<StationMember> findByIds(List<Integer> ids) {
+        return memberRepository.findByIds(ids);
+    }
+
     public @Nullable UUID resolveUid(int memberId) {
         return lookupService.resolveUid(memberId);
     }

@@ -85,6 +85,22 @@ class RestrictionServiceTest extends RepositoryTestBase {
         accounts.forEach(account -> accountRepo.delete(account.id()));
     }
 
+    /** Several members are read as restrictions see them in one go, each as one is read alone. */
+    @Test
+    void membersOfReadsSeveralMembersAsMemberOfReadsOne() {
+        var members = restrictionService.membersOf(List.of(groupMember.id(), bothMember.id(), UNKNOWN_MEMBER_ID));
+
+        assertEquals(2, members.size());
+        for (var member : List.of(groupMember, bothMember)) {
+            var alone = restrictionService.memberOf(member.id()).orElseThrow();
+            var together = members.get(member.id());
+            assertEquals(alone.userType(), together.userType());
+            assertEquals(Set.copyOf(alone.groupIds()), Set.copyOf(together.groupIds()));
+            assertEquals(Set.copyOf(alone.tagIds()), Set.copyOf(together.tagIds()));
+        }
+        assertTrue(restrictionService.membersOf(List.of()).isEmpty());
+    }
+
     @Test
     void findRestrictionSetReturnsPersistedSelectionWithGivenMode() {
         int newsId = createNews("restriction-set");

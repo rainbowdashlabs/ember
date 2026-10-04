@@ -19,12 +19,14 @@ import dev.chojo.ember.feature.generator.entity.LetterContent;
 import dev.chojo.ember.feature.generator.entity.MemberView;
 import dev.chojo.ember.feature.generator.entity.MissingValue;
 import dev.chojo.ember.feature.generator.entity.PdfContent;
+import dev.chojo.ember.feature.generator.entity.Placeholder;
 import dev.chojo.ember.feature.generator.entity.PlaceholderTokens;
 import dev.chojo.ember.feature.generator.entity.ResolvedValues;
 import dev.chojo.ember.feature.generator.entity.SignatureRole;
 import dev.chojo.ember.feature.generator.entity.TemplateContent;
 import dev.chojo.ember.feature.generator.service.pdf.PdfStamper;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
+import dev.chojo.ember.feature.restriction.RestrictionMember;
 import dev.chojo.ember.feature.restriction.service.RestrictionService;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -36,6 +38,9 @@ import org.jspecify.annotations.Nullable;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.Base64;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -43,6 +48,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -126,8 +132,16 @@ public class DocumentGeneratorService {
      * @param stationId the station of the member, where the document is drawn and filed
      * @param view      which blocks of a letter the member sees and how many guardians sign for them
      * @param resolved  the values and what is missing
+     * @param issuer    the issuer as the document names them
+     * @param missing   the placeholders without a value, in the words of the template's owner
      */
-    public record Prepared(Source source, int stationId, MemberView view, ResolvedValues resolved, IssuerUse issuer) {}
+    public record Prepared(
+            Source source,
+            int stationId,
+            MemberView view,
+            ResolvedValues resolved,
+            IssuerUse issuer,
+            List<MissingValue> missing) {}
 
     /**
      * The issuer as one member's document names them.
@@ -180,7 +194,6 @@ public class DocumentGeneratorService {
      * @param content         the letter, or the PDF with what is laid over it
      * @param language        the language its documents are written in
      * @param legal           whether it makes a legal document
-     * @param cacheKey        the template and version a letter's texts are kept under, or null for a draft
      */
     public record Source(
             Owner owner,
@@ -189,8 +202,7 @@ public class DocumentGeneratorService {
             String fileNamePattern,
             TemplateContent content,
             DocumentLanguage language,
-            boolean legal,
-            LetterRenderer.@Nullable BodyKey cacheKey) {
+            boolean legal) {
 
         /**
          * The keys that stand for values in what a member sees of the template: the title, the file
@@ -269,8 +281,7 @@ public class DocumentGeneratorService {
                 template.fileNamePattern(),
                 templates.contentOf(template),
                 template.language(),
-                template.legal(),
-                new LetterRenderer.BodyKey(template.id(), template.version()));
+                template.legal());
     }
 
     /**
@@ -286,8 +297,7 @@ public class DocumentGeneratorService {
                 draft.fileNamePattern(),
                 draft.content(),
                 draft.language(),
-                draft.legal(),
-                null);
+                draft.legal());
     }
 
     /**
@@ -306,23 +316,18 @@ public class DocumentGeneratorService {
      * @return the values and what is missing
      */
     public Prepared prepare(Source source, int memberId, GenerationContext context) {
-        int stationId = resolver.stationOf(memberId).orElseThrow(MemberRefusal.MEMBER_NOT_HERE::raise);
-        var member = restrictions.memberOf(memberId).orElse(null);
-        Predicate<RestrictionAudience> audience =
-                member == null ? restriction -> false : restriction -> restriction.includes(member);
-        var view = MemberView.of(audience, resolver.guardians(memberId));
-        if (source.content() instanceof LetterContent letter) {
-            LetterLayout.requireSignersOnce(letter, view, DocumentRefusal.DOCUMENT_SIGNER_TWICE_FOR_MEMBER);
-        }
-        var keys = new LinkedHashSet<>(source.valueKeys(view));
-        if (source.legal()) PlaceholderCatalogue.requireOfficial(keys);
-        boolean signs = source.asksIssuerToSign(view);
-        boolean named = signs || BuiltInPlaceholder.namesIssuer(keys);
-        if (named) keys.add(BuiltInPlaceholder.ISSUER_FULL_NAME.key());
-        var resolved = resolver.resolve(stationId, memberId, keys, source.language(), context);
-        var issuer = new IssuerUse(
-                context.issuer(), named, signs, resolved.values().get(BuiltInPlaceholder.ISSUER_FULL_NAME.key()));
-        return new Prepared(source, stationId, view, resolved, issuer);
+        return batch(List.of(memberId)).prepare(source, memberId, context);
+    }
+
+    /**
+     * Prepares and draws documents for many members, or many templates for one member, reading what
+     * they share once.
+     *
+     * @param memberIds the members documents are drawn for
+     * @return what prepares and draws them
+     */
+    public Batch batch(Collection<Integer> memberIds) {
+        return new Batch(memberIds);
     }
 
     /**
@@ -339,19 +344,6 @@ public class DocumentGeneratorService {
     }
 
     /**
-     * The placeholders without a value, in the words of the template's owner.
-     *
-     * @param prepared what a document is about to be drawn from
-     * @return the missing values in template order
-     */
-    public List<MissingValue> missing(Prepared prepared) {
-        var labels = catalogue.byKey(prepared.source().owner());
-        return prepared.resolved().missing().stream()
-                .map(key -> new MissingValue(key, PlaceholderCatalogue.labelOf(labels, key)))
-                .toList();
-    }
-
-    /**
      * Refuses a document whose values are not all there, naming the missing ones in the words of the
      * template's owner.
      *
@@ -359,7 +351,7 @@ public class DocumentGeneratorService {
      * @param refusal  what to refuse with
      */
     public void requireComplete(Prepared prepared, Refusal refusal) {
-        var missing = missing(prepared);
+        var missing = prepared.missing();
         if (missing.isEmpty()) return;
         String labels = missing.stream().map(MissingValue::label).collect(Collectors.joining(", "));
         throw refusal.raise(RefusalDetail.text(labels));
@@ -372,11 +364,16 @@ public class DocumentGeneratorService {
      * @return the document
      */
     public Rendered render(Prepared prepared) {
+        return render(prepared, drawingOf(prepared.source()), () -> today(prepared.stationId()));
+    }
+
+    private Rendered render(Prepared prepared, Drawing drawing, Supplier<LocalDate> today) {
         var source = prepared.source();
         var values = prepared.resolved().values();
         String title = title(source, values);
-        var labels = labels(source.owner(), prepared.resolved().missing());
-        var drawn = draw(source, prepared.stationId(), prepared.view(), title, values, labels, false);
+        var labels = new LinkedHashMap<String, String>();
+        prepared.missing().forEach(missing -> labels.put(missing.key(), missing.label()));
+        var drawn = drawing.draw(new Sheet(prepared.stationId(), prepared.view(), title, values, labels, false, today));
         return new Rendered(drawn.pdf(), title, fileName(source, values), prepared.resolved(), drawn.unprintable());
     }
 
@@ -392,71 +389,227 @@ public class DocumentGeneratorService {
      */
     public PreviewResponse preview(Source source, @Nullable Integer memberId, GenerationContext context) {
         if (memberId != null) {
-            var prepared = prepare(source, memberId, context);
-            var rendered = render(prepared);
-            return new PreviewResponse(
-                    encode(rendered.pdf()),
-                    missing(prepared),
-                    rendered.unprintable(),
-                    prepared.issuer().preview());
+            var batch = batch(List.of(memberId));
+            return batch.preview(batch.prepare(source, memberId, context));
         }
         var keys = PlaceholderCatalogue.keysOf(
                 source.titlePattern(),
                 source.fileNamePattern(),
                 source.content().texts());
         var values = resolver.withoutMember(source.owner(), source.language(), keys);
-        var labels = labels(source.owner(), List.copyOf(keys));
+        var known = catalogue.byKey(source.owner());
+        var labels = new LinkedHashMap<String, String>();
+        keys.forEach(key -> labels.put(key, PlaceholderCatalogue.labelOf(known, key)));
         Integer stationId = source.owner() instanceof Owner.Station station ? station.stationId() : null;
-        var drawn = draw(source, stationId, MemberView.EVERYBODY, title(source, values), values, labels, true);
+        var drawn = drawingOf(source)
+                .draw(new Sheet(
+                        stationId,
+                        MemberView.EVERYBODY,
+                        title(source, values),
+                        values,
+                        labels,
+                        true,
+                        () -> today(stationId)));
         return new PreviewResponse(encode(drawn.pdf()), List.of(), drawn.unprintable(), null);
     }
 
-    private PdfStamper.Stamped draw(
-            Source source,
+    /**
+     * Documents prepared and drawn as {@link #prepare} and {@link #render} do for one: those of one template
+     * for many members, as a run draws them, or those of many templates for one member, as the offers of
+     * self service list them.
+     *
+     * <p>What is the same for every member is read once: the station and the questions asked there
+     * ({@link PlaceholderResolver.Batch}), the words of each owner's placeholders, needed only where
+     * something is missing, and what each template is drawn with, its fonts or its uploaded PDF. What each
+     * member needs is read for all of the members at once: their groups and tags, their memberships,
+     * their guardians and their answers.
+     *
+     * <p>It is meant for one run or one request, and one thread.
+     */
+    public final class Batch {
+        private final Set<Integer> memberIds;
+        private final PlaceholderResolver.Batch values;
+        private final Map<Owner, Map<String, Placeholder>> labels = new HashMap<>();
+        private final Map<Source, Drawing> drawings = new IdentityHashMap<>();
+        private @Nullable Map<Integer, RestrictionMember> audiences;
+
+        private Batch(Collection<Integer> memberIds) {
+            this.memberIds = Set.copyOf(memberIds);
+            this.values = resolver.batch(this.memberIds);
+        }
+
+        /**
+         * Reads the values of one member for a template.
+         *
+         * <p>A letter whose signature lines would ask one person of this member's to sign twice is
+         * refused here: two lines for one signer may stand in a template as alternatives, but never meet
+         * in one document.
+         *
+         * <p>A document that names its issuer, by a value or by the issuer's signature field, needs the
+         * issuer's name: where nobody can be named, that name is missing like any other value.
+         *
+         * @param source   the template
+         * @param memberId the member the document is about
+         * @param context  who generates it, for which appointment and who issues it
+         * @return the values and what is missing
+         */
+        public Prepared prepare(Source source, int memberId, GenerationContext context) {
+            int stationId = values.stationOf(memberId).orElseThrow(MemberRefusal.MEMBER_NOT_HERE::raise);
+            var member = audienceOf(memberId);
+            Predicate<RestrictionAudience> audience =
+                    member == null ? restriction -> false : restriction -> restriction.includes(member);
+            var view = MemberView.of(audience, values.guardians(memberId));
+            if (source.content() instanceof LetterContent letter) {
+                LetterLayout.requireSignersOnce(letter, view, DocumentRefusal.DOCUMENT_SIGNER_TWICE_FOR_MEMBER);
+            }
+            var keys = new LinkedHashSet<>(source.valueKeys(view));
+            if (source.legal()) PlaceholderCatalogue.requireOfficial(keys);
+            boolean signs = source.asksIssuerToSign(view);
+            boolean named = signs || BuiltInPlaceholder.namesIssuer(keys);
+            if (named) keys.add(BuiltInPlaceholder.ISSUER_FULL_NAME.key());
+            var resolved = values.resolve(stationId, memberId, keys, source.language(), context);
+            var issuer = new IssuerUse(
+                    context.issuer(), named, signs, resolved.values().get(BuiltInPlaceholder.ISSUER_FULL_NAME.key()));
+            return new Prepared(source, stationId, view, resolved, issuer, missingOf(source.owner(), resolved));
+        }
+
+        /**
+         * Draws the document of one member.
+         *
+         * @param prepared the template and the member's values, prepared by this batch
+         * @return the document
+         */
+        public Rendered render(Prepared prepared) {
+            return DocumentGeneratorService.this.render(
+                    prepared, drawing(prepared.source()), () -> today(prepared.stationId()));
+        }
+
+        /**
+         * Draws the document of one member for a look before it is generated.
+         *
+         * @param prepared the template and the member's values, prepared by this batch
+         * @return the document and what is missing
+         */
+        public PreviewResponse preview(Prepared prepared) {
+            var rendered = render(prepared);
+            return new PreviewResponse(
+                    encode(rendered.pdf()),
+                    prepared.missing(),
+                    rendered.unprintable(),
+                    prepared.issuer().preview());
+        }
+
+        private @Nullable RestrictionMember audienceOf(int memberId) {
+            if (!memberIds.contains(memberId))
+                return restrictions.memberOf(memberId).orElse(null);
+            if (audiences == null) audiences = restrictions.membersOf(memberIds);
+            return audiences.get(memberId);
+        }
+
+        private List<MissingValue> missingOf(Owner owner, ResolvedValues resolved) {
+            if (resolved.missing().isEmpty()) return List.of();
+            var known = labels.computeIfAbsent(owner, catalogue::byKey);
+            return resolved.missing().stream()
+                    .map(key -> new MissingValue(key, PlaceholderCatalogue.labelOf(known, key)))
+                    .toList();
+        }
+
+        /**
+         * What a template is drawn with, read once it is first needed, and again where that failed. A
+         * template is known by the very source its documents were prepared from.
+         */
+        private Drawing drawing(Source source) {
+            return drawings.computeIfAbsent(source, DocumentGeneratorService.this::drawingOf);
+        }
+
+        private LocalDate today(int stationId) {
+            return LocalDate.now(clock.withZone(StationFormat.timezoneOf(values.station(stationId))));
+        }
+    }
+
+    /**
+     * What one document is drawn from.
+     *
+     * @param stationId  the station it is drawn at, or null for a look at an association's template
+     * @param view       what of a letter the member sees
+     * @param title      the title it carries
+     * @param values     the value of every placeholder that has one
+     * @param labels     the words of the placeholders shown where there is no value
+     * @param showLabels whether a placeholder without a value shows its label
+     * @param today      the day the document is dated, read only where it prints one
+     */
+    private record Sheet(
             @Nullable Integer stationId,
             MemberView view,
             String title,
             Map<String, String> values,
             Map<String, String> labels,
-            boolean showLabels) {
+            boolean showLabels,
+            Supplier<LocalDate> today) {}
+
+    /** What a template is drawn with, read once for as many documents as are drawn from it. */
+    private sealed interface Drawing permits LetterDrawing, PdfDrawing {
+        PdfStamper.Stamped draw(Sheet sheet);
+    }
+
+    /**
+     * A letter with its pictures' library and its fonts.
+     *
+     * @param letters the renderer
+     * @param source  the template
+     * @param letter  the letter
+     * @param setting what it is printed with
+     */
+    private record LetterDrawing(
+            LetterRenderer letters, Source source, LetterContent letter, LetterRenderer.Setting setting)
+            implements Drawing {
+        @Override
+        public PdfStamper.Stamped draw(Sheet sheet) {
+            var job = new LetterRenderer.LetterJob(
+                    source.owner(),
+                    sheet.stationId(),
+                    sheet.title(),
+                    letter,
+                    sheet.view(),
+                    source.language(),
+                    sheet.values(),
+                    sheet.labels(),
+                    sheet.showLabels(),
+                    sheet.today().get());
+            return new PdfStamper.Stamped(letters.render(job, setting), List.of());
+        }
+    }
+
+    /**
+     * An uploaded PDF with the fonts of its fields.
+     *
+     * @param pdfs     the renderer
+     * @param original what it is filled from
+     */
+    private record PdfDrawing(PdfTemplateRenderer pdfs, PdfTemplateRenderer.Original original) implements Drawing {
+        @Override
+        public PdfStamper.Stamped draw(Sheet sheet) {
+            return pdfs.render(
+                    original,
+                    sheet.view().guardians(),
+                    text -> PlaceholderTokens.replace(text, key -> {
+                        String value = sheet.values().get(key);
+                        if (value != null) return value;
+                        return sheet.showLabels() ? "[" + sheet.labels().getOrDefault(key, key) + "]" : "";
+                    }));
+        }
+    }
+
+    private Drawing drawingOf(Source source) {
         return switch (source.content()) {
             case LetterContent letter ->
-                new PdfStamper.Stamped(
-                        letters.render(new LetterRenderer.LetterJob(
-                                source.owner(),
-                                stationId,
-                                title,
-                                letter,
-                                source.cacheKey(),
-                                view,
-                                source.language(),
-                                values,
-                                labels,
-                                showLabels,
-                                today(stationId))),
-                        List.of());
-            case PdfContent pdf ->
-                pdfs.render(
-                        source.owner(),
-                        pdf,
-                        view.guardians(),
-                        text -> PlaceholderTokens.replace(text, key -> {
-                            String value = values.get(key);
-                            if (value != null) return value;
-                            return showLabels ? "[" + labels.getOrDefault(key, key) + "]" : "";
-                        }));
+                new LetterDrawing(letters, source, letter, letters.setting(source.owner(), letter));
+            case PdfContent pdf -> new PdfDrawing(pdfs, pdfs.original(source.owner(), pdf));
         };
     }
 
     private static String encode(byte[] pdf) {
         return Base64.getEncoder().encodeToString(pdf);
-    }
-
-    private Map<String, String> labels(Owner owner, List<String> keys) {
-        var known = catalogue.byKey(owner);
-        var labels = new LinkedHashMap<String, String>();
-        keys.forEach(key -> labels.put(key, PlaceholderCatalogue.labelOf(known, key)));
-        return labels;
     }
 
     private static String title(Source source, Map<String, String> values) {

@@ -311,7 +311,6 @@ class LetterPlacementTest extends GeneratorTestBase {
                 station.stationId(),
                 "Brief",
                 letter,
-                null,
                 MemberView.EVERYBODY,
                 DocumentLanguage.DE,
                 Map.of(),

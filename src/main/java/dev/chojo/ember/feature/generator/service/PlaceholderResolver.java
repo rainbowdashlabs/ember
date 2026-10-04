@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.entity.OwnedProfileField;
 import dev.chojo.ember.feature.members.entity.ProfileField;
+import dev.chojo.ember.feature.members.entity.ProfileFieldValue;
 import dev.chojo.ember.feature.members.entity.PronounSet;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
@@ -47,6 +48,8 @@ import java.time.Period;
 import java.time.ZoneId;
 import java.time.temporal.TemporalAccessor;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -143,41 +146,17 @@ public class PlaceholderResolver {
      */
     public ResolvedValues resolve(
             int stationId, int memberId, Set<String> keys, DocumentLanguage language, GenerationContext context) {
-        var station = stations.findById(stationId).orElse(null);
-        var association = clusters.findByStation(stationId).orElse(null);
-        var reading = new Reading(new Subject(station, association, memberId, language, context));
-        var values = new LinkedHashMap<String, String>();
-        var missing = new ArrayList<String>();
-        for (String key : keys) {
-            if (reading.ofAbsentSecondGuardian(key)) {
-                values.put(key, "");
-                continue;
-            }
-            String value = reading.value(key).map(String::strip).orElse("");
-            if (value.isEmpty()) {
-                missing.add(key);
-            } else {
-                values.put(key, value);
-            }
-        }
-        return new ResolvedValues(values, missing, reading.subjects(keys));
+        return batch(List.of(memberId)).resolve(stationId, memberId, keys, language, context);
     }
 
     /**
-     * @param memberId a member
-     * @return the station the member belongs to, where every document about them is drawn and filed, or
-     *         empty where there is no such member
+     * Reads the values of many members, as a run of one template does.
+     *
+     * @param memberIds the members documents are drawn for
+     * @return what reads their values, each piece read once for all of them
      */
-    public Optional<Integer> stationOf(int memberId) {
-        return members.findById(memberId).map(StationMember::stationId);
-    }
-
-    /**
-     * @param memberId a member
-     * @return how many guardians the member has
-     */
-    public int guardians(int memberId) {
-        return members.findManagers(memberId).size();
+    public Batch batch(Collection<Integer> memberIds) {
+        return new Batch(Set.copyOf(memberIds));
     }
 
     /**
@@ -202,8 +181,8 @@ public class PlaceholderResolver {
                     case Owner.Association own -> clusters.findById(own.clusterId());
                     case Owner.Instance ignored -> Optional.<Cluster>empty();
                 };
-        var reading =
-                new Reading(new Subject(station, association.orElse(null), 0, language, GenerationContext.NOBODY));
+        var place = new StationFacts(new Place(station, association.orElse(null)));
+        var reading = new Reading(batch(List.of()), place, 0, language, GenerationContext.NOBODY);
         var values = new HashMap<String, String>();
         for (String key : keys) {
             boolean needsNoMember = BuiltInPlaceholder.of(key)
@@ -215,26 +194,216 @@ public class PlaceholderResolver {
     }
 
     /**
-     * Whom values are read for. It reaches {@link Reading} as one record because the null check
+     * Where values are read. It reaches {@link StationFacts} as one record because the null check
      * misplaces a nullable parameter on the constructor of an inner class.
      *
      * @param station     the station that files the document, or null where it is gone or not known yet
      * @param association the association of that station, or null where it belongs to none
-     * @param memberId    the member the document is about, 0 for none
-     * @param language    the language the template writes in
-     * @param context     who generates it and for which appointment
      */
-    private record Subject(
-            @Nullable Station station,
-            @Nullable Cluster association,
-            int memberId,
-            DocumentLanguage language,
-            GenerationContext context) {}
+    private record Place(
+            @Nullable Station station, @Nullable Cluster association) {}
+
+    /**
+     * Reads the values of many members, as a run of one template does. What is the same for every member
+     * of a station is read once: the station, its association, the questions asked there and the
+     * association's address. What each member needs is read for all of the members at once, the first
+     * time one of them needs it: their memberships, their guardians and their answers to the station's and
+     * the association's questions. Whoever else a document names, a guardian or the issuer, is read once
+     * however many documents name them.
+     *
+     * <p>It is meant for one run and one thread, and it reads what is there when a piece is first needed:
+     * an answer given after that reaches the next run.
+     */
+    public final class Batch {
+        private final Set<Integer> memberIds;
+        private final Map<Integer, Optional<StationMember>> memberships = new HashMap<>();
+        private final Map<Integer, List<StationMember>> guardians = new HashMap<>();
+        private final Map<FieldOrigin, Map<Integer, List<ProfileFieldValue>>> answers =
+                new EnumMap<>(FieldOrigin.class);
+        private final Map<Integer, StationFacts> places = new HashMap<>();
+        private boolean membershipsRead;
+        private boolean guardiansRead;
+
+        private Batch(Set<Integer> memberIds) {
+            this.memberIds = memberIds;
+        }
+
+        /**
+         * @param memberId a member
+         * @return the station the member belongs to, where every document about them is drawn and filed,
+         *         or empty where there is no such member
+         */
+        public Optional<Integer> stationOf(int memberId) {
+            return membership(memberId).map(StationMember::stationId);
+        }
+
+        /**
+         * @param memberId a member
+         * @return how many guardians the member has
+         */
+        public int guardians(int memberId) {
+            return guardiansOf(memberId).size();
+        }
+
+        /**
+         * @param stationId a station
+         * @return the station, or null where it is gone
+         */
+        public @Nullable Station station(int stationId) {
+            return facts(stationId).station;
+        }
+
+        /**
+         * The values of the given keys for one member, as {@link PlaceholderResolver#resolve} reads them.
+         *
+         * @param stationId the station that files the document
+         * @param memberId  the member it is about
+         * @param keys      the keys the template names
+         * @param language  the language the template writes in
+         * @param context   who generates it and for which appointment
+         * @return the values, the keys without one, and whose data went in
+         */
+        public ResolvedValues resolve(
+                int stationId, int memberId, Set<String> keys, DocumentLanguage language, GenerationContext context) {
+            var reading = new Reading(this, facts(stationId), memberId, language, context);
+            var values = new LinkedHashMap<String, String>();
+            var missing = new ArrayList<String>();
+            for (String key : keys) {
+                if (reading.ofAbsentSecondGuardian(key)) {
+                    values.put(key, "");
+                    continue;
+                }
+                String value = reading.value(key).map(String::strip).orElse("");
+                if (value.isEmpty()) {
+                    missing.add(key);
+                } else {
+                    values.put(key, value);
+                }
+            }
+            return new ResolvedValues(values, missing, reading.subjects(keys));
+        }
+
+        private StationFacts facts(int stationId) {
+            return places.computeIfAbsent(
+                    stationId,
+                    id -> new StationFacts(new Place(
+                            stations.findById(id).orElse(null),
+                            clusters.findByStation(id).orElse(null))));
+        }
+
+        private Optional<StationMember> membership(int id) {
+            if (!membershipsRead && memberIds.contains(id)) {
+                membershipsRead = true;
+                memberIds.forEach(member -> memberships.put(member, Optional.empty()));
+                members.findByIds(List.copyOf(memberIds))
+                        .forEach(member -> memberships.put(member.id(), Optional.of(member)));
+            }
+            return memberships.computeIfAbsent(id, members::findById);
+        }
+
+        private List<StationMember> guardiansOf(int memberId) {
+            if (!guardiansRead && memberIds.contains(memberId)) {
+                guardiansRead = true;
+                var found = members.findManagersOf(memberIds);
+                memberIds.forEach(member -> guardians.put(member, found.getOrDefault(member, List.of())));
+            }
+            return guardians.computeIfAbsent(memberId, members::findManagers);
+        }
+
+        /** Every answer one person gave to the questions of the station or of the association. */
+        private List<ProfileFieldValue> answersOf(FieldOrigin origin, int whose) {
+            var owner = fieldOwners.owner(origin);
+            var read = answers.computeIfAbsent(origin, ignored -> new HashMap<>());
+            if (!read.containsKey(whose) && memberIds.contains(whose)) {
+                var all = new HashMap<Integer, List<ProfileFieldValue>>();
+                memberIds.forEach(member -> all.put(member, new ArrayList<>()));
+                owner.answersOf(memberIds)
+                        .forEach(answer -> all.computeIfAbsent(answer.memberId(), ignored -> new ArrayList<>())
+                                .add(answer));
+                all.forEach(read::putIfAbsent);
+            }
+            return read.computeIfAbsent(whose, owner::answersOf);
+        }
+    }
+
+    /**
+     * What is the same for every member of one station, each piece read the first time it is needed.
+     */
+    private final class StationFacts {
+        private final @Nullable Station station;
+        private final @Nullable Cluster association;
+        private final Map<Integer, Optional<ProfileField>> fields = new HashMap<>();
+        private final Map<Integer, Optional<OwnedProfileField>> associationFields = new HashMap<>();
+        private @Nullable Optional<ProfileField> birthDateField;
+        private @Nullable Optional<OwnedProfileField> genderField;
+        private @Nullable Optional<String> associationAddress;
+
+        StationFacts(Place place) {
+            this.station = place.station();
+            this.association = place.association();
+        }
+
+        int stationId() {
+            return station == null ? 0 : station.id();
+        }
+
+        Optional<ProfileField> field(int fieldId) {
+            return fields.computeIfAbsent(fieldId, id -> profileFields
+                    .findById(id)
+                    .filter(field -> field.stationId() == stationId())
+                    .filter(field -> field.fieldType().holdsValue()));
+        }
+
+        Optional<OwnedProfileField> associationField(int fieldId) {
+            return associationFields.computeIfAbsent(fieldId, id -> fieldOwners
+                    .owner(FieldOrigin.CLUSTER)
+                    .askedAt(stationId(), id)
+                    .filter(field -> field.type().holdsValue()));
+        }
+
+        Optional<ProfileField> birthDateField() {
+            if (birthDateField == null) {
+                birthDateField = profileFields.findAllByStationAndType(stationId(), FieldType.BIRTH_DATE).stream()
+                        .findFirst();
+            }
+            return birthDateField;
+        }
+
+        Optional<OwnedProfileField> genderField() {
+            if (genderField == null) genderField = genders.askedAt(stationId());
+            return genderField;
+        }
+
+        /**
+         * Where the association is, which is where its home station is: the street, then the postal code
+         * and the town, on one line.
+         */
+        @Nullable
+        String associationAddress() {
+            if (associationAddress == null) associationAddress = Optional.ofNullable(readAssociationAddress());
+            return associationAddress.orElse(null);
+        }
+
+        private @Nullable String readAssociationAddress() {
+            if (association == null) return null;
+            return stations.findById(association.homeStationId())
+                    .map(home -> Stream.of(
+                                    home.addressLine(),
+                                    Stream.of(home.postalCode(), home.city())
+                                            .filter(part -> part != null && !part.isBlank())
+                                            .collect(Collectors.joining(" ")))
+                            .filter(part -> part != null && !part.isBlank())
+                            .collect(Collectors.joining(", ")))
+                    .orElse(null);
+        }
+    }
 
     /**
      * Everything read for one member while their values are filled in, each piece read once.
      */
     private final class Reading {
+        private final Batch batch;
+        private final StationFacts place;
         private final @Nullable Station station;
         private final @Nullable Cluster association;
         private final int memberId;
@@ -242,18 +411,16 @@ public class PlaceholderResolver {
         private final DocumentLanguage documentLanguage;
         private final String language;
         private final ZoneId zone;
-        private final Map<Integer, Optional<StationMember>> memberships = new HashMap<>();
-        private final Map<Integer, Optional<ProfileField>> fields = new HashMap<>();
-        private final Map<Integer, Optional<OwnedProfileField>> associationFields = new HashMap<>();
-        private @Nullable List<StationMember> guardians;
         private @Nullable Optional<PronounSet> pronouns;
 
-        Reading(Subject subject) {
-            this.station = subject.station();
-            this.association = subject.association();
-            this.memberId = subject.memberId();
-            this.context = subject.context();
-            this.documentLanguage = subject.language();
+        Reading(Batch batch, StationFacts place, int memberId, DocumentLanguage language, GenerationContext context) {
+            this.batch = batch;
+            this.place = place;
+            this.station = place.station;
+            this.association = place.association;
+            this.memberId = memberId;
+            this.context = context;
+            this.documentLanguage = language;
             this.language = documentLanguage.code();
             this.zone = StationFormat.timezoneOf(station);
         }
@@ -360,7 +527,7 @@ public class PlaceholderResolver {
                 case STATION_POSTAL_CODE -> station == null ? null : station.postalCode();
                 case STATION_CITY -> station == null ? null : station.city();
                 case ASSOCIATION_NAME -> association == null ? null : association.name();
-                case ASSOCIATION_ADDRESS -> associationAddress();
+                case ASSOCIATION_ADDRESS -> place.associationAddress();
                 case EVENT_NAME -> event(GenerationContext.EventFacts::name);
                 case EVENT_LOCATION -> event(GenerationContext.EventFacts::location);
                 case ISSUER_FULL_NAME -> issuer().map(names::official).orElse(null);
@@ -393,21 +560,23 @@ public class PlaceholderResolver {
         }
 
         private Optional<PronounSet> genderPronouns() {
-            return genders.askedAt(stationId()).flatMap(field -> field.config()
-                    .pronounsOf(genders.answerOf(memberId, field).orElse(null), language));
+            return place.genderField().flatMap(field -> field.config()
+                    .pronounsOf(
+                            GenderFields.answerIn(batch.answersOf(field.origin(), memberId), field)
+                                    .orElse(null),
+                            language));
         }
 
         private Optional<LocalDate> birthDate() {
-            return profileFields.findAllByStationAndType(stationId(), FieldType.BIRTH_DATE).stream()
-                    .findFirst()
+            return place.birthDateField()
                     .map(field -> storedAnswer(memberId, field.id()))
                     .flatMap(StoredDay::of);
         }
 
         private Optional<Answer> answer(int whose, String fieldKey) {
-            return fieldIdOf(fieldKey).flatMap(fieldId -> field(fieldId).flatMap(field -> profileFields
-                    .findValue(whose, fieldId)
-                    .map(value -> new Answer(field.fieldType(), value.value()))));
+            return fieldIdOf(fieldKey)
+                    .flatMap(fieldId -> place.field(fieldId).flatMap(field -> given(FieldOrigin.STATION, whose, fieldId)
+                            .map(value -> new Answer(field.fieldType(), value.value()))));
         }
 
         /**
@@ -415,11 +584,15 @@ public class PlaceholderResolver {
          * association's adapter holds both the question and the answers.
          */
         private Optional<Answer> associationAnswer(int whose, String fieldKey) {
-            return fieldIdOf(fieldKey).flatMap(fieldId -> associationField(fieldId)
-                    .flatMap(field -> fieldOwners.owner(FieldOrigin.CLUSTER).answersOf(whose).stream()
-                            .filter(value -> value.fieldId() == fieldId)
-                            .findFirst()
+            return fieldIdOf(fieldKey).flatMap(fieldId -> place.associationField(fieldId)
+                    .flatMap(field -> given(FieldOrigin.CLUSTER, whose, fieldId)
                             .map(value -> new Answer(field.type(), value.value()))));
+        }
+
+        private Optional<ProfileFieldValue> given(FieldOrigin origin, int whose, int fieldId) {
+            return batch.answersOf(origin, whose).stream()
+                    .filter(value -> value.fieldId() == fieldId)
+                    .findFirst();
         }
 
         /** An answer as exports print it. */
@@ -436,34 +609,9 @@ public class PlaceholderResolver {
             }
         }
 
-        private Optional<OwnedProfileField> associationField(int fieldId) {
-            return associationFields.computeIfAbsent(fieldId, id -> fieldOwners
-                    .owner(FieldOrigin.CLUSTER)
-                    .askedAt(stationId(), id)
-                    .filter(field -> field.type().holdsValue()));
-        }
-
-        /**
-         * Where the association is, which is where its home station is: the street, then the postal code
-         * and the town, on one line.
-         */
-        private @Nullable String associationAddress() {
-            if (association == null) return null;
-            return stations.findById(association.homeStationId())
-                    .map(home -> Stream.of(
-                                    home.addressLine(),
-                                    Stream.of(home.postalCode(), home.city())
-                                            .filter(part -> part != null && !part.isBlank())
-                                            .collect(Collectors.joining(" ")))
-                            .filter(part -> part != null && !part.isBlank())
-                            .collect(Collectors.joining(", ")))
-                    .orElse(null);
-        }
-
         /** The answer of a question as plain text, as a pronoun mapping or a date reads it. */
         private @Nullable String storedAnswer(int whose, int fieldId) {
-            return profileFields
-                    .findValue(whose, fieldId)
+            return given(FieldOrigin.STATION, whose, fieldId)
                     .map(value -> QuestionValues.read(value.value()))
                     .orElse(null);
         }
@@ -476,15 +624,8 @@ public class PlaceholderResolver {
                             Function.identity(), id -> Objects.requireNonNullElse(names.official(id), "")));
         }
 
-        private Optional<ProfileField> field(int fieldId) {
-            return fields.computeIfAbsent(fieldId, id -> profileFields
-                    .findById(id)
-                    .filter(field -> field.stationId() == stationId())
-                    .filter(field -> field.fieldType().holdsValue()));
-        }
-
         private Optional<StationMember> membership(int id) {
-            return memberships.computeIfAbsent(id, members::findById);
+            return batch.membership(id);
         }
 
         /**
@@ -500,7 +641,7 @@ public class PlaceholderResolver {
         }
 
         private Optional<StationMember> guardian(int index) {
-            if (guardians == null) guardians = members.findManagers(memberId);
+            var guardians = batch.guardiansOf(memberId);
             return index < guardians.size() ? Optional.of(guardians.get(index)) : Optional.empty();
         }
 
@@ -538,7 +679,7 @@ public class PlaceholderResolver {
         }
 
         private int stationId() {
-            return station == null ? 0 : station.id();
+            return place.stationId();
         }
 
         private LocalDate today() {

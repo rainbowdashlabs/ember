@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.generator.service;
 
+import dev.chojo.ember.feature.generator.entity.FontFace;
 import dev.chojo.ember.feature.generator.entity.LetterContent;
 import dev.chojo.ember.feature.generator.entity.LetterPage;
 import dev.chojo.ember.feature.generator.entity.ReachableFonts;
@@ -28,8 +29,13 @@ class LetterFontsTest {
         return LetterFonts.of(
                 ReachableFonts.none(),
                 new LetterContent(List.of(), List.of(), List.of(), page),
-                font -> Optional.empty(),
+                LetterFontsTest::keptFile,
                 defaultFont);
+    }
+
+    /** Only the file of Liberation Sans is kept, as on an instance nothing was uploaded to. */
+    private static Optional<Path> keptFile(FontFace face) {
+        return face.equals(BundledFont.face()) ? Optional.of(Path.of(BundledFont.FILE_NAME)) : Optional.empty();
     }
 
     /** Without a default font every part prints in Liberation Sans, exactly as before. */
@@ -41,7 +47,7 @@ class LetterFontsTest {
         assertEquals(Map.of("body", liberation, "header", liberation, "footer", liberation), fonts.families());
         assertEquals(List.of(), fonts.directories());
         assertEquals(List.of(), fonts.uprightFamilies());
-        assertEquals(List.of(BundledFont.FILE_NAME), List.copyOf(fonts.files().keySet()));
+        assertEquals(List.of(Path.of(BundledFont.FILE_NAME)), fonts.files());
     }
 
     /**

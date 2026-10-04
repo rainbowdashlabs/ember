@@ -24,6 +24,8 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
+import java.nio.file.Path;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -49,14 +51,20 @@ public class FontLibrary {
     private final OwnerStores stores;
     private final StorageService storage;
     private final DefaultFont defaultFont;
+    private final FontFileCache kept;
 
     @Inject
     public FontLibrary(
-            DocumentFontRepository fonts, OwnerStores stores, StorageService storage, DefaultFont defaultFont) {
+            DocumentFontRepository fonts,
+            OwnerStores stores,
+            StorageService storage,
+            DefaultFont defaultFont,
+            FontFileCache kept) {
         this.fonts = fonts;
         this.stores = stores;
         this.storage = storage;
         this.defaultFont = defaultFont;
+        this.kept = kept;
     }
 
     /** @return the font a text naming no family prints in */
@@ -136,6 +144,26 @@ public class FontLibrary {
                 storage.readAllBytes(scopeOf(font.owner()), categoryOf(font.owner()), key(font.id()));
             case BuiltInFace builtIn -> BuiltInFonts.data(builtIn);
         };
+    }
+
+    /**
+     * The file of a face on the instance's own disk, read from storage only the first time.
+     *
+     * @param face an uploaded font or a built-in face
+     * @return the file, or empty where the stored file is gone or the face is one Typst carries itself
+     */
+    public Optional<Path> keptFile(FontFace face) {
+        return kept.fileOf(face, this::read);
+    }
+
+    /**
+     * A directory holding exactly the given kept files, for Typst to search.
+     *
+     * @param files files {@link #keptFile} gave
+     * @return the directory
+     */
+    public Path directoryOf(Collection<Path> files) {
+        return kept.directoryOf(files);
     }
 
     /**

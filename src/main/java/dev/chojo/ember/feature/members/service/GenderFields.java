@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.members.service;
 import dev.chojo.ember.feature.members.entity.FieldDraft;
 import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.OwnedProfileField;
+import dev.chojo.ember.feature.members.entity.ProfileFieldValue;
 import dev.chojo.ember.feature.members.entity.PronounSet;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.question.QuestionValues;
@@ -18,6 +19,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -67,7 +69,18 @@ public class GenderFields {
      * @return the answer as it is stored, or empty where the member gave none
      */
     public Optional<String> answerOf(int memberId, OwnedProfileField field) {
-        return core.owner(field.origin()).answersOf(memberId).stream()
+        return answerIn(core.owner(field.origin()).answersOf(memberId), field);
+    }
+
+    /**
+     * The answer to a gender field among the answers of one member read before.
+     *
+     * @param answers every answer the member gave to the questions of the field's owner
+     * @param field   the gender field
+     * @return the answer as it is stored, or empty where the member gave none
+     */
+    public static Optional<String> answerIn(List<ProfileFieldValue> answers, OwnedProfileField field) {
+        return answers.stream()
                 .filter(value -> value.fieldId() == field.id())
                 .findFirst()
                 .map(value -> QuestionValues.read(value.value()))

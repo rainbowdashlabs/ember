@@ -14403,7 +14403,7 @@
     },
     "/api/v1/document-generation/log" : {
       "get" : {
-        "summary" : "Every document the station generated from a template, the newest first",
+        "summary" : "The documents the station generated from a template, the newest first, one page at a time",
         "tags" : [ "Documents" ],
         "responses" : {
           "200" : {
@@ -14419,7 +14419,22 @@
               }
             }
           }
-        }
+        },
+        "parameters" : [ {
+          "name" : "limit",
+          "in" : "query",
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "offset",
+          "in" : "query",
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
       }
     },
     "/api/v1/document-generation/templates" : {

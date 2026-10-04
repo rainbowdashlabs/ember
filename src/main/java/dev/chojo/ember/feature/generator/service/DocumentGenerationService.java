@@ -234,10 +234,41 @@ public class DocumentGenerationService {
             int generatedBy,
             GenerationOrigin origin,
             DocumentGeneratorService.Prepared prepared) {
+        requireKept(prepared);
+        return file(template, memberId, generatedBy, origin, prepared, generator.render(prepared));
+    }
+
+    /**
+     * Refuses a document of a station that keeps no documents, before it is drawn.
+     *
+     * @param prepared the values a document is about to be drawn from
+     */
+    void requireKept(DocumentGeneratorService.Prepared prepared) {
+        documents.requireKept(prepared.stationId(), DocumentDoor.STATION);
+    }
+
+    /**
+     * Files a document drawn before, with its entry in the generation log, at the station of the member it
+     * is about. Nothing here draws, so a caller holding a transaction around it holds it only while the
+     * file is stored and logged.
+     *
+     * @param template    the template
+     * @param memberId    the member it is about
+     * @param generatedBy the member who generates it
+     * @param origin      in which role it is generated, and for which appointment
+     * @param prepared    the values it was drawn from
+     * @param rendered    the document, drawn from them
+     * @return the filed document
+     */
+    GeneratedDocumentResponse file(
+            DocumentTemplate template,
+            int memberId,
+            int generatedBy,
+            GenerationOrigin origin,
+            DocumentGeneratorService.Prepared prepared,
+            DocumentGeneratorService.Rendered rendered) {
         int stationId = prepared.stationId();
         var issuer = prepared.issuer();
-        documents.requireKept(stationId, DocumentDoor.STATION);
-        var rendered = generator.render(prepared);
         var upload = new DocumentIntake.Upload(rendered.fileName(), PDF, rendered.pdf());
         String mimeType =
                 intake.take(stationId, StorageCategory.MEMBER_DOCUMENTS, upload, DocumentDoor.STATION.intake());
@@ -278,6 +309,6 @@ public class DocumentGenerationService {
                 template.id(),
                 template.version(),
                 memberId);
-        return new GeneratedDocumentResponse(document.id(), entry.id(), rendered.title(), generator.missing(prepared));
+        return new GeneratedDocumentResponse(document.id(), entry.id(), rendered.title(), prepared.missing());
     }
 }

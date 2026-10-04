@@ -93,6 +93,27 @@ class ProfileFieldOwnersTest extends RepositoryTestBase {
                         .value());
     }
 
+    /** Both owners read the answers of several members in one go, as each reads them for one. */
+    @Test
+    void bothOwnersReadTheAnswersOfSeveralMembersAtOnce() {
+        int field = associationAsks("Mehrere", false);
+        profileFieldService.setValues(
+                scene.member().id(),
+                List.of(new FieldValueEntry(field, "\"viele\"", FieldOrigin.CLUSTER)),
+                scene.member().id(),
+                ProfileWriter.association());
+        var members = List.of(scene.member().id());
+
+        for (var origin : FieldOrigin.values()) {
+            var owner = profileFieldCore.owner(origin);
+            assertEquals(owner.answersOf(scene.member().id()), owner.answersOf(members));
+            assertTrue(owner.answersOf(List.of()).isEmpty());
+        }
+        assertEquals(
+                1,
+                profileFieldCore.owner(FieldOrigin.CLUSTER).answersOf(members).size());
+    }
+
     /** Archiving used to clear the station's answers only. */
     @Test
     void archivingClearsTheAssociationsAnswersThatAreNotKept() {
