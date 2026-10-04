@@ -2,7 +2,11 @@
 
 ## v26.21.0
 
-Theme colours show where they were missing.
+Theme colours show where they were missing. Editing a comment is safer.
+
+### Security
+
+- **Names in comment mentions are shown as text.** When a comment was edited, the name of a mentioned member was read as part of the page rather than shown as text. It is now always shown as text.
 
 ### Fixes
 

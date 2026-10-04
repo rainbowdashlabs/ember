@@ -2,7 +2,11 @@
 
 ## v26.21.0
 
-Themenfarben erscheinen dort, wo sie fehlten.
+Themenfarben erscheinen dort, wo sie fehlten. Das Bearbeiten von Kommentaren ist sicherer.
+
+### Sicherheit
+
+- **Namen in Erwähnungen erscheinen als Text.** Beim Bearbeiten eines Kommentars wurde der Name eines erwähnten Mitglieds als Teil der Seite gelesen statt als Text gezeigt. Jetzt erscheint er immer als Text.
 
 ### Fehlerbehebungen
 
