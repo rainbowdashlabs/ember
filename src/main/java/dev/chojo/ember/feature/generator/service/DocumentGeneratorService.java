@@ -180,7 +180,6 @@ public class DocumentGeneratorService {
      * @param content         the letter, or the PDF with what is laid over it
      * @param language        the language its documents are written in
      * @param legal           whether it makes a legal document
-     * @param cacheKey        the template and version a letter's texts are kept under, or null for a draft
      */
     public record Source(
             Owner owner,
@@ -189,8 +188,7 @@ public class DocumentGeneratorService {
             String fileNamePattern,
             TemplateContent content,
             DocumentLanguage language,
-            boolean legal,
-            LetterRenderer.@Nullable BodyKey cacheKey) {
+            boolean legal) {
 
         /**
          * The keys that stand for values in what a member sees of the template: the title, the file
@@ -269,8 +267,7 @@ public class DocumentGeneratorService {
                 template.fileNamePattern(),
                 templates.contentOf(template),
                 template.language(),
-                template.legal(),
-                new LetterRenderer.BodyKey(template.id(), template.version()));
+                template.legal());
     }
 
     /**
@@ -286,8 +283,7 @@ public class DocumentGeneratorService {
                 draft.fileNamePattern(),
                 draft.content(),
                 draft.language(),
-                draft.legal(),
-                null);
+                draft.legal());
     }
 
     /**
@@ -427,7 +423,6 @@ public class DocumentGeneratorService {
                                 stationId,
                                 title,
                                 letter,
-                                source.cacheKey(),
                                 view,
                                 source.language(),
                                 values,

@@ -23,6 +23,7 @@ import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.station.service.StationLogoService;
 import dev.chojo.ember.owner.Owner;
 import dev.chojo.ember.util.PandocConverter;
+import dev.chojo.ember.util.Sha256;
 import dev.chojo.ember.util.TypstCompiler;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -45,11 +46,12 @@ import java.util.Optional;
  *
  * <p>Member values never pass through markdown. A name with a {@code *}, an {@code _} or a {@code #} in
  * it would become emphasis or a heading there, and converting the texts anew for every member would run
- * Pandoc once per text and document. Instead every text block of the letter is converted to Typst once
- * per state of the template, with every placeholder left as a call to {@code ph("key")}, and the values
- * travel in {@code data.json}, where Typst reads them as strings and prints them as they are. The
- * conversion is kept by template and version, so a new version is converted on its first use and the old
- * one falls out of the cache.
+ * Pandoc once per text and document. Instead every text block of the letter is converted to Typst with
+ * every placeholder left as a call to {@code ph("key")}, and the values travel in {@code data.json}, where
+ * Typst reads them as strings and prints them as they are. The conversion is kept by the SHA-256 of the
+ * markdown Pandoc is handed, so a text is converted once whatever template, version or draft it stands in,
+ * and an unchanged block of a new version or a draft is not converted again. The pictures a text shows
+ * are read for every letter and never kept, so the cache holds text only and is bounded by its size.
  *
  * <p>The rows of the header, the footer and the body are laid out for the member by {@link LetterLayout}:
  * a block the member is not meant to see is left out. {@code letter.typ} draws the rows as grids from
@@ -73,13 +75,18 @@ public class LetterRenderer {
     /** Wide enough to print a letter's picture sharply, small enough to keep the PDF light. */
     private static final int PICTURE_WIDTH = 1024;
 
+    /** How many characters of converted text are kept, keys and markup together. */
+    private static final long CACHED_CHARACTERS = 8_000_000;
+
     private final KbPdfPictures pictures;
     private final MediaLibraryService mediaLibrary;
     private final StationLogoService logos;
     private final FontLibrary fonts;
     private final OwnerStores stores;
-    private final Cache<BodyKey, PreparedTexts> converted =
-            Caffeine.newBuilder().maximumSize(128).build();
+    private final Cache<String, String> converted = Caffeine.newBuilder()
+            .maximumWeight(CACHED_CHARACTERS)
+            .weigher((String markdownSha, String typst) -> markdownSha.length() + typst.length())
+            .build();
 
     @Inject
     public LetterRenderer(
@@ -104,7 +111,6 @@ public class LetterRenderer {
      *                   association's letter without a member, which prints the logo of its home station
      * @param title      the title the PDF carries
      * @param letter     the letter
-     * @param cacheKey   the template and version the texts belong to, or null for a draft that is not saved
      * @param view       what of the letter the member it is for sees
      * @param language   the language the letter is set in
      * @param values     the value of every placeholder that has one
@@ -117,29 +123,12 @@ public class LetterRenderer {
             @Nullable Integer stationId,
             String title,
             LetterContent letter,
-            @Nullable BodyKey cacheKey,
             MemberView view,
             DocumentLanguage language,
             Map<String, String> values,
             Map<String, String> labels,
             boolean showLabels,
             LocalDate date) {}
-
-    /**
-     * Which state of a template the converted texts belong to.
-     *
-     * @param templateId the template
-     * @param version    its version
-     */
-    public record BodyKey(int templateId, int version) {}
-
-    /**
-     * Every text of a letter as Typst, by its number, with the pictures they show.
-     *
-     * @param typst    the markup of each text, placeholders written as {@code #ph("key");}
-     * @param pictures the picture files by the name the markup uses
-     */
-    record PreparedTexts(Map<Integer, String> typst, Map<String, byte[]> pictures) {}
 
     /**
      * One text as Typst, with the pictures it shows.
@@ -158,13 +147,12 @@ public class LetterRenderer {
     public byte[] render(LetterJob job) {
         int library = stores.libraryOf(job.owner());
         int logoStation = Objects.requireNonNullElse(job.stationId(), library);
-        var texts = texts(job, library);
-        var files = new HashMap<>(texts.pictures());
+        var files = new HashMap<String, byte[]>();
         var resources = new HashMap<String, String>();
         var layout = new LetterLayout(job.view(), new LetterLayout.Blocks() {
                     @Override
                     public Map<String, Object> text(int index, ContentCell cell) {
-                        return Map.of("kind", "text", "file", textFile(index));
+                        return Map.of("kind", "text", "file", textFile(index, cell));
                     }
 
                     @Override
@@ -174,12 +162,14 @@ public class LetterRenderer {
 
                     @Override
                     public Map<String, Object> signature(int index, ContentCell cell, List<String> fields) {
-                        return Map.of("kind", "signature", "file", textFile(index), "fields", fields);
+                        return Map.of("kind", "signature", "file", textFile(index, cell), "fields", fields);
                     }
 
-                    private String textFile(int index) {
+                    private String textFile(int index, ContentCell cell) {
                         String file = "block-" + index + ".typ";
-                        resources.put(file, texts.typst().getOrDefault(index, ""));
+                        var text = convert(library, cell.content(), "b" + index + "-");
+                        resources.put(file, text.typst());
+                        files.putAll(text.pictures());
                         return file;
                     }
                 })
@@ -227,45 +217,13 @@ public class LetterRenderer {
         }
     }
 
-    private PreparedTexts texts(LetterJob job, int library) {
-        var key = job.cacheKey();
-        if (key == null) return prepare(library, job.letter());
-        return converted.get(key, ignored -> prepare(library, job.letter()));
-    }
-
     /**
-     * Converts every text of a letter, whoever sees it, numbered the way {@link LetterLayout} numbers them.
-     */
-    PreparedTexts prepare(int stationId, LetterContent letter) {
-        var typst = new HashMap<Integer, String>();
-        var files = new HashMap<String, byte[]>();
-        new LetterLayout(MemberView.EVERYBODY, new LetterLayout.Blocks() {
-                    @Override
-                    public Map<String, Object> text(int index, ContentCell cell) {
-                        return prepared(index, cell);
-                    }
-
-                    @Override
-                    public Map<String, Object> signature(int index, ContentCell cell, List<String> fields) {
-                        return prepared(index, cell);
-                    }
-
-                    private Map<String, Object> prepared(int index, ContentCell cell) {
-                        var text = convert(stationId, cell.content(), "b" + index + "-");
-                        typst.put(index, text.typst());
-                        files.putAll(text.pictures());
-                        return Map.of();
-                    }
-                })
-                .letter(letter);
-        return new PreparedTexts(typst, files);
-    }
-
-    /**
-     * Converts one text to Typst with its placeholders as lookups.
+     * Converts one text to Typst with its placeholders as lookups, reading the pictures it shows anew.
      *
      * <p>Each placeholder is swapped for a plain word of letters and digits before the conversion, which
-     * Pandoc passes through untouched wherever it stands, and swapped for the lookup afterwards.
+     * Pandoc passes through untouched wherever it stands, and swapped for the lookup afterwards. The
+     * markdown Pandoc is handed names every picture by the file it was placed as, or by its address where
+     * it could not be read, so a text whose pictures come and go is converted for each state.
      */
     Converted convert(int stationId, String markdown, String picturePrefix) {
         var placed = pictures.place(stationId, markdown, picturePrefix);
@@ -274,17 +232,26 @@ public class LetterRenderer {
             keys.add(key);
             return marker(keys.size() - 1);
         });
-        String typst;
-        try {
-            typst = PandocConverter.markdownToTypstWithFonts(marked);
-        } catch (IOException e) {
-            log.error("A text of a letter of station {} could not be converted", stationId, e);
-            throw DocumentRefusal.DOCUMENT_RENDER_FAILED.raise();
-        }
+        String typst = converted.get(Sha256.hex(marked), ignored -> toTypst(stationId, marked));
         for (int index = 0; index < keys.size(); index++) {
             typst = typst.replace(marker(index), "#ph(\"" + keys.get(index) + "\");");
         }
         return new Converted(typst, placed.pictures());
+    }
+
+    /** @return how many converted texts are kept, which says how often Pandoc ran */
+    long convertedTexts() {
+        converted.cleanUp();
+        return converted.estimatedSize();
+    }
+
+    private static String toTypst(int stationId, String marked) {
+        try {
+            return PandocConverter.markdownToTypstWithFonts(marked);
+        } catch (IOException e) {
+            log.error("A text of a letter of station {} could not be converted", stationId, e);
+            throw DocumentRefusal.DOCUMENT_RENDER_FAILED.raise();
+        }
     }
 
     private static String marker(int index) {

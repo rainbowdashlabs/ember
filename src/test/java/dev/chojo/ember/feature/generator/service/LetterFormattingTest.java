@@ -52,12 +52,16 @@ class LetterFormattingTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         station = new Owner.Station(stationRepo.create("Ausrichtung Wache").id());
+        renderer = newRenderer();
+    }
+
+    private static LetterRenderer newRenderer() {
         var backend = localStorage();
         var storage = new StorageService(new StorageBackendResolver(backend), backend);
         var pictures = mock(KbPdfPictures.class);
         when(pictures.place(anyInt(), anyString(), anyString()))
                 .thenAnswer(call -> new KbPdfPictures.Placed(call.getArgument(1), Map.of()));
-        renderer = new LetterRenderer(
+        return new LetterRenderer(
                 pictures,
                 mock(MediaLibraryService.class),
                 newStationLogoService(),
@@ -109,6 +113,20 @@ class LetterFormattingTest extends RepositoryTestBase {
                 word -> assertEquals(24, word.getFontSizeInPt(), 0.5, () -> "printed at " + word.getFontSizeInPt()));
     }
 
+    /**
+     * A text is converted once, whichever letter and block it stands in, so a new version or a draft
+     * converts only the texts that changed.
+     */
+    @Test
+    void anUnchangedTextIsConvertedOnce() {
+        var fresh = newRenderer();
+        var same = row("Gleicher Text für {{member.fullName}}");
+        fresh.render(job(new LetterContent(List.of(same), List.of(same), List.of(same), LetterPage.defaults())));
+        fresh.render(job(new LetterContent(List.of(), List.of(), List.of(same, row("Neu")), LetterPage.defaults())));
+
+        assertEquals(2, fresh.convertedTexts());
+    }
+
     private static String aligned(String alignment, String markdown) {
         return "<div data-align=\"" + alignment + "\">\n\n" + markdown + "\n\n</div>";
     }
@@ -138,18 +156,21 @@ class LetterFormattingTest extends RepositoryTestBase {
     }
 
     private static byte[] render(LetterContent letter) {
-        return renderer.render(new LetterRenderer.LetterJob(
+        return renderer.render(job(letter));
+    }
+
+    private static LetterRenderer.LetterJob job(LetterContent letter) {
+        return new LetterRenderer.LetterJob(
                 station,
                 station.stationId(),
                 "Brief",
                 letter,
-                null,
                 MemberView.EVERYBODY,
                 DocumentLanguage.DE,
                 Map.of(),
                 Map.of(),
                 false,
-                LocalDate.of(2026, 10, 3)));
+                LocalDate.of(2026, 10, 3));
     }
 
     private static ContentRow row(String text) {
