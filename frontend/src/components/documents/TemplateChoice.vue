@@ -10,7 +10,10 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import type {DocumentTemplateSummary} from '@/api/generated/schema'
 
-/** The template a run generates, from the templates in use. */
+/**
+ * The template a document is generated from, out of the templates offered; an association's template
+ * says so after its name. Once loaded, a station without templates is told it has none.
+ */
 const templateId = defineModel<number | null>({required: true})
 
 defineProps<{
@@ -26,10 +29,12 @@ const {t} = useI18n()
     {{ t('documentTemplates.noTemplates') }}
   </MutedText>
   <LabelledField v-else :label="t('documentTemplates.template')">
-    <SelectInput :model-value="templateId" data-testid="bulk-template"
+    <SelectInput :model-value="templateId" data-testid="template-choice"
                  @update:model-value="value => templateId = value === null ? null : Number(value)">
       <option :value="null" disabled>{{ t('documentTemplates.chooseTemplate') }}</option>
-      <option v-for="template in templates" :key="template.id" :value="template.id">{{ template.name }}</option>
+      <option v-for="template in templates" :key="template.id" :value="template.id">
+        {{ template.ofAssociation ? t('documentTemplates.namedOfAssociation', {name: template.name}) : template.name }}
+      </option>
     </SelectInput>
   </LabelledField>
 </template>

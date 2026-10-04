@@ -6,7 +6,7 @@
 import {computed, inject, onScopeDispose, provide, shallowRef, useId, watch, type ComputedRef, type InjectionKey} from 'vue'
 import {FontStyle, type DocumentFontsResponse} from '@/api/generated/schema'
 import type {FontFileLoader} from '@/api/documentFonts'
-import {FONT_STYLES, reachedFamily} from '@/components/documents/fonts/fontOptions'
+import {familyKey, FONT_STYLES, reachedFamily} from '@/components/documents/fonts/fontOptions'
 
 /** What the template editor shows its text in, for the parts of it below. */
 export interface EditorFonts {
@@ -42,11 +42,6 @@ interface FamilyRequest {
 
 const EDITOR_FONTS: InjectionKey<EditorFonts> = Symbol('editorFonts')
 const FONT_AREA: InjectionKey<ComputedRef<FontAreaAttrs>> = Symbol('editorFontArea')
-
-/** The key a family is kept by, compared as the server compares names; the default font is the empty key. */
-function keyOf(family: string | null): string {
-    return family ? family.trim().toLocaleLowerCase('de') : ''
-}
 
 /** The file a style is drawn from, as a document prints the family: that style, else the regular one. */
 function fileStyle(style: FontStyle, styles: readonly FontStyle[]): FontStyle {
@@ -84,8 +79,9 @@ function canRegister(): boolean {
  * Shows a template's text in the fonts it prints in, for as long as its editor is open. This is the one
  * place font files reach a browser.
  *
- * <p>The families the template uses are loaded as they come up, each once: the fonts of its page and
- * those words are set in, and a family picked for the first time. A family a template names but no
+ * <p>The families the template uses are loaded as they come up, each once and its styles side by side:
+ * the fonts of its page and those words are set in, and a family picked for the first time. They are
+ * compared as one key, so typing that names no new family asks for nothing. A family a template names but no
  * longer reaches is shown as the default font it prints in. Each family is registered with the browser's
  * `FontFace` API under a name of this editor's own, which nothing outside it names, and a stylesheet
  * scoped to elements carrying {@link EditorFonts.scope} sets the text in it: the page's font where an
@@ -132,8 +128,8 @@ export function useEditorFonts(
     async function register(key: string, request: FamilyRequest, spelled: string | null) {
         if (!load) return
         const cssName = `ember-editor-${scope}-${asked.size}`
-        const files = new Map<FontStyle, ArrayBuffer>()
-        for (const style of request.styles) files.set(style, await load(request.family, style, request.version))
+        const files = new Map(await Promise.all(request.styles.map(async style =>
+            [style, await load(request.family, style, request.version)] as const)))
         const faces = FONT_STYLES.map(style =>
             new FontFace(cssName, files.get(fileStyle(style, request.styles)) ?? new ArrayBuffer(0), descriptorsOf(style)))
         await Promise.all(faces.map(face => face.load()))
@@ -151,7 +147,7 @@ export function useEditorFonts(
             ask(null)
             return
         }
-        const key = keyOf(family)
+        const key = familyKey(family)
         if (asked.has(key)) return
         asked.add(key)
         const request = requestOf(current, family)
@@ -159,7 +155,8 @@ export function useEditorFonts(
     }
 
     if (canRegister() && load) {
-        watch([list, used], () => used().forEach(ask), {immediate: true})
+        const usedKey = computed(() => JSON.stringify(used()))
+        watch([list, usedKey], () => used().forEach(ask), {immediate: true})
     }
 
     onScopeDispose(() => {
@@ -169,7 +166,7 @@ export function useEditorFonts(
     })
 
     function find(family: string | null): LoadedFamily | undefined {
-        const own = loaded.value.get(keyOf(family))
+        const own = loaded.value.get(familyKey(family))
         if (own || family === null) return own
         const current = list()
         return current && !reachedFamily(current.reachable, family) ? loaded.value.get('') : undefined
@@ -182,7 +179,7 @@ export function useEditorFonts(
             return found ? `${cssString(found.cssName)}, sans-serif` : undefined
         },
         shown(family) {
-            return loaded.value.has(keyOf(family))
+            return loaded.value.has(familyKey(family))
         },
     }
     provide(EDITOR_FONTS, fonts)

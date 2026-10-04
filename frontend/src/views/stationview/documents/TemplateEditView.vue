@@ -56,12 +56,12 @@ const duplication = useTemplateDuplication(props.screens)
 const isPdf = computed(() => draft.value.kind === DocumentTemplateKind.PDF)
 const tab = ref('general')
 const tabs = computed(() => [
-  {key: 'general', label: t('documentTemplates.tabGeneral')},
+  {key: 'general', label: t('common.general')},
   ...(isPdf.value
     ? [{key: 'pdf', label: t('documentTemplates.tabPdf')}]
     : [{key: 'letter', label: t('documentTemplates.tabLetter')}]),
   {key: 'selfService', label: t('documentTemplates.tabSelfService')},
-  {key: 'preview', label: t('documentTemplates.tabPreview')},
+  {key: 'preview', label: t('common.preview')},
 ])
 
 const pageTitle = computed(() => saved.value

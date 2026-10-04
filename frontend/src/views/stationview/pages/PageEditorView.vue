@@ -15,7 +15,8 @@ import MetadataPanel from './pageeditorview/MetadataPanel.vue'
 import ContentBlockEditor from '@/components/content/ContentBlockEditor.vue'
 import type {RowEditData} from '@/components/content/blockeditor/EditorRow.vue'
 import {getPage, savePage, listPages} from '@/api/pageManage'
-import type {BlockCellRequest, BlockRowRequest, SavePageRequest, StationPage} from '@/api/generated/schema'
+import type {SavePageRequest, StationPage} from '@/api/generated/schema'
+import {toBlockRequests, toEditRows} from '@/util/blockSwitch'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {describeFailure} from '@/util/failure'
@@ -55,25 +56,6 @@ const parentOptions = computed(() =>
     allPages.value.filter(p => p.id !== pageId.value),
 )
 
-function pageToRows(p: StationPage): RowEditData[] {
-    return p.rows
-        .sort((a, b) => a.sortOrder - b.sortOrder)
-        .map(r => ({
-            id: r.id,
-            sortOrder: r.sortOrder,
-            cells: r.cells
-                .sort((a, b) => a.sortOrder - b.sortOrder)
-                .map(c => ({
-                    id: c.id,
-                    sortOrder: c.sortOrder,
-                    widthPercent: c.widthPercent,
-                    contentType: c.contentType,
-                    content: c.content,
-                    config: c.config as Record<string, unknown>,
-                })),
-        }))
-}
-
 const {loading, failure} = useAsyncLoader(async () => {
     const [p, pages] = await Promise.all([
         getPage(pageId.value),
@@ -85,7 +67,7 @@ const {loading, failure} = useAsyncLoader(async () => {
     slug.value = p.slug
     parentId.value = p.parentId
     metaDescription.value = p.metaDescription ?? ''
-    rows.value = pageToRows(p)
+    rows.value = toEditRows(p.rows)
     hasUnsavedChanges.value = false
 })
 
@@ -102,27 +84,17 @@ function togglePreview() {
 async function save() {
     failure.value = null
     try {
-        const saveRows: BlockRowRequest[] = rows.value.map((r, ri) => ({
-            sortOrder: ri,
-            cells: r.cells.map((c, ci): BlockCellRequest => ({
-                sortOrder: ci,
-                widthPercent: c.widthPercent,
-                contentType: c.contentType,
-                content: c.content,
-                config: c.config,
-            })),
-        }))
         const request: SavePageRequest = {
             title: title.value,
             slug: slug.value,
             parentId: parentId.value,
             metaDescription: metaDescription.value || null,
             ogImageId: page.value?.ogImageId ?? null,
-            rows: saveRows,
+            rows: toBlockRequests(rows.value),
         }
         const updated = await savePage(pageId.value, request)
         page.value = updated
-        rows.value = pageToRows(updated)
+        rows.value = toEditRows(updated.rows)
         hasUnsavedChanges.value = false
         editor.value?.draftSaved()
         showToast(t('common.saved'), 'success')

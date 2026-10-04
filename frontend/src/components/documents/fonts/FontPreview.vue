@@ -9,7 +9,6 @@ import {useI18n} from 'vue-i18n'
 import MutedText from '@/components/typography/MutedText.vue'
 import {FontStyle, type FontFamilyOption} from '@/api/generated/schema'
 import FontSample from './FontSample.vue'
-import {DEFAULT_FONT} from './fontOptions'
 
 /**
  * A line of sample text in the font a text prints in and the style it asks for, drawn by the server
@@ -18,11 +17,10 @@ import {DEFAULT_FONT} from './fontOptions'
 const props = withDefaults(defineProps<{
   /** The family the text prints in, or null for the default font, as for a family no longer reached. */
   family: FontFamilyOption | null
-  /** The family a text naming none prints in. */
-  defaultFamily?: string
+  /** The family a text naming none prints in, as the owner's font list names it. */
+  defaultFamily: string
   fontStyle?: FontStyle
 }>(), {
-  defaultFamily: DEFAULT_FONT,
   fontStyle: FontStyle.REGULAR,
 })
 

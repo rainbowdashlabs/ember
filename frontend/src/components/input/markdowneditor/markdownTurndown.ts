@@ -5,7 +5,7 @@
  */
 import TurndownService from 'turndown'
 import {extendTurndownWithBlockAlign} from './blockAlign'
-import {asHex} from './colorHex'
+import {cssColorHex} from '@/util/contrastColor'
 import {extendTurndownWithTextSize} from './textSize'
 
 /**
@@ -34,7 +34,7 @@ export function createMarkdownTurndown(): TurndownService {
     replacement: (c, node) => {
       const el = node as HTMLElement
       const written = el.getAttribute('data-color') || el.style.backgroundColor
-      const color = asHex(written) ?? written
+      const color = cssColorHex(written) ?? written
       if (color && color !== '#fef08a') {
         return `<mark data-color="${color}" style="background-color: ${color}">${c}</mark>`
       }
@@ -46,7 +46,7 @@ export function createMarkdownTurndown(): TurndownService {
     filter: (node) => node.nodeName === 'SPAN' && !!(node as HTMLElement).style.color,
     replacement: (c, node) => {
       const written = (node as HTMLElement).style.color
-      const color = asHex(written) ?? written
+      const color = cssColorHex(written) ?? written
       return color ? `<span style="color: ${color}">${c}</span>` : c
     },
   })

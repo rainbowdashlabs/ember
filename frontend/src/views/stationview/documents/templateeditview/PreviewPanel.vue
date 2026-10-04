@@ -57,6 +57,6 @@ const drawing = useAsyncAction(async () => {
       {{ t('documentTemplates.showPreview') }}
     </SecondaryButton>
     <FailureAlert :failure="drawing.failure.value"/>
-    <GeneratedPreview v-if="preview" :preview="preview" :title="draft.name || t('documentTemplates.preview')"/>
+    <GeneratedPreview v-if="preview" :preview="preview" :title="draft.name || t('common.preview')"/>
   </NeutralContainer>
 </template>

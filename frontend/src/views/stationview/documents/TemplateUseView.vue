@@ -10,7 +10,8 @@ import {useRoute} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
-import {documentTemplates, memberGroups, stationMembers, userTags} from '@/api'
+import {documentTemplates, stationMembers} from '@/api'
+import {audienceLists} from '@/components/documents/generation'
 import type {MemberGroup, MemberWithName, TemplateUseResponse, UserTag} from '@/api/generated/schema'
 import type {RestrictionSelection} from '@/api/types'
 import {toRestriction} from '@/components/input/restriction'
@@ -47,15 +48,14 @@ function take(loaded: TemplateUseResponse) {
 }
 
 const loader = useAsyncLoader(async () => {
-  const [loaded, groupList, tagList, memberList] = await Promise.all([
+  const [loaded, lists, memberList] = await Promise.all([
     documentTemplates.templateUse(templateId.value),
-    memberGroups.listGroups().catch(() => []),
-    userTags.listTags().catch(() => []),
+    audienceLists(),
     stationMembers.listMembers().catch(() => []),
   ])
   take(loaded)
-  groups.value = groupList
-  tags.value = tagList
+  groups.value = lists.groups
+  tags.value = lists.tags
   members.value = memberList.filter(member => !member.formerAt)
 })
 

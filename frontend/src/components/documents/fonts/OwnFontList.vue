@@ -23,6 +23,8 @@ const props = defineProps<{
   fonts: readonly DocumentFontView[]
   /** Every family the owner reaches, its own among them, which names the version of each sample. */
   reachable: readonly FontFamilyOption[]
+  /** The family a text naming none prints in, as the owner's font list names it. */
+  defaultFamily: string
 }>()
 
 const emit = defineEmits<{
@@ -42,7 +44,7 @@ const families = computed(() => groupByFamily(props.fonts))
     <EmptyHint v-if="families.length === 0">{{ t('documentFonts.none') }}</EmptyHint>
     <section v-for="group in families" :key="group.family" class="space-y-2" data-testid="font-family">
       <p class="font-semibold">{{ group.family }}</p>
-      <FontPreview :family="reachedFamily(reachable, group.family)"/>
+      <FontPreview :family="reachedFamily(reachable, group.family)" :default-family="defaultFamily"/>
       <ul class="divide-y divide-(--border)">
         <FontFileRow v-for="font in group.fonts" :key="font.id" :font="font" @remove="emit('remove', font)"
                      @web="emit('web', font)" @remove-web="emit('removeWeb', font)"/>

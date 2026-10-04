@@ -12,7 +12,7 @@ export type GenderPronouns = Record<string, Record<string, PronounSet>>
 export type AnswerPronouns = Record<string, PronounSet>
 
 /** The roles a pronoun plays in a sentence, as the server names them. */
-export type PronounRole = 'subject' | 'object' | 'dative' | 'possessive'
+export type PronounRole = keyof PronounSet
 
 /** What an answer stands for: one of the two predefined sets, the member's name, or words of its own. */
 export type PronounChoice = 'MALE' | 'FEMALE' | 'NAME' | 'OWN'

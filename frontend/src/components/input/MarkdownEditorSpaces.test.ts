@@ -88,7 +88,7 @@ describe('MarkdownEditor spaces in a row', () => {
 
     it('keeps spaces in a row beside bold, coloured and sized words', async () => {
         const markdown = `**fett**${NBSP} <span style="color: #ff0000">rot${NBSP}${NBSP} rot</span>${NBSP} `
-            + `<span data-size="24">groß</span>`
+            + `<span style="font-size: 24px">groß</span>`
         const {editor, stored} = await opened(markdown)
 
         expect(editor.state.doc.textContent).toBe('fett  rot   rot  groß')

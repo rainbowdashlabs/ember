@@ -40,7 +40,7 @@ function example(option: DateFormatOption): string {
     <div class="flex flex-wrap items-center gap-2 text-sm">
       <BaseButton compact :icon="['fas', 'chevron-left']" class="!font-normal !text-(--text-muted) hover:bg-(--bg-accent)"
                   data-testid="placeholder-date-back" @click="emit('back')">
-        {{ t('documentTemplates.dateFormat.back') }}
+        {{ t('common.back') }}
       </BaseButton>
       <span class="font-medium">{{ t('documentTemplates.dateFormat.title', {name: placeholder.label}) }}</span>
     </div>

@@ -12,6 +12,7 @@ import MutedText from '@/components/typography/MutedText.vue'
 import type {IssuerChoice, PreviewIssuer} from '@/api/generated/schema'
 import type {MemberOption} from '@/components/input/select/memberOption'
 import IssuerFields from './IssuerFields.vue'
+import {issuerLine} from './generation'
 
 /**
  * Who issues the document a manager generates: the template's issuer, or another current member of the
@@ -34,11 +35,8 @@ const picking = ref(choice.value !== null)
 const memberId = ref<number | null>(choice.value?.memberId ?? null)
 const issuerFunction = ref(choice.value?.function ?? props.templateIssuer.function ?? '')
 
-const named = computed(() => {
-  const issuer = props.templateIssuer
-  if (!issuer.name) return t('documentTemplates.issuer.missing')
-  return issuer.function ? `${issuer.name}, ${issuer.function}` : issuer.name
-})
+const named = computed(() => issuerLine(props.templateIssuer.name, props.templateIssuer.function)
+    || t('documentTemplates.issuer.missing'))
 
 watch([picking, memberId, issuerFunction], () => {
   choice.value = picking.value && memberId.value !== null

@@ -12,6 +12,7 @@ import {
 } from '@/api/generated/schema'
 import type {RestrictionSelection} from '@/api/types'
 import {refusalSentence, type Translate} from '@/util/failure'
+import {missingLabels} from '../generation'
 
 /** Whom a run generates for, as the requests to look at a run and to start one name it. */
 export type MemberSelection = Pick<JobPreviewRequest, 'memberIds' | 'audience'>
@@ -45,7 +46,7 @@ export function doneOf(job: GenerationJobSummary): number {
  */
 export function gapText(gap: MemberGaps, t: Translate): string {
     if (gap.refusalCode) return refusalSentence(gap.refusalCode, null, t)
-    return t('documentTemplates.bulk.gapMissing', {values: gap.missing.map(value => value.label).join(', ')})
+    return t('documentTemplates.bulk.gapMissing', {values: missingLabels(gap.missing)})
 }
 
 /** The members of a run whose document could not be filed. */

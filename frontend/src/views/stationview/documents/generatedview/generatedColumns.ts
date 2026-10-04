@@ -6,6 +6,7 @@
 import type {GeneratedDocumentEntry} from '@/api/generated/schema'
 import {ColumnTypes, type TableColumn} from '@/components/table/tableColumn'
 import type {Translate} from '@/util/failure'
+import {issuerLine} from '@/components/documents/generation'
 
 /**
  * The columns of the list of generated documents: whom a document is about, which template and which
@@ -32,6 +33,5 @@ export function generatedColumns(t: Translate): TableColumn<GeneratedDocumentEnt
 
 /** The issuer of a document with what they do, as the document printed it. */
 export function issuerOf(entry: GeneratedDocumentEntry): string {
-    const name = entry.issuerName ?? ''
-    return entry.issuerFunction && name ? `${name}, ${entry.issuerFunction}` : name
+    return issuerLine(entry.issuerName, entry.issuerFunction)
 }

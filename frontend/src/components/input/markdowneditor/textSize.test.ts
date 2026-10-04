@@ -47,42 +47,49 @@ describe('text size', () => {
     }
 
     it('keeps the size of the words through the editor and back', () => {
-        const markdown = 'Ein <span data-size="24">großes</span> Wort.'
+        const markdown = 'Ein <span style="font-size: 24px">großes</span> Wort.'
 
         expect(stored(open(markdown))).toBe(markdown)
     })
 
     it('shows the words in their size in the editor', () => {
-        expect(open('<span data-size="24">groß</span>').getHTML())
-            .toMatch(/<span data-size="24" style="font-size: 24px;?">groß<\/span>/)
+        expect(open('<span style="font-size: 24px">groß</span>').getHTML())
+            .toMatch(/<span style="font-size: 24px;?">groß<\/span>/)
     })
 
     it('keeps bold, a colour, a font and a placeholder inside sized words', () => {
-        const markdown = '<span data-size="18">Hallo {{member.firstName}}, **fett** '
+        const markdown = '<span style="font-size: 18px">Hallo {{member.firstName}}, **fett** '
             + '<span data-font="Hausschrift">in Schrift</span> und <span style="color: #ff0000">rot</span></span>'
 
         expect(stored(open(markdown))).toBe(markdown)
     })
 
     it('keeps a size inside coloured words and keeps it there once stored', () => {
-        const markdown = '<span style="color: #ff0000">rot und <span data-size="30">groß</span></span>'
+        const markdown = '<span style="color: #ff0000">rot und <span style="font-size: 30px">groß</span></span>'
 
         const once = stored(open(markdown))
         editor?.destroy()
 
-        expect(once).toContain('<span data-size="30">')
+        expect(once).toContain('<span style="font-size: 30px">')
         expect(once).toContain('#ff0000')
         expect(stored(open(once))).toBe(once)
     })
 
+    it('keeps both the colour and the size one span sets', () => {
+        const once = stored(open('<span style="color: #ff0000; font-size: 30px">groß</span>'))
+
+        expect(once).toContain('<span style="font-size: 30px">')
+        expect(once).toContain('<span style="color: #ff0000">')
+    })
+
     it('keeps a size inside an aligned paragraph', () => {
-        const markdown = '<div data-align="center">\n\nEin <span data-size="12">kleines</span> Wort.\n\n</div>'
+        const markdown = '<div data-align="center">\n\nEin <span style="font-size: 12px">kleines</span> Wort.\n\n</div>'
 
         expect(stored(open(markdown))).toBe(markdown)
     })
 
     it('drops a size out of bounds and keeps the words', () => {
-        expect(stored(open('Ein <span data-size="500">riesiges</span> Wort.'))).toBe('Ein riesiges Wort.')
+        expect(stored(open('Ein <span style="font-size: 500px">riesiges</span> Wort.'))).toBe('Ein riesiges Wort.')
     })
 
     it('sets the selected words in a size and names it at the cursor', () => {
@@ -90,11 +97,11 @@ describe('text size', () => {
         opened.chain().setTextSelection({from: 7, to: 11}).setMark(TEXT_SIZE, {size: 20}).run()
 
         expect(sizeAtCursor(opened.getAttributes(TEXT_SIZE))).toBe(20)
-        expect(stored(opened)).toBe('Hallo <span data-size="20">Welt</span>')
+        expect(stored(opened)).toBe('Hallo <span style="font-size: 20px">Welt</span>')
     })
 
     it('gives the words their normal size back', () => {
-        const opened = open('<span data-size="20">Hallo Welt</span>')
+        const opened = open('<span style="font-size: 20px">Hallo Welt</span>')
         opened.chain().selectAll().unsetMark(TEXT_SIZE).run()
 
         expect(sizeAtCursor(opened.getAttributes(TEXT_SIZE))).toBeNull()

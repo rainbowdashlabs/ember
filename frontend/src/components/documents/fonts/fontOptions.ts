@@ -5,9 +5,6 @@
  */
 import {FontStyle, type DocumentFontView, type FontFamilyOption, type FontOrigin} from '@/api/generated/schema'
 
-/** The font every text prints in that names no family, and the fallback for what a family lacks. */
-export const DEFAULT_FONT = 'Liberation Sans'
-
 /** The styles of a family in the order the screens list them. */
 export const FONT_STYLES: readonly FontStyle[] = [FontStyle.REGULAR, FontStyle.BOLD, FontStyle.ITALIC, FontStyle.BOLD_ITALIC]
 
@@ -24,9 +21,17 @@ export interface FamilyChoice {
     missing: boolean
 }
 
-/** Whether two family names name one family, compared without case as the server compares them. */
+/**
+ * A family name as the server compares names: trimmed and without case. The default font, named by
+ * null, is the empty key.
+ */
+export function familyKey(family: string | null): string {
+    return family ? family.trim().toLocaleLowerCase('de') : ''
+}
+
+/** Whether two family names name one family, compared as the server compares them. */
 export function sameFamily(a: string, b: string): boolean {
-    return a.trim().toLocaleLowerCase('de') === b.trim().toLocaleLowerCase('de')
+    return familyKey(a) === familyKey(b)
 }
 
 /**

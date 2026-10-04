@@ -4,7 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {computed, ref, shallowRef, watch, type Ref} from 'vue'
-import {documents, memberGroups, stationMembers, userTags} from '@/api'
+import {documents, stationMembers} from '@/api'
+import {audienceLists} from '@/components/documents/generation'
 import {
     DocumentLanguage,
     type DocumentFontsResponse,
@@ -22,7 +23,6 @@ import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {provideFontSamples} from '@/composables/useFontSamples'
 import {useEditorFonts} from '@/composables/useEditorFonts'
-import {DEFAULT_FONT} from '@/components/documents/fonts/fontOptions'
 import {draftOf, emptyDraft, requestOf, type TemplateDraft} from './templateDraft'
 import {letterFamilies} from './letterFonts'
 import {placeholdersOfTemplate} from './placeholderpicker/placeholderTree'
@@ -47,13 +47,12 @@ function noChoices(): StationChoices {
  * choosing easier and are no reason to keep anybody from writing a template.
  */
 async function stationChoices(): Promise<StationChoices> {
-    const [groups, tags, members, documentTags] = await Promise.all([
-        memberGroups.listGroups().catch(() => []),
-        userTags.listTags().catch(() => []),
+    const [lists, members, documentTags] = await Promise.all([
+        audienceLists(),
         stationMembers.listMembers().catch(() => []),
         documents.listTags().catch(() => []),
     ])
-    return {groups, tags, members: members.filter(member => !member.formerAt), documentTags}
+    return {...lists, members: members.filter(member => !member.formerAt), documentTags}
 }
 
 /**
@@ -67,6 +66,9 @@ async function stationChoices(): Promise<StationChoices> {
  * placeholder pickers below get the date formats of the catalogue and the language their examples are
  * written in: the template's, or the owner's until the template names one. The labels of keys carry the
  * example of their date format the same way.
+ *
+ * <p>The default font is named as the owner's font list names it, which knows the font this instance
+ * prints in; where the list cannot be read, the default font goes unnamed.
  *
  * <p>An association has no members, groups or document tags of its own, so its lists stay empty; its
  * stations choose the audience of its templates themselves.
@@ -114,17 +116,19 @@ export function useTemplateEditor(
     }))
 
     const loader = useAsyncLoader(async () => {
-        const [offered, lists, reached] = await Promise.all([
+        const id = templateId.value
+        const [offered, lists, reached, template] = await Promise.all([
             source.catalogue(),
             screens.hasMembers ? stationChoices() : Promise.resolve(noChoices()),
             screens.fonts.list().catch(() => null),
+            id === null ? Promise.resolve(null) : source.get(id),
         ])
         offer.value = offered
         choices.value = lists
         fontList.value = reached
-        if (templateId.value === null) return
-        saved.value = await source.get(templateId.value)
-        draft.value = draftOf(saved.value)
+        if (!template) return
+        saved.value = template
+        draft.value = draftOf(template)
     })
 
     const saving = useAsyncAction(async () => {
@@ -175,7 +179,7 @@ export function useTemplateEditor(
         members: computed(() => choices.value.members),
         documentTags: computed(() => choices.value.documentTags),
         fonts,
-        defaultFamily: computed(() => fontList.value?.defaultFamily ?? DEFAULT_FONT),
+        defaultFamily: computed(() => fontList.value?.defaultFamily ?? ''),
         loader,
         saving,
         archiving,

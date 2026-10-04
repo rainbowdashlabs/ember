@@ -85,17 +85,6 @@ function focusAnswer(event: Event) {
 }
 
 /**
- * Escape closes the dialog from inside a text editor too. The editor marks every escape it sees as
- * handled, and a handled escape is otherwise taken to belong to whatever inside the dialog claimed it,
- * so the dialog would stay open for as long as the cursor is in the text.
- */
-function closeFromTextEditor(event: KeyboardEvent) {
-  if (!event.defaultPrevented) return
-  if (!(event.target instanceof Element) || !event.target.closest('.ProseMirror')) return
-  model.value = false
-}
-
-/**
  * Shift and enter answer the dialog from anywhere inside it, including from a text field, where
  * the enter key belongs to the field itself.
  */
@@ -128,7 +117,6 @@ function onKeydown(e: KeyboardEvent) {
               props.mobileFull ? 'max-sm:h-full max-sm:mx-0 max-sm:rounded-none max-sm:border-0 max-sm:overflow-y-auto max-sm:flex max-sm:flex-col' : '',
             ]"
             @keydown="onKeydown"
-            @escape-key-down="closeFromTextEditor"
             @open-auto-focus="focusAnswer"
             @pointer-down-outside="keepOpenUnlessOverlay"
         >

@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
+import {createCrudResource} from './crud'
 import {uploadFile} from './upload'
 import type {
     BulkPreviewResponse,
@@ -62,33 +63,20 @@ export interface TemplateSource {
     templatePdf(templateId: number): Promise<Blob>
 }
 
-/** Where an owner's template routes are. */
-interface TemplatePaths {
-    templates: string
-    placeholders: string
-    importLetter: string
-    preview: string
-}
-
-function sourceAt(paths: TemplatePaths): TemplateSource {
-    const at = (id: number, rest = '') => `${paths.templates}/${id}${rest}`
+/**
+ * The templates of an owner whose routes start with the prefix: none for the station, `/cluster` for
+ * the association.
+ */
+function sourceAt(prefix: string): TemplateSource {
+    const templates = `${prefix}/document-templates`
+    const at = (id: number, rest = '') => `${templates}/${id}${rest}`
+    const crud = createCrudResource<DocumentTemplateSummary, DocumentTemplateRequest, DocumentTemplateRequest,
+        DocumentTemplateResponse, DocumentTemplateResponse>(templates)
     return {
-        async list(archived) {
-            const res = await client.get<DocumentTemplateSummary[]>(paths.templates, {params: {archived}})
-            return res.data
-        },
-        async get(id) {
-            const res = await client.get<DocumentTemplateResponse>(at(id))
-            return res.data
-        },
-        async create(request) {
-            const res = await client.post<DocumentTemplateResponse>(paths.templates, request)
-            return res.data
-        },
-        async update(id, request) {
-            const res = await client.put<DocumentTemplateResponse>(at(id), request)
-            return res.data
-        },
+        list: archived => crud.list({archived}),
+        get: crud.get,
+        create: crud.create,
+        update: crud.update,
         async archive(id) {
             const res = await client.post<DocumentTemplateResponse>(at(id, '/archive'))
             return res.data
@@ -103,14 +91,14 @@ function sourceAt(paths: TemplatePaths): TemplateSource {
             return res.data
         },
         async catalogue() {
-            const res = await client.get<PlaceholderCatalogueResponse>(paths.placeholders)
+            const res = await client.get<PlaceholderCatalogueResponse>(`${prefix}/document-placeholders`)
             return res.data
         },
         importLetter(file) {
-            return uploadFile<LetterImport>(paths.importLetter, {file})
+            return uploadFile<LetterImport>(`${prefix}/document-template-import`, {file})
         },
         async previewDraft(template, templateId, memberId) {
-            const res = await client.post<PreviewResponse>(paths.preview, {template, templateId, memberId})
+            const res = await client.post<PreviewResponse>(`${prefix}/document-template-preview`, {template, templateId, memberId})
             return res.data
         },
         uploadPdf(templateId, file) {
@@ -124,20 +112,10 @@ function sourceAt(paths: TemplatePaths): TemplateSource {
 }
 
 /** The templates of the station the reader works for, and those of its association. */
-export const stationTemplateSource: TemplateSource = sourceAt({
-    templates: '/document-templates',
-    placeholders: '/document-placeholders',
-    importLetter: '/document-template-import',
-    preview: '/document-template-preview',
-})
+export const stationTemplateSource: TemplateSource = sourceAt('')
 
 /** The templates of the association the reader acts for, which all its stations use. */
-export const associationTemplateSource: TemplateSource = sourceAt({
-    templates: '/cluster/document-templates',
-    placeholders: '/cluster/document-placeholders',
-    importLetter: '/cluster/document-template-import',
-    preview: '/cluster/document-template-preview',
-})
+export const associationTemplateSource: TemplateSource = sourceAt('/cluster')
 
 /** How the station uses a template of its association. */
 export async function templateUse(templateId: number): Promise<TemplateUseResponse> {

@@ -4,36 +4,31 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import type {MemberCompletion} from '@/api/generated/schema'
-
-function escapeAttribute(value: string): string {
-  return value.replace(/"/g, '&quot;')
-}
+import {escapeHtml} from '@/util/html'
 
 /**
  * Renders raw mention markup as the HTML shown inside the editor.
  *
+ * The raw text is escaped first, so a name taken from it is safe in an attribute as it stands.
  * Three markup generations are understood: bulk mentions (`@[TYPE:Name:id]`),
  * member mentions (`@[stationUid/memberUid:Name]`) and the legacy numeric
  * member form (`@[id:Name]`).
  */
 export function rawToHtml(raw: string, members: MemberCompletion[]): string {
   if (!raw) return ''
-  const escaped = raw
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
+  const escaped = escapeHtml(raw)
   let result = escaped.replace(/@\[(GROUP|EVENT|REGISTERED|DECLINED):([^:]+):(\d+)]/g, (_match, type, name, id) => {
-    return `<span contenteditable="false" data-mention-type="${type}" data-mention-name="${escapeAttribute(name)}" data-mention-id="${id}" class="mention-chip bulk-mention">@${name}</span>`
+    return `<span contenteditable="false" data-mention-type="${type}" data-mention-name="${name}" data-mention-id="${id}" class="mention-chip bulk-mention">@${name}</span>`
   })
   result = result.replace(/@\[([^/]+)\/([^:]+):([^\]]+)]/g, (_match, stationUid, memberUid, name) => {
     const member = members.find(m => m.memberUid === memberUid)
     const displayName = member?.name?.trim() || name
-    return `<span contenteditable="false" data-mention-station="${stationUid}" data-mention-member="${memberUid}" data-mention-name="${escapeAttribute(name)}" class="mention-chip">@${displayName}</span>`
+    return `<span contenteditable="false" data-mention-station="${stationUid}" data-mention-member="${memberUid}" data-mention-name="${name}" class="mention-chip">@${displayName}</span>`
   })
   result = result.replace(/@\[(\d+):([^\]]+)]/g, (_match, id, name) => {
     const member = members.find(m => m.id === parseInt(id))
     const displayName = member?.name?.trim() || name
-    return `<span contenteditable="false" data-mention-station="" data-mention-member="" data-mention-name="${escapeAttribute(name)}" class="mention-chip">@${displayName}</span>`
+    return `<span contenteditable="false" data-mention-station="" data-mention-member="" data-mention-name="${name}" class="mention-chip">@${displayName}</span>`
   })
   return result.replace(/\n/g, '<br>')
 }

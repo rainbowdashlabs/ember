@@ -13,15 +13,36 @@ import {NORMAL_TEXT_SIZE, pixelSize} from '@/util/textSize'
 export const TEXT_SIZE = 'textSize'
 
 /**
- * Words set in a size of their own, in pixels, stored as `<span data-size="14">words</span>`.
+ * The size in pixels the style of an element sets, when it is a whole number of pixels words can be
+ * set in.
+ */
+export function styledSize(element: HTMLElement): number | null {
+    const pixels = /^(\d+)px$/.exec(element.style.fontSize)?.[1]
+    return pixels ? pixelSize(pixels) : null
+}
+
+/**
+ * Reads sized spans: a span whose style sets nothing but the size is taken by the size alone; one that
+ * sets a colour as well is left to the coloured text too, so neither swallows the other.
+ */
+function sizedSpanRule(alone: boolean) {
+    return {
+        tag: 'span',
+        consuming: alone,
+        getAttrs: (element: HTMLElement) => styledSize(element) && (element.style.length === 1) === alone ? null : false,
+    }
+}
+
+/**
+ * Words set in a size of their own, in pixels, stored as `<span style="font-size: 14px">words</span>`,
+ * the way coloured words are stored.
  *
  * <p>Markdown has no word for a size, and inline HTML is what survives the renderer, the sanitiser and
- * the way back, the way fonts are. The number lives in a data attribute rather than a style, so the
- * stored text carries nothing but the number; the renderer and the editor derive the font size from it.
+ * the way back, the way fonts and colours are.
  *
- * <p>Its parse rule ranks above the one of coloured text, which would otherwise also read the rendered
- * span for its style and wrap the words in an empty mark. It ranks above bold, italic, the font and the
- * other marks as well, so it wraps them rather than being cut in pieces around them.
+ * <p>Its parse rules rank above the one of coloured text, which reads every span with a style and would
+ * otherwise wrap the sized words in an empty mark of its own. It ranks above bold, italic, the font and
+ * the other marks as well, so it wraps them rather than being cut in pieces around them.
  */
 export const TextSize = Mark.create({
     name: TEXT_SIZE,
@@ -31,15 +52,15 @@ export const TextSize = Mark.create({
         return {
             size: {
                 default: null,
-                parseHTML: (element: HTMLElement) => pixelSize(element.getAttribute('data-size')),
+                parseHTML: styledSize,
                 renderHTML: (attributes: {size: number | null}) =>
-                    attributes.size ? {'data-size': String(attributes.size), style: `font-size: ${attributes.size}px`} : {},
+                    attributes.size ? {style: `font-size: ${attributes.size}px`} : {},
             },
         }
     },
 
     parseHTML() {
-        return [{tag: 'span[data-size]', getAttrs: (element: HTMLElement) => pixelSize(element.getAttribute('data-size')) ? null : false}]
+        return [sizedSpanRule(true), sizedSpanRule(false)]
     },
 
     renderHTML({HTMLAttributes}) {
@@ -101,13 +122,13 @@ function wordAtCursor($from: ResolvedPos): {from: number; to: number} | null {
     return start < end ? {from: $from.start() + start, to: $from.start() + end} : null
 }
 
-/** Writes sized words back as the span they are stored as, and nothing but the words for a size out of bounds. */
+/** Writes sized words back as the span they are stored as. */
 export function extendTurndownWithTextSize(turndown: TurndownService): void {
     turndown.addRule(TEXT_SIZE, {
-        filter: (node) => node.nodeName === 'SPAN' && (node as HTMLElement).hasAttribute('data-size'),
+        filter: (node) => node.nodeName === 'SPAN' && styledSize(node as HTMLElement) !== null,
         replacement: (content, node) => {
-            const size = pixelSize((node as HTMLElement).getAttribute('data-size'))
-            return size && content ? `<span data-size="${size}">${content}</span>` : content
+            const size = styledSize(node as HTMLElement)
+            return size && content ? `<span style="font-size: ${size}px">${content}</span>` : content
         },
     })
 }

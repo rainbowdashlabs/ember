@@ -5,7 +5,7 @@
  */
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
-import IconButton from '@/components/button/IconButton.vue'
+import PagePager from '@/components/documents/PagePager.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import {PdfFieldKind} from '@/api/generated/schema'
 
@@ -35,11 +35,8 @@ const kinds: readonly {kind: PdfFieldKind; icon: [string, string]}[] = [
 
 <template>
   <div class="flex flex-wrap items-center justify-between gap-3">
-    <div class="flex items-center gap-2">
-      <IconButton :icon="['fas', 'chevron-left']" :label="t('common.previous')" :disabled="page <= 1" @click="emit('page', page - 1)"/>
-      <span class="text-sm" data-testid="pdf-page">{{ t('documentTemplates.pageOf', {page, count: pageCount}) }}</span>
-      <IconButton :icon="['fas', 'chevron-right']" :label="t('common.next')" :disabled="page >= pageCount" @click="emit('page', page + 1)"/>
-    </div>
+    <PagePager :page="page" :page-count="pageCount" :label="t('documentTemplates.pageOf', {page, count: pageCount})"
+               data-testid="pdf-page" @update:page="emit('page', $event)"/>
     <div class="flex flex-wrap gap-2">
       <SecondaryButton v-for="entry in kinds" :key="entry.kind" :icon="entry.icon" :disabled="!canAdd"
                        :data-testid="`pdf-add-${entry.kind.toLowerCase()}`" @click="emit('add', entry.kind)">

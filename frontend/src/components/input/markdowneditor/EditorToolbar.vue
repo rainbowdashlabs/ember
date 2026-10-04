@@ -11,6 +11,7 @@ import type { FontFamilyOption } from '@/api/generated/schema'
 import EditorFontPicker from './EditorFontPicker.vue'
 import EditorColorPicker from './EditorColorPicker.vue'
 import EditorSizePicker from './EditorSizePicker.vue'
+import EditorToolbarButton from './EditorToolbarButton.vue'
 import { applyTextSize, shownSizeAtCursor, sizeAtCursor, TEXT_SIZE } from './textSize'
 import { NORMAL_TEXT_SIZE } from '@/util/textSize'
 import { alignBlock, canAlign, isAligned, type BlockAlignment } from './blockAlign'
@@ -138,20 +139,17 @@ const toolbarButtons: ToolbarButton[][] = [
   <div class="flex flex-wrap items-center gap-0.5 px-2 py-1.5 border-b border-[var(--border)] bg-[var(--bg-accent)] sticky top-14 z-10 rounded-t-lg">
     <template v-for="(group, gi) in toolbarButtons" :key="gi">
       <div v-if="gi > 0" class="w-px h-5 bg-[var(--border)] mx-1" />
-      <button
+      <EditorToolbarButton
         v-for="btn in group"
         :key="btn.labelKey"
-        type="button"
-        :title="t(btn.labelKey)"
-        :aria-label="t(btn.labelKey)"
+        :icon="btn.icon"
+        :label="t(btn.labelKey)"
+        :active="btn.active()"
         :disabled="btn.disabled?.()"
-        :class="['p-1.5 rounded text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed', btn.active() ? 'text-primary bg-primary/10' : 'text-[var(--text)] hover:bg-[var(--bg-accent)]']"
-        @mousedown.prevent
         @click="btn.action()"
       >
-        <font-awesome-icon :icon="btn.icon" class="w-3.5 h-3.5" />
         <span v-if="btn.badge" class="text-[10px] font-bold ml-px">{{ btn.badge }}</span>
-      </button>
+      </EditorToolbarButton>
     </template>
 
     <div class="w-px h-5 bg-[var(--border)] mx-1" />

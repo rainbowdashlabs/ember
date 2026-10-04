@@ -167,8 +167,33 @@ const NEAR_BLACK: Rgb = [26, 26, 26]
 const WHITE_HEX = '#ffffff'
 const NEAR_BLACK_HEX = '#1a1a1a'
 
-function toHex(rgb: Rgb): string {
+/** Writes 0..255 sRGB channels as `#rrggbb`, each channel clamped to its range. */
+export function toHex(rgb: Rgb): string {
     return '#' + rgb.map(c => Math.round(Math.max(0, Math.min(255, c))).toString(16).padStart(2, '0')).join('')
+}
+
+/**
+ * A colour typed as a hex code, as the six lower-case digits it is stored with.
+ *
+ * @param input what was typed: `#rgb` or `#rrggbb`, the hash optional, surrounding blanks ignored
+ * @returns the colour as `#rrggbb`, or null where the input is no hex code
+ */
+export function hexCode(input: string): string | null {
+    const rgb = parseHexColor(input)
+    return rgb ? toHex(rgb) : null
+}
+
+/**
+ * Any colour {@link parseCssColor} reads, as `#rrggbb` without its alpha.
+ *
+ * <p>A style read back from the page comes as `rgb(r, g, b)` or `oklab()` whatever it was written as,
+ * and a colour picker and stored markdown both want the hex code.
+ *
+ * @returns the colour as `#rrggbb`, or null for anything else, a named colour among them
+ */
+export function cssColorHex(css: string | null | undefined): string | null {
+    const color = css ? parseCssColor(css) : null
+    return color ? toHex([color[0], color[1], color[2]]) : null
 }
 
 /**

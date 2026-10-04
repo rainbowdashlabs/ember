@@ -58,7 +58,7 @@ function insert() {
                  @keydown.enter.prevent="insert"/>
       <SecondaryButton compact :icon="['fas', 'plus']" :disabled="preview === null" data-testid="placeholder-own-date-insert"
                        @click="insert">
-        {{ t('documentTemplates.dateFormat.insert') }}
+        {{ t('common.insert') }}
       </SecondaryButton>
     </div>
     <p v-if="problem" class="text-xs text-error" role="alert">{{ problem }}</p>

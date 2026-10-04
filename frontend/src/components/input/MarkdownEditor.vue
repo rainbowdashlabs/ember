@@ -92,6 +92,15 @@ const showVideoDialog = ref(false)
 const videoDialogPos = ref({ top: 0, left: 0 })
 
 /**
+ * Whether the editor leaves a key press to the page rather than taking it: escape, which the editor
+ * would otherwise mark as handled although it does nothing with it. A dialog around the editor then
+ * closes on escape. A panel of the editor that is open takes the escape first and closes alone.
+ */
+function leavesEscapeToPage(event: KeyboardEvent): boolean {
+  return event.key === 'Escape'
+}
+
+/**
  * The editor and the extensions it runs with.
  *
  * <p>The starter kit's own link and underline are switched off because both are registered below
@@ -126,6 +135,7 @@ const editor = useEditor({
         if (t.tagName === 'A' || t.closest('a')) { event.preventDefault(); return true }
         return false
       },
+      keydown: (_view, event) => leavesEscapeToPage(event),
     },
   },
   onSelectionUpdate: ({ editor: ed }) => { updateState(ed) },

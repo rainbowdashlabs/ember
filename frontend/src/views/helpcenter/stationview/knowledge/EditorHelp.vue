@@ -19,7 +19,7 @@ const demoContent = ref(`# Willkommen zum Texteditor
 
 Das ist ein **fetter Text**, das ist *kursiv* und das ist ~~durchgestrichen~~.
 
-Du kannst auch <u>unterstrichenen</u> und ==markierten== Text verwenden, und Wörter <span data-size="22">größer</span> setzen.
+Du kannst auch <u>unterstrichenen</u> und ==markierten== Text verwenden, und Wörter <span style="font-size: 22px">größer</span> setzen.
 
 <div data-align="center">
 

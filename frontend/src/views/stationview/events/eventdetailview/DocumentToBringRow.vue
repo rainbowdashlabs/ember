@@ -41,7 +41,7 @@ const generated = computed(() => props.document.status === RequirementStatus.GEN
     <SecondaryBadge v-else>{{ t('events.documents.notGenerated') }}</SecondaryBadge>
     <SecondaryButton :icon="['fas', 'download']" :disabled="busy" data-testid="document-to-bring-download"
                      @click="emit('fetch')">
-      {{ t('events.documents.download') }}
+      {{ t('common.download') }}
     </SecondaryButton>
   </div>
 </template>

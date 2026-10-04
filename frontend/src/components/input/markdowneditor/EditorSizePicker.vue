@@ -9,6 +9,7 @@ import { watchDebounced } from '@vueuse/core'
 import { useI18n } from 'vue-i18n'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import FloatingPanel from '@/components/feedback/FloatingPanel.vue'
+import EditorToolbarButton from './EditorToolbarButton.vue'
 import { LARGEST_TEXT_SIZE, pixelSize, SMALLEST_TEXT_SIZE } from '@/util/textSize'
 
 /**
@@ -74,19 +75,10 @@ function reset() {
 <template>
   <FloatingPanel v-model:open="open" :label="label" role="dialog" align="start" panel-class="w-48 p-2 space-y-2">
     <template #trigger="{ triggerAttrs }">
-      <button
-        type="button"
-        :title="label"
-        :aria-label="label"
-        data-testid="editor-size"
-        v-bind="triggerAttrs"
-        :class="['p-1.5 rounded text-sm transition-colors inline-flex items-center gap-1', current ? 'text-primary bg-primary/10' : 'text-[var(--text)] hover:bg-[var(--bg-accent)]']"
-        @mousedown.prevent
-        @click="open = !open"
-      >
-        <font-awesome-icon :icon="['fas', 'text-height']" class="w-3.5 h-3.5" />
-        <span v-if="current" class="text-xs">{{ t('markdownEditor.pixelSize', { size: current }) }}</span>
-      </button>
+      <EditorToolbarButton :icon="['fas', 'text-height']" :label="label" :active="current !== null" data-testid="editor-size"
+                           v-bind="triggerAttrs" @click="open = !open">
+        <span v-if="current" class="ml-1 text-xs">{{ t('markdownEditor.pixelSize', { size: current }) }}</span>
+      </EditorToolbarButton>
     </template>
     <div class="flex items-center gap-2">
       <NumberInput

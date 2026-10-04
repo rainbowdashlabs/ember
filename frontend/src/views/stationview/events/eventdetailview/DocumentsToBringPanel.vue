@@ -13,7 +13,7 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {appointmentDocuments} from '@/api'
 import type {ParticipantDocuments, RequiredDocumentStatus} from '@/api/generated/schema'
 import {useAsyncAction} from '@/composables/useAsyncAction'
-import {describeFailure, type Failure} from '@/util/failure'
+import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {fetchCopy} from './documentsToBring'
 import DocumentToBringRow from './DocumentToBringRow.vue'
 
@@ -32,23 +32,18 @@ const props = defineProps<{
 const {t} = useI18n()
 
 const participants = ref<ParticipantDocuments[]>([])
-const failure = ref<Failure | null>(null)
 
-async function load() {
-  try {
-    participants.value = await appointmentDocuments.documentsToBring(props.eventId, props.date)
-    failure.value = null
-  } catch (e) {
-    failure.value = describeFailure(e, t)
-  }
-}
+const {failure, reload} = useAsyncLoader(async isCurrent => {
+  const loaded = await appointmentDocuments.documentsToBring(props.eventId, props.date)
+  if (isCurrent()) participants.value = loaded
+}, {autoLoad: false})
 
 const fetching = useAsyncAction(async (memberId: number, document: RequiredDocumentStatus) => {
   await fetchCopy(props.eventId, props.date, memberId, document)
-  await load()
+  await reload()
 })
 
-watch(() => [props.eventId, props.date], load, {immediate: true})
+watch(() => [props.eventId, props.date], reload, {immediate: true})
 </script>
 
 <template>

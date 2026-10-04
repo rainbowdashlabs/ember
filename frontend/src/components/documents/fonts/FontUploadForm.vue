@@ -64,7 +64,7 @@ function submit() {
     </div>
     <ToggleSetting v-model="confirmed" :label="t('documentFonts.licenceLabel')" :hint="t('documentFonts.licenceHint')"/>
     <PrimaryButton :icon="['fas', 'upload']" :disabled="!ready || busy" data-testid="font-upload-submit" @click="submit">
-      {{ t('documentFonts.upload') }}
+      {{ t('common.upload') }}
     </PrimaryButton>
   </NeutralContainer>
 </template>

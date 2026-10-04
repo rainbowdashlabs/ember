@@ -137,9 +137,9 @@ class DocumentFontRoutesTest {
 
     /**
      * The template editor of a station and of an association loads the files of what their templates
-     * reach, with the right to edit templates; the file is shown inline and kept privately for a few
-     * minutes, per station and association it was asked for. The instance has no template editor and
-     * no such route.
+     * reach, with the right to edit templates; the file is shown inline and kept privately, for a year
+     * where the address names the version of the files and for a few minutes where it does not, per
+     * station and association it was asked for. The instance has no template editor and no such route.
      */
     @Test
     void eachTemplateEditorLoadsTheFilesOfWhatItReaches() {
@@ -149,7 +149,7 @@ class DocumentFontRoutesTest {
             assertEquals(200, file.code());
             assertTrue(header(file, "Content-Type").startsWith("font/ttf"));
             assertEquals("inline", header(file, "Content-Disposition"));
-            assertEquals("private, max-age=300", header(file, "Cache-Control"));
+            assertEquals("private, max-age=31536000, immutable", header(file, "Cache-Control"));
             assertEquals("X-Station-Id, X-Cluster-Id", header(file, "Vary"));
             assertEquals(new String(FONT, StandardCharsets.UTF_8), file.body().string());
             assertEquals(
@@ -163,10 +163,9 @@ class DocumentFontRoutesTest {
 
             var association =
                     harness.as(TestSessions.clusterMember(7, ClusterPermission.CLUSTER_DOCUMENT_TEMPLATE_EDIT));
-            assertEquals(
-                    200,
-                    client.get(PREFIX + "/cluster/document-fonts/file?style=ITALIC", association)
-                            .code());
+            var unversioned = client.get(PREFIX + "/cluster/document-fonts/file?style=ITALIC", association);
+            assertEquals(200, unversioned.code());
+            assertEquals("private, max-age=300", header(unversioned, "Cache-Control"));
             var reader = harness.as(TestSessions.clusterMember(7, ClusterPermission.CLUSTER_MEMBER_READ));
             assertEquals(
                     403,

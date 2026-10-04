@@ -6,6 +6,7 @@
 <script lang="ts" setup>
 import {ref} from 'vue'
 import type {DismissedBy} from '@/composables/useDismiss'
+import type {PanelAlignment} from '@/composables/useFloatingPanel'
 import FloatingPanel from './FloatingPanel.vue'
 
 /**
@@ -24,25 +25,30 @@ import FloatingPanel from './FloatingPanel.vue'
  * closes once something in it was chosen; a panel of settings, such as a column list, stays open
  * while the reader ticks through it.
  *
- * <p>The trigger comes in through the `trigger` slot, which is handed `toggle`, `open` and the
- * attributes that tie the trigger to its panel. The content is handed `close`, for a dialog that is
- * done once something deeper in it was chosen.
+ * <p>The trigger comes in through the `trigger` slot, which is handed `toggle` and the attributes that
+ * tie the trigger to its panel. The content is handed `close`, for a dialog that is done once something
+ * deeper in it was chosen. Whether it is open can be bound with `v-model:open`, for a screen that opens
+ * it from elsewhere or shows the trigger while it is open.
  */
+const open = defineModel<boolean>('open', {default: false})
+
 const props = withDefaults(defineProps<{
   label: string
   role?: 'menu' | 'dialog'
   /** Tells two panels on one page apart. The panel carries it, the trigger is expected to carry it with `-trigger`. */
   testId?: string
   panelClass?: string
+  /** Which edge of the trigger the panel lines up with. */
+  align?: PanelAlignment
 }>(), {
   role: 'menu',
   testId: undefined,
   panelClass: 'min-w-44 py-1',
+  align: 'end',
 })
 
 const FOCUSABLE = 'button:not([disabled]), a[href], input:not([disabled])'
 
-const open = ref(false)
 const floating = ref<InstanceType<typeof FloatingPanel> | null>(null)
 
 function triggerElement(): HTMLElement | null {
@@ -90,6 +96,7 @@ function onPanelClick() {
       :role="role"
       :test-id="testId"
       :panel-class="panelClass"
+      :align="align"
       @opened="focusFirstControl"
       @dismissed="onDismissed"
       @focus-left="close(false)"

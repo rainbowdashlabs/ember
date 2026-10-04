@@ -11,6 +11,7 @@ import type {FontFamilyOption} from '@/api/generated/schema'
 import FontChoiceList from '@/components/documents/fonts/FontChoiceList.vue'
 import {choiceValue, familyChoices, fontEntries} from '@/components/documents/fonts/fontOptions'
 import FloatingPanel from '@/components/feedback/FloatingPanel.vue'
+import EditorToolbarButton from './EditorToolbarButton.vue'
 import {TEXT_FONT} from './textFont'
 
 /**
@@ -50,12 +51,10 @@ function choose(value: string) {
   <FloatingPanel v-model:open="open" :label="t('markdownEditor.font')" role="dialog" align="start"
                  panel-class="flex max-h-80 w-72 flex-col overflow-hidden">
     <template #trigger="{triggerAttrs}">
-      <button type="button" :title="t('markdownEditor.font')" data-testid="editor-font" v-bind="triggerAttrs"
-              :class="['p-1.5 rounded text-sm transition-colors inline-flex items-center gap-1', current ? 'text-primary bg-primary/10' : 'text-[var(--text)] hover:bg-[var(--bg-accent)]']"
-              @mousedown.prevent @click="open = !open">
-        <font-awesome-icon :icon="['fas', 'font']" class="w-3.5 h-3.5"/>
-        <span v-if="current" class="text-xs max-w-32 truncate">{{ current }}</span>
-      </button>
+      <EditorToolbarButton :icon="['fas', 'font']" :label="t('markdownEditor.font')" :active="!!current" data-testid="editor-font"
+                           v-bind="triggerAttrs" @click="open = !open">
+        <span v-if="current" class="ml-1 text-xs max-w-32 truncate">{{ current }}</span>
+      </EditorToolbarButton>
     </template>
     <FontChoiceList :model-value="choiceValue(choices, current)" :entries="entries" :label="t('markdownEditor.font')"
                     :missing-note="t('markdownEditor.fontMissing')" @update:model-value="choose"/>

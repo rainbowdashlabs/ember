@@ -6,7 +6,7 @@
 import DOMPurify from 'isomorphic-dompurify'
 import {marked} from 'marked'
 import {enhancePageMarkdownImages} from '@/util/pageMarkdownImages'
-import {sizeTextSpans} from '@/util/textSize'
+import {escapeHtml} from '@/util/html'
 
 /**
  * The one way markdown becomes HTML in this application.
@@ -21,16 +21,13 @@ import {sizeTextSpans} from '@/util/textSize'
  * and a link preview already formatted rather than as escaped markdown source. Should rendering
  * fail, the markdown is escaped instead: losing the formatting is visible and recoverable, letting
  * unsanitised HTML into the response is neither.
- *
- * Words the editor set in a size of their own get that size only after sanitising, from the number
- * they are stored with, so the sanitiser stays as strict as it was.
  */
 export function renderMarkdown(markdown: string | null | undefined): string {
     if (!markdown) return ''
     try {
-        return sizeTextSpans(DOMPurify.sanitize(marked.parse(markdown, {async: false})))
+        return DOMPurify.sanitize(marked.parse(markdown, {async: false}))
     } catch {
-        return escape(markdown)
+        return escapeHtml(markdown)
     }
 }
 
@@ -72,14 +69,4 @@ function plainText(markdown: string): string {
 export function renderPageMarkdown(markdown: string | null | undefined): string {
     const html = renderMarkdown(markdown)
     return html ? enhancePageMarkdownImages(html) : html
-}
-
-/** Text a browser shows verbatim, for a rendering that failed. */
-function escape(text: string): string {
-    return text
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#39;')
 }
