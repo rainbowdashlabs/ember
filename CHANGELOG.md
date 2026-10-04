@@ -2,10 +2,11 @@
 
 ## v26.21.0
 
-Theme colours show where they were missing. Email addresses of members only reach those allowed to read the member register.
+Theme colours show where they were missing. Editing a comment is safer. Email addresses of members only reach those allowed to read the member register.
 
 ### Security
 
+- **Names in comment mentions are shown as text.** When a comment was edited, the name of a mentioned member was read as part of the page rather than shown as text. It is now always shown as text.
 - **Member lists no longer carry email addresses.** Pages that only let someone pick a member, such as inventory, attendance or visibility filters, received the email address of every member, and member menus showed it. These addresses now reach only those allowed to read the member register, and member menus show names only.
 
 ### Fixes
