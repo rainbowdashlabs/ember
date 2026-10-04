@@ -54,11 +54,11 @@ describe('MarkdownEditor text size', () => {
     }
 
     function shownSizes(wrapper: VueWrapper): string[] {
-        return wrapper.findAll('.tiptap span[data-size]').map(span => `${span.text()}:${(span.element as HTMLElement).style.fontSize}`)
+        return wrapper.findAll('.tiptap span[style*="font-size"]').map(span => `${span.text()}:${(span.element as HTMLElement).style.fontSize}`)
     }
 
     it('shows stored words in their size', async () => {
-        const {wrapper} = await opened('Ein <span data-size="24">großes</span> Wort.')
+        const {wrapper} = await opened('Ein <span style="font-size: 24px">großes</span> Wort.')
 
         expect(shownSizes(wrapper)).toEqual(['großes:24px'])
     })
@@ -69,16 +69,16 @@ describe('MarkdownEditor text size', () => {
         await pickSize(wrapper, '24')
 
         expect(shownSizes(wrapper)).toEqual(['Welt:24px'])
-        expect(stored()).toBe('Hallo <span data-size="24">Welt</span>')
+        expect(stored()).toBe('Hallo <span style="font-size: 24px">Welt</span>')
     })
 
     it('resizes the sized words the cursor stands in', async () => {
-        const {wrapper, editor, stored} = await opened('Ein <span data-size="22">größeres</span> Wort.')
+        const {wrapper, editor, stored} = await opened('Ein <span style="font-size: 22px">größeres</span> Wort.')
         await select(editor, 8)
         await pickSize(wrapper, '30')
 
         expect(shownSizes(wrapper)).toEqual(['größeres:30px'])
-        expect(stored()).toBe('Ein <span data-size="30">größeres</span> Wort.')
+        expect(stored()).toBe('Ein <span style="font-size: 30px">größeres</span> Wort.')
         expect(editor.state.selection.from).toBe(8)
     })
 
@@ -88,11 +88,11 @@ describe('MarkdownEditor text size', () => {
         await pickSize(wrapper, '20')
 
         expect(shownSizes(wrapper)).toEqual(['Welt:20px'])
-        expect(stored()).toBe('Hallo <span data-size="20">Welt</span>')
+        expect(stored()).toBe('Hallo <span style="font-size: 20px">Welt</span>')
     })
 
     it('gives the sized words at the cursor their normal size back', async () => {
-        const {wrapper, editor, stored} = await opened('Ein <span data-size="22">größeres</span> Wort.')
+        const {wrapper, editor, stored} = await opened('Ein <span style="font-size: 22px">größeres</span> Wort.')
         await select(editor, 8)
         expect(wrapper.find('[data-testid="editor-size"]').text()).toBe('22 px')
         await wrapper.find('[data-testid="editor-size"]').trigger('click')

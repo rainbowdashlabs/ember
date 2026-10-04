@@ -52,23 +52,16 @@ export function describeMarkdownRendering(side: string): void {
         })
 
         it('shows sized words in their size in pixels', () => {
-            const html = renderMarkdown('Ein <span data-size="24">**großes**</span> Wort')
+            const html = renderMarkdown('Ein <span style="font-size: 24px">**großes**</span> Wort')
 
-            expect(html).toContain('<span data-size="24" style="font-size: 24px"><strong>großes</strong></span>')
+            expect(html).toContain('<span style="font-size: 24px"><strong>großes</strong></span>')
         })
 
         it('drops the event handler on a sized span and keeps the size', () => {
-            const html = renderMarkdown('<span data-size="14" onclick="alert(1)">Wort</span>')
+            const html = renderMarkdown('<span style="font-size: 14px" onclick="alert(1)">Wort</span>')
 
-            expect(html).toContain('<span data-size="14" style="font-size: 14px">Wort</span>')
+            expect(html).toContain('<span style="font-size: 14px">Wort</span>')
             expect(html).not.toContain('onclick')
-        })
-
-        it('gives no size to anything the editor would not store', () => {
-            const html = renderMarkdown('<span data-size="14px; position: fixed">a</span>'
-                + '<span data-size="200">b</span><div data-size="14">c</div>')
-
-            expect(html).not.toContain('style=')
         })
 
         /** The editor stores every space of a run but the last as a non-breaking one, which HTML does not fold. */

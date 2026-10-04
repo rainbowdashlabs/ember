@@ -21,9 +21,10 @@
 --- the family when the letter is printed. Without it the tag is dropped and the words are kept, since
 --- no other template defines that function.
 ---
---- Sizes: the editor stores words in a size of their own as `<span data-size="14">`, in whole pixels
---- from 6 to 96. The pair becomes `text(size: ...)` in points, a pixel being three quarters of one; a
---- size out of bounds drops the tag and keeps the words.
+--- Sizes: the editor stores words in a size of their own as `<span style="font-size: 14px">`, in whole
+--- pixels from 6 to 96. The pair becomes `text(size: ...)` in points, a pixel being three quarters of
+--- one; a size beyond the bounds is held to them, and a size in anything but whole pixels drops the tag
+--- and keeps the words. A span that sets a colour as well prints in both.
 ---
 --- Alignment: the editor stores a centred, right-aligned or justified paragraph or heading wrapped in
 --- `<div data-align="...">`, a blank line on either side, so the markdown reader still reads what is
@@ -77,9 +78,9 @@ end
 local SMALLEST_SIZE, LARGEST_SIZE = 6, 96
 
 local function text_size(tag)
-  local size = tonumber((attribute(tag, "data%-size") or ""):match("^%s*(%d+)%s*$"))
-  if not size or size < SMALLEST_SIZE or size > LARGEST_SIZE then return nil end
-  return string.format("%gpt", size * PIXEL)
+  local size = tonumber((css(attribute(tag, "style"), "font%-size") or ""):match("^(%d+)px$"))
+  if not size then return nil end
+  return string.format("%gpt", math.min(math.max(size, SMALLEST_SIZE), LARGEST_SIZE) * PIXEL)
 end
 
 local function opener(name, tag)
@@ -91,10 +92,12 @@ local function opener(name, tag)
   if name == "span" then
     local family = font_family(tag)
     if family then return "#font(" .. typst_string(family) .. ")[" end
+    local settings = {}
     local size = text_size(tag)
-    if size then return "#text(size: " .. size .. ")[" end
+    if size then table.insert(settings, "size: " .. size) end
     local fill = typst_color(css(attribute(tag, "style"), "color"))
-    return fill and ("#text(fill: " .. fill .. ")[") or nil
+    if fill then table.insert(settings, "fill: " .. fill) end
+    return #settings > 0 and ("#text(" .. table.concat(settings, ", ") .. ")[") or nil
   end
   return nil
 end
