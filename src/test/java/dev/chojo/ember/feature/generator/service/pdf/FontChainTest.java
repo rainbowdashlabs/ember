@@ -26,6 +26,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class FontChainTest {
 
+    /** The bundled fallback alone, loaded into a document as a chain. */
+    static FontChain liberationSansAlone(PDDocument document) throws IOException {
+        return new FontChain(List.of(new StampFonts(DefaultFont.absent()).liberationSans(document)));
+    }
+
     /** Helvetica as a standard font knows no "Ł"; that one letter falls back, the rest stays. */
     @Test
     void aGlyphTheChosenFontLacksFallsBackForThatRunOnly() throws IOException {
@@ -49,7 +54,7 @@ class FontChainTest {
     @Test
     void whatNoFontHasIsLeftOutAndNamedButControlCharactersAreNot() throws IOException {
         try (var document = new PDDocument()) {
-            var chain = new StampFonts(DefaultFont.absent()).chainFor(document);
+            var chain = liberationSansAlone(document);
 
             var shaped = chain.shape("A漢\tB😀");
 

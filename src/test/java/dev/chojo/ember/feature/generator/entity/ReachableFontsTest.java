@@ -76,7 +76,6 @@ class ReachableFontsTest {
         assertEquals(1, idOf(family.file(FontStyle.BOLD)));
         assertEquals(2, idOf(family.file(FontStyle.BOLD_ITALIC)));
         assertEquals(List.of(FontStyle.REGULAR, FontStyle.BOLD), family.styles());
-        assertEquals(List.of("Wache"), family.internalFamilies());
     }
 
     /** Fields on an uploaded PDF take TrueType outlines only. */

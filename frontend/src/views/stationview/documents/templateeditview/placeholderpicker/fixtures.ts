@@ -5,9 +5,7 @@
  */
 import {
     DateKind,
-    DatePreset,
     PlaceholderCategory,
-    PlaceholderGroup,
     type DateFormatOption,
     type Placeholder,
 } from '@/api/generated/schema'
@@ -24,7 +22,6 @@ export function placeholderOf(key: string, category: PlaceholderCategory, path: 
     return {
         key,
         label: path.at(-1) ?? key,
-        group: PlaceholderGroup.MEMBER,
         category,
         path,
         informal: false,
@@ -44,14 +41,14 @@ export const APPOINTMENT_START = placeholderOf('event.start', PlaceholderCategor
 
 /** The ready-made formats as the server sends them, in its order. */
 export const DATE_FORMATS: DateFormatOption[] = [
-    {preset: DatePreset.SHORT, written: 'short', kind: DateKind.DATE, german: 'TT.MM.JJJJ', english: 'TT.MM.JJJJ'},
-    {preset: DatePreset.LONG, written: 'long', kind: DateKind.DATE, german: 'T. MMMM JJJJ', english: 'MMMM T, JJJJ'},
-    {preset: DatePreset.MEDIUM, written: 'medium', kind: DateKind.DATE, german: 'T. MMM JJJJ', english: 'MMM T, JJJJ'},
-    {preset: DatePreset.MONTH_YEAR, written: 'monthYear', kind: DateKind.DATE, german: 'MMMM JJJJ', english: 'MMMM JJJJ'},
-    {preset: DatePreset.YEAR, written: 'year', kind: DateKind.DATE, german: 'JJJJ', english: 'JJJJ'},
-    {preset: DatePreset.WEEKDAY, written: 'weekday', kind: DateKind.DATE, german: 'TTTT, T. MMMM JJJJ', english: 'TTTT, MMMM T, JJJJ'},
-    {preset: DatePreset.DATE_TIME, written: 'dateTime', kind: DateKind.DATE_TIME, german: 'TT.MM.JJJJ hh:mm', english: 'TT.MM.JJJJ hh:mm'},
-    {preset: DatePreset.TIME, written: 'time', kind: DateKind.DATE_TIME, german: 'hh:mm', english: 'hh:mm'},
+    {written: 'short', kind: DateKind.DATE, german: 'TT.MM.JJJJ', english: 'TT.MM.JJJJ'},
+    {written: 'long', kind: DateKind.DATE, german: 'T. MMMM JJJJ', english: 'MMMM T, JJJJ'},
+    {written: 'medium', kind: DateKind.DATE, german: 'T. MMM JJJJ', english: 'MMM T, JJJJ'},
+    {written: 'monthYear', kind: DateKind.DATE, german: 'MMMM JJJJ', english: 'MMMM JJJJ'},
+    {written: 'year', kind: DateKind.DATE, german: 'JJJJ', english: 'JJJJ'},
+    {written: 'weekday', kind: DateKind.DATE, german: 'TTTT, T. MMMM JJJJ', english: 'TTTT, MMMM T, JJJJ'},
+    {written: 'dateTime', kind: DateKind.DATE_TIME, german: 'TT.MM.JJJJ hh:mm', english: 'TT.MM.JJJJ hh:mm'},
+    {written: 'time', kind: DateKind.DATE_TIME, german: 'hh:mm', english: 'hh:mm'},
 ]
 
 /** A catalogue as a station sends it, in its order: the member, pronouns, a guardian, appointment, signature. */
@@ -66,6 +63,6 @@ export const CATALOGUE: Placeholder[] = [
         {label: 'Seine / Ihre / Vornamens (Satzanfang)'}),
     placeholderOf('guardian1.profile.2', PlaceholderCategory.GUARDIAN1,
         ['Erziehungsberechtigte 1', 'Profil', 'Medizinisches', 'Allergien'],
-        {label: 'Erziehungsberechtigte 1: Allergien', group: PlaceholderGroup.GUARDIAN}),
+        {label: 'Erziehungsberechtigte 1: Allergien'}),
     placeholderOf('event.name', PlaceholderCategory.APPOINTMENT, ['Termin', 'Termin'], {eventOnly: true}),
 ]

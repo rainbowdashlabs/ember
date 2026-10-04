@@ -47,7 +47,6 @@ import java.time.Period;
 import java.time.ZoneId;
 import java.time.temporal.TemporalAccessor;
 import java.util.ArrayList;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -88,15 +87,6 @@ import java.util.stream.Stream;
  */
 @Singleton
 public class PlaceholderResolver {
-    private static final Set<BuiltInPlaceholder> WITHOUT_MEMBER = EnumSet.of(
-            BuiltInPlaceholder.STATION_NAME,
-            BuiltInPlaceholder.STATION_ADDRESS,
-            BuiltInPlaceholder.STATION_POSTAL_CODE,
-            BuiltInPlaceholder.STATION_CITY,
-            BuiltInPlaceholder.ASSOCIATION_NAME,
-            BuiltInPlaceholder.ASSOCIATION_ADDRESS,
-            BuiltInPlaceholder.TODAY);
-
     private final StationRepository stations;
     private final StationMemberRepository members;
     private final MemberNameResolver names;
@@ -216,15 +206,17 @@ public class PlaceholderResolver {
                 new Reading(new Subject(station, association.orElse(null), 0, language, GenerationContext.NOBODY));
         var values = new HashMap<String, String>();
         for (String key : keys) {
-            boolean needsNoMember =
-                    BuiltInPlaceholder.of(key).filter(WITHOUT_MEMBER::contains).isPresent();
+            boolean needsNoMember = BuiltInPlaceholder.of(key)
+                    .filter(BuiltInPlaceholder::needsNoMember)
+                    .isPresent();
             if (needsNoMember) reading.value(key).ifPresent(value -> values.put(key, value));
         }
         return values;
     }
 
     /**
-     * Whom values are read for.
+     * Whom values are read for. It reaches {@link Reading} as one record because the null check
+     * misplaces a nullable parameter on the constructor of an inner class.
      *
      * @param station     the station that files the document, or null where it is gone or not known yet
      * @param association the association of that station, or null where it belongs to none
@@ -254,8 +246,7 @@ public class PlaceholderResolver {
         private final Map<Integer, Optional<ProfileField>> fields = new HashMap<>();
         private final Map<Integer, Optional<OwnedProfileField>> associationFields = new HashMap<>();
         private @Nullable List<StationMember> guardians;
-        private boolean pronounsRead;
-        private @Nullable PronounSet pronouns;
+        private @Nullable Optional<PronounSet> pronouns;
 
         Reading(Subject subject) {
             this.station = subject.station();
@@ -397,11 +388,8 @@ public class PlaceholderResolver {
         private @Nullable String pronoun(PronounKey pronoun) {
             String first = firstName(memberId);
             if (first == null) return null;
-            if (!pronounsRead) {
-                pronouns = genderPronouns().orElse(null);
-                pronounsRead = true;
-            }
-            return Pronouns.of(pronoun, pronouns, first, language);
+            if (pronouns == null) pronouns = genderPronouns();
+            return Pronouns.of(pronoun, pronouns.orElse(null), first, language);
         }
 
         private Optional<PronounSet> genderPronouns() {

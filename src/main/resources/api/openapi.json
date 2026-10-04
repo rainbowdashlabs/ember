@@ -49482,9 +49482,6 @@
       "DateFormatOption" : {
         "type" : "object",
         "properties" : {
-          "preset" : {
-            "$ref" : "#/components/schemas/DatePreset"
-          },
           "written" : {
             "type" : "string"
           },
@@ -49498,15 +49495,11 @@
             "type" : "string"
           }
         },
-        "required" : [ "preset", "written", "kind", "german", "english" ]
+        "required" : [ "written", "kind", "german", "english" ]
       },
       "DateKind" : {
         "type" : "string",
         "enum" : [ "DATE", "DATE_TIME" ]
-      },
-      "DatePreset" : {
-        "type" : "string",
-        "enum" : [ "SHORT", "LONG", "MEDIUM", "MONTH_YEAR", "YEAR", "WEEKDAY", "DATE_TIME", "TIME" ]
       },
       "DateValue" : {
         "type" : "object",
@@ -63229,9 +63222,6 @@
           "label" : {
             "type" : "string"
           },
-          "group" : {
-            "$ref" : "#/components/schemas/PlaceholderGroup"
-          },
           "category" : {
             "$ref" : "#/components/schemas/PlaceholderCategory"
           },
@@ -63255,7 +63245,7 @@
             } ]
           }
         },
-        "required" : [ "key", "label", "group", "category", "path", "informal", "eventOnly", "dateKind" ]
+        "required" : [ "key", "label", "category", "path", "informal", "eventOnly", "dateKind" ]
       },
       "PlaceholderCatalogueResponse" : {
         "type" : "object",
@@ -63281,10 +63271,6 @@
       "PlaceholderCategory" : {
         "type" : "string",
         "enum" : [ "MEMBER", "PRONOUNS", "GUARDIAN1", "GUARDIAN2", "STATION", "ASSOCIATION", "APPOINTMENT", "ISSUER", "DOCUMENT" ]
-      },
-      "PlaceholderGroup" : {
-        "type" : "string",
-        "enum" : [ "MEMBER", "PROFILE", "GUARDIAN", "STATION", "ASSOCIATION", "EVENT", "ISSUER", "DOCUMENT", "PRONOUN" ]
       },
       "PlaceholderValues" : {
         "type" : "object",

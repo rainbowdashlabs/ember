@@ -80,6 +80,14 @@ public enum BuiltInPlaceholder {
         return key;
     }
 
+    /**
+     * @return whether its value is known without a member: today's date, and the data of the station and
+     *         of its association
+     */
+    public boolean needsNoMember() {
+        return this == TODAY || category == PlaceholderCategory.STATION || category == PlaceholderCategory.ASSOCIATION;
+    }
+
     /** @return what kind of date it holds, or null where it holds none */
     public @Nullable DateKind dateKind() {
         return switch (this) {
@@ -96,20 +104,18 @@ public enum BuiltInPlaceholder {
     public Placeholder in(String language) {
         String name = "en".equals(language) ? english : german;
         String categoryWord = category.word(language);
-        var group = category.group();
-        boolean guardian = group == PlaceholderGroup.GUARDIAN;
-        var path = guardian || group == PlaceholderGroup.MEMBER
+        boolean guardian = category.guardian();
+        var path = guardian || category == PlaceholderCategory.MEMBER
                 ? List.of(categoryWord, PlaceholderSubgroup.DETAILS.word(language), name)
                 : List.of(categoryWord, name);
-        boolean namedByWhose = guardian || group == PlaceholderGroup.ISSUER;
+        boolean namedByWhose = guardian || category == PlaceholderCategory.ISSUER;
         return new Placeholder(
                 key,
                 namedByWhose ? categoryWord + ": " + name : name,
-                group,
                 category,
                 path,
                 this == MEMBER_CALLED_NAME,
-                group == PlaceholderGroup.EVENT,
+                category == PlaceholderCategory.APPOINTMENT,
                 dateKind());
     }
 

@@ -11,37 +11,35 @@ package dev.chojo.ember.feature.generator.entity;
  */
 public enum PlaceholderCategory {
     /** The member the document is about: the register's values and the profile answers. */
-    MEMBER(PlaceholderGroup.MEMBER, "Mitglied", "Member"),
+    MEMBER("Mitglied", "Member"),
     /** The pronouns for the member. */
-    PRONOUNS(PlaceholderGroup.PRONOUN, "Pronomen", "Pronouns"),
+    PRONOUNS("Pronomen", "Pronouns"),
     /** The first guardian of the member. */
-    GUARDIAN1(PlaceholderGroup.GUARDIAN, "Erziehungsberechtigte 1", "Guardian 1"),
+    GUARDIAN1("Erziehungsberechtigte 1", "Guardian 1"),
     /** The second guardian of the member. */
-    GUARDIAN2(PlaceholderGroup.GUARDIAN, "Erziehungsberechtigte 2", "Guardian 2"),
+    GUARDIAN2("Erziehungsberechtigte 2", "Guardian 2"),
     /** The station that files the document. */
-    STATION(PlaceholderGroup.STATION, "Wache", "Station"),
+    STATION("Wache", "Station"),
     /** The association the station of the member belongs to. */
-    ASSOCIATION(PlaceholderGroup.ASSOCIATION, "Verband", "Association"),
+    ASSOCIATION("Verband", "Association"),
     /** The appointment a document is generated for. */
-    APPOINTMENT(PlaceholderGroup.EVENT, "Termin", "Appointment"),
+    APPOINTMENT("Termin", "Appointment"),
     /** The member who issues the document for the station. */
-    ISSUER(PlaceholderGroup.ISSUER, "Ausstellende Person", "Issuer"),
+    ISSUER("Ausstellende Person", "Issuer"),
     /** The document itself. */
-    DOCUMENT(PlaceholderGroup.DOCUMENT, "Dokument", "Document");
+    DOCUMENT("Dokument", "Document");
 
-    private final PlaceholderGroup group;
     private final String german;
     private final String english;
 
-    PlaceholderCategory(PlaceholderGroup group, String german, String english) {
-        this.group = group;
+    PlaceholderCategory(String german, String english) {
         this.german = german;
         this.english = english;
     }
 
-    /** @return where the values of this category come from, where they are no profile answers */
-    public PlaceholderGroup group() {
-        return group;
+    /** @return whether the category is one of the member's guardians */
+    public boolean guardian() {
+        return this == GUARDIAN1 || this == GUARDIAN2;
     }
 
     /**

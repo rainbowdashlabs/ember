@@ -21,7 +21,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
@@ -136,17 +135,6 @@ public class StampFonts {
      */
     public Loaded load(PDDocument document, FieldFonts source) {
         return new Loaded(document, source);
-    }
-
-    /**
-     * The bundled fallback alone, loaded into a document as a chain.
-     *
-     * @param document the document the text is drawn into
-     * @return the chain, Liberation Sans alone
-     * @throws IOException where the font cannot be embedded
-     */
-    public FontChain chainFor(PDDocument document) throws IOException {
-        return new FontChain(List.of(liberationSans(document)));
     }
 
     /**

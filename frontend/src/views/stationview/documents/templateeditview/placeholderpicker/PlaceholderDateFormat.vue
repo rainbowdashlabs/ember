@@ -45,7 +45,7 @@ function example(option: DateFormatOption): string {
       <span class="font-medium">{{ t('documentTemplates.dateFormat.title', {name: placeholder.label}) }}</span>
     </div>
     <ul class="grid gap-0.5 sm:grid-cols-2">
-      <li v-for="option in formats" :key="option.preset">
+      <li v-for="option in formats" :key="option.written">
         <PlaceholderRow :name="example(option)" :branch="false" :detail="presetPattern(option, language)"
                         :data-testid="`placeholder-date-${option.written}`" @choose="emit('choose', option.written)"/>
       </li>

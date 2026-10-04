@@ -14,7 +14,6 @@ import java.util.List;
  *
  * @param key       the stable key a template writes as {@code {{key}}}
  * @param label     what the editor shows for it, in the station's language
- * @param group     where its value comes from
  * @param category  whom or what it is about, the first step the picker offers it under
  * @param path      the steps the picker offers it under in the station's language, from the word of its
  *                  category to its own name there. The name can be shorter than the label, because the
@@ -28,7 +27,6 @@ import java.util.List;
 public record Placeholder(
         String key,
         String label,
-        PlaceholderGroup group,
         PlaceholderCategory category,
         List<String> path,
         boolean informal,

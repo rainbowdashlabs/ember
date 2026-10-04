@@ -501,17 +501,15 @@ public class DocumentTemplateService {
      * A ready-made date format as the editor offers it, with its tokens in both languages, so the editor
      * shows an example of it in the language of the template.
      *
-     * @param preset  the format
      * @param written how a key names it after the bar
      * @param kind    what a date needs to take it: a day, or a day with a time of day
      * @param german  the format in the tokens of an own format, for a German template
      * @param english the same for an English template
      */
-    public record DateFormatOption(DatePreset preset, String written, DateKind kind, String german, String english) {
+    public record DateFormatOption(String written, DateKind kind, String german, String english) {
         static DateFormatOption of(DatePreset preset) {
             var format = DateFormat.of(preset);
             return new DateFormatOption(
-                    preset,
                     preset.written(),
                     format.readsClock() ? DateKind.DATE_TIME : DateKind.DATE,
                     preset.pattern(DocumentLanguage.DE),

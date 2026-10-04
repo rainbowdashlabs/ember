@@ -70,9 +70,4 @@ public record FontFamily(String name, FontOrigin origin, Map<FontStyle, FontFace
     public List<FontStyle> styles() {
         return List.copyOf(files.keySet());
     }
-
-    /** @return the family names its files carry themselves, regular first, each once */
-    public List<String> internalFamilies() {
-        return files.values().stream().map(FontFace::internalFamily).distinct().toList();
-    }
 }

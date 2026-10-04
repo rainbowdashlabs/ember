@@ -15,7 +15,6 @@ import dev.chojo.ember.feature.generator.entity.DocumentLanguage;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplateDraft;
 import dev.chojo.ember.feature.generator.entity.Placeholder;
 import dev.chojo.ember.feature.generator.entity.PlaceholderCategory;
-import dev.chojo.ember.feature.generator.entity.PlaceholderGroup;
 import dev.chojo.ember.feature.generator.entity.PlaceholderKey;
 import dev.chojo.ember.feature.generator.entity.PlaceholderSubgroup;
 import dev.chojo.ember.feature.generator.entity.PlaceholderTokens;
@@ -107,8 +106,9 @@ public class PlaceholderCatalogue {
         String language = asked.language();
         var out = new ArrayList<Placeholder>();
         Arrays.stream(BuiltInPlaceholder.values())
-                .filter(value -> asked.hasAssociation() || value.in(language).group() != PlaceholderGroup.ASSOCIATION)
                 .map(value -> value.in(language))
+                .filter(placeholder ->
+                        asked.hasAssociation() || placeholder.category() != PlaceholderCategory.ASSOCIATION)
                 .forEach(out::add);
         PronounKey.all().stream().map(pronoun -> pronoun.in(language)).forEach(out::add);
         addAnswers(out, asked.station(), PROFILE, PlaceholderSubgroup.PROFILE, language);
@@ -192,7 +192,6 @@ public class PlaceholderCatalogue {
         return new Placeholder(
                 prefix + field.id(),
                 member ? field.name() : who + ": " + field.name(),
-                member ? PlaceholderGroup.PROFILE : PlaceholderGroup.GUARDIAN,
                 category,
                 List.copyOf(path),
                 false,
@@ -221,7 +220,9 @@ public class PlaceholderCatalogue {
      */
     public List<Placeholder> answerable(Owner owner) {
         return forOwner(owner).stream()
-                .filter(placeholder -> placeholder.group() == PlaceholderGroup.PROFILE)
+                .filter(placeholder -> placeholder.category() == PlaceholderCategory.MEMBER)
+                .filter(placeholder -> placeholder.key().startsWith(PROFILE)
+                        || placeholder.key().startsWith(ASSOCIATION_PROFILE))
                 .toList();
     }
 

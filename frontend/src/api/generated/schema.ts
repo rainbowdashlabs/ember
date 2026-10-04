@@ -59358,13 +59358,10 @@ export interface components {
             english: string;
             german: string;
             kind: components["schemas"]["DateKind"];
-            preset: components["schemas"]["DatePreset"];
             written: string;
         };
         /** @enum {string} */
         DateKind: "DATE" | "DATE_TIME";
-        /** @enum {string} */
-        DatePreset: "SHORT" | "LONG" | "MEDIUM" | "MONTH_YEAR" | "YEAR" | "WEEKDAY" | "DATE_TIME" | "TIME";
         DateValue: {
             value: string;
         };
@@ -64130,7 +64127,6 @@ export interface components {
             category: components["schemas"]["PlaceholderCategory"];
             dateKind: components["schemas"]["DateKind"] | null;
             eventOnly: boolean;
-            group: components["schemas"]["PlaceholderGroup"];
             informal: boolean;
             key: string;
             label: string;
@@ -64143,8 +64139,6 @@ export interface components {
         };
         /** @enum {string} */
         PlaceholderCategory: "MEMBER" | "PRONOUNS" | "GUARDIAN1" | "GUARDIAN2" | "STATION" | "ASSOCIATION" | "APPOINTMENT" | "ISSUER" | "DOCUMENT";
-        /** @enum {string} */
-        PlaceholderGroup: "MEMBER" | "PROFILE" | "GUARDIAN" | "STATION" | "ASSOCIATION" | "EVENT" | "ISSUER" | "DOCUMENT" | "PRONOUN";
         PlaceholderValues: {
             values?: {
                 [key: string]: string;
@@ -68547,7 +68541,6 @@ export type DateConfig = components['schemas']['DateConfig'];
 export type DatedEvent = components['schemas']['DatedEvent'];
 export type DateFormatOption = components['schemas']['DateFormatOption'];
 export type DateKind = components['schemas']['DateKind'];
-export type DatePreset = components['schemas']['DatePreset'];
 export type DateValue = components['schemas']['DateValue'];
 export type DayCount = components['schemas']['DayCount'];
 export type DeclineBody = components['schemas']['DeclineBody'];
@@ -69209,7 +69202,6 @@ export type PickerPage = components['schemas']['PickerPage'];
 export type Placeholder = components['schemas']['Placeholder'];
 export type PlaceholderCatalogueResponse = components['schemas']['PlaceholderCatalogueResponse'];
 export type PlaceholderCategory = components['schemas']['PlaceholderCategory'];
-export type PlaceholderGroup = components['schemas']['PlaceholderGroup'];
 export type PlaceholderValues = components['schemas']['PlaceholderValues'];
 export type PlacementResponse = components['schemas']['PlacementResponse'];
 export type PlannedLanding = components['schemas']['PlannedLanding'];
@@ -69979,17 +69971,6 @@ export const DateKind = {
     DATE_TIME: "DATE_TIME",
 } as const;
 
-export const DatePreset = {
-    DATE_TIME: "DATE_TIME",
-    LONG: "LONG",
-    MEDIUM: "MEDIUM",
-    MONTH_YEAR: "MONTH_YEAR",
-    SHORT: "SHORT",
-    TIME: "TIME",
-    WEEKDAY: "WEEKDAY",
-    YEAR: "YEAR",
-} as const;
-
 export const DeviceRequestPurpose = {
     ENROL_PASSKEY: "ENROL_PASSKEY",
     SIGN_IN: "SIGN_IN",
@@ -70612,18 +70593,6 @@ export const PlaceholderCategory = {
     ISSUER: "ISSUER",
     MEMBER: "MEMBER",
     PRONOUNS: "PRONOUNS",
-    STATION: "STATION",
-} as const;
-
-export const PlaceholderGroup = {
-    ASSOCIATION: "ASSOCIATION",
-    DOCUMENT: "DOCUMENT",
-    EVENT: "EVENT",
-    GUARDIAN: "GUARDIAN",
-    ISSUER: "ISSUER",
-    MEMBER: "MEMBER",
-    PROFILE: "PROFILE",
-    PRONOUN: "PRONOUN",
     STATION: "STATION",
 } as const;
 

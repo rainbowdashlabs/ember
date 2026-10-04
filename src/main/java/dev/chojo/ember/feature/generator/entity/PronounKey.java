@@ -112,8 +112,7 @@ public record PronounKey(PronounRole role, boolean sentenceStart, PossessiveEndi
         var path = role == PronounRole.POSSESSIVE
                 ? List.of(category, role.title(language), place(english), forms.toString())
                 : List.of(category, role.title(language), label);
-        return new Placeholder(
-                key(), label, PlaceholderGroup.PRONOUN, PlaceholderCategory.PRONOUNS, path, false, false, null);
+        return new Placeholder(key(), label, PlaceholderCategory.PRONOUNS, path, false, false, null);
     }
 
     private String place(boolean english) {
