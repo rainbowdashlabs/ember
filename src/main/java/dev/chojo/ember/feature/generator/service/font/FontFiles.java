@@ -9,6 +9,7 @@ import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.generator.entity.FontOutline;
 import dev.chojo.ember.feature.generator.entity.FontStyle;
+import dev.chojo.ember.util.ByteSignature;
 import org.apache.fontbox.ttf.NameRecord;
 import org.apache.fontbox.ttf.OS2WindowsMetricsTable;
 import org.apache.fontbox.ttf.OTFParser;
@@ -18,8 +19,6 @@ import org.apache.pdfbox.io.RandomAccessReadBuffer;
 import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.Comparator;
 
 /**
@@ -44,6 +43,9 @@ public final class FontFiles {
 
     /** The name table id of the family. */
     private static final int FAMILY = 1;
+
+    /** What a font with TrueType outlines starts with, besides the older {@code true}. */
+    private static final byte[] TRUETYPE = {0, 1, 0, 0};
 
     private FontFiles() {}
 
@@ -140,10 +142,10 @@ public final class FontFiles {
     }
 
     private static FontOutline outlineOf(byte[] data) {
-        if (data.length < 4) throw DocumentRefusal.DOCUMENT_FONT_NOT_A_FONT.raise();
-        var head = Arrays.copyOf(data, 4);
-        if (Arrays.equals(head, new byte[] {0, 1, 0, 0}) || "true".equals(ascii(head))) return FontOutline.TRUETYPE;
-        if ("OTTO".equals(ascii(head))) return FontOutline.CFF;
+        if (ByteSignature.startsWith(data, TRUETYPE) || ByteSignature.startsWith(data, "true")) {
+            return FontOutline.TRUETYPE;
+        }
+        if (ByteSignature.startsWith(data, "OTTO")) return FontOutline.CFF;
         throw DocumentRefusal.DOCUMENT_FONT_NOT_A_FONT.raise();
     }
 
@@ -179,9 +181,5 @@ public final class FontFiles {
         if (record.getPlatformId() == NameRecord.PLATFORM_WINDOWS && record.getLanguageId() == 0x409) return 0;
         if (record.getPlatformId() == NameRecord.PLATFORM_WINDOWS) return 1;
         return 2;
-    }
-
-    private static String ascii(byte[] bytes) {
-        return new String(bytes, StandardCharsets.US_ASCII);
     }
 }

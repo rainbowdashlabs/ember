@@ -213,8 +213,7 @@ public class DocumentGenerationService {
     public GeneratedDocumentResponse generate(
             StationSession session, int templateId, int memberId, @Nullable IssuerChoice issuer) {
         var template = templates.requireInUse(session.stationId(), templateId);
-        var prepared =
-                generator.prepare(generator.sourceOf(template), memberId, managerContext(session, template, issuer));
+        var prepared = generator.prepare(template, memberId, managerContext(session, template, issuer));
         return file(template, memberId, session.member().id(), GenerationOrigin.MANAGER, prepared);
     }
 

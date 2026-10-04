@@ -20,6 +20,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.zip.ZipInputStream;
 
@@ -31,6 +32,9 @@ public final class PandocConverter {
     private static final Logger log = LoggerFactory.getLogger(PandocConverter.class);
     private static final String PANDOC_BIN = System.getenv().getOrDefault("PANDOC_BIN", "pandoc");
     private static final Path PRINT_FILTER = Path.of("templates", "pandoc", "print-markdown.lua");
+
+    /** Where in its directory a conversion that keeps the pictures puts them. */
+    private static final String EXTRACTED = "extracted";
 
     /** What a ZIP archive starts with, which is what Word, OpenDocument and EPUB files are. */
     private static final byte[] ZIP = {0x50, 0x4B, 0x03, 0x04};
@@ -78,49 +82,73 @@ public final class PandocConverter {
     }
 
     private static String toTypst(String markdown, List<String> options) throws IOException {
-        Path tempDir = Files.createTempDirectory("pandoc-typst-");
+        var filtered = new ArrayList<>(options);
+        if (Files.isRegularFile(PRINT_FILTER)) {
+            filtered.add("--lua-filter=" + PRINT_FILTER.toAbsolutePath());
+        } else {
+            log.warn("Pandoc print filter missing at {}; images may break the render", PRINT_FILTER);
+        }
+        return run(markdown.getBytes(StandardCharsets.UTF_8), "gfm", "typst", filtered, Files::readString);
+    }
+
+    /** What is read from the file Pandoc wrote, and the directory it wrote it in, once it is done. */
+    @FunctionalInterface
+    private interface Output<T> {
+        T read(Path output) throws IOException;
+    }
+
+    /**
+     * Runs Pandoc over one input in a directory of its own, which is deleted with everything in it
+     * afterwards. The input is {@code input.<from>} and the output {@code output.<to>} in that
+     * directory, which is also where Pandoc runs, so relative paths among the options land there.
+     *
+     * @param input   the bytes to convert
+     * @param from    the Pandoc input format
+     * @param to      the Pandoc output format
+     * @param options further options, placed before the input
+     * @param output  what to read from the directory after a successful run
+     * @return what {@code output} read
+     * @throws IOException if Pandoc fails or the files cannot be written or read
+     */
+    private static <T> T run(byte[] input, String from, String to, List<String> options, Output<T> output)
+            throws IOException {
+        Path dir = Files.createTempDirectory("pandoc-");
         try {
-            Path inputFile = tempDir.resolve("input.md");
-            Path outputFile = tempDir.resolve("output.typ");
-            Files.writeString(inputFile, markdown);
-
-            var command = new ArrayList<String>(List.of(PANDOC_BIN, "-f", "gfm", "-t", "typst", "--wrap=none"));
+            String inputName = "input." + from;
+            Files.write(dir.resolve(inputName), input);
+            var command = new ArrayList<>(List.of(PANDOC_BIN, "-f", from, "-t", to, "--wrap=none"));
             command.addAll(options);
-            if (Files.isRegularFile(PRINT_FILTER)) {
-                command.add("--lua-filter=" + PRINT_FILTER);
-            } else {
-                log.warn("Pandoc print filter missing at {}; images may break the render", PRINT_FILTER);
-            }
-            command.addAll(List.of(inputFile.toString(), "-o", outputFile.toString()));
-
-            var process = new ProcessBuilder(command).redirectErrorStream(true).start();
+            String outputName = "output." + to;
+            command.addAll(List.of(inputName, "-o", outputName));
+            var process = new ProcessBuilder(command)
+                    .directory(dir.toFile())
+                    .redirectErrorStream(true)
+                    .start();
             String processOutput = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
             int exitCode = process.waitFor();
-
             if (exitCode != 0) {
-                log.error("Pandoc failed (exit {}): {}", exitCode, processOutput);
+                log.error("Pandoc failed converting {} to {} (exit {}): {}", from, to, exitCode, processOutput);
                 throw new IOException("Pandoc conversion failed: " + processOutput);
             }
-
-            return Files.readString(outputFile);
+            return output.read(dir.resolve(outputName));
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new IOException("Pandoc conversion interrupted", e);
         } finally {
-            cleanup(tempDir);
+            cleanup(dir);
         }
     }
 
-    private static void cleanup(Path tempDir) throws IOException {
-        try (var stream = Files.list(tempDir)) {
-            stream.forEach(file -> {
+    /** Deletes a directory and everything in it, leaving behind what cannot be deleted. */
+    private static void cleanup(Path dir) throws IOException {
+        try (var walk = Files.walk(dir)) {
+            for (Path path : walk.sorted(Comparator.reverseOrder()).toList()) {
                 try {
-                    Files.deleteIfExists(file);
+                    Files.deleteIfExists(path);
                 } catch (IOException ignored) {
                 }
-            });
+            }
         }
-        Files.deleteIfExists(tempDir);
     }
 
     /**
@@ -149,7 +177,7 @@ public final class PandocConverter {
     public static Optional<String> formatOf(byte[] data, @Nullable String fileName, @Nullable String mimeType) {
         if (isContainer(data)) return containerFormat(data);
         String name = fileName == null ? "" : fileName.toLowerCase(Locale.ROOT);
-        if (name.endsWith(".rtf") || startsWith(data, "{\\rtf")) return Optional.of("rtf");
+        if (name.endsWith(".rtf") || ByteSignature.startsWith(data, "{\\rtf")) return Optional.of("rtf");
         if (name.endsWith(".html") || name.endsWith(".htm")) return Optional.of("html");
         if (name.endsWith(".tex") || name.endsWith(".latex")) return Optional.of("latex");
         String type = mimeType == null ? "" : mimeType.toLowerCase(Locale.ROOT);
@@ -166,11 +194,11 @@ public final class PandocConverter {
      * @return whether they are a container of either kind
      */
     public static boolean isContainer(byte[] data) {
-        return startsWith(data, ZIP) || startsWith(data, COMPOUND_FILE);
+        return ByteSignature.startsWith(data, ZIP) || ByteSignature.startsWith(data, COMPOUND_FILE);
     }
 
     private static Optional<String> containerFormat(byte[] data) {
-        if (!startsWith(data, ZIP)) return Optional.empty();
+        if (!ByteSignature.startsWith(data, ZIP)) return Optional.empty();
         boolean word = false;
         try (var zip = new ZipInputStream(new ByteArrayInputStream(data))) {
             for (var entry = zip.getNextEntry(); entry != null; entry = zip.getNextEntry()) {
@@ -187,18 +215,6 @@ public final class PandocConverter {
         return word ? Optional.of("docx") : Optional.empty();
     }
 
-    private static boolean startsWith(byte[] data, String prefix) {
-        return startsWith(data, prefix.getBytes(StandardCharsets.US_ASCII));
-    }
-
-    private static boolean startsWith(byte[] data, byte[] prefix) {
-        if (data.length < prefix.length) return false;
-        for (int index = 0; index < prefix.length; index++) {
-            if (data[index] != prefix[index]) return false;
-        }
-        return true;
-    }
-
     /**
      * Converts a document to GitHub-Flavored Markdown and keeps the pictures of its body.
      *
@@ -212,54 +228,27 @@ public final class PandocConverter {
      * @throws IOException if conversion fails
      */
     public static WithMedia toMarkdownWithMedia(byte[] data, String fromFormat) throws IOException {
-        Path tempDir = Files.createTempDirectory("pandoc-media-");
-        try {
-            String input = "input." + fromFormat;
-            Path outputFile = tempDir.resolve("output.md");
-            Files.write(tempDir.resolve(input), data);
-            var process = new ProcessBuilder(
-                            PANDOC_BIN,
-                            "-f",
-                            fromFormat,
-                            "-t",
-                            "gfm",
-                            "--wrap=none",
-                            "--extract-media=extracted",
-                            input,
-                            "-o",
-                            "output.md")
-                    .directory(tempDir.toFile())
-                    .redirectErrorStream(true)
-                    .start();
-            String processOutput = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
-            if (process.waitFor() != 0) {
-                log.error("Pandoc failed on a {} document: {}", fromFormat, processOutput);
-                throw new IOException("Pandoc conversion failed: " + processOutput);
-            }
-            var media = new LinkedHashMap<String, byte[]>();
-            Path extracted = tempDir.resolve("extracted");
-            if (Files.isDirectory(extracted)) {
-                try (var files = Files.walk(extracted)) {
-                    for (Path file : files.filter(Files::isRegularFile).toList()) {
-                        media.put(tempDir.relativize(file).toString().replace('\\', '/'), Files.readAllBytes(file));
-                    }
-                }
-            }
-            return new WithMedia(Files.readString(outputFile), media);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new IOException("Pandoc conversion interrupted", e);
-        } finally {
-            deleteTree(tempDir);
-        }
+        return run(
+                data,
+                fromFormat,
+                "gfm",
+                List.of("--extract-media=" + EXTRACTED),
+                output -> new WithMedia(
+                        Files.readString(output),
+                        extractedMedia(Objects.requireNonNull(
+                                output.getParent(), "the output is written inside the conversion's directory"))));
     }
 
-    private static void deleteTree(Path dir) throws IOException {
-        try (var walk = Files.walk(dir)) {
-            for (Path path : walk.sorted(Comparator.reverseOrder()).toList()) {
-                Files.deleteIfExists(path);
+    private static Map<String, byte[]> extractedMedia(Path dir) throws IOException {
+        var media = new LinkedHashMap<String, byte[]>();
+        Path extracted = dir.resolve(EXTRACTED);
+        if (!Files.isDirectory(extracted)) return media;
+        try (var files = Files.walk(extracted)) {
+            for (Path file : files.filter(Files::isRegularFile).toList()) {
+                media.put(dir.relativize(file).toString().replace('\\', '/'), Files.readAllBytes(file));
             }
         }
+        return media;
     }
 
     /**
@@ -271,39 +260,6 @@ public final class PandocConverter {
      * @throws IOException if conversion fails
      */
     public static String toMarkdown(byte[] data, String fromFormat) throws IOException {
-        Path tempDir = Files.createTempDirectory("pandoc-");
-        try {
-            Path inputFile = tempDir.resolve("input." + fromFormat);
-            Path outputFile = tempDir.resolve("output.md");
-            Files.write(inputFile, data);
-
-            var process = new ProcessBuilder(
-                            PANDOC_BIN,
-                            "-f",
-                            fromFormat,
-                            "-t",
-                            "gfm",
-                            "--wrap=none",
-                            inputFile.toString(),
-                            "-o",
-                            outputFile.toString())
-                    .redirectErrorStream(true)
-                    .start();
-
-            String processOutput = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
-            int exitCode = process.waitFor();
-
-            if (exitCode != 0) {
-                log.error("Pandoc failed (exit {}): {}", exitCode, processOutput);
-                throw new IOException("Pandoc conversion failed: " + processOutput);
-            }
-
-            return Files.readString(outputFile);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new IOException("Pandoc conversion interrupted", e);
-        } finally {
-            cleanup(tempDir);
-        }
+        return run(data, fromFormat, "gfm", List.of(), Files::readString);
     }
 }

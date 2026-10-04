@@ -20,7 +20,6 @@ import dev.chojo.ember.feature.generator.entity.PlaceholderKey;
 import dev.chojo.ember.feature.generator.entity.PlaceholderSubgroup;
 import dev.chojo.ember.feature.generator.entity.PlaceholderTokens;
 import dev.chojo.ember.feature.generator.entity.PronounKey;
-import dev.chojo.ember.feature.generator.entity.TemplateContent;
 import dev.chojo.ember.feature.generator.service.OfferedFields.SectionedField;
 import dev.chojo.ember.feature.generator.service.store.OwnerStores;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
@@ -237,7 +236,8 @@ public class PlaceholderCatalogue {
      * @param draft the template
      */
     public void requireKnown(Owner owner, DocumentTemplateDraft draft) {
-        var used = keysOf(draft.titlePattern(), draft.fileNamePattern(), draft.content());
+        var used = keysOf(
+                draft.titlePattern(), draft.fileNamePattern(), draft.content().texts());
         if (used.isEmpty()) return;
         var known = byKey(owner);
         for (String key : used) {
@@ -291,16 +291,16 @@ public class PlaceholderCatalogue {
     }
 
     /**
-     * Every key a template names anywhere: in its title, its file name and every text of its content.
+     * Every key a template names in its title, its file name and the texts given.
      *
      * @param titlePattern    the title pattern
      * @param fileNamePattern the file name pattern
-     * @param content         the letter, or the fields laid over the PDF
+     * @param texts           the texts of its content: all of them, or those one member sees
      * @return the keys, in the order they first appear
      */
-    public static Set<String> keysOf(String titlePattern, String fileNamePattern, TemplateContent content) {
+    public static Set<String> keysOf(String titlePattern, String fileNamePattern, Stream<String> texts) {
         var keys = new LinkedHashSet<String>();
-        Stream.concat(Stream.of(titlePattern, fileNamePattern), content.texts())
+        Stream.concat(Stream.of(titlePattern, fileNamePattern), texts)
                 .map(PlaceholderTokens::keysIn)
                 .forEach(keys::addAll);
         return keys;

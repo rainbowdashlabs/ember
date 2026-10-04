@@ -73,8 +73,7 @@ public record LetterFonts(
             LetterContent letter,
             Function<FontFace, Optional<byte[]>> read,
             DefaultFont defaultFont) {
-        var files = new LinkedHashMap<String, byte[]>();
-        files.put(BundledFont.FILE_NAME, BundledFont.data());
+        var files = BundledFont.files();
         var page = letter.page();
         var families = new LinkedHashMap<String, List<String>>();
         families.put("body", namesOf(reachable, page.bodyFont(), read, files, defaultFont));
@@ -109,7 +108,7 @@ public record LetterFonts(
             }
         });
         if (names.isEmpty()) defaultFont.family().ifPresent(names::add);
-        if (!names.contains(BundledFont.FAMILY)) names.add(BundledFont.FAMILY);
+        BundledFont.appendTo(names);
         return List.copyOf(names);
     }
 }

@@ -5,7 +5,6 @@
  */
 package dev.chojo.ember.feature.generator.repository;
 
-import de.chojo.sadu.queries.api.call.Call;
 import dev.chojo.ember.feature.generator.entity.DocumentFont;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplate;
 import dev.chojo.ember.feature.generator.entity.FontOutline;
@@ -13,6 +12,7 @@ import dev.chojo.ember.feature.generator.entity.FontStyle;
 import dev.chojo.ember.feature.generator.entity.FontUse;
 import dev.chojo.ember.feature.generator.entity.WebFontFormat;
 import dev.chojo.ember.owner.Owner;
+import dev.chojo.ember.owner.OwnerColumns;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -22,6 +22,7 @@ import java.util.Optional;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
+import static dev.chojo.ember.owner.OwnerColumns.OWNED_BY;
 
 /**
  * The fonts uploaded for documents, by the station, association or instance that owns them.
@@ -32,9 +33,6 @@ import static de.chojo.sadu.queries.api.query.Query.query;
  */
 @Singleton
 public class DocumentFontRepository {
-    private static final String OWNED_BY = """
-            station_id IS NOT DISTINCT FROM :station_id::int
-            AND cluster_id IS NOT DISTINCT FROM :cluster_id::int""";
 
     /**
      * What a new font file is.
@@ -72,7 +70,7 @@ public class DocumentFontRepository {
                         VALUES (:station_id, :cluster_id, :family, :style, :file_name, :outline,
                                 :internal_family, :size_bytes, :file_hash, :uploaded_by)
                         RETURNING %s;""",
-                owned(owner)
+                OwnerColumns.bind(owner)
                         .bind("family", font.family())
                         .bind("style", font.style())
                         .bind("file_name", font.fileName())
@@ -92,10 +90,11 @@ public class DocumentFontRepository {
      * @return whether the owner already has a file for that family and style
      */
     public boolean exists(Owner owner, String family, FontStyle style) {
-        return SqlSupport.exists("""
+        return SqlSupport.exists(
+                """
                         SELECT 1 FROM document_font
                         WHERE %s AND lower(family) = lower(:family) AND style = :style
-                        LIMIT 1;""", owned(owner).bind("family", family).bind("style", style), OWNED_BY);
+                        LIMIT 1;""", OwnerColumns.bind(owner).bind("family", family).bind("style", style), OWNED_BY);
     }
 
     /**
@@ -107,7 +106,7 @@ public class DocumentFontRepository {
                         SELECT %s FROM document_font
                         WHERE %s
                         ORDER BY lower(family), style;""", DocumentFont.COLUMNS, OWNED_BY)
-                .single(owned(owner))
+                .single(OwnerColumns.bind(owner))
                 .map(DocumentFont.map())
                 .all();
     }
@@ -138,7 +137,7 @@ public class DocumentFontRepository {
      */
     public Optional<DocumentFont> find(Owner owner, int id) {
         return query("SELECT %s FROM document_font WHERE id = :id AND %s;", DocumentFont.COLUMNS, OWNED_BY)
-                .single(owned(owner).bind("id", id))
+                .single(OwnerColumns.bind(owner).bind("id", id))
                 .map(DocumentFont.map())
                 .first();
     }
@@ -225,18 +224,14 @@ public class DocumentFontRepository {
                                OR EXISTS(SELECT 1 FROM document_template_field f
                                          WHERE f.template_id = t.id AND lower(f.font_family) = lower(:family)))
                         ORDER BY t.name;""")
-                .single(owned(fontOwner).bind("family", family).bind("instance", fontOwner instanceof Owner.Instance))
+                .single(OwnerColumns.bind(fontOwner)
+                        .bind("family", family)
+                        .bind("instance", fontOwner instanceof Owner.Instance))
                 .map(row -> new FontUse(
                         row.getInt("id"),
                         DocumentTemplate.ownerOf(
                                 row.getObject("station_id", Integer.class), row.getObject("cluster_id", Integer.class)),
                         row.getString("name")))
                 .all();
-    }
-
-    private static Call owned(Owner owner) {
-        Integer stationId = owner instanceof Owner.Station station ? station.stationId() : null;
-        Integer clusterId = owner instanceof Owner.Association association ? association.clusterId() : null;
-        return call().bind("station_id", stationId).bind("cluster_id", clusterId);
     }
 }

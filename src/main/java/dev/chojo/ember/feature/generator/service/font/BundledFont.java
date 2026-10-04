@@ -7,13 +7,17 @@ package dev.chojo.ember.feature.generator.service.font;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /**
  * The font every document falls back to: Liberation Sans, shipped with the application
  * ({@code fonts/LiberationSans-Regular.ttf}, under the SIL Open Font License in
  * {@code fonts/Liberation-LICENSE.txt}), so a text reads
- * the same on every installation, whatever fonts the system has.
+ * the same on every installation, whatever fonts the system has. Its file is the one
+ * {@link BuiltInFonts} holds for the regular style of the family.
  */
 public final class BundledFont {
     /** The family name Liberation Sans carries, which a letter asks for. */
@@ -22,13 +26,27 @@ public final class BundledFont {
     /** The name the file is written under next to a document. */
     public static final String FILE_NAME = "LiberationSans-Regular.ttf";
 
-    private static final byte[] DATA = resource(FILE_NAME);
-
     private BundledFont() {}
 
     /** @return the file, a copy the caller may keep */
     public static byte[] data() {
-        return DATA.clone();
+        return BuiltInFonts.bundledFile(FILE_NAME);
+    }
+
+    /** @return font files by the name they are written under, holding the fallback's, for the caller to add to */
+    public static Map<String, byte[]> files() {
+        var files = new LinkedHashMap<String, byte[]>();
+        files.put(FILE_NAME, data());
+        return files;
+    }
+
+    /**
+     * Ends a list of family names in the fallback, unless it is in the list already.
+     *
+     * @param families the names, in the order they are asked for
+     */
+    public static void appendTo(List<String> families) {
+        if (!families.contains(FAMILY)) families.add(FAMILY);
     }
 
     /**

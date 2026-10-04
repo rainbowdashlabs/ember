@@ -12,7 +12,6 @@ import dev.chojo.ember.feature.generator.entity.DocumentTemplate;
 import dev.chojo.ember.feature.generator.entity.GenerationContext;
 import dev.chojo.ember.feature.generator.entity.GenerationJob;
 import dev.chojo.ember.feature.generator.entity.GenerationOrigin;
-import dev.chojo.ember.feature.generator.entity.MissingValue;
 import dev.chojo.ember.feature.generator.repository.DocumentTemplateRepository;
 import dev.chojo.ember.feature.generator.repository.GenerationJobRepository;
 import dev.chojo.ember.lifecycle.Schedule;
@@ -31,7 +30,6 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 /**
  * Works through generation runs in the background, one run at a time, so a run of many members never
@@ -121,7 +119,9 @@ public class GenerationJobRunner implements TaskSource {
             try {
                 if (template.archived()) throw DocumentRefusal.DOCUMENT_TEMPLATE_ARCHIVED.raise();
                 var prepared = generator.prepare(source, memberId, context);
-                if (!job.acceptMissing()) requireComplete(prepared);
+                if (!job.acceptMissing()) {
+                    generator.requireComplete(prepared, DocumentRefusal.DOCUMENT_JOB_VALUES_MISSING);
+                }
                 Transactions.run(() -> {
                     var filed =
                             generation.file(template, memberId, job.startedBy(), GenerationOrigin.MANAGER, prepared);
@@ -135,13 +135,6 @@ public class GenerationJobRunner implements TaskSource {
             }
         }
         log.info("Run {} of template {} done", job.id(), template.id());
-    }
-
-    private void requireComplete(DocumentGeneratorService.Prepared prepared) {
-        var missing = generator.missing(prepared);
-        if (missing.isEmpty()) return;
-        String labels = missing.stream().map(MissingValue::label).collect(Collectors.joining(", "));
-        throw DocumentRefusal.DOCUMENT_JOB_VALUES_MISSING.raise(RefusalDetail.text(labels));
     }
 
     /** The value a refusal named, where it is one a reader can be shown as it is. */

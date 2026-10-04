@@ -149,7 +149,7 @@ public class AppointmentDocumentService {
         var template = templates.requireInUse(session.stationId(), templateId);
         var context = new GenerationContext(
                 session.member().id(), facts(event, date), issuers.ofTemplate(template, session.stationId()));
-        var prepared = generator.prepare(generator.sourceOf(template), memberId, context);
+        var prepared = generator.prepare(template, memberId, context);
         return generation.file(
                 template, memberId, session.member().id(), GenerationOrigin.appointment(event.id(), date), prepared);
     }

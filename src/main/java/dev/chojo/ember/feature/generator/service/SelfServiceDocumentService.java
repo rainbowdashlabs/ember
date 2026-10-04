@@ -31,7 +31,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -182,11 +181,7 @@ public class SelfServiceDocumentService {
             throw DocumentRefusal.DOCUMENT_SELF_SERVICE_COOLING_DOWN.raise(RefusalDetail.text(day(session, openAgain)));
         }
         var prepared = prepare(session, template, memberId);
-        var missing = generator.missing(prepared);
-        if (!missing.isEmpty()) {
-            String labels = missing.stream().map(MissingValue::label).collect(Collectors.joining(", "));
-            throw DocumentRefusal.DOCUMENT_SELF_SERVICE_VALUES_MISSING.raise(RefusalDetail.text(labels));
-        }
+        generator.requireComplete(prepared, DocumentRefusal.DOCUMENT_SELF_SERVICE_VALUES_MISSING);
         return generation.file(template, memberId, session.member().id(), GenerationOrigin.SELF_SERVICE, prepared);
     }
 
@@ -194,9 +189,7 @@ public class SelfServiceDocumentService {
     private DocumentGeneratorService.Prepared prepare(StationSession session, DocumentTemplate template, int memberId) {
         var issuer = issuers.ofTemplate(template, session.stationId());
         return generator.prepare(
-                generator.sourceOf(template),
-                memberId,
-                GenerationContext.by(session.member().id(), issuer));
+                template, memberId, GenerationContext.by(session.member().id(), issuer));
     }
 
     private SelfServiceOffer offer(StationSession session, DocumentTemplate template, int memberId) {

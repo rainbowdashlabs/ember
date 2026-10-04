@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.generator.entity.FontStyle;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -71,6 +72,15 @@ public final class BuiltInFonts {
         String file = face.bundledFile();
         if (file == null) return Optional.empty();
         return Optional.ofNullable(FILES.get(file)).map(byte[]::clone);
+    }
+
+    /**
+     * @param fileName the name of a file a built-in family ships with
+     * @return the file, a copy the caller may keep
+     */
+    static byte[] bundledFile(String fileName) {
+        return Objects.requireNonNull(FILES.get(fileName), "No built-in family ships " + fileName)
+                .clone();
     }
 
     private static FontFamily bundled(String family, String filePrefix) {

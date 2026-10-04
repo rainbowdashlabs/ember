@@ -7,6 +7,8 @@ package dev.chojo.ember.feature.generator.service;
 
 import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.api.refusal.MemberRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.RefusalDetail;
 import dev.chojo.ember.feature.generator.entity.BuiltInPlaceholder;
 import dev.chojo.ember.feature.generator.entity.DocumentIssuer;
 import dev.chojo.ember.feature.generator.entity.DocumentLanguage;
@@ -42,7 +44,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
-import java.util.stream.Stream;
+import java.util.stream.Collectors;
 
 /**
  * Turns a template into the PDF of one member, without filing it.
@@ -203,11 +205,7 @@ public class DocumentGeneratorService {
                         case LetterContent letter -> LetterLayout.visibleTexts(letter, view).stream();
                         case PdfContent pdf -> pdf.texts();
                     };
-            var keys = new LinkedHashSet<String>();
-            Stream.concat(Stream.of(titlePattern, fileNamePattern), texts)
-                    .map(PlaceholderTokens::keysIn)
-                    .forEach(keys::addAll);
-            return keys;
+            return PlaceholderCatalogue.keysOf(titlePattern, fileNamePattern, texts);
         }
 
         /**
@@ -328,6 +326,19 @@ public class DocumentGeneratorService {
     }
 
     /**
+     * Reads the values of a document from a saved template, as {@link #prepare(Source, int,
+     * GenerationContext)} does.
+     *
+     * @param template the template
+     * @param memberId the member the document is about
+     * @param context  who generates it, for which appointment and who issues it
+     * @return the values and what is missing
+     */
+    public Prepared prepare(DocumentTemplate template, int memberId, GenerationContext context) {
+        return prepare(sourceOf(template), memberId, context);
+    }
+
+    /**
      * The placeholders without a value, in the words of the template's owner.
      *
      * @param prepared what a document is about to be drawn from
@@ -338,6 +349,20 @@ public class DocumentGeneratorService {
         return prepared.resolved().missing().stream()
                 .map(key -> new MissingValue(key, PlaceholderCatalogue.labelOf(labels, key)))
                 .toList();
+    }
+
+    /**
+     * Refuses a document whose values are not all there, naming the missing ones in the words of the
+     * template's owner.
+     *
+     * @param prepared what a document is about to be drawn from
+     * @param refusal  what to refuse with
+     */
+    public void requireComplete(Prepared prepared, Refusal refusal) {
+        var missing = missing(prepared);
+        if (missing.isEmpty()) return;
+        String labels = missing.stream().map(MissingValue::label).collect(Collectors.joining(", "));
+        throw refusal.raise(RefusalDetail.text(labels));
     }
 
     /**
@@ -375,7 +400,10 @@ public class DocumentGeneratorService {
                     rendered.unprintable(),
                     prepared.issuer().preview());
         }
-        var keys = PlaceholderCatalogue.keysOf(source.titlePattern(), source.fileNamePattern(), source.content());
+        var keys = PlaceholderCatalogue.keysOf(
+                source.titlePattern(),
+                source.fileNamePattern(),
+                source.content().texts());
         var values = resolver.withoutMember(source.owner(), source.language(), keys);
         var labels = labels(source.owner(), List.copyOf(keys));
         Integer stationId = source.owner() instanceof Owner.Station station ? station.stationId() : null;

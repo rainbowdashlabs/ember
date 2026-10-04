@@ -20,7 +20,6 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -104,23 +103,17 @@ public class FontSampleService {
                 .family()
                 .filter(family -> defaultFont.styles().contains(style))
                 .ifPresent(families::add);
-        families.add(BundledFont.FAMILY);
+        BundledFont.appendTo(families);
         return new SampleFonts(
-                families, fallbackFiles(), defaultFont.directory().stream().toList());
+                families, BundledFont.files(), defaultFont.directory().stream().toList());
     }
 
     private SampleFonts fontsOf(FontFamily family, FontStyle style) {
-        var files = fallbackFiles();
+        var files = BundledFont.files();
         var face = family.file(style);
         var families = new ArrayList<String>();
         if (TypstFaces.supply(face, library::read, files)) families.add(face.internalFamily());
-        if (!families.contains(BundledFont.FAMILY)) families.add(BundledFont.FAMILY);
+        BundledFont.appendTo(families);
         return new SampleFonts(families, files, List.of());
-    }
-
-    private static LinkedHashMap<String, byte[]> fallbackFiles() {
-        var files = new LinkedHashMap<String, byte[]>();
-        files.put(BundledFont.FILE_NAME, BundledFont.data());
-        return files;
     }
 }

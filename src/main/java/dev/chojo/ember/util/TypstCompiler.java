@@ -30,20 +30,7 @@ public final class TypstCompiler {
 
     public static byte[] compile(String source, Map<String, byte[]> resources)
             throws IOException, InterruptedException {
-        Path tempDir = Files.createTempDirectory("typst-compile-");
-        try {
-            Path typFile = tempDir.resolve("document.typ");
-            Path pdfFile = tempDir.resolve("document.pdf");
-            Files.writeString(typFile, source);
-            for (var entry : resources.entrySet()) {
-                Path resFile = tempDir.resolve(entry.getKey());
-                FilePaths.createParentDirectories(resFile);
-                Files.write(resFile, entry.getValue());
-            }
-            return runTypst(tempDir, typFile, pdfFile);
-        } finally {
-            cleanup(tempDir);
-        }
+        return compileSource(source, Map.of(), resources, "document.pdf", List.of(), Map.of(), List.of());
     }
 
     public static byte[] compileTemplate(Map<String, Object> data, String templateName, @Nullable StationLogo logo)
@@ -213,27 +200,50 @@ public final class TypstCompiler {
             List<Path> fontDirectories,
             int ppi)
             throws IOException, InterruptedException {
-        Path tempDir = Files.createTempDirectory("typst-png-");
+        return compileSource(
+                source,
+                resources,
+                Map.of(),
+                "document.png",
+                List.of("--format", "png", "--ppi", String.valueOf(ppi)),
+                fonts,
+                fontDirectories);
+    }
+
+    /**
+     * Compiles a document given as source, with the text and binary files it reads written next to it
+     * (in directories of their own where their names have any) and the fonts it may print in.
+     */
+    private static byte[] compileSource(
+            String source,
+            Map<String, String> texts,
+            Map<String, byte[]> files,
+            String outputName,
+            List<String> options,
+            Map<String, byte[]> fonts,
+            List<Path> fontDirectories)
+            throws IOException, InterruptedException {
+        Path tempDir = Files.createTempDirectory("typst-");
         try {
             Path typFile = tempDir.resolve("document.typ");
             Files.writeString(typFile, source);
-            for (var entry : resources.entrySet()) {
-                Files.writeString(tempDir.resolve(entry.getKey()), entry.getValue());
+            for (var entry : texts.entrySet()) {
+                Files.writeString(placed(tempDir, entry.getKey()), entry.getValue());
+            }
+            for (var entry : files.entrySet()) {
+                Files.write(placed(tempDir, entry.getKey()), entry.getValue());
             }
             return runTypst(
-                    tempDir,
-                    typFile,
-                    tempDir.resolve("document.png"),
-                    List.of("--format", "png", "--ppi", String.valueOf(ppi)),
-                    fontPath(tempDir, fonts, fontDirectories));
+                    tempDir, typFile, tempDir.resolve(outputName), options, fontPath(tempDir, fonts, fontDirectories));
         } finally {
             cleanup(tempDir);
         }
     }
 
-    private static byte[] runTypst(Path workDir, Path inputFile, Path outputFile)
-            throws IOException, InterruptedException {
-        return runTypst(workDir, inputFile, outputFile, Output.PDF, List.of());
+    private static Path placed(Path dir, String name) throws IOException {
+        Path file = dir.resolve(name);
+        FilePaths.createParentDirectories(file);
+        return file;
     }
 
     private static byte[] runTypst(Path workDir, Path inputFile, Path outputFile, Output output, List<Path> fontPath)

@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.generator.entity.DocumentTemplate;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplateDraft;
 import dev.chojo.ember.feature.generator.entity.LetterContent;
 import dev.chojo.ember.owner.Owner;
+import dev.chojo.ember.owner.OwnerColumns;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -25,6 +26,7 @@ import java.util.stream.Collectors;
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
+import static dev.chojo.ember.owner.OwnerColumns.OWNED_BY;
 
 /**
  * The document templates of a station or an association, and the content of their letters.
@@ -37,9 +39,6 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  */
 @Singleton
 public class DocumentTemplateRepository {
-    private static final String OWNED_BY = """
-            station_id IS NOT DISTINCT FROM :station_id::int
-            AND cluster_id IS NOT DISTINCT FROM :cluster_id::int""";
 
     /**
      * Writes a new template, without its content.
@@ -62,7 +61,8 @@ public class DocumentTemplateRepository {
                                 :for_appointments, :self_service, :cooldown_days, :restriction_mode,
                                 :language, :issuer_id, :issuer_function, :author, :author)
                         RETURNING %s;""",
-                bindDraft(owned(owner).bind("kind", draft.kind()), draft).bind("author", authorId),
+                bindDraft(OwnerColumns.bind(owner).bind("kind", draft.kind()), draft)
+                        .bind("author", authorId),
                 DocumentTemplate.map(),
                 DocumentTemplate.COLUMNS);
     }
@@ -185,7 +185,7 @@ public class DocumentTemplateRepository {
                 WHERE %s
                   AND (archived_at IS NOT NULL) = :archived
                 ORDER BY lower(name), id;""", DocumentTemplate.COLUMNS, OWNED_BY)
-                .single(owned(owner).bind("archived", archived))
+                .single(OwnerColumns.bind(owner).bind("archived", archived))
                 .map(DocumentTemplate.map())
                 .all();
     }
@@ -299,19 +299,14 @@ public class DocumentTemplateRepository {
      * @return whether the name is taken
      */
     public boolean nameTaken(Owner owner, String name, @Nullable Integer exceptId) {
-        return SqlSupport.exists("""
+        return SqlSupport.exists(
+                """
                         SELECT 1
                         FROM document_template
                         WHERE %s
                           AND archived_at IS NULL
                           AND lower(name) = lower(:name)
                           AND id IS DISTINCT FROM :except::int
-                        LIMIT 1;""", owned(owner).bind("name", name).bind("except", exceptId), OWNED_BY);
-    }
-
-    private static Call owned(Owner owner) {
-        Integer stationId = owner instanceof Owner.Station station ? station.stationId() : null;
-        Integer clusterId = owner instanceof Owner.Association association ? association.clusterId() : null;
-        return call().bind("station_id", stationId).bind("cluster_id", clusterId);
+                        LIMIT 1;""", OwnerColumns.bind(owner).bind("name", name).bind("except", exceptId), OWNED_BY);
     }
 }

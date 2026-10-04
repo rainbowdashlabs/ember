@@ -8,10 +8,9 @@ package dev.chojo.ember.feature.generator.service.font;
 import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.generator.entity.WebFontFormat;
+import dev.chojo.ember.util.ByteSignature;
 
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 
 /**
  * Reads what an uploaded web version of a font style is, refusing one that is no font.
@@ -41,8 +40,8 @@ public final class WebFontFiles {
      *                         {@code DOCUMENT_FONT_EMBEDDING_FORBIDDEN} for a font whose licence forbids embedding
      */
     public static WebFontFormat inspect(byte[] data) {
-        if (signed(data, "wOF2")) return complete(data, WOFF2_HEADER, WebFontFormat.WOFF2);
-        if (signed(data, "wOFF")) return complete(data, WOFF_HEADER, WebFontFormat.WOFF);
+        if (ByteSignature.startsWith(data, "wOF2")) return complete(data, WOFF2_HEADER, WebFontFormat.WOFF2);
+        if (ByteSignature.startsWith(data, "wOFF")) return complete(data, WOFF_HEADER, WebFontFormat.WOFF);
         try {
             return WebFontFormat.of(FontFiles.inspect(data).outline());
         } catch (RefusalResponse refused) {
@@ -58,12 +57,7 @@ public final class WebFontFiles {
      * @return whether it is a WOFF2 file with a complete header that names the length it has
      */
     static boolean woff2(byte[] data) {
-        return signed(data, "wOF2") && complete(data, WOFF2_HEADER);
-    }
-
-    private static boolean signed(byte[] data, String signature) {
-        byte[] expected = signature.getBytes(StandardCharsets.US_ASCII);
-        return data.length >= expected.length && Arrays.equals(Arrays.copyOf(data, expected.length), expected);
+        return ByteSignature.startsWith(data, "wOF2") && complete(data, WOFF2_HEADER);
     }
 
     private static boolean complete(byte[] data, int header) {
