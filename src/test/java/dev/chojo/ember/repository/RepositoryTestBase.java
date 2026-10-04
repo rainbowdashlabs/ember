@@ -112,6 +112,7 @@ import dev.chojo.ember.feature.generator.repository.DocumentFontRepository;
 import dev.chojo.ember.feature.generator.service.PlaceholderCatalogue;
 import dev.chojo.ember.feature.generator.service.PlaceholderResolver;
 import dev.chojo.ember.feature.generator.service.font.DefaultFont;
+import dev.chojo.ember.feature.generator.service.font.FontFileCache;
 import dev.chojo.ember.feature.generator.service.font.FontLibrary;
 import dev.chojo.ember.feature.generator.service.store.OwnerStores;
 import dev.chojo.ember.feature.insights.repository.PageHitRepository;
@@ -450,7 +451,12 @@ public abstract class RepositoryTestBase {
      * The fonts the documents of every owner reach, printing what names no family in a default font.
      */
     protected static FontLibrary newFontLibrary(StorageService storage, DefaultFont defaultFont) {
-        return new FontLibrary(new DocumentFontRepository(), newOwnerStores(), storage, defaultFont);
+        return new FontLibrary(
+                new DocumentFontRepository(),
+                newOwnerStores(),
+                storage,
+                defaultFont,
+                new FontFileCache(storageRoot.resolve("font-cache")));
     }
 
     /**

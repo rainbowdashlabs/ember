@@ -32,6 +32,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -58,8 +59,9 @@ import java.util.Optional;
  * {@code data.json}, the texts from their converted files and the pictures (from the media library, or
  * the station logo) placed next to the document as files. A picture that cannot be read is left out
  * rather than stopping the document. The template's language travels in {@code data.json} and sets the
- * language of the text, and its page the fonts of the body, the header and the footer ({@link LetterFonts}), whose files go
- * along to Typst in a font directory of their own; the default font of the instance is found in its own
+ * language of the text, and its page the fonts of the body, the header and the footer ({@link LetterFonts}), whose files
+ * are kept on the instance's disk and reach Typst as a directory holding just them
+ * ({@link dev.chojo.ember.feature.generator.service.font.FontFileCache}); the default font of the instance is found in its own
  * directory. Words a text sets in a family of their own become calls to {@code font("Family")} in the
  * converted text, which {@code letter.typ} answers from the families the owner reaches when the letter is
  * printed, so the converted texts stay right whatever the owner reaches.
@@ -139,13 +141,50 @@ public class LetterRenderer {
     record Converted(String typst, Map<String, byte[]> pictures) {}
 
     /**
+     * What every member's letter of a template is printed with, read once for as many letters as are
+     * drawn from it.
+     *
+     * @param library         the station whose media library holds the owner's pictures
+     * @param fonts           the fonts the letter is set in
+     * @param fontDirectories the directories Typst searches for them, the letter's own fonts first
+     */
+    public record Setting(int library, LetterFonts fonts, List<Path> fontDirectories) {}
+
+    /**
+     * Reads what the letters of a template are printed with.
+     *
+     * @param owner  the station or the association that keeps the letter
+     * @param letter the letter
+     * @return the setting
+     */
+    public Setting setting(Owner owner, LetterContent letter) {
+        int library = stores.libraryOf(owner);
+        var typeset = LetterFonts.of(fonts.reachable(owner), letter, fonts::keptFile, fonts.defaultFont());
+        var directories = new ArrayList<Path>();
+        directories.add(fonts.directoryOf(typeset.files()));
+        directories.addAll(typeset.directories());
+        return new Setting(library, typeset, List.copyOf(directories));
+    }
+
+    /**
      * Renders a letter.
      *
      * @param job what to render
      * @return the PDF/A-3b
      */
     public byte[] render(LetterJob job) {
-        int library = stores.libraryOf(job.owner());
+        return render(job, setting(job.owner(), job.letter()));
+    }
+
+    /**
+     * Renders a letter with what was read for it before.
+     *
+     * @param job     what to render
+     * @param setting what the letter's template is printed with
+     * @return the PDF/A-3b
+     */
+    public byte[] render(LetterJob job, Setting setting) {
+        int library = setting.library();
         int logoStation = Objects.requireNonNullElse(job.stationId(), library);
         var files = new HashMap<String, byte[]>();
         var resources = new HashMap<String, String>();
@@ -192,7 +231,7 @@ public class LetterRenderer {
         data.put("values", job.values());
         data.put("labels", job.labels());
         data.put("showLabels", job.showLabels());
-        var typeset = LetterFonts.of(fonts.reachable(job.owner()), job.letter(), fonts::read, fonts.defaultFont());
+        var typeset = setting.fonts();
         data.put("fonts", typeset.families());
         data.put("spanFonts", typeset.spans());
         data.put("uprightFamilies", typeset.uprightFamilies());
@@ -205,8 +244,8 @@ public class LetterRenderer {
                             resources,
                             files,
                             TypstCompiler.Output.PDF_A_3B,
-                            typeset.files(),
-                            typeset.directories()),
+                            Map.of(),
+                            setting.fontDirectories()),
                     marker);
         } catch (IOException e) {
             log.error("A letter of {} could not be rendered", job.owner(), e);

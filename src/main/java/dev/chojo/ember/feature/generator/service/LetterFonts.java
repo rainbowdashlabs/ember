@@ -24,7 +24,7 @@ import java.util.Optional;
 import java.util.function.Function;
 
 /**
- * The fonts a letter is set in, as Typst is handed them: the files next to the document, the directories
+ * The fonts a letter is set in, as Typst is handed them: the files it prints with, the directories
  * it searches besides, and for the body, the header, the footer and every family its texts set words in
  * the family names to ask for, in order.
  *
@@ -47,14 +47,14 @@ import java.util.function.Function;
  * @param families        the family names for {@code body}, {@code header} and {@code footer}
  * @param spans           the family names for every family the texts name that the station reaches, by the
  *                        name the texts give it
- * @param files           the font files by the name they are written under
+ * @param files           the kept font files the letter prints with, Liberation Sans first
  * @param directories     the directories of further font files
  * @param uprightFamilies the families whose italic text prints in the next family of the list instead
  */
 public record LetterFonts(
         Map<String, List<String>> families,
         Map<String, List<String>> spans,
-        Map<String, byte[]> files,
+        List<Path> files,
         List<Path> directories,
         List<String> uprightFamilies) {
 
@@ -64,46 +64,51 @@ public record LetterFonts(
      * @param reachable   the families the station reaches
      * @param letter      the letter, whose page names a family for the body, the header and the footer and
      *                    whose texts may set words in others
-     * @param read        reads the file of a face, empty where it is gone or Typst carries the face itself
+     * @param keptFile    the kept file of a face, empty where it is gone or Typst carries the face itself
      * @param defaultFont the font a part naming none prints in
      * @return the fonts
      */
     public static LetterFonts of(
             ReachableFonts reachable,
             LetterContent letter,
-            Function<FontFace, Optional<byte[]>> read,
+            Function<FontFace, Optional<Path>> keptFile,
             DefaultFont defaultFont) {
-        var files = BundledFont.files();
+        var files = new ArrayList<Path>();
+        TypstFaces.supplyKept(BundledFont.face(), keptFile, files);
         var page = letter.page();
         var families = new LinkedHashMap<String, List<String>>();
-        families.put("body", namesOf(reachable, page.bodyFont(), read, files, defaultFont));
-        families.put("header", namesOf(reachable, page.headerFont(), read, files, defaultFont));
-        families.put("footer", namesOf(reachable, page.footerFont(), read, files, defaultFont));
+        families.put("body", namesOf(reachable, page.bodyFont(), keptFile, files, defaultFont));
+        families.put("header", namesOf(reachable, page.headerFont(), keptFile, files, defaultFont));
+        families.put("footer", namesOf(reachable, page.footerFont(), keptFile, files, defaultFont));
         var spans = new LinkedHashMap<String, List<String>>();
         letter.texts()
                 .flatMap(FontSpans::familiesIn)
                 .distinct()
                 .filter(family -> reachable.find(family).isPresent())
-                .forEach(family -> spans.put(family, namesOf(reachable, family, read, files, defaultFont)));
+                .forEach(family -> spans.put(family, namesOf(reachable, family, keptFile, files, defaultFont)));
         var upright = defaultFont
                 .family()
                 .filter(family -> !defaultFont.styles().contains(FontStyle.ITALIC))
                 .map(List::of)
                 .orElse(List.of());
         return new LetterFonts(
-                families, spans, files, defaultFont.directory().stream().toList(), upright);
+                families,
+                spans,
+                List.copyOf(files),
+                defaultFont.directory().stream().toList(),
+                upright);
     }
 
     private static List<String> namesOf(
             ReachableFonts reachable,
             @Nullable String family,
-            Function<FontFace, Optional<byte[]>> read,
-            Map<String, byte[]> files,
+            Function<FontFace, Optional<Path>> keptFile,
+            List<Path> files,
             DefaultFont defaultFont) {
         var names = new ArrayList<String>();
         reachable.find(family).ifPresent(found -> {
             for (var face : found.files().values()) {
-                if (!TypstFaces.supply(face, read, files)) continue;
+                if (!TypstFaces.supplyKept(face, keptFile, files)) continue;
                 if (!names.contains(face.internalFamily())) names.add(face.internalFamily());
             }
         });
