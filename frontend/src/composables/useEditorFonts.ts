@@ -79,8 +79,9 @@ function canRegister(): boolean {
  * Shows a template's text in the fonts it prints in, for as long as its editor is open. This is the one
  * place font files reach a browser.
  *
- * <p>The families the template uses are loaded as they come up, each once: the fonts of its page and
- * those words are set in, and a family picked for the first time. A family a template names but no
+ * <p>The families the template uses are loaded as they come up, each once and its styles side by side:
+ * the fonts of its page and those words are set in, and a family picked for the first time. They are
+ * compared as one key, so typing that names no new family asks for nothing. A family a template names but no
  * longer reaches is shown as the default font it prints in. Each family is registered with the browser's
  * `FontFace` API under a name of this editor's own, which nothing outside it names, and a stylesheet
  * scoped to elements carrying {@link EditorFonts.scope} sets the text in it: the page's font where an
@@ -127,8 +128,8 @@ export function useEditorFonts(
     async function register(key: string, request: FamilyRequest, spelled: string | null) {
         if (!load) return
         const cssName = `ember-editor-${scope}-${asked.size}`
-        const files = new Map<FontStyle, ArrayBuffer>()
-        for (const style of request.styles) files.set(style, await load(request.family, style, request.version))
+        const files = new Map(await Promise.all(request.styles.map(async style =>
+            [style, await load(request.family, style, request.version)] as const)))
         const faces = FONT_STYLES.map(style =>
             new FontFace(cssName, files.get(fileStyle(style, request.styles)) ?? new ArrayBuffer(0), descriptorsOf(style)))
         await Promise.all(faces.map(face => face.load()))
@@ -154,7 +155,8 @@ export function useEditorFonts(
     }
 
     if (canRegister() && load) {
-        watch([list, used], () => used().forEach(ask), {immediate: true})
+        const usedKey = computed(() => JSON.stringify(used()))
+        watch([list, usedKey], () => used().forEach(ask), {immediate: true})
     }
 
     onScopeDispose(() => {

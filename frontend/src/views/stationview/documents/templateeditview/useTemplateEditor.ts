@@ -116,17 +116,19 @@ export function useTemplateEditor(
     }))
 
     const loader = useAsyncLoader(async () => {
-        const [offered, lists, reached] = await Promise.all([
+        const id = templateId.value
+        const [offered, lists, reached, template] = await Promise.all([
             source.catalogue(),
             screens.hasMembers ? stationChoices() : Promise.resolve(noChoices()),
             screens.fonts.list().catch(() => null),
+            id === null ? Promise.resolve(null) : source.get(id),
         ])
         offer.value = offered
         choices.value = lists
         fontList.value = reached
-        if (templateId.value === null) return
-        saved.value = await source.get(templateId.value)
-        draft.value = draftOf(saved.value)
+        if (!template) return
+        saved.value = template
+        draft.value = draftOf(template)
     })
 
     const saving = useAsyncAction(async () => {
