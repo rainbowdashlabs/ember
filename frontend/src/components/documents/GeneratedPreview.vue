@@ -7,7 +7,8 @@
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Alert from '@/components/feedback/Alert.vue'
-import FileView from '@/components/documents/FileView.vue'
+import DocumentPdfFrame from '@/components/documents/DocumentPdfFrame.vue'
+import {missingLabels} from './generation'
 import {pdfOf} from '@/api/documentTemplates'
 import type {PreviewResponse} from '@/api/generated/schema'
 
@@ -27,7 +28,7 @@ const props = defineProps<{
 const {t} = useI18n()
 
 const pdf = computed(() => pdfOf(props.preview))
-const missing = computed(() => props.preview.missing.map(value => value.label).join(', '))
+const missing = computed(() => missingLabels(props.preview.missing))
 </script>
 
 <template>
@@ -38,8 +39,6 @@ const missing = computed(() => props.preview.missing.map(value => value.label).j
     <Alert v-if="preview.unprintable.length > 0" variant="error" data-testid="generated-unprintable">
       {{ t('documentTemplates.unprintable', {characters: preview.unprintable.join(' ')}) }}
     </Alert>
-    <div class="h-[70vh] rounded-lg border border-(--border) overflow-hidden" data-testid="generated-preview">
-      <FileView :source="pdf" :title="title" mime-type="application/pdf"/>
-    </div>
+    <DocumentPdfFrame :pdf="pdf" :title="title" class="h-[70vh]" data-testid="generated-preview"/>
   </div>
 </template>

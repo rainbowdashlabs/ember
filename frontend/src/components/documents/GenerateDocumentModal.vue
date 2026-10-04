@@ -14,11 +14,10 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import LabelledField from '@/components/input/LabelledField.vue'
 import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
 import type {MemberOption} from '@/components/input/select/memberOption'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import MutedText from '@/components/typography/MutedText.vue'
 import GeneratedPreview from './GeneratedPreview.vue'
+import TemplateChoice from './TemplateChoice.vue'
 import IssuerOverride from './IssuerOverride.vue'
 import {recentlyUsedFirst} from './recentlyUsedFirst'
 import {fromCompletion} from '@/components/input/select/memberOption'
@@ -112,18 +111,7 @@ watchDebounced(issuer, () => {
     <div class="space-y-4" data-testid="generate-document-modal">
       <SubHeader>{{ t('documentTemplates.generateTitle') }}</SubHeader>
       <FailureAlert :failure="loader.failure.value ?? drawing.failure.value ?? filing.failure.value"/>
-      <MutedText v-if="!loader.loading.value && templates.length === 0" size="sm" tag="p">
-        {{ t('documentTemplates.noTemplates') }}
-      </MutedText>
-      <LabelledField v-else :label="t('documentTemplates.template')">
-        <SelectInput :model-value="templateId" data-testid="generate-template"
-                     @update:model-value="value => templateId = value === null ? null : Number(value)">
-          <option :value="null" disabled>{{ t('documentTemplates.chooseTemplate') }}</option>
-          <option v-for="template in templates" :key="template.id" :value="template.id">
-            {{ template.ofAssociation ? t('documentTemplates.namedOfAssociation', {name: template.name}) : template.name }}
-          </option>
-        </SelectInput>
-      </LabelledField>
+      <TemplateChoice v-model="templateId" :templates="templates" :loading="loader.loading.value"/>
       <LabelledField v-if="props.memberId === null" :label="t('documentTemplates.generateMember')">
         <MemberSelectInput v-model="chosenMember" :members="props.members" data-testid="generate-member"/>
       </LabelledField>

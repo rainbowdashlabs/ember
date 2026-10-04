@@ -107,7 +107,7 @@ test.describe('Document templates', () => {
         await managerPage.getByRole('tab', {name: 'Dokumente'}).first().click()
         await managerPage.getByTestId('document-generate-open').click()
         const dialog = managerPage.getByTestId('generate-document-modal')
-        await dialog.getByTestId('generate-template').selectOption({label: name})
+        await dialog.getByTestId('template-choice').selectOption({label: name})
         await expect(dialog.getByTestId('generated-preview')).toBeVisible()
         await dialog.getByTestId('generate-file').click()
         await expect(managerPage.getByText('Dokument erstellt und abgelegt.')).toBeVisible()

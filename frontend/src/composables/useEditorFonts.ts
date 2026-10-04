@@ -6,7 +6,7 @@
 import {computed, inject, onScopeDispose, provide, shallowRef, useId, watch, type ComputedRef, type InjectionKey} from 'vue'
 import {FontStyle, type DocumentFontsResponse} from '@/api/generated/schema'
 import type {FontFileLoader} from '@/api/documentFonts'
-import {FONT_STYLES, reachedFamily} from '@/components/documents/fonts/fontOptions'
+import {familyKey, FONT_STYLES, reachedFamily} from '@/components/documents/fonts/fontOptions'
 
 /** What the template editor shows its text in, for the parts of it below. */
 export interface EditorFonts {
@@ -42,11 +42,6 @@ interface FamilyRequest {
 
 const EDITOR_FONTS: InjectionKey<EditorFonts> = Symbol('editorFonts')
 const FONT_AREA: InjectionKey<ComputedRef<FontAreaAttrs>> = Symbol('editorFontArea')
-
-/** The key a family is kept by, compared as the server compares names; the default font is the empty key. */
-function keyOf(family: string | null): string {
-    return family ? family.trim().toLocaleLowerCase('de') : ''
-}
 
 /** The file a style is drawn from, as a document prints the family: that style, else the regular one. */
 function fileStyle(style: FontStyle, styles: readonly FontStyle[]): FontStyle {
@@ -151,7 +146,7 @@ export function useEditorFonts(
             ask(null)
             return
         }
-        const key = keyOf(family)
+        const key = familyKey(family)
         if (asked.has(key)) return
         asked.add(key)
         const request = requestOf(current, family)
@@ -169,7 +164,7 @@ export function useEditorFonts(
     })
 
     function find(family: string | null): LoadedFamily | undefined {
-        const own = loaded.value.get(keyOf(family))
+        const own = loaded.value.get(familyKey(family))
         if (own || family === null) return own
         const current = list()
         return current && !reachedFamily(current.reachable, family) ? loaded.value.get('') : undefined
@@ -182,7 +177,7 @@ export function useEditorFonts(
             return found ? `${cssString(found.cssName)}, sans-serif` : undefined
         },
         shown(family) {
-            return loaded.value.has(keyOf(family))
+            return loaded.value.has(familyKey(family))
         },
     }
     provide(EDITOR_FONTS, fonts)

@@ -24,9 +24,17 @@ export interface FamilyChoice {
     missing: boolean
 }
 
-/** Whether two family names name one family, compared without case as the server compares them. */
+/**
+ * A family name as the server compares names: trimmed and without case. The default font, named by
+ * null, is the empty key.
+ */
+export function familyKey(family: string | null): string {
+    return family ? family.trim().toLocaleLowerCase('de') : ''
+}
+
+/** Whether two family names name one family, compared as the server compares them. */
 export function sameFamily(a: string, b: string): boolean {
-    return a.trim().toLocaleLowerCase('de') === b.trim().toLocaleLowerCase('de')
+    return familyKey(a) === familyKey(b)
 }
 
 /**

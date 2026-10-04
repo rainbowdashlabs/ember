@@ -17,6 +17,7 @@ import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {formatDate} from '@/util/format'
 import {recentlyUsedFirst} from './recentlyUsedFirst'
+import {missingLabels} from './generation'
 import {showToast} from '@/util/toast'
 
 /**
@@ -60,7 +61,7 @@ const generating = useAsyncAction(async (templateId: number) => {
           {{ t('documentTemplates.availableFrom', {date: formatDate(offer.availableFrom)}) }}
         </MutedText>
         <MutedText v-if="offer.missing.length > 0" size="sm" tag="p">
-          {{ t('documentTemplates.selfServiceMissing', {values: offer.missing.map(value => value.label).join(', ')}) }}
+          {{ t('documentTemplates.selfServiceMissing', {values: missingLabels(offer.missing)}) }}
         </MutedText>
       </div>
       <SecondaryButton :icon="['fas', 'file-circle-plus']" :disabled="generating.running.value"

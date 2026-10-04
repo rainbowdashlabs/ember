@@ -8,7 +8,7 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Alert from '@/components/feedback/Alert.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import FileView from '@/components/documents/FileView.vue'
+import DocumentPdfFrame from '@/components/documents/DocumentPdfFrame.vue'
 import {pdfOf} from '@/api/documentTemplates'
 import type {BulkPreviewResponse} from '@/api/generated/schema'
 import {gapText} from './bulkGeneration'
@@ -36,8 +36,6 @@ const pdf = computed(() => (props.preview.preview ? pdfOf(props.preview.preview)
         <li v-for="gap in preview.gaps" :key="gap.memberId">{{ gap.name }}: {{ gapText(gap, t) }}</li>
       </ul>
     </Alert>
-    <div v-if="pdf" class="h-[60vh] rounded-lg border border-(--border) overflow-hidden">
-      <FileView :source="pdf" :title="templateName" mime-type="application/pdf"/>
-    </div>
+    <DocumentPdfFrame v-if="pdf" :pdf="pdf" :title="templateName" class="h-[60vh]"/>
   </div>
 </template>

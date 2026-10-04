@@ -9,6 +9,7 @@ import { useI18n } from 'vue-i18n'
 import TextInput from '@/components/input/text/TextInput.vue'
 import ColorPickerInput from '@/components/input/ColorPickerInput.vue'
 import FloatingPanel from '@/components/feedback/FloatingPanel.vue'
+import EditorToolbarButton from './EditorToolbarButton.vue'
 import { cssColorHex, hexCode } from '@/util/contrastColor'
 
 /**
@@ -75,17 +76,7 @@ function applySpectrum() {
 <template>
   <FloatingPanel v-model:open="open" :label="label" role="dialog" align="start" panel-class="w-48 p-2 space-y-2">
     <template #trigger="{ triggerAttrs }">
-      <button
-        type="button"
-        :title="label"
-        :aria-label="label"
-        v-bind="triggerAttrs"
-        :class="['p-1.5 rounded text-sm transition-colors', active ? 'text-primary bg-primary/10' : 'text-[var(--text)] hover:bg-[var(--bg-accent)]']"
-        @mousedown.prevent
-        @click="open = !open"
-      >
-        <font-awesome-icon :icon="icon" class="w-3.5 h-3.5" />
-      </button>
+      <EditorToolbarButton :icon="icon" :label="label" :active="active" v-bind="triggerAttrs" @click="open = !open"/>
     </template>
     <div class="grid grid-cols-5 gap-2">
       <button

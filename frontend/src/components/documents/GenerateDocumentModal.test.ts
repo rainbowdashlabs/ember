@@ -40,11 +40,11 @@ async function mountDialog(props: Record<string, unknown>) {
 
 async function templateChoices() {
     const dialog = await mountDialog({memberId: 4})
-    return dialog.findAll('[data-testid="generate-template"] option:not([disabled])').map(option => option.text())
+    return dialog.findAll('[data-testid="template-choice"] option:not([disabled])').map(option => option.text())
 }
 
 async function chooseTemplate(dialog: VueWrapper, id: number) {
-    await dialog.find('[data-testid="generate-template"]').setValue(String(id))
+    await dialog.find('[data-testid="template-choice"]').setValue(String(id))
     await flushPromises()
 }
 

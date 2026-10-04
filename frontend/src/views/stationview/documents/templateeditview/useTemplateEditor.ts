@@ -4,7 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {computed, ref, shallowRef, watch, type Ref} from 'vue'
-import {documents, memberGroups, stationMembers, userTags} from '@/api'
+import {documents, stationMembers} from '@/api'
+import {audienceLists} from '@/components/documents/generation'
 import {
     DocumentLanguage,
     type DocumentFontsResponse,
@@ -47,13 +48,12 @@ function noChoices(): StationChoices {
  * choosing easier and are no reason to keep anybody from writing a template.
  */
 async function stationChoices(): Promise<StationChoices> {
-    const [groups, tags, members, documentTags] = await Promise.all([
-        memberGroups.listGroups().catch(() => []),
-        userTags.listTags().catch(() => []),
+    const [lists, members, documentTags] = await Promise.all([
+        audienceLists(),
         stationMembers.listMembers().catch(() => []),
         documents.listTags().catch(() => []),
     ])
-    return {groups, tags, members: members.filter(member => !member.formerAt), documentTags}
+    return {...lists, members: members.filter(member => !member.formerAt), documentTags}
 }
 
 /**

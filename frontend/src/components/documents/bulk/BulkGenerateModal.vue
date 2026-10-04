@@ -14,7 +14,8 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import ToggleSetting from '@/components/input/toggle/ToggleSetting.vue'
 import {fromCompletion, type MemberOption} from '@/components/input/select/memberOption'
-import {documentTemplates, memberGroups, stationMembers, userTags} from '@/api'
+import {documentTemplates, stationMembers} from '@/api'
+import {audienceLists} from '../generation'
 import type {
   BulkPreviewResponse,
   DocumentTemplateSummary,
@@ -33,7 +34,7 @@ import {recentlyUsedFirst} from '../recentlyUsedFirst'
 import {selectionFor} from './bulkGeneration'
 import BulkMemberChoice from './BulkMemberChoice.vue'
 import BulkPreviewSummary from './BulkPreviewSummary.vue'
-import BulkTemplateChoice from './BulkTemplateChoice.vue'
+import TemplateChoice from '../TemplateChoice.vue'
 
 /**
  * Generates one template for many members in a background run: choose the template and the members
@@ -74,15 +75,14 @@ const selection = computed(() => selectionFor(chosen.value, audience.value))
 const templateName = computed(() => templates.value.find(template => template.id === templateId.value)?.name ?? '')
 
 const loader = useAsyncLoader(async () => {
-  const [usable, groupList, tagList, completions] = await Promise.all([
+  const [usable, lists, completions] = await Promise.all([
     documentTemplates.usableTemplates(),
-    memberGroups.listGroups().catch(() => []),
-    userTags.listTags().catch(() => []),
+    audienceLists(),
     stationMembers.listCompletions().catch(() => []),
   ])
   templates.value = recentlyUsedFirst(usable)
-  groups.value = groupList
-  tags.value = tagList
+  groups.value = lists.groups
+  tags.value = lists.tags
   members.value = completions.map(fromCompletion)
 })
 
@@ -119,7 +119,7 @@ watch([templateId, audience, issuer], () => {
     <div class="space-y-4" data-testid="bulk-generate-modal">
       <SubHeader>{{ t('documentTemplates.bulk.title') }}</SubHeader>
       <FailureAlert :failure="loader.failure.value ?? looking.failure.value ?? starting.failure.value"/>
-      <BulkTemplateChoice v-model="templateId" :templates="templates" :loading="loader.loading.value"/>
+      <TemplateChoice v-model="templateId" :templates="templates" :loading="loader.loading.value"/>
       <BulkMemberChoice v-model="audience" :member-ids="chosen" :groups="groups" :tags="tags"/>
       <IssuerOverride v-if="templateIssuer" :key="templateId ?? 0" v-model="issuer" :template-issuer="templateIssuer"
                       :members="members"/>
