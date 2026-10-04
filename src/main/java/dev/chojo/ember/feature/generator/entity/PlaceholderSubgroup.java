@@ -26,10 +26,10 @@ public enum PlaceholderSubgroup {
     }
 
     /**
-     * @param language {@code de} or {@code en}
+     * @param language the language the picker speaks
      * @return what the picker calls this step
      */
-    public String word(String language) {
-        return "en".equals(language) ? english : german;
+    public String word(DocumentLanguage language) {
+        return language.pick(german, english);
     }
 }

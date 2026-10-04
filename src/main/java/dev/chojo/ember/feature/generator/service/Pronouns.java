@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.generator.service;
 
+import dev.chojo.ember.feature.generator.entity.DocumentLanguage;
 import dev.chojo.ember.feature.generator.entity.PronounKey;
 import dev.chojo.ember.feature.members.entity.PronounSet;
 import org.jspecify.annotations.Nullable;
@@ -31,10 +32,11 @@ public final class Pronouns {
      * @param pronoun   which pronoun the template names
      * @param words     the member's pronouns in the template's language, or null to use the name
      * @param firstName the member's official first name
-     * @param language  {@code de} or {@code en}
+     * @param language  the template's language
      * @return the word
      */
-    public static String of(PronounKey pronoun, @Nullable PronounSet words, String firstName, String language) {
+    public static String of(
+            PronounKey pronoun, @Nullable PronounSet words, String firstName, DocumentLanguage language) {
         if (words == null) {
             return switch (pronoun.role()) {
                 case POSSESSIVE -> genitive(firstName, language);
@@ -55,13 +57,13 @@ public final class Pronouns {
      * The genitive of a first name, as it stands for a possessive.
      *
      * @param name     the name
-     * @param language {@code de} or {@code en}
+     * @param language the template's language
      * @return the name in the genitive
      */
-    public static String genitive(String name, String language) {
+    public static String genitive(String name, DocumentLanguage language) {
         if (name.isEmpty()) return name;
         String lower = name.toLowerCase(Locale.ROOT);
-        if ("en".equals(language)) return lower.endsWith("s") ? name + "'" : name + "'s";
+        if (language == DocumentLanguage.EN) return lower.endsWith("s") ? name + "'" : name + "'s";
         boolean hissing = lower.endsWith("s")
                 || lower.endsWith("ß")
                 || lower.endsWith("x")

@@ -22,7 +22,16 @@ public enum DocumentLanguage {
 
     /** @return the locale the names of months and weekdays are written in */
     public Locale locale() {
-        return this == EN ? Locale.ENGLISH : Locale.GERMAN;
+        return pick(Locale.GERMAN, Locale.ENGLISH);
+    }
+
+    /**
+     * @param german  what is written in German
+     * @param english what is written in English
+     * @return the one of the two in this language
+     */
+    public <T> T pick(T german, T english) {
+        return this == EN ? english : german;
     }
 
     /**

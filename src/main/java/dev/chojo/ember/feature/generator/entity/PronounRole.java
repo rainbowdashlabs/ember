@@ -46,12 +46,12 @@ public enum PronounRole {
      * How the picker names the role: the question the pronoun answers and its two words, such as
      * "Wem (ihm / ihr)". The question tells apart the English roles whose words are the same.
      *
-     * @param language {@code de} or {@code en}
+     * @param language the language the picker speaks
      * @return the name of the role
      */
-    public String title(String language) {
+    public String title(DocumentLanguage language) {
         var words = examples(language);
-        String question = "en".equals(language) ? englishQuestion : germanQuestion;
+        String question = language.pick(germanQuestion, englishQuestion);
         return question + " (" + words[0] + " / " + words[1] + ")";
     }
 
@@ -63,12 +63,10 @@ public enum PronounRole {
     /**
      * The masculine and the feminine word of the role, which is how the editor names it.
      *
-     * @param language {@code de} or {@code en}
+     * @param language the language the picker speaks
      * @return the two words
      */
-    public String[] examples(String language) {
-        return "en".equals(language)
-                ? new String[] {englishMale, englishFemale}
-                : new String[] {germanMale, germanFemale};
+    public String[] examples(DocumentLanguage language) {
+        return language.pick(new String[] {germanMale, germanFemale}, new String[] {englishMale, englishFemale});
     }
 }

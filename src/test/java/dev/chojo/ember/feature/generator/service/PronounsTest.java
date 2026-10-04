@@ -11,6 +11,8 @@ import dev.chojo.ember.feature.generator.entity.PronounRole;
 import dev.chojo.ember.feature.members.entity.PronounSet;
 import org.junit.jupiter.api.Test;
 
+import static dev.chojo.ember.feature.generator.entity.DocumentLanguage.DE;
+import static dev.chojo.ember.feature.generator.entity.DocumentLanguage.EN;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -33,45 +35,45 @@ class PronounsTest {
 
     @Test
     void theGermanForms() {
-        assertEquals("er", Pronouns.of(key(PronounRole.SUBJECT), ER, "Max", "de"));
-        assertEquals("ihn", Pronouns.of(key(PronounRole.OBJECT), ER, "Max", "de"));
-        assertEquals("ihm", Pronouns.of(key(PronounRole.DATIVE), ER, "Max", "de"));
-        assertEquals("sein", Pronouns.of(key(PronounRole.POSSESSIVE), ER, "Max", "de"));
-        assertEquals("ihr", Pronouns.of(key(PronounRole.DATIVE), SIE, "Lena", "de"));
-        assertEquals("Ihr", Pronouns.of(key(PronounRole.POSSESSIVE, true, PossessiveEnding.NONE), SIE, "Lena", "de"));
+        assertEquals("er", Pronouns.of(key(PronounRole.SUBJECT), ER, "Max", DE));
+        assertEquals("ihn", Pronouns.of(key(PronounRole.OBJECT), ER, "Max", DE));
+        assertEquals("ihm", Pronouns.of(key(PronounRole.DATIVE), ER, "Max", DE));
+        assertEquals("sein", Pronouns.of(key(PronounRole.POSSESSIVE), ER, "Max", DE));
+        assertEquals("ihr", Pronouns.of(key(PronounRole.DATIVE), SIE, "Lena", DE));
+        assertEquals("Ihr", Pronouns.of(key(PronounRole.POSSESSIVE, true, PossessiveEnding.NONE), SIE, "Lena", DE));
     }
 
     @Test
     void aPossessiveTakesItsEndingAndTheNameDoesNot() {
-        assertEquals("seinen", Pronouns.of(key(PronounRole.POSSESSIVE, false, PossessiveEnding.EN), ER, "Max", "de"));
-        assertEquals("ihre", Pronouns.of(key(PronounRole.POSSESSIVE, false, PossessiveEnding.E), SIE, "Lena", "de"));
-        assertEquals("Seinem", Pronouns.of(key(PronounRole.POSSESSIVE, true, PossessiveEnding.EM), ER, "Max", "de"));
-        assertEquals("Lenas", Pronouns.of(key(PronounRole.POSSESSIVE, false, PossessiveEnding.ES), null, "Lena", "de"));
+        assertEquals("seinen", Pronouns.of(key(PronounRole.POSSESSIVE, false, PossessiveEnding.EN), ER, "Max", DE));
+        assertEquals("ihre", Pronouns.of(key(PronounRole.POSSESSIVE, false, PossessiveEnding.E), SIE, "Lena", DE));
+        assertEquals("Seinem", Pronouns.of(key(PronounRole.POSSESSIVE, true, PossessiveEnding.EM), ER, "Max", DE));
+        assertEquals("Lenas", Pronouns.of(key(PronounRole.POSSESSIVE, false, PossessiveEnding.ES), null, "Lena", DE));
     }
 
     @Test
     void theNameStandsForEveryPronounAndItsGenitiveForThePossessive() {
-        assertEquals("Lena", Pronouns.of(key(PronounRole.SUBJECT, true, PossessiveEnding.NONE), null, "Lena", "de"));
-        assertEquals("Lena", Pronouns.of(key(PronounRole.DATIVE), null, "Lena", "de"));
-        assertEquals("Lenas", Pronouns.of(key(PronounRole.POSSESSIVE), null, "Lena", "de"));
+        assertEquals("Lena", Pronouns.of(key(PronounRole.SUBJECT, true, PossessiveEnding.NONE), null, "Lena", DE));
+        assertEquals("Lena", Pronouns.of(key(PronounRole.DATIVE), null, "Lena", DE));
+        assertEquals("Lenas", Pronouns.of(key(PronounRole.POSSESSIVE), null, "Lena", DE));
     }
 
     @Test
     void aNameEndingInAHissingSoundTakesAnApostrophe() {
-        assertEquals("Max'", Pronouns.genitive("Max", "de"));
-        assertEquals("Hans'", Pronouns.genitive("Hans", "de"));
-        assertEquals("Fritz'", Pronouns.genitive("Fritz", "de"));
-        assertEquals("Joyce'", Pronouns.genitive("Joyce", "de"));
-        assertEquals("", Pronouns.genitive("", "de"));
+        assertEquals("Max'", Pronouns.genitive("Max", DE));
+        assertEquals("Hans'", Pronouns.genitive("Hans", DE));
+        assertEquals("Fritz'", Pronouns.genitive("Fritz", DE));
+        assertEquals("Joyce'", Pronouns.genitive("Joyce", DE));
+        assertEquals("", Pronouns.genitive("", DE));
     }
 
     @Test
     void englishHasNoDativeOfItsOwnAndTheObjectStandsForIt() {
-        assertEquals("He", Pronouns.of(key(PronounRole.SUBJECT, true, PossessiveEnding.NONE), HE, "Max", "en"));
-        assertEquals("him", Pronouns.of(key(PronounRole.DATIVE), HE, "Max", "en"));
-        assertEquals("his", Pronouns.of(key(PronounRole.POSSESSIVE), HE, "Max", "en"));
-        assertEquals("Lena's", Pronouns.of(key(PronounRole.POSSESSIVE), null, "Lena", "en"));
-        assertEquals("James'", Pronouns.genitive("James", "en"));
+        assertEquals("He", Pronouns.of(key(PronounRole.SUBJECT, true, PossessiveEnding.NONE), HE, "Max", EN));
+        assertEquals("him", Pronouns.of(key(PronounRole.DATIVE), HE, "Max", EN));
+        assertEquals("his", Pronouns.of(key(PronounRole.POSSESSIVE), HE, "Max", EN));
+        assertEquals("Lena's", Pronouns.of(key(PronounRole.POSSESSIVE), null, "Lena", EN));
+        assertEquals("James'", Pronouns.genitive("James", EN));
     }
 
     @Test
@@ -88,6 +90,6 @@ class PronounsTest {
         assertTrue(PronounKey.parse("member.firstName").isEmpty());
         assertEquals(
                 "seinen / ihren / Vornamens",
-                key(PronounRole.POSSESSIVE, false, PossessiveEnding.EN).in("de").label());
+                key(PronounRole.POSSESSIVE, false, PossessiveEnding.EN).in(DE).label());
     }
 }

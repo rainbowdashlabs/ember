@@ -92,32 +92,32 @@ public record PronounKey(PronounRole role, boolean sentenceStart, PossessiveEndi
      * then split by whether it opens a sentence, and named by its words alone; every other role offers its
      * two forms right below the role.
      *
-     * @param language {@code de} or {@code en}, the language the editor speaks
+     * @param language the language the editor speaks
      * @return the pronoun as the catalogue offers it
      */
-    public Placeholder in(String language) {
-        boolean english = "en".equals(language);
+    public Placeholder in(DocumentLanguage language) {
+        boolean english = language == DocumentLanguage.EN;
         var words = role.examples(language);
         boolean declined = !english && ending != PossessiveEnding.NONE;
         String male = shaped(words[0] + (declined ? ending.suffix() : ""));
         String female = shaped(words[1] + (declined ? ending.suffix() : ""));
         String name = role == PronounRole.POSSESSIVE
-                ? (english ? "first name's" : "Vornamens")
-                : (english ? "first name" : "Vorname");
+                ? language.pick("Vornamens", "first name's")
+                : language.pick("Vorname", "first name");
         var forms = new StringBuilder(male + " / " + female + " / " + name);
         if (english && ending != PossessiveEnding.NONE)
             forms.append(" (+").append(ending.suffix()).append(')');
-        String label = sentenceStart ? forms + (english ? " (sentence start)" : " (Satzanfang)") : forms.toString();
+        String label = sentenceStart ? forms + language.pick(" (Satzanfang)", " (sentence start)") : forms.toString();
         String category = PlaceholderCategory.PRONOUNS.word(language);
         var path = role == PronounRole.POSSESSIVE
-                ? List.of(category, role.title(language), place(english), forms.toString())
+                ? List.of(category, role.title(language), place(language), forms.toString())
                 : List.of(category, role.title(language), label);
         return new Placeholder(key(), label, PlaceholderCategory.PRONOUNS, path, false, false, null);
     }
 
-    private String place(boolean english) {
-        if (sentenceStart) return english ? "At the start of a sentence" : "Am Satzanfang";
-        return english ? "Within a sentence" : "Im Satz";
+    private String place(DocumentLanguage language) {
+        if (sentenceStart) return language.pick("Am Satzanfang", "At the start of a sentence");
+        return language.pick("Im Satz", "Within a sentence");
     }
 
     private String shaped(String word) {

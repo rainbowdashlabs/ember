@@ -98,11 +98,11 @@ public enum BuiltInPlaceholder {
     }
 
     /**
-     * @param language {@code de} or {@code en}
+     * @param language the language the picker speaks
      * @return the placeholder as the catalogue offers it in that language
      */
-    public Placeholder in(String language) {
-        String name = "en".equals(language) ? english : german;
+    public Placeholder in(DocumentLanguage language) {
+        String name = language.pick(german, english);
         String categoryWord = category.word(language);
         boolean guardian = category.guardian();
         var path = guardian || category == PlaceholderCategory.MEMBER

@@ -91,7 +91,8 @@ public class PlaceholderCatalogue {
      * @param association    the association's questions, those that reach the station for a station
      * @param hasAssociation whether there is an association to name
      */
-    private record Asked(String language, OfferedFields station, OfferedFields association, boolean hasAssociation) {}
+    private record Asked(
+            DocumentLanguage language, OfferedFields station, OfferedFields association, boolean hasAssociation) {}
 
     /**
      * Every placeholder a template of the owner can name, in the order the picker shows them: by
@@ -103,7 +104,7 @@ public class PlaceholderCatalogue {
      */
     public List<Placeholder> forOwner(Owner owner) {
         var asked = asked(owner);
-        String language = asked.language();
+        var language = asked.language();
         var out = new ArrayList<Placeholder>();
         Arrays.stream(BuiltInPlaceholder.values())
                 .map(value -> value.in(language))
@@ -122,7 +123,7 @@ public class PlaceholderCatalogue {
             OfferedFields offered,
             String prefix,
             PlaceholderSubgroup subgroup,
-            String language) {
+            DocumentLanguage language) {
         offered.member()
                 .forEach(field -> out.add(answer(field, prefix, PlaceholderCategory.MEMBER, subgroup, language)));
         for (int index = 0; index < GUARDIANS.size(); index++) {
@@ -147,7 +148,7 @@ public class PlaceholderCatalogue {
     }
 
     private Asked asked(Owner owner) {
-        String language = language(owner).code();
+        var language = language(owner);
         return switch (owner) {
             case Owner.Station station -> {
                 int stationId = station.stationId();
@@ -182,7 +183,7 @@ public class PlaceholderCatalogue {
             String prefix,
             PlaceholderCategory category,
             PlaceholderSubgroup subgroup,
-            String language) {
+            DocumentLanguage language) {
         var field = sectioned.field();
         String who = category.word(language);
         var path = new ArrayList<>(List.of(who, subgroup.word(language)));

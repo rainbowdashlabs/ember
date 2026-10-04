@@ -389,7 +389,7 @@ public class PlaceholderResolver {
             String first = firstName(memberId);
             if (first == null) return null;
             if (pronouns == null) pronouns = genderPronouns();
-            return Pronouns.of(pronoun, pronouns.orElse(null), first, language);
+            return Pronouns.of(pronoun, pronouns.orElse(null), first, documentLanguage);
         }
 
         private Optional<PronounSet> genderPronouns() {
