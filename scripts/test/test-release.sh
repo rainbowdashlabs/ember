@@ -10,7 +10,13 @@ cat > "$fake_bin/gh" << 'EOF'
 echo "$*" >> "$GH_LOG"
 case "$1 $2" in
     "pr view") printf '%s\n' "$FAKE_PR" ;;
-    "run list") printf '%s\n' "${FAKE_RUN:-}" ;;
+    "run list")
+        runs="${FAKE_RUN:-}"
+        [ -f "$GH_LOG.watched" ] && [ -n "${FAKE_RUN_AFTER_WATCH:-}" ] && runs="$FAKE_RUN_AFTER_WATCH"
+        filter='.'
+        while [ $# -gt 0 ]; do [ "$1" = "--jq" ] && filter="$2"; shift; done
+        jq -r "$filter" <<< "[$runs]" ;;
+    "run watch") [ -n "${3:-}" ] && touch "$GH_LOG.watched" ;;
     "release create")
         while [ $# -gt 0 ]; do [ "$1" = "--notes-file" ] && cp "$2" "$GH_LOG.notes"; shift; done ;;
 esac
@@ -22,12 +28,18 @@ release() {
     bash "$SCRIPTS/release.sh" "$@"
 }
 
+# A Verify run as GitHub lists it: one still going has an empty conclusion.
+ci_run() {
+    printf '{"status": "%s", "conclusion": "%s", "url": "https://ci/%s", "databaseId": %s}' "$1" "$2" "$3" "$3"
+}
+
 pull_request() {
     printf '%s\t%s\t%s\t%s\t%s' "${2:-OPEN}" "${3:-main}" "$1" "$(git rev-parse HEAD)" false
 }
 
 new_repository
-export FAKE_RUN="completed success https://ci/1 1"
+FAKE_RUN=$(ci_run completed success 1)
+export FAKE_RUN
 
 git checkout -q -b release/v26.21.0
 set_version 26.21.0
@@ -44,9 +56,9 @@ expect_fail "a pull request that is no release branch" "named release/vX.Y.Z, no
     env FAKE_PR="$(pull_request fix/thing)" bash "$SCRIPTS/release.sh" check 1
 expect_fail "a closed release pull request" "is closed, not open" \
     env FAKE_PR="$(pull_request release/v26.21.0 CLOSED)" bash "$SCRIPTS/release.sh" check 1
-expect_fail "a release while CI still runs" "still running" env FAKE_RUN="in_progress  https://ci/2 2" \
+expect_fail "a release while CI still runs" "still running" env FAKE_RUN="$(ci_run in_progress '' 2)" \
     bash "$SCRIPTS/release.sh" check 1
-expect_fail "a release whose CI failed" "CI failed" env FAKE_RUN="completed failure https://ci/3 3" \
+expect_fail "a release whose CI failed" "CI failed" env FAKE_RUN="$(ci_run completed failure 3)" \
     bash "$SCRIPTS/release.sh" check 1
 expect_fail "a release without a CI run" "CI has not run" env FAKE_RUN="" bash "$SCRIPTS/release.sh" check 1
 
@@ -91,6 +103,19 @@ git push -q origin fix/long-changelog:main
 expect_pass "a fix release whose changelog is longer than a pipe holds" release fix --wait
 expect_equal "its release notes are only its own block" \
     "$(printf '# Fixes\n\n- **Fixed again.** It works.')" "$(cat "$GH_LOG.notes")"
+
+git checkout -q -b fix/while-ci-runs
+set_version 26.21.3
+printf '# Changelog\n\n## v26.21.3\n\n### Fixes\n\n- **Fixed while running.** It works.\n' > CHANGELOG.md
+commit_all "Fix released while its CI still runs"
+git push -q origin fix/while-ci-runs:main
+rm -f "$GH_LOG.watched"
+expect_pass "a fix release that waits for the CI run still going" \
+    env FAKE_RUN="$(ci_run in_progress '' 4)" FAKE_RUN_AFTER_WATCH="$(ci_run completed success 4)" \
+    bash "$SCRIPTS/release.sh" fix --wait
+expect_equal "it watched the run by its id" "run watch 4 --interval 30" "$(grep '^run watch' "$GH_LOG" | tail -1)"
+expect_equal "the waited-for fix is tagged" "$(git rev-parse HEAD)" \
+    "$(git ls-remote origin 'refs/tags/v26.21.3^{}' | cut -f1)"
 
 git commit -q --allow-empty -m "Not on main"
 expect_fail "a fix release of a commit not on main" "is not on main" release fix --commit HEAD
