@@ -7,8 +7,7 @@
 import { useI18n } from 'vue-i18n'
 import IconButton from '@/components/button/IconButton.vue'
 import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
-import FloatingPanel from '@/components/feedback/FloatingPanel.vue'
-import { useEditorActionsMenu } from '@/components/content/blockeditor/useEditorActionsMenu'
+import Popover from '@/components/feedback/Popover.vue'
 
 /**
  * What can be done to a page as a whole: moving it past its neighbours, and removing it. Removing a
@@ -25,29 +24,22 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
-
-const { open, toggle, close } = useEditorActionsMenu()
-
-function take(action: () => void) {
-  action()
-  close()
-}
 </script>
 
 <template>
-  <FloatingPanel v-model:open="open" :label="t('forms.pages.menu')" role="menu" panel-class="w-64 py-1">
-    <template #trigger="{ triggerAttrs }">
+  <Popover :label="t('forms.pages.menu')" panel-class="w-64 py-1">
+    <template #trigger="{ toggle, triggerAttrs }">
       <IconButton :icon="['fas', 'ellipsis']" :label="t('forms.pages.menu')" data-testid="page-menu-trigger"
-                  class="text-(--text-muted) hover:text-(--text)" v-bind="triggerAttrs" @click="toggle"/>
+                  class="text-(--text-muted) hover:text-(--text)" v-bind="triggerAttrs" @click.stop="toggle"/>
     </template>
-    <DropdownMenuItem :icon="['fas', 'chevron-up']" :disabled="first" @click="take(() => emit('move', -1))">
+    <DropdownMenuItem :icon="['fas', 'chevron-up']" :disabled="first" @click="emit('move', -1)">
       {{ t('forms.pages.moveUp') }}
     </DropdownMenuItem>
-    <DropdownMenuItem :icon="['fas', 'chevron-down']" :disabled="last" @click="take(() => emit('move', 1))">
+    <DropdownMenuItem :icon="['fas', 'chevron-down']" :disabled="last" @click="emit('move', 1)">
       {{ t('forms.pages.moveDown') }}
     </DropdownMenuItem>
-    <DropdownMenuItem :icon="['fas', 'trash']" destructive @click="take(() => emit('remove'))">
+    <DropdownMenuItem :icon="['fas', 'trash']" destructive @click="emit('remove')">
       {{ t('forms.pages.remove') }}
     </DropdownMenuItem>
-  </FloatingPanel>
+  </Popover>
 </template>
