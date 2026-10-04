@@ -87,6 +87,16 @@ export async function deleteItem(id: number): Promise<void> {
     await client.delete(`/protocols/items/${id}`)
 }
 
+/** Puts every section of one level of a protocol into the given order. */
+export async function reorderSections(protocolId: number, ids: number[]): Promise<void> {
+    await client.put(`/protocols/${protocolId}/sections/order`, {ids})
+}
+
+/** Puts every point of a section into the given order. */
+export async function reorderItems(sectionId: number, ids: number[]): Promise<void> {
+    await client.put(`/protocols/sections/${sectionId}/items/order`, {ids})
+}
+
 export const listRuns = runs.list
 export const getRun = runs.get
 export const updateRun = runs.update

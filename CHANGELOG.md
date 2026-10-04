@@ -1,5 +1,18 @@
 # Changelog
 
+## v26.20.3
+
+Protocols keep their place while they are being edited, and their sections and points can be sorted.
+
+### Improvements
+
+- **Sections and points of a protocol can be sorted.** Sections, subsections and points move up and down with arrows, or by dragging on a computer, each within their own level. A new point opens with the cursor in its name.
+
+### Fixes
+
+- **Protocols jumped back to the top while being edited.** After every new or changed section or entry, the protocol page scrolled back up. It now keeps its place.
+- **A changed section moved to the top.** In some cases a section moved to the first place of its protocol once it was changed. Changing a section or a point now keeps its place.
+
 ## v26.20.2
 
 The daily usage report goes out on every instance again.

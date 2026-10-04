@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.protocol.route;
 
+import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -31,6 +32,7 @@ import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiParam;
 import io.javalin.openapi.OpenApiRequestBody;
 import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
@@ -82,6 +84,10 @@ public class TestProtocolRoutes implements Routes {
         routes.post(prefix + "/protocols/runs/{id}/close", this::closeRun, StationPermission.PROTOCOL_CREATE);
 
         routes.put(prefix + "/protocols/sections/{id}", this::updateSection, StationPermission.PROTOCOL_CONFIGURE);
+        routes.put(
+                prefix + "/protocols/sections/{id}/items/order",
+                this::reorderItems,
+                StationPermission.PROTOCOL_CONFIGURE);
         routes.delete(prefix + "/protocols/sections/{id}", this::deleteSection, StationPermission.PROTOCOL_CONFIGURE);
 
         routes.put(prefix + "/protocols/items/{id}", this::updateItem, StationPermission.PROTOCOL_CONFIGURE);
@@ -91,6 +97,8 @@ public class TestProtocolRoutes implements Routes {
         routes.put(prefix + "/protocols/{id}", this::updateProtocol, StationPermission.PROTOCOL_CONFIGURE);
         routes.delete(prefix + "/protocols/{id}", this::deleteProtocol, StationPermission.PROTOCOL_CONFIGURE);
         routes.post(prefix + "/protocols/{id}/sections", this::createSection, StationPermission.PROTOCOL_CONFIGURE);
+        routes.put(
+                prefix + "/protocols/{id}/sections/order", this::reorderSections, StationPermission.PROTOCOL_CONFIGURE);
         routes.post(prefix + "/protocols/{id}/runs", this::createRun, StationPermission.PROTOCOL_CREATE);
 
         routes.post(prefix + "/protocols/sections/{id}/items", this::createItem, StationPermission.PROTOCOL_CONFIGURE);
@@ -234,7 +242,41 @@ public class TestProtocolRoutes implements Routes {
                 Objects.requireNonNullElse(req.description(), ""),
                 req.maxPoints(),
                 req.passThreshold(),
-                Objects.requireNonNullElse(req.position(), 0));
+                req.position());
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    @OpenApi(
+            path = "/api/v1/protocols/{id}/sections/order",
+            methods = HttpMethod.PUT,
+            summary = "Put the sections of one level of a protocol into a new order",
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ProtocolOrderRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "204"),
+                @OpenApiResponse(status = "409", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void reorderSections(Context ctx) {
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        guards.requireProtocol(ctx, id);
+        service.reorderSections(id, ctx.bodyAsClass(ProtocolOrderRequest.class).ids());
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    @OpenApi(
+            path = "/api/v1/protocols/sections/{id}/items/order",
+            methods = HttpMethod.PUT,
+            summary = "Put the points of a section into a new order",
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ProtocolOrderRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "204"),
+                @OpenApiResponse(status = "409", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void reorderItems(Context ctx) {
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        guards.requireSection(ctx, id);
+        service.reorderItems(id, ctx.bodyAsClass(ProtocolOrderRequest.class).ids());
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -281,7 +323,7 @@ public class TestProtocolRoutes implements Routes {
                 req.label(),
                 Objects.requireNonNullElse(req.description(), ""),
                 Objects.requireNonNullElse(req.points(), 1.0),
-                Objects.requireNonNullElse(req.position(), 0));
+                req.position());
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -556,7 +598,8 @@ public class TestProtocolRoutes implements Routes {
      * A section of a protocol as it is created or changed.
      *
      * @param parentId the section it stands in, or {@code null} for a top-level section; ignored on a change
-     * @param position where it stands among its siblings, or {@code null} for first
+     * @param position where it stands among its siblings, or {@code null} for first when created and for
+     *                 where it already stands when changed
      */
     public record ProtocolSectionRequest(
             @Nullable Integer parentId,
@@ -569,13 +612,23 @@ public class TestProtocolRoutes implements Routes {
     /**
      * A checkbox of a section as it is created or changed.
      *
-     * @param points what ticking it is worth, or {@code null} for one point
+     * @param points   what ticking it is worth, or {@code null} for one point
+     * @param position where it stands in its section, or {@code null} for first when created and for where
+     *                 it already stands when changed
      */
     public record ProtocolItemRequest(
             String label,
             @Nullable String description,
             @Nullable Double points,
             @Nullable Integer position) {}
+
+    /**
+     * A new order for everything on one level of a protocol: the sections of the protocol or of one
+     * section, or the points of one section.
+     *
+     * @param ids every one of them, in the order they now stand
+     */
+    public record ProtocolOrderRequest(List<Integer> ids) {}
 
     /**
      * The ticked state of the checkboxes of one member's sheet, by checkbox id.

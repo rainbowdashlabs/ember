@@ -10,6 +10,7 @@ import IconButton from '@/components/button/IconButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
+import DragList from '@/components/input/DragList.vue'
 import ProtocolItemRow from './ProtocolItemRow.vue'
 import ProtocolSubsectionBlock from './ProtocolSubsectionBlock.vue'
 import type { TestProtocolSection, TestProtocolItem } from '@/api/generated/schema'
@@ -29,6 +30,8 @@ defineEmits<{
   deleteSection: [id: number]
   editItem: [item: TestProtocolItem]
   deleteItem: [id: number]
+  reorderItems: [sectionId: number, fromIndex: number, toIndex: number]
+  reorderSubsections: [parentId: number, fromIndex: number, toIndex: number]
 }>()
 
 const { t } = useI18n()
@@ -49,27 +52,44 @@ void props
     </div>
     <MutedText v-if="section.description" tag="p" size="sm">{{ section.description }}</MutedText>
 
-    <ProtocolItemRow
-      v-for="item in sectionItems(section.id)"
-      :key="item.id"
-      :item="item"
-      :can-edit="canEdit"
-      @edit="(i) => $emit('editItem', i)"
-      @delete="(id) => $emit('deleteItem', id)"
-    />
+    <DragList
+        :items="sectionItems(section.id)"
+        :key-fn="(item) => item.id"
+        :disabled="!canEdit"
+        class="space-y-2"
+        @reorder="(from, to) => $emit('reorderItems', section.id, from, to)"
+    >
+      <template #default="{item}">
+        <ProtocolItemRow
+          :item="item"
+          :can-edit="canEdit"
+          @edit="(i) => $emit('editItem', i)"
+          @delete="(id) => $emit('deleteItem', id)"
+        />
+      </template>
+    </DragList>
 
-    <ProtocolSubsectionBlock
-      v-for="sub in childSections"
-      :key="sub.id"
-      :sub="sub"
-      :items="sectionItems(sub.id)"
-      :total-points="sectionTotalPoints(sub.id)"
-      :can-edit="canEdit"
-      @add-item="(id) => $emit('addItem', id)"
-      @edit-section="(s) => $emit('editSection', s)"
-      @delete-section="(id) => $emit('deleteSection', id)"
-      @edit-item="(i) => $emit('editItem', i)"
-      @delete-item="(id) => $emit('deleteItem', id)"
-    />
+    <DragList
+        :items="childSections"
+        :key-fn="(sub) => sub.id"
+        :disabled="!canEdit"
+        class="space-y-2"
+        @reorder="(from, to) => $emit('reorderSubsections', section.id, from, to)"
+    >
+      <template #default="{item: sub}">
+        <ProtocolSubsectionBlock
+          :sub="sub"
+          :items="sectionItems(sub.id)"
+          :total-points="sectionTotalPoints(sub.id)"
+          :can-edit="canEdit"
+          @add-item="(id) => $emit('addItem', id)"
+          @edit-section="(s) => $emit('editSection', s)"
+          @delete-section="(id) => $emit('deleteSection', id)"
+          @edit-item="(i) => $emit('editItem', i)"
+          @delete-item="(id) => $emit('deleteItem', id)"
+          @reorder-items="(id, from, to) => $emit('reorderItems', id, from, to)"
+        />
+      </template>
+    </DragList>
   </NeutralContainer>
 </template>

@@ -21,6 +21,7 @@ const { t } = useI18n()
 
     <HelpSection :title="t('helpCenter.protocolDetail.structureTitle')">
       <p>{{ t('helpCenter.protocolDetail.structureText') }}</p>
+      <p>{{ t('helpCenter.protocolDetail.orderText') }}</p>
     </HelpSection>
 
     <ProtocolStructureExampleSection />

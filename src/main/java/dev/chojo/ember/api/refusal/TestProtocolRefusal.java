@@ -72,7 +72,16 @@ public enum TestProtocolRefusal implements Refusal {
 
     /** A member on a test run that could not be read back after their test was marked finished. */
     PROTOCOL_MEMBER_NOT_HERE_AFTER_COMPLETION(
-            17, HttpStatus.INTERNAL_SERVER_ERROR, Sentences.CHANGE_SAVED_BUT_NOT_READ_BACK);
+            17, HttpStatus.INTERNAL_SERVER_ERROR, Sentences.CHANGE_SAVED_BUT_NOT_READ_BACK),
+
+    /**
+     * A new order for sections or points that does not name exactly those on one level, because one
+     * was added or removed in the meantime or belongs elsewhere.
+     */
+    PROTOCOL_ORDER_OUT_OF_DATE(
+            18,
+            HttpStatus.CONFLICT,
+            "The order no longer matches the protocol, so nothing was moved. Reload and try again");
 
     private final Definition definition;
 
