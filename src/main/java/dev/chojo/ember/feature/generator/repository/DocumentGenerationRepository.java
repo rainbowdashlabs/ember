@@ -109,12 +109,14 @@ public class DocumentGenerationRepository {
     }
 
     /**
-     * Every document generated at a station, with the template each came from.
+     * One page of the documents generated at a station, with the template each came from.
      *
      * @param stationId the station the documents were filed at
+     * @param limit     how many entries at most
+     * @param offset    how many of the newest entries to pass over
      * @return the entries, the newest first
      */
-    public List<GenerationLogEntry> forStation(int stationId) {
+    public List<GenerationLogEntry> forStation(int stationId, int limit, int offset) {
         return query("""
                 SELECT g.id, g.generated_at, g.template_id, t.name AS template_name, g.template_version,
                        t.cluster_id IS NOT NULL AS of_association, g.member_id, g.generated_by, g.self_service,
@@ -122,8 +124,11 @@ public class DocumentGenerationRepository {
                 FROM document_generation g
                 JOIN document_template t ON t.id = g.template_id
                 WHERE g.station_id = :station_id
-                ORDER BY g.generated_at DESC, g.id DESC;""")
-                .single(call().bind("station_id", stationId))
+                ORDER BY g.generated_at DESC, g.id DESC
+                LIMIT :limit OFFSET :offset;""")
+                .single(call().bind("station_id", stationId)
+                        .bind("limit", limit)
+                        .bind("offset", offset))
                 .map(GenerationLogEntry.map())
                 .all();
     }

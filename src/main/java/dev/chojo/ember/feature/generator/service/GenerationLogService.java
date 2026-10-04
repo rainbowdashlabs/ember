@@ -14,6 +14,10 @@ import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * The documents a station generated from templates, as a list: who has which document, from which
@@ -21,6 +25,12 @@ import java.util.List;
  */
 @Singleton
 public class GenerationLogService {
+    /** How many entries a page holds where the reader asks for no number. */
+    public static final int DEFAULT_LIMIT = 500;
+
+    /** The most entries one page holds. */
+    public static final int MAX_LIMIT = 1000;
+
     private final DocumentGenerationRepository generations;
     private final MemberNameResolver names;
 
@@ -63,14 +73,24 @@ public class GenerationLogService {
             @Nullable String issuerFunction) {}
 
     /**
+     * One page of the documents generated at a station. The names of everybody the page names are read
+     * together rather than row by row.
+     *
      * @param stationId the station
-     * @return every document generated at the station, the newest first
+     * @param limit     how many entries at most, held between 1 and {@value #MAX_LIMIT}
+     * @param offset    how many of the newest entries to pass over, none where it is below zero
+     * @return the documents generated at the station, the newest first
      */
-    public List<GeneratedDocumentEntry> list(int stationId) {
-        return generations.forStation(stationId).stream().map(this::entry).toList();
+    public List<GeneratedDocumentEntry> list(int stationId, int limit, int offset) {
+        var entries = generations.forStation(stationId, Math.clamp(limit, 1, MAX_LIMIT), Math.max(offset, 0));
+        var named = names.identified(entries.stream()
+                .flatMap(entry -> Stream.of(entry.memberId(), entry.generatedBy(), entry.issuerId()))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet()));
+        return entries.stream().map(entry -> entry(entry, named)).toList();
     }
 
-    private GeneratedDocumentEntry entry(GenerationLogEntry entry) {
+    private static GeneratedDocumentEntry entry(GenerationLogEntry entry, Map<Integer, String> named) {
         return new GeneratedDocumentEntry(
                 entry.id(),
                 entry.generatedAt(),
@@ -79,15 +99,15 @@ public class GenerationLogService {
                 entry.templateVersion(),
                 entry.ofAssociation(),
                 entry.memberId(),
-                nameOf(entry.memberId()),
-                nameOf(entry.generatedBy()),
+                nameOf(entry.memberId(), named),
+                nameOf(entry.generatedBy(), named),
                 entry.selfService(),
                 entry.documentId(),
-                nameOf(entry.issuerId()),
+                nameOf(entry.issuerId(), named),
                 entry.issuerFunction());
     }
 
-    private @Nullable String nameOf(@Nullable Integer memberId) {
-        return memberId == null ? null : names.identified(memberId);
+    private static @Nullable String nameOf(@Nullable Integer memberId, Map<Integer, String> named) {
+        return memberId == null ? null : named.get(memberId);
     }
 }

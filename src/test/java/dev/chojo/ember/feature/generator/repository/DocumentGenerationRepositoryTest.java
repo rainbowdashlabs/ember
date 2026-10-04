@@ -234,7 +234,7 @@ class DocumentGenerationRepositoryTest extends RepositoryTestBase {
         var newer = log.log(entryAt(station.id(), Instant.parse("2026-02-01T10:00:00Z")), List.of());
         log.log(entryAt(other.id(), Instant.parse("2026-03-01T10:00:00Z")), List.of());
 
-        var listed = log.forStation(station.id()).stream()
+        var listed = log.forStation(station.id(), 1000, 0).stream()
                 .filter(entry -> entry.id() == older.id() || entry.id() == newer.id())
                 .toList();
 
@@ -247,7 +247,23 @@ class DocumentGenerationRepositoryTest extends RepositoryTestBase {
         assertEquals(child, first.memberId());
         assertEquals(guardian, first.generatedBy());
         assertFalse(first.ofAssociation());
-        assertTrue(log.forStation(other.id()).stream().noneMatch(entry -> entry.id() == older.id()));
+        assertTrue(log.forStation(other.id(), 1000, 0).stream().noneMatch(entry -> entry.id() == older.id()));
+    }
+
+    /** The log is read one page at a time, the newest entries on the first. */
+    @Test
+    void aStationsLogIsReadOnePageAtATime() {
+        var paged = stationRepo.create("Generation Log Seitenwache");
+        var first = log.log(entryAt(paged.id(), Instant.parse("2026-01-01T10:00:00Z")), List.of());
+        var second = log.log(entryAt(paged.id(), Instant.parse("2026-02-01T10:00:00Z")), List.of());
+        var third = log.log(entryAt(paged.id(), Instant.parse("2026-03-01T10:00:00Z")), List.of());
+
+        assertEquals(List.of(third.id(), second.id()), idsOf(log.forStation(paged.id(), 2, 0)));
+        assertEquals(List.of(first.id()), idsOf(log.forStation(paged.id(), 2, 2)));
+    }
+
+    private static List<Integer> idsOf(List<GenerationLogEntry> entries) {
+        return entries.stream().map(GenerationLogEntry::id).toList();
     }
 
     private static DocumentGeneration entryAt(int stationId, Instant at) {

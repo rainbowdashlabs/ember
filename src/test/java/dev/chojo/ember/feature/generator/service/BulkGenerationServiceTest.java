@@ -232,7 +232,7 @@ class BulkGenerationServiceTest extends GeneratorTestBase {
 
     /** The entry of the generation log of the document a run filed for a member. */
     private static GenerationLogEntry logged(JobMemberResult result) {
-        return wiring.log().forStation(wiring.station().id()).stream()
+        return wiring.log().forStation(wiring.station().id(), GenerationLogService.MAX_LIMIT, 0).stream()
                 .filter(entry -> Objects.equals(entry.documentId(), result.documentId()))
                 .findFirst()
                 .orElseThrow();

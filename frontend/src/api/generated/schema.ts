@@ -18771,10 +18771,13 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Every document the station generated from a template, the newest first */
+        /** The documents the station generated from a template, the newest first, one page at a time */
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    limit?: number;
+                    offset?: number;
+                };
                 header?: never;
                 path?: never;
                 cookie?: never;
