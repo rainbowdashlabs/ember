@@ -58103,6 +58103,29 @@
         },
         "required" : [ "marginTopMm", "marginBottomMm", "marginLeftMm", "marginRightMm", "fontSizePt", "bodyFont", "headerFont", "footerFont" ]
       },
+      "LetterPart" : {
+        "type" : "string",
+        "enum" : [ "LETTERHEAD", "BODY" ]
+      },
+      "LetterPartRules" : {
+        "type" : "object",
+        "properties" : {
+          "part" : {
+            "$ref" : "#/components/schemas/LetterPart"
+          },
+          "maxColumns" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "kinds" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/CellContentType"
+            }
+          }
+        },
+        "required" : [ "part", "maxColumns", "kinds" ]
+      },
       "Likert" : {
         "type" : "object",
         "properties" : {
@@ -63377,11 +63400,17 @@
               "$ref" : "#/components/schemas/DateTokenOption"
             }
           },
+          "letterParts" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/LetterPartRules"
+            }
+          },
           "language" : {
             "$ref" : "#/components/schemas/DocumentLanguage"
           }
         },
-        "required" : [ "placeholders", "dateFormats", "dateTokens", "language" ]
+        "required" : [ "placeholders", "dateFormats", "dateTokens", "letterParts", "language" ]
       },
       "PlaceholderCategory" : {
         "type" : "string",

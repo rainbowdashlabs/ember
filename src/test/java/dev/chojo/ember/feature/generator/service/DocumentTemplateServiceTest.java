@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.content.route.BlockCellRequest;
 import dev.chojo.ember.feature.generator.entity.DocumentLanguage;
 import dev.chojo.ember.feature.generator.entity.LetterContent;
 import dev.chojo.ember.feature.generator.entity.LetterPage;
+import dev.chojo.ember.feature.generator.entity.LetterPart;
 import dev.chojo.ember.feature.generator.entity.Placeholder;
 import dev.chojo.ember.feature.generator.entity.SignatureRole;
 import dev.chojo.ember.feature.generator.repository.DocumentTemplateRepository;
@@ -405,7 +406,7 @@ class DocumentTemplateServiceTest extends RepositoryTestBase {
                         owner,
                         letter("Lang")
                                 .body(List.of(row(signature(
-                                        SignatureRole.ISSUER, "x".repeat(LetterChecks.MAX_LETTERHEAD_TEXT + 1)))))
+                                        SignatureRole.ISSUER, "x".repeat(LetterChecks.MAX_SIGNATURE_TEXT + 1)))))
                                 .build(),
                         authorId));
         assertTrue(service.catalogue(owner).placeholders().stream()
@@ -577,7 +578,7 @@ class DocumentTemplateServiceTest extends RepositoryTestBase {
                 () -> service.create(
                         owner,
                         letter("Langer Kopf")
-                                .header(rowsOf("x".repeat(LetterChecks.MAX_LETTERHEAD_TEXT + 1)))
+                                .header(rowsOf("x".repeat(LetterPart.LETTERHEAD.maxText() + 1)))
                                 .build(),
                         authorId));
     }
@@ -612,6 +613,26 @@ class DocumentTemplateServiceTest extends RepositoryTestBase {
         assertTrue(catalogue.placeholders().stream()
                 .filter(placeholder -> placeholder.key().equals("member.calledName"))
                 .allMatch(Placeholder::informal));
+    }
+
+    @Test
+    void theCatalogueNamesWhatEachPartOfALetterHolds() {
+        var parts = service.catalogue(owner).letterParts();
+
+        var letterhead = parts.getFirst();
+        assertEquals(LetterPart.LETTERHEAD, letterhead.part());
+        assertEquals(4, letterhead.maxColumns());
+        assertEquals(
+                List.of(
+                        CellContentType.MARKDOWN,
+                        CellContentType.IMAGE,
+                        CellContentType.DIVIDER,
+                        CellContentType.SPACER),
+                letterhead.kinds());
+        var body = parts.get(1);
+        assertEquals(LetterPart.BODY, body.part());
+        assertEquals(3, body.maxColumns());
+        assertEquals(CellContentType.SIGNATURE, body.kinds().getLast());
     }
 
     @Test

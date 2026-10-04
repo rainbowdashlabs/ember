@@ -62418,6 +62418,14 @@ export interface components {
             /** Format: int32 */
             marginTopMm: number;
         };
+        /** @enum {string} */
+        LetterPart: "LETTERHEAD" | "BODY";
+        LetterPartRules: {
+            kinds: components["schemas"]["CellContentType"][];
+            /** Format: int32 */
+            maxColumns: number;
+            part: components["schemas"]["LetterPart"];
+        };
         Likert: {
             /**
              * @description discriminator enum property added by openapi-typescript
@@ -64234,6 +64242,7 @@ export interface components {
             dateFormats: components["schemas"]["DateFormatOption"][];
             dateTokens: components["schemas"]["DateTokenOption"][];
             language: components["schemas"]["DocumentLanguage"];
+            letterParts: components["schemas"]["LetterPartRules"][];
             placeholders: components["schemas"]["Placeholder"][];
         };
         /** @enum {string} */
@@ -69037,6 +69046,8 @@ export type LendingStatus = components['schemas']['LendingStatus'];
 export type LentOutItem = components['schemas']['LentOutItem'];
 export type LetterImport = components['schemas']['LetterImport'];
 export type LetterPage = components['schemas']['LetterPage'];
+export type LetterPart = components['schemas']['LetterPart'];
+export type LetterPartRules = components['schemas']['LetterPartRules'];
 export type Likert = components['schemas']['Likert'];
 export type LikertAnswer = components['schemas']['LikertAnswer'];
 export type LineCheck = components['schemas']['LineCheck'];
@@ -70407,6 +70418,11 @@ export const LendingStatus = {
     LENT: "LENT",
     REQUESTED: "REQUESTED",
     RETURNED: "RETURNED",
+} as const;
+
+export const LetterPart = {
+    BODY: "BODY",
+    LETTERHEAD: "LETTERHEAD",
 } as const;
 
 export const LinkType = {

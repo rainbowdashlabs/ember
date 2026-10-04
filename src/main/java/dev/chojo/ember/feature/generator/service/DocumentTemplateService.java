@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.generator.service;
 
 import dev.chojo.ember.api.refusal.DocumentRefusal;
+import dev.chojo.ember.feature.content.entity.CellContentType;
 import dev.chojo.ember.feature.content.entity.ContentRow;
 import dev.chojo.ember.feature.generator.entity.DateFormat;
 import dev.chojo.ember.feature.generator.entity.DateKind;
@@ -18,6 +19,7 @@ import dev.chojo.ember.feature.generator.entity.DocumentTemplateKind;
 import dev.chojo.ember.feature.generator.entity.FormBinding;
 import dev.chojo.ember.feature.generator.entity.LetterContent;
 import dev.chojo.ember.feature.generator.entity.LetterPage;
+import dev.chojo.ember.feature.generator.entity.LetterPart;
 import dev.chojo.ember.feature.generator.entity.PdfContent;
 import dev.chojo.ember.feature.generator.entity.PdfField;
 import dev.chojo.ember.feature.generator.entity.PdfLayout;
@@ -318,6 +320,7 @@ public class DocumentTemplateService {
                 catalogue.forOwner(owner),
                 Arrays.stream(DatePreset.values()).map(DateFormatOption::of).toList(),
                 Arrays.stream(DateToken.values()).map(DateTokenOption::of).toList(),
+                Arrays.stream(LetterPart.values()).map(LetterPartRules::of).toList(),
                 catalogue.language(owner));
     }
 
@@ -495,6 +498,7 @@ public class DocumentTemplateService {
      * @param dateFormats  the ready-made formats a date can print in, in the order the picker offers them
      * @param dateTokens   the letters an own date format is written with, which the editor shows the
      *                     dates of a template by
+     * @param letterParts  what each part of a letter holds, which the block editor offers
      * @param language     the language the labels are written in, which a template prints in until it
      *                     names its own
      */
@@ -502,7 +506,21 @@ public class DocumentTemplateService {
             List<Placeholder> placeholders,
             List<DateFormatOption> dateFormats,
             List<DateTokenOption> dateTokens,
+            List<LetterPartRules> letterParts,
             DocumentLanguage language) {}
+
+    /**
+     * What a part of a letter holds, as the block editor offers it and a template is checked against.
+     *
+     * @param part       the part
+     * @param maxColumns the most columns a row holds
+     * @param kinds      the kinds of block an empty cell offers
+     */
+    public record LetterPartRules(LetterPart part, int maxColumns, List<CellContentType> kinds) {
+        static LetterPartRules of(LetterPart part) {
+            return new LetterPartRules(part, part.maxColumns(), LetterChecks.offeredIn(part));
+        }
+    }
 
     /**
      * A letter of an own date format with how it prints the example day in both languages, so the editor

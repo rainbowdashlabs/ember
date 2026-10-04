@@ -103,7 +103,8 @@ class DocumentTemplateRoutesTest {
         when(service.update(any(), anyInt(), any(), anyInt())).thenReturn(TEMPLATE);
         when(service.setArchived(any(), anyInt(), anyBoolean(), anyInt())).thenReturn(TEMPLATE);
         when(service.catalogue(any()))
-                .thenReturn(new PlaceholderCatalogueResponse(List.of(), List.of(), List.of(), DocumentLanguage.DE));
+                .thenReturn(new PlaceholderCatalogueResponse(
+                        List.of(), List.of(), List.of(), List.of(), DocumentLanguage.DE));
         pdfs = mock(PdfTemplateService.class);
         uses = mock(TemplateStationUseService.class);
         copies = mock(DocumentTemplateCopyService.class);

@@ -11,7 +11,7 @@ import ContentBlocks from '@/components/content/ContentBlocks.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import type {ContentRow} from '@/api/generated/schema'
+import {LetterPart, type ContentRow} from '@/api/generated/schema'
 import type {RowEditData} from '@/components/content/blockeditor/EditorRow.vue'
 import {provideBlockEditorOptions} from '@/composables/useBlockEditorOptions'
 import {useEditorFontArea} from '@/composables/useEditorFonts'
@@ -37,7 +37,7 @@ const props = defineProps<{
 const {t} = useI18n()
 const editing = ref(false)
 
-provideBlockEditorOptions(() => letterBlockOptions(props.catalogue, false))
+provideBlockEditorOptions(() => letterBlockOptions(props.catalogue, LetterPart.LETTERHEAD))
 const font = useEditorFontArea(() => props.family)
 
 const context = computed(() => internalContentContext(props.stationUid, props.title))

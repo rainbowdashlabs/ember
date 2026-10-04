@@ -90,7 +90,9 @@ export function useTemplateEditor(
     const draft = ref<TemplateDraft>(emptyDraft(newKind.value))
     const saved = ref<DocumentTemplateResponse | null>(null)
     const pdf = shallowRef<Blob | null>(null)
-    const offer = shallowRef<PlaceholderCatalogueResponse>({placeholders: [], dateFormats: [], dateTokens: [], language: DocumentLanguage.DE})
+    const offer = shallowRef<PlaceholderCatalogueResponse>({
+        placeholders: [], dateFormats: [], dateTokens: [], letterParts: [], language: DocumentLanguage.DE,
+    })
     const catalogue = computed<Placeholder[]>(() => offer.value.placeholders)
     const placeholders = computed(() => placeholdersOfTemplate(catalogue.value, draft.value.forAppointments))
     const choices = shallowRef<StationChoices>(noChoices())
@@ -119,6 +121,7 @@ export function useTemplateEditor(
         labels: labels.value,
         choices: {groups: choices.value.groups, tags: choices.value.tags},
         fonts: fonts.value,
+        parts: offer.value.letterParts,
     }))
 
     const loader = useAsyncLoader(async () => {
