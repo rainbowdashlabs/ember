@@ -34081,6 +34081,27 @@
         } ]
       }
     },
+    "/api/v1/pronoun-presets" : {
+      "get" : {
+        "summary" : "The languages a gender field gives pronouns in, with the roles each tells apart and the two predefined answers",
+        "tags" : [ "Profile Fields" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/PronounLanguage"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/protocols" : {
       "post" : {
         "responses" : {
@@ -64448,6 +64469,34 @@
           }
         },
         "required" : [ "memberId", "fieldId", "value" ]
+      },
+      "PronounLanguage" : {
+        "type" : "object",
+        "properties" : {
+          "language" : {
+            "$ref" : "#/components/schemas/DocumentLanguage"
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "roles" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/PronounRole"
+            }
+          },
+          "male" : {
+            "$ref" : "#/components/schemas/PronounSet"
+          },
+          "female" : {
+            "$ref" : "#/components/schemas/PronounSet"
+          }
+        },
+        "required" : [ "language", "code", "roles", "male", "female" ]
+      },
+      "PronounRole" : {
+        "type" : "string",
+        "enum" : [ "SUBJECT", "OBJECT", "DATIVE", "POSSESSIVE" ]
       },
       "PronounSet" : {
         "type" : "object",

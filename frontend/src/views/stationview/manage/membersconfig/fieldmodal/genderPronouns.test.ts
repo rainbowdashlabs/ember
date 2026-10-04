@@ -5,35 +5,36 @@
  */
 /** @vitest-environment happy-dom */
 import {describe, expect, it} from 'vitest'
-import {choiceOf, PRESETS, pronounsFor, storedPronouns} from './genderPronouns'
+import {PRONOUN_OFFER} from './fixtures'
+import {choiceOf, pronounsFor} from './genderPronouns'
+
+const {presets} = PRONOUN_OFFER
 
 describe('gender pronouns', () => {
+    it('key the predefined sets by language code', () => {
+        expect(presets.MALE).toEqual({
+            de: {subject: 'er', object: 'ihn', dative: 'ihm', possessive: 'sein'},
+            en: {subject: 'he', object: 'him', dative: null, possessive: 'his'},
+        })
+    })
+
     it('read the predefined sets back as what they are', () => {
-        expect(choiceOf(PRESETS.MALE)).toBe('MALE')
-        expect(choiceOf(structuredClone(PRESETS.FEMALE))).toBe('FEMALE')
-        expect(choiceOf(undefined)).toBe('NAME')
-        expect(choiceOf({de: {subject: ' ', object: null, dative: null, possessive: null}})).toBe('NAME')
+        expect(choiceOf(presets.MALE, presets)).toBe('MALE')
+        expect(choiceOf(structuredClone(presets.FEMALE), presets)).toBe('FEMALE')
+        expect(choiceOf(undefined, presets)).toBe('NAME')
+        expect(choiceOf({de: {subject: ' ', object: null, dative: null, possessive: null}}, presets)).toBe('NAME')
     })
 
     it('read changed words as pronouns of their own', () => {
-        const own = {...structuredClone(PRESETS.MALE), de: {subject: 'xier', object: 'xien', dative: 'xiem', possessive: 'xies'}}
+        const own = {...structuredClone(presets.MALE), de: {subject: 'xier', object: 'xien', dative: 'xiem', possessive: 'xies'}}
 
-        expect(choiceOf(own)).toBe('OWN')
+        expect(choiceOf(own, presets)).toBe('OWN')
     })
 
     it('start words of their own from what the answer had', () => {
-        expect(pronounsFor('OWN', PRESETS.FEMALE)).toEqual(PRESETS.FEMALE)
-        expect(pronounsFor('OWN', undefined)).toEqual({})
-        expect(pronounsFor('NAME', PRESETS.FEMALE)).toBeUndefined()
-        expect(pronounsFor('MALE', undefined)).not.toBe(PRESETS.MALE)
-    })
-
-    it('keep only the answers still offered and none that use the name', () => {
-        const stored = storedPronouns(
-            {männlich: PRESETS.MALE, weiblich: PRESETS.FEMALE, divers: {}, alt: PRESETS.MALE},
-            ['männlich', 'weiblich', 'divers'],
-        )
-
-        expect(Object.keys(stored)).toEqual(['männlich', 'weiblich'])
+        expect(pronounsFor('OWN', presets.FEMALE, presets)).toEqual(presets.FEMALE)
+        expect(pronounsFor('OWN', undefined, presets)).toEqual({})
+        expect(pronounsFor('NAME', presets.FEMALE, presets)).toBeUndefined()
+        expect(pronounsFor('MALE', undefined, presets)).not.toBe(presets.MALE)
     })
 })

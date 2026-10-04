@@ -9,20 +9,22 @@ import {useI18n} from 'vue-i18n'
 import LabelledField from '@/components/input/LabelledField.vue'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
-import type {PronounSet} from '@/api/generated/schema'
+import type {PronounLanguage, PronounRole, PronounSet} from '@/api/generated/schema'
 import {
-  choiceOf, pronounsFor, PRONOUN_LANGUAGES,
-  type AnswerPronouns, type PronounChoice, type PronounRole,
+  choiceOf, pronounsFor, ROLE_WORD,
+  type AnswerPronouns, type PronounChoice, type PronounOffer,
 } from './genderPronouns'
 
 /**
  * What one answer of a gender field stands for in a document: "er" or "sie" with their forms, the
  * member's first name, or pronouns of its own per language. A language left without words uses the name.
+ * The languages, the roles each asks a word for and the two predefined sets are the server's.
  */
 const pronouns = defineModel<AnswerPronouns | undefined>({required: true})
 
-defineProps<{
+const props = defineProps<{
   answer: string
+  offer: PronounOffer
 }>()
 
 const {t} = useI18n()
@@ -32,22 +34,22 @@ const CHOICES: readonly PronounChoice[] = ['MALE', 'FEMALE', 'NAME', 'OWN']
 /** Kept while words of its own are being typed, which read as the name until the first one is there. */
 const ownPicked = ref(false)
 
-const choice = computed<PronounChoice>(() => ownPicked.value ? 'OWN' : choiceOf(pronouns.value))
+const choice = computed<PronounChoice>(() => ownPicked.value ? 'OWN' : choiceOf(pronouns.value, props.offer.presets))
 
 function pick(value: string | number | null | undefined) {
   const picked = value as PronounChoice
   ownPicked.value = picked === 'OWN'
-  pronouns.value = pronounsFor(picked, pronouns.value)
+  pronouns.value = pronounsFor(picked, pronouns.value, props.offer.presets)
 }
 
-function wordOf(language: string, role: PronounRole): string {
-  return pronouns.value?.[language]?.[role] ?? ''
+function wordOf(entry: PronounLanguage, role: PronounRole): string {
+  return pronouns.value?.[entry.code]?.[ROLE_WORD[role]] ?? ''
 }
 
-function setWord(language: string, role: PronounRole, word: string | null | undefined) {
+function setWord(entry: PronounLanguage, role: PronounRole, word: string | null | undefined) {
   const current = pronouns.value ?? {}
-  const set: PronounSet = current[language] ?? {subject: null, object: null, dative: null, possessive: null}
-  pronouns.value = {...current, [language]: {...set, [role]: word?.trim() ? word : null}}
+  const set: PronounSet = current[entry.code] ?? {subject: null, object: null, dative: null, possessive: null}
+  pronouns.value = {...current, [entry.code]: {...set, [ROLE_WORD[role]]: word?.trim() ? word : null}}
 }
 </script>
 
@@ -59,11 +61,11 @@ function setWord(language: string, role: PronounRole, word: string | null | unde
       </SelectInput>
     </LabelledField>
     <div v-if="choice === 'OWN'" class="space-y-2">
-      <div v-for="entry in PRONOUN_LANGUAGES" :key="entry.language" class="grid gap-2 sm:grid-cols-4">
+      <div v-for="entry in offer.languages" :key="entry.language" class="grid gap-2 sm:grid-cols-4">
         <LabelledField v-for="role in entry.roles" :key="role"
                        :label="t(`membersConfig.gender.role.${entry.language}.${role}`)">
-          <TextInput :model-value="wordOf(entry.language, role)" maxlength="40"
-                     @update:model-value="word => setWord(entry.language, role, word)"/>
+          <TextInput :model-value="wordOf(entry, role)" maxlength="40"
+                     @update:model-value="word => setWord(entry, role, word)"/>
         </LabelledField>
       </div>
     </div>

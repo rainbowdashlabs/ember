@@ -3503,16 +3503,16 @@ export default {
                 OWN: 'Eigene Pronomen',
             },
             role: {
-                de: {
-                    subject: 'Deutsch: wer (er)',
-                    object: 'Deutsch: wen (ihn)',
-                    dative: 'Deutsch: wem (ihm)',
-                    possessive: 'Deutsch: wessen (sein)',
+                DE: {
+                    SUBJECT: 'Deutsch: wer (er)',
+                    OBJECT: 'Deutsch: wen (ihn)',
+                    DATIVE: 'Deutsch: wem (ihm)',
+                    POSSESSIVE: 'Deutsch: wessen (sein)',
                 },
-                en: {
-                    subject: 'Englisch: wer (he)',
-                    object: 'Englisch: wen und wem (him)',
-                    possessive: 'Englisch: wessen (his)',
+                EN: {
+                    SUBJECT: 'Englisch: wer (he)',
+                    OBJECT: 'Englisch: wen und wem (him)',
+                    POSSESSIVE: 'Englisch: wessen (his)',
                 },
             },
         },

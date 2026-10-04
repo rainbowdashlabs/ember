@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, ref, watch} from 'vue'
+import {computed, onMounted, ref, shallowRef, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
@@ -21,7 +21,7 @@ import {
     type EditableField, type FieldSettings, type EditableFieldRequest,
 } from '@/api/profileFields'
 import GenderPronounsEditor from './fieldmodal/GenderPronounsEditor.vue'
-import {PRESETS, storedPronouns, type GenderPronouns} from './fieldmodal/genderPronouns'
+import {loadPronounOffer, type GenderPronouns, type PronounOffer} from './fieldmodal/genderPronouns'
 import {holdsValue as typeHoldsValue, isChoiceType, isDateType} from '@/api/fieldTypes'
 import {FieldType} from '@/api/generated/schema'
 import {
@@ -82,7 +82,12 @@ const fieldShowAge = ref(true)
 const fieldExpiry = ref<ExpirySettings>(expirySettingsOf({}))
 const fieldWidth = ref<string>(FieldWidths.FULL)
 const fieldPronouns = ref<GenderPronouns>({})
+const pronounOffer = shallowRef<PronounOffer | null>(null)
 const saving = ref(false)
+
+onMounted(async () => {
+  pronounOffer.value = await loadPronounOffer().catch(() => null)
+})
 
 /**
  * Whether anything describing an answer is beside the point. A heading and a spacer hold no answer;
@@ -142,15 +147,17 @@ watch(modelValue, (open) => {
 })
 
 /**
- * A new gender field starts with the two predefined answers and their pronouns. A choice field turned
- * into one keeps its answers, and each is mapped in the pronoun editor.
+ * A new gender field starts with the two predefined answers and their pronouns, as the server names
+ * them. A choice field turned into one keeps its answers, and each is mapped in the pronoun editor.
  */
-watch(fieldType, (type) => {
+watch(fieldType, async (type) => {
   if (type !== FieldType.GENDER || (fieldSettings.value.options ?? []).length > 0) return
   const male = t('membersConfig.gender.male')
   const female = t('membersConfig.gender.female')
   fieldSettings.value = {...fieldSettings.value, options: [male, female]}
-  fieldPronouns.value = {[male]: structuredClone(PRESETS.MALE), [female]: structuredClone(PRESETS.FEMALE)}
+  const offer = await loadPronounOffer().catch(() => null)
+  if (!offer) return
+  fieldPronouns.value = {[male]: structuredClone(offer.presets.MALE), [female]: structuredClone(offer.presets.FEMALE)}
 })
 
 /**
@@ -166,7 +173,7 @@ function buildConfig(): FieldSettings {
   if (fieldOverview.value) cfg.overview = true
   const options = fieldSettings.value.options ?? []
   if (isChoiceType(fieldType.value) && options.length > 0) cfg.options = [...options]
-  if (fieldType.value === FieldType.GENDER) cfg.pronouns = storedPronouns(fieldPronouns.value, options)
+  if (fieldType.value === FieldType.GENDER) cfg.pronouns = fieldPronouns.value
   if (fieldType.value === FieldType.AGE) {
     const source = props.dateFields.find(f => f.id === fieldAgeSourceId.value)
     if (source) {
@@ -211,8 +218,8 @@ function submit() {
         <AgeFields v-if="isCalculated" v-model:source-id="fieldAgeSourceId" v-model:mode="fieldAgeMode"
                    :date-fields="dateFields"/>
         <QuestionSettingsEditor v-model="fieldSettings" :field-type="fieldType" :offers="offers"/>
-        <GenderPronounsEditor v-if="fieldType === FieldType.GENDER" v-model="fieldPronouns"
-                              :answers="fieldSettings.options ?? []"/>
+        <GenderPronounsEditor v-if="fieldType === FieldType.GENDER && pronounOffer" v-model="fieldPronouns"
+                              :answers="fieldSettings.options ?? []" :offer="pronounOffer"/>
         <BirthDateFields v-if="fieldType === FieldType.BIRTH_DATE" v-model:show-age="fieldShowAge"/>
         <ExpiryDateFields v-if="fieldType === FieldType.EXPIRY_DATE" v-model="fieldExpiry"/>
         <BehaviorToggles

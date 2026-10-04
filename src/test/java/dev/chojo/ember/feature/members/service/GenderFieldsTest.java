@@ -9,9 +9,11 @@ import dev.chojo.ember.api.refusal.ClusterRefusal;
 import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.api.refusal.RefusalDetail;
 import dev.chojo.ember.api.refusal.RefusalResponse;
+import dev.chojo.ember.feature.generator.entity.DocumentLanguage;
 import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
+import dev.chojo.ember.feature.members.entity.PronounPreset;
 import dev.chojo.ember.feature.members.entity.PronounSet;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -34,8 +36,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class GenderFieldsTest extends RepositoryTestBase {
     private static final AtomicInteger NAMES = new AtomicInteger();
-    private static final Map<String, PronounSet> MALE =
-            Map.of("de", new PronounSet("er", "ihn", "ihm", "sein"), "en", new PronounSet("he", "him", null, "his"));
+    private static final Map<String, PronounSet> MALE = PronounPreset.MALE.byLanguage();
+    private static final PronounSet SILENT = new PronounSet(" ", null, null, "");
 
     private static GenderFields genders;
 
@@ -120,9 +122,57 @@ class GenderFieldsTest extends RepositoryTestBase {
         var asked = genders.askedAt(station.id()).orElseThrow();
         assertEquals(FieldOrigin.STATION, asked.origin());
         assertEquals("m", genders.answerOf(member, asked).orElseThrow());
-        assertEquals("er", asked.config().pronounsOf("m", "de").orElseThrow().subjectWord());
-        assertEquals("him", asked.config().pronounsOf("m", "en").orElseThrow().dativeWord());
-        assertTrue(asked.config().pronounsOf("w", "de").isEmpty(), "an answer without pronouns uses the name");
+        assertEquals(
+                "er",
+                asked.config()
+                        .pronounsOf("m", DocumentLanguage.DE)
+                        .orElseThrow()
+                        .subjectWord());
+        assertEquals(
+                "him",
+                asked.config()
+                        .pronounsOf("m", DocumentLanguage.EN)
+                        .orElseThrow()
+                        .dativeWord());
+        assertTrue(
+                asked.config().pronounsOf("w", DocumentLanguage.DE).isEmpty(),
+                "an answer without pronouns uses the name");
+    }
+
+    @Test
+    void pronounsAreKeptOnlyForOfferedAnswersThatNameAWord() {
+        var station = station();
+        var field = profileFieldService.create(
+                station.id(),
+                "Geschlecht",
+                FieldType.GENDER,
+                gender(
+                        List.of("m", "w", "d"),
+                        Map.of(
+                                "m",
+                                Map.of("de", MALE.get("de"), "en", SILENT),
+                                "w",
+                                PronounPreset.FEMALE.byLanguage(),
+                                "d",
+                                Map.of("de", SILENT),
+                                "alt",
+                                MALE)),
+                false,
+                false,
+                null);
+
+        profileFieldService.update(
+                field.id(),
+                "Geschlecht",
+                FieldType.GENDER,
+                gender(List.of("m", "d"), field.config().pronouns()),
+                false,
+                false,
+                null,
+                false);
+
+        var kept = genders.askedAt(station.id()).orElseThrow().config().pronouns();
+        assertEquals(Map.of("m", Map.of("de", MALE.get("de"))), kept);
     }
 
     @Test

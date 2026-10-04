@@ -5,6 +5,9 @@
  */
 package dev.chojo.ember.feature.generator.entity;
 
+import dev.chojo.ember.feature.members.entity.PronounPreset;
+import dev.chojo.ember.feature.members.entity.PronounSet;
+
 import java.util.Locale;
 
 /**
@@ -12,32 +15,18 @@ import java.util.Locale;
  */
 public enum PronounRole {
     /** Er, she: the one doing something. */
-    SUBJECT("er", "sie", "he", "she", "Wer", "Who"),
+    SUBJECT("Wer", "Who"),
     /** Ihn, her: the one something is done to. */
-    OBJECT("ihn", "sie", "him", "her", "Wen", "Whom"),
+    OBJECT("Wen", "Whom"),
     /** Ihm, her: the one something is given to. */
-    DATIVE("ihm", "ihr", "him", "her", "Wem", "To whom"),
+    DATIVE("Wem", "To whom"),
     /** Sein, his: the one something belongs to. */
-    POSSESSIVE("sein", "ihr", "his", "her", "Wessen", "Whose");
+    POSSESSIVE("Wessen", "Whose");
 
-    private final String germanMale;
-    private final String germanFemale;
-    private final String englishMale;
-    private final String englishFemale;
     private final String germanQuestion;
     private final String englishQuestion;
 
-    PronounRole(
-            String germanMale,
-            String germanFemale,
-            String englishMale,
-            String englishFemale,
-            String germanQuestion,
-            String englishQuestion) {
-        this.germanMale = germanMale;
-        this.germanFemale = germanFemale;
-        this.englishMale = englishMale;
-        this.englishFemale = englishFemale;
+    PronounRole(String germanQuestion, String englishQuestion) {
         this.germanQuestion = germanQuestion;
         this.englishQuestion = englishQuestion;
     }
@@ -67,6 +56,27 @@ public enum PronounRole {
      * @return the two words
      */
     public String[] examples(DocumentLanguage language) {
-        return language.pick(new String[] {germanMale, germanFemale}, new String[] {englishMale, englishFemale});
+        return new String[] {wordIn(PronounPreset.MALE.in(language)), wordIn(PronounPreset.FEMALE.in(language))};
+    }
+
+    /**
+     * @param words the pronouns of an answer in one language
+     * @return the word they have for this role, the object for a dative the language does not tell apart
+     */
+    public String wordIn(PronounSet words) {
+        return switch (this) {
+            case SUBJECT -> words.subjectWord();
+            case OBJECT -> words.objectWord();
+            case DATIVE -> words.dativeWord();
+            case POSSESSIVE -> words.possessiveWord();
+        };
+    }
+
+    /**
+     * @param language a language a document is written in
+     * @return whether the language has a word of its own for this role; English has no dative of its own
+     */
+    public boolean toldApartIn(DocumentLanguage language) {
+        return this != DATIVE || language == DocumentLanguage.DE;
     }
 }

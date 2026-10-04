@@ -43959,6 +43959,42 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/pronoun-presets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The languages a gender field gives pronouns in, with the roles each tells apart and the two predefined answers */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PronounLanguage"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/protocols": {
         parameters: {
             query?: never;
@@ -64607,6 +64643,15 @@ export interface components {
             memberId: number;
             value: string;
         };
+        PronounLanguage: {
+            code: string;
+            female: components["schemas"]["PronounSet"];
+            language: components["schemas"]["DocumentLanguage"];
+            male: components["schemas"]["PronounSet"];
+            roles: components["schemas"]["PronounRole"][];
+        };
+        /** @enum {string} */
+        PronounRole: "SUBJECT" | "OBJECT" | "DATIVE" | "POSSESSIVE";
         PronounSet: {
             dative: string | null;
             object: string | null;
@@ -69355,6 +69400,8 @@ export type ProfileFieldRequest = components['schemas']['ProfileFieldRequest'];
 export type ProfileFieldScope = components['schemas']['ProfileFieldScope'];
 export type ProfileFieldTarget = components['schemas']['ProfileFieldTarget'];
 export type ProfileFieldValue = components['schemas']['ProfileFieldValue'];
+export type PronounLanguage = components['schemas']['PronounLanguage'];
+export type PronounRole = components['schemas']['PronounRole'];
 export type PronounSet = components['schemas']['PronounSet'];
 export type ProtocolChecksRequest = components['schemas']['ProtocolChecksRequest'];
 export type ProtocolDetailResponse = components['schemas']['ProtocolDetailResponse'];
@@ -70752,6 +70799,13 @@ export const ProfileFieldScope = {
 export const ProfileFieldTarget = {
     GROUP: "GROUP",
     ROLE: "ROLE",
+} as const;
+
+export const PronounRole = {
+    DATIVE: "DATIVE",
+    OBJECT: "OBJECT",
+    POSSESSIVE: "POSSESSIVE",
+    SUBJECT: "SUBJECT",
 } as const;
 
 export const PublicFormState = {

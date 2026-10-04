@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.ProfileField;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
+import dev.chojo.ember.feature.members.entity.PronounPreset;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.entity.UserTag;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
@@ -33,6 +34,7 @@ import tools.jackson.databind.node.StringNode;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
@@ -193,13 +195,13 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
                 ProfileFieldScope.MEMBER,
                 0,
                 true);
-        var fieldGeschlecht =
-                askOf(stationId, "Geschlecht", FieldType.GENDER, """
-                {"overview":true,"options":["männlich","weiblich","divers"],"pronouns":{
-                  "männlich":{"de":{"subject":"er","object":"ihn","dative":"ihm","possessive":"sein"},
-                              "en":{"subject":"he","object":"him","possessive":"his"}},
-                  "weiblich":{"de":{"subject":"sie","object":"sie","dative":"ihr","possessive":"ihr"},
-                              "en":{"subject":"she","object":"her","possessive":"her"}}}}""", false, ProfileFieldScope.MEMBER, 1, true);
+        String genderConfig = ProfileFieldConfig.parse("""
+                {"overview":true,"options":["männlich","weiblich","divers"]}""")
+                .withPronouns(Map.of(
+                        "männlich", PronounPreset.MALE.byLanguage(), "weiblich", PronounPreset.FEMALE.byLanguage()))
+                .toJson();
+        var fieldGeschlecht = askOf(
+                stationId, "Geschlecht", FieldType.GENDER, genderConfig, false, ProfileFieldScope.MEMBER, 1, true);
 
         var fieldGeburtstag = askOf(
                 stationId,

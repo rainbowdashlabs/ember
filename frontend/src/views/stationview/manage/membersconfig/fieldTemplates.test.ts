@@ -7,6 +7,7 @@ import {describe, expect, it} from 'vitest'
 import {OfferedFieldTypes} from '@/api/fieldTypes'
 import {FieldType} from '@/api/generated/schema'
 import {expirySettingsOf} from '@/util/expiry'
+import {PRONOUN_OFFER} from './fieldmodal/fixtures'
 import {fieldTemplates} from './fieldTemplates'
 
 /**
@@ -35,7 +36,8 @@ const SERVER_CONFIG_KEYS = [
 ]
 
 describe('fieldTemplates', () => {
-  const fields = fieldTemplates.flatMap(template =>
+  const templates = fieldTemplates(PRONOUN_OFFER.presets)
+  const fields = templates.flatMap(template =>
     template.fields.map(field => ({template: template.name, ...field})))
 
   it.each(fields)('$template: $name carries only settings the server names', field => {
@@ -55,7 +57,7 @@ describe('fieldTemplates', () => {
 
   /** An association may ask for expiry dates, so the templates holding one are offered to it as well. */
   it('offers the templates with an expiry date to an association', () => {
-    const offered = fieldTemplates
+    const offered = templates
       .filter(template => template.fields.every(field =>
         (OfferedFieldTypes.ASSOCIATION as readonly FieldType[]).includes(field.fieldType)))
       .map(template => template.name)

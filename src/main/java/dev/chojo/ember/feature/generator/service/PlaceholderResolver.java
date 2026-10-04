@@ -394,7 +394,7 @@ public class PlaceholderResolver {
 
         private Optional<PronounSet> genderPronouns() {
             return genders.askedAt(stationId()).flatMap(field -> field.config()
-                    .pronounsOf(genders.answerOf(memberId, field).orElse(null), language));
+                    .pronounsOf(genders.answerOf(memberId, field).orElse(null), documentLanguage));
         }
 
         private Optional<LocalDate> birthDate() {
