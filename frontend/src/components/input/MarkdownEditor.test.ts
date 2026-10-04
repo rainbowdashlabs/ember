@@ -103,3 +103,17 @@ describe('MarkdownEditor text size', () => {
         expect(stored()).toBe('Ein größeres Wort.')
     })
 })
+
+/** Escape typed in the text is left to the page, so a dialog around the editor closes on it. */
+describe('MarkdownEditor escape', () => {
+    it('leaves escape unhandled', async () => {
+        const wrapper = await mountSuspended(MarkdownEditor, {attachTo: document.body, props: {modelValue: 'Text'}})
+        const text = wrapper.find('.tiptap').element
+        const escape = new KeyboardEvent('keydown', {key: 'Escape', keyCode: 27, bubbles: true, cancelable: true})
+
+        text.dispatchEvent(escape)
+
+        expect(escape.defaultPrevented).toBe(false)
+        wrapper.unmount()
+    })
+})

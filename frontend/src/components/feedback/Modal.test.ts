@@ -103,17 +103,6 @@ describe('Modal', () => {
         expect(wrapper.emitted('update:modelValue')?.[0]).toEqual([false])
     })
 
-    /** The text editor marks every escape it sees as handled, which must not keep the dialog open. */
-    it('closes on escape from inside a text editor', async () => {
-        const wrapper = await mountModal(true, '<div class="ProseMirror" contenteditable="true">Text</div>')
-        const editor = document.querySelector<HTMLElement>('.ProseMirror')!
-        editor.addEventListener('keydown', event => event.preventDefault())
-
-        press(editor, 'Escape')
-
-        expect(wrapper.emitted('update:modelValue')?.[0]).toEqual([false])
-    })
-
     /** Anything else that claims the escape, such as an open list inside the dialog, keeps it open. */
     it('stays open when something else inside handled the escape', async () => {
         const wrapper = await mountModal(true, '<input id="field">')
