@@ -51,11 +51,13 @@ act() {
 }
 
 # The status of the newest Verify run triggered by a push of the given commit, as "status conclusion
-# url", empty when there is none.
+# url id", empty when there is none. A run still going has no conclusion yet and says "pending" there:
+# an empty field would let `read` close the gap and shift the url and the id one place to the left.
 verify_run() {
     gh run list --commit "$1" --workflow verify.yml --event push --limit 1 \
         --json status,conclusion,url,databaseId \
-        --jq '.[0] | select(. != null) | "\(.status) \(.conclusion) \(.url) \(.databaseId)"'
+        --jq '.[0] | select(. != null)
+            | "\(.status) \(if (.conclusion // "") == "" then "pending" else .conclusion end) \(.url) \(.databaseId)"'
 }
 
 # Waits until a Verify run of the given commit exists and has finished.
