@@ -117,12 +117,13 @@ public class GenerationJobRunner implements TaskSource {
 
     private void work(GenerationJob job, DocumentTemplate template) {
         var context = GenerationContext.by(job.startedBy(), job.issuer());
+        var source = generator.sourceOf(template);
         var waiting = jobs.waiting(job.id());
-        var batch = generator.batch(generator.sourceOf(template), context, waiting);
+        var batch = generator.batch(waiting);
         for (int memberId : waiting) {
             try {
                 if (template.archived()) throw DocumentRefusal.DOCUMENT_TEMPLATE_ARCHIVED.raise();
-                var prepared = batch.prepare(memberId);
+                var prepared = batch.prepare(source, memberId, context);
                 if (!job.acceptMissing()) {
                     generator.requireComplete(prepared, DocumentRefusal.DOCUMENT_JOB_VALUES_MISSING);
                 }

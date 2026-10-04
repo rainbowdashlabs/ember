@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.generator.repository;
 
+import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import dev.chojo.ember.feature.generator.entity.DataSubject;
 import dev.chojo.ember.feature.generator.entity.DocumentGeneration;
 import dev.chojo.ember.feature.generator.entity.GenerationLogEntry;
@@ -13,7 +14,10 @@ import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
@@ -142,5 +146,30 @@ public class DocumentGenerationRepository {
                 .map(row -> row.get("last", INSTANT_TIMESTAMP))
                 .first()
                 .orElse(null);
+    }
+
+    /**
+     * When several templates were last generated for one person through self service, in one read.
+     *
+     * @param templateIds the templates
+     * @param memberId    the member the documents are about
+     * @return the moment by template; a template never generated for them is absent
+     */
+    public Map<Integer, Instant> lastSelfService(Collection<Integer> templateIds, int memberId) {
+        if (templateIds.isEmpty()) return Map.of();
+        var last = new HashMap<Integer, Instant>();
+        query("""
+                SELECT template_id, max(generated_at) AS last
+                FROM document_generation
+                WHERE template_id = ANY(:template_ids)
+                  AND member_id = :member_id
+                  AND self_service
+                GROUP BY template_id;""")
+                .single(call().bind("template_ids", List.copyOf(templateIds), PostgreSqlTypes.INTEGER)
+                        .bind("member_id", memberId))
+                .map(row -> Map.entry(row.getInt("template_id"), row.get("last", INSTANT_TIMESTAMP)))
+                .all()
+                .forEach(entry -> last.put(entry.getKey(), entry.getValue()));
+        return last;
     }
 }

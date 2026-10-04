@@ -27,6 +27,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -218,6 +219,11 @@ class DocumentGenerationRepositoryTest extends RepositoryTestBase {
                         false),
                 List.of());
         assertEquals(bySelf.generatedAt(), log.lastSelfService(otherTemplate, child));
+
+        var neverUsed = templates.create(owner, draft("Nie benutzt"), author).id();
+        var together = log.lastSelfService(List.of(otherTemplate, neverUsed), child);
+        assertEquals(Map.of(otherTemplate, bySelf.generatedAt()), together);
+        assertEquals(Map.of(), log.lastSelfService(List.of(), child));
     }
 
     /** The list of generated documents reads a station's own entries, the newest first, named by template. */

@@ -66,15 +66,13 @@ class GenerationBatchTest extends GeneratorTestBase {
         var memberIds = List.of(anna.id(), ben.id(), carla.id());
         clearInvocations(stations, members);
 
-        var batch = wiring.generator()
-                .batch(
-                        wiring.generator().sourceOf(template),
-                        GenerationContext.by(manager.id(), DocumentIssuer.NONE),
-                        memberIds);
+        var source = wiring.generator().sourceOf(template);
+        var context = GenerationContext.by(manager.id(), DocumentIssuer.NONE);
+        var batch = wiring.generator().batch(memberIds);
         var texts = new ArrayList<String>();
         var missing = new ArrayList<List<String>>();
         for (int memberId : memberIds) {
-            var prepared = batch.prepare(memberId);
+            var prepared = batch.prepare(source, memberId, context);
             missing.add(prepared.missing().stream().map(MissingValue::key).toList());
             texts.add(Objects.requireNonNull(
                     PdfText.extract(batch.render(prepared).pdf())));

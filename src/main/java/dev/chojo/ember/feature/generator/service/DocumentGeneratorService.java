@@ -39,6 +39,8 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.util.Base64;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -314,19 +316,18 @@ public class DocumentGeneratorService {
      * @return the values and what is missing
      */
     public Prepared prepare(Source source, int memberId, GenerationContext context) {
-        return batch(source, context, List.of(memberId)).prepare(memberId);
+        return batch(List.of(memberId)).prepare(source, memberId, context);
     }
 
     /**
-     * Prepares and draws the documents of one template for many members, as a run does.
+     * Prepares and draws documents for many members, or many templates for one member, reading what
+     * they share once.
      *
-     * @param source    the template
-     * @param context   who generates them, for which appointment and who issues them
      * @param memberIds the members documents are drawn for
-     * @return what draws them
+     * @return what prepares and draws them
      */
-    public Batch batch(Source source, GenerationContext context, Collection<Integer> memberIds) {
-        return new Batch(source, context, memberIds);
+    public Batch batch(Collection<Integer> memberIds) {
+        return new Batch(memberIds);
     }
 
     /**
@@ -388,8 +389,8 @@ public class DocumentGeneratorService {
      */
     public PreviewResponse preview(Source source, @Nullable Integer memberId, GenerationContext context) {
         if (memberId != null) {
-            var batch = batch(source, context, List.of(memberId));
-            return batch.preview(batch.prepare(memberId));
+            var batch = batch(List.of(memberId));
+            return batch.preview(batch.prepare(source, memberId, context));
         }
         var keys = PlaceholderCatalogue.keysOf(
                 source.titlePattern(),
@@ -413,35 +414,32 @@ public class DocumentGeneratorService {
     }
 
     /**
-     * The documents of one template for many members, prepared and drawn as {@link #prepare} and
-     * {@link #render} do for one.
+     * Documents prepared and drawn as {@link #prepare} and {@link #render} do for one: those of one template
+     * for many members, as a run draws them, or those of many templates for one member, as the offers of
+     * self service list them.
      *
      * <p>What is the same for every member is read once: the station and the questions asked there
-     * ({@link PlaceholderResolver.Batch}), the words of the owner's placeholders, needed only where
-     * something is missing, and what the template is drawn with, its fonts or its uploaded PDF. What each
+     * ({@link PlaceholderResolver.Batch}), the words of each owner's placeholders, needed only where
+     * something is missing, and what each template is drawn with, its fonts or its uploaded PDF. What each
      * member needs is read for all of the members at once: their groups and tags, their memberships,
      * their guardians and their answers.
      *
-     * <p>It is meant for one run and one thread.
+     * <p>It is meant for one run or one request, and one thread.
      */
     public final class Batch {
-        private final Source source;
-        private final GenerationContext context;
         private final Set<Integer> memberIds;
         private final PlaceholderResolver.Batch values;
+        private final Map<Owner, Map<String, Placeholder>> labels = new HashMap<>();
+        private final Map<Source, Drawing> drawings = new IdentityHashMap<>();
         private @Nullable Map<Integer, RestrictionMember> audiences;
-        private @Nullable Map<String, Placeholder> labels;
-        private @Nullable Drawing drawing;
 
-        private Batch(Source source, GenerationContext context, Collection<Integer> memberIds) {
-            this.source = source;
-            this.context = context;
+        private Batch(Collection<Integer> memberIds) {
             this.memberIds = Set.copyOf(memberIds);
             this.values = resolver.batch(this.memberIds);
         }
 
         /**
-         * Reads the values of one member for the template.
+         * Reads the values of one member for a template.
          *
          * <p>A letter whose signature lines would ask one person of this member's to sign twice is
          * refused here: two lines for one signer may stand in a template as alternatives, but never meet
@@ -450,10 +448,12 @@ public class DocumentGeneratorService {
          * <p>A document that names its issuer, by a value or by the issuer's signature field, needs the
          * issuer's name: where nobody can be named, that name is missing like any other value.
          *
+         * @param source   the template
          * @param memberId the member the document is about
+         * @param context  who generates it, for which appointment and who issues it
          * @return the values and what is missing
          */
-        public Prepared prepare(int memberId) {
+        public Prepared prepare(Source source, int memberId, GenerationContext context) {
             int stationId = values.stationOf(memberId).orElseThrow(MemberRefusal.MEMBER_NOT_HERE::raise);
             var member = audienceOf(memberId);
             Predicate<RestrictionAudience> audience =
@@ -470,7 +470,7 @@ public class DocumentGeneratorService {
             var resolved = values.resolve(stationId, memberId, keys, source.language(), context);
             var issuer = new IssuerUse(
                     context.issuer(), named, signs, resolved.values().get(BuiltInPlaceholder.ISSUER_FULL_NAME.key()));
-            return new Prepared(source, stationId, view, resolved, issuer, missingOf(resolved));
+            return new Prepared(source, stationId, view, resolved, issuer, missingOf(source.owner(), resolved));
         }
 
         /**
@@ -480,7 +480,8 @@ public class DocumentGeneratorService {
          * @return the document
          */
         public Rendered render(Prepared prepared) {
-            return DocumentGeneratorService.this.render(prepared, drawing(), () -> today(prepared.stationId()));
+            return DocumentGeneratorService.this.render(
+                    prepared, drawing(prepared.source()), () -> today(prepared.stationId()));
         }
 
         /**
@@ -505,19 +506,20 @@ public class DocumentGeneratorService {
             return audiences.get(memberId);
         }
 
-        private List<MissingValue> missingOf(ResolvedValues resolved) {
+        private List<MissingValue> missingOf(Owner owner, ResolvedValues resolved) {
             if (resolved.missing().isEmpty()) return List.of();
-            if (labels == null) labels = catalogue.byKey(source.owner());
-            var known = labels;
+            var known = labels.computeIfAbsent(owner, catalogue::byKey);
             return resolved.missing().stream()
                     .map(key -> new MissingValue(key, PlaceholderCatalogue.labelOf(known, key)))
                     .toList();
         }
 
-        /** What the template is drawn with, read once it is first needed, and again where that failed. */
-        private Drawing drawing() {
-            if (drawing == null) drawing = drawingOf(source);
-            return drawing;
+        /**
+         * What a template is drawn with, read once it is first needed, and again where that failed. A
+         * template is known by the very source its documents were prepared from.
+         */
+        private Drawing drawing(Source source) {
+            return drawings.computeIfAbsent(source, DocumentGeneratorService.this::drawingOf);
         }
 
         private LocalDate today(int stationId) {

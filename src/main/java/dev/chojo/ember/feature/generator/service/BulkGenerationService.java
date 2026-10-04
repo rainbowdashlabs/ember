@@ -196,13 +196,14 @@ public class BulkGenerationService {
         var memberIds = chosen(session.stationId(), selection);
         var context =
                 GenerationContext.by(session.member().id(), issuers.forManager(template, session.stationId(), issuer));
-        var batch = generator.batch(generator.sourceOf(template), context, memberIds);
+        var source = generator.sourceOf(template);
+        var batch = generator.batch(memberIds);
         var gaps = new ArrayList<MemberGaps>();
         Integer firstId = null;
         DocumentGeneratorService.Prepared first = null;
         for (int memberId : memberIds) {
             try {
-                var prepared = batch.prepare(memberId);
+                var prepared = batch.prepare(source, memberId, context);
                 if (first == null) {
                     firstId = memberId;
                     first = prepared;
