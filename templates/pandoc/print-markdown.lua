@@ -30,6 +30,10 @@
 --- inside and leaves the two tags as blocks of HTML around it. A pair of them becomes `align(center)`,
 --- `align(right)` or a block that justifies its paragraphs, around the converted blocks between.
 --- Paired the same way as the inline tags, an unpaired one is dropped.
+---
+--- Spaces: the editor stores every space of a run but the last as a non-breaking space. Each one
+--- becomes Typst's `~` here rather than in the writer, because older Pandoc versions pass the
+--- character through as it is, and Typst then folds it into the space beside it.
 
 local PIXEL = 0.75
 local FONT_SPANS = PANDOC_WRITER_OPTIONS.variables["font-spans"] ~= nil
@@ -179,6 +183,25 @@ end
 local function typst_inline(text) return pandoc.RawInline("typst", text) end
 
 local function typst_block(text) return pandoc.RawBlock("typst", text) end
+
+local NBSP = "\u{a0}"
+
+local function with_nonbreaking_spaces(text)
+  local result, from = pandoc.Inlines{}, 1
+  local at = text:find(NBSP, from, true)
+  while at do
+    if at > from then result:insert(pandoc.Str(text:sub(from, at - 1))) end
+    result:insert(typst_inline("~"))
+    from = at + #NBSP
+    at = text:find(NBSP, from, true)
+  end
+  if from <= #text then result:insert(pandoc.Str(text:sub(from))) end
+  return result
+end
+
+function Str(el)
+  if el.text:find(NBSP, 1, true) then return with_nonbreaking_spaces(el.text) end
+end
 
 local function translate_pairs(elements, result, open_with, typst)
   local pairs = pair_tags(elements)
