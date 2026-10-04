@@ -65,7 +65,7 @@ const generating = useAsyncAction(async (templateId: number) => {
       </div>
       <SecondaryButton :icon="['fas', 'file-circle-plus']" :disabled="generating.running.value"
                        data-testid="self-service-generate" @click="generating.run(offer.templateId)">
-        {{ t('documentTemplates.generate') }}
+        {{ t('common.create') }}
       </SecondaryButton>
     </div>
   </NeutralContainer>

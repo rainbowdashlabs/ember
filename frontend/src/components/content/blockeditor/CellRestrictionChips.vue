@@ -8,7 +8,8 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import AppIcon from '@/components/display/AppIcon.vue'
-import {StationUserTypeLabels, type RestrictionSelection} from '@/api/types'
+import type {RestrictionSelection} from '@/api/types'
+import {restrictionLabels} from '@/components/input/restriction'
 import type {GuardianCondition} from '@/api/generated/schema'
 import type {BlockRestrictionChoices} from '@/composables/useBlockEditorOptions'
 
@@ -28,11 +29,8 @@ const {t} = useI18n()
 const chips = computed(() => {
     const restriction = props.restriction
     if (!restriction) return []
-    return [
-        ...restriction.userTypes.map(type => StationUserTypeLabels[type]),
-        ...restriction.groupIds.map(id => props.choices.groups.find(group => group.id === id)?.name ?? `#${id}`),
-        ...restriction.tagIds.map(id => props.choices.tags.find(tag => tag.id === id)?.name ?? `#${id}`),
-    ]
+    const labels = restrictionLabels(restriction, props.choices.groups, props.choices.tags)
+    return [...labels.userTypes, ...labels.groups, ...labels.tags]
 })
 
 const condition = computed(() => props.guardianCondition

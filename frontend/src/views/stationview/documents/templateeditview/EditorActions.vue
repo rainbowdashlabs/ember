@@ -57,7 +57,7 @@ const router = useRouter()
         {{ saved.archivedAt ? t('documentTemplates.restore') : t('documentTemplates.archive') }}
       </SecondaryButton>
       <PrimaryButton :icon="['fas', 'floppy-disk']" :disabled="!canSave || saving" data-testid="template-save" @click="emit('save')">
-        {{ t('documentTemplates.save') }}
+        {{ t('common.save') }}
       </PrimaryButton>
     </ButtonRow>
   </div>

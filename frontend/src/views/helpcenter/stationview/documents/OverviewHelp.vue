@@ -37,7 +37,7 @@ const {t} = useI18n()
         <SubHeader>{{ t('documentTemplates.selfServiceCreate') }}</SubHeader>
         <div class="flex flex-wrap items-center justify-between gap-3">
           <span class="font-semibold">{{ t('helpCenter.documentsOverview.exampleOffer') }}</span>
-          <SecondaryButton :icon="['fas', 'file-circle-plus']">{{ t('documentTemplates.generate') }}</SecondaryButton>
+          <SecondaryButton :icon="['fas', 'file-circle-plus']">{{ t('common.create') }}</SecondaryButton>
         </div>
         <MutedText size="sm" tag="p">{{ t('documentTemplates.availableFrom', {date: '01.11.2026'}) }}</MutedText>
       </NeutralContainer>

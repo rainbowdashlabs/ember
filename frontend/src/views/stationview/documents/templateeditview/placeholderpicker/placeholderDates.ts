@@ -7,7 +7,7 @@ import {inject, provide, type InjectionKey, type Ref} from 'vue'
 import {DateKind, DocumentLanguage, type DateFormatOption, type Placeholder} from '@/api/generated/schema'
 import {compileDateFormat, exampleDate, printDate, type CompiledDateFormat} from '@/util/dateFormatPattern'
 import type {PlaceholderLabels} from '@/components/input/markdowneditor/placeholderChip'
-import {parsePlaceholderKey} from './placeholderKey'
+import {parsePlaceholderKey} from '@/util/placeholders'
 
 /** The ready-made date formats of the catalogue, and the language a template prints its dates in. */
 export interface PlaceholderDates {

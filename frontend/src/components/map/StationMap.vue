@@ -8,6 +8,7 @@ import {nextTick, onBeforeUnmount, onMounted, ref, watch} from 'vue'
 import type {LayerGroup, Map as LeafletMap, Marker} from 'leaflet'
 import {useMapsConfig} from '@/composables/useMapsConfig'
 import {addTileLayer, loadLeaflet} from '@/util/leaflet'
+import {escapeHtml} from '@/util/html'
 import 'leaflet/dist/leaflet.css'
 import 'leaflet.markercluster/dist/MarkerCluster.css'
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
@@ -240,10 +241,6 @@ function showSelection(uid: string | null) {
   shownSelectedUid = uid
   if (previous) movePin(previous, false)
   if (uid) movePin(uid, true)
-}
-
-function escapeHtml(value: string): string {
-  return value.replace(/[&<>"]/g, (c) => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c] ?? c))
 }
 
 watch(() => props.stations, showStations)

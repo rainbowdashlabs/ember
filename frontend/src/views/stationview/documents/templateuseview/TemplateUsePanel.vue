@@ -78,7 +78,7 @@ const issuers = computed(() => props.members.map(fromMember))
         {{ t('documentTemplates.backToList') }}
       </SecondaryButton>
       <PrimaryButton :icon="['fas', 'floppy-disk']" :disabled="saving" data-testid="template-use-save" @click="emit('save')">
-        {{ t('documentTemplates.save') }}
+        {{ t('common.save') }}
       </PrimaryButton>
     </ButtonRow>
   </NeutralContainer>

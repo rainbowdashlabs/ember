@@ -13,41 +13,40 @@ import {documentTemplates} from '@/api'
 import type {GenerationJobSummary} from '@/api/generated/schema'
 import {isRunning} from '@/components/documents/bulk/bulkGeneration'
 import {describeFailure, type Failure} from '@/util/failure'
+import {type PollOutcome, useBackingOffPoll} from '@/composables/useBackingOffPoll'
 import GenerationJobRow from './GenerationJobRow.vue'
 
 /**
  * The latest runs that generate a template for many members, newest first. The runs go on in the
  * background, so the list is read from the server: it survives a reload, and while a run is still
- * generating the list is read again every few seconds.
+ * generating the list is read again every few seconds, more slowly when the server asks for it.
  */
 const {t} = useI18n()
 
-const POLL_MS = 3000
-
 const jobs = ref<GenerationJobSummary[]>([])
 const failure = ref<Failure | null>(null)
-let timer: ReturnType<typeof setTimeout> | null = null
 
-async function load() {
+async function fetchJobs(): Promise<PollOutcome> {
   try {
     jobs.value = await documentTemplates.listJobs()
     failure.value = null
   } catch (e) {
     failure.value = describeFailure(e, t)
+    throw e
   }
-  schedule()
+  return jobs.value.some(isRunning) ? 'again' : 'stop'
 }
 
-function schedule() {
-  if (timer) clearTimeout(timer)
-  timer = jobs.value.some(isRunning) ? setTimeout(load, POLL_MS) : null
+const poll = useBackingOffPoll(fetchJobs)
+
+async function load() {
+  poll.stop()
+  await fetchJobs().catch(() => undefined)
+  if (jobs.value.some(isRunning)) poll.start()
 }
 
 onMounted(load)
-onBeforeUnmount(() => {
-  if (timer) clearTimeout(timer)
-  timer = null
-})
+onBeforeUnmount(poll.stop)
 
 defineExpose({reload: load})
 </script>

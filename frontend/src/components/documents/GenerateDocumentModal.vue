@@ -134,7 +134,7 @@ watchDebounced(issuer, () => {
         <SecondaryButton @click="open = false">{{ t('common.cancel') }}</SecondaryButton>
         <PrimaryButton :icon="['fas', 'file-circle-plus']" :disabled="!preview || filing.running.value"
                        data-testid="generate-file" @click="filing.run()">
-          {{ preview && preview.missing.length > 0 ? t('documentTemplates.generateAnyway') : t('documentTemplates.generate') }}
+          {{ preview && preview.missing.length > 0 ? t('documentTemplates.generateAnyway') : t('common.create') }}
         </PrimaryButton>
       </ButtonRow>
     </div>

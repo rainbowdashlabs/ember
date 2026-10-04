@@ -2525,7 +2525,6 @@ export default {
         licenceHint: 'Für die Lizenz der Schrift seid ihr selbst verantwortlich. Der Vorlageneditor lädt die Schrift, '
             + 'damit Text dort in ihr erscheint. Schriften, deren Lizenz das Einbetten in Dokumente verbietet, nimmt '
             + 'Ember nicht an.',
-        upload: 'Hochladen',
         uploaded: 'Schrift hochgeladen.',
         ownTitle: 'Eigene Schriften',
         none: 'Noch keine Schriften hochgeladen.',
@@ -2562,10 +2561,8 @@ export default {
         empty: 'Noch wurde kein Dokument aus einer Vorlage erstellt.',
     },
     documentTemplates: {
-        tabGeneral: 'Allgemein',
         tabLetter: 'Brief',
         tabSelfService: 'Selbst erstellen',
-        tabPreview: 'Vorschau',
         tabPdf: 'PDF und Felder',
         saved: 'Vorlage gespeichert.',
         archived: 'Vorlage archiviert.',
@@ -2584,7 +2581,6 @@ export default {
         backToList: 'Zur Übersicht',
         archive: 'Archivieren',
         restore: 'Wieder verwenden',
-        save: 'Speichern',
         create: 'Neuer Brief',
         createPdf: 'Neue PDF-Vorlage',
         kindColumn: 'Art',
@@ -2622,10 +2618,8 @@ export default {
         },
         dateFormat: {
             title: 'Format für „{name}"',
-            back: 'Zurück',
             own: 'Eigenes Format',
             ownPrompt: 'z. B. TT.MM.JJJJ',
-            insert: 'Einfügen',
             preview: 'So sieht es aus: {example}',
             tokens: 'T Tag, M Monat, J Jahr, h Stunde, mm Minute. Dazwischen Leerzeichen und . , : / -',
             problem: {
@@ -2680,7 +2674,6 @@ export default {
         previewMemberHelp: 'Ohne Mitglied zeigt die Vorschau die Platzhalter mit ihrem Namen.',
         previewWithoutMember: 'Ohne Mitglied',
         showPreview: 'Vorschau zeigen',
-        preview: 'Vorschau',
         generated: 'Dokument erstellt und abgelegt.',
         missingValues: 'Es fehlen Angaben: {values}. Ein Brief zeigt dort Linien zum Ausfüllen, ein PDF lässt die Stellen leer.',
         unprintable: 'Diese Zeichen kann keine Schrift drucken, sie fehlen im Dokument: {characters}',
@@ -2693,7 +2686,6 @@ export default {
         pdfReplaceHint: 'Eine neue Fassung behält alle Felder. Prüfe danach, ob sie noch richtig sitzen. Schon erstellte Dokumente bleiben, wie sie sind.',
         pdfUploaded: 'PDF hochgeladen.',
         fieldsStranded: '{count} Felder liegen auf Seiten, die das PDF nicht mehr hat.',
-        removeStranded: 'Entfernen',
         pageOf: 'Seite {page} von {count}',
         fieldKind: {
             TEXT: 'Textfeld',
@@ -2733,7 +2725,6 @@ export default {
         noTemplates: 'Die Wache hat noch keine Vorlage.',
         template: 'Vorlage',
         chooseTemplate: 'Vorlage wählen',
-        generate: 'Erstellen',
         generateAnyway: 'Trotzdem erstellen',
         selfServiceCreate: 'Dokument erstellen',
         availableFrom: 'Wieder möglich ab {date}',
@@ -2761,7 +2752,6 @@ export default {
             audience: 'Für wen',
             audienceHelp: 'Ohne Auswahl wird das Dokument für alle aktuellen Mitglieder erstellt.',
             chosenMembers: '{count} Mitglieder aus der Liste ausgewählt.',
-            preview: 'Vorschau',
             start: 'Erstellen starten',
             acceptMissing: 'Auch bei fehlenden Angaben erstellen',
             acceptMissingHint: 'Fehlende Angaben stehen dann als Linien zum Ausfüllen im Dokument. Sonst wird für diese Mitglieder nichts abgelegt, und sie stehen mit dem Grund in der Ergebnisliste.',
@@ -3154,7 +3144,6 @@ export default {
             generated: 'Erstellt am {date}',
             notGenerated: 'Noch nicht erstellt',
             outdated: 'Vorlage geändert, wird neu erstellt',
-            download: 'Herunterladen',
         },
         register: 'Anmelden',
         answerFor: 'Für wen zusagen?',

@@ -5,7 +5,7 @@
  */
 import type {AllEventRestrictions} from '@/api/events'
 import type {MemberGroup, RestrictionAudience, UserTag} from '@/api/generated/schema'
-import {StationUserTypeLabels} from '@/api/types'
+import {restrictionLabels} from '@/components/input/restriction'
 
 /** The slice of vue-i18n's translate this module needs: plain, interpolated and pluralised. */
 type Translate = (key: string, arg?: number | Record<string, unknown>) => string
@@ -57,14 +57,10 @@ export function registrationAudienceNote(
     if (JSON.stringify(register) === JSON.stringify(view)) return null
 
     const or = t('eventsUpcoming.audienceOr')
-    const parts: string[] = []
-    const typeLabels = register.userTypes
-        .map(ut => StationUserTypeLabels[ut])
-    if (typeLabels.length > 0) parts.push(typeLabels.join(or))
-    const groupNames = register.groupIds.map(id => groups.find(g => g.id === id)?.name ?? `#${id}`)
-    if (groupNames.length > 0) parts.push(groupNames.join(or))
-    const tagNames = register.tagIds.map(id => tags.find(tag => tag.id === id)?.name ?? `#${id}`)
-    if (tagNames.length > 0) parts.push(tagNames.join(or))
+    const labels = restrictionLabels(register, groups, tags)
+    const parts = [labels.userTypes, labels.groups, labels.tags]
+        .filter(names => names.length > 0)
+        .map(names => names.join(or))
 
     let audience = parts.join(entry.register.mode === 'OR' ? or : t('eventsUpcoming.audienceAnd'))
     if (register.memberIds.length > 0) {

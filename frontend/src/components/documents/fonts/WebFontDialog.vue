@@ -65,7 +65,7 @@ function submit() {
         <SecondaryButton data-cancel :disabled="busy" @click="emit('close')">{{ t('common.cancel') }}</SecondaryButton>
         <PrimaryButton data-confirm :icon="['fas', 'upload']" :disabled="!ready || busy" data-testid="web-font-submit"
                        @click="submit">
-          {{ t('documentFonts.upload') }}
+          {{ t('common.upload') }}
         </PrimaryButton>
       </ButtonRow>
     </div>

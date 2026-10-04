@@ -130,7 +130,7 @@ watch([templateId, audience, issuer], () => {
         <SecondaryButton @click="open = false">{{ t('common.cancel') }}</SecondaryButton>
         <SecondaryButton :icon="['fas', 'eye']" :disabled="templateId === null || looking.running.value"
                          data-testid="bulk-preview" @click="looking.run()">
-          {{ t('documentTemplates.bulk.preview') }}
+          {{ t('common.preview') }}
         </SecondaryButton>
         <PrimaryButton :icon="['fas', 'file-circle-plus']" :disabled="!preview || starting.running.value"
                        data-testid="bulk-start" @click="starting.run()">

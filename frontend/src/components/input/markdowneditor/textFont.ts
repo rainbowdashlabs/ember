@@ -5,7 +5,7 @@
  */
 import {Mark, mergeAttributes} from '@tiptap/vue-3'
 import type TurndownService from 'turndown'
-import {escapeHtml} from './escapeHtml'
+import {escapeHtml, unescapeHtml} from '@/util/html'
 
 /** The name the mark goes by in the editor, for setting, removing and reading it. */
 export const TEXT_FONT = 'textFont'
@@ -63,11 +63,6 @@ export const TextFont = Mark.create<TextFontOptions>({
 })
 
 const STORED_FAMILY = /<span data-font="([^"]*)">/g
-
-/** Reads a family back as {@link escapeHtml} wrote it into the stored markdown. */
-function unescapeHtml(text: string): string {
-    return text.replace(/&quot;/g, '"').replace(/&gt;/g, '>').replace(/&lt;/g, '<').replace(/&amp;/g, '&')
-}
 
 /** The families words of a stored text are set in, each as often as it is named. */
 export function familiesIn(markdown: string): string[] {

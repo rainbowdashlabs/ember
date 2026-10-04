@@ -9,7 +9,7 @@ import { useI18n } from 'vue-i18n'
 import TextInput from '@/components/input/text/TextInput.vue'
 import ColorPickerInput from '@/components/input/ColorPickerInput.vue'
 import FloatingPanel from '@/components/feedback/FloatingPanel.vue'
-import { asHex, hexColor } from './colorHex'
+import { cssColorHex, hexCode } from '@/util/contrastColor'
 
 /**
  * A colour entry of the editor's menu: a button opening a panel of swatches, a field for a hex code
@@ -43,11 +43,11 @@ const { t } = useI18n()
 
 const hex = ref('')
 const spectrum = ref('#000000')
-const hexInvalid = computed(() => hex.value.trim() !== '' && hexColor(hex.value) === null)
+const hexInvalid = computed(() => hex.value.trim() !== '' && hexCode(hex.value) === null)
 
 watch(open, isOpen => {
   if (!isOpen) return
-  const current = asHex(props.current)
+  const current = cssColorHex(props.current)
   hex.value = current ?? ''
   spectrum.value = current ?? '#000000'
 })
@@ -58,11 +58,11 @@ function pickSwatch(color: string) {
 }
 
 function applyHex(close: boolean) {
-  const color = hexColor(hex.value)
+  const color = hexCode(hex.value)
   if (!color) return
   hex.value = color
   spectrum.value = color
-  if (color !== asHex(props.current)) emit('pick', color)
+  if (color !== cssColorHex(props.current)) emit('pick', color)
   if (close) open.value = false
 }
 

@@ -108,7 +108,7 @@ function removeChosen() {
     <Alert v-if="stranded > 0" variant="error" data-testid="pdf-fields-stranded">
       <div class="flex flex-wrap items-center justify-between gap-2">
         <span>{{ t('documentTemplates.fieldsStranded', {count: stranded}) }}</span>
-        <SecondaryButton :icon="['fas', 'trash']" @click="removeStranded">{{ t('documentTemplates.removeStranded') }}</SecondaryButton>
+        <SecondaryButton :icon="['fas', 'trash']" @click="removeStranded">{{ t('common.remove') }}</SecondaryButton>
       </div>
     </Alert>
     <template v-if="source">
