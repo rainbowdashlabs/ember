@@ -14,6 +14,8 @@ import RecordTable from '@/components/table/RecordTable.vue'
 import TableColumnPicker from '@/components/table/TableColumnPicker.vue'
 import {documentTemplates} from '@/api'
 import type {GeneratedDocumentEntry} from '@/api/generated/schema'
+import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useDataTable} from '@/composables/useDataTable'
 import {generatedColumns} from './generatedview/generatedColumns'
@@ -23,11 +25,25 @@ import {generatedColumns} from './generatedview/generatedColumns'
  * and which version of it, and who generated it when. A template change never rewrites a document, so
  * the version says which wording a member holds.
  */
+const PAGE_SIZE = 500
+
 const {t} = useI18n()
 const entries = ref<GeneratedDocumentEntry[]>([])
+const more = ref(false)
+
+async function nextPage(): Promise<GeneratedDocumentEntry[]> {
+  const page = await documentTemplates.generationLog(PAGE_SIZE, entries.value.length)
+  more.value = page.length === PAGE_SIZE
+  return page
+}
 
 const {loading, failure} = useAsyncLoader(async () => {
-  entries.value = await documentTemplates.generationLog()
+  entries.value = []
+  entries.value = await nextPage()
+})
+
+const loadingMore = useAsyncAction(async () => {
+  entries.value = [...entries.value, ...await nextPage()]
 })
 
 const table = useDataTable<GeneratedDocumentEntry>({
@@ -52,6 +68,15 @@ const table = useDataTable<GeneratedDocumentEntry>({
           <EmptyState>{{ t('generatedDocuments.empty') }}</EmptyState>
         </template>
       </RecordTable>
+      <FailureAlert :failure="loadingMore.failure.value"/>
+      <SecondaryButton
+          v-if="!loading && more"
+          :disabled="loadingMore.running.value"
+          data-testid="generated-documents-more"
+          @click="loadingMore.run()"
+      >
+        {{ t('generatedDocuments.loadMore') }}
+      </SecondaryButton>
     </div>
   </ViewContent>
 </template>

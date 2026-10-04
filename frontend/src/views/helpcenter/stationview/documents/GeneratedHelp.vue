@@ -26,6 +26,7 @@ const {t} = useI18n()
     <HelpSection :title="t('helpCenter.generatedDocuments.howTo')">
       <p>{{ t('helpCenter.generatedDocuments.howToText') }}</p>
       <p>{{ t('helpCenter.generatedDocuments.goneText') }}</p>
+      <p>{{ t('helpCenter.generatedDocuments.pagesText') }}</p>
     </HelpSection>
 
     <HelpTip>{{ t('helpCenter.generatedDocuments.tip') }}</HelpTip>

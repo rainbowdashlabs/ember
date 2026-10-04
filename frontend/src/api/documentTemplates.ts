@@ -194,9 +194,9 @@ export async function listJobs(): Promise<GenerationJobSummary[]> {
     return res.data
 }
 
-/** Every document the station generated from a template, the newest first. */
-export async function generationLog(): Promise<GeneratedDocumentEntry[]> {
-    const res = await client.get<GeneratedDocumentEntry[]>('/document-generation/log')
+/** One page of the documents the station generated from a template, the newest first. */
+export async function generationLog(limit: number, offset: number): Promise<GeneratedDocumentEntry[]> {
+    const res = await client.get<GeneratedDocumentEntry[]>('/document-generation/log', {params: {limit, offset}})
     return res.data
 }
 

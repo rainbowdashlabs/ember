@@ -2550,6 +2550,7 @@ export default {
         webRemoved: 'Webfassung entfernt.',
     },
     generatedDocuments: {
+        loadMore: 'Ältere laden',
         member: 'Mitglied',
         template: 'Vorlage',
         generatedBy: 'Erstellt von',

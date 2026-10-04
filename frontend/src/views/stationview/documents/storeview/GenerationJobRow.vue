@@ -43,7 +43,7 @@ function toggle() {
   if (opened.value) void reading.run()
 }
 
-watch(() => doneOf(props.job), () => {
+watch([() => props.job.failed, running], () => {
   if (opened.value) void reading.run()
 })
 </script>

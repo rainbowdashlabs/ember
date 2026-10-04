@@ -2068,6 +2068,8 @@ volumes:
                 + 'selbst erstellten Dokumenten. Über das Spalten-Symbol blendest du Spalten ein und aus.',
             goneText: 'Ist ein Mitglied gelöscht, steht dort „Nicht mehr da". „In den Dokumenten" sagt, ob das '
                 + 'Dokument noch abgelegt ist.',
+            pagesText: 'Die Liste zeigt zuerst die 500 neuesten Dokumente. Mit „Ältere laden" kommen die nächsten '
+                + 'dazu; Suche und Filter wirken auf alles, was geladen ist.',
             rightsText: 'Die Liste sieht, wer „Mitgliederdokumente einsehen" hat.',
             tip: 'Willst du ein Dokument erneut erstellen, öffne die Seite des Mitglieds und wähle „Dokument '
                 + 'erstellen".',
