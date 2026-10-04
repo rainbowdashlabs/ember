@@ -100,16 +100,17 @@ public class ClusterProfileFieldService {
             boolean keepOnArchive,
             @Nullable Integer stationGroupId) {
         requireCluster(clusterId);
-        String chosen = checkedName(clusterId, name, fieldType, config);
+        var stored = config.withPronounsOfItsAnswers();
+        String chosen = checkedName(clusterId, name, fieldType, stored);
         genders.requireAllowed(
-                new Owner.Association(clusterId), new FieldDraft(chosen, fieldType, config, false), null, 0);
+                new Owner.Association(clusterId), new FieldDraft(chosen, fieldType, stored, false), null, 0);
         requireOwnGroup(clusterId, stationGroupId);
         requireReachesNobodyTwice(clusterId, null, chosen, stationGroupId);
         ClusterProfileField field = fieldRepository.create(
                 clusterId,
                 chosen,
                 fieldType,
-                config,
+                stored,
                 required,
                 readonly,
                 width,
@@ -179,10 +180,11 @@ public class ClusterProfileFieldService {
         ClusterProfileField existing = requireField(clusterId, fieldId);
         boolean unnamedSpacer = fieldType == FieldType.SPACER && (name == null || name.isBlank());
         String kept = unnamedSpacer ? existing.name() : name;
-        String chosen = checkedName(clusterId, kept, fieldType, config);
+        var stored = config.withPronounsOfItsAnswers();
+        String chosen = checkedName(clusterId, kept, fieldType, stored);
         genders.requireAllowed(
                 new Owner.Association(clusterId),
-                new FieldDraft(chosen, fieldType, config, false),
+                new FieldDraft(chosen, fieldType, stored, false),
                 existing.fieldType(),
                 fieldId);
         requireOwnGroup(clusterId, stationGroupId);
@@ -191,7 +193,7 @@ public class ClusterProfileFieldService {
                 fieldId,
                 chosen,
                 fieldType,
-                config,
+                stored,
                 required,
                 readonly,
                 width,

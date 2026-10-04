@@ -10961,6 +10961,33 @@
         }
       }
     },
+    "/api/v1/cluster/document-placeholders/date-format" : {
+      "post" : {
+        "summary" : "The example day in an own date format of an association's template, or why it cannot be printed",
+        "tags" : [ "Cluster" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DateFormatCheck"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/DateFormatCheckRequest"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/cluster/document-template-import" : {
       "post" : {
         "summary" : "Read the body of a Word or OpenDocument text into a letter template of the association",
@@ -14670,6 +14697,33 @@
                 "schema" : {
                   "$ref" : "#/components/schemas/PlaceholderCatalogueResponse"
                 }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/document-placeholders/date-format" : {
+      "post" : {
+        "summary" : "The example day in an own date format, or why the format cannot be printed",
+        "tags" : [ "Documents" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DateFormatCheck"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/DateFormatCheckRequest"
               }
             }
           }
@@ -34042,6 +34096,27 @@
         } ]
       }
     },
+    "/api/v1/pronoun-presets" : {
+      "get" : {
+        "summary" : "The languages a gender field gives pronouns in, with the roles each tells apart and the two predefined answers",
+        "tags" : [ "Profile Fields" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/PronounLanguage"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/protocols" : {
       "post" : {
         "responses" : {
@@ -49494,6 +49569,39 @@
         },
         "required" : [ "kind" ]
       },
+      "DateFormatCheck" : {
+        "type" : "object",
+        "properties" : {
+          "example" : {
+            "type" : [ "string", "null" ]
+          },
+          "problem" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/DateFormatProblem"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "detail" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "example", "problem", "detail" ]
+      },
+      "DateFormatCheckRequest" : {
+        "type" : "object",
+        "properties" : {
+          "pattern" : {
+            "type" : "string"
+          },
+          "language" : {
+            "$ref" : "#/components/schemas/DocumentLanguage"
+          },
+          "clock" : {
+            "type" : "boolean"
+          }
+        }
+      },
       "DateFormatOption" : {
         "type" : "object",
         "properties" : {
@@ -49512,9 +49620,31 @@
         },
         "required" : [ "written", "kind", "german", "english" ]
       },
+      "DateFormatProblem" : {
+        "type" : "string",
+        "enum" : [ "EMPTY", "TOO_LONG", "UNKNOWN", "NO_TOKEN", "CLOCK" ]
+      },
       "DateKind" : {
         "type" : "string",
         "enum" : [ "DATE", "DATE_TIME" ]
+      },
+      "DateTokenOption" : {
+        "type" : "object",
+        "properties" : {
+          "written" : {
+            "type" : "string"
+          },
+          "clock" : {
+            "type" : "boolean"
+          },
+          "german" : {
+            "type" : "string"
+          },
+          "english" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "written", "clock", "german", "english" ]
       },
       "DateValue" : {
         "type" : "object",
@@ -58009,6 +58139,29 @@
         },
         "required" : [ "marginTopMm", "marginBottomMm", "marginLeftMm", "marginRightMm", "fontSizePt", "bodyFont", "headerFont", "footerFont" ]
       },
+      "LetterPart" : {
+        "type" : "string",
+        "enum" : [ "LETTERHEAD", "BODY" ]
+      },
+      "LetterPartRules" : {
+        "type" : "object",
+        "properties" : {
+          "part" : {
+            "$ref" : "#/components/schemas/LetterPart"
+          },
+          "maxColumns" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "kinds" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/CellContentType"
+            }
+          }
+        },
+        "required" : [ "part", "maxColumns", "kinds" ]
+      },
       "Likert" : {
         "type" : "object",
         "properties" : {
@@ -63277,11 +63430,23 @@
               "$ref" : "#/components/schemas/DateFormatOption"
             }
           },
+          "dateTokens" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/DateTokenOption"
+            }
+          },
+          "letterParts" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/LetterPartRules"
+            }
+          },
           "language" : {
             "$ref" : "#/components/schemas/DocumentLanguage"
           }
         },
-        "required" : [ "placeholders", "dateFormats", "language" ]
+        "required" : [ "placeholders", "dateFormats", "dateTokens", "letterParts", "language" ]
       },
       "PlaceholderCategory" : {
         "type" : "string",
@@ -64319,6 +64484,34 @@
           }
         },
         "required" : [ "memberId", "fieldId", "value" ]
+      },
+      "PronounLanguage" : {
+        "type" : "object",
+        "properties" : {
+          "language" : {
+            "$ref" : "#/components/schemas/DocumentLanguage"
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "roles" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/PronounRole"
+            }
+          },
+          "male" : {
+            "$ref" : "#/components/schemas/PronounSet"
+          },
+          "female" : {
+            "$ref" : "#/components/schemas/PronounSet"
+          }
+        },
+        "required" : [ "language", "code", "roles", "male", "female" ]
+      },
+      "PronounRole" : {
+        "type" : "string",
+        "enum" : [ "SUBJECT", "OBJECT", "DATIVE", "POSSESSIVE" ]
       },
       "PronounSet" : {
         "type" : "object",

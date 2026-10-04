@@ -68,7 +68,8 @@ class AssociationDocumentTemplateRoutesTest {
         when(templates.update(any(), anyInt(), any(), anyInt())).thenReturn(template);
         when(templates.setArchived(any(), anyInt(), anyBoolean(), anyInt())).thenReturn(template);
         when(templates.catalogue(any()))
-                .thenReturn(new PlaceholderCatalogueResponse(List.of(), List.of(), DocumentLanguage.DE));
+                .thenReturn(new PlaceholderCatalogueResponse(
+                        List.of(), List.of(), List.of(), List.of(), DocumentLanguage.DE));
         when(generation.previewAssociationDraft(any(), any(), any(), any()))
                 .thenReturn(new PreviewResponse("JVBER", List.of(), List.of(), null));
         when(imports.read(any(LetterImportService.Importer.class), any()))
@@ -93,6 +94,13 @@ class AssociationDocumentTemplateRoutesTest {
             assertEquals(
                     200,
                     client.get(PREFIX + "/cluster/document-placeholders", editor)
+                            .code());
+            assertEquals(
+                    200,
+                    client.post(
+                                    PREFIX + "/cluster/document-placeholders/date-format",
+                                    body("{\"pattern\": \"JJJJ\", \"language\": \"EN\", \"clock\": false}"),
+                                    editor)
                             .code());
             assertEquals(
                     201,

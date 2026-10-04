@@ -11,6 +11,8 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.DocumentRefusal;
+import dev.chojo.ember.feature.generator.entity.DateFormatCheck;
+import dev.chojo.ember.feature.generator.entity.DateFormatCheckRequest;
 import dev.chojo.ember.feature.generator.service.DocumentTemplateCopyService;
 import dev.chojo.ember.feature.generator.service.DocumentTemplateCopyService.DocumentTemplateCopy;
 import dev.chojo.ember.feature.generator.service.DocumentTemplateCopyService.DocumentTemplateCopyRequest;
@@ -76,6 +78,10 @@ public class DocumentTemplateRoutes implements Routes {
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/document-placeholders", this::catalogue, StationPermission.DOCUMENT_TEMPLATE_EDIT);
+        routes.post(
+                prefix + "/document-placeholders/date-format",
+                this::checkDateFormat,
+                StationPermission.DOCUMENT_TEMPLATE_EDIT);
         routes.post(prefix + "/document-template-import", this::importLetter, StationPermission.DOCUMENT_TEMPLATE_EDIT);
         routes.get(prefix + "/document-templates", this::list, StationPermission.DOCUMENT_TEMPLATE_EDIT);
         routes.post(prefix + "/document-templates", this::create, StationPermission.DOCUMENT_TEMPLATE_EDIT);
@@ -167,6 +173,17 @@ public class DocumentTemplateRoutes implements Routes {
                             content = @OpenApiContent(from = PlaceholderCatalogueResponse.class)))
     private void catalogue(Context ctx) {
         ctx.json(templates.catalogue(StationSession.from(ctx).owner()));
+    }
+
+    @OpenApi(
+            path = "/api/v1/document-placeholders/date-format",
+            methods = HttpMethod.POST,
+            summary = "The example day in an own date format, or why the format cannot be printed",
+            tags = {"Documents"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = DateFormatCheckRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = DateFormatCheck.class)))
+    private void checkDateFormat(Context ctx) {
+        ctx.json(ctx.bodyAsClass(DateFormatCheckRequest.class).check());
     }
 
     @OpenApi(

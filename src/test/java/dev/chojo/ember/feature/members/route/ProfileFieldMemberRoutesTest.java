@@ -74,6 +74,15 @@ class ProfileFieldMemberRoutesTest {
     }
 
     @Test
+    void anyoneSignedInReadsThePronounPresets() {
+        var session = TestSessions.member(STATION, StationPermission.USER);
+
+        var answered = harness.request(client -> client.get(PREFIX + "/pronoun-presets", harness.as(session)));
+
+        assertEquals(200, answered.code());
+    }
+
+    @Test
     void aMembersAnswersAndQuestionsAreReadAtTheirStationOnly() {
         var session = TestSessions.member(STATION, StationPermission.USER, StationPermission.MEMBER_READ);
 

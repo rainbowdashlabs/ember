@@ -2623,10 +2623,10 @@ export default {
             preview: 'So sieht es aus: {example}',
             tokens: 'T Tag, M Monat, J Jahr, h Stunde, mm Minute. Dazwischen Leerzeichen und . , : / -',
             problem: {
-                tooLong: 'Ein Format hat höchstens {max} Zeichen.',
-                unknown: '„{detail}" kennt das Format nicht.',
-                noToken: 'Das Format braucht mindestens Tag, Monat, Jahr oder Uhrzeit.',
-                clock: 'Dieses Datum hat keine Uhrzeit.',
+                TOO_LONG: 'Ein Format hat höchstens {detail} Zeichen.',
+                UNKNOWN: '„{detail}" kennt das Format nicht.',
+                NO_TOKEN: 'Das Format braucht mindestens Tag, Monat, Jahr oder Uhrzeit.',
+                CLOCK: 'Dieses Datum hat keine Uhrzeit.',
             },
         },
         bodyTitle: 'Text',
@@ -3503,16 +3503,16 @@ export default {
                 OWN: 'Eigene Pronomen',
             },
             role: {
-                de: {
-                    subject: 'Deutsch: wer (er)',
-                    object: 'Deutsch: wen (ihn)',
-                    dative: 'Deutsch: wem (ihm)',
-                    possessive: 'Deutsch: wessen (sein)',
+                DE: {
+                    SUBJECT: 'Deutsch: wer (er)',
+                    OBJECT: 'Deutsch: wen (ihn)',
+                    DATIVE: 'Deutsch: wem (ihm)',
+                    POSSESSIVE: 'Deutsch: wessen (sein)',
                 },
-                en: {
-                    subject: 'Englisch: wer (he)',
-                    object: 'Englisch: wen und wem (him)',
-                    possessive: 'Englisch: wessen (his)',
+                EN: {
+                    SUBJECT: 'Englisch: wer (he)',
+                    OBJECT: 'Englisch: wen und wem (him)',
+                    POSSESSIVE: 'Englisch: wessen (his)',
                 },
             },
         },

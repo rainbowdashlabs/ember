@@ -5,10 +5,9 @@
  */
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
-import {DateKind, type DateFormatOption, type DocumentLanguage, type Placeholder} from '@/api/generated/schema'
+import {DateKind, type DateFormatOption, type Placeholder} from '@/api/generated/schema'
 import BaseButton from '@/components/button/BaseButton.vue'
-import {compileDateFormat} from '@/util/dateFormatPattern'
-import {exampleOf, presetPattern} from './placeholderDates'
+import {exampleIn, presetPattern, type PlaceholderDates} from './placeholderDates'
 import PlaceholderOwnDateFormat from './PlaceholderOwnDateFormat.vue'
 import PlaceholderRow from './PlaceholderRow.vue'
 
@@ -20,7 +19,7 @@ import PlaceholderRow from './PlaceholderRow.vue'
 const props = defineProps<{
   placeholder: Placeholder
   formats: DateFormatOption[]
-  language: DocumentLanguage
+  dates: PlaceholderDates
 }>()
 
 const emit = defineEmits<{
@@ -31,7 +30,7 @@ const emit = defineEmits<{
 const {t} = useI18n()
 
 function example(option: DateFormatOption): string {
-  return exampleOf(compileDateFormat(presetPattern(option, props.language)), props.language) ?? option.written
+  return exampleIn(presetPattern(option, props.dates.language), props.dates) ?? option.written
 }
 </script>
 
@@ -46,11 +45,11 @@ function example(option: DateFormatOption): string {
     </div>
     <ul class="grid gap-0.5 sm:grid-cols-2">
       <li v-for="option in formats" :key="option.written">
-        <PlaceholderRow :name="example(option)" :branch="false" :detail="presetPattern(option, language)"
+        <PlaceholderRow :name="example(option)" :branch="false" :detail="presetPattern(option, dates.language)"
                         :data-testid="`placeholder-date-${option.written}`" @choose="emit('choose', option.written)"/>
       </li>
     </ul>
-    <PlaceholderOwnDateFormat :clock="placeholder.dateKind === DateKind.DATE_TIME" :language="language"
+    <PlaceholderOwnDateFormat :clock="placeholder.dateKind === DateKind.DATE_TIME" :check="dates.check"
                               @choose="format => emit('choose', format)"/>
   </div>
 </template>

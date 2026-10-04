@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.generator.service;
 
 import dev.chojo.ember.feature.generator.entity.DocumentLanguage;
 import dev.chojo.ember.feature.generator.entity.PronounKey;
+import dev.chojo.ember.feature.generator.entity.PronounRole;
 import dev.chojo.ember.feature.members.entity.PronounSet;
 import org.jspecify.annotations.Nullable;
 
@@ -43,13 +44,9 @@ public final class Pronouns {
                 case SUBJECT, OBJECT, DATIVE -> firstName;
             };
         }
-        String word =
-                switch (pronoun.role()) {
-                    case SUBJECT -> words.subjectWord();
-                    case OBJECT -> words.objectWord();
-                    case DATIVE -> words.dativeWord();
-                    case POSSESSIVE -> words.possessiveWord() + pronoun.ending().suffix();
-                };
+        String ending =
+                pronoun.role() == PronounRole.POSSESSIVE ? pronoun.ending().suffix() : "";
+        String word = pronoun.role().wordIn(words) + ending;
         return pronoun.sentenceStart() ? capitalised(word) : word;
     }
 

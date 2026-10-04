@@ -6,10 +6,12 @@
 package dev.chojo.ember.feature.generator.service;
 
 import dev.chojo.ember.api.refusal.DocumentRefusal;
+import dev.chojo.ember.feature.content.entity.CellContentType;
 import dev.chojo.ember.feature.content.entity.ContentRow;
 import dev.chojo.ember.feature.generator.entity.DateFormat;
 import dev.chojo.ember.feature.generator.entity.DateKind;
 import dev.chojo.ember.feature.generator.entity.DatePreset;
+import dev.chojo.ember.feature.generator.entity.DateToken;
 import dev.chojo.ember.feature.generator.entity.DocumentLanguage;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplate;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplateDraft;
@@ -17,6 +19,7 @@ import dev.chojo.ember.feature.generator.entity.DocumentTemplateKind;
 import dev.chojo.ember.feature.generator.entity.FormBinding;
 import dev.chojo.ember.feature.generator.entity.LetterContent;
 import dev.chojo.ember.feature.generator.entity.LetterPage;
+import dev.chojo.ember.feature.generator.entity.LetterPart;
 import dev.chojo.ember.feature.generator.entity.PdfContent;
 import dev.chojo.ember.feature.generator.entity.PdfField;
 import dev.chojo.ember.feature.generator.entity.PdfLayout;
@@ -316,6 +319,8 @@ public class DocumentTemplateService {
         return new PlaceholderCatalogueResponse(
                 catalogue.forOwner(owner),
                 Arrays.stream(DatePreset.values()).map(DateFormatOption::of).toList(),
+                Arrays.stream(DateToken.values()).map(DateTokenOption::of).toList(),
+                Arrays.stream(LetterPart.values()).map(LetterPartRules::of).toList(),
                 catalogue.language(owner));
     }
 
@@ -491,11 +496,50 @@ public class DocumentTemplateService {
      *
      * @param placeholders every placeholder, in the order the picker shows them
      * @param dateFormats  the ready-made formats a date can print in, in the order the picker offers them
+     * @param dateTokens   the letters an own date format is written with, which the editor shows the
+     *                     dates of a template by
+     * @param letterParts  what each part of a letter holds, which the block editor offers
      * @param language     the language the labels are written in, which a template prints in until it
      *                     names its own
      */
     public record PlaceholderCatalogueResponse(
-            List<Placeholder> placeholders, List<DateFormatOption> dateFormats, DocumentLanguage language) {}
+            List<Placeholder> placeholders,
+            List<DateFormatOption> dateFormats,
+            List<DateTokenOption> dateTokens,
+            List<LetterPartRules> letterParts,
+            DocumentLanguage language) {}
+
+    /**
+     * What a part of a letter holds, as the block editor offers it and a template is checked against.
+     *
+     * @param part       the part
+     * @param maxColumns the most columns a row holds
+     * @param kinds      the kinds of block an empty cell offers
+     */
+    public record LetterPartRules(LetterPart part, int maxColumns, List<CellContentType> kinds) {
+        static LetterPartRules of(LetterPart part) {
+            return new LetterPartRules(part, part.maxColumns(), LetterChecks.offeredIn(part));
+        }
+    }
+
+    /**
+     * A letter of an own date format with how it prints the example day in both languages, so the editor
+     * shows any date of a template on that day in the language of the template.
+     *
+     * @param written how it is written, such as {@code TT}
+     * @param clock   whether it prints a time of day
+     * @param german  the example day as it prints in a German template
+     * @param english the same in an English template
+     */
+    public record DateTokenOption(String written, boolean clock, String german, String english) {
+        static DateTokenOption of(DateToken token) {
+            return new DateTokenOption(
+                    token.written(),
+                    token.clock(),
+                    token.example(DocumentLanguage.DE),
+                    token.example(DocumentLanguage.EN));
+        }
+    }
 
     /**
      * A ready-made date format as the editor offers it, with its tokens in both languages, so the editor

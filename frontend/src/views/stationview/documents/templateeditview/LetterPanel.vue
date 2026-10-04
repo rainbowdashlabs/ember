@@ -11,7 +11,7 @@ import ContentBlockEditor from '@/components/content/ContentBlockEditor.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import type {TemplateSource} from '@/api/documentTemplates'
-import type {ContentRow} from '@/api/generated/schema'
+import {LetterPart, type ContentRow} from '@/api/generated/schema'
 import {provideBlockEditorOptions} from '@/composables/useBlockEditorOptions'
 import {useEditorFontArea} from '@/composables/useEditorFonts'
 import {useSession} from '@/composables/useSession'
@@ -45,7 +45,7 @@ const {sessionInfo, actingStation} = useSession()
 const stationUid = computed(() => actingStation() ?? sessionInfo.value?.stationId ?? '')
 const catalogue = computed<LetterCatalogue>(() => ({...props.catalogue, legal: draft.value.legal}))
 
-provideBlockEditorOptions(() => letterBlockOptions(catalogue.value, true))
+provideBlockEditorOptions(() => letterBlockOptions(catalogue.value, LetterPart.BODY))
 const bodyFont = useEditorFontArea(() => draft.value.page.bodyFont ?? null)
 
 function imported(rows: ContentRow[]) {

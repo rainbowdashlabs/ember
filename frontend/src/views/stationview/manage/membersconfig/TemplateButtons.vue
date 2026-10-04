@@ -4,9 +4,10 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {computed} from 'vue'
+import {computed, onMounted, shallowRef} from 'vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import {fieldTemplates, type FieldTemplate} from './fieldTemplates'
+import {loadPronounOffer, type PronounOffer} from './fieldmodal/genderPronouns'
 import {useFieldsCapabilities} from '@/composables/useFieldsConfig'
 
 const emit = defineEmits<{
@@ -15,13 +16,20 @@ const emit = defineEmits<{
 
 const capabilities = useFieldsCapabilities()
 
+const offer = shallowRef<PronounOffer | null>(null)
+
+onMounted(async () => {
+  offer.value = await loadPronounOffer().catch(() => null)
+})
+
 /**
  * A template that names a type its owner may not use does not offer itself. An association may ask
  * for many things but not for a date of birth, because the station declares its own and the two would
- * collide, so the one template built on that type simply is not there.
+ * collide, so the one template built on that type simply is not there. The templates show once the
+ * server has named the pronouns the gender template carries.
  */
-const available = computed(() => fieldTemplates.filter(
-    tpl => tpl.fields.every(f => capabilities.types.includes(f.fieldType))))
+const available = computed(() => offer.value ? fieldTemplates(offer.value.presets).filter(
+    tpl => tpl.fields.every(f => capabilities.types.includes(f.fieldType))) : [])
 </script>
 
 <template>

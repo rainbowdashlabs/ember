@@ -14029,6 +14029,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/cluster/document-placeholders/date-format": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The example day in an own date format of an association's template, or why it cannot be printed */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["DateFormatCheckRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DateFormatCheck"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/cluster/document-template-import": {
         parameters: {
             query?: never;
@@ -19075,6 +19115,46 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/document-placeholders/date-format": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The example day in an own date format, or why the format cannot be printed */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["DateFormatCheckRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DateFormatCheck"];
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -43882,6 +43962,42 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/pronoun-presets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The languages a gender field gives pronouns in, with the roles each tells apart and the two predefined answers */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PronounLanguage"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/protocols": {
         parameters: {
             query?: never;
@@ -59357,6 +59473,16 @@ export interface components {
             nextDate: components["schemas"]["LocalDate"] | null;
             previousDate: components["schemas"]["LocalDate"] | null;
         };
+        DateFormatCheck: {
+            detail: string | null;
+            example: string | null;
+            problem: components["schemas"]["DateFormatProblem"] | null;
+        };
+        DateFormatCheckRequest: {
+            clock?: boolean;
+            language?: components["schemas"]["DocumentLanguage"];
+            pattern?: string;
+        };
         DateFormatOption: {
             english: string;
             german: string;
@@ -59364,7 +59490,15 @@ export interface components {
             written: string;
         };
         /** @enum {string} */
+        DateFormatProblem: "EMPTY" | "TOO_LONG" | "UNKNOWN" | "NO_TOKEN" | "CLOCK";
+        /** @enum {string} */
         DateKind: "DATE" | "DATE_TIME";
+        DateTokenOption: {
+            clock: boolean;
+            english: string;
+            german: string;
+            written: string;
+        };
         DateValue: {
             value: string;
         };
@@ -62323,6 +62457,14 @@ export interface components {
             /** Format: int32 */
             marginTopMm: number;
         };
+        /** @enum {string} */
+        LetterPart: "LETTERHEAD" | "BODY";
+        LetterPartRules: {
+            kinds: components["schemas"]["CellContentType"][];
+            /** Format: int32 */
+            maxColumns: number;
+            part: components["schemas"]["LetterPart"];
+        };
         Likert: {
             /**
              * @description discriminator enum property added by openapi-typescript
@@ -64137,7 +64279,9 @@ export interface components {
         };
         PlaceholderCatalogueResponse: {
             dateFormats: components["schemas"]["DateFormatOption"][];
+            dateTokens: components["schemas"]["DateTokenOption"][];
             language: components["schemas"]["DocumentLanguage"];
+            letterParts: components["schemas"]["LetterPartRules"][];
             placeholders: components["schemas"]["Placeholder"][];
         };
         /** @enum {string} */
@@ -64502,6 +64646,15 @@ export interface components {
             memberId: number;
             value: string;
         };
+        PronounLanguage: {
+            code: string;
+            female: components["schemas"]["PronounSet"];
+            language: components["schemas"]["DocumentLanguage"];
+            male: components["schemas"]["PronounSet"];
+            roles: components["schemas"]["PronounRole"][];
+        };
+        /** @enum {string} */
+        PronounRole: "SUBJECT" | "OBJECT" | "DATIVE" | "POSSESSIVE";
         PronounSet: {
             dative: string | null;
             object: string | null;
@@ -68542,8 +68695,12 @@ export type Date = components['schemas']['Date'];
 export type DateAnswer = components['schemas']['DateAnswer'];
 export type DateConfig = components['schemas']['DateConfig'];
 export type DatedEvent = components['schemas']['DatedEvent'];
+export type DateFormatCheck = components['schemas']['DateFormatCheck'];
+export type DateFormatCheckRequest = components['schemas']['DateFormatCheckRequest'];
 export type DateFormatOption = components['schemas']['DateFormatOption'];
+export type DateFormatProblem = components['schemas']['DateFormatProblem'];
 export type DateKind = components['schemas']['DateKind'];
+export type DateTokenOption = components['schemas']['DateTokenOption'];
 export type DateValue = components['schemas']['DateValue'];
 export type DayCount = components['schemas']['DayCount'];
 export type DeclineBody = components['schemas']['DeclineBody'];
@@ -68937,6 +69094,8 @@ export type LendingStatus = components['schemas']['LendingStatus'];
 export type LentOutItem = components['schemas']['LentOutItem'];
 export type LetterImport = components['schemas']['LetterImport'];
 export type LetterPage = components['schemas']['LetterPage'];
+export type LetterPart = components['schemas']['LetterPart'];
+export type LetterPartRules = components['schemas']['LetterPartRules'];
 export type Likert = components['schemas']['Likert'];
 export type LikertAnswer = components['schemas']['LikertAnswer'];
 export type LineCheck = components['schemas']['LineCheck'];
@@ -69244,6 +69403,8 @@ export type ProfileFieldRequest = components['schemas']['ProfileFieldRequest'];
 export type ProfileFieldScope = components['schemas']['ProfileFieldScope'];
 export type ProfileFieldTarget = components['schemas']['ProfileFieldTarget'];
 export type ProfileFieldValue = components['schemas']['ProfileFieldValue'];
+export type PronounLanguage = components['schemas']['PronounLanguage'];
+export type PronounRole = components['schemas']['PronounRole'];
 export type PronounSet = components['schemas']['PronounSet'];
 export type ProtocolChecksRequest = components['schemas']['ProtocolChecksRequest'];
 export type ProtocolDetailResponse = components['schemas']['ProtocolDetailResponse'];
@@ -69969,6 +70130,14 @@ export const CountUnit = {
     YEARS: "YEARS",
 } as const;
 
+export const DateFormatProblem = {
+    CLOCK: "CLOCK",
+    EMPTY: "EMPTY",
+    NO_TOKEN: "NO_TOKEN",
+    TOO_LONG: "TOO_LONG",
+    UNKNOWN: "UNKNOWN",
+} as const;
+
 export const DateKind = {
     DATE: "DATE",
     DATE_TIME: "DATE_TIME",
@@ -70301,6 +70470,11 @@ export const LendingStatus = {
     RETURNED: "RETURNED",
 } as const;
 
+export const LetterPart = {
+    BODY: "BODY",
+    LETTERHEAD: "LETTERHEAD",
+} as const;
+
 export const LinkType = {
     BLOCKED_BY: "BLOCKED_BY",
     BLOCKS: "BLOCKS",
@@ -70628,6 +70802,13 @@ export const ProfileFieldScope = {
 export const ProfileFieldTarget = {
     GROUP: "GROUP",
     ROLE: "ROLE",
+} as const;
+
+export const PronounRole = {
+    DATIVE: "DATIVE",
+    OBJECT: "OBJECT",
+    POSSESSIVE: "POSSESSIVE",
+    SUBJECT: "SUBJECT",
 } as const;
 
 export const PublicFormState = {

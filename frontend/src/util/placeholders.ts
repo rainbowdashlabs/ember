@@ -3,7 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {DATE_FORMAT_MAX_LENGTH} from './dateFormatPattern'
+/** The longest format after the bar of a key that is still read as one, as the server reads keys. */
+const FORMAT_READ_LENGTH = 80
 
 /** Matches `{{ name }}` with optional surrounding whitespace, mirroring the backend pattern. */
 const PLACEHOLDER = /\{\{\s*([A-Za-z0-9_.-]+)\s*}}/g
@@ -15,7 +16,7 @@ const PLACEHOLDER = /\{\{\s*([A-Za-z0-9_.-]+)\s*}}/g
  * saving.
  */
 const TEMPLATE_PLACEHOLDER = new RegExp(
-    String.raw`\{\{\s*([A-Za-z0-9_.]+)\s*(?:\|([^{}|"\\\r\n]{0,${DATE_FORMAT_MAX_LENGTH * 2}}))?}}`, 'g')
+    String.raw`\{\{\s*([A-Za-z0-9_.]+)\s*(?:\|([^{}|"\\\r\n]{0,${FORMAT_READ_LENGTH}}))?}}`, 'g')
 
 /** What stands between the key of a value and its format, as in `member.birthDate|long`. */
 export const FORMAT_SEPARATOR = '|'

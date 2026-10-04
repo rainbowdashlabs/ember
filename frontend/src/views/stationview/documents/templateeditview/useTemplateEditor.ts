@@ -63,8 +63,9 @@ async function stationChoices(): Promise<StationChoices> {
  * <p>The font pickers below draw their samples through the owner's font source, which this provides.
  * While the editor is open, the font files of the families the letter uses are loaded through the same
  * source, so its text shows in them ({@link useEditorFonts}); they go when the editor closes. The
- * placeholder pickers below get the date formats of the catalogue and the language their examples are
- * written in: the template's, or the owner's until the template names one. The labels of keys carry the
+ * placeholder pickers below get the date formats and tokens of the catalogue, the owner's check of an own
+ * format, and the language their examples are written in: the template's, or the owner's until the
+ * template names one. The labels of keys carry the
  * example of their date format the same way.
  *
  * <p>The default font is named as the owner's font list names it, which knows the font this instance
@@ -89,7 +90,9 @@ export function useTemplateEditor(
     const draft = ref<TemplateDraft>(emptyDraft(newKind.value))
     const saved = ref<DocumentTemplateResponse | null>(null)
     const pdf = shallowRef<Blob | null>(null)
-    const offer = shallowRef<PlaceholderCatalogueResponse>({placeholders: [], dateFormats: [], language: DocumentLanguage.DE})
+    const offer = shallowRef<PlaceholderCatalogueResponse>({
+        placeholders: [], dateFormats: [], dateTokens: [], letterParts: [], language: DocumentLanguage.DE,
+    })
     const catalogue = computed<Placeholder[]>(() => offer.value.placeholders)
     const placeholders = computed(() => placeholdersOfTemplate(catalogue.value, draft.value.forAppointments))
     const choices = shallowRef<StationChoices>(noChoices())
@@ -99,10 +102,15 @@ export function useTemplateEditor(
     const usedFamilies = computed(() => letterFamilies(draft.value))
     useEditorFonts(screens.fonts.file, () => fontList.value, () => usedFamilies.value)
 
-    const dates = computed<PlaceholderDates>(() => ({
-        formats: offer.value.dateFormats,
-        language: draft.value.language ?? offer.value.language,
-    }))
+    const dates = computed<PlaceholderDates>(() => {
+        const language = draft.value.language ?? offer.value.language
+        return {
+            formats: offer.value.dateFormats,
+            tokens: offer.value.dateTokens,
+            language,
+            check: (pattern, clock) => source.checkDateFormat({pattern, language, clock}),
+        }
+    })
     providePlaceholderDates(dates)
 
     const labels = computed<PlaceholderLabels>(() => placeholderLabels(catalogue.value, dates.value))
@@ -113,6 +121,7 @@ export function useTemplateEditor(
         labels: labels.value,
         choices: {groups: choices.value.groups, tags: choices.value.tags},
         fonts: fonts.value,
+        parts: offer.value.letterParts,
     }))
 
     const loader = useAsyncLoader(async () => {

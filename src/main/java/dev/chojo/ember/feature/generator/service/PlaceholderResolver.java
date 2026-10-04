@@ -564,7 +564,7 @@ public class PlaceholderResolver {
                     .pronounsOf(
                             GenderFields.answerIn(batch.answersOf(field.origin(), memberId), field)
                                     .orElse(null),
-                            language));
+                            documentLanguage));
         }
 
         private Optional<LocalDate> birthDate() {

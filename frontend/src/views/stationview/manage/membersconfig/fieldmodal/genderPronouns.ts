@@ -3,39 +3,70 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {PronounSet} from '@/api/generated/schema'
+import {PronounRole, type PronounLanguage, type PronounSet} from '@/api/generated/schema'
+import {pronounLanguages} from '@/api/profileFields'
+import {browserShallowRef} from '@/util/browserState'
 
-/** The pronouns of every answer of a gender field, by answer and then by language. */
+/** The pronouns of every answer of a gender field, by answer and then by language code. */
 export type GenderPronouns = Record<string, Record<string, PronounSet>>
 
-/** The pronouns of one answer, by language. */
+/** The pronouns of one answer, by language code. */
 export type AnswerPronouns = Record<string, PronounSet>
 
-/** The roles a pronoun plays in a sentence, as the server names them. */
-export type PronounRole = keyof PronounSet
+/** The two answers the server predefines. */
+export type PronounPreset = 'MALE' | 'FEMALE'
 
 /** What an answer stands for: one of the two predefined sets, the member's name, or words of its own. */
-export type PronounChoice = 'MALE' | 'FEMALE' | 'NAME' | 'OWN'
+export type PronounChoice = PronounPreset | 'NAME' | 'OWN'
+
+/** The word of a pronoun set each role is kept in. */
+export const ROLE_WORD: Readonly<Record<PronounRole, keyof PronounSet>> = {
+    [PronounRole.SUBJECT]: 'subject',
+    [PronounRole.OBJECT]: 'object',
+    [PronounRole.DATIVE]: 'dative',
+    [PronounRole.POSSESSIVE]: 'possessive',
+}
 
 /**
- * The languages a document is written in, with the roles each tells apart. English has no dative of its
- * own; it is left empty and the server takes the object for it.
+ * What the server offers for the pronouns of a gender field.
+ *
+ * @property languages the languages a document is written in, each with the roles it tells apart
+ * @property presets   the two predefined answers and their pronouns in every language
  */
-export const PRONOUN_LANGUAGES: readonly {language: string, roles: readonly PronounRole[]}[] = [
-    {language: 'de', roles: ['subject', 'object', 'dative', 'possessive']},
-    {language: 'en', roles: ['subject', 'object', 'possessive']},
-]
+export interface PronounOffer {
+    languages: readonly PronounLanguage[]
+    presets: Readonly<Record<PronounPreset, AnswerPronouns>>
+}
 
-/** The two answers a new gender field starts with, and the pronouns they carry in every language. */
-export const PRESETS: Readonly<Record<'MALE' | 'FEMALE', AnswerPronouns>> = {
-    MALE: {
-        de: {subject: 'er', object: 'ihn', dative: 'ihm', possessive: 'sein'},
-        en: {subject: 'he', object: 'him', dative: null, possessive: 'his'},
-    },
-    FEMALE: {
-        de: {subject: 'sie', object: 'sie', dative: 'ihr', possessive: 'ihr'},
-        en: {subject: 'she', object: 'her', dative: null, possessive: 'her'},
-    },
+/**
+ * @param languages the languages as the server sends them
+ * @returns the offer, with each predefined answer's pronouns keyed by language code as a field keeps them
+ */
+export function pronounOffer(languages: readonly PronounLanguage[]): PronounOffer {
+    return {
+        languages,
+        presets: {
+            MALE: Object.fromEntries(languages.map(entry => [entry.code, entry.male])),
+            FEMALE: Object.fromEntries(languages.map(entry => [entry.code, entry.female])),
+        },
+    }
+}
+
+const loading = browserShallowRef<Promise<PronounOffer> | null>(null)
+
+/**
+ * The server's pronoun offer, asked once per page and shared by everybody who needs it. A request that
+ * fails is asked again the next time.
+ */
+export function loadPronounOffer(): Promise<PronounOffer> {
+    if (!loading.value) {
+        const request = pronounLanguages().then(pronounOffer)
+        request.catch(() => {
+            loading.value = null
+        })
+        loading.value = request
+    }
+    return loading.value
 }
 
 function sameSet(left: PronounSet | undefined, right: PronounSet): boolean {
@@ -59,11 +90,12 @@ export function saysNothing(pronouns: AnswerPronouns | undefined): boolean {
  * What an answer's pronouns stand for, read from the words themselves.
  *
  * @param pronouns the answer's pronouns, or nothing
+ * @param presets  the two predefined answers
  */
-export function choiceOf(pronouns: AnswerPronouns | undefined): PronounChoice {
+export function choiceOf(pronouns: AnswerPronouns | undefined, presets: PronounOffer['presets']): PronounChoice {
     if (saysNothing(pronouns) || !pronouns) return 'NAME'
-    if (matches(pronouns, PRESETS.MALE)) return 'MALE'
-    if (matches(pronouns, PRESETS.FEMALE)) return 'FEMALE'
+    if (matches(pronouns, presets.MALE)) return 'MALE'
+    if (matches(pronouns, presets.FEMALE)) return 'FEMALE'
     return 'OWN'
 }
 
@@ -73,31 +105,18 @@ export function choiceOf(pronouns: AnswerPronouns | undefined): PronounChoice {
  *
  * @param choice  what was picked
  * @param current what the answer had before
+ * @param presets the two predefined answers
  */
-export function pronounsFor(choice: PronounChoice, current: AnswerPronouns | undefined): AnswerPronouns | undefined {
+export function pronounsFor(
+    choice: PronounChoice, current: AnswerPronouns | undefined, presets: PronounOffer['presets'],
+): AnswerPronouns | undefined {
     switch (choice) {
         case 'MALE':
         case 'FEMALE':
-            return structuredClone(PRESETS[choice])
+            return structuredClone(presets[choice])
         case 'NAME':
             return undefined
         case 'OWN':
             return current ? structuredClone(current) : {}
     }
-}
-
-/**
- * The pronouns as the server keeps them: only for answers the field still offers, and none for an answer
- * that uses the name.
- *
- * @param pronouns every answer's pronouns as the editor holds them
- * @param answers  the answers the field offers
- */
-export function storedPronouns(pronouns: GenderPronouns, answers: readonly string[]): GenderPronouns {
-    const stored: GenderPronouns = {}
-    for (const answer of answers) {
-        const own = pronouns[answer]
-        if (!saysNothing(own) && own) stored[answer] = own
-    }
-    return stored
 }

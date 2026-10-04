@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.content.route.BlockRowRequest;
 import dev.chojo.ember.feature.content.service.ContentBlockService;
 import dev.chojo.ember.feature.generator.entity.LetterContent;
 import dev.chojo.ember.feature.generator.entity.LetterPage;
+import dev.chojo.ember.feature.generator.entity.LetterPart;
 import dev.chojo.ember.feature.generator.entity.MemberView;
 import dev.chojo.ember.feature.generator.entity.SignatureRole;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
@@ -23,6 +24,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Stream;
@@ -42,17 +44,8 @@ import java.util.stream.Stream;
  */
 @Singleton
 public class LetterChecks {
-    /** The most columns a row of a letter's body holds. */
-    static final int MAX_COLUMNS = 3;
-
-    /** The most columns a row of the header or the footer holds, for the rare letterhead that needs four. */
-    static final int MAX_LETTERHEAD_COLUMNS = 4;
-
-    /** The longest text of a block in the header or the footer. */
-    static final int MAX_LETTERHEAD_TEXT = 600;
-
-    /** The longest text of a block in the body, which is generous for a letter of several pages. */
-    static final int MAX_BODY_TEXT = 200_000;
+    /** The longest text under a signature line, as short as a text of the header or the footer. */
+    static final int MAX_SIGNATURE_TEXT = LetterPart.LETTERHEAD.maxText();
 
     /** The most blocks a letter holds in all. */
     static final int MAX_BLOCKS = 300;
@@ -78,9 +71,9 @@ public class LetterChecks {
                 .tidied();
         if (!page.withinBounds()) throw DocumentRefusal.DOCUMENT_TEMPLATE_PAGE_OUT_OF_BOUNDS.raise();
         var letter = new LetterContent(
-                rows(stationId, request.header(), Part.LETTERHEAD),
-                rows(stationId, request.footer(), Part.LETTERHEAD),
-                rows(stationId, request.body(), Part.BODY),
+                rows(stationId, request.header(), LetterPart.LETTERHEAD),
+                rows(stationId, request.footer(), LetterPart.LETTERHEAD),
+                rows(stationId, request.body(), LetterPart.BODY),
                 page);
         long count = Stream.of(letter.header(), letter.footer(), letter.body())
                 .flatMap(LetterContent::blocks)
@@ -93,19 +86,21 @@ public class LetterChecks {
     }
 
     /**
-     * The parts of a letter, which differ in how long a text may be, how many columns a row holds and
-     * whether a signature line stands in them.
+     * The kinds of block an empty cell of a part offers: what a letter prints and the part takes, without
+     * the empty cell itself and the column a split stacks.
      *
-     * @param maxText    the longest text of a block
-     * @param maxColumns the most columns a row holds
-     * @param signatures whether signature lines stand here
+     * @param part a part of a letter
+     * @return the kinds, in the order the block types are declared
      */
-    private record Part(int maxText, int maxColumns, boolean signatures) {
-        static final Part LETTERHEAD = new Part(MAX_LETTERHEAD_TEXT, MAX_LETTERHEAD_COLUMNS, false);
-        static final Part BODY = new Part(MAX_BODY_TEXT, MAX_COLUMNS, true);
+    public static List<CellContentType> offeredIn(LetterPart part) {
+        return Arrays.stream(CellContentType.values())
+                .filter(ContentBlockService.Scope.LETTER::takes)
+                .filter(type -> type != CellContentType.EMPTY && type != CellContentType.NESTED_ROWS)
+                .filter(type -> part.signatures() || type != CellContentType.SIGNATURE)
+                .toList();
     }
 
-    private List<ContentRow> rows(int stationId, @Nullable List<BlockRowRequest> sent, Part part) {
+    private List<ContentRow> rows(int stationId, @Nullable List<BlockRowRequest> sent, LetterPart part) {
         var data = BlockRowRequest.toRowData(Objects.requireNonNullElse(sent, List.of()));
         blocks.requireFits(stationId, data, ContentBlockService.Scope.LETTER);
         var rows = ContentBlockService.rowsOf(data);
@@ -157,8 +152,8 @@ public class LetterChecks {
         if (!(cell.config() instanceof CellConfig.SignatureConfig signature) || signature.signer() == null) {
             throw DocumentRefusal.DOCUMENT_TEMPLATE_SIGNER_MISSING.raise();
         }
-        if (cell.content().length() > MAX_LETTERHEAD_TEXT) {
-            throw DocumentRefusal.DOCUMENT_TEMPLATE_TEXT_TOO_LONG.raise(RefusalDetail.count(MAX_LETTERHEAD_TEXT));
+        if (cell.content().length() > MAX_SIGNATURE_TEXT) {
+            throw DocumentRefusal.DOCUMENT_TEMPLATE_TEXT_TOO_LONG.raise(RefusalDetail.count(MAX_SIGNATURE_TEXT));
         }
     }
 
