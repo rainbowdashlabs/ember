@@ -194,16 +194,20 @@ public class BulkGenerationService {
             StationSession session, int templateId, MemberSelection selection, @Nullable IssuerChoice issuer) {
         var template = templates.requireInUse(session.stationId(), templateId);
         var memberIds = chosen(session.stationId(), selection);
-        var source = generator.sourceOf(template);
         var context =
                 GenerationContext.by(session.member().id(), issuers.forManager(template, session.stationId(), issuer));
+        var batch = generator.batch(generator.sourceOf(template), context, memberIds);
         var gaps = new ArrayList<MemberGaps>();
-        Integer first = null;
+        Integer firstId = null;
+        DocumentGeneratorService.Prepared first = null;
         for (int memberId : memberIds) {
             try {
-                var prepared = generator.prepare(source, memberId, context);
-                if (first == null) first = memberId;
-                if (prepared.resolved().missing().isEmpty()) continue;
+                var prepared = batch.prepare(memberId);
+                if (first == null) {
+                    firstId = memberId;
+                    first = prepared;
+                }
+                if (prepared.missing().isEmpty()) continue;
                 gaps.add(new MemberGaps(memberId, names.identified(memberId), prepared.missing(), null));
             } catch (RefusalResponse refused) {
                 gaps.add(new MemberGaps(
@@ -213,8 +217,8 @@ public class BulkGenerationService {
                         refused.refusal().code()));
             }
         }
-        var preview = first == null ? null : generator.preview(source, first, context);
-        return new BulkPreviewResponse(memberIds.size(), first, preview, gaps);
+        var preview = first == null ? null : batch.preview(first);
+        return new BulkPreviewResponse(memberIds.size(), firstId, preview, gaps);
     }
 
     /**
@@ -295,8 +299,9 @@ public class BulkGenerationService {
 
     private List<Integer> byName(List<Integer> memberIds) {
         var collator = Collator.getInstance(Locale.GERMAN);
+        var named = names.identified(memberIds);
         return memberIds.stream()
-                .sorted(Comparator.comparing(names::identified, collator))
+                .sorted(Comparator.comparing(named::get, collator))
                 .toList();
     }
 
