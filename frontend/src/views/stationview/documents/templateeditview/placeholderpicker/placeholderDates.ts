@@ -74,8 +74,7 @@ export function exampleOf(compiled: CompiledDateFormat, language: DocumentLangua
 
 /**
  * What every key of a template is called in the editor: the label of its value, and for a date in a
- * format the example day in that format after it, such as "Geburtsdatum (3. Oktober 2026)". The two
- * keys that named a date in one format before are called the same way.
+ * format the example day in that format after it, such as "Geburtsdatum (3. Oktober 2026)".
  *
  * @param placeholders the catalogue
  * @param dates        the ready-made formats and the template's language

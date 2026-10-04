@@ -10,7 +10,7 @@ import Td from '@/components/table/Td.vue'
 import Th from '@/components/table/Th.vue'
 import THead from '@/components/table/THead.vue'
 import TRow from '@/components/table/TRow.vue'
-import {compileDateFormat, DATE_TOKENS, exampleDate, printDate, type DateToken} from '@/util/dateFormatPattern'
+import {DATE_TOKENS, exampleDate, printDate, type DateToken} from '@/util/dateFormatPattern'
 
 /**
  * The letters of an own date format, each with what it stands for and how it prints the example day. It
@@ -19,8 +19,7 @@ import {compileDateFormat, DATE_TOKENS, exampleDate, printDate, type DateToken} 
 const {t} = useI18n()
 
 function example(token: DateToken): string {
-  const compiled = compileDateFormat(token.written)
-  return compiled.ok ? printDate(compiled.parts, exampleDate(), DocumentLanguage.DE) : ''
+  return printDate([{token}], exampleDate(), DocumentLanguage.DE)
 }
 </script>
 
