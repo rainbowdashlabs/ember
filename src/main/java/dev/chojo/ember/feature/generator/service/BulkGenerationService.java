@@ -36,6 +36,7 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -256,9 +257,10 @@ public class BulkGenerationService {
      * @return the runs
      */
     public List<GenerationJobSummary> recent(StationSession session) {
-        return jobs.recent(session.stationId(), RECENT_RUNS).stream()
-                .map(this::summary)
-                .toList();
+        var recent = jobs.recent(session.stationId(), RECENT_RUNS);
+        var named =
+                names.identified(recent.stream().map(GenerationJob::startedBy).toList());
+        return recent.stream().map(job -> summary(job, named)).toList();
     }
 
     /**
@@ -272,8 +274,14 @@ public class BulkGenerationService {
         var job = jobs.find(jobId)
                 .filter(found -> found.stationId() == stationId)
                 .orElseThrow(DocumentRefusal.DOCUMENT_JOB_NOT_HERE::raise);
-        var members = jobs.members(jobId).stream().map(this::result).toList();
-        return new GenerationJobResponse(summary(job), members);
+        var members = jobs.members(jobId);
+        var ids = new ArrayList<>(
+                members.stream().map(GenerationJobMember::memberId).toList());
+        ids.add(job.startedBy());
+        var named = names.identified(ids);
+        return new GenerationJobResponse(
+                summary(job, named),
+                members.stream().map(member -> result(member, named)).toList());
     }
 
     /**
@@ -306,12 +314,12 @@ public class BulkGenerationService {
                 .toList();
     }
 
-    private GenerationJobSummary summary(GenerationJob job) {
+    private static GenerationJobSummary summary(GenerationJob job, Map<Integer, String> named) {
         return new GenerationJobSummary(
                 job.id(),
                 job.templateId(),
                 job.templateName(),
-                names.identified(job.startedBy()),
+                named.get(job.startedBy()),
                 job.acceptMissing(),
                 job.startedAt(),
                 job.finishedAt(),
@@ -320,11 +328,11 @@ public class BulkGenerationService {
                 job.failed());
     }
 
-    private JobMemberResult result(GenerationJobMember member) {
+    private static JobMemberResult result(GenerationJobMember member, Map<Integer, String> named) {
         String detail = member.refusalDetail();
         return new JobMemberResult(
                 member.memberId(),
-                names.identified(member.memberId()),
+                named.get(member.memberId()),
                 member.status(),
                 member.documentId(),
                 member.refusalCode(),
