@@ -103,7 +103,7 @@ class DocumentTemplateRoutesTest {
         when(service.update(any(), anyInt(), any(), anyInt())).thenReturn(TEMPLATE);
         when(service.setArchived(any(), anyInt(), anyBoolean(), anyInt())).thenReturn(TEMPLATE);
         when(service.catalogue(any()))
-                .thenReturn(new PlaceholderCatalogueResponse(List.of(), List.of(), DocumentLanguage.DE));
+                .thenReturn(new PlaceholderCatalogueResponse(List.of(), List.of(), List.of(), DocumentLanguage.DE));
         pdfs = mock(PdfTemplateService.class);
         uses = mock(TemplateStationUseService.class);
         copies = mock(DocumentTemplateCopyService.class);
@@ -146,6 +146,14 @@ class DocumentTemplateRoutesTest {
                             .code());
             assertEquals(
                     200, client.get(PREFIX + "/document-placeholders", editor).code());
+            assertEquals(
+                    "Samstag, 03.10.",
+                    json(client.post(
+                                    PREFIX + "/document-placeholders/date-format",
+                                    body("{\"pattern\": \"TTTT, TT.MM.\", \"language\": \"DE\", \"clock\": false}"),
+                                    editor))
+                            .path("example")
+                            .asString());
             assertEquals(
                     "Bescheinigung",
                     json(client.get(PREFIX + "/document-templates/8", editor))

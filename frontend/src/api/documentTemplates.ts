@@ -8,6 +8,8 @@ import {createCrudResource} from './crud'
 import {uploadFile} from './upload'
 import type {
     BulkPreviewResponse,
+    DateFormatCheck,
+    DateFormatCheckRequest,
     DocumentTemplateCopy,
     DocumentTemplateCopyRequest,
     DocumentTemplateRequest,
@@ -50,6 +52,8 @@ export interface TemplateSource {
     duplicate(id: number, name: string): Promise<DocumentTemplateCopy>
     /** What a template of the owner can name. */
     catalogue(): Promise<PlaceholderCatalogueResponse>
+    /** The example day in an own date format, or why the format cannot be printed. */
+    checkDateFormat(request: DateFormatCheckRequest): Promise<DateFormatCheck>
     /** Reads a Word or OpenDocument text into a template body, its gaps in brackets as placeholders. */
     importLetter(file: File): Promise<LetterImport>
     /**
@@ -92,6 +96,10 @@ function sourceAt(prefix: string): TemplateSource {
         },
         async catalogue() {
             const res = await client.get<PlaceholderCatalogueResponse>(`${prefix}/document-placeholders`)
+            return res.data
+        },
+        async checkDateFormat(request) {
+            const res = await client.post<DateFormatCheck>(`${prefix}/document-placeholders/date-format`, request)
             return res.data
         },
         importLetter(file) {

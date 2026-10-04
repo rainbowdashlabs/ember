@@ -52,7 +52,7 @@ const query = ref('')
 const trail = ref<string[]>([])
 const dating = ref<Placeholder | null>(null)
 const datingFormats = computed(() => dating.value && dates ? formatsOf(dating.value, dates.value.formats) : [])
-const dateLanguage = computed(() => dates?.value.language)
+const dateOffer = computed(() => dates?.value ?? null)
 
 watch(query, () => {
   dating.value = null
@@ -113,7 +113,7 @@ function hand(choice: PlaceholderChoice) {
       <SearchInput v-model="query" class="sm:max-w-56" data-testid="placeholder-picker-search"
                    :placeholder="t('documentTemplates.placeholderPicker.search')"/>
     </div>
-    <PlaceholderDateFormat v-if="dating && dateLanguage" :placeholder="dating" :formats="datingFormats" :language="dateLanguage"
+    <PlaceholderDateFormat v-if="dating && dateOffer" :placeholder="dating" :formats="datingFormats" :dates="dateOffer"
                            @choose="chooseFormat" @back="dating = null"/>
     <PlaceholderMatches v-else-if="searching" :matches="matches" @pick="pick"/>
     <template v-else-if="current">

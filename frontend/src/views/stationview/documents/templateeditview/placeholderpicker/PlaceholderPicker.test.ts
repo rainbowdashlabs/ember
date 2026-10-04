@@ -4,11 +4,11 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 /** @vitest-environment happy-dom */
-import {describe, expect, it} from 'vitest'
+import {afterEach, describe, expect, it, vi} from 'vitest'
 import {defineComponent, h, ref} from 'vue'
-import {mount, type VueWrapper} from '@vue/test-utils'
-import {DocumentLanguage, PlaceholderCategory} from '@/api/generated/schema'
-import {APPOINTMENT_START, BIRTH_DATE, CATALOGUE, DATE_FORMATS} from './fixtures'
+import {flushPromises, mount, type VueWrapper} from '@vue/test-utils'
+import {DateFormatProblem, DocumentLanguage, PlaceholderCategory} from '@/api/generated/schema'
+import {APPOINTMENT_START, BIRTH_DATE, CATALOGUE, datesOf} from './fixtures'
 import {providePlaceholderDates} from './placeholderDates'
 import PlaceholderPicker from './PlaceholderPicker.vue'
 import {placeholdersOfTemplate} from './placeholderTree'
@@ -121,10 +121,19 @@ describe('PlaceholderPicker', () => {
  * the example in the label.
  */
 describe('PlaceholderPicker, the format of a date', () => {
+    const OWN_FORMAT_ANSWERS = {
+        'TT.QQ.JJJJ': {example: null, problem: DateFormatProblem.UNKNOWN, detail: 'QQ'},
+        'hh:mm': {example: null, problem: DateFormatProblem.CLOCK, detail: null},
+    }
+
+    afterEach(() => {
+        vi.useRealTimers()
+    })
+
     function datedPicker(language: DocumentLanguage = DocumentLanguage.DE) {
         const host = defineComponent({
             setup() {
-                providePlaceholderDates(ref({formats: DATE_FORMATS, language}))
+                providePlaceholderDates(ref(datesOf(language, OWN_FORMAT_ANSWERS)))
                 return () => h(PlaceholderPicker, {placeholders: [BIRTH_DATE, APPOINTMENT_START], legal: false})
             },
         })
@@ -173,20 +182,27 @@ describe('PlaceholderPicker, the format of a date', () => {
         expect(picked(wrapper)).toEqual([{key: 'event.start|time', label: 'Beginn des Termins (18:30)'}])
     })
 
-    it('shows an own format while it is typed and inserts it once it can be printed', async () => {
+    it('shows an own format once typing pauses and inserts it once the server can print it', async () => {
+        vi.useFakeTimers()
         const wrapper = datedPicker()
         await chooseDate(wrapper, 'geburtsdatum', 'member.birthDate')
         const pattern = wrapper.find('[data-testid="placeholder-own-date-format"] input')
         const insert = wrapper.find('[data-testid="placeholder-own-date-insert"]')
 
-        await pattern.setValue('TT.QQ.JJJJ')
+        async function type(text: string) {
+            await pattern.setValue(text)
+            await vi.runAllTimersAsync()
+            await flushPromises()
+        }
+
+        await type('TT.QQ.JJJJ')
         expect(wrapper.text()).toContain('„QQ" kennt das Format nicht.')
         expect(insert.attributes('disabled')).toBeDefined()
 
-        await pattern.setValue('hh:mm')
+        await type('hh:mm')
         expect(wrapper.text()).toContain('Dieses Datum hat keine Uhrzeit.')
 
-        await pattern.setValue(' TTTT, T.M. ')
+        await type(' TTTT, T.M. ')
         expect(wrapper.find('[data-testid="placeholder-own-date-preview"]').text()).toBe('So sieht es aus: Samstag, 3.10.')
         await insert.trigger('click')
         expect(picked(wrapper)).toEqual([{key: 'member.birthDate|TTTT, T.M.', label: 'Geburtsdatum (Samstag, 3.10.)'}])

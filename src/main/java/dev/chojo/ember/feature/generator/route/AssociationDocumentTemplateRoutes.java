@@ -13,6 +13,8 @@ import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.api.auth.StationFree;
 import dev.chojo.ember.api.refusal.ClusterRefusal;
 import dev.chojo.ember.api.refusal.DocumentRefusal;
+import dev.chojo.ember.feature.generator.entity.DateFormatCheck;
+import dev.chojo.ember.feature.generator.entity.DateFormatCheckRequest;
 import dev.chojo.ember.feature.generator.route.DocumentGenerationRoutes.DraftPreviewRequest;
 import dev.chojo.ember.feature.generator.service.DocumentGenerationService;
 import dev.chojo.ember.feature.generator.service.DocumentGeneratorService.PreviewResponse;
@@ -83,6 +85,7 @@ public class AssociationDocumentTemplateRoutes implements Routes {
         var edit = ClusterPermission.CLUSTER_DOCUMENT_TEMPLATE_EDIT;
         String base = prefix + "/cluster/document-templates";
         routes.get(prefix + "/cluster/document-placeholders", this::catalogue, edit);
+        routes.post(prefix + "/cluster/document-placeholders/date-format", this::checkDateFormat, edit);
         routes.post(prefix + "/cluster/document-template-import", this::importLetter, edit);
         routes.post(prefix + "/cluster/document-template-preview", this::preview, edit);
         routes.get(base, this::list, edit);
@@ -107,6 +110,17 @@ public class AssociationDocumentTemplateRoutes implements Routes {
                             content = @OpenApiContent(from = PlaceholderCatalogueResponse.class)))
     private void catalogue(Context ctx) {
         ctx.json(templates.catalogue(association(ctx)));
+    }
+
+    @OpenApi(
+            path = "/api/v1/cluster/document-placeholders/date-format",
+            methods = HttpMethod.POST,
+            summary = "The example day in an own date format of an association's template, or why it cannot be printed",
+            tags = {"Cluster"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = DateFormatCheckRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = DateFormatCheck.class)))
+    private void checkDateFormat(Context ctx) {
+        ctx.json(ctx.bodyAsClass(DateFormatCheckRequest.class).check());
     }
 
     @OpenApi(

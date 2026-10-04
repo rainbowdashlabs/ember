@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.generator.entity;
 
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.Optional;
 
@@ -14,8 +15,8 @@ import java.util.Optional;
  * {@link java.time.format.DateTimeFormatter}; the words of a month or a weekday follow the language of
  * the template.
  *
- * <p>The editor's preview and the help centre's table of these letters read the same set from
- * {@code frontend/src/util/dateFormatPattern.ts}.
+ * <p>The template editor gets this table with the placeholder catalogue, each letter with how it prints
+ * the example day ({@link DateFormat#EXAMPLE_DAY}), and shows the dates of a template from it.
  */
 public enum DateToken {
     DAY("T", "d", false),
@@ -42,7 +43,20 @@ public enum DateToken {
         this.clock = clock;
     }
 
-    /** @return the pattern of {@link java.time.format.DateTimeFormatter} it stands for */
+    /** @return how it is written in an own format, such as {@code TT} */
+    public String written() {
+        return written;
+    }
+
+    /**
+     * @param language the language of the template, which writes the names of months and weekdays
+     * @return how it prints the example day
+     */
+    public String example(DocumentLanguage language) {
+        return DateTimeFormatter.ofPattern(pattern, language.locale()).format(DateFormat.EXAMPLE_DAY);
+    }
+
+    /** @return the pattern of {@link DateTimeFormatter} it stands for */
     public String pattern() {
         return pattern;
     }

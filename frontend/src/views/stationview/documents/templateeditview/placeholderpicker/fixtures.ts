@@ -6,9 +6,13 @@
 import {
     DateKind,
     PlaceholderCategory,
+    type DateFormatCheck,
     type DateFormatOption,
+    type DateTokenOption,
+    type DocumentLanguage,
     type Placeholder,
 } from '@/api/generated/schema'
+import {exampleIn, type PlaceholderDates} from './placeholderDates'
 
 /**
  * A placeholder of a station's catalogue for the picker's tests.
@@ -50,6 +54,40 @@ export const DATE_FORMATS: DateFormatOption[] = [
     {written: 'dateTime', kind: DateKind.DATE_TIME, german: 'TT.MM.JJJJ hh:mm', english: 'TT.MM.JJJJ hh:mm'},
     {written: 'time', kind: DateKind.DATE_TIME, german: 'hh:mm', english: 'hh:mm'},
 ]
+
+/** The tokens of an own format as the server sends them, each with the example day in both languages. */
+export const DATE_TOKENS: DateTokenOption[] = [
+    {written: 'T', clock: false, german: '3', english: '3'},
+    {written: 'TT', clock: false, german: '03', english: '03'},
+    {written: 'TTT', clock: false, german: 'Sa.', english: 'Sat'},
+    {written: 'TTTT', clock: false, german: 'Samstag', english: 'Saturday'},
+    {written: 'M', clock: false, german: '10', english: '10'},
+    {written: 'MM', clock: false, german: '10', english: '10'},
+    {written: 'MMM', clock: false, german: 'Okt.', english: 'Oct'},
+    {written: 'MMMM', clock: false, german: 'Oktober', english: 'October'},
+    {written: 'JJ', clock: false, german: '26', english: '26'},
+    {written: 'JJJJ', clock: false, german: '2026', english: '2026'},
+    {written: 'h', clock: true, german: '18', english: '18'},
+    {written: 'hh', clock: true, german: '18', english: '18'},
+    {written: 'mm', clock: true, german: '30', english: '30'},
+]
+
+/**
+ * The date formats of a template for the picker's tests, with a check of own formats that answers the
+ * way the server does for the formats the tests type.
+ *
+ * @param language the template's language
+ * @param answers  what the check answers per format; anything else is printed on the example day
+ */
+export function datesOf(language: DocumentLanguage, answers: Record<string, DateFormatCheck> = {}): PlaceholderDates {
+    const dates: PlaceholderDates = {
+        formats: DATE_FORMATS,
+        tokens: DATE_TOKENS,
+        language,
+        check: async pattern => answers[pattern] ?? {example: exampleIn(pattern, dates), problem: null, detail: null},
+    }
+    return dates
+}
 
 /** A catalogue as a station sends it, in its order: the member, pronouns, a guardian, appointment, signature. */
 export const CATALOGUE: Placeholder[] = [

@@ -14029,6 +14029,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/cluster/document-placeholders/date-format": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The example day in an own date format of an association's template, or why it cannot be printed */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["DateFormatCheckRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DateFormatCheck"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/cluster/document-template-import": {
         parameters: {
             query?: never;
@@ -19072,6 +19112,46 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/document-placeholders/date-format": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The example day in an own date format, or why the format cannot be printed */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["DateFormatCheckRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DateFormatCheck"];
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -59354,6 +59434,16 @@ export interface components {
             nextDate: components["schemas"]["LocalDate"] | null;
             previousDate: components["schemas"]["LocalDate"] | null;
         };
+        DateFormatCheck: {
+            detail: string | null;
+            example: string | null;
+            problem: components["schemas"]["DateFormatProblem"] | null;
+        };
+        DateFormatCheckRequest: {
+            clock?: boolean;
+            language?: components["schemas"]["DocumentLanguage"];
+            pattern?: string;
+        };
         DateFormatOption: {
             english: string;
             german: string;
@@ -59361,7 +59451,15 @@ export interface components {
             written: string;
         };
         /** @enum {string} */
+        DateFormatProblem: "EMPTY" | "TOO_LONG" | "UNKNOWN" | "NO_TOKEN" | "CLOCK";
+        /** @enum {string} */
         DateKind: "DATE" | "DATE_TIME";
+        DateTokenOption: {
+            clock: boolean;
+            english: string;
+            german: string;
+            written: string;
+        };
         DateValue: {
             value: string;
         };
@@ -64134,6 +64232,7 @@ export interface components {
         };
         PlaceholderCatalogueResponse: {
             dateFormats: components["schemas"]["DateFormatOption"][];
+            dateTokens: components["schemas"]["DateTokenOption"][];
             language: components["schemas"]["DocumentLanguage"];
             placeholders: components["schemas"]["Placeholder"][];
         };
@@ -68539,8 +68638,12 @@ export type Date = components['schemas']['Date'];
 export type DateAnswer = components['schemas']['DateAnswer'];
 export type DateConfig = components['schemas']['DateConfig'];
 export type DatedEvent = components['schemas']['DatedEvent'];
+export type DateFormatCheck = components['schemas']['DateFormatCheck'];
+export type DateFormatCheckRequest = components['schemas']['DateFormatCheckRequest'];
 export type DateFormatOption = components['schemas']['DateFormatOption'];
+export type DateFormatProblem = components['schemas']['DateFormatProblem'];
 export type DateKind = components['schemas']['DateKind'];
+export type DateTokenOption = components['schemas']['DateTokenOption'];
 export type DateValue = components['schemas']['DateValue'];
 export type DayCount = components['schemas']['DayCount'];
 export type DeclineBody = components['schemas']['DeclineBody'];
@@ -69964,6 +70067,14 @@ export const CountUnit = {
     HOURS: "HOURS",
     LINE: "LINE",
     YEARS: "YEARS",
+} as const;
+
+export const DateFormatProblem = {
+    CLOCK: "CLOCK",
+    EMPTY: "EMPTY",
+    NO_TOKEN: "NO_TOKEN",
+    TOO_LONG: "TOO_LONG",
+    UNKNOWN: "UNKNOWN",
 } as const;
 
 export const DateKind = {
