@@ -142,7 +142,7 @@
 }
 
 #set page(paper: "a4", margin: (left: left, right: right))
-#set text(font: data.fonts.body, size: data.page.fontSizePt * 1pt, lang: "en")
+#set text(font: data.fonts.body, size: data.page.fontSizePt * 1pt, lang: data.language)
 #set par(justify: false, leading: 0.65em)
 #show link: set text(fill: rgb("#c71100"))
 

@@ -55,8 +55,8 @@ import java.util.Optional;
  * a block the member is not meant to see is left out. {@code letter.typ} draws the rows as grids from
  * {@code data.json}, the texts from their converted files and the pictures (from the media library, or
  * the station logo) placed next to the document as files. A picture that cannot be read is left out
- * rather than stopping the document. The template's language picks the {@code letter.typ} it is set in,
- * and its page the fonts of the body, the header and the footer ({@link LetterFonts}), whose files go
+ * rather than stopping the document. The template's language travels in {@code data.json} and sets the
+ * language of the text, and its page the fonts of the body, the header and the footer ({@link LetterFonts}), whose files go
  * along to Typst in a font directory of their own; the default font of the instance is found in its own
  * directory. Words a text sets in a family of their own become calls to {@code font("Family")} in the
  * converted text, which {@code letter.typ} answers from the families the owner reaches when the letter is
@@ -188,6 +188,7 @@ public class LetterRenderer {
         var data = new LinkedHashMap<String, Object>(layout);
         data.put("signatureMarker", marker);
         data.put("title", job.title());
+        data.put("language", job.language().code());
         data.put(
                 "date",
                 Map.of(
@@ -209,7 +210,7 @@ public class LetterRenderer {
             return SignatureFields.replaceMarkers(
                     TypstCompiler.compileTemplate(
                             data,
-                            job.language().code() + "/letter.typ",
+                            "letter.typ",
                             null,
                             resources,
                             files,
