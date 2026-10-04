@@ -333,7 +333,11 @@ test.describe('Events', () => {
             const memberHeaders = await apiHeaders(memberPage)
             const session = await memberPage.request.get('/api/v1/session', {headers: memberHeaders})
             expect(session.ok(), `the member has a session (${await session.text()})`).toBeTruthy()
-            const reader = await session.json() as {member: {id: number}, account: {email: string}}
+            const reader = await session.json() as {member: {id: number}}
+            const named = await managerPage.request.get(`/api/v1/station-members/${reader.member.id}`,
+                {headers: managerHeaders})
+            expect(named.ok(), `the organiser finds the member (${await named.text()})`).toBeTruthy()
+            const readerName = (await named.json() as {name: string}).name
 
             const created = await managerPage.request.post('/api/v1/events', {
                 headers: managerHeaders,
@@ -359,7 +363,7 @@ test.describe('Events', () => {
 
                 await managerPage.goto(`/station/events/${eventId}`)
                 await managerPage.getByRole('tab', {name: 'Anmeldungen'}).click()
-                await pickMemberByName(managerPage.getByTestId('manual-register'), reader.account.email)
+                await pickMemberByName(managerPage.getByTestId('manual-register'), readerName)
 
                 await expect.poll(async () => {
                     const listed = await managerPage.request.get(`/api/v1/events/${eventId}/registrations`,

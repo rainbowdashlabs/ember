@@ -2,11 +2,12 @@
 
 ## v26.21.0
 
-Themenfarben erscheinen dort, wo sie fehlten. Das Bearbeiten von Kommentaren ist sicherer.
+Themenfarben erscheinen dort, wo sie fehlten. Das Bearbeiten von Kommentaren ist sicherer. E-Mail-Adressen von Mitgliedern erreichen nur noch die, die das Mitgliederverzeichnis lesen dürfen.
 
 ### Sicherheit
 
 - **Namen in Erwähnungen erscheinen als Text.** Beim Bearbeiten eines Kommentars wurde der Name eines erwähnten Mitglieds als Teil der Seite gelesen statt als Text gezeigt. Jetzt erscheint er immer als Text.
+- **Mitgliederlisten tragen keine E-Mail-Adressen mehr.** Seiten, auf denen nur ein Mitglied ausgewählt wird, etwa Inventar, Anwesenheit oder Sichtbarkeitsfilter, bekamen die E-Mail-Adresse jedes Mitglieds, und die Mitgliedermenüs zeigten sie an. Diese Adressen erreichen jetzt nur noch die, die das Mitgliederverzeichnis lesen dürfen, und Mitgliedermenüs zeigen nur Namen.
 
 ### Fehlerbehebungen
 
