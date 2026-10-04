@@ -38,6 +38,7 @@ import static dev.chojo.ember.api.RouteHarness.body;
 import static dev.chojo.ember.api.RouteHarness.json;
 import static dev.chojo.ember.api.RouteHarness.refusalOf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.mock;
@@ -150,6 +151,22 @@ class StationMemberRoutesTest {
 
         verify(memberViews).richMembers(STATION_ID, true, java.util.Set.of(StationPermission.MEMBER_READ));
         verify(memberService).findFormerByStation(STATION_ID);
+    }
+
+    @Test
+    void onlyReadersOfTheRegisterAreSentTheEmail() {
+        when(memberService.findByStation(STATION_ID, false)).thenReturn(List.of(member(STATION_ID, false)));
+        var inventoryReader = harness.as(TestSessions.member(STATION_ID, StationPermission.INVENTORY_READ));
+
+        harness.run((server, client) -> {
+            assertEquals(
+                    "m@test.com",
+                    json(get(client, "/station-members")).get(0).path("email").asString());
+            var picked = json(client.get(PREFIX + "/station-members", inventoryReader))
+                    .get(0);
+            assertEquals("Mara", picked.path("name").asString());
+            assertTrue(picked.path("email").isNull());
+        });
     }
 
     @Test

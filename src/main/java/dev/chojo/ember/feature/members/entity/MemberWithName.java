@@ -41,6 +41,32 @@ public record MemberWithName(
         MemberIdentity identity) {
 
     /**
+     * The same member without the address of their account.
+     *
+     * <p>The member list also serves screens that only need somebody to pick, behind rights that have
+     * nothing to do with the register. Those readers learn who is there, not how to write to them.
+     *
+     * @return this member with no email
+     */
+    public MemberWithName withoutEmail() {
+        return new MemberWithName(
+                id,
+                stationId,
+                accountId,
+                name,
+                firstName,
+                lastName,
+                nickname,
+                null,
+                username,
+                userType,
+                profileComplete,
+                formerAt,
+                joinDate,
+                identity);
+    }
+
+    /**
      * Creates a MemberWithName from a StationMember entity, resolving name, email, the name it signs
      * in with, and identity.
      *

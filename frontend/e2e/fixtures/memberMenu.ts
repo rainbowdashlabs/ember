@@ -68,7 +68,7 @@ export async function offeredMembers(scope: Page | Locator): Promise<string[]> {
  * asserted where it is the subject, in the board's assignee story.
  *
  * @param scope where the menu is
- * @param name  what to type, which is matched against the name and the address
+ * @param name  what to type, which is matched against the name
  */
 export async function pickMemberByName(scope: Page | Locator, name: string): Promise<void> {
     await openMemberMenu(scope)

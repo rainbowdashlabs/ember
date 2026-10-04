@@ -100,7 +100,7 @@ export function useMemberOptions(source: MemberOptionSource) {
         const kind = source.userType()
         return source.members()
             .filter(option => !kind || option.userType === kind)
-            .filter(option => !needle || matchesWords(`${option.name} ${option.email ?? ''}`, needle))
+            .filter(option => !needle || matchesWords(option.name, needle))
             .toSorted(byMemberName(option => option.name))
     })
 
