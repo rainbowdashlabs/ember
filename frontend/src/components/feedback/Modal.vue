@@ -76,9 +76,14 @@ function confirmButton(): HTMLElement | null {
   return answers.at(-1) ?? null
 }
 
-/** The dialog opens with the focus on the button it is answered with, so enter alone answers it. */
+/**
+ * The dialog opens with the focus on the field it marks with {@code data-autofocus}, so typing starts
+ * there, and otherwise on the button it is answered with, so enter alone answers it.
+ */
 function focusAnswer(event: Event) {
-  const target: HTMLElement | null | undefined = confirmButton() ?? dialog.value?.$el
+  const root: HTMLElement | undefined = dialog.value?.$el
+  const target: HTMLElement | null | undefined =
+      root?.querySelector<HTMLElement>('[data-autofocus]') ?? confirmButton() ?? root
   if (!target) return
   event.preventDefault()
   target.focus()

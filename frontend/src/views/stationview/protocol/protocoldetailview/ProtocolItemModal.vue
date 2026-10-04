@@ -34,7 +34,7 @@ const pointsId = useId()
   <Modal v-model="visible">
     <SubHeader class="mb-3">{{ editing ? t('protocol.editItem') : t('protocol.addItem') }}</SubHeader>
     <form class="space-y-3" @submit.prevent="$emit('submit')">
-      <TextInput v-model="label" :placeholder="t('protocol.itemLabel')" required />
+      <TextInput v-model="label" :placeholder="t('protocol.itemLabel')" required data-autofocus />
       <TextAreaInput v-model="description" :placeholder="t('protocol.description')" />
       <div>
         <label :for="pointsId" class="block text-sm mb-1">{{ t('protocol.points') }}</label>
