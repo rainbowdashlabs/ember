@@ -2,7 +2,7 @@
 
 ## v26.21.0
 
-Stations turn their own templates and those of their association into documents for their members. A letter template is written in blocks like the station's pages, with placeholders for member data, guardians and the station, and blocks some members get and others do not. A PDF template fills an uploaded form, such as a consent form, in place, and an appointment can ask its participants to bring it. Letters and forms leave an empty signature field for each signer, and each template names the member who issues its documents. Documents name people by their official names, and pronouns follow the new gender profile field or use the first name. Managers generate a document on the member page or in the document store after a preview that names missing data, or for many members at once in the background. Members and guardians generate documents marked for self service in the new Documents menu, with a waiting time between two documents. Every generated document is filed in the member's documents and recorded with the version of its template. Templates take their body from a Word or OpenDocument text, print in built-in fonts or in fonts that the instance, an association or the station uploaded, and are duplicated as the start of new ones. The guardians of a member have an order, which documents follow.
+Stations turn their own templates and those of their association into documents for their members. A letter template is written in blocks like the station's pages, with placeholders for member data, guardians and the station, and blocks some members get and others do not. A PDF template fills an uploaded form, such as a consent form, in place, and an appointment can ask its participants to bring it. Letters and forms leave an empty signature field for each signer, and each template names the member who issues its documents. Documents name people by their official names, and pronouns follow the new gender profile field or use the first name. Managers generate a document on the member page or in the document store after a preview that names missing data, or for many members at once in the background. Members and guardians generate documents marked for self service in the new Documents menu, with a waiting time between two documents. Every generated document is filed in the member's documents and recorded with the version of its template. Templates take their body from a Word or OpenDocument text, print in built-in fonts or in fonts that the instance, an association or the station uploaded, and are duplicated as the start of new ones. The guardians of a member have an order, which documents follow. Editing a comment is safer.
 
 ### New Features
 
@@ -30,6 +30,10 @@ Stations turn their own templates and those of their association into documents 
 - **Text alignment in the text editor.** Paragraphs and headings in pages, news, wiki articles and letters are aligned left, centred, right or justified from the editor's toolbar. The alignment shows on the published pages and in the letter and wiki PDFs.
 - **Any colour for text and highlights.** Next to the ready-made colours, the editor's text colour and highlight take any colour as a hex code or from a colour picker. The chosen colour shows on the published pages and in the letter and wiki PDFs.
 - **A font size for selected words.** The editor's toolbar sets selected words in pages, news, wiki articles and letters to a size from 6 to 96 pixels, and an empty field gives them their normal size back. The size shows on the published pages and in the letter and wiki PDFs.
+
+### Security
+
+- **Names in comment mentions are shown as text.** When a comment was edited, the name of a mentioned member was read as part of the page rather than shown as text. It is now always shown as text.
 
 ### Changes
 

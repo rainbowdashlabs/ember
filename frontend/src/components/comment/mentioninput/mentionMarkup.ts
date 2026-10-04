@@ -7,11 +7,21 @@ import type {MemberCompletion} from '@/api/generated/schema'
 import {escapeHtml} from '@/util/html'
 
 /**
+ * The name a mention chip shows: the member's current name where they are known, else the one stored
+ * in the markup. A current name comes from the member and is escaped here; the stored one is already
+ * escaped with the rest of the markup.
+ */
+function chipName(member: MemberCompletion | undefined, storedName: string): string {
+  const current = member?.name?.trim()
+  return current ? escapeHtml(current) : storedName
+}
+
+/**
  * Renders raw mention markup as the HTML shown inside the editor.
  *
- * The raw text is escaped first, so a name taken from it is safe in an attribute as it stands.
- * Three markup generations are understood: bulk mentions (`@[TYPE:Name:id]`),
- * member mentions (`@[stationUid/memberUid:Name]`) and the legacy numeric
+ * Everything that reaches the HTML is escaped, quotes included, because the result is set as the
+ * editor's inner HTML and names are chosen by members. Three markup generations are understood: bulk
+ * mentions (`@[TYPE:Name:id]`), member mentions (`@[stationUid/memberUid:Name]`) and the legacy numeric
  * member form (`@[id:Name]`).
  */
 export function rawToHtml(raw: string, members: MemberCompletion[]): string {
@@ -22,13 +32,11 @@ export function rawToHtml(raw: string, members: MemberCompletion[]): string {
   })
   result = result.replace(/@\[([^/]+)\/([^:]+):([^\]]+)]/g, (_match, stationUid, memberUid, name) => {
     const member = members.find(m => m.memberUid === memberUid)
-    const displayName = member?.name?.trim() || name
-    return `<span contenteditable="false" data-mention-station="${stationUid}" data-mention-member="${memberUid}" data-mention-name="${name}" class="mention-chip">@${displayName}</span>`
+    return `<span contenteditable="false" data-mention-station="${stationUid}" data-mention-member="${memberUid}" data-mention-name="${name}" class="mention-chip">@${chipName(member, name)}</span>`
   })
   result = result.replace(/@\[(\d+):([^\]]+)]/g, (_match, id, name) => {
     const member = members.find(m => m.id === parseInt(id))
-    const displayName = member?.name?.trim() || name
-    return `<span contenteditable="false" data-mention-station="" data-mention-member="" data-mention-name="${name}" class="mention-chip">@${displayName}</span>`
+    return `<span contenteditable="false" data-mention-station="" data-mention-member="" data-mention-name="${name}" class="mention-chip">@${chipName(member, name)}</span>`
   })
   return result.replace(/\n/g, '<br>')
 }
