@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.generator.entity.FontStyle;
 import dev.chojo.ember.feature.generator.entity.FontUse;
 import dev.chojo.ember.feature.generator.entity.WebFontFormat;
 import dev.chojo.ember.owner.Owner;
+import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
@@ -64,13 +65,14 @@ public class DocumentFontRepository {
      * @return the font as written
      */
     public DocumentFont insert(Owner owner, NewFont font, int uploadedBy) {
-        return query("""
+        return SqlSupport.insertReturning(
+                """
                         INSERT INTO document_font(station_id, cluster_id, family, style, file_name, outline,
                                                   internal_family, size_bytes, sha256, uploaded_by)
                         VALUES (:station_id, :cluster_id, :family, :style, :file_name, :outline,
                                 :internal_family, :size_bytes, :file_hash, :uploaded_by)
-                        RETURNING %s;""", DocumentFont.COLUMNS)
-                .single(owned(owner)
+                        RETURNING %s;""",
+                owned(owner)
                         .bind("family", font.family())
                         .bind("style", font.style())
                         .bind("file_name", font.fileName())
@@ -78,10 +80,9 @@ public class DocumentFontRepository {
                         .bind("internal_family", font.internalFamily())
                         .bind("size_bytes", font.sizeBytes())
                         .bind("file_hash", font.sha256())
-                        .bind("uploaded_by", uploadedBy))
-                .map(DocumentFont.map())
-                .first()
-                .orElseThrow();
+                        .bind("uploaded_by", uploadedBy),
+                DocumentFont.map(),
+                DocumentFont.COLUMNS);
     }
 
     /**
@@ -91,13 +92,10 @@ public class DocumentFontRepository {
      * @return whether the owner already has a file for that family and style
      */
     public boolean exists(Owner owner, String family, FontStyle style) {
-        return query("""
-                        SELECT EXISTS(SELECT 1 FROM document_font
-                                      WHERE %s AND lower(family) = lower(:family) AND style = :style) AS taken;""", OWNED_BY)
-                .single(owned(owner).bind("family", family).bind("style", style))
-                .map(row -> row.getBoolean("taken"))
-                .first()
-                .orElse(false);
+        return SqlSupport.exists("""
+                        SELECT 1 FROM document_font
+                        WHERE %s AND lower(family) = lower(:family) AND style = :style
+                        LIMIT 1;""", owned(owner).bind("family", family).bind("style", style), OWNED_BY);
     }
 
     /**
@@ -163,20 +161,20 @@ public class DocumentFontRepository {
      * @return the font as it now stands
      */
     public DocumentFont setWeb(int id, NewWebFont web) {
-        return query("""
+        return SqlSupport.insertReturning(
+                """
                         UPDATE document_font
                         SET web_file_name = :web_file_name, web_format = :web_format, web_size_bytes = :web_size_bytes,
                             web_sha256 = :web_hash, web_uploaded_at = now()
                         WHERE id = :id
-                        RETURNING %s;""", DocumentFont.COLUMNS)
-                .single(call().bind("id", id)
+                        RETURNING %s;""",
+                call().bind("id", id)
                         .bind("web_file_name", web.fileName())
                         .bind("web_format", web.format())
                         .bind("web_size_bytes", web.sizeBytes())
-                        .bind("web_hash", web.sha256()))
-                .map(DocumentFont.map())
-                .first()
-                .orElseThrow();
+                        .bind("web_hash", web.sha256()),
+                DocumentFont.map(),
+                DocumentFont.COLUMNS);
     }
 
     /**
@@ -186,16 +184,12 @@ public class DocumentFontRepository {
      * @return the font as it now stands
      */
     public DocumentFont clearWeb(int id) {
-        return query("""
+        return SqlSupport.insertReturning("""
                         UPDATE document_font
                         SET web_file_name = NULL, web_format = NULL, web_size_bytes = NULL, web_sha256 = NULL,
                             web_uploaded_at = NULL
                         WHERE id = :id
-                        RETURNING %s;""", DocumentFont.COLUMNS)
-                .single(call().bind("id", id))
-                .map(DocumentFont.map())
-                .first()
-                .orElseThrow();
+                        RETURNING %s;""", call().bind("id", id), DocumentFont.map(), DocumentFont.COLUMNS);
     }
 
     /**
@@ -203,10 +197,7 @@ public class DocumentFontRepository {
      * @return whether a row was deleted
      */
     public boolean delete(int id) {
-        return query("DELETE FROM document_font WHERE id = :id;")
-                .single(call().bind("id", id))
-                .update()
-                .changed();
+        return SqlSupport.deleteById("document_font", id);
     }
 
     /**

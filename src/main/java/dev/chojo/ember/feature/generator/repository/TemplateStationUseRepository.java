@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.generator.repository;
 import dev.chojo.ember.feature.generator.entity.DocumentIssuer;
 import dev.chojo.ember.feature.generator.entity.TemplateStationUse;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
+import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
 import java.util.List;
@@ -69,7 +70,8 @@ public class TemplateStationUseRepository {
             boolean selfService,
             RestrictionMode restrictionMode,
             DocumentIssuer issuer) {
-        return query("""
+        return SqlSupport.insertReturning(
+                """
                         INSERT INTO document_template_station_use(template_id, station_id, self_service, restriction_mode,
                                                                   issuer_id, issuer_function)
                         VALUES (:template_id, :station_id, :self_service, :restriction_mode, :issuer_id, :issuer_function)
@@ -79,15 +81,14 @@ public class TemplateStationUseRepository {
                                 issuer_id        = excluded.issuer_id,
                                 issuer_function  = excluded.issuer_function,
                                 updated_at       = now()
-                        RETURNING %s;""", TemplateStationUse.COLUMNS)
-                .single(call().bind("template_id", templateId)
+                        RETURNING %s;""",
+                call().bind("template_id", templateId)
                         .bind("station_id", stationId)
                         .bind("self_service", selfService)
                         .bind("restriction_mode", restrictionMode)
                         .bind("issuer_id", issuer.memberId())
-                        .bind("issuer_function", issuer.function()))
-                .map(TemplateStationUse.map())
-                .first()
-                .orElseThrow();
+                        .bind("issuer_function", issuer.function()),
+                TemplateStationUse.map(),
+                TemplateStationUse.COLUMNS);
     }
 }

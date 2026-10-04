@@ -36,6 +36,7 @@ import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.owner.Owner;
 import dev.chojo.ember.util.DocumentWord;
+import dev.chojo.ember.util.StoredDay;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -44,7 +45,6 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.Period;
 import java.time.ZoneId;
-import java.time.format.DateTimeParseException;
 import java.time.temporal.TemporalAccessor;
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -291,7 +291,7 @@ public class PlaceholderResolver {
             if (builtIn.isPresent()) return dated(builtIn.get());
             return answerOf(key)
                     .filter(answer -> DateKind.of(answer.type()) != null)
-                    .flatMap(answer -> day(QuestionValues.read(answer.stored())));
+                    .flatMap(answer -> StoredDay.of(QuestionValues.read(answer.stored())));
         }
 
         private Optional<TemporalAccessor> dated(BuiltInPlaceholder placeholder) {
@@ -413,17 +413,7 @@ public class PlaceholderResolver {
             return profileFields.findAllByStationAndType(stationId(), FieldType.BIRTH_DATE).stream()
                     .findFirst()
                     .map(field -> storedAnswer(memberId, field.id()))
-                    .flatMap(Reading::day);
-        }
-
-        private static Optional<LocalDate> day(@Nullable String answer) {
-            if (answer == null || answer.isBlank()) return Optional.empty();
-            String day = answer.length() > 10 ? answer.substring(0, 10) : answer;
-            try {
-                return Optional.of(LocalDate.parse(day));
-            } catch (DateTimeParseException notADay) {
-                return Optional.empty();
-            }
+                    .flatMap(StoredDay::of);
         }
 
         private Optional<Answer> answer(int whose, String fieldKey) {

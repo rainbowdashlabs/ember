@@ -22,16 +22,14 @@ import dev.chojo.ember.feature.generator.service.DocumentGeneratorService.Previe
 import dev.chojo.ember.feature.generator.service.DocumentIssuerService.IssuerChoice;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.owner.Owner;
+import dev.chojo.ember.util.Sha256;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
-import java.util.HexFormat;
 import java.util.List;
 
 /**
@@ -266,7 +264,7 @@ public class DocumentGenerationService {
                         clock.instant(),
                         origin.selfService(),
                         document.id(),
-                        sha256(rendered.pdf()),
+                        Sha256.hex(rendered.pdf()),
                         prepared.source().pdfOriginalId(),
                         origin.eventId(),
                         origin.eventDate(),
@@ -282,17 +280,5 @@ public class DocumentGenerationService {
                 template.version(),
                 memberId);
         return new GeneratedDocumentResponse(document.id(), entry.id(), rendered.title(), generator.missing(prepared));
-    }
-
-    /**
-     * @param data the bytes
-     * @return their SHA-256 as lowercase hex
-     */
-    static String sha256(byte[] data) {
-        try {
-            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(data));
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("Every Java runtime carries SHA-256", e);
-        }
     }
 }

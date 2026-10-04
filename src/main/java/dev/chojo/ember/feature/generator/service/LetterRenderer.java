@@ -73,13 +73,6 @@ public class LetterRenderer {
     /** Wide enough to print a letter's picture sharply, small enough to keep the PDF light. */
     private static final int PICTURE_WIDTH = 1024;
 
-    private static final Map<String, String> EXTENSIONS = Map.of(
-            "image/png", "png",
-            "image/jpeg", "jpg",
-            "image/gif", "gif",
-            "image/webp", "webp",
-            "image/svg+xml", "svg");
-
     private final KbPdfPictures pictures;
     private final MediaLibraryService mediaLibrary;
     private final StationLogoService logos;
@@ -310,11 +303,11 @@ public class LetterRenderer {
      * Places a picture block's picture next to the document, or nothing where it cannot be read.
      */
     private @Nullable Map<String, Object> picture(PictureSource source, ContentCell cell, Map<String, byte[]> files) {
-        var picture = read(source, cell.content()).orElse(null);
+        var picture = read(source, cell.content())
+                .flatMap(content -> KbPdfPictures.printable(content.data(), content.contentType()))
+                .orElse(null);
         if (picture == null) return null;
-        String extension = EXTENSIONS.get(picture.contentType());
-        if (extension == null) return null;
-        String file = "image-" + files.size() + "." + extension;
+        String file = "image-" + files.size() + "." + picture.extension();
         files.put(file, picture.data());
         var drawn = new LinkedHashMap<String, Object>();
         drawn.put("kind", "image");

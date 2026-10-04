@@ -23,6 +23,7 @@ import dev.chojo.ember.feature.storage.entity.StorageScope;
 import dev.chojo.ember.feature.storage.service.StorageQuotaService;
 import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.owner.Owner;
+import dev.chojo.ember.util.Sha256;
 import dev.chojo.ember.util.sql.Transactions;
 import io.javalin.http.UploadedFile;
 import jakarta.inject.Inject;
@@ -134,12 +135,7 @@ public class PdfTemplateService {
     private PdfOriginal keep(
             Owner owner, int templateId, DocumentIntake.Upload upload, PdfInspection inspection, int authorId) {
         var written = pdfTemplates.addOriginal(
-                templateId,
-                upload.fileName(),
-                upload.data().length,
-                DocumentGenerationService.sha256(upload.data()),
-                inspection,
-                authorId);
+                templateId, upload.fileName(), upload.data().length, Sha256.hex(upload.data()), inspection, authorId);
         storage.store(scope(owner), categoryOf(owner), key(written), upload.data(), PDF);
         return written;
     }

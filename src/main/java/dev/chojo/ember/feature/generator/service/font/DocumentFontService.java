@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.generator.service.font;
 
 import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.api.refusal.RefusalDetail;
+import dev.chojo.ember.feature.documents.service.DocumentIntake;
 import dev.chojo.ember.feature.generator.entity.DocumentFont;
 import dev.chojo.ember.feature.generator.entity.FontFamily;
 import dev.chojo.ember.feature.generator.entity.FontOrigin;
@@ -27,7 +28,6 @@ import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
@@ -67,6 +67,13 @@ public class DocumentFontService {
 
     /** The longest family name. */
     static final int MAX_FAMILY = 60;
+
+    private static final DocumentIntake.Refusals UPLOAD_REFUSALS = new DocumentIntake.Refusals(
+            DocumentRefusal.DOCUMENT_FONT_MISSING_FILE,
+            DocumentRefusal.DOCUMENT_FONT_TOO_LARGE,
+            DocumentRefusal.DOCUMENT_FONT_NOT_A_FONT,
+            DocumentRefusal.DOCUMENT_FONT_NO_ROOM,
+            DocumentRefusal.DOCUMENT_FONT_NOT_A_FONT);
 
     private final DocumentFontRepository fonts;
     private final FontLibrary library;
@@ -280,15 +287,7 @@ public class DocumentFontService {
      * @return its bytes
      */
     static byte[] readUpload(@Nullable UploadedFile file) {
-        if (file == null) throw DocumentRefusal.DOCUMENT_FONT_MISSING_FILE.raise();
-        if (file.size() > MAX_BYTES) throw DocumentRefusal.DOCUMENT_FONT_TOO_LARGE.raise();
-        try (var in = file.content()) {
-            byte[] data = in.readAllBytes();
-            if (data.length > MAX_BYTES) throw DocumentRefusal.DOCUMENT_FONT_TOO_LARGE.raise();
-            return data;
-        } catch (IOException e) {
-            throw DocumentRefusal.DOCUMENT_FONT_NOT_A_FONT.raise();
-        }
+        return DocumentIntake.readAtMost(MAX_BYTES, file, UPLOAD_REFUSALS).data();
     }
 
     /**

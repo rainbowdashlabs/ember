@@ -55,6 +55,7 @@ import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.owner.Owner;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import dev.chojo.ember.util.PdfText;
+import dev.chojo.ember.util.Sha256;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotationLink;
@@ -325,7 +326,7 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
 
         var entry = log.findById(generated.generationId()).orElseThrow();
         byte[] pdf = fileOf(document.id());
-        assertEquals(DocumentGenerationService.sha256(pdf), entry.fileSha256());
+        assertEquals(Sha256.hex(pdf), entry.fileSha256());
         assertEquals(1, entry.templateVersion());
         assertFalse(entry.selfService());
         assertEquals(manager.id(), entry.generatedBy());

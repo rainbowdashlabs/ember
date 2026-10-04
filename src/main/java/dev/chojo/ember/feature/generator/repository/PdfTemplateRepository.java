@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.generator.entity.PdfField;
 import dev.chojo.ember.feature.generator.entity.PdfInspection;
 import dev.chojo.ember.feature.generator.entity.PdfLayout;
 import dev.chojo.ember.feature.generator.entity.PdfOriginal;
+import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 
 import java.util.List;
@@ -42,20 +43,20 @@ public class PdfTemplateRepository {
      */
     public PdfOriginal addOriginal(
             int templateId, String fileName, long sizeBytes, String sha256, PdfInspection inspection, int uploadedBy) {
-        var original = query("""
+        var original = SqlSupport.insertReturning(
+                """
                         INSERT INTO document_template_pdf_original(template_id, file_name, size_bytes, sha256,
                                                                    inspection, uploaded_by)
                         VALUES (:template_id, :file_name, :size_bytes, :file_hash, :inspection::jsonb, :uploaded_by)
-                        RETURNING %s;""", PdfOriginal.COLUMNS)
-                .single(call().bind("template_id", templateId)
+                        RETURNING %s;""",
+                call().bind("template_id", templateId)
                         .bind("file_name", fileName)
                         .bind("size_bytes", sizeBytes)
                         .bind("file_hash", sha256)
                         .bind("inspection", inspection.toJson())
-                        .bind("uploaded_by", uploadedBy))
-                .map(PdfOriginal.map())
-                .first()
-                .orElseThrow();
+                        .bind("uploaded_by", uploadedBy),
+                PdfOriginal.map(),
+                PdfOriginal.COLUMNS);
         query("""
                 INSERT INTO document_template_pdf(template_id, original_id)
                 VALUES (:template_id, :original_id)

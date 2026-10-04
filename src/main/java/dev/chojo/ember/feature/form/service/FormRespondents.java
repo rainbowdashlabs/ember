@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.members.repository.UserTagRepository;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.util.StoredDay;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -205,18 +206,8 @@ public class FormRespondents {
         Map<Integer, LocalDate> born = new HashMap<>();
         for (var value : profileFields.findValuesOfField(birthDateField.get().id())) {
             if (!memberIds.contains(value.memberId())) continue;
-            var day = dayOf(value.plainValue());
-            if (day != null) born.put(value.memberId(), day);
+            StoredDay.of(value.plainValue()).ifPresent(day -> born.put(value.memberId(), day));
         }
         return born;
-    }
-
-    private static @Nullable LocalDate dayOf(String stored) {
-        if (stored == null || stored.isBlank()) return null;
-        try {
-            return LocalDate.parse(stored.length() > 10 ? stored.substring(0, 10) : stored);
-        } catch (RuntimeException e) {
-            return null;
-        }
     }
 }

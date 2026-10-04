@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.generator.entity.DocumentIssuer;
 import dev.chojo.ember.feature.generator.entity.GenerationJob;
 import dev.chojo.ember.feature.generator.entity.GenerationJobMember;
 import dev.chojo.ember.feature.generator.entity.JobMemberStatus;
+import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
@@ -54,22 +55,21 @@ public class GenerationJobRepository {
             boolean acceptMissing,
             DocumentIssuer issuer,
             List<Integer> memberIds) {
-        int jobId = query("""
+        int jobId = SqlSupport.insertReturning(
+                """
                         INSERT INTO document_generation_job(station_id, template_id, started_by, accept_missing,
                                                             issuer_id, issuer_function, issuer_fixed)
                         VALUES (:station_id, :template_id, :started_by, :accept_missing,
                                 :issuer_id, :issuer_function, :issuer_fixed)
-                        RETURNING id;""")
-                .single(call().bind("station_id", stationId)
+                        RETURNING id;""",
+                call().bind("station_id", stationId)
                         .bind("template_id", templateId)
                         .bind("started_by", startedBy)
                         .bind("accept_missing", acceptMissing)
                         .bind("issuer_id", issuer.memberId())
                         .bind("issuer_function", issuer.function())
-                        .bind("issuer_fixed", issuer.fixed()))
-                .map(row -> row.getInt("id"))
-                .first()
-                .orElseThrow();
+                        .bind("issuer_fixed", issuer.fixed()),
+                row -> row.getInt("id"));
         query("""
                 INSERT INTO document_generation_job_member(job_id, member_id, position)
                 SELECT :job_id, member_id, (position - 1)::int

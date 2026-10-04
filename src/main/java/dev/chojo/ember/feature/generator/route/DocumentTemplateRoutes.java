@@ -136,7 +136,7 @@ public class DocumentTemplateRoutes implements Routes {
                 @OpenApiResponse(status = "409", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void pdf(Context ctx) {
-        var download = pdfs.current(StationSession.from(ctx).owner(), templateId(ctx))
+        var download = pdfs.current(StationSession.from(ctx).owner(), pathInt(ctx, "id"))
                 .orElseThrow(DocumentRefusal.DOCUMENT_TEMPLATE_PDF_MISSING::raise);
         FileResponse.send(ctx, "application/pdf", download.fileName(), download.data());
     }
@@ -153,7 +153,7 @@ public class DocumentTemplateRoutes implements Routes {
             })
     private void uploadPdf(Context ctx) {
         var session = StationSession.from(ctx);
-        ctx.json(pdfs.upload(session.owner(), templateId(ctx), ctx.uploadedFile("file"), session.accountId()));
+        ctx.json(pdfs.upload(session.owner(), pathInt(ctx, "id"), ctx.uploadedFile("file"), session.accountId()));
     }
 
     @OpenApi(
@@ -225,7 +225,7 @@ public class DocumentTemplateRoutes implements Routes {
             responses =
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = DocumentTemplateResponse.class)))
     private void detail(Context ctx) {
-        ctx.json(templates.detail(StationSession.from(ctx).owner(), templateId(ctx)));
+        ctx.json(templates.detail(StationSession.from(ctx).owner(), pathInt(ctx, "id")));
     }
 
     @OpenApi(
@@ -242,7 +242,7 @@ public class DocumentTemplateRoutes implements Routes {
     private void update(Context ctx) {
         var session = StationSession.from(ctx);
         var request = ctx.bodyAsClass(DocumentTemplateRequest.class);
-        ctx.json(templates.update(session.owner(), templateId(ctx), request, session.accountId()));
+        ctx.json(templates.update(session.owner(), pathInt(ctx, "id"), request, session.accountId()));
     }
 
     @OpenApi(
@@ -255,7 +255,7 @@ public class DocumentTemplateRoutes implements Routes {
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = DocumentTemplateResponse.class)))
     private void archive(Context ctx) {
         var session = StationSession.from(ctx);
-        ctx.json(templates.setArchived(session.owner(), templateId(ctx), true, session.accountId()));
+        ctx.json(templates.setArchived(session.owner(), pathInt(ctx, "id"), true, session.accountId()));
     }
 
     @OpenApi(
@@ -268,7 +268,7 @@ public class DocumentTemplateRoutes implements Routes {
                     @OpenApiResponse(status = "200", content = @OpenApiContent(from = DocumentTemplateResponse.class)))
     private void restore(Context ctx) {
         var session = StationSession.from(ctx);
-        ctx.json(templates.setArchived(session.owner(), templateId(ctx), false, session.accountId()));
+        ctx.json(templates.setArchived(session.owner(), pathInt(ctx, "id"), false, session.accountId()));
     }
 
     @OpenApi(
@@ -290,11 +290,5 @@ public class DocumentTemplateRoutes implements Routes {
         var request = ctx.bodyAsClass(DocumentTemplateCopyRequest.class);
         ctx.status(HttpStatus.CREATED)
                 .json(copies.duplicate(session.owner(), pathInt(ctx, "id"), request.name(), session.accountId()));
-    }
-
-    /** The template behind the path, which has to be one of the reader's station. */
-    private int templateId(Context ctx) {
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        return templates.requireOwned(StationSession.from(ctx).owner(), id).id();
     }
 }

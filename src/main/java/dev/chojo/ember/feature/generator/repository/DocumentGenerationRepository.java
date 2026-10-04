@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.generator.repository;
 import dev.chojo.ember.feature.generator.entity.DataSubject;
 import dev.chojo.ember.feature.generator.entity.DocumentGeneration;
 import dev.chojo.ember.feature.generator.entity.GenerationLogEntry;
+import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
@@ -38,7 +39,8 @@ public class DocumentGenerationRepository {
      * @return the entry as written
      */
     public DocumentGeneration log(DocumentGeneration entry, List<DataSubject> subjects) {
-        var written = query("""
+        var written = SqlSupport.insertReturning(
+                """
                         INSERT INTO document_generation(station_id, template_id, template_version, member_id,
                                                         generated_by, generated_at, self_service, document_id,
                                                         file_sha256, pdf_original_id, event_id, event_date,
@@ -47,8 +49,8 @@ public class DocumentGenerationRepository {
                                 :generated_by, :generated_at, :self_service, :document_id, :file_hash,
                                 :pdf_original_id, :event_id, :event_date, :issuer_id, :issuer_function,
                                 :issuer_fixed, :issuer_signs)
-                        RETURNING %s;""", COLUMNS)
-                .single(call().bind("station_id", entry.stationId())
+                        RETURNING %s;""",
+                call().bind("station_id", entry.stationId())
                         .bind("generated_at", entry.generatedAt(), INSTANT_TIMESTAMP)
                         .bind("template_id", entry.templateId())
                         .bind("template_version", entry.templateVersion())
@@ -63,10 +65,9 @@ public class DocumentGenerationRepository {
                         .bind("issuer_id", entry.issuerId())
                         .bind("issuer_function", entry.issuerFunction())
                         .bind("issuer_fixed", entry.issuerFixed())
-                        .bind("issuer_signs", entry.issuerSigns()))
-                .map(DocumentGeneration.map())
-                .first()
-                .orElseThrow();
+                        .bind("issuer_signs", entry.issuerSigns()),
+                DocumentGeneration.map(),
+                COLUMNS);
         for (var subject : subjects) {
             query("""
                     INSERT INTO document_generation_subject(generation_id, member_id, role)
@@ -85,10 +86,7 @@ public class DocumentGenerationRepository {
      * @return the entry, or empty where there is none
      */
     public Optional<DocumentGeneration> findById(int generationId) {
-        return query("SELECT %s FROM document_generation WHERE id = :id;", COLUMNS)
-                .single(call().bind("id", generationId))
-                .map(DocumentGeneration.map())
-                .first();
+        return SqlSupport.findById("document_generation", COLUMNS, generationId, DocumentGeneration.map());
     }
 
     /**

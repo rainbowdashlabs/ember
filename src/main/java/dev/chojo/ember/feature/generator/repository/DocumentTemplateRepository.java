@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.generator.entity.DocumentTemplate;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplateDraft;
 import dev.chojo.ember.feature.generator.entity.LetterContent;
 import dev.chojo.ember.owner.Owner;
+import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
@@ -49,7 +50,8 @@ public class DocumentTemplateRepository {
      * @return the template as written
      */
     public DocumentTemplate create(Owner owner, DocumentTemplateDraft draft, int authorId) {
-        return query("""
+        return SqlSupport.insertReturning(
+                """
                         INSERT INTO document_template(station_id, cluster_id, kind, name, title_pattern,
                                                       file_name_pattern, tags, hidden, keep_on_archive, legal,
                                                       for_appointments, self_service, self_service_cooldown_days,
@@ -59,12 +61,10 @@ public class DocumentTemplateRepository {
                                 :file_name_pattern, :tags, :hidden, :keep_on_archive, :legal,
                                 :for_appointments, :self_service, :cooldown_days, :restriction_mode,
                                 :language, :issuer_id, :issuer_function, :author, :author)
-                        RETURNING %s;""", DocumentTemplate.COLUMNS)
-                .single(bindDraft(owned(owner).bind("kind", draft.kind()), draft)
-                        .bind("author", authorId))
-                .map(DocumentTemplate.map())
-                .first()
-                .orElseThrow();
+                        RETURNING %s;""",
+                bindDraft(owned(owner).bind("kind", draft.kind()), draft).bind("author", authorId),
+                DocumentTemplate.map(),
+                DocumentTemplate.COLUMNS);
     }
 
     /**
@@ -168,10 +168,7 @@ public class DocumentTemplateRepository {
      * @return the template, or empty where it does not exist
      */
     public Optional<DocumentTemplate> findById(int templateId) {
-        return query("SELECT %s FROM document_template WHERE id = :id;", DocumentTemplate.COLUMNS)
-                .single(call().bind("id", templateId))
-                .map(DocumentTemplate.map())
-                .first();
+        return SqlSupport.findById("document_template", DocumentTemplate.COLUMNS, templateId, DocumentTemplate.map());
     }
 
     /**
@@ -286,14 +283,11 @@ public class DocumentTemplateRepository {
      * @return whether anything requires it
      */
     public boolean requiredByAppointments(int templateId) {
-        return query("""
-                SELECT EXISTS (SELECT 1
-                               FROM event_document_requirement
-                               WHERE template_id = :template_id) AS required;""")
-                .single(call().bind("template_id", templateId))
-                .map(row -> row.getBoolean("required"))
-                .first()
-                .orElse(false);
+        return SqlSupport.exists("""
+                        SELECT 1
+                        FROM event_document_requirement
+                        WHERE template_id = :template_id
+                        LIMIT 1;""", call().bind("template_id", templateId));
     }
 
     /**
@@ -305,17 +299,14 @@ public class DocumentTemplateRepository {
      * @return whether the name is taken
      */
     public boolean nameTaken(Owner owner, String name, @Nullable Integer exceptId) {
-        return query("""
-                SELECT EXISTS (SELECT 1
-                               FROM document_template
-                               WHERE %s
-                                 AND archived_at IS NULL
-                                 AND lower(name) = lower(:name)
-                                 AND id IS DISTINCT FROM :except::int) AS taken;""", OWNED_BY)
-                .single(owned(owner).bind("name", name).bind("except", exceptId))
-                .map(row -> row.getBoolean("taken"))
-                .first()
-                .orElse(false);
+        return SqlSupport.exists("""
+                        SELECT 1
+                        FROM document_template
+                        WHERE %s
+                          AND archived_at IS NULL
+                          AND lower(name) = lower(:name)
+                          AND id IS DISTINCT FROM :except::int
+                        LIMIT 1;""", owned(owner).bind("name", name).bind("except", exceptId), OWNED_BY);
     }
 
     private static Call owned(Owner owner) {

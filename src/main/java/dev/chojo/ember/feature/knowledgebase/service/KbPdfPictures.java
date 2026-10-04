@@ -9,6 +9,7 @@ import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -124,7 +125,13 @@ public class KbPdfPictures {
         return out.toString();
     }
 
-    private record Picture(byte[] data, String extension) {}
+    /**
+     * A picture a PDF compiler can print.
+     *
+     * @param data      its bytes
+     * @param extension the file extension its type is printed under
+     */
+    public record Picture(byte[] data, String extension) {}
 
     private Optional<Picture> read(int stationId, String stationUid, String url) {
         try {
@@ -159,7 +166,14 @@ public class KbPdfPictures {
                 .flatMap(image -> printable(image.data(), image.contentType()));
     }
 
-    private static Optional<Picture> printable(byte[] data, String contentType) {
+    /**
+     * The picture as a PDF compiler prints it, or empty where its type is not one it prints.
+     *
+     * @param data        the picture's bytes
+     * @param contentType its media type, or null where it is not known
+     * @return the printable picture
+     */
+    public static Optional<Picture> printable(byte[] data, @Nullable String contentType) {
         return Optional.ofNullable(contentType)
                 .map(PRINTABLE_TYPES::get)
                 .map(extension -> new Picture(data, extension));

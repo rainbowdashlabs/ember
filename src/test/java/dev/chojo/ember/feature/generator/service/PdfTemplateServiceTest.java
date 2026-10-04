@@ -43,6 +43,7 @@ import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.owner.Owner;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import dev.chojo.ember.util.PdfText;
+import dev.chojo.ember.util.Sha256;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.jspecify.annotations.Nullable;
@@ -208,7 +209,7 @@ class PdfTemplateServiceTest extends RepositoryTestBase {
         assertEquals(2, template.version());
         assertEquals(1, pdf.inspection().pages().size());
         assertEquals("form.pdf", pdf.fileName());
-        assertEquals(DocumentGenerationService.sha256(form), pdf.sha256());
+        assertEquals(Sha256.hex(form), pdf.sha256());
         assertEquals(
                 List.of(
                         new FormField("person.name", FormFieldKind.TEXT, new FieldRect(1, 100, 600, 200, 20)),
@@ -410,7 +411,7 @@ class PdfTemplateServiceTest extends RepositoryTestBase {
             assertNotNull(read.getDocumentCatalog().getAcroForm(null).getField("guardian1"));
         }
         var entry = log.findById(filed.generationId()).orElseThrow();
-        assertEquals(DocumentGenerationService.sha256(pdf), entry.fileSha256());
+        assertEquals(Sha256.hex(pdf), entry.fileSha256());
         assertEquals(Objects.requireNonNull(template.pdf()).id(), entry.pdfOriginalId());
     }
 
