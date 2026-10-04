@@ -31,6 +31,7 @@ import dev.chojo.ember.feature.protocol.route.RemoteTestProtocolRoutes.RemotePro
 import dev.chojo.ember.feature.protocol.route.RemoteTestProtocolRoutes.RemoteProtocolSummary;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -43,6 +44,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -205,13 +207,19 @@ public class TestProtocolService implements FederationServer {
         return section;
     }
 
+    /**
+     * Changes a section.
+     *
+     * @param position where it now stands among its siblings, or {@code null} to leave it where it is
+     * @return whether there was such a section
+     */
     public boolean updateSection(
             int id,
             String name,
             String description,
             @Nullable Integer maxPoints,
             @Nullable Integer passThreshold,
-            int position) {
+            @Nullable Integer position) {
         boolean updated = repository.updateSection(id, name, description, maxPoints, passThreshold, position);
         if (updated) log.info("Updated section {} (name='{}')", id, name);
         else log.warn("Update of section {} did not change any row", id);
@@ -239,11 +247,65 @@ public class TestProtocolService implements FederationServer {
         return item;
     }
 
-    public boolean updateItem(int id, String label, String description, double points, int position) {
+    /**
+     * Changes a point.
+     *
+     * @param position where it now stands in its section, or {@code null} to leave it where it is
+     * @return whether there was such a point
+     */
+    public boolean updateItem(int id, String label, String description, double points, @Nullable Integer position) {
         boolean updated = repository.updateItem(id, label, description, points, position);
         if (updated) log.info("Updated protocol item {} (label='{}', points={})", id, label, points);
         else log.warn("Update of protocol item {} did not change any row", id);
         return updated;
+    }
+
+    /**
+     * Puts the sections of one level of a protocol into the given order: its top-level sections, or the
+     * sections inside one section.
+     *
+     * <p>The order has to name exactly the sections of that level, each once. One that was added or
+     * removed meanwhile, or one of another level, refuses the whole order rather than leaving the level
+     * half sorted.
+     *
+     * @param protocolId the protocol
+     * @param orderedIds the sections of one level, in their new order
+     */
+    public void reorderSections(int protocolId, List<Integer> orderedIds) {
+        var sections = repository.findSections(protocolId);
+        var named = sections.stream()
+                .filter(section -> !orderedIds.isEmpty() && section.id() == orderedIds.getFirst())
+                .findFirst()
+                .orElseThrow(TestProtocolRefusal.PROTOCOL_ORDER_OUT_OF_DATE::raise);
+        var siblings = sections.stream()
+                .filter(section -> Objects.equals(section.parentId(), named.parentId()))
+                .map(TestProtocolSection::id)
+                .toList();
+        requireWholeLevel(siblings, orderedIds);
+        Transactions.run(() -> repository.reorderSections(protocolId, orderedIds));
+        log.info("Reordered {} sections of test protocol {}", orderedIds.size(), protocolId);
+    }
+
+    /**
+     * Puts the points of a section into the given order. The order has to name exactly the points of
+     * the section, each once.
+     *
+     * @param sectionId  the section
+     * @param orderedIds its points, in their new order
+     */
+    public void reorderItems(int sectionId, List<Integer> orderedIds) {
+        var items = repository.findItems(sectionId).stream()
+                .map(TestProtocolItem::id)
+                .toList();
+        requireWholeLevel(items, orderedIds);
+        Transactions.run(() -> repository.reorderItems(sectionId, orderedIds));
+        log.info("Reordered {} points of protocol section {}", orderedIds.size(), sectionId);
+    }
+
+    private static void requireWholeLevel(List<Integer> level, List<Integer> orderedIds) {
+        if (orderedIds.size() != level.size() || !Set.copyOf(level).equals(Set.copyOf(orderedIds))) {
+            throw TestProtocolRefusal.PROTOCOL_ORDER_OUT_OF_DATE.raise();
+        }
     }
 
     public boolean deleteItem(int id) {

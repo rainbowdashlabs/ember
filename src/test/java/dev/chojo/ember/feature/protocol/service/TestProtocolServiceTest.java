@@ -33,6 +33,7 @@ import org.junit.jupiter.api.TestMethodOrder;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import static dev.chojo.ember.feature.federation.FederationTestContracts.pathIs;
 import static org.junit.jupiter.api.Assertions.*;
@@ -520,5 +521,98 @@ class TestProtocolServiceTest extends RepositoryTestBase {
         var result = service.getFederatedProtocol(station.id(), stationC.uid(), 77);
         assertNotNull(result);
         assertNotNull(result.protocol());
+    }
+
+    /** Sections are sorted per level: sorting the top level leaves the sections inside one alone. */
+    @Test
+    @Order(300)
+    void sectionsAreSortedPerLevel() {
+        int sorted =
+                service.createProtocol(station.id(), "Sortierung", "", null).id();
+        int first =
+                service.createSection(sorted, null, "Erster", "", null, null, 0).id();
+        int second = service.createSection(sorted, null, "Zweiter", "", null, null, 1)
+                .id();
+        int third = service.createSection(sorted, null, "Dritter", "", null, null, 2)
+                .id();
+        int innerA = service.createSection(sorted, first, "Innen A", "", null, null, 0)
+                .id();
+        int innerB = service.createSection(sorted, first, "Innen B", "", null, null, 1)
+                .id();
+
+        service.reorderSections(sorted, List.of(third, first, second));
+        service.reorderSections(sorted, List.of(innerB, innerA));
+
+        assertEquals(List.of(third, first, second), idsAt(sorted, null));
+        assertEquals(List.of(innerB, innerA), idsAt(sorted, first));
+    }
+
+    /** An order that leaves one out, names one twice or reaches into another level moves nothing. */
+    @Test
+    @Order(301)
+    void anOrderThatIsNotTheWholeLevelMovesNothing() {
+        int sorted =
+                service.createProtocol(station.id(), "Unvollständig", "", null).id();
+        int first =
+                service.createSection(sorted, null, "Erster", "", null, null, 0).id();
+        int second = service.createSection(sorted, null, "Zweiter", "", null, null, 1)
+                .id();
+        int inner =
+                service.createSection(sorted, first, "Innen", "", null, null, 0).id();
+
+        for (var order :
+                List.of(List.of(second), List.of(second, second), List.of(second, first, inner), List.<Integer>of())) {
+            var refused = assertThrows(RefusalResponse.class, () -> service.reorderSections(sorted, order));
+            assertEquals(TestProtocolRefusal.PROTOCOL_ORDER_OUT_OF_DATE, refused.refusal());
+        }
+        assertEquals(List.of(first, second), idsAt(sorted, null));
+    }
+
+    /** Points are sorted within their section, and only all of them at once. */
+    @Test
+    @Order(302)
+    void pointsAreSortedWithinTheirSection() {
+        int sorted = service.createProtocol(station.id(), "Punkte", "", null).id();
+        int section = service.createSection(sorted, null, "Abschnitt", "", null, null, 0)
+                .id();
+        int a = service.createItem(section, "A", "", 1, 0).id();
+        int b = service.createItem(section, "B", "", 1, 1).id();
+        int c = service.createItem(section, "C", "", 1, 2).id();
+
+        service.reorderItems(section, List.of(c, a, b));
+        var refused = assertThrows(RefusalResponse.class, () -> service.reorderItems(section, List.of(a, b)));
+
+        assertEquals(TestProtocolRefusal.PROTOCOL_ORDER_OUT_OF_DATE, refused.refusal());
+        assertEquals(
+                List.of(c, a, b),
+                service.findItems(section).stream().map(item -> item.id()).toList());
+    }
+
+    /** Changing a section or a point without naming a place keeps the place it was sorted to. */
+    @Test
+    @Order(303)
+    void aChangeKeepsThePlace() {
+        int sorted = service.createProtocol(station.id(), "Stelle", "", null).id();
+        int first =
+                service.createSection(sorted, null, "Erster", "", null, null, 0).id();
+        int second = service.createSection(sorted, null, "Zweiter", "", null, null, 1)
+                .id();
+        int a = service.createItem(second, "A", "", 1, 3).id();
+        int b = service.createItem(second, "B", "", 1, 4).id();
+
+        service.updateSection(second, "Abschnitt vorne im Alphabet", "", null, null, null);
+        service.updateItem(b, "B, umbenannt", "", 2, null);
+
+        assertEquals(List.of(first, second), idsAt(sorted, null));
+        assertEquals(
+                List.of(a, b),
+                service.findItems(second).stream().map(item -> item.id()).toList());
+    }
+
+    private static List<Integer> idsAt(int protocol, Integer parent) {
+        return service.findSections(protocol).stream()
+                .filter(section -> Objects.equals(section.parentId(), parent))
+                .map(section -> section.id())
+                .toList();
     }
 }

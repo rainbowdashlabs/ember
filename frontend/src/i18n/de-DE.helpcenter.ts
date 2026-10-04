@@ -3653,6 +3653,7 @@ volumes:
             whatIsText: 'Hier siehst du den genauen Aufbau eines Prüfungsprotokolls: alle Abschnitte, Unterabschnitte und Prüfpunkte - mit den zugehörigen Punkten.',
             structureTitle: 'Abschnitte und Prüfpunkte',
             structureText: 'Ein Protokoll ist in Abschnitte aufgeteilt. Jeder Abschnitt hat mehrere Prüfpunkte. Die Punkte pro Abschnitt stehen rechts neben dem Namen.',
+            orderText: 'Abschnitte, Unterabschnitte und Prüfpunkte sortierst du mit den Pfeilen links neben ihnen, am Computer auch per Ziehen am Griff. Verschoben wird immer innerhalb derselben Ebene: Prüfpunkte bleiben in ihrem Abschnitt, Unterabschnitte in ihrem Abschnitt.',
             thresholdTitle: 'Bestehengrenze',
             exampleTitle: 'So sieht das Protokoll aus',
             thresholdText: 'Die Bestehengrenze ist ein Punktwert. Ein Mitglied muss mindestens so viele Punkte erreichen, um die Prüfung zu bestehen.',

@@ -32277,6 +32277,44 @@
         }
       }
     },
+    "/api/v1/protocols/sections/{id}/items/order" : {
+      "put" : {
+        "summary" : "Put the points of a section into a new order",
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ProtocolOrderRequest"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/protocols/{id}" : {
       "get" : {
         "responses" : {
@@ -32367,6 +32405,44 @@
             "application/json" : {
               "schema" : {
                 "$ref" : "#/components/schemas/ProtocolSectionRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/protocols/{id}/sections/order" : {
+      "put" : {
+        "summary" : "Put the sections of one level of a protocol into a new order",
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ProtocolOrderRequest"
               }
             }
           }
@@ -61010,6 +61086,18 @@
           }
         },
         "required" : [ "protocols", "shared" ]
+      },
+      "ProtocolOrderRequest" : {
+        "type" : "object",
+        "properties" : {
+          "ids" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          }
+        }
       },
       "ProtocolRequest" : {
         "type" : "object",

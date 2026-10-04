@@ -2,11 +2,16 @@
 
 ## v26.20.3
 
-Protokolle behalten beim Bearbeiten ihre Stelle.
+Protokolle behalten beim Bearbeiten ihre Stelle, und ihre Abschnitte und Prüfpunkte lassen sich sortieren.
+
+### Verbesserungen
+
+- **Abschnitte und Prüfpunkte eines Protokolls lassen sich sortieren.** Abschnitte, Unterabschnitte und Prüfpunkte wandern mit Pfeilen nach oben und unten, am Computer auch per Ziehen, jeweils innerhalb ihrer Ebene. Ein neuer Prüfpunkt öffnet mit dem Cursor im Namen.
 
 ### Fehlerbehebungen
 
 - **Protokolle sprangen beim Bearbeiten nach oben.** Nach jedem neuen oder geänderten Abschnitt oder Eintrag rollte die Seite des Protokolls wieder nach oben. Jetzt bleibt sie an ihrer Stelle.
+- **Ein geänderter Abschnitt rutschte nach oben.** In manchen Fällen stand ein Abschnitt nach dem Ändern an erster Stelle seines Protokolls. Abschnitte und Prüfpunkte behalten beim Ändern jetzt ihren Platz.
 
 ## v26.20.2
 

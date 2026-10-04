@@ -28,4 +28,5 @@ export default {
     'T-015': CHANGE_SAVED_BUT_NOT_READ_BACK,
     'T-016': CHANGE_SAVED_BUT_NOT_READ_BACK,
     'T-017': CHANGE_SAVED_BUT_NOT_READ_BACK,
+    'T-018': 'Die Reihenfolge passt nicht mehr zum Prüfungsbogen, es wurde nichts verschoben. Lade die Seite neu und versuch es noch einmal',
 }

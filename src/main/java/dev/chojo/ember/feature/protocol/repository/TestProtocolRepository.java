@@ -29,6 +29,7 @@ import static dev.chojo.ember.util.sql.SqlSupport.deleteById;
 import static dev.chojo.ember.util.sql.SqlSupport.deleteByIdInStation;
 import static dev.chojo.ember.util.sql.SqlSupport.findById;
 import static dev.chojo.ember.util.sql.SqlSupport.insertReturning;
+import static dev.chojo.ember.util.sql.SqlSupport.reorder;
 
 @Singleton
 public class TestProtocolRepository {
@@ -154,10 +155,11 @@ public class TestProtocolRepository {
             String description,
             @Nullable Integer maxPoints,
             @Nullable Integer passThreshold,
-            int position) {
+            @Nullable Integer position) {
         return query("""
                 UPDATE test_protocol_section SET name = :name, description = :description,
-                max_points = :max_points, pass_threshold = :pass_threshold, position = :position WHERE id = :id;""")
+                max_points = :max_points, pass_threshold = :pass_threshold,
+                position = COALESCE(:position, position) WHERE id = :id;""")
                 .single(call().bind("id", id)
                         .bind("name", name)
                         .bind("description", description)
@@ -170,6 +172,19 @@ public class TestProtocolRepository {
 
     public boolean deleteSection(int id) {
         return deleteById("test_protocol_section", id);
+    }
+
+    /**
+     * Numbers the given sections of a protocol from zero in the order given. Sections of other levels
+     * keep their numbers, which only ever compare against their own siblings.
+     */
+    public void reorderSections(int protocolId, List<Integer> orderedIds) {
+        reorder("test_protocol_section", "position", "protocol_id", protocolId, orderedIds);
+    }
+
+    /** Numbers the points of a section from zero in the order given. */
+    public void reorderItems(int sectionId, List<Integer> orderedIds) {
+        reorder("test_protocol_item", "position", "section_id", sectionId, orderedIds);
     }
 
     /**
@@ -221,14 +236,14 @@ public class TestProtocolRepository {
                 TEST_PROTOCOL_ITEM_COLUMNS);
     }
 
-    public boolean updateItem(int id, String label, String description, double points, int position) {
+    public boolean updateItem(int id, String label, String description, double points, @Nullable Integer position) {
         return query("""
                 UPDATE test_protocol_item
                 SET
                     label       = :label,
                     description = :description,
                     points      = :points,
-                    position    = :position
+                    position    = COALESCE(:position, position)
                 WHERE id = :id;""")
                 .single(call().bind("id", id)
                         .bind("label", label)

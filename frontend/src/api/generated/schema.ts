@@ -41596,6 +41596,55 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/protocols/{id}/sections/order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Put the sections of one level of a protocol into a new order */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ProtocolOrderRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/protocols/items/{id}": {
         parameters: {
             query?: never;
@@ -42249,6 +42298,55 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/protocols/sections/{id}/items/order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Put the points of a section into a new order */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ProtocolOrderRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -61574,6 +61672,9 @@ export interface components {
             protocols: components["schemas"]["TestProtocol"][];
             shared: components["schemas"]["SharedProtocolView"][];
         };
+        ProtocolOrderRequest: {
+            ids?: number[];
+        };
         ProtocolRequest: {
             description?: string | null;
             name?: string;
@@ -66174,6 +66275,7 @@ export type ProtocolChecksRequest = components['schemas']['ProtocolChecksRequest
 export type ProtocolDetailResponse = components['schemas']['ProtocolDetailResponse'];
 export type ProtocolItemRequest = components['schemas']['ProtocolItemRequest'];
 export type ProtocolListResponse = components['schemas']['ProtocolListResponse'];
+export type ProtocolOrderRequest = components['schemas']['ProtocolOrderRequest'];
 export type ProtocolRequest = components['schemas']['ProtocolRequest'];
 export type ProtocolRunRequest = components['schemas']['ProtocolRunRequest'];
 export type ProtocolSectionRequest = components['schemas']['ProtocolSectionRequest'];

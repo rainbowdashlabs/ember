@@ -22,6 +22,8 @@ import { describeFailure } from '@/util/failure'
 import { getItem } from '@/api/storage'
 import { StationPermission, type TestProtocol, type TestProtocolSection, type TestProtocolItem } from '@/api/generated/schema'
 import MutedText from '@/components/typography/MutedText.vue'
+import DragList from '@/components/input/DragList.vue'
+import { moveWithin } from '@/util/reorder'
 import ProtocolSectionCard from './protocoldetailview/ProtocolSectionCard.vue'
 import ProtocolSectionModal from './protocoldetailview/ProtocolSectionModal.vue'
 import ProtocolItemModal from './protocoldetailview/ProtocolItemModal.vue'
@@ -205,6 +207,39 @@ async function handleDeleteItem(id: number) {
   await writeThenReload(() => protocol.deleteItem(id))
 }
 
+/**
+ * Moves one entry of a level, on screen at once and then on the server, which takes the whole level
+ * in its new order. Nothing is read back after a move that went through, so the page stays as it is;
+ * a move the server refused reads the protocol back, so the screen shows what is stored.
+ */
+async function reorderLevel(
+    level: { id: number, position: number }[],
+    fromIndex: number,
+    toIndex: number,
+    save: (ids: number[]) => Promise<void>,
+) {
+  const ordered = moveWithin(level, fromIndex, toIndex)
+  ordered.forEach((entry, index) => { entry.position = index })
+  failure.value = null
+  try {
+    await save(ordered.map(entry => entry.id))
+  } catch (e) {
+    failure.value = describeFailure(e, t)
+    await loadData()
+  }
+}
+
+function reorderSections(parentId: number | null, fromIndex: number, toIndex: number) {
+  if (!proto.value) return
+  const protocolShown = proto.value.id
+  const level = parentId === null ? topSections() : childSections(parentId)
+  void reorderLevel(level, fromIndex, toIndex, ids => protocol.reorderSections(protocolShown, ids))
+}
+
+function reorderItems(sectionId: number, fromIndex: number, toIndex: number) {
+  void reorderLevel(sectionItems(sectionId), fromIndex, toIndex, ids => protocol.reorderItems(sectionId, ids))
+}
+
 const showEditProtocolModal = ref(false)
 const editProtoName = ref('')
 const editProtoDescription = ref('')
@@ -267,23 +302,31 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
     <template v-if="proto">
       <MutedText v-if="proto.description" tag="p" size="sm">{{ proto.description }}</MutedText>
 
-      <div class="space-y-4">
-        <ProtocolSectionCard
-          v-for="section in topSections()"
-          :key="section.id"
-          :section="section"
-          :child-sections="childSections(section.id)"
-          :section-items="sectionItems"
-          :section-total-points="sectionTotalPoints"
-          :can-edit="canEdit"
-          @add-item="openAddItem"
-          @add-subsection="openAddSection"
-          @edit-section="openEditSection"
-          @delete-section="handleDeleteSection"
-          @edit-item="openEditItem"
-          @delete-item="handleDeleteItem"
-        />
-      </div>
+      <DragList
+          :items="topSections()"
+          :key-fn="(section) => section.id"
+          :disabled="!canEdit"
+          class="space-y-4"
+          @reorder="(from, to) => reorderSections(null, from, to)"
+      >
+        <template #default="{item: section}">
+          <ProtocolSectionCard
+            :section="section"
+            :child-sections="childSections(section.id)"
+            :section-items="sectionItems"
+            :section-total-points="sectionTotalPoints"
+            :can-edit="canEdit"
+            @add-item="openAddItem"
+            @add-subsection="openAddSection"
+            @edit-section="openEditSection"
+            @delete-section="handleDeleteSection"
+            @edit-item="openEditItem"
+            @delete-item="handleDeleteItem"
+            @reorder-items="reorderItems"
+            @reorder-subsections="reorderSections"
+          />
+        </template>
+      </DragList>
 
       <PrimaryButton v-if="canEdit" class="mt-4" @click="openAddSection()">
         <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" /> {{ t('protocol.addSection') }}

@@ -8,6 +8,7 @@ import { useI18n } from 'vue-i18n'
 import IconButton from '@/components/button/IconButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import MutedText from '@/components/typography/MutedText.vue'
+import DragList from '@/components/input/DragList.vue'
 import ProtocolItemRow from './ProtocolItemRow.vue'
 import type { TestProtocolSection, TestProtocolItem } from '@/api/generated/schema'
 
@@ -24,6 +25,7 @@ defineEmits<{
   deleteSection: [id: number]
   editItem: [item: TestProtocolItem]
   deleteItem: [id: number]
+  reorderItems: [sectionId: number, fromIndex: number, toIndex: number]
 }>()
 
 const { t } = useI18n()
@@ -41,13 +43,21 @@ const { t } = useI18n()
       </template>
     </div>
     <MutedText v-if="sub.description" tag="p" size="sm">{{ sub.description }}</MutedText>
-    <ProtocolItemRow
-      v-for="item in items"
-      :key="item.id"
-      :item="item"
-      :can-edit="canEdit"
-      @edit="(i) => $emit('editItem', i)"
-      @delete="(id) => $emit('deleteItem', id)"
-    />
+    <DragList
+        :items="items"
+        :key-fn="(item) => item.id"
+        :disabled="!canEdit"
+        class="space-y-1"
+        @reorder="(from, to) => $emit('reorderItems', sub.id, from, to)"
+    >
+      <template #default="{item}">
+        <ProtocolItemRow
+          :item="item"
+          :can-edit="canEdit"
+          @edit="(i) => $emit('editItem', i)"
+          @delete="(id) => $emit('deleteItem', id)"
+        />
+      </template>
+    </DragList>
   </div>
 </template>
