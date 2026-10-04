@@ -201,7 +201,7 @@ public class SelfServiceDocumentService {
                 template.legal(),
                 availableFrom(template, lastUsed),
                 lastUsed,
-                generator.missing(prepared));
+                prepared.missing());
     }
 
     /**

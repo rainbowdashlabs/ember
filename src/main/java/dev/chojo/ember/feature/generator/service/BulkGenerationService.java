@@ -204,7 +204,7 @@ public class BulkGenerationService {
                 var prepared = generator.prepare(source, memberId, context);
                 if (first == null) first = memberId;
                 if (prepared.resolved().missing().isEmpty()) continue;
-                gaps.add(new MemberGaps(memberId, names.identified(memberId), generator.missing(prepared), null));
+                gaps.add(new MemberGaps(memberId, names.identified(memberId), prepared.missing(), null));
             } catch (RefusalResponse refused) {
                 gaps.add(new MemberGaps(
                         memberId,

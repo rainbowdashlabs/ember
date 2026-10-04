@@ -26,8 +26,11 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -200,6 +203,19 @@ public class RestrictionService {
                 .filter(audience::includes)
                 .map(RestrictionMember::memberId)
                 .toList();
+    }
+
+    /**
+     * What a restriction can name of several members, as {@link #memberOf(int)} reads it for one, in one
+     * read.
+     *
+     * @param memberIds the members
+     * @return the members as restrictions see them, by member; one that does not exist is absent
+     */
+    public Map<Integer, RestrictionMember> membersOf(Collection<Integer> memberIds) {
+        var members = new HashMap<Integer, RestrictionMember>();
+        restrictionRepository.findMembers(memberIds).forEach(member -> members.put(member.memberId(), member));
+        return members;
     }
 
     /**

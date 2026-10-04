@@ -24,6 +24,7 @@ import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -821,6 +822,32 @@ public class StationMemberRepository {
                 .single(call().bind("managed_id", managedId))
                 .map(StationMember.map())
                 .all();
+    }
+
+    /**
+     * The guardians of several members who are still at the station, as {@link #findManagers(int)} reads
+     * them for one, in one read.
+     *
+     * @param managedIds the members looked after
+     * @return the guardians of each member in the order the member page sets, by member; a member without
+     *         any guardian is absent
+     */
+    public Map<Integer, List<StationMember>> findManagersOf(Collection<Integer> managedIds) {
+        if (managedIds.isEmpty()) return Map.of();
+        var guardians = new HashMap<Integer, List<StationMember>>();
+        query("""
+                SELECT mm.managed_id, %s FROM station_member sm
+                JOIN member_manager mm ON sm.id = mm.manager_id
+                WHERE mm.managed_id = ANY(:managed_ids) AND sm.former = FALSE
+                ORDER BY mm.managed_id, mm.position, mm.created_at NULLS FIRST, mm.manager_id;""", SqlSupport.alias("sm", STATION_MEMBER_COLUMNS))
+                .single(call().bind("managed_ids", List.copyOf(managedIds), PostgreSqlTypes.INTEGER))
+                .map(row ->
+                        Map.entry(row.getInt("managed_id"), StationMember.map().map(row)))
+                .all()
+                .forEach(guardian -> guardians
+                        .computeIfAbsent(guardian.getKey(), ignored -> new ArrayList<>())
+                        .add(guardian.getValue()));
+        return guardians;
     }
 
     /**

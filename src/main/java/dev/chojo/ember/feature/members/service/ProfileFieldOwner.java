@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.question.FieldType;
 import org.jspecify.annotations.Nullable;
 import tools.jackson.databind.JsonNode;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -77,6 +78,14 @@ public interface ProfileFieldOwner {
      * @return the answers
      */
     List<ProfileFieldValue> answersOf(int memberId);
+
+    /**
+     * Every answer several members gave to the owner's questions that still reach them, in one read.
+     *
+     * @param memberIds the members
+     * @return the answers of all of them
+     */
+    List<ProfileFieldValue> answersOf(Collection<Integer> memberIds);
 
     /**
      * Every answer given to one of the owner's questions, whoever gave it.

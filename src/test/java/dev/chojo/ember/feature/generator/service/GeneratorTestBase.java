@@ -21,7 +21,10 @@ import dev.chojo.ember.feature.generator.service.pdf.StampFonts;
 import dev.chojo.ember.feature.knowledgebase.service.KbPdfPictures;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.members.service.GenderFields;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.owner.Owner;
@@ -96,6 +99,19 @@ public abstract class GeneratorTestBase extends RepositoryTestBase {
      * @return its generator
      */
     public static Wiring wire(Station station) {
+        return wire(station, stationRepo, stationMemberRepo);
+    }
+
+    /**
+     * The generator wired for a station, reading stations and members where it fills in placeholders
+     * through the given repositories, which a test counts the reads of.
+     *
+     * @param station  the station
+     * @param stations where the generator reads stations
+     * @param members  where the generator reads memberships and guardians
+     * @return its generator
+     */
+    static Wiring wire(Station station, StationRepository stations, StationMemberRepository members) {
         var clock = new MovableClock(NOW);
         var owner = new Owner.Station(station.id());
         var backend = localStorage();
@@ -127,13 +143,22 @@ public abstract class GeneratorTestBase extends RepositoryTestBase {
                         templates, templateRepository, pdfTemplates, newDocumentIntake(), storage, newOwnerStores()),
                 new PdfStamper(new StampFonts(DefaultFont.absent())),
                 fonts);
+        var resolver = new PlaceholderResolver(
+                stations,
+                members,
+                memberNameResolver,
+                profileFieldRepo,
+                profileFieldCore,
+                new GenderFields(profileFieldCore, stationRepo),
+                clusterService,
+                clock);
         var generator = new DocumentGeneratorService(
                 templates,
-                newPlaceholderResolver(clock),
+                resolver,
                 catalogue,
                 new LetterRenderer(pictures, media, newStationLogoService(), fonts, newOwnerStores()),
                 pdfRenderer,
-                stationRepo,
+                stations,
                 restrictionService,
                 clock);
         var log = new DocumentGenerationRepository();

@@ -38,7 +38,10 @@ import java.util.concurrent.ConcurrentHashMap;
  * <p>Everything a run needs lives in the database: each member is marked filed or failed as soon as it
  * is done, and a run picked up again generates only the members still waiting. Filing a member's
  * document and marking the member filed are one transaction, so a run cut off between the two leaves
- * the member waiting with nothing filed rather than filed twice once it carries on. A run is handed in when
+ * the member waiting with nothing filed rather than filed twice once it carries on. The document is drawn
+ * before that transaction opens, so no connection is held while Typst runs. What is the same for every
+ * member of a run, or can be read for all of them at once, is read once ({@link DocumentGeneratorService.Batch}).
+ * A run is handed in when
  * it is started, and a periodic task hands in every run that is not finished and not already queued,
  * which is what carries a run on after a restart.
  *
@@ -113,18 +116,21 @@ public class GenerationJobRunner implements TaskSource {
     }
 
     private void work(GenerationJob job, DocumentTemplate template) {
-        var source = generator.sourceOf(template);
         var context = GenerationContext.by(job.startedBy(), job.issuer());
-        for (int memberId : jobs.waiting(job.id())) {
+        var waiting = jobs.waiting(job.id());
+        var batch = generator.batch(generator.sourceOf(template), context, waiting);
+        for (int memberId : waiting) {
             try {
                 if (template.archived()) throw DocumentRefusal.DOCUMENT_TEMPLATE_ARCHIVED.raise();
-                var prepared = generator.prepare(source, memberId, context);
+                var prepared = batch.prepare(memberId);
                 if (!job.acceptMissing()) {
                     generator.requireComplete(prepared, DocumentRefusal.DOCUMENT_JOB_VALUES_MISSING);
                 }
+                generation.requireKept(prepared);
+                var rendered = batch.render(prepared);
                 Transactions.run(() -> {
-                    var filed =
-                            generation.file(template, memberId, job.startedBy(), GenerationOrigin.MANAGER, prepared);
+                    var filed = generation.file(
+                            template, memberId, job.startedBy(), GenerationOrigin.MANAGER, prepared, rendered);
                     jobs.markFiled(job.id(), memberId, filed.generationId());
                 });
             } catch (RefusalResponse refused) {

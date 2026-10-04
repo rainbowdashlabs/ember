@@ -31,6 +31,7 @@ import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 import tools.jackson.databind.JsonNode;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -125,6 +126,11 @@ public class AssociationProfileFields implements ProfileFieldOwner {
     @Override
     public List<ProfileFieldValue> answersOf(int memberId) {
         return fieldRepository.findValues(memberId);
+    }
+
+    @Override
+    public List<ProfileFieldValue> answersOf(Collection<Integer> memberIds) {
+        return fieldRepository.findValuesOf(memberIds);
     }
 
     @Override
