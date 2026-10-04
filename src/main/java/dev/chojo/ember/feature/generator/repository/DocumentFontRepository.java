@@ -98,6 +98,15 @@ public class DocumentFontRepository {
     }
 
     /**
+     * @param sha256 the SHA-256 of a font file as lowercase hex
+     * @return whether any owner keeps a font with exactly this file
+     */
+    public boolean anyHolds(String sha256) {
+        return SqlSupport.exists("""
+                        SELECT 1 FROM document_font WHERE sha256 = :file_hash LIMIT 1;""", call().bind("file_hash", sha256));
+    }
+
+    /**
      * @param owner who keeps the fonts
      * @return the owner's fonts by family and style
      */

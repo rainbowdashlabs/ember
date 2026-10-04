@@ -249,6 +249,7 @@ public class DocumentFontService {
         });
         storage.delete(scope, category, FontLibrary.key(font.id()));
         if (font.web() != null) storage.delete(scope, category, FontLibrary.webKey(font.id()));
+        library.forgetKept(font);
         log.info(
                 "Font {} ({} {}) of {} deleted by account {}",
                 font.id(),

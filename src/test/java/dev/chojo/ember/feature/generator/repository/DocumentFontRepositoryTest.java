@@ -119,6 +119,21 @@ class DocumentFontRepositoryTest extends RepositoryTestBase {
         assertTrue(fonts.findOwned(station).stream().noneMatch(font -> font.id() == written.id()));
     }
 
+    /** A file is held for as long as any owner keeps a font with it. */
+    @Test
+    void aFileIsHeldWhileAnyFontKeepsIt() {
+        var font = fonts.insert(
+                other,
+                new DocumentFontRepository.NewFont(
+                        "Gehalten", FontStyle.REGULAR, "gehalten.ttf", FontOutline.TRUETYPE, "Gehalten", 12, "c0ffee"),
+                accountId);
+        assertTrue(fonts.anyHolds("c0ffee"));
+
+        fonts.delete(font.id());
+
+        assertFalse(fonts.anyHolds("c0ffee"));
+    }
+
     /** A style gets a web version, keeps the next one in its place and loses it again, its file untouched. */
     @Test
     void aWebVersionIsSetReplacedAndCleared() {

@@ -167,6 +167,15 @@ public class FontLibrary {
     }
 
     /**
+     * Forgets the kept file of a deleted font, unless another font holds the very same file.
+     *
+     * @param deleted the font that was deleted
+     */
+    public void forgetKept(DocumentFont deleted) {
+        if (!fonts.anyHolds(deleted.sha256())) kept.forget(deleted.sha256());
+    }
+
+    /**
      * Reads the web version of an uploaded font style.
      *
      * @param font an uploaded font

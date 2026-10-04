@@ -27,7 +27,9 @@ import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Font files kept on the instance's disk, read from storage once and handed to Typst by the set. */
 class FontFileCacheTest {
@@ -93,6 +95,25 @@ class FontFileCacheTest {
                 Stream.of(liberation, lisu).map(FilePaths::nameOf).sorted().toList();
         assertEquals(expected, namesIn(both));
         assertEquals(List.of(FilePaths.nameOf(liberation)), namesIn(one));
+    }
+
+    /** A forgotten file goes with every directory that held it; other files and directories stay. */
+    @Test
+    void aForgottenFileTakesItsDirectoriesWithIt(@TempDir Path root) {
+        var cache = new FontFileCache(root);
+        byte[] data = TestFonts.lisu();
+        var lisu = cache.fileOf(uploaded(1, data), face -> Optional.of(data)).orElseThrow();
+        var liberation = cache.fileOf(BundledFont.face(), face -> Optional.of(BundledFont.data()))
+                .orElseThrow();
+        var both = cache.directoryOf(List.of(lisu, liberation));
+        var one = cache.directoryOf(List.of(liberation));
+
+        cache.forget(Sha256.hex(data));
+
+        assertFalse(Files.exists(lisu));
+        assertFalse(Files.exists(both));
+        assertTrue(Files.exists(liberation));
+        assertTrue(Files.isDirectory(one));
     }
 
     private static List<String> namesIn(Path directory) throws IOException {

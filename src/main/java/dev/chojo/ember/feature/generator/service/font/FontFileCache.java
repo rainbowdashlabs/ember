@@ -42,11 +42,10 @@ import java.util.stream.Stream;
  * Typst finds no family of another owner there; a directory is named by the files it holds and made once
  * for each such set, its files linked to the kept ones where the disk allows it and copied where not.
  * Files and directories appear whole or not at all, so letters drawn at once never see one half
- * written.
+ * written. A file no font holds any more is forgotten together with every directory that links it.
  */
 @Singleton
 public class FontFileCache {
-    // TODO: remove the kept files and directories of fonts that were deleted
     private static final Logger log = LoggerFactory.getLogger(FontFileCache.class);
 
     /** Where the files are kept below the working directory of the instance. */
@@ -103,6 +102,29 @@ public class FontFileCache {
         } catch (IOException e) {
             throw new UncheckedIOException("The fonts of a letter could not be laid out in " + directory, e);
         }
+    }
+
+    /**
+     * Forgets the kept file of a font file no font holds any more, and every directory made with it.
+     *
+     * <p>A directory is named by its set of files, so the directories holding the file are found by
+     * looking into them rather than by their names.
+     *
+     * @param sha256 the SHA-256 of the font file as lowercase hex
+     */
+    public void forget(String sha256) {
+        var names =
+                Stream.of(".ttf", ".otf").map(extension -> sha256 + extension).toList();
+        if (Files.isDirectory(sets)) {
+            try (Stream<Path> directories = Files.list(sets)) {
+                directories
+                        .filter(directory -> names.stream().anyMatch(name -> Files.exists(directory.resolve(name))))
+                        .forEach(FontFileCache::delete);
+            } catch (IOException e) {
+                log.warn("The font sets in {} could not be read", sets, e);
+            }
+        }
+        names.stream().map(files::resolve).filter(Files::exists).forEach(FontFileCache::delete);
     }
 
     private String nameOf(FontFace face, byte[] data) {
