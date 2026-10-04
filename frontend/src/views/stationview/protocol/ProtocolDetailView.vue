@@ -73,6 +73,9 @@ const {loading, failure, reload: loadData} = useAsyncLoader(async () => {
  * <p>The two are answered for separately. A section the server had already stored, followed by a
  * page that would not refresh, used to say the section had been refused, and a reader told that
  * adds it a second time.
+ *
+ * <p>The protocol stays on screen while it is read back. Taking it away for the moment of the reload
+ * shortened the page, and the browser scrolled the reader back up after every new entry.
  */
 async function writeThenReload(write: () => Promise<void>) {
   failure.value = null
@@ -258,10 +261,10 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
       </span>
     </div>
 
-    <Spinner v-if="loading" />
+    <Spinner v-if="loading && !proto" />
     <FailureAlert :failure="failure"/>
 
-    <template v-if="!loading && proto">
+    <template v-if="proto">
       <MutedText v-if="proto.description" tag="p" size="sm">{{ proto.description }}</MutedText>
 
       <div class="space-y-4">

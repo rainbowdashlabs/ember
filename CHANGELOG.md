@@ -1,5 +1,13 @@
 # Changelog
 
+## v26.20.3
+
+Protocols keep their place while they are being edited.
+
+### Fixes
+
+- **Protocols jumped back to the top while being edited.** After every new or changed section or entry, the protocol page scrolled back up. It now keeps its place.
+
 ## v26.20.2
 
 The daily usage report goes out on every instance again.

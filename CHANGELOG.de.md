@@ -1,5 +1,13 @@
 # Änderungsprotokoll
 
+## v26.20.3
+
+Protokolle behalten beim Bearbeiten ihre Stelle.
+
+### Fehlerbehebungen
+
+- **Protokolle sprangen beim Bearbeiten nach oben.** Nach jedem neuen oder geänderten Abschnitt oder Eintrag rollte die Seite des Protokolls wieder nach oben. Jetzt bleibt sie an ihrer Stelle.
+
 ## v26.20.2
 
 Der tägliche Nutzungsbericht geht wieder auf jeder Instanz hinaus.
