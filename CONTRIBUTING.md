@@ -66,15 +66,18 @@ below); tags it creates are not signed.
 
 ### Feature release
 
-1. Open a pull request from `release/vX.Y.Z` into `main`.
-2. Wait until CI is green on the release branch.
-3. Add the label `release` to the pull request.
+Every release branch has one release pull request from `release/vX.Y.Z` into `main`, titled
+`Release vX.Y.Z`. It is opened as a draft once the branch has its first commit (see below) and stays
+open until the release.
+
+1. Wait until CI is green on the release branch and `Release branch contains main` passes.
+2. Add the label `release` to the release pull request.
 
 The workflow checks that the branch carries version `X.Y.Z`, that the version is not released yet,
 that `CHANGELOG.md` has a block for it, that CI passed on the branch head and that `main` can be
-fast-forwarded to it. It then moves `main` to the branch head without a merge commit, tags `vX.Y.Z`
-on that commit, and creates the GitHub release `vX.Y.Z` from the English changelog block. GitHub then
-shows the pull request as merged. When a check fails, the workflow removes the label and comments
+fast-forwarded to it. It then marks the pull request ready for review, moves `main` to the branch
+head without a merge commit, tags `vX.Y.Z` on that commit, and creates the GitHub release `vX.Y.Z`
+from the English changelog block. GitHub then shows the pull request as merged. When a check fails, the workflow removes the label and comments
 why.
 
 `./toolchain.sh release-check <pull request>` runs the same checks locally and changes nothing.
@@ -88,8 +91,11 @@ version it carries and creates the GitHub release.
 
 ### After a release
 
-The workflow opens the next versions. Nothing of it is merged automatically: both bump pull
-requests are opened for you and merged by hand.
+CI writes no commits, so the next versions are opened locally with `./toolchain.sh release-next`.
+After a release, the workflow opens the issue `Next versions to open` listing what is due, and the
+local run closes it. The bump commits carry the identity and the signature of whoever runs it, and
+are made in a scratch worktree, so the checkout is left alone. Nothing of it is merged
+automatically: both bump pull requests are merged by hand.
 
 - After every release it opens the pull request `chore/bump-X.Y.Z` into `main`, with the one commit
   `Bump version to X.Y.Z` that moves `main` to the next patch: `26.21.0` is followed by `26.21.1`,
@@ -100,36 +106,43 @@ requests are opened for you and merged by hand.
   it with the one commit that sets its version. Until that pull request is merged, the branch still
   carries the released version, and CI accepts it. When a release branch for a later version exists
   already, no new one is opened.
+- Once the release branch has a commit of its own, it opens the draft release pull request. A new
+  branch cannot have one before its bump is merged; the next `release-next` or `release-sync` run
+  opens it then.
 
-`./toolchain.sh release-next --dry-run` shows locally what would be opened.
+`./toolchain.sh release-next --dry-run` shows locally what would be opened. A signature that cannot
+be made stops the run before anything is pushed; run it again once the key signs.
 
 ### Rebase of the release branch
 
-After every push to `main` (a merged fix, a dependency update, a merged bump) and after every release,
-the `Release Sync` workflow rebases each open `release/v*` branch onto `main`, so the release branch
-always contains `main`. A branch that contains `main` already, a released one, and one without a
-commit of its own (a new release branch whose bump is not merged yet) are left alone. A push to a
-release branch runs the rebase too, which is how a new release branch catches up with `main` once its
-bump is merged. When `main`
-gained a patch with the number the release branch uses for its own, the release branch's patch is
-renumbered above it first. Three conflicts are resolved on the way: `build.gradle.kts` keeps the
-release branch's version, the migration version file names the newest patch, and two version blocks
-added at the top of a changelog are both kept, the release branch's above the fix's. Any other
-conflict stops the rebase and opens an issue naming the branch and the files; the branch is then
-rebased by hand.
+The release branch always has to contain `main`. After every push to `main` (a merged fix, a
+dependency update, a merged bump), after every release and after a push to a release branch, the
+`Release Sync` workflow checks this and sets the commit status `Release branch contains main` on the
+head of each open `release/v*` branch with a commit of its own: green when it contains `main`, red
+when it is behind. The status shows on the release pull request. The workflow writes to no branch.
 
-The rebase rewrites the release branch's commits, so they lose their signatures. Open pull requests
-into the release branch catch up by merging the release branch into their branch ("Update branch"
-on the pull request), never by a rebase: their own commits keep their history and signatures, and
-the squash merge leaves no merge commit on the release branch. The workflow can also be run by hand
-as `Release Sync`.
+The rebase itself is run locally with `./toolchain.sh release-sync` when that status is red. It
+rebases each open release branch onto `main` in a scratch worktree, signs every rewritten commit as
+`commit.gpgsign` says, and pushes it with a lease; the push turns the status green. It also opens
+the draft release pull request of a branch that has none. A branch that contains `main` already, a
+released one, and one without a commit of its own (a new release branch whose bump is not merged
+yet) are not rebased. When `main` gained a patch with the number the release branch uses for its own, the
+release branch's patch is renumbered above it first. Three conflicts are resolved on the way:
+`build.gradle.kts` keeps the release branch's version, the migration version file names the newest
+patch, and two version blocks added at the top of a changelog are both kept, the release branch's
+above the fix's. Any other conflict, or a signature that cannot be made, stops the rebase, leaves the
+branch as it was and names the reason; a conflict is then resolved by hand.
+`./toolchain.sh release-sync --dry-run` does the rebase locally without signing or pushing.
+
+Open pull requests into the release branch catch up by merging the release branch into their branch
+("Update branch" on the pull request), never by a rebase: their own commits keep their history and
+signatures, and the squash merge leaves no merge commit on the release branch.
 
 ### Token
 
 `RELEASE_TOKEN` is a fine-grained personal access token for this repository with read and write
 access to contents, pull requests, issues and workflows, and read access to actions. Workflows are
 only started by pushes, tags and releases made with such a token, which is how the release reaches
-CI and the Docker build, how the bump pull requests get their checks, and how a rebased release
-branch is verified. Only a token with workflow access may push commits that change files under
-`.github/workflows`. Without the secret, the workflows fall back to the built-in token, and none of
-that happens: the bump pull requests are still opened, but no check runs on them until a later push.
+CI and the Docker build. Only a token with workflow access may push commits that change files under
+`.github/workflows`. Without the secret, the workflows fall back to the built-in token, and the
+release starts no other workflow.

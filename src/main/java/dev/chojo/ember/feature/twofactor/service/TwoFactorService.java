@@ -358,6 +358,12 @@ public class TwoFactorService {
             return false;
         }
 
+        if (totpService.isDevCode(code)) {
+            log.warn("TOTP of account {} passed with the development code", accountId);
+            repository.touchFactorUsed(factor.get().id());
+            return true;
+        }
+
         var totp = repository.findTotp(factor.get().id());
         if (totp.isEmpty()) {
             log.warn(

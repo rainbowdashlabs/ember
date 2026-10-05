@@ -9,7 +9,8 @@ cat > "$fake_bin/gh" << 'EOF'
 #!/usr/bin/env bash
 echo "$*" >> "$GH_LOG"
 case "$1 $2" in
-    "pr view") printf '%s\n' "$FAKE_PR" ;;
+    "pr view")
+        if [[ " $* " == *" isDraft "* ]]; then echo "${FAKE_DRAFT:-false}"; else printf '%s\n' "$FAKE_PR"; fi ;;
     "run list")
         runs="${FAKE_RUN:-}"
         [ -f "$GH_LOG.watched" ] && [ -n "${FAKE_RUN_AFTER_WATCH:-}" ] && runs="$FAKE_RUN_AFTER_WATCH"
@@ -71,10 +72,12 @@ git rebase -q origin/main
 git push -q -f origin release/v26.21.0
 FAKE_PR=$(pull_request release/v26.21.0)
 
-expect_pass "a dry run changes nothing" release feature 1 --dry-run
+expect_pass "a dry run changes nothing" env FAKE_DRAFT=true bash "$SCRIPTS/release.sh" feature 1 --dry-run
 expect_equal "main stays where it was" "$(git rev-parse main)" "$(git ls-remote origin refs/heads/main | cut -f1)"
+expect_equal "a dry run leaves the draft a draft" "0" "$(grep -c '^pr ready' "$GH_LOG")"
 
-expect_pass "a feature release" release feature 1
+expect_pass "a feature release" env FAKE_DRAFT=true bash "$SCRIPTS/release.sh" feature 1
+expect_equal "the draft release pull request is marked ready" "pr ready 1" "$(grep '^pr ready' "$GH_LOG")"
 expect_equal "main moves to the release branch" "$(git rev-parse HEAD)" "$(git ls-remote origin refs/heads/main | cut -f1)"
 expect_equal "the tag points at the release branch" "$(git rev-parse HEAD)" \
     "$(git ls-remote origin 'refs/tags/v26.21.0^{}' | cut -f1)"

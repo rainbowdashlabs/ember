@@ -135,7 +135,7 @@ check_feature_release() {
     if git merge-base --is-ancestor origin/main "$commit"; then
         say "- main can be fast-forwarded to $commit."
     else
-        problem "main has commits $head lacks, so it cannot be fast-forwarded. The Release Sync workflow rebases the branch onto main; run it, or rebase by hand."
+        problem "main has commits $head lacks, so it cannot be fast-forwarded. Run ./toolchain.sh release-sync locally to rebase the branch onto main, or rebase it by hand."
     fi
     require_green_ci "$commit"
     stop_on_problems
@@ -156,6 +156,14 @@ check_fix_release() {
     [ "$wait" -eq 0 ] || wait_for_verify "$commit"
     require_green_ci "$commit"
     stop_on_problems
+}
+
+# Marks the release pull request ready for review when it is still a draft, as it is from the release
+# branch's start, so that main reaching its head marks it merged.
+mark_ready() {
+    if [ "$(gh pr view "$1" --json isDraft --jq .isDraft)" = "true" ]; then
+        act gh pr ready "$1"
+    fi
 }
 
 publish() {
@@ -207,6 +215,7 @@ case "$mode" in
     feature)
         [ -n "$pr" ] || refuse "Name the pull request of the release, e.g. release.sh feature 220."
         check_feature_release "$pr"
+        mark_ready "$pr"
         publish 1
         ;;
     fix)

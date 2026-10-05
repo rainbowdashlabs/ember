@@ -14,11 +14,9 @@ Theme colours show where they were missing. Editing a comment is safer. Email ad
 - **The consent is asked on every way in.** Setting a password or a passkey from a link asks the same consent as the sign-in form, and anyone signed in who was never asked sees it once. Every answer is a button of the same kind, and no optional storage is switched on in advance.
 
 ### Fixes
-
-- **Members who set up their account from a link could not stay in their station.** In some cases a member who set up their account from the link in their mail was sent to the overview of all stations again and again. The chosen station is now always kept, and a member with a single station is taken straight to it.
-
 - **Field templates were asked of trial members.** Fields added from a profile field template were put to the form that was shown, which on opening was the one for trial members. Fields from a template are now created without an audience, and each is put to the right forms afterwards.
 - **Some theme colours were missing.** On many pages, highlights, links, backgrounds under the mouse pointer, progress bars, error messages and success marks were shown without their colour. They now show in the theme colours.
+- **Members who set up their account from a link could not stay in their station.** In some cases a member who set up their account from the link in their mail was sent to the overview of all stations again and again. The chosen station is now always kept, and a member with a single station is taken straight to it.
 
 ## v26.20.3
 
