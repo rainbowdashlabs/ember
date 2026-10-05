@@ -240,7 +240,10 @@ class QuizFederationServiceTest extends RepositoryTestBase {
                 "{\"correctAnswer\":true}",
                 0);
 
-        var copied = service.copyQuizCatalog(source.id(), station.id());
+        var share = federationRepo.createQuizShare(localPartner.id(), source.id(), ShareScope.ALL_PARTNERS);
+
+        var copied = service.copyFederatedCatalog(station.id(), localPartner.uid(), source.id());
+        federationRepo.deleteQuizShare(share.id(), localPartner.id());
         assertEquals("CopySrc", copied.name());
         assertNotEquals(source.id(), copied.id());
 
@@ -278,13 +281,49 @@ class QuizFederationServiceTest extends RepositoryTestBase {
                 localPartner.id(), "CopySrc2", "Source without categories", false, CatalogMetadata.none());
         var unused = quizCatalogRepo.createCategory(localPartner.id(), "UnusedCat", "Never referenced", 0);
 
-        var copied = service.copyQuizCatalog(source.id(), station.id());
+        var share = federationRepo.createQuizShare(localPartner.id(), source.id(), ShareScope.ALL_PARTNERS);
+
+        var copied = service.copyFederatedCatalog(station.id(), localPartner.uid(), source.id());
+        federationRepo.deleteQuizShare(share.id(), localPartner.id());
 
         assertTrue(catalogService.findCategories(station.id()).stream().noneMatch(c -> "UnusedCat".equals(c.name())));
 
         quizCatalogRepo.delete(copied.id());
         quizCatalogRepo.deleteCategory(unused.id());
         quizCatalogRepo.delete(source.id());
+    }
+
+    /** A catalog the partner does not share cannot be copied by its number, and nothing is created. */
+    @Test
+    @Order(22)
+    void anUnsharedCatalogIsNotCopied() {
+        var source = quizCatalogRepo.create(localPartner.id(), "Privat", "", false, CatalogMetadata.none());
+        int before = catalogService.findCatalogs(station.id()).size();
+
+        var refused = assertThrows(
+                RefusalResponse.class,
+                () -> service.copyFederatedCatalog(station.id(), localPartner.uid(), source.id()));
+        assertEquals(QuizRefusal.REMOTE_QUIZ_CATALOG_NOT_SHARED, refused.refusal());
+        assertEquals(before, catalogService.findCatalogs(station.id()).size());
+
+        quizCatalogRepo.delete(source.id());
+    }
+
+    /** Sharing what is already shared, or unsharing what is not, changes nothing. */
+    @Test
+    @Order(23)
+    void sharingACatalogIsAStateNotACount() {
+        var catalog = quizCatalogRepo.create(localPartner.id(), "Geteilt", "", false, CatalogMetadata.none());
+
+        service.setShared(localPartner.id(), catalog.id(), true);
+        service.setShared(localPartner.id(), catalog.id(), true);
+        assertEquals(List.of(catalog.id()), service.findSharedCatalogIds(localPartner.id()));
+
+        service.setShared(localPartner.id(), catalog.id(), false);
+        service.setShared(localPartner.id(), catalog.id(), false);
+        assertTrue(service.findSharedCatalogIds(localPartner.id()).isEmpty());
+
+        quizCatalogRepo.delete(catalog.id());
     }
 
     @Test

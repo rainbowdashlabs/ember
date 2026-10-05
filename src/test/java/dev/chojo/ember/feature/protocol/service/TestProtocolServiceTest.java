@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.protocol.entity.TestProtocol;
+import dev.chojo.ember.feature.protocol.entity.TestProtocolSection;
 import dev.chojo.ember.feature.protocol.route.RemoteTestProtocolRoutes;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.lifecycle.TaskScheduler;
@@ -363,6 +364,24 @@ class TestProtocolServiceTest extends RepositoryTestBase {
         testProtocolRepo.deleteProtocol(fedProto.id(), stationB.id());
     }
 
+    /** Sharing what is already shared, or unsharing what is not, changes nothing. */
+    @Test
+    @Order(200)
+    void sharingIsAStateNotACount() {
+        var proto = testProtocolRepo.createProtocol(stationB.id(), "Geteilt", "", null);
+
+        service.setShared(stationB.id(), proto.id(), true);
+        service.setShared(stationB.id(), proto.id(), true);
+        assertEquals(List.of(proto.id()), service.findSharedProtocolIds(stationB.id()));
+        assertEquals(1, federationRepo.findProtocolShares(stationB.id()).size());
+
+        service.setShared(stationB.id(), proto.id(), false);
+        service.setShared(stationB.id(), proto.id(), false);
+        assertTrue(service.findSharedProtocolIds(stationB.id()).isEmpty());
+
+        testProtocolRepo.deleteProtocol(proto.id(), stationB.id());
+    }
+
     @Test
     @Order(201)
     void browseSharedProtocolsEmptyNoShares() {
@@ -455,6 +474,7 @@ class TestProtocolServiceTest extends RepositoryTestBase {
         testProtocolRepo.deleteProtocol(localProto.id(), station.id());
     }
 
+    /** A shared protocol is copied as the partner serves it, every level under its own parent. */
     @Test
     @Order(220)
     void copyProtocol() {
@@ -462,22 +482,50 @@ class TestProtocolServiceTest extends RepositoryTestBase {
         var parentSec = testProtocolRepo.createSection(srcProto.id(), null, "ParentSection", "parent desc", 100, 50, 0);
         var childSec =
                 testProtocolRepo.createSection(srcProto.id(), parentSec.id(), "ChildSection", "child desc", 50, 25, 1);
+        var grandchildSec =
+                testProtocolRepo.createSection(srcProto.id(), childSec.id(), "GrandchildSection", "", null, null, 0);
         testProtocolRepo.createItem(parentSec.id(), "ParentItem", "parent item", 10.0, 0);
         testProtocolRepo.createItem(childSec.id(), "ChildItem", "child item", 5.0, 0);
+        testProtocolRepo.createItem(grandchildSec.id(), "GrandchildItem", "", 2.0, 0);
+        var share = federationRepo.createProtocolShare(stationB.id(), srcProto.id(), ShareScope.ALL_PARTNERS);
 
-        var copied = service.copyProtocol(srcProto.id(), station.id());
-        assertNotNull(copied);
+        var copied = service.copyFederatedProtocol(station.id(), stationB.uid(), srcProto.id());
         assertEquals("CopySource", copied.name());
         assertEquals(station.id(), copied.stationId());
 
         var copiedSections = service.findSections(copied.id());
-        assertEquals(2, copiedSections.size());
+        assertEquals(3, copiedSections.size());
+        assertEquals(
+                sectionNamed(copiedSections, "ChildSection").id(),
+                sectionNamed(copiedSections, "GrandchildSection").parentId());
+        assertEquals(3, service.findAllItemsByProtocol(copied.id()).size());
 
-        var copiedItems = service.findAllItemsByProtocol(copied.id());
-        assertEquals(2, copiedItems.size());
-
+        federationRepo.deleteProtocolShare(share.id(), stationB.id());
         testProtocolRepo.deleteProtocol(srcProto.id(), stationB.id());
         testProtocolRepo.deleteProtocol(copied.id(), station.id());
+    }
+
+    private static TestProtocolSection sectionNamed(List<TestProtocolSection> sections, String name) {
+        return sections.stream()
+                .filter(section -> section.name().equals(name))
+                .findFirst()
+                .orElseThrow();
+    }
+
+    /** A protocol the partner does not share cannot be copied by its number, and nothing is created. */
+    @Test
+    @Order(221)
+    void anUnsharedProtocolIsNotCopied() {
+        var unshared = testProtocolRepo.createProtocol(stationB.id(), "NotShared", "", 60);
+        int before = service.findProtocols(station.id()).size();
+
+        var refused = assertThrows(
+                RefusalResponse.class,
+                () -> service.copyFederatedProtocol(station.id(), stationB.uid(), unshared.id()));
+        assertEquals(TestProtocolRefusal.REMOTE_PROTOCOL_NOT_SHARED, refused.refusal());
+        assertEquals(before, service.findProtocols(station.id()).size());
+
+        testProtocolRepo.deleteProtocol(unshared.id(), stationB.id());
     }
 
     @Test

@@ -226,6 +226,8 @@ public enum ClusterPermission implements RouteRole {
             granted.add(StationPermission.KNOWLEDGE_FEDERATE);
             granted.add(StationPermission.NEWS_FEDERATE);
             granted.add(StationPermission.EVENTS_FEDERATE);
+            granted.add(StationPermission.PROTOCOL_SHARE);
+            granted.add(StationPermission.TEST_CATALOG_SHARE);
         }
 
         return StationPermission.expand(granted);

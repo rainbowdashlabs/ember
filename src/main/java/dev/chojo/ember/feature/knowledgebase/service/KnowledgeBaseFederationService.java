@@ -463,25 +463,28 @@ public class KnowledgeBaseFederationService implements FederationServer {
      * Whether the copy inherits the caller's favourite of the original is the favourites' own
      * business, answered from that reference.
      *
-     * @param fileId          the source file ID
-     * @param targetStationId the station receiving the copy
-     * @param createdBy       the member performing the copy
+     * <p>The file and its text are read from the partner over federation, the same way they are
+     * shown, so only what the partner shares with this station can be copied.
+     *
+     * @param targetStationId   the station receiving the copy
+     * @param partnerStationUid the partner station that shares the file
+     * @param fileId            the file's number at the partner
+     * @param createdBy         the member performing the copy
      * @return the created copy
      */
-    public KbFile copyKbFile(int fileId, int targetStationId, int createdBy) {
-        var source = knowledgeBaseService.findFile(fileId).orElseThrow();
-        var partner = findPartnerForStation(targetStationId, source.stationId());
-        String content = partner != null
-                ? contentAt(partner, fileId)
-                : contentService.getMarkdownContent(fileId).orElse("");
+    public KbFile copyKbFile(int targetStationId, UUID partnerStationUid, int fileId, int createdBy) {
+        var partner = entityResolver.requireActivePartner(targetStationId, partnerStationUid);
+        var source = transport.get(partner, RemoteKnowledgeBaseRoutes.GET_FILE.at(fileId), RemoteKbFile.class);
+        String content = contentAt(partner, fileId);
+        int sourceStationId = partnerStationId(partner);
         var copied = knowledgeBaseService.createMarkdownFile(
                 targetStationId, null, source.name(), source.description(), content, createdBy);
-        knowledgeBaseService.setSourceReference(copied.id(), source.id(), source.stationId());
+        knowledgeBaseService.setSourceReference(copied.id(), fileId, sourceStationId);
         log.info(
                 "KB file {} copied from file {} (station {}) into station {} by member {}",
                 copied.id(),
-                source.id(),
-                source.stationId(),
+                fileId,
+                partnerStationUid,
                 targetStationId,
                 createdBy);
         return knowledgeBaseService.findFile(copied.id()).orElseThrow();
@@ -1277,16 +1280,6 @@ public class KnowledgeBaseFederationService implements FederationServer {
                 .findByUid(partner.partnerStationId())
                 .map(Station::id)
                 .orElse(0);
-    }
-
-    private @Nullable FederationPartner findPartnerForStation(int localStationId, int remoteStationId) {
-        for (var partner : federationService.findPartners(localStationId)) {
-            if (partnerStationId(partner) == remoteStationId
-                    && partner.status() == FederationPartner.FederationStatus.ACTIVE) {
-                return partner;
-            }
-        }
-        return null;
     }
 
     /**

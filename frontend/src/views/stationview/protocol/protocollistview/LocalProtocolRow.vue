@@ -11,16 +11,22 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import RowLink from '@/components/navigation/RowLink.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
+import MutedIconButton from '@/components/button/MutedIconButton.vue'
+import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import type {TestProtocol} from '@/api/generated/schema'
 
-/** One of the station's own protocols, opening the protocol it names. */
+/** One of the station's own protocols, opening the protocol it names, and whether partners may see it. */
 const props = defineProps<{
   protocol: TestProtocol
   canConfigure: boolean
+  canShare: boolean
+  shared: boolean
+  sharing: boolean
 }>()
 
 const emit = defineEmits<{
   remove: [protocol: TestProtocol]
+  toggleShare: [protocol: TestProtocol]
 }>()
 
 const {t} = useI18n()
@@ -43,9 +49,13 @@ const protocolPage = computed(() => ({name: 'protocol-detail', params: {id: prop
       <span v-if="protocol.passThreshold" class="text-xs text-[var(--text-muted)]">
         {{ t('protocol.threshold') }}: {{ protocol.passThreshold }}P
       </span>
-      <div v-if="canConfigure" class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-        <EditButton :label="t('common.edit')" @click="router.push(protocolPage)"/>
-        <DeleteButton :label="t('common.delete')" @click="emit('remove', protocol)"/>
+      <SecondaryBadge v-if="shared">{{ t('protocol.sharedWithPartners') }}</SecondaryBadge>
+      <div v-if="canConfigure || canShare" class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <MutedIconButton v-if="canShare" :icon="['fas', 'share-nodes']" :disabled="sharing"
+                         :label="shared ? t('protocol.stopSharing') : t('protocol.shareWithPartners')"
+                         @click="emit('toggleShare', protocol)"/>
+        <EditButton v-if="canConfigure" :label="t('common.edit')" @click="router.push(protocolPage)"/>
+        <DeleteButton v-if="canConfigure" :label="t('common.delete')" @click="emit('remove', protocol)"/>
       </div>
     </NeutralContainer>
   </RowLink>

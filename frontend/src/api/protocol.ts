@@ -14,6 +14,8 @@ import type {
     ProtocolRequest,
     ProtocolRunRequest,
     ProtocolSectionRequest,
+    ProtocolSharing,
+    ProtocolSharingRequest,
     RemoteProtocolDetail,
     RunDetailResponse,
     TestProtocol,
@@ -59,6 +61,17 @@ export const deleteProtocol = protocols.remove
 export async function listProtocols(): Promise<ProtocolListResponse> {
     const res = await client.get<ProtocolListResponse>('/protocols')
     return res.data
+}
+
+/** Which of the station's protocols its federation partners may see. */
+export async function getSharing(): Promise<ProtocolSharing> {
+    const res = await client.get<ProtocolSharing>('/protocols/sharing')
+    return res.data
+}
+
+/** Shares a protocol with every partner of the station, or stops sharing it. */
+export async function setSharing(protocolId: number, shared: boolean): Promise<void> {
+    await client.put(`/protocols/${protocolId}/sharing`, {shared} satisfies ProtocolSharingRequest)
 }
 
 export async function createSection(protocolId: number, data: ProtocolSectionRequest): Promise<TestProtocolSection> {

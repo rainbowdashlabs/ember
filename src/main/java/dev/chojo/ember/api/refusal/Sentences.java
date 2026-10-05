@@ -60,7 +60,6 @@ final class Sentences {
     static final String PEER_DID_NOT_ANSWER = "That instance could not be reached";
     static final String FEDERATION_ADDRESS_NOT_PUBLIC = "That address has to be a public HTTPS address";
     static final String PAIR_REQUEST_NOT_HERE = "That pairing request is not here any more";
-    static final String FEDERATION_SHARE_NOT_HERE = "That share is not here any more, so nothing was changed";
     static final String BEACON_NOT_RECEIVING = "This instance is not a beacon";
     static final String BEACON_REPORT_NOT_HERE = "That report is not here any more";
     static final String BEACON_ID_NOT_A_NUMBER = "That does not name anything a beacon holds";

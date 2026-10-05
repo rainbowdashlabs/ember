@@ -11,9 +11,10 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
-import type {QuizCatalog, SharedQuizCatalog} from '@/api/generated/schema'
+import {StationPermission, type QuizCatalog, type SharedQuizCatalog} from '@/api/generated/schema'
 import { quiz, federation } from '@/api'
 import { useSession } from '@/composables/useSession'
+import { useShareToggle } from '@/composables/useShareToggle'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { useBreakpoint } from '@/composables/useBreakpoint'
 import { useConfirmDelete } from '@/composables/useConfirmDelete'
@@ -26,7 +27,7 @@ import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 
 const { t } = useI18n()
 const router = useRouter()
-const { loaded } = useSession()
+const { loaded, hasPermission } = useSession()
 const { isMobile } = useBreakpoint()
 
 const catalogs = ref<QuizCatalog[]>([])
@@ -142,10 +143,11 @@ function triggerImport() {
   router.push({ name: 'quiz-catalog-create-import' })
 }
 
-async function copySharedCatalog(catalogId: number) {
+async function copySharedCatalog(shared: SharedQuizCatalog) {
+  if (!shared.stationUid) return
   failure.value = null
   try {
-    await federation.copyQuizCatalog(catalogId)
+    await federation.copyQuizCatalog(shared.stationUid, shared.id)
   } catch (e) {
     failure.value = describeFailure(e, t)
     return
@@ -153,7 +155,17 @@ async function copySharedCatalog(catalogId: number) {
   await loadData()
 }
 
-watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
+const canShare = computed(() => hasPermission(StationPermission.TEST_CATALOG_SHARE))
+const shares = useShareToggle({
+  listShared: quiz.getSharedCatalogIds,
+  setShared: quiz.setCatalogShared,
+}, canShare, failure)
+
+watch(loaded, (v) => {
+  if (!v) return
+  loadData()
+  shares.load()
+}, { immediate: true })
 </script>
 
 <template>
@@ -178,9 +190,13 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
           :catalogs="filteredCatalogs"
           :shared-catalogs="filteredSharedCatalogs"
           :is-mobile="isMobile"
+          :can-share="canShare"
+          :is-shared="shares.isShared"
+          :is-sharing="shares.isBusy"
           @export-catalog="exportCatalog"
           @confirm-delete="confirmDelete"
           @copy-shared="copySharedCatalog"
+          @toggle-share="(catalog) => shares.toggle(catalog.id)"
         />
       </template>
 

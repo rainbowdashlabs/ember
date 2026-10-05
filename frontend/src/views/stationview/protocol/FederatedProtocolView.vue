@@ -49,7 +49,7 @@ const itemsBySection = computed(() => {
 
 async function copyToStation() {
     try {
-        await federation.copyProtocol(props.protocolId)
+        await federation.copyProtocol(props.stationUid, props.protocolId)
         router.push({name: 'protocol-list'})
     } catch (e) {
         failure.value = describeFailure(e, t)

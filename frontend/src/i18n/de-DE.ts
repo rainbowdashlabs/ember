@@ -3527,6 +3527,10 @@ export default {
             label: 'Testkatalog bearbeiten',
             desc: 'Kann Tests und Fragen erstellen und ändern.',
         },
+        TEST_CATALOG_SHARE: {
+            label: 'Testkataloge teilen',
+            desc: 'Kann die Testkataloge der Wache mit Partnerwachen teilen.',
+        },
         TEST_CONFIGURE: {
             label: 'Tests konfigurieren',
             desc: 'Kann neue Testdurchläufe einrichten.',
@@ -3554,6 +3558,10 @@ export default {
         PROTOCOL_CONFIGURE: {
             label: 'Protokolle konfigurieren',
             desc: 'Kann Protokollvorlagen anlegen und bearbeiten.',
+        },
+        PROTOCOL_SHARE: {
+            label: 'Protokolle teilen',
+            desc: 'Kann die Protokolle der Wache mit Partnerwachen teilen.',
         },
         BOARD_MANAGER: {
             label: 'Boards',
@@ -8859,6 +8867,9 @@ export default {
             name: 'Name',
             description: 'Beschreibung',
             trainingEnabled: 'Für Training freigeben',
+            sharedWithPartners: 'Mit Partnerwachen geteilt',
+            shareWithPartners: 'Mit Partnerwachen teilen',
+            stopSharing: 'Nicht mehr teilen',
             questionCount: '{count} Fragen',
             noCatalogs: 'Noch keine Kataloge vorhanden.',
             deleteCatalog: 'Katalog löschen',
@@ -9328,6 +9339,9 @@ export default {
         passThreshold: 'Bestehensgrenze (Punkte)',
         passThresholdHint: 'Leer = keine Grenze',
         threshold: 'Grenze',
+        sharedWithPartners: 'Mit Partnerwachen geteilt',
+        shareWithPartners: 'Mit Partnerwachen teilen',
+        stopSharing: 'Nicht mehr teilen',
         deleteConfirm: 'Prüfungsbogen wirklich löschen?',
         total: 'Gesamt',
         addSection: 'Abschnitt hinzufügen',

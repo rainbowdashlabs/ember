@@ -2,17 +2,26 @@
 
 ## v26.21.0
 
-Themenfarben erscheinen dort, wo sie fehlten. Das Bearbeiten von Kommentaren ist sicherer. E-Mail-Adressen von Mitgliedern erreichen nur noch die, die das Mitgliederverzeichnis lesen dürfen.
+Themenfarben erscheinen dort, wo sie fehlten. Das Bearbeiten von Kommentaren ist sicherer. E-Mail-Adressen von Mitgliedern erreichen nur noch die, die das Mitgliederverzeichnis lesen dürfen. Prüfungsbögen und Fragenkataloge lassen sich einzeln mit Partnerwachen teilen. Kopiert wird von Partnern nur, was sie teilen, und das auch von Partnern auf anderen Installationen.
+
+### Verbesserungen
+
+- **Fragenkataloge lassen sich mit Partnern teilen.** In der Liste der Kataloge kann jeder eigene Katalog mit allen Partnerwachen geteilt und wieder zurückgezogen werden, geteilte Kataloge sind markiert. Die neue Berechtigung „Testkataloge teilen“, Teil der Testverwaltung, erlaubt das.
+- **Prüfungsbögen lassen sich mit Partnern teilen.** In der Liste der Prüfungsbögen kann jeder eigene Bogen mit allen Partnerwachen geteilt und wieder zurückgezogen werden. Geteilte Bögen sind in der Liste markiert, und die neue Berechtigung „Protokolle teilen“, Teil der Protokollverwaltung, erlaubt das.
 
 ### Sicherheit
 
 - **Namen in Erwähnungen erscheinen als Text.** Beim Bearbeiten eines Kommentars wurde der Name eines erwähnten Mitglieds als Teil der Seite gelesen statt als Text gezeigt. Jetzt erscheint er immer als Text.
 - **Mitgliederlisten tragen keine E-Mail-Adressen mehr.** Seiten, auf denen nur ein Mitglied ausgewählt wird, etwa Inventar, Anwesenheit oder Sichtbarkeitsfilter, bekamen die E-Mail-Adresse jedes Mitglieds, und die Mitgliedermenüs zeigten sie an. Diese Adressen erreichen jetzt nur noch die, die das Mitgliederverzeichnis lesen dürfen, und Mitgliedermenüs zeigen nur Namen.
+- **Kopieren von Partnern übernimmt nur Geteiltes.** Beim Kopieren eines Prüfungsbogens oder Wiki-Artikels von einer Partnerwache ließen sich Inhalte anderer Wachen derselben Installation erreichen, die nie geteilt wurden. Eine Kopie wird jetzt immer bei der Partnerwache geholt, die nur Geteiltes herausgibt.
+- **Fragenkataloge öffnen sich nur in ihrer Wache.** Name, Beschreibung und Kategorien eines Fragenkatalogs einer anderen Wache ließen sich von allen öffnen, die Kataloge ansehen dürfen. Ein Katalog öffnet sich jetzt nur noch in der Wache, zu der er gehört.
 
 ### Fehlerbehebungen
 
 - **Feld-Vorlagen wurden Probemitgliedern gestellt.** Felder aus einer Vorlage für Profilfelder kamen auf das gerade gezeigte Formular, und das war beim Öffnen das der Probemitglieder. Felder aus einer Vorlage entstehen jetzt ohne Zielgruppe und werden danach jeweils den passenden Formularen gestellt.
 - **Manche Themenfarben fehlten.** Auf vielen Seiten erschienen Hervorhebungen, Links, Hintergründe unter dem Mauszeiger, Fortschrittsbalken, Fehlermeldungen und Erfolgsmarkierungen ohne ihre Farbe. Jetzt erscheinen sie in den Themenfarben.
+- **Fragenkataloge von Partnern ließen sich nicht kopieren.** Das Kopieren eines Katalogs, den eine Partnerwache teilt, wurde immer abgelehnt. Jetzt entsteht eine Kopie mit allen Fragen.
+- **Kopieren von Partnern einer anderen Installation schlug fehl.** Ein Prüfungsbogen oder Wiki-Artikel einer Wache auf einer anderen Installation ließ sich öffnen, aber nicht kopieren. Beides lässt sich jetzt kopieren.
 - **Gruppen boten Mitglieder an, die sie nicht aufnehmen.** Die Auswahl zum Hinzufügen zu einer Gruppe, die auf Mitgliedstypen beschränkt ist, bot auch alle anderen an, und das Hinzufügen wurde abgelehnt. Jetzt stehen dort nur Mitglieder der Typen, die die Gruppe aufnimmt.
 - **Die Bewegungsliste ließ ein zweites Stück derselben Art weg.** Tauschte ein Mitglied zwei Stücke eines Inventars, etwa zwei Hemden, zeigte die exportierte Liste nur eines davon. Jedes dieser Stücke bekommt jetzt eine eigene Spalte.
 

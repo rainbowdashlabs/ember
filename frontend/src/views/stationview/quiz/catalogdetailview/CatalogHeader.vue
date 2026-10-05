@@ -7,7 +7,6 @@
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
@@ -27,7 +26,6 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   save: [payload: { name: string; description: string; trainingEnabled: boolean }]
-  copyToStation: []
 }>()
 
 const { t } = useI18n()
@@ -74,11 +72,6 @@ defineExpose({ resetForm })
           {{ t(`quiz.questionTypes.${type}`) }}: {{ count }}
         </InfoBadge>
         <SecondaryBadge>{{ t('quiz.catalogs.questionCount', { count: catalog.questionCount }) }}</SecondaryBadge>
-      </div>
-      <div class="flex justify-end">
-        <PrimaryButton :icon="['fas', 'copy']" @click="emit('copyToStation')">
-          {{ t('federation.copyToStation') }}
-        </PrimaryButton>
       </div>
     </div>
   </NeutralContainer>

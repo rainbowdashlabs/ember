@@ -46,7 +46,7 @@ const questionCountByCategory = computed(() => {
 
 async function copyToStation() {
     try {
-        await federation.copyQuizCatalog(props.catalogId)
+        await federation.copyQuizCatalog(props.stationUid, props.catalogId)
         router.push({name: 'quiz-catalogs'})
     } catch (e) {
         failure.value = describeFailure(e, t)

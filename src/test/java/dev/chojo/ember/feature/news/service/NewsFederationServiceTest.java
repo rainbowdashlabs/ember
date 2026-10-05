@@ -346,8 +346,7 @@ class NewsFederationServiceTest extends RepositoryTestBase {
     @Order(32)
     void getFederatedNewsUnknownPartner() {
         assertThrows(
-                IllegalArgumentException.class,
-                () -> service.getFederatedNews(stationB.id(), UUID.randomUUID(), news1.id()));
+                RefusalResponse.class, () -> service.getFederatedNews(stationB.id(), UUID.randomUUID(), news1.id()));
     }
 
     @Test

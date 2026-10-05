@@ -17,7 +17,7 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import StationBadge from '@/components/badge/StationBadge.vue'
 import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
-import { protocol, federation } from '@/api'
+import { protocol } from '@/api'
 import { describeFailure } from '@/util/failure'
 import { getItem } from '@/api/storage'
 import { StationPermission, type TestProtocol, type TestProtocolSection, type TestProtocolItem } from '@/api/generated/schema'
@@ -88,14 +88,6 @@ async function writeThenReload(write: () => Promise<void>) {
     return
   }
   await loadData()
-}
-
-async function copyToStation() {
-  if (!proto.value) return
-  try {
-    await federation.copyProtocol(proto.value.id)
-    router.push({ name: 'protocol-list' })
-  } catch (e) { failure.value = describeFailure(e, t) }
 }
 
 function topSections() { return sections.value.filter(s => !s.parentId).sort((a, b) => a.position - b.position) }
@@ -287,9 +279,6 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
       <SectionHeader>{{ proto?.name ?? '' }}</SectionHeader>
       <StationBadge v-if="isFederated" :station-name="''" />
       <EditButton v-if="canEdit" :label="t('common.edit')" @click="openEditProtocol" />
-      <PrimaryButton v-if="isFederated && canEdit" @click="copyToStation">
-        <font-awesome-icon :icon="['fas', 'copy']" class="mr-1" /> {{ t('federation.copyToStation') }}
-      </PrimaryButton>
       <span class="text-sm text-[var(--text-muted)] ml-auto">
         <template v-if="proto?.passThreshold">{{ t('protocol.threshold') }}: {{ proto.passThreshold }}P / </template>
         {{ totalProtocolPoints }}P {{ t('protocol.total') }}

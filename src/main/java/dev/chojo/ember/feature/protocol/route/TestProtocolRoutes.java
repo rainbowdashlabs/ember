@@ -77,6 +77,7 @@ public class TestProtocolRoutes implements Routes {
         routes.get(prefix + "/protocols", this::listProtocols, StationPermission.PROTOCOL_TESTER);
         routes.post(prefix + "/protocols", this::createProtocol, StationPermission.PROTOCOL_CONFIGURE);
 
+        routes.get(prefix + "/protocols/sharing", this::listSharing, StationPermission.PROTOCOL_SHARE);
         routes.get(prefix + "/protocols/runs", this::listRuns, StationPermission.PROTOCOL_TESTER);
         routes.get(prefix + "/protocols/runs/{id}", this::getRun, StationPermission.PROTOCOL_TESTER);
         routes.put(prefix + "/protocols/runs/{id}", this::updateRun, StationPermission.PROTOCOL_CREATE);
@@ -96,6 +97,7 @@ public class TestProtocolRoutes implements Routes {
         routes.get(prefix + "/protocols/{id}", this::getProtocol, StationPermission.PROTOCOL_TESTER);
         routes.put(prefix + "/protocols/{id}", this::updateProtocol, StationPermission.PROTOCOL_CONFIGURE);
         routes.delete(prefix + "/protocols/{id}", this::deleteProtocol, StationPermission.PROTOCOL_CONFIGURE);
+        routes.put(prefix + "/protocols/{id}/sharing", this::setSharing, StationPermission.PROTOCOL_SHARE);
         routes.post(prefix + "/protocols/{id}/sections", this::createSection, StationPermission.PROTOCOL_CONFIGURE);
         routes.put(
                 prefix + "/protocols/{id}/sections/order", this::reorderSections, StationPermission.PROTOCOL_CONFIGURE);
@@ -204,6 +206,31 @@ public class TestProtocolRoutes implements Routes {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         guards.requireProtocol(ctx, id);
         service.deleteProtocol(id, StationSession.from(ctx).stationId());
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    @OpenApi(
+            path = "/api/v1/protocols/sharing",
+            methods = HttpMethod.GET,
+            summary = "List which of the station's protocols its partners may see",
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ProtocolSharing.class)))
+    private void listSharing(Context ctx) {
+        ctx.json(new ProtocolSharing(
+                service.findSharedProtocolIds(StationSession.from(ctx).stationId())));
+    }
+
+    @OpenApi(
+            path = "/api/v1/protocols/{id}/sharing",
+            methods = HttpMethod.PUT,
+            summary = "Share a protocol with every partner, or stop sharing it",
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ProtocolSharingRequest.class)),
+            responses = @OpenApiResponse(status = "204"))
+    private void setSharing(Context ctx) {
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        guards.requireProtocol(ctx, id);
+        var req = ctx.bodyAsClass(ProtocolSharingRequest.class);
+        service.setShared(StationSession.from(ctx).stationId(), id, req.shared());
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -593,6 +620,20 @@ public class TestProtocolRoutes implements Routes {
             String name,
             @Nullable String description,
             @Nullable Integer passThreshold) {}
+
+    /**
+     * Which of the station's protocols its federation partners may see.
+     *
+     * @param protocolIds the shared protocols, each once
+     */
+    public record ProtocolSharing(List<Integer> protocolIds) {}
+
+    /**
+     * Whether a protocol is to be shared with every partner of its station.
+     *
+     * @param shared whether partners may see it
+     */
+    public record ProtocolSharingRequest(boolean shared) {}
 
     /**
      * A section of a protocol as it is created or changed.

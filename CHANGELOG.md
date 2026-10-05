@@ -2,17 +2,26 @@
 
 ## v26.21.0
 
-Theme colours show where they were missing. Editing a comment is safer. Email addresses of members only reach those allowed to read the member register.
+Theme colours show where they were missing. Editing a comment is safer. Email addresses of members only reach those allowed to read the member register. Protocols and quiz catalogs can be shared with partner stations one by one. Copying from partners is limited to what they share, and works with partners on other installations.
+
+### Improvements
+
+- **Quiz catalogs can be shared with partners.** In the catalog list, each catalog of the station can be shared with all partner stations and unshared again, and shared catalogs carry a mark. The new "Share quiz catalogs" permission, part of managing tests, allows it.
+- **Protocols can be shared with partners.** In the protocol list, each protocol of the station can be shared with all partner stations and unshared again. Shared protocols carry a mark in the list, and the new "Share protocols" permission, part of managing protocols, allows it.
 
 ### Security
 
 - **Names in comment mentions are shown as text.** When a comment was edited, the name of a mentioned member was read as part of the page rather than shown as text. It is now always shown as text.
 - **Member lists no longer carry email addresses.** Pages that only let someone pick a member, such as inventory, attendance or visibility filters, received the email address of every member, and member menus showed it. These addresses now reach only those allowed to read the member register, and member menus show names only.
+- **Copying from partners takes only what they share.** Copying a protocol or a wiki article from a partner station could reach content of other stations on the same installation that was never shared. A copy is now always fetched from the partner station, which hands out only what it shares.
+- **Quiz catalogs open only at their own station.** The name, description and categories of another station's quiz catalog could be opened by someone allowed to view catalogs. A catalog now opens only at the station it belongs to.
 
 ### Fixes
 
 - **Field templates were asked of trial members.** Fields added from a profile field template were put to the form that was shown, which on opening was the one for trial members. Fields from a template are now created without an audience, and each is put to the right forms afterwards.
 - **Some theme colours were missing.** On many pages, highlights, links, backgrounds under the mouse pointer, progress bars, error messages and success marks were shown without their colour. They now show in the theme colours.
+- **Quiz catalogs of partners could not be copied.** Copying a catalog a partner station shares was always refused. It now creates a copy with all its questions.
+- **Copying from a partner on another installation failed.** A protocol or a wiki article shared by a station on another installation could be opened but not copied. Both can be copied now.
 - **Groups offered members they do not accept.** The list for adding people to a group limited to member types also offered everyone else, and adding them was refused. It now offers only members of the types the group accepts.
 - **The movement sheet dropped a second item of the same kind.** When a member exchanged two items of one inventory, such as two shirts, the exported sheet showed only one of them. Each such item now gets a column of its own.
 

@@ -22,7 +22,6 @@ vi.mock('@/api', () => ({
         createSection: (...args: unknown[]) => createSection(...args),
         reorderSections: (...args: unknown[]) => reorderSections(...args),
     },
-    federation: {copyProtocol: vi.fn()},
 }))
 
 vi.mock('@/composables/useSession', () => ({

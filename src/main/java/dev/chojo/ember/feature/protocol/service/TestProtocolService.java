@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.ContentType;
 import dev.chojo.ember.feature.federation.entity.Direction;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
+import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationDisplayNames;
 import dev.chojo.ember.feature.federation.service.FederationEntityResolver;
@@ -39,6 +40,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.LocalDate;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -135,6 +138,42 @@ public class TestProtocolService implements FederationServer {
     private boolean isShared(ServingPartner partner, int protocolId) {
         return federationRepository.findProtocolShares(partner.servingStationId()).stream()
                 .anyMatch(share -> Objects.equals(share.protocolId(), protocolId));
+    }
+
+    /**
+     * The protocols of a station its partners may see.
+     *
+     * @param stationId the station
+     * @return the ids of its shared protocols, each once
+     */
+    public List<Integer> findSharedProtocolIds(int stationId) {
+        return federationRepository.findProtocolShares(stationId).stream()
+                .flatMap(share -> Stream.ofNullable(share.protocolId()))
+                .distinct()
+                .toList();
+    }
+
+    /**
+     * Shares a protocol with every partner of its station, or stops sharing it.
+     *
+     * <p>Asking for the state it is already in changes nothing, so a protocol is never shared twice.
+     *
+     * @param stationId  the station, already checked to own the protocol
+     * @param protocolId the protocol
+     * @param shared     whether partners may see it
+     */
+    public void setShared(int stationId, int protocolId, boolean shared) {
+        Transactions.run(() -> {
+            var existing = federationRepository.findProtocolShares(stationId).stream()
+                    .filter(share -> Objects.equals(share.protocolId(), protocolId))
+                    .toList();
+            if (shared && existing.isEmpty()) {
+                federationService.createProtocolShare(stationId, protocolId, ShareScope.ALL_PARTNERS);
+            }
+            if (!shared) {
+                existing.forEach(share -> federationService.deleteProtocolShare(share.id(), stationId));
+            }
+        });
     }
 
     public List<TestProtocol> findProtocols(int stationId) {
@@ -522,54 +561,72 @@ public class TestProtocolService implements FederationServer {
         return transport.get(partner, RemoteTestProtocolRoutes.GET_PROTOCOL.at(protocolId), RemoteProtocolDetail.class);
     }
 
-    public TestProtocol copyProtocol(int protocolId, int targetStationId) {
-        var source = findProtocol(protocolId).orElseThrow();
-        var newProto = createProtocol(targetStationId, source.name(), source.description(), source.passThreshold());
+    /**
+     * Copies a protocol a partner shares into this station.
+     *
+     * <p>The protocol is read from the partner over federation, the same way it is shown, so only what
+     * the partner actually shares can be copied, and a partner on another instance works the same as
+     * one on this instance.
+     *
+     * @param localStationId    the station copying
+     * @param partnerStationUid the partner station that shares the protocol
+     * @param protocolId        the protocol's number at the partner
+     * @return the new protocol of this station
+     */
+    public TestProtocol copyFederatedProtocol(int localStationId, UUID partnerStationUid, int protocolId) {
+        var source = getFederatedProtocol(localStationId, partnerStationUid, protocolId);
+        return Transactions.call(() -> copyInto(source, localStationId));
+    }
+
+    private TestProtocol copyInto(RemoteProtocolDetail source, int targetStationId) {
+        var protocol = source.protocol();
+        var copy = createProtocol(targetStationId, protocol.name(), protocol.description(), protocol.passThreshold());
         log.info(
-                "Copying test protocol {} into new protocol {} at station {}",
-                protocolId,
-                newProto.id(),
+                "Copying partner protocol {} into new protocol {} at station {}",
+                protocol.id(),
+                copy.id(),
                 targetStationId);
 
-        var sections = findSections(source.id());
         var sectionMap = new HashMap<Integer, Integer>();
-
-        for (var sec : sections) {
-            if (sec.parentId() != null) continue;
-            var newSec = createSection(
-                    newProto.id(),
-                    null,
-                    sec.name(),
-                    sec.description(),
-                    sec.maxPoints(),
-                    sec.passThreshold(),
-                    sec.position());
-            sectionMap.put(sec.id(), newSec.id());
+        for (var section : parentsFirst(source.sections())) {
+            var created = createSection(
+                    copy.id(),
+                    section.parentId() == null ? null : sectionMap.get(section.parentId()),
+                    section.name(),
+                    section.description(),
+                    section.maxPoints(),
+                    section.passThreshold(),
+                    section.position());
+            sectionMap.put(section.id(), created.id());
         }
 
-        for (var sec : sections) {
-            if (sec.parentId() == null) continue;
-            Integer newParentId = sectionMap.get(sec.parentId());
-            var newSec = createSection(
-                    newProto.id(),
-                    newParentId,
-                    sec.name(),
-                    sec.description(),
-                    sec.maxPoints(),
-                    sec.passThreshold(),
-                    sec.position());
-            sectionMap.put(sec.id(), newSec.id());
-        }
-
-        var allItems = findAllItemsByProtocol(source.id());
-        for (var item : allItems) {
-            Integer newSectionId = sectionMap.get(item.sectionId());
-            if (newSectionId != null) {
-                createItem(newSectionId, item.label(), item.description(), item.points(), item.position());
+        for (var item : source.items()) {
+            Integer sectionId = sectionMap.get(item.sectionId());
+            if (sectionId != null) {
+                createItem(sectionId, item.label(), item.description(), item.points(), item.position());
             }
         }
+        return copy;
+    }
 
-        return newProto;
+    /**
+     * The sections of a protocol in an order where every parent comes before its children, at any
+     * depth. A section whose parent is not among them is left out, as it could only be created at the
+     * wrong place.
+     */
+    static List<TestProtocolSection> parentsFirst(List<TestProtocolSection> sections) {
+        var byParent = sections.stream()
+                .filter(section -> section.parentId() != null)
+                .collect(Collectors.groupingBy(TestProtocolSection::parentId));
+        var ordered = new ArrayList<TestProtocolSection>();
+        var pending = new ArrayDeque<TestProtocolSection>();
+        sections.stream().filter(section -> section.parentId() == null).forEach(pending::add);
+        while (!pending.isEmpty()) {
+            var section = pending.poll();
+            ordered.add(section);
+            pending.addAll(byParent.getOrDefault(section.id(), List.of()));
+        }
+        return ordered;
     }
 
     private List<SharedProtocolItem> browsePartner(FederationPartner partner) {
