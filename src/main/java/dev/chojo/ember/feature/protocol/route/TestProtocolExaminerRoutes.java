@@ -129,11 +129,9 @@ public class TestProtocolExaminerRoutes implements Routes {
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = GradingScope.class)))
     private void gradingScope(Context ctx) {
-        var session = StationSession.from(ctx);
         var run =
                 guards.requireRun(ctx, ctx.pathParamAsClass("id", Integer.class).get());
-        ctx.json(examiners.scopeOf(
-                run, session.member().id(), session.hasPermission(StationPermission.PROTOCOL_MANAGER)));
+        ctx.json(examiners.scopeOf(run, StationSession.from(ctx).member().id()));
     }
 
     /**

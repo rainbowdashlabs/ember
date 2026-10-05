@@ -36,8 +36,9 @@ import java.util.stream.Collectors;
  * <p>An examiner named on a section examines it and everything under it; a subsection may name
  * examiners of its own on top. A run nobody was planned for is graded by every tester, as runs always
  * were. Once a run has examiners, only they open its grading, each changing the points of their own
- * sections and of the sections nobody was named for. Protocol managers keep full access, so a run is
- * never stuck because an examiner cannot come.
+ * sections and of the sections nobody was named for. Protocol managers are held to the plan like
+ * everybody else: one standing in for an examiner who cannot come names themselves on the planning
+ * page, which also records who examined what.
  */
 @Singleton
 public class TestProtocolExaminerService {
@@ -124,13 +125,12 @@ public class TestProtocolExaminerService {
      *
      * @param run      the run
      * @param memberId the station member asking
-     * @param manager  whether they manage protocols, which opens everything
      */
-    public GradingScope scopeOf(TestProtocolRun run, int memberId, boolean manager) {
+    public GradingScope scopeOf(TestProtocolRun run, int memberId) {
         var assignments = repository.findByRun(run.id());
         var sections = protocols.findSections(run.protocolId());
         var all = sections.stream().map(TestProtocolSection::id).collect(Collectors.toSet());
-        if (assignments.isEmpty() || manager) return new GradingScope(true, !assignments.isEmpty(), all);
+        if (assignments.isEmpty()) return new GradingScope(true, false, all);
         boolean examiner = assignments.stream().anyMatch(assignment -> assignment.memberId() == memberId);
         if (!examiner) return new GradingScope(false, true, Set.of());
         var effective = effectiveExaminers(sections, assignments);
@@ -144,8 +144,8 @@ public class TestProtocolExaminerService {
     /**
      * The scope of a member who means to grade, refused when they may not grade the run at all.
      */
-    public GradingScope requireGrader(TestProtocolRun run, int memberId, boolean manager) {
-        var scope = scopeOf(run, memberId, manager);
+    public GradingScope requireGrader(TestProtocolRun run, int memberId) {
+        var scope = scopeOf(run, memberId);
         if (!scope.mayGrade()) throw TestProtocolRefusal.PROTOCOL_RUN_GRADED_BY_ITS_EXAMINERS.raise();
         return scope;
     }

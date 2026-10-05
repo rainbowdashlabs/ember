@@ -103,7 +103,7 @@ class TestProtocolExaminerServiceTest extends RepositoryTestBase {
 
     @Test
     void aRunWithoutExaminersIsGradedByEveryTester() {
-        var scope = examiners.scopeOf(run, clara.id(), false);
+        var scope = examiners.scopeOf(run, clara.id());
 
         assertTrue(scope.mayGrade());
         assertFalse(scope.restricted());
@@ -116,28 +116,18 @@ class TestProtocolExaminerServiceTest extends RepositoryTestBase {
 
         assertEquals(
                 Set.of(knots, loops, firstAid, radio),
-                examiners.scopeOf(run, anna.id(), false).sectionIds());
+                examiners.scopeOf(run, anna.id()).sectionIds());
         assertEquals(
-                Set.of(loops, firstAid, radio),
-                examiners.scopeOf(run, ben.id(), false).sectionIds());
+                Set.of(loops, firstAid, radio), examiners.scopeOf(run, ben.id()).sectionIds());
     }
 
     @Test
     void aTesterLeftOutOfThePlanMayNotGrade() {
         planTheExam();
 
-        assertFalse(examiners.scopeOf(run, clara.id(), false).mayGrade());
-        var refused = assertThrows(RefusalResponse.class, () -> examiners.requireGrader(run, clara.id(), false));
+        assertFalse(examiners.scopeOf(run, clara.id()).mayGrade());
+        var refused = assertThrows(RefusalResponse.class, () -> examiners.requireGrader(run, clara.id()));
         assertEquals(TestProtocolRefusal.PROTOCOL_RUN_GRADED_BY_ITS_EXAMINERS, refused.refusal());
-    }
-
-    @Test
-    void aProtocolManagerGradesEverything() {
-        planTheExam();
-
-        var scope = examiners.scopeOf(run, clara.id(), true);
-        assertTrue(scope.mayGrade());
-        assertEquals(Set.of(knots, loops, firstAid, radio), scope.sectionIds());
     }
 
     /** A sheet carrying another examiner's points as they were keeps that examiner's work. */
@@ -145,7 +135,7 @@ class TestProtocolExaminerServiceTest extends RepositoryTestBase {
     void ticksOutsideTheScopeAreLeftAsStored() {
         planTheExam();
         var protocolItems = testProtocolRepo.findAllItemsByProtocol(run.protocolId());
-        var scope = examiners.scopeOf(run, ben.id(), false);
+        var scope = examiners.scopeOf(run, ben.id());
 
         var allowed = examiners.allowedChecks(
                 scope, Map.of(loopItem, true, firstAidItem, true, radioItem, false), protocolItems);
@@ -153,7 +143,7 @@ class TestProtocolExaminerServiceTest extends RepositoryTestBase {
         assertEquals(Map.of(loopItem, true, firstAidItem, true, radioItem, false), allowed);
         planOnlyKnotsForAnna();
         var narrowed = examiners.allowedChecks(
-                examiners.scopeOf(run, ben.id(), false), Map.of(loopItem, true, radioItem, true), protocolItems);
+                examiners.scopeOf(run, ben.id()), Map.of(loopItem, true, radioItem, true), protocolItems);
         assertFalse(narrowed.containsKey(loopItem));
     }
 
@@ -168,7 +158,7 @@ class TestProtocolExaminerServiceTest extends RepositoryTestBase {
     @Test
     void aSectionWithNothingOfTheirsCannotBeFinishedByThem() {
         planOnlyKnotsForAnna();
-        var bens = examiners.scopeOf(run, ben.id(), false);
+        var bens = examiners.scopeOf(run, ben.id());
 
         var refused = assertThrows(RefusalResponse.class, () -> examiners.requireFinishable(run, bens, knots));
         assertEquals(TestProtocolRefusal.PROTOCOL_SECTION_NOT_YOURS_TO_FINISH, refused.refusal());

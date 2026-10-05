@@ -30,7 +30,6 @@ import static dev.chojo.ember.api.RouteHarness.PREFIX;
 import static dev.chojo.ember.api.RouteHarness.body;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.eq;
@@ -67,7 +66,7 @@ class TestProtocolGradingRoutesTest {
 
     @Test
     void aTesterWhoIsNoExaminerOfThePlannedRunIsTurnedAway() {
-        when(examiners.requireGrader(eq(RUN), anyInt(), anyBoolean()))
+        when(examiners.requireGrader(eq(RUN), anyInt()))
                 .thenThrow(TestProtocolRefusal.PROTOCOL_RUN_GRADED_BY_ITS_EXAMINERS.raise());
 
         harness.run((server, client) -> {
@@ -93,7 +92,7 @@ class TestProtocolGradingRoutesTest {
     @Test
     void anExaminerSavesOnlyTheirOwnTicks() {
         var scope = new GradingScope(true, true, Set.of(2));
-        when(examiners.requireGrader(eq(RUN), anyInt(), anyBoolean())).thenReturn(scope);
+        when(examiners.requireGrader(eq(RUN), anyInt())).thenReturn(scope);
         when(protocols.findAllItemsByProtocol(1)).thenReturn(List.of());
         when(examiners.allowedChecks(eq(scope), anyMap(), any())).thenReturn(Map.of(7, true));
 
@@ -114,8 +113,7 @@ class TestProtocolGradingRoutesTest {
     /** Examiners of one run grade a member side by side, so nobody holds the member for the others. */
     @Test
     void aPlannedRunIsNotHeldByOneExaminer() {
-        when(examiners.requireGrader(eq(RUN), anyInt(), anyBoolean()))
-                .thenReturn(new GradingScope(true, true, Set.of()));
+        when(examiners.requireGrader(eq(RUN), anyInt())).thenReturn(new GradingScope(true, true, Set.of()));
         when(examiners.isPlanned(5)).thenReturn(true);
         when(protocols.findRunMember(5, 9)).thenReturn(Optional.empty());
 

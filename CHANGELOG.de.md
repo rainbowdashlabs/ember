@@ -6,7 +6,7 @@ Themenfarben erscheinen dort, wo sie fehlten. Das Bearbeiten von Kommentaren ist
 
 ### Neue Funktionen
 
-- **Prüfungen lassen sich mit Prüfern planen.** Nach dem Anlegen einer Prüfung werden auf einer Planungsseite die Prüfer jedes Abschnitts festgelegt, auch mehrere, und wer einen Abschnitt prüft, prüft auch alles darunter. Sobald Prüfer festgelegt sind, bewerten nur noch sie die Prüfung, jeder seine Abschnitte und die ohne Prüfer; die Protokollverwaltung darf immer bewerten.
+- **Prüfungen lassen sich mit Prüfern planen.** Nach dem Anlegen einer Prüfung werden auf einer Planungsseite die Prüfer jedes Abschnitts festgelegt, auch mehrere, und wer einen Abschnitt prüft, prüft auch alles darunter. Sobald Prüfer festgelegt sind, bewerten nur noch sie die Prüfung, jeder seine Abschnitte und die ohne Prüfer, auch die Protokollverwaltung.
 - **Prüfungsbögen können Bonuspunkte haben.** Ein Prüfpunkt lässt sich in seinem Dialog als Bonus markieren. Er zählt abgehakt zur erreichten Punktzahl, aber nicht zur Höchstpunktzahl seines Abschnitts oder des Bogens, und hilft beim Erreichen der Bestehensgrenze.
 
 ### Verbesserungen
@@ -22,6 +22,9 @@ Themenfarben erscheinen dort, wo sie fehlten. Das Bearbeiten von Kommentaren ist
 - **Mitgliederlisten tragen keine E-Mail-Adressen mehr.** Seiten, auf denen nur ein Mitglied ausgewählt wird, etwa Inventar, Anwesenheit oder Sichtbarkeitsfilter, bekamen die E-Mail-Adresse jedes Mitglieds, und die Mitgliedermenüs zeigten sie an. Diese Adressen erreichen jetzt nur noch die, die das Mitgliederverzeichnis lesen dürfen, und Mitgliedermenüs zeigen nur Namen.
 - **Kopieren von Partnern übernimmt nur Geteiltes.** Beim Kopieren eines Prüfungsbogens oder Wiki-Artikels von einer Partnerwache ließen sich Inhalte anderer Wachen derselben Installation erreichen, die nie geteilt wurden. Eine Kopie wird jetzt immer bei der Partnerwache geholt, die nur Geteiltes herausgibt.
 - **Fragenkataloge öffnen sich nur in ihrer Wache.** Name, Beschreibung und Kategorien eines Fragenkatalogs einer anderen Wache ließen sich von allen öffnen, die Kataloge ansehen dürfen. Ein Katalog öffnet sich jetzt nur noch in der Wache, zu der er gehört.
+
+### Änderungen
+- **Eine Prüfung endet erst, wenn jeder Abschnitt geprüft ist.** „Prüfung abschließen“ bleibt gesperrt, bis jeder Abschnitt des Bogens mit „Geprüft & Weiter“ oder „Geprüft & Beenden“ markiert ist, auch die Abschnitte der anderen Prüfer.
 
 ### Fehlerbehebungen
 

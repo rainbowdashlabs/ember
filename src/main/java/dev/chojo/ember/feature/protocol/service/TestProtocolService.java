@@ -574,10 +574,24 @@ public class TestProtocolService implements FederationServer {
         return repository.findChecks(rm.get().id());
     }
 
+    /**
+     * Finishes the examination of one member and stores their score.
+     *
+     * <p>Refused while any top-level section has not been marked as checked: a sheet nobody walked to
+     * the end is not an examination, whatever its ticks say.
+     *
+     * @return whether a member was completed; false when they are not part of the run
+     */
     public boolean completeMember(int runId, int memberId, int protocolId) {
         var rm = repository.findRunMember(runId, memberId);
         if (rm.isEmpty()) return false;
         int runMemberId = rm.get().id();
+
+        var done = Set.copyOf(repository.findDoneSections(runMemberId));
+        boolean sectionsOpen = repository.findSections(protocolId).stream()
+                .filter(section -> section.parentId() == null)
+                .anyMatch(section -> !done.contains(section.id()));
+        if (sectionsOpen) throw TestProtocolRefusal.PROTOCOL_MEMBER_SECTIONS_OPEN.raise();
 
         var checks = repository.findChecks(runMemberId);
         var allItems = repository.findAllItemsByProtocol(protocolId);

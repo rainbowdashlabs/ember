@@ -26,6 +26,7 @@ import { reportCaughtError } from '@/util/devErrorReporter'
 import { maxPointsOf, scoreOf } from './protocolPoints'
 import { protocolTree } from './protocolTree'
 import Alert from '@/components/feedback/Alert.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -70,6 +71,12 @@ const currentSection = computed(() => topSections.value[currentSectionIndex.valu
 
 /** The steps of this examiner not marked finished yet, which is what is easy to forget. */
 const openSections = computed(() => topSections.value.filter(section => !doneSections.value.has(section.id)))
+
+/**
+ * Whether every top-level section of the sheet is marked as checked, other examiners' included,
+ * which is the one state in which the examination may be finished.
+ */
+const everySectionDone = computed(() => tree.value.childrenOf(null).every(section => doneSections.value.has(section.id)))
 
 const isChecked = (itemId: number) => checks.value.get(itemId) === true
 
@@ -284,13 +291,16 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
             <font-awesome-icon :icon="['fas', 'chevron-left']" class="mr-1" /> {{ t('protocol.prevSection') }}
           </SecondaryButton>
           <div class="hidden sm:block flex-1" />
-          <SuccessButton v-if="currentSectionIndex === topSections.length - 1" class="flex-1 sm:flex-initial" :disabled="saving" @click="finishGrading">
+          <SuccessButton v-if="currentSectionIndex === topSections.length - 1" class="flex-1 sm:flex-initial" :disabled="saving || !everySectionDone" @click="finishGrading">
             <font-awesome-icon :icon="['fas', 'flag']" class="mr-1" /> {{ t('protocol.finish') }}
           </SuccessButton>
           <PrimaryButton v-if="currentSectionIndex < topSections.length - 1" class="sm:flex-initial" :disabled="saving" @click="saveAndNext">
             {{ t('protocol.nextSection') }} <font-awesome-icon :icon="['fas', 'chevron-right']" class="ml-1" />
           </PrimaryButton>
         </ButtonRow>
+        <MutedText v-if="currentSectionIndex === topSections.length - 1 && !everySectionDone" tag="p" size="sm">
+          {{ t('protocol.finishNeedsEverySection') }}
+        </MutedText>
       </div>
     </template>
   </ViewContent>

@@ -36,4 +36,5 @@ export default {
     'T-023': 'Dieser Abschnitt gehört nicht zum Prüfungsbogen dieses Laufs, es wurden keine Prüfer gespeichert',
     'T-024': 'Prüfer können nur Mitglieder sein, die Prüfungsbögen bewerten dürfen, es wurden keine Prüfer gespeichert',
     'T-025': 'Dieser Abschnitt gehört anderen Prüfern, er wurde nicht abgeschlossen',
+    'T-026': 'Erst wenn jeder Abschnitt als geprüft markiert ist, lässt sich die Prüfung abschließen. Sie wurde nicht abgeschlossen',
 }

@@ -6,7 +6,7 @@ Theme colours show where they were missing. Editing a comment is safer. Email ad
 
 ### New Features
 
-- **Exams can be planned with examiners.** After a run is started, a planning page names the examiners of each section, several per section if needed, and an examiner of a section also examines everything under it. Once a run has examiners, only they grade it, each their own sections and those nobody was named for; protocol managers can always grade.
+- **Exams can be planned with examiners.** After a run is started, a planning page names the examiners of each section, several per section if needed, and an examiner of a section also examines everything under it. Once a run has examiners, only they grade it, each their own sections and those nobody was named for, protocol managers included.
 - **Protocols can have bonus points.** A point can be marked as bonus in its dialog. It adds to the score when checked, but not to the maximum of its section or the protocol, and it helps reach the pass mark.
 
 ### Improvements
@@ -22,6 +22,9 @@ Theme colours show where they were missing. Editing a comment is safer. Email ad
 - **Member lists no longer carry email addresses.** Pages that only let someone pick a member, such as inventory, attendance or visibility filters, received the email address of every member, and member menus showed it. These addresses now reach only those allowed to read the member register, and member menus show names only.
 - **Copying from partners takes only what they share.** Copying a protocol or a wiki article from a partner station could reach content of other stations on the same installation that was never shared. A copy is now always fetched from the partner station, which hands out only what it shares.
 - **Quiz catalogs open only at their own station.** The name, description and categories of another station's quiz catalog could be opened by someone allowed to view catalogs. A catalog now opens only at the station it belongs to.
+
+### Changes
+- **An exam is finished only once every section is checked.** "Finish exam" stays disabled until each section of the sheet has been marked with "Checked & next" or "Checked & exit", the sections of other examiners included.
 
 ### Fixes
 

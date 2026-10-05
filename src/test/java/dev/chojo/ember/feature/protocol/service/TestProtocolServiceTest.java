@@ -312,10 +312,18 @@ class TestProtocolServiceTest extends RepositoryTestBase {
         assertEquals(0, service.countDoneSections(rm.id()));
     }
 
+    /** Ticks alone do not finish an examination: every top-level section has to be marked as checked. */
     @Test
     @Order(70)
     void completeMember() {
         service.saveChecks(runId, member.id(), Map.of(itemId, true), member.id(), protocolId);
+        var refused = assertThrows(RefusalResponse.class, () -> service.completeMember(runId, member.id(), protocolId));
+        assertEquals(TestProtocolRefusal.PROTOCOL_MEMBER_SECTIONS_OPEN, refused.refusal());
+
+        var done = service.findDoneSections(runId, member.id());
+        service.findSections(protocolId).stream()
+                .filter(section -> section.parentId() == null && !done.contains(section.id()))
+                .forEach(section -> service.toggleSectionDone(runId, member.id(), section.id(), member.id()));
         assertTrue(service.completeMember(runId, member.id(), protocolId));
     }
 

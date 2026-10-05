@@ -112,7 +112,13 @@ public enum TestProtocolRefusal implements Refusal {
 
     /** A section marked finished by an examiner it is not assigned to. */
     PROTOCOL_SECTION_NOT_YOURS_TO_FINISH(
-            25, HttpStatus.FORBIDDEN, "That section belongs to other examiners, so it was not marked");
+            25, HttpStatus.FORBIDDEN, "That section belongs to other examiners, so it was not marked"),
+
+    /** An examination finished while a top-level section of it has not been marked as checked. */
+    PROTOCOL_MEMBER_SECTIONS_OPEN(
+            26,
+            HttpStatus.CONFLICT,
+            "Every section has to be marked as checked before the examination is finished, so it was not finished");
 
     private final Definition definition;
 

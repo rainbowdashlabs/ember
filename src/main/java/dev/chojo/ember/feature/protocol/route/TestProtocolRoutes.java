@@ -79,12 +79,10 @@ public class TestProtocolRoutes implements Routes {
 
     /**
      * What the caller may grade in a run, refusing them where the run has examiners and they are none
-     * of them. Protocol managers may always grade.
+     * of them.
      */
     private GradingScope gradingScope(Context ctx, TestProtocolRun run) {
-        var session = StationSession.from(ctx);
-        return examiners.requireGrader(
-                run, session.member().id(), session.hasPermission(StationPermission.PROTOCOL_MANAGER));
+        return examiners.requireGrader(run, StationSession.from(ctx).member().id());
     }
 
     @Override
