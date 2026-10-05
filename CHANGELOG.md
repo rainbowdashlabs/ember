@@ -1,5 +1,13 @@
 # Changelog
 
+## v26.21.1
+
+Point descriptions show while grading.
+
+### Fixes
+
+- **Point descriptions were missing while grading.** The grading sheet showed only the name of each point, even when a description was set. The description now appears below the name.
+
 ## v26.21.0
 
 Theme colours show where they were missing. Editing a comment is safer. Email addresses of members only reach those allowed to read the member register. Members who set up their account from a link stay in their station, and the consent is asked on every way in. Exams can be planned with examiners per section, and only they grade them. Protocols nest to any depth, sections can be moved, and points can be bonus points. Protocols can be shared with partner stations one by one. Copying from partners is limited to what they share, and works with partners on other installations.
