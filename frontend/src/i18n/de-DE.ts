@@ -9397,6 +9397,12 @@ export default {
         totalScore: 'Gesamtpunktzahl',
         prevSection: 'Zurück',
         nextSection: 'Weiter',
+        nextStation: {
+            title: 'Nächste Station für {name}',
+            examiners: 'Bewertet von: {names}',
+            anyExaminer: 'Für diese Station ist niemand eingeteilt, jeder Prüfer dieser Prüfung darf sie bewerten.',
+            done: 'Zurück zur Prüfung',
+        },
         sections: 'Abschnitte',
         filterIncomplete: 'Nur unvollständige',
         markDone: 'Geprüft',

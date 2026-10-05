@@ -11,6 +11,7 @@ Themenfarben erscheinen dort, wo sie fehlten. Das Bearbeiten von Kommentaren ist
 
 ### Verbesserungen
 
+- **Die Bewertung nennt die nächste Station.** Nach „Geprüft & Beenden“ sieht der Prüfer den nächsten offenen Abschnitt in der Reihenfolge des Bogens und wer ihn dort bewertet. Nach dem letzten Abschnitt geht es beim ersten offenen weiter.
 - **Abschnitte lassen sich beliebig tief verschachteln.** Ein Unterabschnitt kann eigene Unterabschnitte haben, so tief wie nötig, im Editor, beim Bewerten, in der Auswertung und in den PDFs. Ein Abschnitt lässt sich ausschneiden und mit allem darunter in einen anderen Abschnitt oder auf die oberste Ebene einfügen.
 - **Die Prüfungsseite zeigt, was noch offen ist.** Bei jedem Mitglied einer Prüfung steht jeder Abschnitt als abgeschlossen oder offen, und beim Bewerten werden die noch nicht abgeschlossenen Abschnitte genannt. Eine Prüfung lässt sich wie die letzte Prüfung desselben Bogens planen.
 - **Fragenkataloge lassen sich mit Partnern teilen.** In der Liste der Kataloge kann jeder eigene Katalog mit allen Partnerwachen geteilt und wieder zurückgezogen werden, geteilte Kataloge sind markiert. Die neue Berechtigung „Testkataloge teilen“, Teil der Testverwaltung, erlaubt das.

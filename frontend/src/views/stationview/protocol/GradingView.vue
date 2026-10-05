@@ -21,11 +21,13 @@ import { useSession } from '@/composables/useSession'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { protocol, stationMembers } from '@/api'
-import type { GradingScope, MemberWithName, TestProtocolSection, TestProtocolItem } from '@/api/generated/schema'
+import type { GradingScope, MemberWithName, RunExaminers, TestProtocolSection, TestProtocolItem } from '@/api/generated/schema'
 import { reportCaughtError } from '@/util/devErrorReporter'
 import { maxPointsOf, scoreOf } from './protocolPoints'
 import { protocolTree } from './protocolTree'
 import Alert from '@/components/feedback/Alert.vue'
+import NextStationModal from './gradingview/NextStationModal.vue'
+import { nextStation } from './nextStation'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -43,6 +45,9 @@ const items = ref<TestProtocolItem[]>([])
 const checks = ref<Map<number, boolean>>(new Map())
 const doneSections = ref<Set<number>>(new Set())
 const member = ref<MemberWithName | null>(null)
+const memberNames = ref<Map<number, string>>(new Map())
+const examinerPlan = ref<RunExaminers>({sections: []})
+const upNext = ref<TestProtocolSection | null>(null)
 const locked = ref(false)
 const currentSectionIndex = ref(0)
 
@@ -67,6 +72,22 @@ const gradable = computed<ReadonlySet<number>>(() => scope.value?.restricted
 const topSections = computed(() => tree.value.childrenOf(null)
   .filter(section => [...tree.value.subtreeOf(section.id)].some(id => gradable.value.has(id))))
 const currentSection = computed(() => topSections.value[currentSectionIndex.value])
+
+/** Who examines a station: the examiners of the section and of every section under it, once each. */
+function examinersOf(stationId: number): string[] {
+  const subtree = tree.value.subtreeOf(stationId)
+  const ids = examinerPlan.value.sections
+    .filter(entry => subtree.has(entry.sectionId))
+    .flatMap(entry => entry.memberIds)
+  return [...new Set(ids)].map(id => memberNames.value.get(id) ?? `#${id}`)
+}
+
+const showUpNext = computed({
+  get: () => upNext.value !== null,
+  set: (open: boolean) => {
+    if (!open) void backToRun()
+  },
+})
 
 /** The steps of this examiner not marked finished yet, which is what is easy to forget. */
 const openSections = computed(() => topSections.value.filter(section => !doneSections.value.has(section.id)))
@@ -120,14 +141,17 @@ const {loading, failure, reload: loadData} = useAsyncLoader(async () => {
   storedRunId = runId.value
   storedMemberId = memberId.value
 
-  const [protocolData, existingChecks, doneIds, allMembers, gradingScope] = await Promise.all([
+  const [protocolData, existingChecks, doneIds, allMembers, gradingScope, plan] = await Promise.all([
     protocol.getProtocol((await protocol.getRun(runId.value)).run.protocolId),
     protocol.getChecks(runId.value, memberId.value),
     protocol.getSectionsDone(runId.value, memberId.value),
     stationMembers.listMembers(),
     protocol.getGradingScope(runId.value),
+    protocol.getExaminers(runId.value),
   ])
   scope.value = gradingScope
+  examinerPlan.value = plan
+  memberNames.value = new Map(allMembers.map(m => [m.id, m.name || m.email || `#${m.id}`]))
   sections.value = protocolData.sections
   items.value = protocolData.items
   member.value = allMembers.find(m => m.id === memberId.value) ?? null
@@ -210,12 +234,17 @@ function markDoneAndNext() {
   })
 }
 
+/**
+ * Closes this examiner's station and, while the member still has stations to go, names the next one
+ * in the order of the sheet and who examines it there before going back to the run.
+ */
 function markDoneAndExit() {
   return runSave(async () => {
     const section = currentSection.value
-    if (section && !doneSections.value.has(section.id)) await markSection(section.id)
+    const finished = section && !doneSections.value.has(section.id) ? await markSection(section.id) : false
     await protocol.unlockMember(runId.value, memberId.value)
-    await backToRun()
+    upNext.value = section && !finished ? nextStation(tree.value.childrenOf(null), doneSections.value, section.id) : null
+    if (!upNext.value) await backToRun()
   })
 }
 
@@ -305,5 +334,12 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
         </ButtonRow>
       </div>
     </template>
+    <NextStationModal
+      v-if="upNext"
+      v-model:show="showUpNext"
+      :member-name="member?.name || member?.email || ''"
+      :station="upNext.name"
+      :examiner-names="examinersOf(upNext.id)"
+    />
   </ViewContent>
 </template>

@@ -3755,7 +3755,7 @@ volumes:
             plannedTitle: 'Geplante Prüfer',
             plannedText: 'Wurden für die Prüfung Prüfer geplant, siehst du nur deine eigenen Abschnitte. Dazu kommen die Abschnitte, für die niemand eingeteilt ist. Alle anderen bewerten die übrigen Prüfer.',
             navigationTitle: 'Navigation',
-            navigationText: 'Unten findest du die Buttons zum Weitergehen. „Geprüft & Weiter“ markiert den Abschnitt und springt zum nächsten. „Geprüft & Beenden“ markiert ihn und verlässt die Bewertung.',
+            navigationText: 'Unten findest du die Buttons zum Weitergehen. „Geprüft & Weiter“ markiert den Abschnitt und springt zum nächsten. „Geprüft & Beenden“ markiert ihn und verlässt die Bewertung. Hat das Mitglied danach noch offene Abschnitte, zeigt Ember die nächste Station in der Reihenfolge des Bogens und wer sie bewertet. Nach dem letzten Abschnitt geht es beim ersten offenen weiter.',
             finishText: 'Sobald jeder Abschnitt als geprüft markiert ist, auch die Abschnitte der anderen Prüfer, ist die Prüfung des Mitglieds abgeschlossen und das Ergebnis gespeichert. Wer den letzten Abschnitt markiert, kommt danach zurück zur Prüfung.',
             lockTitle: 'Sperrung', lockText: 'Während du prüfst, ist das Mitglied für andere Prüfer gesperrt.',
             tip: 'Tipp: Nutze ein Handy oder Tablet - die Prüfansicht ist extra für Touchscreens optimiert.',

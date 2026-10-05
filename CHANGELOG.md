@@ -11,6 +11,7 @@ Theme colours show where they were missing. Editing a comment is safer. Email ad
 
 ### Improvements
 
+- **Grading names the member's next station.** After "Checked & exit", the examiner sees the next open section in the order of the sheet and who grades it there. After the last section, it starts over at the first open one.
 - **Protocol sections nest to any depth.** A subsection can have subsections of its own, as deep as needed, in the editor, on the grading sheet, in the evaluation and in the PDFs. A section can be cut and pasted into another section or back to the top level, with everything under it.
 - **The run page shows what is left.** Each member of a run shows every section as finished or open, and the grading sheet names the sections not finished yet. A run can be planned like the last run of the same protocol.
 - **Quiz catalogs can be shared with partners.** In the catalog list, each catalog of the station can be shared with all partner stations and unshared again, and shared catalogs carry a mark. The new "Share quiz catalogs" permission, part of managing tests, allows it.
