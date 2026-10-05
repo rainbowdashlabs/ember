@@ -10,7 +10,9 @@
 # After a feature release X.Y.0, it also opens the next release branch release/vX.(Y+1).0 at the
 # released commit, without a commit of its own, and a pull request from chore/bump-X.(Y+1).0 into it
 # whose one commit bumps the version to X.(Y+1).0. A release branch for any later version that is
-# already there means the next release is open, and nothing is created.
+# already there means the next release is open, and nothing is created. Once the release branch has a
+# commit of its own, it opens the branch's release pull request into main as a draft, which stays
+# open until the release is labelled.
 #
 # Run on a developer's machine: the bump commits carry the developer's git identity and are signed
 # when commit.gpgsign is on. They are made in a scratch worktree, so the checkout it is started from is
@@ -27,6 +29,7 @@ SCRIPTS="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPTS/shared/repository.sh"
 source "$SCRIPTS/shared/issues.sh"
 source "$SCRIPTS/shared/local-commits.sh"
+source "$SCRIPTS/shared/pull-requests.sh"
 
 dry_run=0
 check=0
@@ -57,11 +60,6 @@ act() {
 note_needed() {
     needed+=("$1")
     echo "Still to be opened: $1"
-}
-
-# The number of the open pull request from the given branch into the given base, empty when none is.
-open_pull_request() {
-    gh pr list --state open --head "$1" --base "$2" --json number --jq '.[0].number // empty'
 }
 
 # Whether the first version is above the second.
@@ -128,11 +126,17 @@ open_release_branch() {
     elif [ "$later" != "$branch" ]; then
         echo "The next release is open already (${later//$'\n'/, }), so $branch is not created."
         return
-    elif [ "$(project_version "origin/$branch")" = "$version" ]; then
-        echo "$branch carries $version already."
-        return
     fi
-    open_bump "$version" "$(released_commit "$released")" "$branch"
+    if [ -n "$later" ] && [ "$(project_version "origin/$branch")" = "$version" ]; then
+        echo "$branch carries $version already."
+    else
+        open_bump "$version" "$(released_commit "$released")" "$branch"
+    fi
+    if [ "$check" -eq 0 ]; then
+        open_release_pull_request "$branch"
+    elif has_own_commit "$branch" && [ -z "$(open_pull_request "$branch" main)" ]; then
+        note_needed "the draft release pull request from \`$branch\` into \`main\`"
+    fi
 }
 
 # Lists what is still to be opened in the issue, or closes the issue when nothing is.

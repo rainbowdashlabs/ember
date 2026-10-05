@@ -1,10 +1,10 @@
 name: Release Sync
 
-# Says when a release branch has fallen behind main, and writes to no branch: the rebase rewrites
+# Says on each release branch whether it contains main, and writes to no branch: the rebase rewrites
 # commits, so it is run locally with `./toolchain.sh release-sync`, where every rewritten commit is
-# signed. For each open release branch that does not contain main it opens one issue (or updates the
-# open one), and it closes that issue once the branch contains main. It runs after every push to main,
-# after every release, and after a push to a release branch, which is how such an issue is closed.
+# signed. The answer is the commit status "Release branch contains main" on the branch head, which
+# shows on the branch's release pull request. It runs after every push to main, after every release,
+# and after a push to a release branch, which is how a synced branch turns green.
 on:
   push:
     branches: [main, 'release/**']
@@ -13,7 +13,7 @@ on:
 
 permissions:
   contents: read
-  issues: write
+  statuses: write
 
 jobs:
   check:
@@ -27,7 +27,7 @@ jobs:
         with:
           ref: main
           fetch-depth: 0
-      - name: Report the release branches behind main
+      - name: Set the status of each release branch
         env:
           GH_TOKEN: ${{ github.token }}
         run: ./toolchain.sh release-sync --check

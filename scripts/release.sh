@@ -158,6 +158,14 @@ check_fix_release() {
     stop_on_problems
 }
 
+# Marks the release pull request ready for review when it is still a draft, as it is from the release
+# branch's start, so that main reaching its head marks it merged.
+mark_ready() {
+    if [ "$(gh pr view "$1" --json isDraft --jq .isDraft)" = "true" ]; then
+        act gh pr ready "$1"
+    fi
+}
+
 publish() {
     local fast_forward="$1" notes
     notes=$(mktemp)
@@ -207,6 +215,7 @@ case "$mode" in
     feature)
         [ -n "$pr" ] || refuse "Name the pull request of the release, e.g. release.sh feature 220."
         check_feature_release "$pr"
+        mark_ready "$pr"
         publish 1
         ;;
     fix)

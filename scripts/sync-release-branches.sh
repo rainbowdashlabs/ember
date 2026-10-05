@@ -23,15 +23,21 @@
 # as it was, prints what stopped it and fails. A failed signature is not retried. --dry-run does all of
 # it locally, unsigned, and pushes nothing.
 #
-# --check is what CI runs instead, and it writes to no branch: for each release branch that would be
-# rebased it opens an issue saying so (or updates the one open already), and it closes that issue once
-# the branch contains main.
+# A local run also opens the draft release pull request of each release branch with a commit of its
+# own that has none.
+#
+# --check is what CI runs instead, and it writes to no branch: it sets the commit status "Release
+# branch contains main" on the head of each release branch with a commit of its own, a success when
+# the branch contains main and a failure naming this script when it does not. The status shows on
+# the branch's release pull request.
 set -euo pipefail
 
 SCRIPTS="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPTS/shared/repository.sh"
-source "$SCRIPTS/shared/issues.sh"
 source "$SCRIPTS/shared/local-commits.sh"
+source "$SCRIPTS/shared/pull-requests.sh"
+
+STATUS_CONTEXT="Release branch contains main"
 
 dry_run=0
 check=0
@@ -229,27 +235,13 @@ push_refusal() {
     printf '%s\n' "${reasons:-(the push was refused by the remote)}"
 }
 
-# The title of the issue that says a release branch is behind main.
-behind_title() {
-    printf '%s is behind main\n' "$1"
-}
-
-# Opens or updates the issue saying that a release branch does not contain main yet.
-report_behind() {
-    local branch="$1" body
-    body=$(cat << EOF
-\`$branch\` does not contain \`main\` at $(git rev-parse --short "$MAIN_REF") yet.
-
-Run \`./toolchain.sh release-sync\` locally. It rebases the branch onto \`main\`, renumbers its own
-patch when needed, signs every rewritten commit and pushes the branch with a lease. This issue is
-closed once the branch contains \`main\`.
-EOF
-)
-    if [ "$dry_run" -eq 1 ]; then
-        echo "Would open or update the issue: $(behind_title "$branch")"
-        return
-    fi
-    upsert_issue "$(behind_title "$branch")" "$body"
+# Sets the commit status that says whether a release branch contains main on the branch head, where
+# its release pull request shows it.
+report_status() {
+    local branch="$1" head="$2" state="$3" description="$4"
+    gh api --silent "repos/{owner}/{repo}/statuses/$head" -f state="$state" -f context="$STATUS_CONTEXT" \
+        -f description="$description"
+    echo "Set \"$STATUS_CONTEXT\" on $branch to $state."
 }
 
 # Says how to rebase a branch the sync could not rebase.
@@ -272,18 +264,19 @@ for branch in $(git for-each-ref --format='%(refname:strip=3)' 'refs/remotes/ori
         echo "$branch is released as ${branch#release/}; it is left alone."
         continue
     fi
-    if git merge-base --is-ancestor "$MAIN_REF" "$old"; then
-        echo "$branch already contains main."
-        if [ "$check" -eq 1 ]; then close_issue "$(behind_title "$branch")" "\`$branch\` contains \`main\` now."; fi
-        continue
-    fi
     if git merge-base --is-ancestor "$old" "$MAIN_REF"; then
         echo "$branch has no commit of its own yet; it is rebased once its version bump is merged."
         continue
     fi
+    [ "$check" -eq 1 ] || open_release_pull_request "$branch"
+    if git merge-base --is-ancestor "$MAIN_REF" "$old"; then
+        echo "$branch already contains main."
+        if [ "$check" -eq 1 ]; then report_status "$branch" "$old" success "The branch contains main."; fi
+        continue
+    fi
     if [ "$check" -eq 1 ]; then
         echo "$branch does not contain main; it needs ./toolchain.sh release-sync."
-        report_behind "$branch"
+        report_status "$branch" "$old" failure "Behind main: run ./toolchain.sh release-sync locally."
         continue
     fi
     echo "Rebasing $branch onto main."

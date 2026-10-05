@@ -260,14 +260,16 @@ Release
   release-next [--dry-run | --check]
                         Run locally after a release: open the pull request that bumps main to the
                         next patch, and after a feature release open the next release branch with
-                        the pull request that bumps it to the next minor, as signed commits. Both
+                        the pull request that bumps it to the next minor, as signed commits, and the
+                        draft release pull request once the branch has a commit of its own. Bumps
                         are merged by hand. --dry-run neither pushes nor opens pull requests;
                         --check, which the Release workflow runs, only lists them in an issue
   release-sync [--dry-run | --check]
                         Run locally: rebase every open release branch onto main, renumbering its own
-                        patch above main's, sign every rewritten commit and push it with a lease; a
-                        conflict stops it with the files named. --dry-run pushes nothing; --check,
-                        which the Release Sync workflow runs, only opens an issue per branch behind
+                        patch above main's, sign every rewritten commit and push it with a lease, and
+                        open a missing draft release pull request; a conflict stops it with the files
+                        named. --dry-run pushes nothing; --check, which the Release Sync workflow
+                        runs, only sets the status "Release branch contains main" on each branch
   db-renumber-patch [--dry-run] <from> <to>
                         Rename this branch's unreleased patch, the version file and the tests naming
                         it. Refuses a patch that is on main

@@ -33,7 +33,11 @@ remote_version() {
 }
 
 created() {
-    grep -c '^pr create' "$GH_LOG"
+    grep -c '^pr create --base' "$GH_LOG"
+}
+
+drafts() {
+    grep -c "^pr create --draft --base main --head $1 --title Release v${1#release/v}" "$GH_LOG"
 }
 
 new_repository
@@ -67,6 +71,8 @@ expect_equal "the release branch's bump is a pull request into it" "yes" \
     "$(grep -q -- '^pr create --base release/v26.21.0 --head chore/bump-26.21.0 --title Bump version to 26.21.0' "$GH_LOG" && echo yes)"
 expect_equal "two pull requests are opened" "2" "$(created)"
 expect_equal "nothing is merged into main" "$released" "$(remote main)"
+expect_equal "a release branch without a commit of its own gets no release pull request yet" "0" \
+    "$(drafts release/v26.21.0)"
 
 expect_pass "a second run while both pull requests are open" \
     env FAKE_OPEN_HEADS="chore/bump-26.20.1 chore/bump-26.21.0" bash "$SCRIPTS/open-next-versions.sh"
@@ -74,8 +80,15 @@ expect_equal "no pull request is opened twice" "2" "$(created)"
 expect_equal "the release branch stays where it was" "$released" "$(remote release/v26.21.0)"
 
 git push -q origin origin/chore/bump-26.20.1:refs/heads/main origin/chore/bump-26.21.0:refs/heads/release/v26.21.0
+expect_pass "a check once both bumps are merged" next --check
+expect_equal "the check lists the release pull request" "yes" \
+    "$(grep -q 'draft release pull request from `release/v26.21.0`' "$GH_LOG" && echo yes)"
 expect_pass "a run once both bumps are merged" next
-expect_equal "nothing more is opened" "2" "$(created)"
+expect_equal "no more bump is opened" "2" "$(created)"
+expect_equal "the release pull request is opened as a draft" "1" "$(drafts release/v26.21.0)"
+expect_pass "a run while the release pull request is open" \
+    env FAKE_OPEN_HEADS="release/v26.21.0" bash "$SCRIPTS/open-next-versions.sh"
+expect_equal "the release pull request is not opened twice" "1" "$(drafts release/v26.21.0)"
 
 git fetch -q origin
 git checkout -q -B main origin/main

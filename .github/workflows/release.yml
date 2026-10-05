@@ -1,7 +1,8 @@
 name: Release
 
-# A feature release is the pull request from release/vX.Y.Z into main, labelled `release`: main is
-# fast-forwarded to the branch head, because none of GitHub's merge buttons can do that. A fix release
+# A feature release is the pull request from release/vX.Y.Z into main, open as a draft since the
+# branch started, labelled `release`: it is marked ready and main is fast-forwarded to the branch
+# head, because none of GitHub's merge buttons can do that. A fix release
 # is a merged pull request into main carrying the label, or a run by hand without a number.
 on:
   pull_request_target:
@@ -16,6 +17,7 @@ permissions:
   contents: write
   pull-requests: write
   issues: write
+  statuses: write
   actions: read
 
 concurrency:

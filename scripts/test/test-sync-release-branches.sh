@@ -8,8 +8,18 @@ export GH_LOG="$fake_bin/gh.log"
 cat > "$fake_bin/gh" << 'EOF'
 #!/usr/bin/env bash
 echo "$*" >> "$GH_LOG"
-if [ "$1 $2" = "issue list" ] && [ -n "${FAKE_OPEN_ISSUE:-}" ]; then echo "$FAKE_OPEN_ISSUE"; fi
+if [ "$1 $2" = "pr list" ]; then
+    while [ $# -gt 0 ]; do
+        if [ "$1" = "--head" ] && [[ " ${FAKE_OPEN_HEADS:-} " == *" $2 "* ]]; then echo 7; fi
+        shift
+    done
+fi
 EOF
+touch "$GH_LOG"
+
+drafts() {
+    grep -c '^pr create --draft --base main --head release/v26.21.0 --title Release v26.21.0' "$GH_LOG"
+}
 chmod +x "$fake_bin/gh"
 export PATH="$fake_bin:$PATH"
 
@@ -53,8 +63,10 @@ git push -q origin main
 
 expect_pass "a dry run" sync --dry-run
 expect_equal "a dry run pushes nothing" "$release_head" "$(git ls-remote origin refs/heads/release/v26.21.0 | cut -f1)"
+expect_equal "a dry run opens no release pull request" "0" "$(drafts)"
 
 expect_pass "the release branch is rebased" sync
+expect_equal "the missing release pull request is opened as a draft" "1" "$(drafts)"
 git fetch -q origin
 expect_equal "main is in the release branch" "yes" \
     "$(git merge-base --is-ancestor origin/main origin/release/v26.21.0 && echo yes)"
@@ -70,7 +82,8 @@ expect_equal "the release branch keeps its version" 'version = "26.21.0"' \
 expect_equal "the changelog keeps both blocks, the release's on top" "$(changelog "$feature" "$fix" "$released")" \
     "$(git show origin/release/v26.21.0:CHANGELOG.md)"
 expect_equal "every commit of the branch is kept" "3" "$(git rev-list --count origin/main..origin/release/v26.21.0)"
-expect_pass "a second run has nothing to do" sync
+expect_pass "a second run has nothing to do" env FAKE_OPEN_HEADS=release/v26.21.0 bash "$SCRIPTS/sync-release-branches.sh"
+expect_equal "an open release pull request is not opened again" "1" "$(drafts)"
 
 git checkout -q -B release/v26.21.0 origin/release/v26.21.0
 printf 'release line\n' > Code.java
@@ -86,7 +99,6 @@ git push -q origin main
 expect_fail "a conflict in code stops the rebase" "Could not rebase release/v26.21.0" sync
 expect_equal "the stopped rebase names the file" "yes" "$(output=$(sync 2>&1); grep -qx -- '  - Code.java' <<< "$output" && echo yes)"
 expect_equal "the branch is left as it was" "$release_head" "$(git ls-remote origin refs/heads/release/v26.21.0 | cut -f1)"
-expect_equal "a local run opens no issue" "no" "$(grep -q '^issue' "$GH_LOG" 2> /dev/null && echo yes || echo no)"
 
 git push -q origin --delete release/v26.21.0
 git checkout -q -B release/v26.20.0 v26.20.0
@@ -117,13 +129,12 @@ expect_fail "a push refused by a repository rule names the rule" \
 rm "$hook"
 release_head=$(git rev-parse release/v26.21.0)
 
+pull_requests_before=$(grep -c '^pr ' "$GH_LOG")
 expect_pass "a check of a branch behind main" sync --check
-expect_equal "the check opens an issue for it" "yes" \
-    "$(grep -q '^issue create --title release/v26.21.0 is behind main' "$GH_LOG" && echo yes)"
+expect_equal "the check marks the branch head as failing" "yes" \
+    "$(grep -q "^api --silent repos/{owner}/{repo}/statuses/$release_head -f state=failure -f context=Release branch contains main -f description=.*release-sync" "$GH_LOG" && echo yes)"
 expect_equal "the check pushes nothing" "$release_head" "$(git ls-remote origin refs/heads/release/v26.21.0 | cut -f1)"
-expect_pass "a second check while the issue is open" env FAKE_OPEN_ISSUE=5 bash "$SCRIPTS/sync-release-branches.sh" --check
-expect_equal "the second check updates the issue" "yes" "$(grep -q '^issue edit 5 --body' "$GH_LOG" && echo yes)"
-expect_equal "the check opens no second issue" "1" "$(grep -c '^issue create' "$GH_LOG")"
+expect_equal "the check opens no pull request" "$pull_requests_before" "$(grep -c '^pr ' "$GH_LOG")"
 
 key="$(mktemp -d)/key"
 TEST_SCRATCH_DIRS+=("${key%/key}")
@@ -148,7 +159,9 @@ expect_equal "the checkout keeps its changes" "uncommitted" "$(cat Code.java)"
 expect_equal "no scratch branch is left behind" "" "$(git for-each-ref refs/heads/release-sync/)"
 git checkout -q -- Code.java
 
-expect_pass "a check once the branch contains main" env FAKE_OPEN_ISSUE=5 bash "$SCRIPTS/sync-release-branches.sh" --check
-expect_equal "the check closes the issue" "yes" "$(grep -q '^issue close 5' "$GH_LOG" && echo yes)"
+expect_pass "a check once the branch contains main" sync --check
+expect_equal "the check marks the new branch head as passing" "yes" \
+    "$(grep -q "^api --silent repos/{owner}/{repo}/statuses/$(git rev-parse origin/release/v26.21.0) -f state=success" "$GH_LOG" && echo yes)"
+expect_equal "nothing touches an issue" "0" "$(grep -c '^issue' "$GH_LOG")"
 
 finish
