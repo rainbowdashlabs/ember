@@ -23,6 +23,7 @@ import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { protocol, stationMembers } from '@/api'
 import type { GradingScope, MemberWithName, RunExaminers, TestProtocolSection, TestProtocolItem } from '@/api/generated/schema'
 import { reportCaughtError } from '@/util/devErrorReporter'
+import { showToast } from '@/util/toast'
 import { maxPointsOf, scoreOf } from './protocolPoints'
 import { protocolTree } from './protocolTree'
 import Alert from '@/components/feedback/Alert.vue'
@@ -217,9 +218,15 @@ async function markSection(sectionId: number): Promise<boolean> {
   return everySectionDone.value
 }
 
+/** Says that the member is through with every station, then leaves for the run. */
+function finishedExam() {
+  showToast(t('protocol.examFinished', {name: member.value?.name || member.value?.email || ''}), 'success')
+  return backToRun()
+}
+
 function toggleSectionDone(sectionId: number) {
   return runSave(async () => {
-    if (await markSection(sectionId)) await backToRun()
+    if (await markSection(sectionId)) await finishedExam()
   })
 }
 
@@ -227,7 +234,7 @@ function markDoneAndNext() {
   return runSave(async () => {
     const section = currentSection.value
     if (section && !doneSections.value.has(section.id) && await markSection(section.id)) {
-      await backToRun()
+      await finishedExam()
       return
     }
     goNextSection()
@@ -243,7 +250,11 @@ function markDoneAndExit() {
     const section = currentSection.value
     const finished = section && !doneSections.value.has(section.id) ? await markSection(section.id) : false
     await protocol.unlockMember(runId.value, memberId.value)
-    upNext.value = section && !finished ? nextStation(tree.value.childrenOf(null), doneSections.value, section.id) : null
+    if (finished) {
+      await finishedExam()
+      return
+    }
+    upNext.value = section ? nextStation(tree.value.childrenOf(null), doneSections.value, section.id) : null
     if (!upNext.value) await backToRun()
   })
 }

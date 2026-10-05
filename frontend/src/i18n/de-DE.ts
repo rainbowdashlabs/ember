@@ -9397,6 +9397,7 @@ export default {
         totalScore: 'Gesamtpunktzahl',
         prevSection: 'Zurück',
         nextSection: 'Weiter',
+        examFinished: 'Prüfung von {name} abgeschlossen. Alle Stationen sind geprüft.',
         nextStation: {
             title: 'Nächste Station für {name}',
             examiners: 'Bewertet von: {names}',
