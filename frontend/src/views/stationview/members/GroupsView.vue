@@ -10,7 +10,7 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {StationPermission} from '@/api/generated/schema'
-import type {GroupRow} from '@/util/groupRules'
+import {admits, type GroupRow} from '@/util/groupRules'
 import {memberGroups, stationMembers} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useConfirmAction} from '@/composables/useConfirmAction'
@@ -88,13 +88,20 @@ const sortedGroupMembers = computed(() =>
     [...groupMembers.value].sort((a, b) => memberDisplayName(a).localeCompare(memberDisplayName(b)))
 )
 
+/** The members of a type the open group takes, which are the only ones it can be offered. */
+const admittedMembers = computed(() => {
+  const group = selectedGroup.value
+  if (!group) return allMembers.value
+  return allMembers.value.filter(member => admits(group, member.userType ?? ''))
+})
+
 const {
   availableMembers,
   offeredUserTypes,
   addMember: addMemberToGroup,
   removeMember: removeMemberFromGroup,
 } = useMemberAssignment(
-    allMembers,
+    admittedMembers,
     groupMembers,
     ids => memberGroups.setGroupMembers(selectedGroup.value!.id, {memberIds: ids}),
     error,

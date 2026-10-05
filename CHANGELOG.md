@@ -13,6 +13,8 @@ Theme colours show where they were missing. Editing a comment is safer. Email ad
 
 - **Field templates were asked of trial members.** Fields added from a profile field template were put to the form that was shown, which on opening was the one for trial members. Fields from a template are now created without an audience, and each is put to the right forms afterwards.
 - **Some theme colours were missing.** On many pages, highlights, links, backgrounds under the mouse pointer, progress bars, error messages and success marks were shown without their colour. They now show in the theme colours.
+- **Groups offered members they do not accept.** The list for adding people to a group limited to member types also offered everyone else, and adding them was refused. It now offers only members of the types the group accepts.
+- **The movement sheet dropped a second item of the same kind.** When a member exchanged two items of one inventory, such as two shirts, the exported sheet showed only one of them. Each such item now gets a column of its own.
 
 ## v26.20.3
 

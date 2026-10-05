@@ -13,6 +13,8 @@ Themenfarben erscheinen dort, wo sie fehlten. Das Bearbeiten von Kommentaren ist
 
 - **Feld-Vorlagen wurden Probemitgliedern gestellt.** Felder aus einer Vorlage für Profilfelder kamen auf das gerade gezeigte Formular, und das war beim Öffnen das der Probemitglieder. Felder aus einer Vorlage entstehen jetzt ohne Zielgruppe und werden danach jeweils den passenden Formularen gestellt.
 - **Manche Themenfarben fehlten.** Auf vielen Seiten erschienen Hervorhebungen, Links, Hintergründe unter dem Mauszeiger, Fortschrittsbalken, Fehlermeldungen und Erfolgsmarkierungen ohne ihre Farbe. Jetzt erscheinen sie in den Themenfarben.
+- **Gruppen boten Mitglieder an, die sie nicht aufnehmen.** Die Auswahl zum Hinzufügen zu einer Gruppe, die auf Mitgliedstypen beschränkt ist, bot auch alle anderen an, und das Hinzufügen wurde abgelehnt. Jetzt stehen dort nur Mitglieder der Typen, die die Gruppe aufnimmt.
+- **Die Bewegungsliste ließ ein zweites Stück derselben Art weg.** Tauschte ein Mitglied zwei Stücke eines Inventars, etwa zwei Hemden, zeigte die exportierte Liste nur eines davon. Jedes dieser Stücke bekommt jetzt eine eigene Spalte.
 
 ## v26.20.3
 
