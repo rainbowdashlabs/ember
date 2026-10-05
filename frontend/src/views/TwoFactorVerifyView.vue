@@ -17,6 +17,7 @@ import {useStations} from '@/composables/useStations'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import TextInput from '@/components/input/text/TextInput.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
+import DevCodeHint from '@/components/feedback/DevCodeHint.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -149,6 +150,7 @@ async function finalizeSession() {
               autocomplete="one-time-code"
               inputmode="numeric"
           />
+          <DevCodeHint v-if="!useBackupCode"/>
           <label v-if="trustedDeviceMaxDays > 0" class="flex items-center gap-2 text-sm">
             <CheckboxInput v-model="rememberDevice" :disabled="loading"/>
             <span>{{ t('twoFactor.verify.rememberDevice', {n: trustedDeviceMaxDays}) }}</span>

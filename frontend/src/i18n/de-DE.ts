@@ -4795,6 +4795,7 @@ export default {
         verify: {
             title: 'Zwei-Faktor-Verifizierung',
             totpHint: 'Gib den 6-stelligen Code aus deiner Authenticator-App ein.',
+            devCode: 'Entwicklungsinstanz: Der Code {code} wird für jede Authenticator-App angenommen.',
             backupHint: 'Gib einen deiner Wiederherstellungscodes ein.',
             submit: 'Bestätigen',
             useBackupCode: 'Wiederherstellungscode verwenden',
