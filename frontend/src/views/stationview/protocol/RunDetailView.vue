@@ -12,10 +12,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
-import ErrorBadge from '@/components/badge/ErrorBadge.vue'
-import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
@@ -34,7 +31,7 @@ import {
   type TestProtocolSection,
   type RunMemberWithProgress,
 } from '@/api/generated/schema'
-import RunMemberSections from './rundetailview/RunMemberSections.vue'
+import RunMemberCard from './rundetailview/RunMemberCard.vue'
 import { protocolTree } from './protocolTree'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import { formatDate } from '@/util/format'
@@ -133,14 +130,14 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
       :title="pageTitle"
       :subtitle="t('pages.protocol-run-detail.subtitle')"
   >
-    <div class="flex items-center gap-2 mb-4">
+    <div class="flex flex-wrap items-center gap-2 mb-4">
       <SecondaryButton @click="router.push({ name: 'protocol-run-list' })">
         <font-awesome-icon :icon="['fas', 'chevron-left']" />
       </SecondaryButton>
-      <SectionHeader>{{ run?.name ?? '' }}</SectionHeader>
+      <SectionHeader class="min-w-0 break-words">{{ run?.name ?? '' }}</SectionHeader>
       <SuccessBadge v-if="run?.status === RunStatus.CLOSED">{{ t('protocol.closed') }}</SuccessBadge>
       <PrimaryBadge v-else-if="run">{{ t('protocol.open') }}</PrimaryBadge>
-      <ButtonRow align="end" class="sm:ml-auto">
+      <ButtonRow align="end" class="w-full sm:w-auto sm:ml-auto">
         <PrimaryButton v-if="run?.status === RunStatus.OPEN && canManageProtocol()" @click="handleClose">
           {{ t('protocol.closeRun') }}
         </PrimaryButton>
@@ -158,7 +155,7 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
     <FailureAlert :failure="failure"/>
 
     <template v-if="!loading && run">
-      <div class="flex items-center gap-2 mb-4">
+      <div class="flex flex-wrap items-center gap-2 mb-4">
         <p class="text-sm text-[var(--text-muted)]">{{ formatDate(run.testDate) }}</p>
         <FieldLabel inline class="cursor-pointer ml-auto text-[var(--text-muted)]">
           <ToggleInput v-model="filterIncomplete" />
@@ -167,32 +164,17 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
       </div>
 
       <div class="space-y-2">
-        <NeutralContainer v-for="rm in filteredMembers" :key="rm.member.id" class="flex items-center gap-2">
-          <div class="flex-1 min-w-0">
-            <div class="font-medium">{{ memberName(rm.member.memberId) }}</div>
-            <div class="text-xs text-[var(--text-muted)] flex items-center gap-2">
-              <span>{{ rm.sectionsDone }}/{{ rm.sectionsTotal }} {{ t('protocol.sections') }}</span>
-              <template v-if="rm.member.lockedBy">
-                <font-awesome-icon :icon="['fas', 'lock']" />
-                {{ testerName(rm.member.lockedBy) }}
-              </template>
-            </div>
-            <RunMemberSections class="mt-1" :sections="topSections" :done-section-ids="rm.doneSectionIds"
-                               :examiner-names="examinerNames"/>
-          </div>
-          <span class="font-mono text-sm">{{ rm.member.totalScore }}P</span>
-          <SuccessBadge v-if="rm.member.completed">{{ t('protocol.completed') }}</SuccessBadge>
-          <ErrorBadge v-else-if="rm.member.lockedBy">{{ t('protocol.locked') }}</ErrorBadge>
-          <SecondaryBadge v-else>{{ t('protocol.pending') }}</SecondaryBadge>
-          <PrimaryButton
-            v-if="run.status === RunStatus.OPEN && mayGrade && !rm.member.completed"
-            class="!text-sm !py-1 !px-3"
-            @click="startGrading(rm.member.memberId)"
-          >
-            <font-awesome-icon :icon="['fas', 'clipboard-check']" class="mr-1" />
-            {{ t('protocol.grade') }}
-          </PrimaryButton>
-        </NeutralContainer>
+        <RunMemberCard
+          v-for="rm in filteredMembers"
+          :key="rm.member.id"
+          :entry="rm"
+          :name="memberName(rm.member.memberId)"
+          :locked-by="testerName(rm.member.lockedBy)"
+          :sections="topSections"
+          :examiner-names="examinerNames"
+          :can-grade="run.status === RunStatus.OPEN && mayGrade && !rm.member.completed"
+          @grade="startGrading(rm.member.memberId)"
+        />
       </div>
     </template>
   </ViewContent>
