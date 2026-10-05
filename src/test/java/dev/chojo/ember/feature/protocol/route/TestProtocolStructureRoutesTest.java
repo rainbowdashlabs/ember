@@ -10,6 +10,7 @@ import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.protocol.entity.TestProtocol;
 import dev.chojo.ember.feature.protocol.service.TestProtocolEvaluationService;
+import dev.chojo.ember.feature.protocol.service.TestProtocolExaminerService;
 import dev.chojo.ember.feature.protocol.service.TestProtocolGuards;
 import dev.chojo.ember.feature.protocol.service.TestProtocolPdfService;
 import dev.chojo.ember.feature.protocol.service.TestProtocolRunService;
@@ -51,7 +52,8 @@ class TestProtocolStructureRoutesTest {
                 new TestProtocolGuards(protocols),
                 mock(TestProtocolPdfService.class),
                 mock(TestProtocolRunService.class),
-                mock(TestProtocolEvaluationService.class)));
+                mock(TestProtocolEvaluationService.class),
+                mock(TestProtocolExaminerService.class)));
     }
 
     @Test
@@ -101,6 +103,6 @@ class TestProtocolStructureRoutesTest {
         });
 
         verify(protocols).updateSection(2, "Leinen", "", null, null, null);
-        verify(protocols).updateItem(7, "Palstek", "", 1.0, null);
+        verify(protocols).updateItem(7, "Palstek", "", 1.0, false, null);
     }
 }

@@ -34,7 +34,6 @@ export default {
     'Q-005': ATTEMPT_NOT_HERE,
     'Q-006': ATTEMPT_NOT_HERE,
     'Q-007': 'Dieser Versuch gehört jemand anderem',
-    'Q-008': CATALOG_NOT_HERE,
     'Q-009': CATALOG_NOT_HERE,
     'Q-010': CATALOG_NOT_HERE,
     'Q-011': CATALOG_NOT_HERE,

@@ -63,15 +63,6 @@ public enum FederationRefusal implements Refusal {
     /** A partner station addressed by a number nothing here uses. */
     FEDERATION_PARTNER_NOT_HERE(13, HttpStatus.NOT_FOUND, "That partner station is not here any more"),
 
-    /** A knowledge share that went before the withdrawal reached it. */
-    KB_SHARE_NOT_HERE_TO_DELETE(14, HttpStatus.NOT_FOUND, Sentences.FEDERATION_SHARE_NOT_HERE),
-
-    /** A catalog share that went before the withdrawal reached it. */
-    QUIZ_SHARE_NOT_HERE_TO_DELETE(15, HttpStatus.NOT_FOUND, Sentences.FEDERATION_SHARE_NOT_HERE),
-
-    /** A test protocol share that went before the withdrawal reached it. */
-    PROTOCOL_SHARE_NOT_HERE_TO_DELETE(16, HttpStatus.NOT_FOUND, Sentences.FEDERATION_SHARE_NOT_HERE),
-
     /** Gear asked for from the station already holding it. */
     LENDING_FROM_OWN_STATION(17, HttpStatus.BAD_REQUEST, "A station cannot borrow from itself, so nothing was saved"),
 

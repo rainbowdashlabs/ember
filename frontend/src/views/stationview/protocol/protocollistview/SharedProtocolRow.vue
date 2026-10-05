@@ -18,7 +18,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  copy: [protocolId: number]
+  copy: [shared: SharedProtocolView]
 }>()
 
 const {t} = useI18n()
@@ -47,11 +47,11 @@ const protocolPage = computed(() => props.shared.stationUid
           {{ shared.description }}
         </div>
       </div>
-      <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div v-if="shared.stationUid" class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
         <IconButton
           :icon="['fas', 'copy']"
           :label="t('federation.copyToStation')"
-          @click="emit('copy', shared.id)"
+          @click="emit('copy', shared)"
         />
       </div>
     </NeutralContainer>

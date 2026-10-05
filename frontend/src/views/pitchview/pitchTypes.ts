@@ -8,7 +8,7 @@ import type {
     FormAnswerValue, FormQuestion, FormQuestionInfo, FormResultGroup, InventoryContainer, InventoryContainerKind,
     InventoryItem, InventorySize, MemberCompletion, MemberGroup, MemberIdentity, MemberWithName, MovementStanding, PartnerResponse,
     ProcedureItem,
-    ProcedureTemplateItem, QuizCatalog, RequiredInventoryItem, SettingsResponse, StationPage, TestProtocolItem,
+    ProcedureTemplateItem, QuizCatalog, RequiredInventoryItem, SettingsResponse, StationPage,
     TestProtocolSection, TicketSummary, UserTag, WaitingList, WaitingListEntryWithScore, WaitingListField, WaitingListWithCount,
 } from '@/api/generated/schema'
 import type {CheckEntry} from '@/composables/useMemberCheck'
@@ -16,6 +16,7 @@ import type {CheckRow} from '@/views/stationview/attendance/sessionview/useCheck
 import type {MemberSection} from '@/views/stationview/attendance/sessionview/memberSections'
 import type {KbItem} from '@/views/stationview/knowledge/knowledgebaseview/useKbItems'
 import type {MemberLike} from '@/components/input/select/memberOption'
+import type {ProtocolTree} from '@/views/stationview/protocol/protocolTree'
 
 /** The accent a slide is drawn in. Maps onto the theme colours, not onto fixed hex values. */
 export type Accent = 'primary' | 'secondary' | 'success' | 'info' | 'error'
@@ -277,8 +278,8 @@ export interface PitchAttendance {
 /** What the application's own grading panel needs: the section, its items, and what is ticked. */
 export interface PitchGrading {
     section: TestProtocolSection
-    childSections: TestProtocolSection[]
-    sectionItems: (sectionId: number) => TestProtocolItem[]
+    tree: ProtocolTree
+    gradable: ReadonlySet<number>
     checks: ReadonlyMap<number, boolean>
     score: number
     maxPoints: number

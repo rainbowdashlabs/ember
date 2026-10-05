@@ -47,10 +47,6 @@ public class FederatedTestProtocolRoutes implements Routes {
                 this::federatedGetProtocol,
                 StationPermission.PROTOCOL_MANAGER);
         routes.post(
-                prefix + "/federated/protocols/{id}/copy",
-                this::federatedCopyProtocol,
-                StationPermission.PROTOCOL_MANAGER);
-        routes.post(
                 prefix + "/federated/{stationuid}/protocols/{id}/copy",
                 this::federatedCopyProtocol,
                 StationPermission.PROTOCOL_MANAGER);
@@ -77,17 +73,14 @@ public class FederatedTestProtocolRoutes implements Routes {
     }
 
     @OpenApi(
-            path = "/api/v1/federated/protocols/{id}/copy",
-            methods = HttpMethod.POST,
-            responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = TestProtocol.class)))
-    @OpenApi(
             path = "/api/v1/federated/{stationuid}/protocols/{id}/copy",
             methods = HttpMethod.POST,
             responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = TestProtocol.class)))
     private void federatedCopyProtocol(Context ctx) {
         var session = StationSession.from(ctx);
+        var stationUid = pathUuid(ctx, "stationuid");
         int protocolId = ctx.pathParamAsClass("id", Integer.class).get();
-        var copied = service.copyProtocol(protocolId, session.stationId());
+        var copied = service.copyFederatedProtocol(session.stationId(), stationUid, protocolId);
         ctx.status(HttpStatus.CREATED).json(copied);
     }
 }

@@ -15,7 +15,7 @@ import CatalogHeader from './catalogdetailview/CatalogHeader.vue'
 import CategorySection from './catalogdetailview/CategorySection.vue'
 import QuestionSection from './catalogdetailview/QuestionSection.vue'
 import { StationPermission, type QuizCatalogDetail, type QuizQuestion, type QuizQuestionReport } from '@/api/generated/schema'
-import { quiz, federation, storage } from '@/api'
+import { quiz, storage } from '@/api'
 import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { describeFailure, type Failure } from '@/util/failure'
@@ -73,16 +73,6 @@ async function saveCatalog(payload: { name: string; description: string; trainin
   await loadData()
 }
 
-async function copyToStation() {
-  failure.value = null
-  try {
-    await federation.copyQuizCatalog(catalogId.value)
-    router.push({ name: 'quiz-catalogs' })
-  } catch (e) {
-    failure.value = describeFailure(e, t)
-  }
-}
-
 function onError(refused: Failure) {
   failure.value = refused
 }
@@ -114,7 +104,6 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
           :is-federated="isFederated"
           :readonly="readonly"
           @save="saveCatalog"
-          @copy-to-station="copyToStation"
         />
 
         <CategorySection

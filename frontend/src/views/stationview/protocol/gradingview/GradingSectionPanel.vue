@@ -4,31 +4,40 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import IconButton from '@/components/button/IconButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import SubHeader from '@/components/typography/SubHeader.vue'
 import GradingItemButton from './GradingItemButton.vue'
-import type { TestProtocolSection, TestProtocolItem } from '@/api/generated/schema'
+import GradingSubsection from './GradingSubsection.vue'
+import type { TestProtocolSection } from '@/api/generated/schema'
+import type { ProtocolTree } from '../protocolTree'
 
-defineProps<{
+/** One top-level section on the grading sheet, with everything under it the examiner may grade. */
+const props = defineProps<{
   section: TestProtocolSection
-  childSections: TestProtocolSection[]
-  sectionItems: (sectionId: number) => TestProtocolItem[]
+  tree: ProtocolTree
   checks: ReadonlyMap<number, boolean>
+  gradable: ReadonlySet<number>
   score: number
   maxPoints: number
   done: boolean
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
   (e: 'toggleCheck', itemId: number): void
   (e: 'toggleDone'): void
 }>()
 
 const { t } = useI18n()
+
+const ownPoints = computed(() => (props.gradable.has(props.section.id) ? props.tree.itemsOf(props.section.id) : []))
+
+function toggle(itemId: number) {
+  emit('toggleCheck', itemId)
+}
 </script>
 
 <template>
@@ -46,26 +55,14 @@ const { t } = useI18n()
     </div>
 
     <GradingItemButton
-      v-for="item in sectionItems(section.id)"
+      v-for="item in ownPoints"
       :key="item.id"
       :item="item"
       :checked="!!checks.get(item.id)"
-      @toggle="$emit('toggleCheck', item.id)"
+      @toggle="toggle(item.id)"
     />
 
-    <template v-for="sub in childSections" :key="sub.id">
-      <div class="border-t border-[var(--border)] pt-3 mt-3">
-        <SubHeader class="text-sm mb-2">{{ sub.name }}</SubHeader>
-        <div class="space-y-2">
-          <GradingItemButton
-            v-for="item in sectionItems(sub.id)"
-            :key="item.id"
-            :item="item"
-            :checked="!!checks.get(item.id)"
-            @toggle="$emit('toggleCheck', item.id)"
-          />
-        </div>
-      </div>
-    </template>
+    <GradingSubsection v-for="sub in tree.childrenOf(section.id)" :key="sub.id" :section="sub" :depth="1" :tree="tree"
+                       :checks="checks" :gradable="gradable" :on-toggle="toggle"/>
   </NeutralContainer>
 </template>

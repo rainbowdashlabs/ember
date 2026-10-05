@@ -52,7 +52,7 @@ public class TestProtocolEvaluationService {
                 .toList();
         var sectionMaxPoints = new HashMap<Integer, Double>();
         for (var section : sections) {
-            sectionMaxPoints.put(section.id(), points(itemsBySection.getOrDefault(section.id(), List.of())));
+            sectionMaxPoints.put(section.id(), maxPoints(itemsBySection.getOrDefault(section.id(), List.of())));
         }
         return new EvaluationResponse(
                 protocol.name(), run.testDate(), sections, sectionMaxPoints, members, protocol.passThreshold());
@@ -79,7 +79,11 @@ public class TestProtocolEvaluationService {
     }
 
     private static double points(List<TestProtocolItem> items) {
-        return items.stream().map(TestProtocolItem::points).reduce(0.0, Double::sum);
+        return items.stream().mapToDouble(TestProtocolItem::points).sum();
+    }
+
+    private static double maxPoints(List<TestProtocolItem> items) {
+        return items.stream().mapToDouble(TestProtocolItem::maxPoints).sum();
     }
 
     public record EvalMemberData(int memberId, Double totalScore, Map<Integer, Double> sectionScores) {}

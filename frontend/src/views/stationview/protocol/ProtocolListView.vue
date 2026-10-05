@@ -14,6 +14,7 @@ import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import LocalProtocolRow from './protocollistview/LocalProtocolRow.vue'
 import SharedProtocolRow from './protocollistview/SharedProtocolRow.vue'
+import { useShareToggle } from '@/composables/useShareToggle'
 import Modal from '@/components/feedback/Modal.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
@@ -33,6 +34,7 @@ const { t } = useI18n()
 const router = useRouter()
 const { hasPermission, loaded } = useSession()
 const canConfigure = computed(() => hasPermission(StationPermission.PROTOCOL_CONFIGURE))
+const canShare = computed(() => hasPermission(StationPermission.PROTOCOL_SHARE))
 
 const protocols = ref<TestProtocol[]>([])
 const sharedProtocols = ref<SharedProtocolView[]>([])
@@ -121,10 +123,11 @@ async function handleCreate() {
  * <p>Answered for separately, so a copy the server had already made, followed by a list that would
  * not come back, does not read as a copy that failed and get made a second time.
  */
-async function copySharedProtocol(protocolId: number) {
+async function copySharedProtocol(shared: SharedProtocolView) {
+  if (!shared.stationUid) return
   failure.value = null
   try {
-    await federation.copyProtocol(protocolId)
+    await federation.copyProtocol(shared.stationUid, shared.id)
   } catch (e) {
     failure.value = describeFailure(e, t)
     return
@@ -132,7 +135,16 @@ async function copySharedProtocol(protocolId: number) {
   await reload()
 }
 
-watch(loaded, (v) => { if (v) reload() }, { immediate: true })
+const shares = useShareToggle({
+  listShared: async () => (await protocol.getSharing()).protocolIds,
+  setShared: protocol.setSharing,
+}, canShare, failure)
+
+watch(loaded, (v) => {
+  if (!v) return
+  reload()
+  shares.load()
+}, { immediate: true })
 </script>
 
 <template>
@@ -180,7 +192,11 @@ watch(loaded, (v) => { if (v) reload() }, { immediate: true })
           :key="'local-' + p.id"
           :protocol="p"
           :can-configure="canConfigure"
+          :can-share="canShare"
+          :shared="shares.isShared(p.id)"
+          :sharing="shares.isBusy(p.id)"
           @remove="requestDelete"
+          @toggle-share="shares.toggle(p.id)"
         />
 
         <SharedProtocolRow

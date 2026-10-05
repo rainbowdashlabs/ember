@@ -20,16 +20,13 @@ import dev.chojo.ember.feature.federation.entity.Direction;
 import dev.chojo.ember.feature.federation.entity.FederationCapability;
 import dev.chojo.ember.feature.federation.entity.FederationContract;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
-import dev.chojo.ember.feature.federation.entity.FederationShare;
 import dev.chojo.ember.feature.federation.entity.InviteCodeResponse;
 import dev.chojo.ember.feature.federation.entity.PairRequest;
 import dev.chojo.ember.feature.federation.entity.PairRequestStatus;
-import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.service.FederationEnrollmentService;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.federation.service.IncomingPairRequestService;
 import dev.chojo.ember.feature.federation.service.OutgoingPairRequestService;
-import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationService;
 import dev.chojo.ember.util.WebOrigins;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
@@ -45,14 +42,12 @@ import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
-import java.util.List;
 
 @Singleton
 public class FederationRoutes implements Routes {
 
     private final FederationService service;
     private final FederationEnrollmentService enrollmentService;
-    private final KnowledgeBaseFederationService kbFederationService;
     private final IncomingPairRequestService incomingRequests;
     private final OutgoingPairRequestService outgoingRequests;
 
@@ -60,12 +55,10 @@ public class FederationRoutes implements Routes {
     public FederationRoutes(
             FederationService service,
             FederationEnrollmentService enrollmentService,
-            KnowledgeBaseFederationService kbFederationService,
             IncomingPairRequestService incomingRequests,
             OutgoingPairRequestService outgoingRequests) {
         this.service = service;
         this.enrollmentService = enrollmentService;
-        this.kbFederationService = kbFederationService;
         this.incomingRequests = incomingRequests;
         this.outgoingRequests = outgoingRequests;
     }
@@ -143,41 +136,6 @@ public class FederationRoutes implements Routes {
         routes.put(
                 prefix + "/federation/partners/{id}/capabilities",
                 this::setCapabilities,
-                StationPermission.STATION_FEDERATION,
-                StepUpCategory.FEDERATION);
-
-        routes.get(prefix + "/federation/shares/kb", this::listKbShares, StationPermission.STATION_FEDERATION);
-        routes.post(
-                prefix + "/federation/shares/kb",
-                this::createKbShare,
-                StationPermission.STATION_FEDERATION,
-                StepUpCategory.FEDERATION);
-        routes.delete(
-                prefix + "/federation/shares/kb/{id}",
-                this::deleteKbShare,
-                StationPermission.STATION_FEDERATION,
-                StepUpCategory.FEDERATION);
-        routes.get(prefix + "/federation/shares/quiz", this::listQuizShares, StationPermission.STATION_FEDERATION);
-        routes.post(
-                prefix + "/federation/shares/quiz",
-                this::createQuizShare,
-                StationPermission.STATION_FEDERATION,
-                StepUpCategory.FEDERATION);
-        routes.delete(
-                prefix + "/federation/shares/quiz/{id}",
-                this::deleteQuizShare,
-                StationPermission.STATION_FEDERATION,
-                StepUpCategory.FEDERATION);
-        routes.get(
-                prefix + "/federation/shares/protocol", this::listProtocolShares, StationPermission.STATION_FEDERATION);
-        routes.post(
-                prefix + "/federation/shares/protocol",
-                this::createProtocolShare,
-                StationPermission.STATION_FEDERATION,
-                StepUpCategory.FEDERATION);
-        routes.delete(
-                prefix + "/federation/shares/protocol/{id}",
-                this::deleteProtocolShare,
                 StationPermission.STATION_FEDERATION,
                 StepUpCategory.FEDERATION);
 
@@ -474,147 +432,6 @@ public class FederationRoutes implements Routes {
     }
 
     @OpenApi(
-            path = "/api/v1/federation/shares/kb",
-            methods = HttpMethod.GET,
-            summary = "List the station's knowledge base shares",
-            tags = {"Federation"},
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = KbShareResponse[].class)))
-    private void listKbShares(Context ctx) {
-        var session = StationSession.from(ctx);
-        ctx.json(service.findKbShares(session.stationId()).stream()
-                .map(share -> new KbShareResponse(
-                        share.id(),
-                        share.fileId(),
-                        share.folderId(),
-                        share.shareScope(),
-                        service.findKbShareTargets(share.id())))
-                .toList());
-    }
-
-    @OpenApi(
-            path = "/api/v1/federation/shares/kb",
-            methods = HttpMethod.POST,
-            summary = "Share a knowledge base entry with partners",
-            tags = {"Federation"},
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = KbShareRequest.class)),
-            responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = FederationShare.class)))
-    private void createKbShare(Context ctx) {
-        var session = StationSession.from(ctx);
-        var req = ctx.bodyAsClass(KbShareRequest.class);
-        ctx.status(HttpStatus.CREATED)
-                .json(kbFederationService.shareEntry(
-                        session.stationId(),
-                        req.fileId(),
-                        req.folderId(),
-                        req.shareScope() != null ? req.shareScope() : ShareScope.ALL_PARTNERS,
-                        req.partnerIds() != null ? req.partnerIds() : List.of()));
-    }
-
-    @OpenApi(
-            path = "/api/v1/federation/shares/kb/{id}",
-            methods = HttpMethod.DELETE,
-            summary = "Stop sharing a knowledge base entry",
-            tags = {"Federation"},
-            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
-            responses = @OpenApiResponse(status = "204"))
-    private void deleteKbShare(Context ctx) {
-        var session = StationSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        if (!service.deleteKbShare(id, session.stationId())) {
-            throw FederationRefusal.KB_SHARE_NOT_HERE_TO_DELETE.raise();
-        }
-        ctx.status(HttpStatus.NO_CONTENT);
-    }
-
-    @OpenApi(
-            path = "/api/v1/federation/shares/quiz",
-            methods = HttpMethod.GET,
-            summary = "List the station's quiz catalog shares",
-            tags = {"Federation"},
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FederationShare[].class)))
-    private void listQuizShares(Context ctx) {
-        var session = StationSession.from(ctx);
-        ctx.json(service.findQuizShares(session.stationId()));
-    }
-
-    @OpenApi(
-            path = "/api/v1/federation/shares/quiz",
-            methods = HttpMethod.POST,
-            summary = "Share a quiz catalog with partners",
-            tags = {"Federation"},
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = QuizShareRequest.class)),
-            responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = FederationShare.class)))
-    private void createQuizShare(Context ctx) {
-        var session = StationSession.from(ctx);
-        var req = ctx.bodyAsClass(QuizShareRequest.class);
-        ctx.status(HttpStatus.CREATED)
-                .json(service.createQuizShare(
-                        session.stationId(),
-                        req.catalogId(),
-                        req.shareScope() != null ? req.shareScope() : ShareScope.ALL_PARTNERS));
-    }
-
-    @OpenApi(
-            path = "/api/v1/federation/shares/quiz/{id}",
-            methods = HttpMethod.DELETE,
-            summary = "Stop sharing a quiz catalog",
-            tags = {"Federation"},
-            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
-            responses = @OpenApiResponse(status = "204"))
-    private void deleteQuizShare(Context ctx) {
-        var session = StationSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        if (!service.deleteQuizShare(id, session.stationId())) {
-            throw FederationRefusal.QUIZ_SHARE_NOT_HERE_TO_DELETE.raise();
-        }
-        ctx.status(HttpStatus.NO_CONTENT);
-    }
-
-    @OpenApi(
-            path = "/api/v1/federation/shares/protocol",
-            methods = HttpMethod.GET,
-            summary = "List the station's test protocol shares",
-            tags = {"Federation"},
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = FederationShare[].class)))
-    private void listProtocolShares(Context ctx) {
-        var session = StationSession.from(ctx);
-        ctx.json(service.findProtocolShares(session.stationId()));
-    }
-
-    @OpenApi(
-            path = "/api/v1/federation/shares/protocol",
-            methods = HttpMethod.POST,
-            summary = "Share a test protocol with partners",
-            tags = {"Federation"},
-            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ProtocolShareRequest.class)),
-            responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = FederationShare.class)))
-    private void createProtocolShare(Context ctx) {
-        var session = StationSession.from(ctx);
-        var req = ctx.bodyAsClass(ProtocolShareRequest.class);
-        ctx.status(HttpStatus.CREATED)
-                .json(service.createProtocolShare(
-                        session.stationId(),
-                        req.protocolId(),
-                        req.shareScope() != null ? req.shareScope() : ShareScope.ALL_PARTNERS));
-    }
-
-    @OpenApi(
-            path = "/api/v1/federation/shares/protocol/{id}",
-            methods = HttpMethod.DELETE,
-            summary = "Stop sharing a test protocol",
-            tags = {"Federation"},
-            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
-            responses = @OpenApiResponse(status = "204"))
-    private void deleteProtocolShare(Context ctx) {
-        var session = StationSession.from(ctx);
-        int id = ctx.pathParamAsClass("id", Integer.class).get();
-        if (!service.deleteProtocolShare(id, session.stationId())) {
-            throw FederationRefusal.PROTOCOL_SHARE_NOT_HERE_TO_DELETE.raise();
-        }
-        ctx.status(HttpStatus.NO_CONTENT);
-    }
-
-    @OpenApi(
             path = "/api/v1/federation/info",
             methods = HttpMethod.GET,
             summary = "Get the federation contract this instance speaks",
@@ -628,23 +445,6 @@ public class FederationRoutes implements Routes {
     public record AcceptRequest(String inviteCode) {}
 
     public record CapabilityRequest(CapabilityType capability, Direction direction, boolean enabled) {}
-
-    public record KbShareRequest(Integer fileId, Integer folderId, ShareScope shareScope, List<Integer> partnerIds) {}
-
-    /**
-     * A knowledge share as the screens read it, carrying the stations it names so the dialog can show
-     * the audience it is about to change rather than starting blank every time.
-     */
-    public record KbShareResponse(
-            int id,
-            @Nullable Integer fileId,
-            @Nullable Integer folderId,
-            ShareScope shareScope,
-            List<Integer> partnerIds) {}
-
-    public record QuizShareRequest(int catalogId, ShareScope shareScope) {}
-
-    public record ProtocolShareRequest(int protocolId, ShareScope shareScope) {}
 
     public record PartnerResponse(FederationPartner partner, String partnerStationName) {}
 

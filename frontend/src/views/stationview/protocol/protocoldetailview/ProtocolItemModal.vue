@@ -12,11 +12,14 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
 import DecimalInput from '@/components/input/number/DecimalInput.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
+import FieldLabel from '@/components/typography/FieldLabel.vue'
+import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 
 const visible = defineModel<boolean>('visible', { required: true })
 const label = defineModel<string>('label', { required: true })
 const description = defineModel<string>('description', { required: true })
 const points = defineModel<number>('points', { required: true })
+const bonus = defineModel<boolean>('bonus', { required: true })
 
 defineProps<{
   editing: boolean
@@ -39,6 +42,10 @@ const pointsId = useId()
       <div>
         <label :for="pointsId" class="block text-sm mb-1">{{ t('protocol.points') }}</label>
         <DecimalInput :id="pointsId" v-model="points" step="0.5" />
+      </div>
+      <div>
+        <FieldLabel inline class="cursor-pointer"><CheckboxInput v-model="bonus" /> {{ t('protocol.bonus') }}</FieldLabel>
+        <p class="text-xs text-[var(--text-muted)] mt-1">{{ t('protocol.bonusHint') }}</p>
       </div>
       <div class="flex gap-2 justify-end">
         <PrimaryButton type="submit">{{ t('common.save') }}</PrimaryButton>

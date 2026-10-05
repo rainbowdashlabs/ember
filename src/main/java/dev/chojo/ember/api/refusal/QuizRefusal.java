@@ -43,9 +43,6 @@ public enum QuizRefusal implements Refusal {
     /** A test attempt that belongs to somebody else. */
     QUIZ_ATTEMPT_NOT_YOURS(7, HttpStatus.FORBIDDEN, "That attempt is somebody else's"),
 
-    /** A catalog that went between the list being drawn and it being opened. */
-    QUIZ_CATALOG_NOT_HERE(8, HttpStatus.NOT_FOUND, Sentences.QUIZ_CATALOG_NOT_HERE),
-
     /** A catalog that went before the change to it could be written. */
     QUIZ_CATALOG_NOT_CHANGED(9, HttpStatus.NOT_FOUND, Sentences.QUIZ_CATALOG_NOT_HERE),
 

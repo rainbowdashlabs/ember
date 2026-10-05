@@ -15,7 +15,7 @@ import { describeFailure, type Failure } from '@/util/failure'
  * Both endpoints take the complete membership rather than a delta, so adding one member means
  * sending the existing ones with it. The menu offers everyone not already assigned.
  *
- * @param allMembers the station's members
+ * @param allMembers the members that may be assigned at all
  * @param members    the members currently assigned, replaced by every change
  * @param setMembers writes the new membership and returns what was stored
  * @param error      the view's error channel
@@ -23,7 +23,7 @@ import { describeFailure, type Failure } from '@/util/failure'
  *                   and the judgement about whether this is worth reporting
  */
 export function useMemberAssignment(
-  allMembers: Ref<AssignableMember[]>,
+  allMembers: Readonly<Ref<AssignableMember[]>>,
   members: Ref<AssignableMember[]>,
   setMembers: (memberIds: number[]) => Promise<AssignableMember[]>,
   error: Ref<string>,

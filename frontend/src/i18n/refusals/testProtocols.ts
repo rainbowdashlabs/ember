@@ -29,4 +29,12 @@ export default {
     'T-016': CHANGE_SAVED_BUT_NOT_READ_BACK,
     'T-017': CHANGE_SAVED_BUT_NOT_READ_BACK,
     'T-018': 'Die Reihenfolge passt nicht mehr zum Prüfungsbogen, es wurde nichts verschoben. Lade die Seite neu und versuch es noch einmal',
+    'T-019': 'Dieser Abschnitt gehört nicht zu diesem Prüfungsbogen, es wurde nichts hinzugefügt',
+    'T-020': 'Dieser Abschnitt gehört nicht zu diesem Prüfungsbogen, es wurde nichts verschoben',
+    'T-021': 'Ein Abschnitt lässt sich nicht in sich selbst oder einen seiner Unterabschnitte verschieben, es wurde nichts verschoben',
+    'T-022': 'Nur die Prüfer dieses Prüfungslaufs dürfen ihn bewerten',
+    'T-023': 'Dieser Abschnitt gehört nicht zum Prüfungsbogen dieses Laufs, es wurden keine Prüfer gespeichert',
+    'T-024': 'Prüfer können nur Mitglieder sein, die Prüfungsbögen bewerten dürfen, es wurden keine Prüfer gespeichert',
+    'T-025': 'Dieser Abschnitt gehört anderen Prüfern, er wurde nicht abgeschlossen',
+    'T-026': 'Erst wenn jeder Abschnitt als geprüft markiert ist, lässt sich die Prüfung abschließen. Sie wurde nicht abgeschlossen',
 }

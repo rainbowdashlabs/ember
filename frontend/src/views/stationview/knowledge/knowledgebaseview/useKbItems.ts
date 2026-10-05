@@ -141,7 +141,7 @@ interface KbItemHandlers {
     deleteFile: (file: KbFileSummary) => void
     exportFilePdf: (file: KbFileSummary) => void
     downloadFile: (file: KbFileSummary) => void
-    copySharedFile: (id: number) => void
+    copySharedFile: (stationUid: string, id: number) => void
     sharedFolderPage: (stationUid: string, folderId: number) => RouteLocationRaw
     toggleFavourite: (entry: FavouriteEntry, event?: MouseEvent) => void
 }
@@ -370,13 +370,13 @@ export function useKbItems(sources: KbItemSources, handlers: KbItemHandlers) {
             favourite: entry ? sources.favourites.isFavourite(entry) : false,
             to: stationUid ? handlers.federatedFilePage(stationUid, shared.file.id) : undefined,
             actions: [
-                {
+                ...(stationUid ? [{
                     key: 'copy',
                     icon: ['fas', 'copy'],
                     label: t('federation.copyToStation'),
                     onHover: true,
-                    run: () => handlers.copySharedFile(shared.file.id),
-                },
+                    run: () => handlers.copySharedFile(stationUid, shared.file.id),
+                }] : []),
                 ...(entry ? [favouriteAction(entry)] : []),
             ],
         }
@@ -560,7 +560,7 @@ export function useKbItems(sources: KbItemSources, handlers: KbItemHandlers) {
                         icon: ['fas', 'copy'],
                         label: t('federation.copyToStation'),
                         onHover: false,
-                        run: () => handlers.copySharedFile(result.file.id),
+                        run: () => handlers.copySharedFile(stationUid, result.file.id),
                     },
                 ],
             }

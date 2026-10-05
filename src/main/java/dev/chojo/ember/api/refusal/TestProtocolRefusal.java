@@ -81,7 +81,44 @@ public enum TestProtocolRefusal implements Refusal {
     PROTOCOL_ORDER_OUT_OF_DATE(
             18,
             HttpStatus.CONFLICT,
-            "The order no longer matches the protocol, so nothing was moved. Reload and try again");
+            "The order no longer matches the protocol, so nothing was moved. Reload and try again"),
+
+    /** A new section placed under a section of another protocol, or under one that is gone. */
+    PROTOCOL_SECTION_PARENT_ELSEWHERE_ON_CREATE(
+            19, HttpStatus.BAD_REQUEST, "That section is not part of this protocol, so nothing was added"),
+
+    /** A section moved under a section of another protocol, or under one that is gone. */
+    PROTOCOL_SECTION_PARENT_ELSEWHERE_ON_MOVE(
+            20, HttpStatus.BAD_REQUEST, "That section is not part of this protocol, so nothing was moved"),
+
+    /** A section moved into itself or into one of its own subsections. */
+    PROTOCOL_SECTION_MOVED_INTO_ITSELF(
+            21,
+            HttpStatus.BAD_REQUEST,
+            "A section cannot be moved into itself or one of its subsections, so nothing was moved"),
+
+    /** Someone who is not among the examiners of a run with examiners, asking to grade it. */
+    PROTOCOL_RUN_GRADED_BY_ITS_EXAMINERS(22, HttpStatus.FORBIDDEN, "Only the examiners of this test run may grade it"),
+
+    /** Examiners named for a section that is not part of the run's protocol. */
+    PROTOCOL_EXAMINER_SECTION_ELSEWHERE(
+            23, HttpStatus.BAD_REQUEST, "That section is not part of this run's protocol, so no examiners were saved"),
+
+    /** Examiners named who may not grade protocols. */
+    PROTOCOL_EXAMINER_NOT_A_TESTER(
+            24,
+            HttpStatus.BAD_REQUEST,
+            "Only members who may grade protocols can be examiners, so no examiners were saved"),
+
+    /** A section marked finished by an examiner it is not assigned to. */
+    PROTOCOL_SECTION_NOT_YOURS_TO_FINISH(
+            25, HttpStatus.FORBIDDEN, "That section belongs to other examiners, so it was not marked"),
+
+    /** An examination finished while a top-level section of it has not been marked as checked. */
+    PROTOCOL_MEMBER_SECTIONS_OPEN(
+            26,
+            HttpStatus.CONFLICT,
+            "Every section has to be marked as checked before the examination is finished, so it was not finished");
 
     private final Definition definition;
 

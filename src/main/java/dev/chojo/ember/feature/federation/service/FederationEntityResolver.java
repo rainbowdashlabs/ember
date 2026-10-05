@@ -34,13 +34,13 @@ public class FederationEntityResolver {
      * @param localStationId    the asking station
      * @param partnerStationUid the partner station
      * @return the partner row
-     * @throws IllegalArgumentException when the station holds no row for that partner
-     * @throws RefusalResponse          when the partnership is not active
+     * @throws RefusalResponse when the station holds no row for that partner, or the partnership is not
+     *                         active
      */
     public FederationPartner requireActivePartner(int localStationId, UUID partnerStationUid) {
         var partner = federationRepository
                 .findPartnerByStationAndRemoteUid(localStationId, partnerStationUid)
-                .orElseThrow(() -> new IllegalArgumentException("Unknown partner"));
+                .orElseThrow(FederationRefusal.FEDERATION_PARTNER_NOT_HERE::raise);
         if (partner.status() != FederationStatus.ACTIVE) {
             throw FederationRefusal.FEDERATION_PARTNER_NOT_ACTIVE.raise();
         }

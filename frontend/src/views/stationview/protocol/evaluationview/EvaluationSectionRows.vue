@@ -6,9 +6,11 @@
 <script setup lang="ts">
 import type { EvaluationResponse, TestProtocolSection } from '@/api/generated/schema'
 
+/** A top-level section's row in the evaluation, followed by one row for every section under it. */
 defineProps<{
   section: TestProtocolSection
-  childSections: TestProtocolSection[]
+  /** Every section under it, depth first, with how deep each sits. */
+  descendants: { section: TestProtocolSection, depth: number }[]
   members: EvaluationResponse['members']
   sectionMaxPoints: (id: number) => number
   memberSectionScore: (memberId: number, sectionId: number) => number
@@ -30,8 +32,9 @@ defineProps<{
       {{ memberSectionScore(m.memberId, section.id) }}
     </td>
   </tr>
-  <tr v-for="sub in childSections" :key="sub.id" class="text-[var(--text-muted)]">
-    <td class="sticky left-0 z-10 bg-[var(--bg)]  border border-[var(--border)] px-2 py-1 pl-6">{{ sub.name }}</td>
+  <tr v-for="{section: sub, depth} in descendants" :key="sub.id" class="text-[var(--text-muted)]">
+    <td class="sticky left-0 z-10 bg-[var(--bg)]  border border-[var(--border)] px-2 py-1"
+        :style="{paddingLeft: `${0.5 + depth}rem`}">{{ sub.name }}</td>
     <td class="bg-[var(--bg)] border border-[var(--border)] px-2 py-1 text-center font-mono">{{ sectionMaxPoints(sub.id) }}</td>
     <td :class="['border border-[var(--border)] px-2 py-1 text-center font-mono', scoreColor(parseFloat(sectionAverage(sub.id)), sectionMaxPoints(sub.id))]">{{ sectionAverage(sub.id) }}</td>
     <td

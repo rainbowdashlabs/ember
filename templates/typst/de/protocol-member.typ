@@ -30,7 +30,7 @@
     )
   }
   for item in section.items {
-    [#tick(item.checked) #item.label #h(1fr) #(item.points)P]
+    [#tick(item.checked) #item.label #h(1fr) #if item.bonus [+]#(item.points)P]
     parbreak()
   }
   for child in section.children {
