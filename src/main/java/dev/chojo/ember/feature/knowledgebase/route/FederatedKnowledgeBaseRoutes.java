@@ -68,7 +68,6 @@ public class FederatedKnowledgeBaseRoutes implements Routes {
         routes.get(
                 prefix + "/federated/{stationuid}/kb/files/{id}/content", this::getFileContent, StationPermission.USER);
         routes.get(prefix + "/federated/{stationuid}/kb/files/{id}/pdf", this::getFilePdf, StationPermission.USER);
-        routes.post(prefix + "/federated/kb/files/{id}/copy", this::copyFile, StationPermission.KNOWLEDGE_EDIT);
         routes.post(
                 prefix + "/federated/{stationuid}/kb/files/{id}/copy",
                 this::copyFile,
@@ -166,17 +165,16 @@ public class FederatedKnowledgeBaseRoutes implements Routes {
     }
 
     @OpenApi(
-            path = "/api/v1/federated/kb/files/{id}/copy",
-            methods = HttpMethod.POST,
-            responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = KbFile.class)))
-    @OpenApi(
             path = "/api/v1/federated/{stationuid}/kb/files/{id}/copy",
             methods = HttpMethod.POST,
             responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = KbFile.class)))
     private void copyFile(Context ctx) {
         var session = StationSession.from(ctx);
         var copied = federationService.copyKbFile(
-                pathInt(ctx, "id"), session.stationId(), session.member().id());
+                session.stationId(),
+                pathUuid(ctx, "stationuid"),
+                pathInt(ctx, "id"),
+                session.member().id());
         favourites.carryOverToCopy(session.member().id(), copied.id());
         ctx.status(HttpStatus.CREATED).json(copied);
     }

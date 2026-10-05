@@ -165,14 +165,17 @@ export function isStorageDenied(): boolean {
 }
 
 /**
- * Whether a value may be written. Required values ride along with the consent itself, the others
- * need their level to be allowed. A key that is not declared is never written.
+ * Whether a value may be written. Required values are what the application cannot work without,
+ * such as the station somebody is acting for, so they are written whatever the visitor answered or
+ * before they answered at all: holding them back left a member who had not been asked yet unable to
+ * stay in their station. The other levels need consent and their level to be allowed. A key that is
+ * not declared is never written.
  */
 export function isStorageAllowed(key: string): boolean {
-    if (!isStorageAccepted()) return false
     const necessity = NECESSITY[key]
     if (necessity === undefined) return false
     if (necessity === StorageNecessity.REQUIRED) return true
+    if (!isStorageAccepted()) return false
     return getGrantedScopes().includes(necessity)
 }
 

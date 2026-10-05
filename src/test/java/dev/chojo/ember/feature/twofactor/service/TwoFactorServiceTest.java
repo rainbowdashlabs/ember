@@ -35,15 +35,18 @@ class TwoFactorServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void initService() throws Exception {
+        service = serviceOn(new Demo());
+    }
+
+    private static TwoFactorService serviceOn(Demo demo) throws Exception {
         var settings = new TwoFactorSettings();
         setField(settings, "enabled", true);
         setField(settings, "secretKey", validKey());
-        var demo = new Demo();
         TotpService totpService = new TotpService(settings, demo);
         BackupCodeService backupCodeService = new BackupCodeService(settings);
         var auditService = new TwoFactorAuditService(twoFactorRepo);
         var emailService = mock(EmailService.class);
-        service = new TwoFactorService(
+        return new TwoFactorService(
                 twoFactorRepo,
                 totpService,
                 backupCodeService,
@@ -152,6 +155,30 @@ class TwoFactorServiceTest extends RepositoryTestBase {
         assertFalse(shared.verifyTotp(accountId, code), "the enrolment spent the code");
 
         verify(totp, times(2)).matchStep(enrollment.secret(), code);
+    }
+
+    /**
+     * A development instance takes the fixed code for an authenticator, as often as it is typed, but
+     * only from an account that has one: it stands in for the code, not for the factor.
+     */
+    @Test
+    void aDevelopmentInstanceTakesTheFixedCodeForAnEnrolledAuthenticator() throws Exception {
+        var demo = new Demo();
+        setField(demo, "dev", true);
+        var dev = serviceOn(demo);
+        int accountId = newAccount();
+        var enrollment = dev.beginTotpEnrollment(accountId, "dev@test.com");
+        assertTrue(dev.confirmTotpEnrollment(
+                accountId,
+                enrollment.secret(),
+                generateCurrentTotp(enrollment.secret()),
+                enrollment.recoveryCodes(),
+                "ua",
+                null));
+
+        assertTrue(dev.verifyTotp(accountId, TotpService.DEV_CODE));
+        assertTrue(dev.verifyTotp(accountId, TotpService.DEV_CODE), "the fixed code is never spent");
+        assertFalse(dev.verifyTotp(newAccount(), TotpService.DEV_CODE), "an account without an authenticator");
     }
 
     @Test

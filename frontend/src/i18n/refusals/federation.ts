@@ -14,7 +14,6 @@ import {
 } from './shared'
 
 const PAIR_REQUEST_NOT_HERE = 'Diese Kopplungsanfrage gibt es nicht mehr'
-const FEDERATION_SHARE_NOT_HERE = 'Diese Freigabe gibt es nicht mehr, es wurde nichts geändert'
 
 /** What the refusals of federation say in German, keyed by their `X-` code. */
 export default {
@@ -31,9 +30,6 @@ export default {
     'X-011': PAIR_REQUEST_NOT_HERE,
     'X-012': PAIR_REQUEST_NOT_HERE,
     'X-013': 'Diese Partnerwache gibt es nicht mehr',
-    'X-014': FEDERATION_SHARE_NOT_HERE,
-    'X-015': FEDERATION_SHARE_NOT_HERE,
-    'X-016': FEDERATION_SHARE_NOT_HERE,
     'X-017': 'Eine Wache kann nicht bei sich selbst ausleihen, es wurde nichts gespeichert',
     'X-018': 'Gib den ersten Tag an, für den die Ausrüstung gebraucht wird, es wurde nichts gespeichert',
     'X-019': 'Diese Ausleihe gibt es nicht mehr, oder du darfst sie nicht öffnen',

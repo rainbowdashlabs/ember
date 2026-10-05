@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.protocol.route;
 
+import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -17,6 +18,8 @@ import dev.chojo.ember.feature.protocol.entity.TestProtocolRunMember;
 import dev.chojo.ember.feature.protocol.entity.TestProtocolSection;
 import dev.chojo.ember.feature.protocol.service.TestProtocolEvaluationService;
 import dev.chojo.ember.feature.protocol.service.TestProtocolEvaluationService.EvaluationResponse;
+import dev.chojo.ember.feature.protocol.service.TestProtocolExaminerService;
+import dev.chojo.ember.feature.protocol.service.TestProtocolExaminerService.GradingScope;
 import dev.chojo.ember.feature.protocol.service.TestProtocolGuards;
 import dev.chojo.ember.feature.protocol.service.TestProtocolPdfService;
 import dev.chojo.ember.feature.protocol.service.TestProtocolRunService;
@@ -31,6 +34,7 @@ import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiParam;
 import io.javalin.openapi.OpenApiRequestBody;
 import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
@@ -55,6 +59,7 @@ public class TestProtocolRoutes implements Routes {
     private final TestProtocolPdfService pdfService;
     private final TestProtocolRunService runs;
     private final TestProtocolEvaluationService evaluations;
+    private final TestProtocolExaminerService examiners;
 
     @Inject
     public TestProtocolRoutes(
@@ -62,12 +67,22 @@ public class TestProtocolRoutes implements Routes {
             TestProtocolGuards guards,
             TestProtocolPdfService pdfService,
             TestProtocolRunService runs,
-            TestProtocolEvaluationService evaluations) {
+            TestProtocolEvaluationService evaluations,
+            TestProtocolExaminerService examiners) {
         this.service = service;
         this.guards = guards;
         this.pdfService = pdfService;
         this.runs = runs;
         this.evaluations = evaluations;
+        this.examiners = examiners;
+    }
+
+    /**
+     * What the caller may grade in a run, refusing them where the run has examiners and they are none
+     * of them.
+     */
+    private GradingScope gradingScope(Context ctx, TestProtocolRun run) {
+        return examiners.requireGrader(run, StationSession.from(ctx).member().id());
     }
 
     @Override
@@ -75,6 +90,7 @@ public class TestProtocolRoutes implements Routes {
         routes.get(prefix + "/protocols", this::listProtocols, StationPermission.PROTOCOL_TESTER);
         routes.post(prefix + "/protocols", this::createProtocol, StationPermission.PROTOCOL_CONFIGURE);
 
+        routes.get(prefix + "/protocols/sharing", this::listSharing, StationPermission.PROTOCOL_SHARE);
         routes.get(prefix + "/protocols/runs", this::listRuns, StationPermission.PROTOCOL_TESTER);
         routes.get(prefix + "/protocols/runs/{id}", this::getRun, StationPermission.PROTOCOL_TESTER);
         routes.put(prefix + "/protocols/runs/{id}", this::updateRun, StationPermission.PROTOCOL_CREATE);
@@ -82,7 +98,12 @@ public class TestProtocolRoutes implements Routes {
         routes.post(prefix + "/protocols/runs/{id}/close", this::closeRun, StationPermission.PROTOCOL_CREATE);
 
         routes.put(prefix + "/protocols/sections/{id}", this::updateSection, StationPermission.PROTOCOL_CONFIGURE);
+        routes.put(
+                prefix + "/protocols/sections/{id}/items/order",
+                this::reorderItems,
+                StationPermission.PROTOCOL_CONFIGURE);
         routes.delete(prefix + "/protocols/sections/{id}", this::deleteSection, StationPermission.PROTOCOL_CONFIGURE);
+        routes.put(prefix + "/protocols/sections/{id}/parent", this::moveSection, StationPermission.PROTOCOL_CONFIGURE);
 
         routes.put(prefix + "/protocols/items/{id}", this::updateItem, StationPermission.PROTOCOL_CONFIGURE);
         routes.delete(prefix + "/protocols/items/{id}", this::deleteItem, StationPermission.PROTOCOL_CONFIGURE);
@@ -90,7 +111,10 @@ public class TestProtocolRoutes implements Routes {
         routes.get(prefix + "/protocols/{id}", this::getProtocol, StationPermission.PROTOCOL_TESTER);
         routes.put(prefix + "/protocols/{id}", this::updateProtocol, StationPermission.PROTOCOL_CONFIGURE);
         routes.delete(prefix + "/protocols/{id}", this::deleteProtocol, StationPermission.PROTOCOL_CONFIGURE);
+        routes.put(prefix + "/protocols/{id}/sharing", this::setSharing, StationPermission.PROTOCOL_SHARE);
         routes.post(prefix + "/protocols/{id}/sections", this::createSection, StationPermission.PROTOCOL_CONFIGURE);
+        routes.put(
+                prefix + "/protocols/{id}/sections/order", this::reorderSections, StationPermission.PROTOCOL_CONFIGURE);
         routes.post(prefix + "/protocols/{id}/runs", this::createRun, StationPermission.PROTOCOL_CREATE);
 
         routes.post(prefix + "/protocols/sections/{id}/items", this::createItem, StationPermission.PROTOCOL_CONFIGURE);
@@ -200,6 +224,31 @@ public class TestProtocolRoutes implements Routes {
     }
 
     @OpenApi(
+            path = "/api/v1/protocols/sharing",
+            methods = HttpMethod.GET,
+            summary = "List which of the station's protocols its partners may see",
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ProtocolSharing.class)))
+    private void listSharing(Context ctx) {
+        ctx.json(new ProtocolSharing(
+                service.findSharedProtocolIds(StationSession.from(ctx).stationId())));
+    }
+
+    @OpenApi(
+            path = "/api/v1/protocols/{id}/sharing",
+            methods = HttpMethod.PUT,
+            summary = "Share a protocol with every partner, or stop sharing it",
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ProtocolSharingRequest.class)),
+            responses = @OpenApiResponse(status = "204"))
+    private void setSharing(Context ctx) {
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        guards.requireProtocol(ctx, id);
+        var req = ctx.bodyAsClass(ProtocolSharingRequest.class);
+        service.setShared(StationSession.from(ctx).stationId(), id, req.shared());
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    @OpenApi(
             path = "/api/v1/protocols/{id}/sections",
             methods = HttpMethod.POST,
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ProtocolSectionRequest.class)),
@@ -234,7 +283,41 @@ public class TestProtocolRoutes implements Routes {
                 Objects.requireNonNullElse(req.description(), ""),
                 req.maxPoints(),
                 req.passThreshold(),
-                Objects.requireNonNullElse(req.position(), 0));
+                req.position());
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    @OpenApi(
+            path = "/api/v1/protocols/{id}/sections/order",
+            methods = HttpMethod.PUT,
+            summary = "Put the sections of one level of a protocol into a new order",
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ProtocolOrderRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "204"),
+                @OpenApiResponse(status = "409", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void reorderSections(Context ctx) {
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        guards.requireProtocol(ctx, id);
+        service.reorderSections(id, ctx.bodyAsClass(ProtocolOrderRequest.class).ids());
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    @OpenApi(
+            path = "/api/v1/protocols/sections/{id}/items/order",
+            methods = HttpMethod.PUT,
+            summary = "Put the points of a section into a new order",
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ProtocolOrderRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "204"),
+                @OpenApiResponse(status = "409", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void reorderItems(Context ctx) {
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        guards.requireSection(ctx, id);
+        service.reorderItems(id, ctx.bodyAsClass(ProtocolOrderRequest.class).ids());
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -246,6 +329,20 @@ public class TestProtocolRoutes implements Routes {
         int id = ctx.pathParamAsClass("id", Integer.class).get();
         guards.requireSection(ctx, id);
         service.deleteSection(id);
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    @OpenApi(
+            path = "/api/v1/protocols/sections/{id}/parent",
+            methods = HttpMethod.PUT,
+            summary = "Move a section, with everything under it, under another section or to the top level",
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = SectionParentRequest.class)),
+            responses = @OpenApiResponse(status = "204"))
+    private void moveSection(Context ctx) {
+        int id = ctx.pathParamAsClass("id", Integer.class).get();
+        guards.requireSection(ctx, id);
+        service.moveSection(id, ctx.bodyAsClass(SectionParentRequest.class).parentId());
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -264,7 +361,8 @@ public class TestProtocolRoutes implements Routes {
                         req.label(),
                         Objects.requireNonNullElse(req.description(), ""),
                         Objects.requireNonNullElse(req.points(), 1.0),
-                        Objects.requireNonNullElse(req.position(), 0)));
+                        Objects.requireNonNullElse(req.position(), 0),
+                        Boolean.TRUE.equals(req.bonus())));
     }
 
     @OpenApi(
@@ -281,7 +379,8 @@ public class TestProtocolRoutes implements Routes {
                 req.label(),
                 Objects.requireNonNullElse(req.description(), ""),
                 Objects.requireNonNullElse(req.points(), 1.0),
-                Objects.requireNonNullElse(req.position(), 0));
+                Boolean.TRUE.equals(req.bonus()),
+                req.position());
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -332,7 +431,10 @@ public class TestProtocolRoutes implements Routes {
                 .filter(s -> s.parentId() == null)
                 .count();
         var membersWithProgress = members.stream()
-                .map(m -> new RunMemberWithProgress(m, service.countDoneSections(m.id()), (int) topSections))
+                .map(m -> {
+                    var done = service.findDoneSections(id, m.memberId());
+                    return new RunMemberWithProgress(m, done.size(), (int) topSections, done);
+                })
                 .toList();
         ctx.json(new RunDetailResponse(run, membersWithProgress));
     }
@@ -380,8 +482,11 @@ public class TestProtocolRoutes implements Routes {
         var session = StationSession.from(ctx);
         int runId = ctx.pathParamAsClass("runId", Integer.class).get();
         int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
-        guards.requireRun(ctx, runId);
-        if (!service.lockMember(runId, memberId, session.member().id())) {
+        var run = guards.requireRun(ctx, runId);
+        gradingScope(ctx, run);
+        boolean sharedBetweenExaminers = examiners.isPlanned(runId);
+        if (!sharedBetweenExaminers
+                && !service.lockMember(runId, memberId, session.member().id())) {
             throw TestProtocolRefusal.PROTOCOL_MEMBER_HELD_BY_ANOTHER_TESTER.raise();
         }
         ctx.json(service.findRunMember(runId, memberId)
@@ -395,7 +500,7 @@ public class TestProtocolRoutes implements Routes {
     private void unlockMember(Context ctx) {
         int runId = ctx.pathParamAsClass("runId", Integer.class).get();
         int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
-        guards.requireRun(ctx, runId);
+        gradingScope(ctx, guards.requireRun(ctx, runId));
         service.unlockMember(runId, memberId);
         ctx.json(service.findRunMember(runId, memberId)
                 .orElseThrow(TestProtocolRefusal.PROTOCOL_MEMBER_NOT_HERE_AFTER_UNLOCKING::raise));
@@ -409,7 +514,7 @@ public class TestProtocolRoutes implements Routes {
     private void getChecks(Context ctx) {
         int runId = ctx.pathParamAsClass("runId", Integer.class).get();
         int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
-        guards.requireRun(ctx, runId);
+        gradingScope(ctx, guards.requireRun(ctx, runId));
         ctx.json(service.findChecks(runId, memberId));
     }
 
@@ -425,7 +530,9 @@ public class TestProtocolRoutes implements Routes {
         int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
         var req = ctx.bodyAsClass(ProtocolChecksRequest.class);
         var run = guards.requireRun(ctx, runId);
-        service.saveChecks(runId, memberId, req.checks(), session.member().id(), run.protocolId());
+        var allowed = examiners.allowedChecks(
+                gradingScope(ctx, run), req.checks(), service.findAllItemsByProtocol(run.protocolId()));
+        service.saveChecks(runId, memberId, allowed, session.member().id(), run.protocolId());
         ctx.json(service.findChecks(runId, memberId));
     }
 
@@ -437,6 +544,7 @@ public class TestProtocolRoutes implements Routes {
         int runId = ctx.pathParamAsClass("runId", Integer.class).get();
         int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
         var run = guards.requireRun(ctx, runId);
+        gradingScope(ctx, run);
         service.completeMember(runId, memberId, run.protocolId());
         ctx.json(service.findRunMember(runId, memberId)
                 .orElseThrow(TestProtocolRefusal.PROTOCOL_MEMBER_NOT_HERE_AFTER_COMPLETION::raise));
@@ -449,7 +557,7 @@ public class TestProtocolRoutes implements Routes {
     private void getSectionsDone(Context ctx) {
         int runId = ctx.pathParamAsClass("runId", Integer.class).get();
         int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
-        guards.requireRun(ctx, runId);
+        gradingScope(ctx, guards.requireRun(ctx, runId));
         ctx.json(service.findDoneSections(runId, memberId));
     }
 
@@ -462,9 +570,11 @@ public class TestProtocolRoutes implements Routes {
         int runId = ctx.pathParamAsClass("runId", Integer.class).get();
         int memberId = ctx.pathParamAsClass("memberId", Integer.class).get();
         int sectionId = ctx.pathParamAsClass("sectionId", Integer.class).get();
-        guards.requireRun(ctx, runId);
+        var run = guards.requireRun(ctx, runId);
         guards.requireSection(ctx, sectionId);
-        service.toggleSectionDone(runId, memberId, sectionId, session.member().id());
+        examiners.requireFinishable(run, gradingScope(ctx, run), sectionId);
+        service.toggleSectionDone(
+                runId, memberId, run.protocolId(), sectionId, session.member().id());
         ctx.json(service.findDoneSections(runId, memberId));
     }
 
@@ -553,10 +663,32 @@ public class TestProtocolRoutes implements Routes {
             @Nullable Integer passThreshold) {}
 
     /**
+     * Where a section is moved to.
+     *
+     * @param parentId the section it is to stand in, or {@code null} for the top level
+     */
+    public record SectionParentRequest(@Nullable Integer parentId) {}
+
+    /**
+     * Which of the station's protocols its federation partners may see.
+     *
+     * @param protocolIds the shared protocols, each once
+     */
+    public record ProtocolSharing(List<Integer> protocolIds) {}
+
+    /**
+     * Whether a protocol is to be shared with every partner of its station.
+     *
+     * @param shared whether partners may see it
+     */
+    public record ProtocolSharingRequest(boolean shared) {}
+
+    /**
      * A section of a protocol as it is created or changed.
      *
      * @param parentId the section it stands in, or {@code null} for a top-level section; ignored on a change
-     * @param position where it stands among its siblings, or {@code null} for first
+     * @param position where it stands among its siblings, or {@code null} for first when created and for
+     *                 where it already stands when changed
      */
     public record ProtocolSectionRequest(
             @Nullable Integer parentId,
@@ -569,13 +701,26 @@ public class TestProtocolRoutes implements Routes {
     /**
      * A checkbox of a section as it is created or changed.
      *
-     * @param points what ticking it is worth, or {@code null} for one point
+     * @param points   what ticking it is worth, or {@code null} for one point
+     * @param position where it stands in its section, or {@code null} for first when created and for where
+     *                 it already stands when changed
+     * @param bonus    whether it is a bonus point, adding to the score but not to any maximum; {@code null}
+     *                 for a regular point
      */
     public record ProtocolItemRequest(
             String label,
             @Nullable String description,
             @Nullable Double points,
-            @Nullable Integer position) {}
+            @Nullable Integer position,
+            @Nullable Boolean bonus) {}
+
+    /**
+     * A new order for everything on one level of a protocol: the sections of the protocol or of one
+     * section, or the points of one section.
+     *
+     * @param ids every one of them, in the order they now stand
+     */
+    public record ProtocolOrderRequest(List<Integer> ids) {}
 
     /**
      * The ticked state of the checkboxes of one member's sheet, by checkbox id.
@@ -585,7 +730,14 @@ public class TestProtocolRoutes implements Routes {
     public record ProtocolDetailResponse(
             TestProtocol protocol, List<TestProtocolSection> sections, List<TestProtocolItem> items) {}
 
-    public record RunMemberWithProgress(TestProtocolRunMember member, int sectionsDone, int sectionsTotal) {}
+    /**
+     * A member of a run with how far their grading has come.
+     *
+     * @param doneSectionIds the top-level sections marked finished for them, which the run page draws
+     *                       as its matrix of members against sections
+     */
+    public record RunMemberWithProgress(
+            TestProtocolRunMember member, int sectionsDone, int sectionsTotal, List<Integer> doneSectionIds) {}
 
     public record RunDetailResponse(TestProtocolRun run, List<RunMemberWithProgress> members) {}
 }

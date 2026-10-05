@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, provide } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
@@ -17,15 +17,22 @@ import SectionHeader from '@/components/typography/SectionHeader.vue'
 import StationBadge from '@/components/badge/StationBadge.vue'
 import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
-import { protocol, federation } from '@/api'
+import { protocol } from '@/api'
 import { describeFailure } from '@/util/failure'
 import { getItem } from '@/api/storage'
 import { StationPermission, type TestProtocol, type TestProtocolSection, type TestProtocolItem } from '@/api/generated/schema'
 import MutedText from '@/components/typography/MutedText.vue'
-import ProtocolSectionCard from './protocoldetailview/ProtocolSectionCard.vue'
+import DragList from '@/components/input/DragList.vue'
+import { moveWithin } from '@/util/reorder'
+import ProtocolSectionNode from './protocoldetailview/ProtocolSectionNode.vue'
+import ProtocolCutBar from './protocoldetailview/ProtocolCutBar.vue'
+import { protocolEditorKey } from './protocoldetailview/protocolEditor'
+import { useSectionCut } from './protocoldetailview/useSectionCut'
+import { protocolTree } from './protocolTree'
 import ProtocolSectionModal from './protocoldetailview/ProtocolSectionModal.vue'
 import ProtocolItemModal from './protocoldetailview/ProtocolItemModal.vue'
 import ProtocolEditModal from './protocoldetailview/ProtocolEditModal.vue'
+import { maxPointsOf } from './protocolPoints'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -59,6 +66,7 @@ const itemSectionId = ref(0)
 const itemLabel = ref('')
 const itemDescription = ref('')
 const itemPoints = ref(1)
+const itemBonus = ref(false)
 
 const {loading, failure, reload: loadData} = useAsyncLoader(async () => {
   const data = await protocol.getProtocol(protocolId.value)
@@ -73,6 +81,9 @@ const {loading, failure, reload: loadData} = useAsyncLoader(async () => {
  * <p>The two are answered for separately. A section the server had already stored, followed by a
  * page that would not refresh, used to say the section had been refused, and a reader told that
  * adds it a second time.
+ *
+ * <p>The protocol stays on screen while it is read back. Taking it away for the moment of the reload
+ * shortened the page, and the browser scrolled the reader back up after every new entry.
  */
 async function writeThenReload(write: () => Promise<void>) {
   failure.value = null
@@ -85,29 +96,15 @@ async function writeThenReload(write: () => Promise<void>) {
   await loadData()
 }
 
-async function copyToStation() {
-  if (!proto.value) return
-  try {
-    await federation.copyProtocol(proto.value.id)
-    router.push({ name: 'protocol-list' })
-  } catch (e) { failure.value = describeFailure(e, t) }
-}
+const tree = computed(() => protocolTree(sections.value, items.value))
 
-function topSections() { return sections.value.filter(s => !s.parentId).sort((a, b) => a.position - b.position) }
-function childSections(parentId: number) { return sections.value.filter(s => s.parentId === parentId).sort((a, b) => a.position - b.position) }
-function sectionItems(sectionId: number) { return items.value.filter(i => i.sectionId === sectionId).sort((a, b) => a.position - b.position) }
+function topSections() { return tree.value.childrenOf(null) }
+function sectionItems(sectionId: number) { return tree.value.itemsOf(sectionId) }
 
-function sectionTotalPoints(sectionId: number): number {
-  let total = sectionItems(sectionId).reduce((sum, i) => sum + i.points, 0)
-  for (const child of childSections(sectionId)) {
-    total += sectionTotalPoints(child.id)
-  }
-  return total
-}
+const totalProtocolPoints = computed(() => maxPointsOf(items.value))
 
-const totalProtocolPoints = computed(() => {
-  return topSections().reduce((sum, s) => sum + sectionTotalPoints(s.id), 0)
-})
+const sectionCut = useSectionCut(tree, (sectionId, parentId) =>
+  writeThenReload(() => protocol.moveSection(sectionId, parentId)))
 
 function openAddSection(parentId: number | null = null) {
   editSectionId.value = null
@@ -164,6 +161,7 @@ function openAddItem(sectionId: number) {
   itemLabel.value = ''
   itemDescription.value = ''
   itemPoints.value = 1
+  itemBonus.value = false
   showItemModal.value = true
 }
 
@@ -173,6 +171,7 @@ function openEditItem(item: TestProtocolItem) {
   itemLabel.value = item.label
   itemDescription.value = item.description
   itemPoints.value = item.points
+  itemBonus.value = item.bonus
   showItemModal.value = true
 }
 
@@ -184,6 +183,7 @@ async function handleSaveItem() {
         label: itemLabel.value.trim(),
         description: itemDescription.value,
         points: itemPoints.value,
+        bonus: itemBonus.value,
         position: items.value.find(i => i.id === editItemId.value)?.position ?? 0,
       })
     } else {
@@ -191,6 +191,7 @@ async function handleSaveItem() {
         label: itemLabel.value.trim(),
         description: itemDescription.value,
         points: itemPoints.value,
+        bonus: itemBonus.value,
         position: sectionItems(itemSectionId.value).length,
       })
     }
@@ -201,6 +202,55 @@ async function handleSaveItem() {
 async function handleDeleteItem(id: number) {
   await writeThenReload(() => protocol.deleteItem(id))
 }
+
+/**
+ * Moves one entry of a level, on screen at once and then on the server, which takes the whole level
+ * in its new order. Nothing is read back after a move that went through, so the page stays as it is;
+ * a move the server refused reads the protocol back, so the screen shows what is stored.
+ */
+async function reorderLevel(
+    level: { id: number, position: number }[],
+    fromIndex: number,
+    toIndex: number,
+    save: (ids: number[]) => Promise<void>,
+) {
+  const ordered = moveWithin(level, fromIndex, toIndex)
+  ordered.forEach((entry, index) => { entry.position = index })
+  failure.value = null
+  try {
+    await save(ordered.map(entry => entry.id))
+  } catch (e) {
+    failure.value = describeFailure(e, t)
+    await loadData()
+  }
+}
+
+function reorderSections(parentId: number | null, fromIndex: number, toIndex: number) {
+  if (!proto.value) return
+  const protocolShown = proto.value.id
+  void reorderLevel(tree.value.childrenOf(parentId), fromIndex, toIndex, ids => protocol.reorderSections(protocolShown, ids))
+}
+
+function reorderItems(sectionId: number, fromIndex: number, toIndex: number) {
+  void reorderLevel(sectionItems(sectionId), fromIndex, toIndex, ids => protocol.reorderItems(sectionId, ids))
+}
+
+provide(protocolEditorKey, {
+  tree,
+  canEdit,
+  cut: sectionCut.cut,
+  addItem: openAddItem,
+  addSubsection: openAddSection,
+  editSection: openEditSection,
+  deleteSection: handleDeleteSection,
+  editItem: openEditItem,
+  deleteItem: handleDeleteItem,
+  reorderItems,
+  reorderSections,
+  cutSection: sectionCut.start,
+  canPasteInto: sectionCut.canPasteInto,
+  pasteInto: sectionCut.pasteInto,
+})
 
 const showEditProtocolModal = ref(false)
 const editProtoName = ref('')
@@ -249,38 +299,33 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
       <SectionHeader>{{ proto?.name ?? '' }}</SectionHeader>
       <StationBadge v-if="isFederated" :station-name="''" />
       <EditButton v-if="canEdit" :label="t('common.edit')" @click="openEditProtocol" />
-      <PrimaryButton v-if="isFederated && canEdit" @click="copyToStation">
-        <font-awesome-icon :icon="['fas', 'copy']" class="mr-1" /> {{ t('federation.copyToStation') }}
-      </PrimaryButton>
       <span class="text-sm text-[var(--text-muted)] ml-auto">
         <template v-if="proto?.passThreshold">{{ t('protocol.threshold') }}: {{ proto.passThreshold }}P / </template>
         {{ totalProtocolPoints }}P {{ t('protocol.total') }}
       </span>
     </div>
 
-    <Spinner v-if="loading" />
+    <Spinner v-if="loading && !proto" />
     <FailureAlert :failure="failure"/>
 
-    <template v-if="!loading && proto">
+    <template v-if="proto">
       <MutedText v-if="proto.description" tag="p" size="sm">{{ proto.description }}</MutedText>
 
-      <div class="space-y-4">
-        <ProtocolSectionCard
-          v-for="section in topSections()"
-          :key="section.id"
-          :section="section"
-          :child-sections="childSections(section.id)"
-          :section-items="sectionItems"
-          :section-total-points="sectionTotalPoints"
-          :can-edit="canEdit"
-          @add-item="openAddItem"
-          @add-subsection="openAddSection"
-          @edit-section="openEditSection"
-          @delete-section="handleDeleteSection"
-          @edit-item="openEditItem"
-          @delete-item="handleDeleteItem"
-        />
-      </div>
+      <ProtocolCutBar v-if="sectionCut.cut.value" class="mb-4" :section="sectionCut.cut.value"
+                      :can-paste-at-top="sectionCut.canPasteInto(null)"
+                      @paste-at-top="sectionCut.pasteInto(null)" @cancel="sectionCut.cancel()"/>
+
+      <DragList
+          :items="topSections()"
+          :key-fn="(section) => section.id"
+          :disabled="!canEdit"
+          class="space-y-4"
+          @reorder="(from, to) => reorderSections(null, from, to)"
+      >
+        <template #default="{item: section}">
+          <ProtocolSectionNode :section="section" :depth="0"/>
+        </template>
+      </DragList>
 
       <PrimaryButton v-if="canEdit" class="mt-4" @click="openAddSection()">
         <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" /> {{ t('protocol.addSection') }}
@@ -302,6 +347,7 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
       v-model:label="itemLabel"
       v-model:description="itemDescription"
       v-model:points="itemPoints"
+      v-model:bonus="itemBonus"
       :editing="editItemId !== null"
       @submit="handleSaveItem"
     />

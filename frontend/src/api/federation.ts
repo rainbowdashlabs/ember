@@ -4,7 +4,6 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import { createCrudResource } from './crud'
 import type {
     CapabilityRequest,
     components,
@@ -12,17 +11,12 @@ import type {
     FederationCapability,
     FederationInfoResponse,
     FederationPartner,
-    FederationShare,
     InviteCodeResponse,
     KbFile,
-    KbShareRequest,
-    KbShareResponse,
     OutgoingPairRequestResponse,
     PairRequestResponse,
     PartnerResponse,
-    ProtocolShareRequest,
     QuizCatalog,
-    QuizShareRequest,
     RemotePairRequestResponse,
     StationPickerResult,
     TestProtocol,
@@ -89,24 +83,6 @@ export async function setCapabilities(partnerId: number, capabilities: Capabilit
     return res.data
 }
 
-const kbShares = createCrudResource<KbShareResponse, KbShareRequest, KbShareRequest, KbShareResponse, FederationShare>(
-    '/federation/shares/kb',
-)
-const quizShares = createCrudResource<FederationShare, QuizShareRequest>('/federation/shares/quiz')
-const protocolShares = createCrudResource<FederationShare, ProtocolShareRequest>('/federation/shares/protocol')
-
-export const listKbShares = kbShares.list
-export const createKbShare = kbShares.create
-export const deleteKbShare = kbShares.remove
-
-export const listQuizShares = quizShares.list
-export const createQuizShare = quizShares.create
-export const deleteQuizShare = quizShares.remove
-
-export const listProtocolShares = protocolShares.list
-export const createProtocolShare = protocolShares.create
-export const deleteProtocolShare = protocolShares.remove
-
 export async function browseSharedKb(): Promise<FederatedKbBrowse> {
     const res = await client.get<FederatedKbBrowse>('/federated/kb')
     return res.data
@@ -118,18 +94,21 @@ export async function browseSharedKbFolder(stationUid: string, folderId: number)
     return res.data
 }
 
-export async function copyKbFile(fileId: number): Promise<KbFile> {
-    const res = await client.post<KbFile>(`/federated/kb/files/${fileId}/copy`)
+/** Copies a wiki file the partner station shares into this station. */
+export async function copyKbFile(stationUid: string, fileId: number): Promise<KbFile> {
+    const res = await client.post<KbFile>(`/federated/${stationUid}/kb/files/${fileId}/copy`)
     return res.data
 }
 
-export async function copyQuizCatalog(catalogId: number): Promise<QuizCatalog> {
-    const res = await client.post<QuizCatalog>(`/federated/quiz/catalogs/${catalogId}/copy`)
+/** Copies a quiz catalog the partner station shares into this station. */
+export async function copyQuizCatalog(stationUid: string, catalogId: number): Promise<QuizCatalog> {
+    const res = await client.post<QuizCatalog>(`/federated/${stationUid}/quiz/catalogs/${catalogId}/copy`)
     return res.data
 }
 
-export async function copyProtocol(protocolId: number): Promise<TestProtocol> {
-    const res = await client.post<TestProtocol>(`/federated/protocols/${protocolId}/copy`)
+/** Copies a protocol the partner station shares into this station. */
+export async function copyProtocol(stationUid: string, protocolId: number): Promise<TestProtocol> {
+    const res = await client.post<TestProtocol>(`/federated/${stationUid}/protocols/${protocolId}/copy`)
     return res.data
 }
 

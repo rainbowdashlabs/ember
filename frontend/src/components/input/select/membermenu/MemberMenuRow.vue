@@ -43,7 +43,7 @@ const {t} = useI18n()
         class="h-4 w-4 shrink-0"
     />
     <template v-if="option">
-      <MemberName :identity="identityOf(option)" :detail="option.email" class="flex-1"/>
+      <MemberName :identity="identityOf(option)" class="flex-1"/>
       <InfoBadge v-if="option.note" class="shrink-0">{{ option.note }}</InfoBadge>
     </template>
     <template v-else>

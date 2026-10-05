@@ -257,16 +257,19 @@ Release
   release-fix [--commit <sha>] [--wait] [--dry-run]
                         The fix release the Release workflow runs: tag main's head (or the commit) with
                         its version and publish the GitHub release; --wait waits for its CI run
-  release-next [--dry-run]
-                        What the Release workflow does after a release: open the pull request that
-                        bumps main to the next patch, and after a feature release open the next
-                        release branch with the pull request that bumps it to the next minor. Both
-                        are merged by hand. --dry-run neither pushes nor opens pull requests
-  release-sync [--dry-run]
-                        Rebase every open release branch onto main, renumbering its own patch above
-                        main's, and push it with a lease; a conflict opens an issue instead. The
-                        Release Sync workflow runs it after every push to main or a release branch
-                        and after each release. --dry-run neither pushes nor opens issues
+  release-next [--dry-run | --check]
+                        Run locally after a release: open the pull request that bumps main to the
+                        next patch, and after a feature release open the next release branch with
+                        the pull request that bumps it to the next minor, as signed commits, and the
+                        draft release pull request once the branch has a commit of its own. Bumps
+                        are merged by hand. --dry-run neither pushes nor opens pull requests;
+                        --check, which the Release workflow runs, only lists them in an issue
+  release-sync [--dry-run | --check]
+                        Run locally: rebase every open release branch onto main, renumbering its own
+                        patch above main's, sign every rewritten commit and push it with a lease, and
+                        open a missing draft release pull request; a conflict stops it with the files
+                        named. --dry-run pushes nothing; --check, which the Release Sync workflow
+                        runs, only sets the status "Release branch contains main" on each branch
   db-renumber-patch [--dry-run] <from> <to>
                         Rename this branch's unreleased patch, the version file and the tests naming
                         it. Refuses a patch that is on main

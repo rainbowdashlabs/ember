@@ -14,6 +14,8 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import BulletList from '@/components/typography/BulletList.vue'
+import HelpPermissionGuard from '@/components/helpcenter/HelpPermissionGuard.vue'
+import { StationPermission } from '@/api/generated/schema'
 
 const { t } = useI18n()
 </script>
@@ -70,6 +72,17 @@ const { t } = useI18n()
         <li>{{ t('helpCenter.quiz.createCatalogDesc') }}</li>
         <li>{{ t('helpCenter.quiz.createCatalogTraining') }}</li>
       </BulletList>
+    </HelpSection>
+
+    <HelpPermissionGuard :permissions="[StationPermission.TEST_CATALOG_SHARE]"
+                         :label="t('helpCenter.permissionLabel.catalogShare')">
+      <HelpSection :title="t('helpCenter.quiz.catalogShareTitle')">
+        <p>{{ t('helpCenter.quiz.catalogShareText') }}</p>
+      </HelpSection>
+    </HelpPermissionGuard>
+
+    <HelpSection :title="t('helpCenter.quiz.catalogCopyTitle')">
+      <p>{{ t('helpCenter.quiz.catalogCopyText') }}</p>
     </HelpSection>
 
     <HelpTip>{{ t('helpCenter.quiz.catalogListTip') }}</HelpTip>

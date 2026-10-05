@@ -1077,8 +1077,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
     @Order(72)
     void listFederatedCommentsUnknownPartner() {
         assertThrows(
-                IllegalArgumentException.class,
-                () -> service.listFederatedComments(stationA.id(), UUID.randomUUID(), eventId));
+                RefusalResponse.class, () -> service.listFederatedComments(stationA.id(), UUID.randomUUID(), eventId));
     }
 
     @Test
@@ -1319,9 +1318,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
     @Test
     @Order(85)
     void getFederatedEventUnknownPartner() {
-        assertThrows(
-                IllegalArgumentException.class,
-                () -> service.getFederatedEvent(stationA.id(), UUID.randomUUID(), eventId));
+        assertThrows(RefusalResponse.class, () -> service.getFederatedEvent(stationA.id(), UUID.randomUUID(), eventId));
     }
 
     @Test

@@ -20899,22 +20899,6 @@
         }
       }
     },
-    "/api/v1/federated/kb/files/{id}/copy" : {
-      "post" : {
-        "responses" : {
-          "201" : {
-            "description" : "Created",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/KbFile"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/v1/federated/lending/available" : {
       "get" : {
         "responses" : {
@@ -20990,22 +20974,6 @@
         }
       }
     },
-    "/api/v1/federated/protocols/{id}/copy" : {
-      "post" : {
-        "responses" : {
-          "201" : {
-            "description" : "Created",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/TestProtocol"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/v1/federated/quiz/catalogs" : {
       "get" : {
         "responses" : {
@@ -21018,22 +20986,6 @@
                   "items" : {
                     "$ref" : "#/components/schemas/SharedQuizCatalog"
                   }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/federated/quiz/catalogs/{id}/copy" : {
-      "post" : {
-        "responses" : {
-          "201" : {
-            "description" : "Created",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/QuizCatalog"
                 }
               }
             }
@@ -21990,204 +21942,6 @@
                 }
               }
             }
-          }
-        },
-        "parameters" : [ {
-          "name" : "id",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "integer",
-            "format" : "int32"
-          }
-        } ]
-      }
-    },
-    "/api/v1/federation/shares/kb" : {
-      "post" : {
-        "summary" : "Share a knowledge base entry with partners",
-        "tags" : [ "Federation" ],
-        "responses" : {
-          "201" : {
-            "description" : "Created",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/FederationShare"
-                }
-              }
-            }
-          }
-        },
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/KbShareRequest"
-              }
-            }
-          }
-        }
-      },
-      "get" : {
-        "summary" : "List the station's knowledge base shares",
-        "tags" : [ "Federation" ],
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "type" : "array",
-                  "items" : {
-                    "$ref" : "#/components/schemas/KbShareResponse"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/federation/shares/kb/{id}" : {
-      "delete" : {
-        "summary" : "Stop sharing a knowledge base entry",
-        "tags" : [ "Federation" ],
-        "responses" : {
-          "204" : {
-            "description" : "No Content"
-          }
-        },
-        "parameters" : [ {
-          "name" : "id",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "integer",
-            "format" : "int32"
-          }
-        } ]
-      }
-    },
-    "/api/v1/federation/shares/protocol" : {
-      "post" : {
-        "summary" : "Share a test protocol with partners",
-        "tags" : [ "Federation" ],
-        "responses" : {
-          "201" : {
-            "description" : "Created",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/FederationShare"
-                }
-              }
-            }
-          }
-        },
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/ProtocolShareRequest"
-              }
-            }
-          }
-        }
-      },
-      "get" : {
-        "summary" : "List the station's test protocol shares",
-        "tags" : [ "Federation" ],
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "type" : "array",
-                  "items" : {
-                    "$ref" : "#/components/schemas/FederationShare"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/federation/shares/protocol/{id}" : {
-      "delete" : {
-        "summary" : "Stop sharing a test protocol",
-        "tags" : [ "Federation" ],
-        "responses" : {
-          "204" : {
-            "description" : "No Content"
-          }
-        },
-        "parameters" : [ {
-          "name" : "id",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "integer",
-            "format" : "int32"
-          }
-        } ]
-      }
-    },
-    "/api/v1/federation/shares/quiz" : {
-      "post" : {
-        "summary" : "Share a quiz catalog with partners",
-        "tags" : [ "Federation" ],
-        "responses" : {
-          "201" : {
-            "description" : "Created",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/FederationShare"
-                }
-              }
-            }
-          }
-        },
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/QuizShareRequest"
-              }
-            }
-          }
-        }
-      },
-      "get" : {
-        "summary" : "List the station's quiz catalog shares",
-        "tags" : [ "Federation" ],
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "type" : "array",
-                  "items" : {
-                    "$ref" : "#/components/schemas/FederationShare"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/federation/shares/quiz/{id}" : {
-      "delete" : {
-        "summary" : "Stop sharing a quiz catalog",
-        "tags" : [ "Federation" ],
-        "responses" : {
-          "204" : {
-            "description" : "No Content"
           }
         },
         "parameters" : [ {
@@ -34156,6 +33910,26 @@
         }
       }
     },
+    "/api/v1/protocols/examiner-candidates" : {
+      "get" : {
+        "summary" : "List the members who may be named examiners: everybody allowed to grade protocols",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/ExaminerCandidate"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/protocols/items/{id}" : {
       "put" : {
         "responses" : {
@@ -34287,6 +34061,84 @@
         }
       }
     },
+    "/api/v1/protocols/runs/{id}/examiners" : {
+      "get" : {
+        "summary" : "List the examiners of each section of a test run",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RunExaminers"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      },
+      "put" : {
+        "summary" : "Replace the examiners of a test run",
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RunExaminers"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/protocols/runs/{id}/examiners/previous" : {
+      "get" : {
+        "summary" : "The examiners of the last planned run of the same protocol, as a starting point",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RunExaminers"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
     "/api/v1/protocols/runs/{id}/export-all" : {
       "get" : {
         "responses" : {
@@ -34294,6 +34146,32 @@
             "description" : "OK"
           }
         }
+      }
+    },
+    "/api/v1/protocols/runs/{id}/grading-scope" : {
+      "get" : {
+        "summary" : "What the caller may grade in a test run",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GradingScope"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
       }
     },
     "/api/v1/protocols/runs/{runId}/members/{memberId}/checks" : {
@@ -34488,6 +34366,89 @@
         }
       }
     },
+    "/api/v1/protocols/sections/{id}/items/order" : {
+      "put" : {
+        "summary" : "Put the points of a section into a new order",
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ProtocolOrderRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/protocols/sections/{id}/parent" : {
+      "put" : {
+        "summary" : "Move a section, with everything under it, under another section or to the top level",
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SectionParentRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/protocols/sharing" : {
+      "get" : {
+        "summary" : "List which of the station's protocols its partners may see",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProtocolSharing"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/protocols/{id}" : {
       "get" : {
         "responses" : {
@@ -34578,6 +34539,72 @@
             "application/json" : {
               "schema" : {
                 "$ref" : "#/components/schemas/ProtocolSectionRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/protocols/{id}/sections/order" : {
+      "put" : {
+        "summary" : "Put the sections of one level of a protocol into a new order",
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ProtocolOrderRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/protocols/{id}/sharing" : {
+      "put" : {
+        "summary" : "Share a protocol with every partner, or stop sharing it",
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ProtocolSharingRequest"
               }
             }
           }
@@ -37378,6 +37405,23 @@
         }
       }
     },
+    "/api/v1/quiz/catalogs/sharing" : {
+      "get" : {
+        "summary" : "List which of the station's catalogs its partners may see",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CatalogSharing"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/quiz/catalogs/template/{format}" : {
       "get" : {
         "responses" : {
@@ -37530,6 +37574,34 @@
                     "$ref" : "#/components/schemas/QuizQuestionReport"
                   }
                 }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/quiz/catalogs/{id}/sharing" : {
+      "put" : {
+        "summary" : "Share a catalog with every partner, or stop sharing it",
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CatalogSharingRequest"
               }
             }
           }
@@ -46691,6 +46763,27 @@
         },
         "required" : [ "language", "source", "author", "license" ]
       },
+      "CatalogSharing" : {
+        "type" : "object",
+        "properties" : {
+          "catalogIds" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          }
+        },
+        "required" : [ "catalogIds" ]
+      },
+      "CatalogSharingRequest" : {
+        "type" : "object",
+        "properties" : {
+          "shared" : {
+            "type" : "boolean"
+          }
+        }
+      },
       "CatalogTransfer" : {
         "type" : "object",
         "properties" : {
@@ -52572,6 +52665,19 @@
         "type" : "string",
         "enum" : [ "ONE_TIME", "RECURRING", "MONTHLY_FIRST", "QUARTERLY", "YEARLY" ]
       },
+      "ExaminerCandidate" : {
+        "type" : "object",
+        "properties" : {
+          "memberId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "memberId", "name" ]
+      },
       "Expected" : {
         "type" : "string",
         "enum" : [ "ITS_OWN", "THE_CLUSTERS", "INSTANCE_DEFAULT", "WHEREVER_IT_IS" ]
@@ -53079,39 +53185,6 @@
             "format" : "uuid"
           }
         }
-      },
-      "FederationShare" : {
-        "type" : "object",
-        "properties" : {
-          "id" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "stationId" : {
-            "type" : "string",
-            "format" : "uuid"
-          },
-          "fileId" : {
-            "type" : [ "integer", "null" ],
-            "format" : "int32"
-          },
-          "folderId" : {
-            "type" : [ "integer", "null" ],
-            "format" : "int32"
-          },
-          "catalogId" : {
-            "type" : [ "integer", "null" ],
-            "format" : "int32"
-          },
-          "protocolId" : {
-            "type" : [ "integer", "null" ],
-            "format" : "int32"
-          },
-          "shareScope" : {
-            "$ref" : "#/components/schemas/ShareScope"
-          }
-        },
-        "required" : [ "id", "stationId", "fileId", "folderId", "catalogId", "protocolId", "shareScope" ]
       },
       "FederationShareResponse" : {
         "type" : "object",
@@ -55244,6 +55317,25 @@
       "GeocodingProvider" : {
         "type" : "string",
         "enum" : [ "NONE", "NOMINATIM", "LOCATIONIQ", "GEOAPIFY" ]
+      },
+      "GradingScope" : {
+        "type" : "object",
+        "properties" : {
+          "mayGrade" : {
+            "type" : "boolean"
+          },
+          "restricted" : {
+            "type" : "boolean"
+          },
+          "sectionIds" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          }
+        },
+        "required" : [ "mayGrade", "restricted", "sectionIds" ]
       },
       "GrantRequest" : {
         "type" : "object",
@@ -57542,57 +57634,6 @@
           }
         },
         "required" : [ "userTypes", "groupIds", "tagIds", "memberIds", "grants" ]
-      },
-      "KbShareRequest" : {
-        "type" : "object",
-        "properties" : {
-          "fileId" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "folderId" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "shareScope" : {
-            "$ref" : "#/components/schemas/ShareScope"
-          },
-          "partnerIds" : {
-            "type" : "array",
-            "items" : {
-              "type" : "integer",
-              "format" : "int32"
-            }
-          }
-        }
-      },
-      "KbShareResponse" : {
-        "type" : "object",
-        "properties" : {
-          "id" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "fileId" : {
-            "type" : [ "integer", "null" ],
-            "format" : "int32"
-          },
-          "folderId" : {
-            "type" : [ "integer", "null" ],
-            "format" : "int32"
-          },
-          "shareScope" : {
-            "$ref" : "#/components/schemas/ShareScope"
-          },
-          "partnerIds" : {
-            "type" : "array",
-            "items" : {
-              "type" : "integer",
-              "format" : "int32"
-            }
-          }
-        },
-        "required" : [ "id", "fileId", "folderId", "shareScope", "partnerIds" ]
       },
       "KbTag" : {
         "type" : "object",
@@ -64578,6 +64619,9 @@
           "position" : {
             "type" : [ "integer", "null" ],
             "format" : "int32"
+          },
+          "bonus" : {
+            "type" : [ "boolean", "null" ]
           }
         }
       },
@@ -64598,6 +64642,18 @@
           }
         },
         "required" : [ "protocols", "shared" ]
+      },
+      "ProtocolOrderRequest" : {
+        "type" : "object",
+        "properties" : {
+          "ids" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          }
+        }
       },
       "ProtocolRequest" : {
         "type" : "object",
@@ -64683,15 +64739,24 @@
           }
         }
       },
-      "ProtocolShareRequest" : {
+      "ProtocolSharing" : {
         "type" : "object",
         "properties" : {
-          "protocolId" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "shareScope" : {
-            "$ref" : "#/components/schemas/ShareScope"
+          "protocolIds" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          }
+        },
+        "required" : [ "protocolIds" ]
+      },
+      "ProtocolSharingRequest" : {
+        "type" : "object",
+        "properties" : {
+          "shared" : {
+            "type" : "boolean"
           }
         }
       },
@@ -66037,18 +66102,6 @@
             "items" : {
               "$ref" : "#/components/schemas/QuizSourceRequest"
             }
-          }
-        }
-      },
-      "QuizShareRequest" : {
-        "type" : "object",
-        "properties" : {
-          "catalogId" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "shareScope" : {
-            "$ref" : "#/components/schemas/ShareScope"
           }
         }
       },
@@ -68559,6 +68612,18 @@
         },
         "required" : [ "run", "members" ]
       },
+      "RunExaminers" : {
+        "type" : "object",
+        "properties" : {
+          "sections" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/SectionExaminers"
+            }
+          }
+        },
+        "required" : [ "sections" ]
+      },
       "RunMemberWithProgress" : {
         "type" : "object",
         "properties" : {
@@ -68572,9 +68637,16 @@
           "sectionsTotal" : {
             "type" : "integer",
             "format" : "int32"
+          },
+          "doneSectionIds" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
           }
         },
-        "required" : [ "member", "sectionsDone", "sectionsTotal" ]
+        "required" : [ "member", "sectionsDone", "sectionsTotal", "doneSectionIds" ]
       },
       "RunStatus" : {
         "type" : "string",
@@ -68799,6 +68871,32 @@
           }
         },
         "required" : [ "file", "snippet", "folderPath", "stationName", "sourceStationUid" ]
+      },
+      "SectionExaminers" : {
+        "type" : "object",
+        "properties" : {
+          "sectionId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "memberIds" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          }
+        },
+        "required" : [ "sectionId", "memberIds" ]
+      },
+      "SectionParentRequest" : {
+        "type" : "object",
+        "properties" : {
+          "parentId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          }
+        }
       },
       "SelfCheck" : {
         "type" : "object",
@@ -71402,7 +71500,7 @@
       },
       "StationPermission" : {
         "type" : "string",
-        "enum" : [ "USER", "LOGIN", "ATTENDANCE_READ", "ATTENDANCE_EDIT", "ATTENDANCE_CONFIGURE", "ATTENDANCE_EXPORT", "ATTENDANCE_MANAGER", "INVENTORY_CREATE_EXTERNAL", "INVENTORY_CREATE_INTERNAL", "INVENTORY_READ", "INVENTORY_CREATE", "INVENTORY_MOVEMENTS", "INVENTORY_PROCUREMENT", "INVENTORY_CHECK", "INVENTORY_LENDING_REQUEST", "INVENTORY_LENDING_MANAGER", "INVENTORY_EDIT", "INVENTORY_ASSIGN", "INVENTORY_STORAGE", "INVENTORY_MANAGER", "EVENT_MANAGE_TEMPLATE", "EVENT_MANAGE_CATEGORY", "EVENT_INTERNAL", "EVENT_EDIT", "EVENT_REGISTRATION", "EVENTS_FEDERATE", "EVENT_MANAGER", "DOCUMENT_READ", "DOCUMENT_READ_MEMBER", "DOCUMENT_EDIT", "DOCUMENT_EDIT_MEMBER", "DOCUMENT_TEMPLATE_EDIT", "DOCUMENT_MANAGER", "MEMBER_READ", "MEMBER_NOTES", "MEMBER_GUARDIAN", "MEMBER_CHANGES", "MEMBER_MANAGE_GROUP", "MEMBER_MANAGE_TAGS", "MEMBER_SELF_UPLOAD", "MEMBER_EDIT", "MEMBER_FIELDS", "MEMBER_EXPORT", "MEMBER_MANAGER", "WAITLIST_READ", "WAITLIST_ADD", "WAITLIST_EDIT", "WAITLIST_MANAGER", "NEWS_EDIT", "NEWS_FEDERATE", "NEWS_MANAGER", "POLL_VIEW_RESULTS", "POLL_CREATE", "POLL_MANAGER", "LOST_AND_FOUND_CREATE", "LOST_AND_FOUND_MANAGE", "LOST_AND_FOUND_MANAGER", "CHECKLIST_READ", "CHECKLIST_MANAGE", "CHECKLIST_MANAGER", "TEST_CATALOG_VIEW", "TEST_CATALOG_EDIT", "TEST_CONFIGURE", "TEST_RESULT_READ", "TEST_REVIEW", "TEST_MANAGER", "PROTOCOL_TESTER", "PROTOCOL_CREATE", "PROTOCOL_CONFIGURE", "PROTOCOL_MANAGER", "BOARD_USE", "BOARD_EDIT", "BOARD_FEDERATE", "BOARD_MANAGER", "PAGE_EDIT", "PAGE_FORMS_VIEW", "PAGE_POLLS_VIEW", "PAGE_MANAGER", "PROCEDURE_READ", "PROCEDURE_EDIT", "PROCEDURE_MANAGER", "KNOWLEDGE_EDIT", "KNOWLEDGE_FEDERATE", "KNOWLEDGE_MANAGER", "STATION_LOOK_AND_FEEL", "STATION_GENERAL", "STATION_MAIL", "STATION_FEDERATION", "STATION_MODULES", "STATION_IMPORT_EXPORT", "STATION_STATISTICS", "STATION_MANAGER", "STATION_ADMINISTRATOR" ]
+        "enum" : [ "USER", "LOGIN", "ATTENDANCE_READ", "ATTENDANCE_EDIT", "ATTENDANCE_CONFIGURE", "ATTENDANCE_EXPORT", "ATTENDANCE_MANAGER", "INVENTORY_CREATE_EXTERNAL", "INVENTORY_CREATE_INTERNAL", "INVENTORY_READ", "INVENTORY_CREATE", "INVENTORY_MOVEMENTS", "INVENTORY_PROCUREMENT", "INVENTORY_CHECK", "INVENTORY_LENDING_REQUEST", "INVENTORY_LENDING_MANAGER", "INVENTORY_EDIT", "INVENTORY_ASSIGN", "INVENTORY_STORAGE", "INVENTORY_MANAGER", "EVENT_MANAGE_TEMPLATE", "EVENT_MANAGE_CATEGORY", "EVENT_INTERNAL", "EVENT_EDIT", "EVENT_REGISTRATION", "EVENTS_FEDERATE", "EVENT_MANAGER", "DOCUMENT_READ", "DOCUMENT_READ_MEMBER", "DOCUMENT_EDIT", "DOCUMENT_EDIT_MEMBER", "DOCUMENT_TEMPLATE_EDIT", "DOCUMENT_MANAGER", "MEMBER_READ", "MEMBER_NOTES", "MEMBER_GUARDIAN", "MEMBER_CHANGES", "MEMBER_MANAGE_GROUP", "MEMBER_MANAGE_TAGS", "MEMBER_SELF_UPLOAD", "MEMBER_EDIT", "MEMBER_FIELDS", "MEMBER_EXPORT", "MEMBER_MANAGER", "WAITLIST_READ", "WAITLIST_ADD", "WAITLIST_EDIT", "WAITLIST_MANAGER", "NEWS_EDIT", "NEWS_FEDERATE", "NEWS_MANAGER", "POLL_VIEW_RESULTS", "POLL_CREATE", "POLL_MANAGER", "LOST_AND_FOUND_CREATE", "LOST_AND_FOUND_MANAGE", "LOST_AND_FOUND_MANAGER", "CHECKLIST_READ", "CHECKLIST_MANAGE", "CHECKLIST_MANAGER", "TEST_CATALOG_VIEW", "TEST_CATALOG_EDIT", "TEST_CONFIGURE", "TEST_RESULT_READ", "TEST_REVIEW", "TEST_CATALOG_SHARE", "TEST_MANAGER", "PROTOCOL_TESTER", "PROTOCOL_CREATE", "PROTOCOL_CONFIGURE", "PROTOCOL_SHARE", "PROTOCOL_MANAGER", "BOARD_USE", "BOARD_EDIT", "BOARD_FEDERATE", "BOARD_MANAGER", "PAGE_EDIT", "PAGE_FORMS_VIEW", "PAGE_POLLS_VIEW", "PAGE_MANAGER", "PROCEDURE_READ", "PROCEDURE_EDIT", "PROCEDURE_MANAGER", "KNOWLEDGE_EDIT", "KNOWLEDGE_FEDERATE", "KNOWLEDGE_MANAGER", "STATION_LOOK_AND_FEEL", "STATION_GENERAL", "STATION_MAIL", "STATION_FEDERATION", "STATION_MODULES", "STATION_IMPORT_EXPORT", "STATION_STATISTICS", "STATION_MANAGER", "STATION_ADMINISTRATOR" ]
       },
       "StationPermissionsRequest" : {
         "type" : "object",
@@ -72737,9 +72835,12 @@
           "position" : {
             "type" : "integer",
             "format" : "int32"
+          },
+          "bonus" : {
+            "type" : "boolean"
           }
         },
-        "required" : [ "id", "sectionId", "label", "description", "points", "position" ]
+        "required" : [ "id", "sectionId", "label", "description", "points", "position", "bonus" ]
       },
       "TestProtocolRun" : {
         "type" : "object",

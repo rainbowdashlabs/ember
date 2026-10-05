@@ -21,8 +21,14 @@ import { useSession } from '@/composables/useSession'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { protocol, stationMembers } from '@/api'
-import type { MemberWithName, TestProtocolSection, TestProtocolItem } from '@/api/generated/schema'
+import type { GradingScope, MemberWithName, RunExaminers, TestProtocolSection, TestProtocolItem } from '@/api/generated/schema'
 import { reportCaughtError } from '@/util/devErrorReporter'
+import { showToast } from '@/util/toast'
+import { maxPointsOf, scoreOf } from './protocolPoints'
+import { protocolTree } from './protocolTree'
+import Alert from '@/components/feedback/Alert.vue'
+import NextStationModal from './gradingview/NextStationModal.vue'
+import { nextStation } from './nextStation'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -40,6 +46,9 @@ const items = ref<TestProtocolItem[]>([])
 const checks = ref<Map<number, boolean>>(new Map())
 const doneSections = ref<Set<number>>(new Set())
 const member = ref<MemberWithName | null>(null)
+const memberNames = ref<Map<number, string>>(new Map())
+const examinerPlan = ref<RunExaminers>({sections: []})
+const upNext = ref<TestProtocolSection | null>(null)
 const locked = ref(false)
 const currentSectionIndex = ref(0)
 
@@ -52,57 +61,61 @@ const pageTitle = computed(() => {
   return name ? t('pages.protocol-grade.titleNamed', {name}) : t('pages.protocol-grade.title')
 })
 
-const topSections = computed(() => sections.value.filter(s => !s.parentId).sort((a, b) => a.position - b.position))
+const scope = ref<GradingScope | null>(null)
+const tree = computed(() => protocolTree(sections.value, items.value))
+
+/** The sections whose points this examiner may change: every one, unless the run was planned. */
+const gradable = computed<ReadonlySet<number>>(() => scope.value?.restricted
+  ? new Set(scope.value.sectionIds)
+  : new Set(sections.value.map(section => section.id)))
+
+/** The top-level sections holding anything this examiner may grade, which are the steps of the sheet. */
+const topSections = computed(() => tree.value.childrenOf(null)
+  .filter(section => [...tree.value.subtreeOf(section.id)].some(id => gradable.value.has(id))))
 const currentSection = computed(() => topSections.value[currentSectionIndex.value])
 
-function childSections(parentId: number) {
-  return sections.value.filter(s => s.parentId === parentId).sort((a, b) => a.position - b.position)
+/** Who examines a station: the examiners of the section and of every section under it, once each. */
+function examinersOf(stationId: number): string[] {
+  const subtree = tree.value.subtreeOf(stationId)
+  const ids = examinerPlan.value.sections
+    .filter(entry => subtree.has(entry.sectionId))
+    .flatMap(entry => entry.memberIds)
+  return [...new Set(ids)].map(id => memberNames.value.get(id) ?? `#${id}`)
 }
 
-function sectionItems(sectionId: number): TestProtocolItem[] {
-  return items.value.filter(i => i.sectionId === sectionId).sort((a, b) => a.position - b.position)
-}
-
-function allCurrentItems(): TestProtocolItem[] {
-  if (!currentSection.value) return []
-  const result = [...sectionItems(currentSection.value.id)]
-  for (const sub of childSections(currentSection.value.id)) {
-    result.push(...sectionItems(sub.id))
-  }
-  return result
-}
-
-const currentSectionScore = computed(() => {
-  return allCurrentItems().reduce((sum, item) => {
-    return sum + (checks.value.get(item.id) ? item.points : 0)
-  }, 0)
+const showUpNext = computed({
+  get: () => upNext.value !== null,
+  set: (open: boolean) => {
+    if (!open) void backToRun()
+  },
 })
 
-const currentSectionMaxPoints = computed(() => {
-  return allCurrentItems().reduce((sum, item) => sum + item.points, 0)
-})
+/** The steps of this examiner not marked finished yet, which is what is easy to forget. */
+const openSections = computed(() => topSections.value.filter(section => !doneSections.value.has(section.id)))
+
+/**
+ * Whether every top-level section of the sheet is marked as checked, other examiners' included,
+ * which is what finishes the examination.
+ */
+const everySectionDone = computed(() => tree.value.childrenOf(null).every(section => doneSections.value.has(section.id)))
+
+const isChecked = (itemId: number) => checks.value.get(itemId) === true
 
 function sectionCheckedScore(sectionId: number): number {
-  const allItems = [...sectionItems(sectionId)]
-  for (const sub of childSections(sectionId)) allItems.push(...sectionItems(sub.id))
-  return allItems.reduce((sum, i) => sum + (checks.value.get(i.id) ? i.points : 0), 0)
+  return scoreOf(tree.value.itemsUnder(sectionId), isChecked)
 }
 
 function sectionMaxScore(sectionId: number): number {
-  const allItems = [...sectionItems(sectionId)]
-  for (const sub of childSections(sectionId)) allItems.push(...sectionItems(sub.id))
-  return allItems.reduce((sum, i) => sum + i.points, 0)
+  return tree.value.maxPointsUnder(sectionId)
 }
 
-const totalScore = computed(() => {
-  let sum = 0
-  for (const item of items.value) {
-    if (checks.value.get(item.id)) sum += item.points
-  }
-  return sum
-})
+const currentSectionScore = computed(() => (currentSection.value ? sectionCheckedScore(currentSection.value.id) : 0))
 
-const totalMaxPoints = computed(() => items.value.reduce((sum, i) => sum + i.points, 0))
+const currentSectionMaxPoints = computed(() => (currentSection.value ? sectionMaxScore(currentSection.value.id) : 0))
+
+const totalScore = computed(() => scoreOf(items.value, isChecked))
+
+const totalMaxPoints = computed(() => maxPointsOf(items.value))
 
 let saveDebounce: ReturnType<typeof setTimeout> | null = null
 
@@ -110,10 +123,6 @@ function toggleCheck(itemId: number) {
   checks.value.set(itemId, !checks.value.get(itemId))
   if (saveDebounce) clearTimeout(saveDebounce)
   saveDebounce = setTimeout(() => autoSave(), 500)
-}
-
-async function toggleSectionDone(sectionId: number) {
-  doneSections.value = new Set(await protocol.toggleSectionDone(runId.value, memberId.value, sectionId))
 }
 
 function serializeChecks(): Record<number, boolean> {
@@ -133,12 +142,17 @@ const {loading, failure, reload: loadData} = useAsyncLoader(async () => {
   storedRunId = runId.value
   storedMemberId = memberId.value
 
-  const [protocolData, existingChecks, doneIds, allMembers] = await Promise.all([
+  const [protocolData, existingChecks, doneIds, allMembers, gradingScope, plan] = await Promise.all([
     protocol.getProtocol((await protocol.getRun(runId.value)).run.protocolId),
     protocol.getChecks(runId.value, memberId.value),
     protocol.getSectionsDone(runId.value, memberId.value),
     stationMembers.listMembers(),
+    protocol.getGradingScope(runId.value),
+    protocol.getExaminers(runId.value),
   ])
+  scope.value = gradingScope
+  examinerPlan.value = plan
+  memberNames.value = new Map(allMembers.map(m => [m.id, m.name || m.email || `#${m.id}`]))
   sections.value = protocolData.sections
   items.value = protocolData.items
   member.value = allMembers.find(m => m.id === memberId.value) ?? null
@@ -189,38 +203,66 @@ function savePrev() {
   })
 }
 
-function finishGrading() {
+function backToRun() {
+  return router.push({ name: 'protocol-run-detail', params: { id: runId.value } })
+}
+
+/**
+ * Marks a section as checked or takes the mark back, always after the ticks were saved: the mark
+ * that leaves no section open finishes the examination on the server, scored from what is stored.
+ *
+ * @returns whether this mark finished the examination
+ */
+async function markSection(sectionId: number): Promise<boolean> {
+  doneSections.value = new Set(await protocol.toggleSectionDone(runId.value, memberId.value, sectionId))
+  return everySectionDone.value
+}
+
+/** Says that the member is through with every station, then leaves for the run. */
+function finishedExam() {
+  showToast(t('protocol.examFinished', {name: member.value?.name || member.value?.email || ''}), 'success')
+  return backToRun()
+}
+
+function toggleSectionDone(sectionId: number) {
   return runSave(async () => {
-    await protocol.completeMember(runId.value, memberId.value)
-    router.push({ name: 'protocol-run-detail', params: { id: runId.value } })
+    if (await markSection(sectionId)) await finishedExam()
   })
 }
 
 function markDoneAndNext() {
   return runSave(async () => {
     const section = currentSection.value
-    if (section && !doneSections.value.has(section.id)) {
-      doneSections.value = new Set(await protocol.toggleSectionDone(runId.value, memberId.value, section.id))
+    if (section && !doneSections.value.has(section.id) && await markSection(section.id)) {
+      await finishedExam()
+      return
     }
     goNextSection()
   })
 }
 
+/**
+ * Closes this examiner's station and, while the member still has stations to go, names the next one
+ * in the order of the sheet and who examines it there before going back to the run.
+ */
 function markDoneAndExit() {
   return runSave(async () => {
     const section = currentSection.value
-    if (section && !doneSections.value.has(section.id)) {
-      await protocol.toggleSectionDone(runId.value, memberId.value, section.id)
-    }
+    const finished = section && !doneSections.value.has(section.id) ? await markSection(section.id) : false
     await protocol.unlockMember(runId.value, memberId.value)
-    router.push({ name: 'protocol-run-detail', params: { id: runId.value } })
+    if (finished) {
+      await finishedExam()
+      return
+    }
+    upNext.value = section ? nextStation(tree.value.childrenOf(null), doneSections.value, section.id) : null
+    if (!upNext.value) await backToRun()
   })
 }
 
 function saveAndExit() {
   return runSave(async () => {
     await protocol.unlockMember(runId.value, memberId.value)
-    router.push({ name: 'protocol-run-detail', params: { id: runId.value } })
+    await backToRun()
   })
 }
 
@@ -267,10 +309,14 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
         <span class="font-mono font-bold text-lg">{{ totalScore }} / {{ totalMaxPoints }}P</span>
       </div>
 
+      <Alert v-if="openSections.length > 0" variant="info" class="mb-4">
+        {{ t('protocol.openSections', {names: openSections.map(section => section.name).join(', ')}) }}
+      </Alert>
+
       <GradingSectionPanel
         :section="currentSection"
-        :child-sections="childSections(currentSection.id)"
-        :section-items="sectionItems"
+        :tree="tree"
+        :gradable="gradable"
         :checks="checks"
         :score="currentSectionScore"
         :max-points="currentSectionMaxPoints"
@@ -293,14 +339,18 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
             <font-awesome-icon :icon="['fas', 'chevron-left']" class="mr-1" /> {{ t('protocol.prevSection') }}
           </SecondaryButton>
           <div class="hidden sm:block flex-1" />
-          <SuccessButton v-if="currentSectionIndex === topSections.length - 1" class="flex-1 sm:flex-initial" :disabled="saving" @click="finishGrading">
-            <font-awesome-icon :icon="['fas', 'flag']" class="mr-1" /> {{ t('protocol.finish') }}
-          </SuccessButton>
           <PrimaryButton v-if="currentSectionIndex < topSections.length - 1" class="sm:flex-initial" :disabled="saving" @click="saveAndNext">
             {{ t('protocol.nextSection') }} <font-awesome-icon :icon="['fas', 'chevron-right']" class="ml-1" />
           </PrimaryButton>
         </ButtonRow>
       </div>
     </template>
+    <NextStationModal
+      v-if="upNext"
+      v-model:show="showUpNext"
+      :member-name="member?.name || member?.email || ''"
+      :station="upNext.name"
+      :examiner-names="examinersOf(upNext.id)"
+    />
   </ViewContent>
 </template>

@@ -158,10 +158,10 @@ const readOnlyReason = computed(() => {
 })
 
 async function copyToStation() {
-    if (!file.value) return
+    if (!file.value || !props.stationUid) return
     try {
         const {federation} = await import('@/api')
-        await federation.copyKbFile(file.value.id)
+        await federation.copyKbFile(props.stationUid, file.value.id)
         router.push({name: routes.value.browse})
     } catch (e) {
         failure.value = {...describeFailure(e, t), message: t('kb.copyToStationFailed')}

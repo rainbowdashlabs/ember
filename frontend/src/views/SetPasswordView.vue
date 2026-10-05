@@ -21,6 +21,8 @@ import {describeFailure} from '@/util/failure'
 import {decideSignInLanding} from '@/util/signInLanding'
 import LinkNoLongerGood from './setpasswordview/LinkNoLongerGood.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
+import ConsentStep from '@/components/consent/ConsentStep.vue'
+import {useLoginConsent} from '@/composables/useLoginConsent'
 import type {TokenStatus} from '@/api/generated/schema'
 
 const {t} = useI18n()
@@ -28,6 +30,14 @@ const route = useRoute()
 const router = useRouter()
 const {setActiveStation, clearActiveStation} = useStations()
 const {setActiveCluster, clearActiveCluster} = useCluster()
+
+/**
+ * The consent asked before the password, as the sign-in form asks it before the sign-in. Setting a
+ * password from a link signs the member in straight away, so without this step they would be in
+ * without ever having been asked.
+ */
+const legal = useLoginConsent()
+const {consent} = legal
 
 const newPassword = ref('')
 const confirmPassword = ref('')
@@ -66,6 +76,7 @@ async function sentOnToEnrolment(): Promise<boolean> {
 
 onMounted(async () => {
   if (await sentOnToEnrolment().catch(() => false)) return
+  void legal.loadConsentText()
   try {
     status.value = await auth.passwordLinkStatus(token)
   } catch {
@@ -102,6 +113,7 @@ const {running: loading, error: submitError, run: runSetPassword} = useAsyncActi
     return
   }
 
+  await legal.recordAfterLogin()
   clearActiveStation()
   clearActiveCluster()
   const landing = await decideSignInLanding()
@@ -134,13 +146,15 @@ function handleSetPassword() {
 
     <LinkNoLongerGood v-else-if="status && status.standing !== 'VALID'" :status="status"/>
 
-    <div v-else class="w-full max-w-xs space-y-6">
+    <div v-else class="w-full space-y-6" :class="consent === 'accepted' ? 'max-w-xs' : 'max-w-5xl'">
       <div class="text-center">
         <PageHeroIcon :icon="['fas', 'lock']"/>
         <PageHeader class="text-2xl font-bold">{{ t('setPassword.title') }}</PageHeader>
       </div>
 
-      <form class="space-y-4" @submit.prevent="handleSetPassword">
+      <ConsentStep :legal="legal"/>
+
+      <form v-if="consent === 'accepted'" class="space-y-4" @submit.prevent="handleSetPassword">
         <FailureAlert :message="error"/>
 
         <div class="space-y-1">

@@ -53,6 +53,8 @@ class TestProtocolPdfServiceTest extends RepositoryTestBase {
         var passed = testProtocolRepo.createItem(section.id(), "Item " + TRICKY, "", 1.5, 0);
         testProtocolRepo.createItem(section.id(), "Missed", "", 1, 1);
         testProtocolRepo.createItem(subsection.id(), "Nested " + TRICKY, "", 2, 0);
+        var deep = testProtocolRepo.createSection(protocol.id(), subsection.id(), "Deep level", "", null, null, 0);
+        testProtocolRepo.createItem(deep.id(), "Extra credit", "", 1, 0, true);
 
         var run =
                 testProtocolRepo.createRun(protocol.id(), station.id(), "Run", LocalDate.of(2026, 9, 30), member.id());
@@ -82,6 +84,10 @@ class TestProtocolPdfServiceTest extends RepositoryTestBase {
         assertSurvives(text, "Item");
         assertSurvives(text, "Nested");
         assertSurvives(text, "Member");
+        assertTrue(text.contains("Deep level"), "a third level is printed");
+        assertTrue(text.contains("Extra credit"), "a point three levels down is printed");
+        assertTrue(text.replaceAll("\\s+", "").contains("+1P"), "a bonus point is marked");
+        assertTrue(text.replaceAll("\\s+", "").contains("1,5/4,5P"), "the bonus point leaves the maximum alone");
         assertTrue(text.contains("Prüfer:"));
         assertTrue(text.contains("Unterschrift:"));
         assertTrue(text.contains("1,5"), "points follow the station's locale");
@@ -100,6 +106,7 @@ class TestProtocolPdfServiceTest extends RepositoryTestBase {
         assertTrue(text.contains("Thema"));
         assertTrue(text.contains("Gesamt"));
         assertTrue(text.replaceAll("\\s+", " ").contains("$x$"), "the section names survive in the table");
+        assertTrue(text.contains("Deep level"), "a third level gets its own row");
     }
 
     @Test

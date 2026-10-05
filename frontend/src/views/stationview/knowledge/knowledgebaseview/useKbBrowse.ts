@@ -157,10 +157,10 @@ export function useKbBrowse(navigation: ReturnType<typeof useKbNavigation>) {
      * followed by a folder that failed to come back, read as a copy that had failed. Copying it again
      * leaves the station holding it twice.
      */
-    async function copySharedFile(fileId: number) {
+    async function copySharedFile(stationUid: string, fileId: number) {
         failure.value = null
         try {
-            await federation.copyKbFile(fileId)
+            await federation.copyKbFile(stationUid, fileId)
         } catch (e) {
             failure.value = describeFailure(e, t)
             return

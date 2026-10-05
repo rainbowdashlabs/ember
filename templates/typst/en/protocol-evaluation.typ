@@ -17,7 +17,7 @@
 #let row-cells(row) = {
   if row.kind == "DETAIL" {
     (
-      [#h(0.5em)#text(size: 6.5pt)[#row.name]],
+      [#h(0.5em * row.depth)#text(size: 6.5pt)[#row.name]],
       [#text(size: 6.5pt)[#row.max]],
     ) + row.cells.map(cell => score-cell(cell, false))
   } else {

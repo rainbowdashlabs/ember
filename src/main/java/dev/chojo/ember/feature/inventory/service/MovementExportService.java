@@ -33,6 +33,8 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -164,6 +166,7 @@ public class MovementExportService {
                     .computeIfAbsent(ex.memberId(), _ -> new ArrayList<>())
                     .add(ex);
         }
+        var columnsPerInventory = columnsPerInventory(inventoryOrder, exchangesByMember.values());
 
         var rows = new ArrayList<Map<String, Object>>();
         for (var entry : exchangesByMember.entrySet()) {
@@ -186,13 +189,13 @@ public class MovementExportService {
                 var sizeMap = inventorySizes.get(invId);
                 var matching = memberExchanges.stream()
                         .filter(e -> e.inventoryId() == invId)
-                        .findFirst();
-                if (matching.isPresent()) {
-                    var ex = matching.get();
+                        .toList();
+                for (var ex : matching) {
                     String oldSize = ex.oldSizeId() != null ? sizeMap.getOrDefault(ex.oldSizeId(), "?") : UNSIZED;
                     String newSize = ex.newSizeId() != null ? sizeMap.getOrDefault(ex.newSizeId(), "?") : UNSIZED;
                     exchanges.add(new SizeChange(oldSize, newSize));
-                } else {
+                }
+                for (int empty = matching.size(); empty < columnsPerInventory.get(invId); empty++) {
                     exchanges.add(new SizeChange("", ""));
                 }
             }
@@ -220,7 +223,10 @@ public class MovementExportService {
         data.put("extraFields", extraFieldNames);
         data.put(
                 "inventoryColumns",
-                inventoryOrder.stream().map(inventoryNames::get).toList());
+                inventoryOrder.stream()
+                        .flatMap(invId ->
+                                Collections.nCopies(columnsPerInventory.get(invId), inventoryNames.get(invId)).stream())
+                        .toList());
         data.put("rows", rows);
 
         var logo = logoService.original(stationId).orElse(null);
@@ -231,6 +237,26 @@ public class MovementExportService {
             log.error("Failed to export exchange PDF", e);
             return Optional.empty();
         }
+    }
+
+    /**
+     * How many columns each inventory takes: as many as the most movements of it any one member has, so
+     * someone exchanging two shirts gets two shirt columns instead of losing one of them.
+     *
+     * @param inventoryOrder    the inventories on the sheet
+     * @param movementsByMember each member's movements
+     * @return the column count per inventory, at least one each
+     */
+    static Map<Integer, Integer> columnsPerInventory(
+            Set<Integer> inventoryOrder, Collection<List<ItemMovement>> movementsByMember) {
+        var columns = new LinkedHashMap<Integer, Integer>();
+        for (int invId : inventoryOrder) columns.put(invId, 1);
+        for (var movements : movementsByMember) {
+            var counts =
+                    movements.stream().collect(Collectors.groupingBy(ItemMovement::inventoryId, Collectors.counting()));
+            counts.forEach((invId, count) -> columns.merge(invId, count.intValue(), Math::max));
+        }
+        return columns;
     }
 
     /**

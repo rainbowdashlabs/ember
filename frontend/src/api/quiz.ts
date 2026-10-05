@@ -11,6 +11,8 @@ import {prepareImageUpload} from '@/util/imageUpload'
 import {QuizQuestionType} from './generated/schema'
 import type {
     CatalogListResponse,
+    CatalogSharing,
+    CatalogSharingRequest,
     CatalogTransfer,
     components,
     CsvDraft,
@@ -152,6 +154,17 @@ const tests = createCrudResource<
 export async function listCatalogs(): Promise<CatalogListResponse> {
     const res = await client.get<CatalogListResponse>('/quiz/catalogs')
     return res.data
+}
+
+/** Which of the station's catalogs its federation partners may see. */
+export async function getSharedCatalogIds(): Promise<number[]> {
+    const res = await client.get<CatalogSharing>('/quiz/catalogs/sharing')
+    return res.data.catalogIds
+}
+
+/** Shares a catalog with every partner of the station, or stops sharing it. */
+export async function setCatalogShared(catalogId: number, shared: boolean): Promise<void> {
+    await client.put(`/quiz/catalogs/${catalogId}/sharing`, {shared} satisfies CatalogSharingRequest)
 }
 
 export const getCatalog = catalogs.get

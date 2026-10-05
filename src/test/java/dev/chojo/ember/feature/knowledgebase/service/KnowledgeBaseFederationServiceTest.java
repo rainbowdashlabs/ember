@@ -553,7 +553,27 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
         assertThrows(
                 RefusalResponse.class,
                 () -> service.getFederatedKbFileContent(station.id(), stationB.uid(), file.id()));
-        assertThrows(RefusalResponse.class, () -> service.copyKbFile(file.id(), station.id(), member.id()));
+        assertThrows(
+                RefusalResponse.class, () -> service.copyKbFile(station.id(), stationB.uid(), file.id(), member.id()));
+        knowledgeBaseRepo.purgeFile(file.id());
+    }
+
+    /**
+     * A file of a station nobody here is paired with used to be copied straight from this instance's own
+     * storage, text and all, by its number. Without a partnership there is nobody to ask, so it is refused.
+     */
+    @Test
+    @Order(21)
+    void aFileOfAnUnpairedStationIsNotCopied() {
+        var stranger = stationRepo.create("KbFedStranger");
+        var file = createFile(stranger.id(), "Fremd");
+        knowledgeBaseRepo.storeTextContent(file.id(), "# Geheim");
+
+        assertThrows(
+                RefusalResponse.class, () -> service.copyKbFile(station.id(), stranger.uid(), file.id(), member.id()));
+        assertTrue(kbService.findFiles(station.id(), null).stream()
+                .noneMatch(found -> found.name().equals("Fremd")));
+
         knowledgeBaseRepo.purgeFile(file.id());
     }
 
@@ -627,7 +647,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
         var file = sharedFile("CopySource");
         knowledgeBaseRepo.storeTextContent(file.id(), "# Copy Me");
 
-        var copied = service.copyKbFile(file.id(), station.id(), member.id());
+        var copied = service.copyKbFile(station.id(), stationB.uid(), file.id(), member.id());
         assertEquals("CopySource", copied.name());
         assertEquals(station.id(), copied.stationId());
         assertNotEquals(file.id(), copied.id());
@@ -654,7 +674,7 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
                 "MARKDOWN",
                 "Station B");
 
-        var copied = service.copyKbFile(file.id(), station.id(), member.id());
+        var copied = service.copyKbFile(station.id(), stationB.uid(), file.id(), member.id());
         favourites.carryOverToCopy(member.id(), copied.id());
 
         assertTrue(favouriteRepo
@@ -671,21 +691,34 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
     @Test
     @Order(28)
     void copyKbFileFromRemotePartner() {
-        var file = createFile(stationC.id(), "RemoteCopySource");
+        var remoteFile = new RemoteKnowledgeBaseRoutes.RemoteKbFile(
+                78,
+                stationC.uid(),
+                "RemoteCopySource",
+                "desc",
+                KbFileType.MARKDOWN,
+                "text/markdown",
+                0,
+                null,
+                null,
+                Instant.parse("2026-01-01T00:00:00Z"),
+                Instant.parse("2026-01-01T00:00:00Z"),
+                null);
+        when(httpClient.get(eq(REMOTE_HOST), pathIs("/remote/kb/files/78"), any(), eq(station.id()), any()))
+                .thenReturn(remoteFile);
         when(httpClient.get(
                         eq(REMOTE_HOST),
-                        pathContains("/content"),
+                        pathIs("/remote/kb/files/78/content"),
                         any(),
                         eq(station.id()),
                         eq(RemoteKnowledgeBaseRoutes.FileContentResponse.class)))
-                .thenReturn(new RemoteKnowledgeBaseRoutes.FileContentResponse(file.id(), "# From remote"));
+                .thenReturn(new RemoteKnowledgeBaseRoutes.FileContentResponse(78, "# From remote"));
 
-        var copied = service.copyKbFile(file.id(), station.id(), member.id());
+        var copied = service.copyKbFile(station.id(), stationC.uid(), 78, member.id());
         assertEquals("RemoteCopySource", copied.name());
         assertTrue(contentService.getMarkdownContent(copied.id()).orElseThrow().contains("From remote"));
 
         knowledgeBaseRepo.purgeFile(copied.id());
-        knowledgeBaseRepo.purgeFile(file.id());
     }
 
     @Test

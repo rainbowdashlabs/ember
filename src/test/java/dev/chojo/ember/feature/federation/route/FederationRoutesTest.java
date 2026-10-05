@@ -17,7 +17,6 @@ import dev.chojo.ember.feature.federation.service.FederationEnrollmentService;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.federation.service.IncomingPairRequestService;
 import dev.chojo.ember.feature.federation.service.OutgoingPairRequestService;
-import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationService;
 import io.javalin.testtools.Request;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -111,8 +110,7 @@ class FederationRoutesTest {
         incoming = mock(IncomingPairRequestService.class);
         outgoing = mock(OutgoingPairRequestService.class);
         enrollment = mock(FederationEnrollmentService.class);
-        harness = RouteHarness.serving(new FederationRoutes(
-                federation, enrollment, mock(KnowledgeBaseFederationService.class), incoming, outgoing));
+        harness = RouteHarness.serving(new FederationRoutes(federation, enrollment, incoming, outgoing));
     }
 
     @Test

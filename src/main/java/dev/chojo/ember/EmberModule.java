@@ -275,6 +275,7 @@ import dev.chojo.ember.feature.procedure.route.ProcedureRoutes;
 import dev.chojo.ember.feature.procedure.service.ProcedureFeedDetails;
 import dev.chojo.ember.feature.protocol.route.FederatedTestProtocolRoutes;
 import dev.chojo.ember.feature.protocol.route.RemoteTestProtocolRoutes;
+import dev.chojo.ember.feature.protocol.route.TestProtocolExaminerRoutes;
 import dev.chojo.ember.feature.protocol.route.TestProtocolRoutes;
 import dev.chojo.ember.feature.protocol.service.TestProtocolService;
 import dev.chojo.ember.feature.question.MemberEligibility;
@@ -542,6 +543,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(PublicEventRoutes.class);
         routesBinder.addBinding().to(PublicStationRoutes.class);
         routesBinder.addBinding().to(UtilRoutes.class);
+        routesBinder.addBinding().to(TestProtocolExaminerRoutes.class);
         routesBinder.addBinding().to(TestProtocolRoutes.class);
         routesBinder.addBinding().to(FederatedTestProtocolRoutes.class);
         routesBinder.addBinding().to(RemoteTestProtocolRoutes.class);

@@ -9,6 +9,7 @@ import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import Alert from '@/components/feedback/Alert.vue'
+import DevCodeHint from '@/components/feedback/DevCodeHint.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
@@ -218,6 +219,7 @@ function onCancel() {
             autocomplete="one-time-code"
             inputmode="numeric"
         />
+        <DevCodeHint v-if="offersTotp && !offersPassword && !useBackupCode"/>
         <FailureAlert :failure="failure"/>
         <ButtonRow pair align="between">
           <SecondaryButton type="button" :disabled="loading" @click="onCancel">

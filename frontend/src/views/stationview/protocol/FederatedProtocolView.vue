@@ -21,6 +21,7 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {describeFailure} from '@/util/failure'
 import type {RemoteProtocolDetail} from '@/api/generated/schema'
 import {federation, protocol} from '@/api'
+import ProtocolItemPoints from '@/components/protocol/ProtocolItemPoints.vue'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 
 const props = defineProps<{
@@ -49,7 +50,7 @@ const itemsBySection = computed(() => {
 
 async function copyToStation() {
     try {
-        await federation.copyProtocol(props.protocolId)
+        await federation.copyProtocol(props.stationUid, props.protocolId)
         router.push({name: 'protocol-list'})
     } catch (e) {
         failure.value = describeFailure(e, t)
@@ -108,7 +109,7 @@ watch(() => [props.stationUid, props.protocolId], () => reload())
                             class="flex items-center justify-between gap-4 text-sm"
                         >
                             <span class="min-w-0 truncate">{{ item.label }}</span>
-                            <span class="text-[var(--text-muted)] shrink-0">{{ item.points }}</span>
+                            <ProtocolItemPoints :item="item"/>
                         </li>
                     </ul>
                 </NeutralContainer>

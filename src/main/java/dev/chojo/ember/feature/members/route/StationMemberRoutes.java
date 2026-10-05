@@ -115,6 +115,18 @@ public class StationMemberRoutes implements Routes {
         }
     }
 
+    /**
+     * The members as this reader may see them: with their email only where the reader may read the
+     * register.
+     */
+    private static List<MemberWithName> asSeenBy(StationSession session, List<MemberWithName> members) {
+        return members.stream().map(member -> asSeenBy(session, member)).toList();
+    }
+
+    private static MemberWithName asSeenBy(StationSession session, MemberWithName member) {
+        return session.hasPermission(StationPermission.MEMBER_READ) ? member : member.withoutEmail();
+    }
+
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/permissions", this::listAllPermissions, StationPermission.LOGIN);
@@ -277,7 +289,8 @@ public class StationMemberRoutes implements Routes {
         var session = StationSession.from(ctx);
         int stationId = session.stationId();
         boolean includeFormer = "true".equals(ctx.queryParam("includeFormer"));
-        ctx.json(memberViews.withCompleteness(memberService.findByStation(stationId, includeFormer)));
+        ctx.json(
+                asSeenBy(session, memberViews.withCompleteness(memberService.findByStation(stationId, includeFormer))));
     }
 
     /**
@@ -310,7 +323,7 @@ public class StationMemberRoutes implements Routes {
     private void get(Context ctx) {
         int id = pathInt(ctx, "id");
         var member = requireOwnedMember(ctx, id);
-        ctx.json(memberViews.withCompleteness(member));
+        ctx.json(asSeenBy(StationSession.from(ctx), memberViews.withCompleteness(member)));
     }
 
     /**
@@ -343,7 +356,7 @@ public class StationMemberRoutes implements Routes {
                 .filter(found -> found.stationId() == session.stationId())
                 .filter(found -> !found.former())
                 .orElseThrow(MemberRefusal.MEMBER_NOT_HERE_BY_UID::raise);
-        ctx.json(memberViews.withCompleteness(member));
+        ctx.json(asSeenBy(session, memberViews.withCompleteness(member)));
     }
 
     @OpenApi(
@@ -532,7 +545,8 @@ public class StationMemberRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberWithName[].class)))
     private void listFormer(Context ctx) {
         StationSession session = StationSession.from(ctx);
-        ctx.json(memberViews.withCompleteness(memberService.findFormerByStation(session.stationId())));
+        ctx.json(asSeenBy(
+                session, memberViews.withCompleteness(memberService.findFormerByStation(session.stationId()))));
     }
 
     @OpenApi(

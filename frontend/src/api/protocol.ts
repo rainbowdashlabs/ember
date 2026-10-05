@@ -8,13 +8,19 @@ import { createCrudResource } from './crud'
 import { downloadAuthed } from '@/util/downloadAuthed'
 import type {
     EvaluationResponse,
+    ExaminerCandidate,
+    GradingScope,
+    RunExaminers,
     ProtocolDetailResponse,
     ProtocolItemRequest,
     ProtocolListResponse,
     ProtocolRequest,
     ProtocolRunRequest,
     ProtocolSectionRequest,
+    ProtocolSharing,
+    ProtocolSharingRequest,
     RemoteProtocolDetail,
+    SectionParentRequest,
     RunDetailResponse,
     TestProtocol,
     TestProtocolItem,
@@ -61,6 +67,17 @@ export async function listProtocols(): Promise<ProtocolListResponse> {
     return res.data
 }
 
+/** Which of the station's protocols its federation partners may see. */
+export async function getSharing(): Promise<ProtocolSharing> {
+    const res = await client.get<ProtocolSharing>('/protocols/sharing')
+    return res.data
+}
+
+/** Shares a protocol with every partner of the station, or stops sharing it. */
+export async function setSharing(protocolId: number, shared: boolean): Promise<void> {
+    await client.put(`/protocols/${protocolId}/sharing`, {shared} satisfies ProtocolSharingRequest)
+}
+
 export async function createSection(protocolId: number, data: ProtocolSectionRequest): Promise<TestProtocolSection> {
     const res = await client.post<TestProtocolSection>(`/protocols/${protocolId}/sections`, data)
     return res.data
@@ -87,6 +104,21 @@ export async function deleteItem(id: number): Promise<void> {
     await client.delete(`/protocols/items/${id}`)
 }
 
+/** Puts every section of one level of a protocol into the given order. */
+export async function reorderSections(protocolId: number, ids: number[]): Promise<void> {
+    await client.put(`/protocols/${protocolId}/sections/order`, {ids})
+}
+
+/** Moves a section, with everything under it, under another section of its protocol or to the top level. */
+export async function moveSection(sectionId: number, parentId: number | null): Promise<void> {
+    await client.put(`/protocols/sections/${sectionId}/parent`, {parentId} satisfies SectionParentRequest)
+}
+
+/** Puts every point of a section into the given order. */
+export async function reorderItems(sectionId: number, ids: number[]): Promise<void> {
+    await client.put(`/protocols/sections/${sectionId}/items/order`, {ids})
+}
+
 export const listRuns = runs.list
 export const getRun = runs.get
 export const updateRun = runs.update
@@ -99,6 +131,35 @@ export async function createRun(protocolId: number, data: ProtocolRunRequest): P
 
 export async function closeRun(id: number): Promise<TestProtocolRun> {
     const res = await client.post<TestProtocolRun>(`/protocols/runs/${id}/close`)
+    return res.data
+}
+
+/** Everybody who may be named an examiner: the station's testers. */
+export async function listExaminerCandidates(): Promise<ExaminerCandidate[]> {
+    const res = await client.get<ExaminerCandidate[]>('/protocols/examiner-candidates')
+    return res.data
+}
+
+/** The examiners of each section of a run. */
+export async function getExaminers(runId: number): Promise<RunExaminers> {
+    const res = await client.get<RunExaminers>(`/protocols/runs/${runId}/examiners`)
+    return res.data
+}
+
+/** Replaces every examiner of a run. */
+export async function setExaminers(runId: number, plan: RunExaminers): Promise<void> {
+    await client.put(`/protocols/runs/${runId}/examiners`, plan)
+}
+
+/** The examiners of the last planned run of the same protocol, to start a recurring exam from. */
+export async function getPreviousExaminers(runId: number): Promise<RunExaminers> {
+    const res = await client.get<RunExaminers>(`/protocols/runs/${runId}/examiners/previous`)
+    return res.data
+}
+
+/** What the signed-in tester may grade in a run. */
+export async function getGradingScope(runId: number): Promise<GradingScope> {
+    const res = await client.get<GradingScope>(`/protocols/runs/${runId}/grading-scope`)
     return res.data
 }
 
@@ -157,9 +218,4 @@ export function exportAllZip(runId: number): Promise<void> {
  */
 export function evaluationPdf(runId: number): Promise<void> {
     return downloadAuthed(`/protocols/runs/${runId}/evaluation/export`, `protocol-${runId}-evaluation.pdf`)
-}
-
-export async function completeMember(runId: number, memberId: number): Promise<TestProtocolRunMember> {
-    const res = await client.post<TestProtocolRunMember>(`/protocols/runs/${runId}/members/${memberId}/complete`)
-    return res.data
 }

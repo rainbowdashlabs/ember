@@ -158,6 +158,16 @@ describe('Modal', () => {
         expect(document.activeElement?.id).toBe('named')
     })
 
+    /** A dialog that is filled in opens with the cursor in the field it marks, ready for typing. */
+    it('puts the focus on the field a dialog marks', async () => {
+        const wrapper = await mountModal(false, '<input id="name" data-autofocus><button id="ok">Speichern</button>')
+
+        await wrapper.setProps({modelValue: true})
+        await settle()
+
+        expect(document.activeElement?.id).toBe('name')
+    })
+
     it('gives the focus back to what opened it once it closes', async () => {
         mountWithTrigger('<button id="ok">Speichern</button>')
         const trigger = document.getElementById('trigger') as HTMLButtonElement

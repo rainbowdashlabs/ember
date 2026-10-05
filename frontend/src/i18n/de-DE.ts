@@ -498,8 +498,11 @@ export default {
     storageConsent: {
         title: 'Einwilligung zur Datenverarbeitung',
         description: 'Diese Anwendung hält deine Anmeldung in einem geschützten Cookie und speichert Einstellungen im lokalen Speicher deines Browsers. Deine Daten werden ausschließlich zur Organisation deiner Jugendgruppe verwendet. Wir geben keine personenbezogenen Daten an Dritte weiter.',
-        accept: 'Zustimmen',
+        necessaryOnly: 'Nur Notwendiges',
+        acceptChoice: 'Auswahl übernehmen',
+        acceptAll: 'Alles erlauben',
         deny: 'Ablehnen',
+        answerHint: 'Mit den ersten drei Antworten stimmst du den Nutzungsbedingungen und der Datenschutzerklärung zu und legst fest, was im Browser bleiben darf. Technisch erforderliche Werte bleiben immer. Lehnst du ab, kannst du diese Anwendung nicht nutzen.',
         privacyPolicy: 'Datenschutzerklärung lesen',
         privacyPolicyTitle: 'Datenschutzerklärung',
         tos: 'Nutzungsbedingungen lesen',
@@ -512,8 +515,8 @@ export default {
             always: 'Immer aktiv',
             REQUIRED: {
                 title: 'Technisch erforderlich',
-                hint: 'Anmeldung, Sitzung und die Einwilligung selbst. Ohne diese Werte kannst du dich '
-                    + 'nicht anmelden.',
+                hint: 'Anmeldung, Sitzung, die gewählte Wache und die Einwilligung selbst. Ohne diese '
+                    + 'Werte funktioniert die Anwendung nicht, deshalb bleiben sie immer.',
             },
             FUNCTIONAL: {
                 title: 'Für einzelne Funktionen',
@@ -1846,6 +1849,11 @@ export default {
         'protocol-run-detail': {
             title: 'Prüfung',
             subtitle: 'Prüfungs-Details',
+        },
+        'protocol-run-plan': {
+            title: 'Prüfer planen',
+            titleNamed: '{name} Prüfer planen',
+            subtitle: 'Wer welchen Abschnitt prüft',
         },
         'protocol-grade': {
             title: 'Bewertung',
@@ -3909,6 +3917,10 @@ export default {
             label: 'Testkatalog bearbeiten',
             desc: 'Kann Tests und Fragen erstellen und ändern.',
         },
+        TEST_CATALOG_SHARE: {
+            label: 'Testkataloge teilen',
+            desc: 'Kann die Testkataloge der Wache mit Partnerwachen teilen.',
+        },
         TEST_CONFIGURE: {
             label: 'Tests konfigurieren',
             desc: 'Kann neue Testdurchläufe einrichten.',
@@ -3936,6 +3948,10 @@ export default {
         PROTOCOL_CONFIGURE: {
             label: 'Protokolle konfigurieren',
             desc: 'Kann Protokollvorlagen anlegen und bearbeiten.',
+        },
+        PROTOCOL_SHARE: {
+            label: 'Protokolle teilen',
+            desc: 'Kann die Protokolle der Wache mit Partnerwachen teilen.',
         },
         BOARD_MANAGER: {
             label: 'Boards',
@@ -5181,6 +5197,7 @@ export default {
         verify: {
             title: 'Zwei-Faktor-Verifizierung',
             totpHint: 'Gib den 6-stelligen Code aus deiner Authenticator-App ein.',
+            devCode: 'Entwicklungsinstanz: Der Code {code} wird für jede Authenticator-App angenommen.',
             backupHint: 'Gib einen deiner Wiederherstellungscodes ein.',
             submit: 'Bestätigen',
             useBackupCode: 'Wiederherstellungscode verwenden',
@@ -9274,6 +9291,9 @@ export default {
             name: 'Name',
             description: 'Beschreibung',
             trainingEnabled: 'Für Training freigeben',
+            sharedWithPartners: 'Mit Partnerwachen geteilt',
+            shareWithPartners: 'Mit Partnerwachen teilen',
+            stopSharing: 'Nicht mehr teilen',
             questionCount: '{count} Fragen',
             noCatalogs: 'Noch keine Kataloge vorhanden.',
             deleteCatalog: 'Katalog löschen',
@@ -9743,6 +9763,28 @@ export default {
         passThreshold: 'Bestehensgrenze (Punkte)',
         passThresholdHint: 'Leer = keine Grenze',
         threshold: 'Grenze',
+        plan: {
+            hint: 'Für jeden Abschnitt lassen sich Prüfer festlegen, auch mehrere. Ein Prüfer eines Abschnitts prüft auch alle Unterabschnitte. Sobald Prüfer festgelegt sind, bewerten nur noch sie diese Prüfung.',
+            pickExaminers: 'Prüfer auswählen',
+            inherited: 'Geprüft von: {names}',
+            unassigned: 'Für diese Abschnitte ist noch kein Prüfer festgelegt, sie können von allen Prüfern dieser Prüfung bewertet werden: {names}',
+            copyPrevious: 'Wie beim letzten Mal',
+            nothingToCopy: 'Für diesen Prüfungsbogen gibt es noch keine geplante Prüfung, die sich übernehmen ließe.',
+            skip: 'Ohne Prüfer weiter',
+            save: 'Speichern',
+            open: 'Prüfer planen',
+        },
+        sectionWithExaminers: '{name}, geprüft von {names}',
+        openSections: 'Noch nicht abgeschlossen: {names}',
+        cutSection: 'Ausschneiden',
+        cutHint: '„{name}“ ist ausgeschnitten. Füge den Abschnitt in einen anderen Abschnitt oder auf oberster Ebene ein.',
+        pasteInto: 'In „{name}“ einfügen',
+        pasteAtTop: 'Auf oberster Ebene einfügen',
+        bonus: 'Bonus',
+        bonusHint: 'Zählt zur erreichten Punktzahl, aber nicht zur Höchstpunktzahl des Abschnitts.',
+        sharedWithPartners: 'Mit Partnerwachen geteilt',
+        shareWithPartners: 'Mit Partnerwachen teilen',
+        stopSharing: 'Nicht mehr teilen',
         deleteConfirm: 'Prüfungsbogen wirklich löschen?',
         total: 'Gesamt',
         addSection: 'Abschnitt hinzufügen',
@@ -9774,7 +9816,13 @@ export default {
         totalScore: 'Gesamtpunktzahl',
         prevSection: 'Zurück',
         nextSection: 'Weiter',
-        finish: 'Prüfung abschließen',
+        examFinished: 'Prüfung von {name} abgeschlossen. Alle Stationen sind geprüft.',
+        nextStation: {
+            title: 'Nächste Station für {name}',
+            examiners: 'Bewertet von: {names}',
+            anyExaminer: 'Für diese Station ist niemand eingeteilt, jeder Prüfer dieser Prüfung darf sie bewerten.',
+            done: 'Zurück zur Prüfung',
+        },
         sections: 'Abschnitte',
         filterIncomplete: 'Nur unvollständige',
         markDone: 'Geprüft',
