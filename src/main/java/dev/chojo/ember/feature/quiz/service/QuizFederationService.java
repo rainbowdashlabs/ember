@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.ContentType;
 import dev.chojo.ember.feature.federation.entity.Direction;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
+import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationDisplayNames;
 import dev.chojo.ember.feature.federation.service.FederationEntityResolver;
@@ -27,6 +28,7 @@ import dev.chojo.ember.feature.quiz.route.RemoteQuizRoutes.RemoteCatalogDetail;
 import dev.chojo.ember.feature.quiz.route.RemoteQuizRoutes.RemoteCatalogSummary;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -169,25 +171,75 @@ public class QuizFederationService implements FederationServer {
     }
 
     /**
-     * Copies a catalog with its categories and questions into another station.
+     * The catalogs of a station its partners may see.
      *
-     * <p>Categories belong to a station, not to a catalog, so they are read from the source
-     * station and recreated in the target one. Only the categories the copied questions actually
-     * reference are brought across, to avoid importing the source station's whole vocabulary.
+     * @param stationId the station
+     * @return the ids of its shared catalogs, each once
      */
-    public QuizCatalog copyQuizCatalog(int catalogId, int targetStationId) {
-        var source = catalogService.findCatalog(catalogId).orElseThrow();
+    public List<Integer> findSharedCatalogIds(int stationId) {
+        return federationRepository.findQuizShares(stationId).stream()
+                .flatMap(share -> Stream.ofNullable(share.catalogId()))
+                .distinct()
+                .toList();
+    }
+
+    /**
+     * Shares a catalog with every partner of its station, or stops sharing it. Asking for the state it
+     * is already in changes nothing, so a catalog is never shared twice.
+     *
+     * @param stationId the station, already checked to own the catalog
+     * @param catalogId the catalog
+     * @param shared    whether partners may see it
+     */
+    public void setShared(int stationId, int catalogId, boolean shared) {
+        Transactions.run(() -> {
+            var existing = federationRepository.findQuizShares(stationId).stream()
+                    .filter(share -> Objects.equals(share.catalogId(), catalogId))
+                    .toList();
+            if (shared && existing.isEmpty()) {
+                federationService.createQuizShare(stationId, catalogId, ShareScope.ALL_PARTNERS);
+            }
+            if (!shared) existing.forEach(share -> federationService.deleteQuizShare(share.id(), stationId));
+        });
+    }
+
+    /**
+     * Copies a catalog a partner shares into this station.
+     *
+     * <p>The catalog is read from the partner over federation, the same way it is shown, so only what
+     * the partner actually shares can be copied, and a partner on another instance works the same as
+     * one on this instance.
+     *
+     * @param localStationId    the station copying
+     * @param partnerStationUid the partner station that shares the catalog
+     * @param catalogId         the catalog's number at the partner
+     * @return the new catalog of this station
+     */
+    public QuizCatalog copyFederatedCatalog(int localStationId, UUID partnerStationUid, int catalogId) {
+        var source = getFederatedQuizCatalog(localStationId, partnerStationUid, catalogId);
+        return Transactions.call(() -> copyInto(source, localStationId));
+    }
+
+    /**
+     * Copies a catalog with its categories and questions into a station.
+     *
+     * <p>Categories belong to a station, not to a catalog, so they come from the source station and
+     * are recreated in the target one. Only the categories the copied questions actually reference are
+     * brought across, to avoid importing the source station's whole vocabulary.
+     */
+    private QuizCatalog copyInto(RemoteCatalogDetail detail, int targetStationId) {
+        var source = detail.catalog();
         var newCatalog = catalogService.createCatalog(
                 targetStationId, source.name(), source.description(), source.trainingEnabled(), source.metadata());
 
-        var questions = questionService.findQuestions(source.id());
+        var questions = detail.questions();
         var referenced = questions.stream()
                 .map(QuizQuestion::categoryId)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
 
         var categoryMap = new HashMap<Integer, Integer>();
-        for (var category : catalogService.findCategories(source.stationId())) {
+        for (var category : detail.categories()) {
             if (!referenced.contains(category.id())) continue;
             var copy = catalogService.createCategory(
                     targetStationId, category.name(), category.description(), category.position());
@@ -208,8 +260,8 @@ public class QuizFederationService implements FederationServer {
                             .build());
         }
         log.info(
-                "Copied quiz catalog {} to new catalog {} for station {} ({} questions)",
-                catalogId,
+                "Copied partner quiz catalog {} to new catalog {} for station {} ({} questions)",
+                source.id(),
                 newCatalog.id(),
                 targetStationId,
                 questions.size());

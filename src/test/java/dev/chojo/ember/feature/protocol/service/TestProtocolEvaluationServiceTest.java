@@ -42,9 +42,9 @@ class TestProtocolEvaluationServiceTest {
                         new TestProtocolSection(20, 1, null, "B", "", null, null, 1)));
         when(protocols.findAllItemsByProtocol(1))
                 .thenReturn(List.of(
-                        new TestProtocolItem(100, 10, "a1", "", 2.0, 0),
-                        new TestProtocolItem(101, 10, "a2", "", 3.0, 1),
-                        new TestProtocolItem(200, 20, "b1", "", 1.5, 0)));
+                        new TestProtocolItem(100, 10, "a1", "", 2.0, 0, false),
+                        new TestProtocolItem(101, 10, "a2", "", 3.0, 1, false),
+                        new TestProtocolItem(200, 20, "b1", "", 1.5, 0, false)));
         when(protocols.findRunMembers(5))
                 .thenReturn(List.of(new TestProtocolRunMember(1, 5, 11, null, null, true, 3.5)));
         when(protocols.findChecks(5, 11))
@@ -61,6 +61,29 @@ class TestProtocolEvaluationServiceTest {
         assertEquals(Map.of(10, 5.0, 20, 1.5), evaluation.sectionMaxPoints());
         assertEquals(Map.of(10, 3.0, 20, 1.5), evaluation.members().getFirst().sectionScores());
         assertEquals(3.5, evaluation.members().getFirst().totalScore());
+    }
+
+    /** A checked bonus point raises the score of its section, but never its maximum. */
+    @Test
+    void aBonusPointAddsToTheScoreButNotToTheMaximum() {
+        when(protocols.findProtocol(1)).thenReturn(Optional.of(new TestProtocol(1, 3, "Knoten", "", 70, null, null)));
+        when(protocols.findSections(1))
+                .thenReturn(List.of(new TestProtocolSection(10, 1, null, "A", "", null, null, 0)));
+        when(protocols.findAllItemsByProtocol(1))
+                .thenReturn(List.of(
+                        new TestProtocolItem(100, 10, "a1", "", 2.0, 0, false),
+                        new TestProtocolItem(101, 10, "extra", "", 1.0, 1, true)));
+        when(protocols.findRunMembers(5))
+                .thenReturn(List.of(new TestProtocolRunMember(1, 5, 11, null, null, true, 3.0)));
+        when(protocols.findChecks(5, 11))
+                .thenReturn(List.of(
+                        new TestProtocolRunCheck(1, 100, true, null, null),
+                        new TestProtocolRunCheck(1, 101, true, null, null)));
+
+        var evaluation = service.evaluate(RUN);
+
+        assertEquals(Map.of(10, 2.0), evaluation.sectionMaxPoints());
+        assertEquals(Map.of(10, 3.0), evaluation.members().getFirst().sectionScores());
     }
 
     @Test

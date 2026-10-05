@@ -383,9 +383,14 @@ public enum StationPermission implements RouteRole {
     TEST_REVIEW(TEST_RESULT_READ),
 
     /**
+     * Allows sharing the station's quiz catalogs with federation partners
+     */
+    TEST_CATALOG_SHARE,
+
+    /**
      * Allows managing tests
      */
-    TEST_MANAGER(TEST_CONFIGURE, TEST_REVIEW),
+    TEST_MANAGER(TEST_CONFIGURE, TEST_REVIEW, TEST_CATALOG_SHARE),
 
     /**
      * Allows filling out a protocol
@@ -399,8 +404,12 @@ public enum StationPermission implements RouteRole {
      * Allows configuring protocols
      */
     PROTOCOL_CONFIGURE(PROTOCOL_CREATE),
+    /**
+     * Allows sharing the station's protocols with federation partners
+     */
+    PROTOCOL_SHARE,
 
-    PROTOCOL_MANAGER(PROTOCOL_CONFIGURE),
+    PROTOCOL_MANAGER(PROTOCOL_CONFIGURE, PROTOCOL_SHARE),
 
     /**
      * Allows generally using boards.

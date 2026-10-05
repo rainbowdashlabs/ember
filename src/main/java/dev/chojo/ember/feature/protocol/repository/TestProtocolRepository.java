@@ -15,6 +15,7 @@ import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
 import java.sql.Date;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
@@ -33,11 +34,15 @@ import static dev.chojo.ember.util.sql.SqlSupport.reorder;
 
 @Singleton
 public class TestProtocolRepository {
+    /** How long a tester's hold on a member lasts without being renewed. */
+    static final Duration LOCK_LIFETIME = Duration.ofHours(4);
+
     private static final String TEST_PROTOCOL_COLUMNS =
             "id, station_id, name, description, pass_threshold, created_at, updated_at";
     private static final String TEST_PROTOCOL_SECTION_COLUMNS =
             "id, protocol_id, parent_id, name, description, max_points, pass_threshold, position";
-    private static final String TEST_PROTOCOL_ITEM_COLUMNS = "id, section_id, label, description, points, position";
+    private static final String TEST_PROTOCOL_ITEM_COLUMNS =
+            "id, section_id, label, description, points, position, bonus";
     private static final String TEST_PROTOCOL_RUN_COLUMNS =
             "id, protocol_id, station_id, name, test_date, status, created_by, created_at";
     private static final String TEST_PROTOCOL_RUN_MEMBER_COLUMNS =
@@ -113,6 +118,13 @@ public class TestProtocolRepository {
         return deleteByIdInStation("test_protocol", id, stationId);
     }
 
+    public Optional<TestProtocolSection> findSection(int id) {
+        return query("SELECT %s FROM test_protocol_section WHERE id = :id;", TEST_PROTOCOL_SECTION_COLUMNS)
+                .single(call().bind("id", id))
+                .map(TestProtocolSection.map())
+                .first();
+    }
+
     public List<TestProtocolSection> findSections(int protocolId) {
         return query("""
                 SELECT %s
@@ -170,6 +182,18 @@ public class TestProtocolRepository {
                 .changed();
     }
 
+    /**
+     * Puts a section under another parent of its protocol, or at the top level, at the given place.
+     *
+     * @param parentId the new parent, or {@code null} for the top level
+     */
+    public boolean moveSection(int id, @Nullable Integer parentId, int position) {
+        return query("UPDATE test_protocol_section SET parent_id = :parent_id, position = :position WHERE id = :id;")
+                .single(call().bind("id", id).bind("parent_id", parentId).bind("position", position))
+                .update()
+                .changed();
+    }
+
     public boolean deleteSection(int id) {
         return deleteById("test_protocol_section", id);
     }
@@ -222,33 +246,43 @@ public class TestProtocolRepository {
                 .all();
     }
 
+    /** A regular point, counting towards the maximum of its section. */
     public TestProtocolItem createItem(int sectionId, String label, String description, double points, int position) {
+        return createItem(sectionId, label, description, points, position, false);
+    }
+
+    public TestProtocolItem createItem(
+            int sectionId, String label, String description, double points, int position, boolean bonus) {
         return insertReturning(
                 """
-                INSERT INTO test_protocol_item(section_id, label, description, points, position)
-                VALUES (:section_id, :label, :description, :points, :position) RETURNING %s;""",
+                INSERT INTO test_protocol_item(section_id, label, description, points, position, bonus)
+                VALUES (:section_id, :label, :description, :points, :position, :bonus) RETURNING %s;""",
                 call().bind("section_id", sectionId)
                         .bind("label", label)
                         .bind("description", description)
                         .bind("points", points)
-                        .bind("position", position),
+                        .bind("position", position)
+                        .bind("bonus", bonus),
                 TestProtocolItem.map(),
                 TEST_PROTOCOL_ITEM_COLUMNS);
     }
 
-    public boolean updateItem(int id, String label, String description, double points, @Nullable Integer position) {
+    public boolean updateItem(
+            int id, String label, String description, double points, boolean bonus, @Nullable Integer position) {
         return query("""
                 UPDATE test_protocol_item
                 SET
                     label       = :label,
                     description = :description,
                     points      = :points,
+                    bonus       = :bonus,
                     position    = COALESCE(:position, position)
                 WHERE id = :id;""")
                 .single(call().bind("id", id)
                         .bind("label", label)
                         .bind("description", description)
                         .bind("points", points)
+                        .bind("bonus", bonus)
                         .bind("position", position))
                 .update()
                 .changed();
@@ -349,18 +383,23 @@ public class TestProtocolRepository {
                 .orElseGet(() -> findRunMember(runId, memberId).orElseThrow());
     }
 
+    /**
+     * Holds a member of a run for one tester. A hold older than {@link #LOCK_LIFETIME} counts as free,
+     * because a tester whose browser closed without letting go would otherwise hold the member for good.
+     */
     public boolean lockMember(int runMemberId, int lockedBy) {
+        var now = Instant.now();
         return query("""
-
                 UPDATE test_protocol_run_member
                         SET
                             locked_by = :locked_by,
                             locked_at = :locked_at
                         WHERE id = :id
-                          AND ( locked_by IS NULL OR locked_by = :locked_by );""")
+                          AND ( locked_by IS NULL OR locked_by = :locked_by OR locked_at < :stale_before );""")
                 .single(call().bind("id", runMemberId)
                         .bind("locked_by", lockedBy)
-                        .bind("locked_at", Instant.now(), INSTANT_TIMESTAMP))
+                        .bind("locked_at", now, INSTANT_TIMESTAMP)
+                        .bind("stale_before", now.minus(LOCK_LIFETIME), INSTANT_TIMESTAMP))
                 .update()
                 .changed();
     }

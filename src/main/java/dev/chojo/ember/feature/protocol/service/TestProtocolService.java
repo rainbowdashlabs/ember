@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.federation.entity.CapabilityType;
 import dev.chojo.ember.feature.federation.entity.ContentType;
 import dev.chojo.ember.feature.federation.entity.Direction;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
+import dev.chojo.ember.feature.federation.entity.ShareScope;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationDisplayNames;
 import dev.chojo.ember.feature.federation.service.FederationEntityResolver;
@@ -39,7 +40,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.LocalDate;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -137,6 +142,42 @@ public class TestProtocolService implements FederationServer {
                 .anyMatch(share -> Objects.equals(share.protocolId(), protocolId));
     }
 
+    /**
+     * The protocols of a station its partners may see.
+     *
+     * @param stationId the station
+     * @return the ids of its shared protocols, each once
+     */
+    public List<Integer> findSharedProtocolIds(int stationId) {
+        return federationRepository.findProtocolShares(stationId).stream()
+                .flatMap(share -> Stream.ofNullable(share.protocolId()))
+                .distinct()
+                .toList();
+    }
+
+    /**
+     * Shares a protocol with every partner of its station, or stops sharing it.
+     *
+     * <p>Asking for the state it is already in changes nothing, so a protocol is never shared twice.
+     *
+     * @param stationId  the station, already checked to own the protocol
+     * @param protocolId the protocol
+     * @param shared     whether partners may see it
+     */
+    public void setShared(int stationId, int protocolId, boolean shared) {
+        Transactions.run(() -> {
+            var existing = federationRepository.findProtocolShares(stationId).stream()
+                    .filter(share -> Objects.equals(share.protocolId(), protocolId))
+                    .toList();
+            if (shared && existing.isEmpty()) {
+                federationService.createProtocolShare(stationId, protocolId, ShareScope.ALL_PARTNERS);
+            }
+            if (!shared) {
+                existing.forEach(share -> federationService.deleteProtocolShare(share.id(), stationId));
+            }
+        });
+    }
+
     public List<TestProtocol> findProtocols(int stationId) {
         return repository.findProtocols(stationId);
     }
@@ -196,6 +237,9 @@ public class TestProtocolService implements FederationServer {
             @Nullable Integer maxPoints,
             @Nullable Integer passThreshold,
             int position) {
+        if (parentId != null && !belongsTo(parentId, protocolId)) {
+            throw TestProtocolRefusal.PROTOCOL_SECTION_PARENT_ELSEWHERE_ON_CREATE.raise();
+        }
         TestProtocolSection section =
                 repository.createSection(protocolId, parentId, name, description, maxPoints, passThreshold, position);
         log.info(
@@ -241,23 +285,97 @@ public class TestProtocolService implements FederationServer {
         return repository.findAllItemsByProtocol(protocolId);
     }
 
-    public TestProtocolItem createItem(int sectionId, String label, String description, double points, int position) {
-        TestProtocolItem item = repository.createItem(sectionId, label, description, points, position);
-        log.info("Created protocol item {} (label='{}', points={}) in section {}", item.id(), label, points, sectionId);
+    /**
+     * Adds a point to a section.
+     *
+     * @param bonus whether it is a bonus point, which adds to the score but not to any maximum
+     */
+    public TestProtocolItem createItem(
+            int sectionId, String label, String description, double points, int position, boolean bonus) {
+        TestProtocolItem item = repository.createItem(sectionId, label, description, points, position, bonus);
+        log.info(
+                "Created protocol item {} (label='{}', points={}, bonus={}) in section {}",
+                item.id(),
+                label,
+                points,
+                bonus,
+                sectionId);
         return item;
     }
 
     /**
      * Changes a point.
      *
+     * @param bonus    whether it is a bonus point
      * @param position where it now stands in its section, or {@code null} to leave it where it is
      * @return whether there was such a point
      */
-    public boolean updateItem(int id, String label, String description, double points, @Nullable Integer position) {
-        boolean updated = repository.updateItem(id, label, description, points, position);
-        if (updated) log.info("Updated protocol item {} (label='{}', points={})", id, label, points);
+    public boolean updateItem(
+            int id, String label, String description, double points, boolean bonus, @Nullable Integer position) {
+        boolean updated = repository.updateItem(id, label, description, points, bonus, position);
+        if (updated) log.info("Updated protocol item {} (label='{}', points={}, bonus={})", id, label, points, bonus);
         else log.warn("Update of protocol item {} did not change any row", id);
         return updated;
+    }
+
+    private boolean belongsTo(int sectionId, int protocolId) {
+        return repository
+                .findSection(sectionId)
+                .filter(section -> section.protocolId() == protocolId)
+                .isPresent();
+    }
+
+    /**
+     * Puts a section, with everything under it, under another section of its protocol or at the top
+     * level. It goes to the end of its new level, and the level it left closes up behind it.
+     *
+     * <p>Checks hang on points and examiners on sections, so neither is touched: a run graded before the
+     * move reads the same afterwards.
+     *
+     * @param sectionId the section, already checked to belong to the caller's station
+     * @param parentId  the new parent, or {@code null} for the top level
+     */
+    public void moveSection(int sectionId, @Nullable Integer parentId) {
+        var section =
+                repository.findSection(sectionId).orElseThrow(TestProtocolRefusal.PROTOCOL_SECTION_NOT_HERE::raise);
+        var sections = repository.findSections(section.protocolId());
+        if (parentId != null) {
+            if (sections.stream().noneMatch(candidate -> candidate.id() == parentId)) {
+                throw TestProtocolRefusal.PROTOCOL_SECTION_PARENT_ELSEWHERE_ON_MOVE.raise();
+            }
+            if (subtreeOf(sectionId, sections).contains(parentId)) {
+                throw TestProtocolRefusal.PROTOCOL_SECTION_MOVED_INTO_ITSELF.raise();
+            }
+        }
+        if (Objects.equals(section.parentId(), parentId)) return;
+        int place = (int) sections.stream()
+                .filter(candidate -> Objects.equals(candidate.parentId(), parentId))
+                .count();
+        var leftBehind = sections.stream()
+                .filter(candidate -> Objects.equals(candidate.parentId(), section.parentId()))
+                .filter(candidate -> candidate.id() != sectionId)
+                .sorted(Comparator.comparingInt(TestProtocolSection::position))
+                .map(TestProtocolSection::id)
+                .toList();
+        Transactions.run(() -> {
+            repository.moveSection(sectionId, parentId, place);
+            if (!leftBehind.isEmpty()) repository.reorderSections(section.protocolId(), leftBehind);
+        });
+        log.info("Moved section {} of test protocol {} under {}", sectionId, section.protocolId(), parentId);
+    }
+
+    /** A section and every section under it, at any depth. */
+    static Set<Integer> subtreeOf(int sectionId, List<TestProtocolSection> sections) {
+        var found = new HashSet<Integer>();
+        var pending = new ArrayDeque<Integer>(List.of(sectionId));
+        while (!pending.isEmpty()) {
+            int current = pending.poll();
+            if (!found.add(current)) continue;
+            sections.stream()
+                    .filter(candidate -> Objects.equals(candidate.parentId(), current))
+                    .forEach(candidate -> pending.add(candidate.id()));
+        }
+        return found;
     }
 
     /**
@@ -427,7 +545,13 @@ public class TestProtocolService implements FederationServer {
         return repository.findDoneSections(rm.get().id());
     }
 
-    public void toggleSectionDone(int runId, int memberId, int sectionId, int doneBy) {
+    /**
+     * Marks a section of one member's sheet as checked, or takes the mark back.
+     *
+     * <p>The mark that leaves no top-level section open finishes the examination there and then, so
+     * the last examiner to mark their section closes the sheet without a further step.
+     */
+    public void toggleSectionDone(int runId, int memberId, int protocolId, int sectionId, int doneBy) {
         var rm = repository.findRunMember(runId, memberId);
         if (rm.isEmpty()) return;
         int runMemberId = rm.get().id();
@@ -435,15 +559,16 @@ public class TestProtocolService implements FederationServer {
         if (done.contains(sectionId)) {
             repository.unmarkSectionDone(runMemberId, sectionId);
             log.info("Unmarked section {} done for member {} on protocol run {}", sectionId, memberId, runId);
-        } else {
-            repository.markSectionDone(runMemberId, sectionId, doneBy);
-            log.info(
-                    "Marked section {} done for member {} on protocol run {} by member {}",
-                    sectionId,
-                    memberId,
-                    runId,
-                    doneBy);
+            return;
         }
+        repository.markSectionDone(runMemberId, sectionId, doneBy);
+        log.info(
+                "Marked section {} done for member {} on protocol run {} by member {}",
+                sectionId,
+                memberId,
+                runId,
+                doneBy);
+        if (everySectionDone(runMemberId, protocolId)) complete(runId, memberId, runMemberId, protocolId);
     }
 
     public int countDoneSections(int runMemberId) {
@@ -456,11 +581,33 @@ public class TestProtocolService implements FederationServer {
         return repository.findChecks(rm.get().id());
     }
 
+    /**
+     * Finishes the examination of one member and stores their score.
+     *
+     * <p>Refused while any top-level section has not been marked as checked: a sheet nobody walked to
+     * the end is not an examination, whatever its ticks say. Marking the last section finishes it on
+     * its own, so this is only ever needed by a client that marks no sections.
+     *
+     * @return whether a member was completed; false when they are not part of the run or were already
+     */
     public boolean completeMember(int runId, int memberId, int protocolId) {
         var rm = repository.findRunMember(runId, memberId);
         if (rm.isEmpty()) return false;
         int runMemberId = rm.get().id();
+        if (!everySectionDone(runMemberId, protocolId)) {
+            throw TestProtocolRefusal.PROTOCOL_MEMBER_SECTIONS_OPEN.raise();
+        }
+        return complete(runId, memberId, runMemberId, protocolId);
+    }
 
+    private boolean everySectionDone(int runMemberId, int protocolId) {
+        var done = Set.copyOf(repository.findDoneSections(runMemberId));
+        return repository.findSections(protocolId).stream()
+                .filter(section -> section.parentId() == null)
+                .allMatch(section -> done.contains(section.id()));
+    }
+
+    private boolean complete(int runId, int memberId, int runMemberId, int protocolId) {
         var checks = repository.findChecks(runMemberId);
         var allItems = repository.findAllItemsByProtocol(protocolId);
         var itemPoints = allItems.stream().collect(Collectors.toMap(TestProtocolItem::id, TestProtocolItem::points));
@@ -522,54 +669,72 @@ public class TestProtocolService implements FederationServer {
         return transport.get(partner, RemoteTestProtocolRoutes.GET_PROTOCOL.at(protocolId), RemoteProtocolDetail.class);
     }
 
-    public TestProtocol copyProtocol(int protocolId, int targetStationId) {
-        var source = findProtocol(protocolId).orElseThrow();
-        var newProto = createProtocol(targetStationId, source.name(), source.description(), source.passThreshold());
+    /**
+     * Copies a protocol a partner shares into this station.
+     *
+     * <p>The protocol is read from the partner over federation, the same way it is shown, so only what
+     * the partner actually shares can be copied, and a partner on another instance works the same as
+     * one on this instance.
+     *
+     * @param localStationId    the station copying
+     * @param partnerStationUid the partner station that shares the protocol
+     * @param protocolId        the protocol's number at the partner
+     * @return the new protocol of this station
+     */
+    public TestProtocol copyFederatedProtocol(int localStationId, UUID partnerStationUid, int protocolId) {
+        var source = getFederatedProtocol(localStationId, partnerStationUid, protocolId);
+        return Transactions.call(() -> copyInto(source, localStationId));
+    }
+
+    private TestProtocol copyInto(RemoteProtocolDetail source, int targetStationId) {
+        var protocol = source.protocol();
+        var copy = createProtocol(targetStationId, protocol.name(), protocol.description(), protocol.passThreshold());
         log.info(
-                "Copying test protocol {} into new protocol {} at station {}",
-                protocolId,
-                newProto.id(),
+                "Copying partner protocol {} into new protocol {} at station {}",
+                protocol.id(),
+                copy.id(),
                 targetStationId);
 
-        var sections = findSections(source.id());
         var sectionMap = new HashMap<Integer, Integer>();
-
-        for (var sec : sections) {
-            if (sec.parentId() != null) continue;
-            var newSec = createSection(
-                    newProto.id(),
-                    null,
-                    sec.name(),
-                    sec.description(),
-                    sec.maxPoints(),
-                    sec.passThreshold(),
-                    sec.position());
-            sectionMap.put(sec.id(), newSec.id());
+        for (var section : parentsFirst(source.sections())) {
+            var created = createSection(
+                    copy.id(),
+                    section.parentId() == null ? null : sectionMap.get(section.parentId()),
+                    section.name(),
+                    section.description(),
+                    section.maxPoints(),
+                    section.passThreshold(),
+                    section.position());
+            sectionMap.put(section.id(), created.id());
         }
 
-        for (var sec : sections) {
-            if (sec.parentId() == null) continue;
-            Integer newParentId = sectionMap.get(sec.parentId());
-            var newSec = createSection(
-                    newProto.id(),
-                    newParentId,
-                    sec.name(),
-                    sec.description(),
-                    sec.maxPoints(),
-                    sec.passThreshold(),
-                    sec.position());
-            sectionMap.put(sec.id(), newSec.id());
-        }
-
-        var allItems = findAllItemsByProtocol(source.id());
-        for (var item : allItems) {
-            Integer newSectionId = sectionMap.get(item.sectionId());
-            if (newSectionId != null) {
-                createItem(newSectionId, item.label(), item.description(), item.points(), item.position());
+        for (var item : source.items()) {
+            Integer sectionId = sectionMap.get(item.sectionId());
+            if (sectionId != null) {
+                createItem(sectionId, item.label(), item.description(), item.points(), item.position(), item.bonus());
             }
         }
+        return copy;
+    }
 
-        return newProto;
+    /**
+     * The sections of a protocol in an order where every parent comes before its children, at any
+     * depth. A section whose parent is not among them is left out, as it could only be created at the
+     * wrong place.
+     */
+    static List<TestProtocolSection> parentsFirst(List<TestProtocolSection> sections) {
+        var byParent = sections.stream()
+                .filter(section -> section.parentId() != null)
+                .collect(Collectors.groupingBy(TestProtocolSection::parentId));
+        var ordered = new ArrayList<TestProtocolSection>();
+        var pending = new ArrayDeque<TestProtocolSection>();
+        sections.stream().filter(section -> section.parentId() == null).forEach(pending::add);
+        while (!pending.isEmpty()) {
+            var section = pending.poll();
+            ordered.add(section);
+            pending.addAll(byParent.getOrDefault(section.id(), List.of()));
+        }
+        return ordered;
     }
 
     private List<SharedProtocolItem> browsePartner(FederationPartner partner) {

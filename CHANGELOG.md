@@ -2,20 +2,42 @@
 
 ## v26.21.0
 
-Theme colours show where they were missing. Editing a comment is safer. Email addresses of members only reach those allowed to read the member register. Members who set up their account from a link stay in their station, and the consent is asked on every way in.
+Theme colours show where they were missing. Editing a comment is safer. Email addresses of members only reach those allowed to read the member register. Members who set up their account from a link stay in their station, and the consent is asked on every way in. Exams can be planned with examiners per section, and only they grade them. Protocols nest to any depth, sections can be moved, and points can be bonus points. Protocols can be shared with partner stations one by one. Copying from partners is limited to what they share, and works with partners on other installations.
+
+### New Features
+
+- **Exams can be planned with examiners.** After a run is started, a planning page names the examiners of each section, several per section if needed, and an examiner of a section also examines everything under it. Once a run has examiners, only they grade it, each their own sections and those nobody was named for, protocol managers included.
+- **Protocols can have bonus points.** A point can be marked as bonus in its dialog. It adds to the score when checked, but not to the maximum of its section or the protocol, and it helps reach the pass mark.
+
+### Improvements
+
+- **Grading names the member's next station.** After "Checked & exit", the examiner sees the next open section in the order of the sheet and who grades it there. After the last section, it starts over at the first open one.
+- **Protocol sections nest to any depth.** A subsection can have subsections of its own, as deep as needed, in the editor, on the grading sheet, in the evaluation and in the PDFs. A section can be cut and pasted into another section or back to the top level, with everything under it.
+- **The run page shows what is left.** Each member of a run shows every section as finished or open, and the grading sheet names the sections not finished yet. A run can be planned like the last run of the same protocol.
+- **Quiz catalogs can be shared with partners.** In the catalog list, each catalog of the station can be shared with all partner stations and unshared again, and shared catalogs carry a mark. The new "Share quiz catalogs" permission, part of managing tests, allows it.
+- **Protocols can be shared with partners.** In the protocol list, each protocol of the station can be shared with all partner stations and unshared again. Shared protocols carry a mark in the list, and the new "Share protocols" permission, part of managing protocols, allows it.
 
 ### Security
 
 - **Names in comment mentions are shown as text.** When a comment was edited, the name of a mentioned member was read as part of the page rather than shown as text. It is now always shown as text.
 - **Member lists no longer carry email addresses.** Pages that only let someone pick a member, such as inventory, attendance or visibility filters, received the email address of every member, and member menus showed it. These addresses now reach only those allowed to read the member register, and member menus show names only.
+- **Copying from partners takes only what they share.** Copying a protocol or a wiki article from a partner station could reach content of other stations on the same installation that was never shared. A copy is now always fetched from the partner station, which hands out only what it shares.
+- **Quiz catalogs open only at their own station.** The name, description and categories of another station's quiz catalog could be opened by someone allowed to view catalogs. A catalog now opens only at the station it belongs to.
 
 ### Changes
 
 - **The consent is asked on every way in.** Setting a password or a passkey from a link asks the same consent as the sign-in form, and anyone signed in who was never asked sees it once. Every answer is a button of the same kind, and no optional storage is switched on in advance.
+- **An exam finishes once every section is checked.** The "Finish exam" button is gone: marking the last open section with "Checked & next" or "Checked & exit" finishes a member's exam and stores the result. Until every section is marked, the sections of other examiners included, the exam stays open.
 
 ### Fixes
+
 - **Field templates were asked of trial members.** Fields added from a profile field template were put to the form that was shown, which on opening was the one for trial members. Fields from a template are now created without an audience, and each is put to the right forms afterwards.
 - **Some theme colours were missing.** On many pages, highlights, links, backgrounds under the mouse pointer, progress bars, error messages and success marks were shown without their colour. They now show in the theme colours.
+- **A member could stay held by one tester.** When a tester left the grading sheet without closing it, nobody else could grade that member again. A hold now ends after four hours.
+- **Quiz catalogs of partners could not be copied.** Copying a catalog a partner station shares was always refused. It now creates a copy with all its questions.
+- **Copying from a partner on another installation failed.** A protocol or a wiki article shared by a station on another installation could be opened but not copied. Both can be copied now.
+- **Groups offered members they do not accept.** The list for adding people to a group limited to member types also offered everyone else, and adding them was refused. It now offers only members of the types the group accepts.
+- **The movement sheet dropped a second item of the same kind.** When a member exchanged two items of one inventory, such as two shirts, the exported sheet showed only one of them. Each such item now gets a column of its own.
 - **Members who set up their account from a link could not stay in their station.** In some cases a member who set up their account from the link in their mail was sent to the overview of all stations again and again. The chosen station is now always kept, and a member with a single station is taken straight to it.
 
 ## v26.20.3

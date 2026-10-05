@@ -128,7 +128,6 @@ public class TestProtocolPdfService {
         var itemsBySectionId = allItems.stream().collect(Collectors.groupingBy(TestProtocolItem::sectionId));
         Locale locale = localeOf(run.stationId());
 
-        record MS(Map<Integer, Double> scores, double total) {}
         var data = new ArrayList<MS>();
         var memberNames = new ArrayList<String>();
         for (var rm : members) {
@@ -157,21 +156,12 @@ public class TestProtocolPdfService {
 
         var rows = new ArrayList<EvaluationRow>();
         for (var sec : topSections) {
-            for (var sub : sections.stream()
-                    .filter(s -> Objects.equals(s.parentId(), sec.id()))
-                    .sorted(Comparator.comparingInt(TestProtocolSection::position))
-                    .toList()) {
-                double subMax = secMax(sub, sections, itemsBySectionId);
-                var cells = new ArrayList<ScoreCell>();
-                cells.add(cell(avg(allScores, sub, sections), subMax, locale));
-                for (var m : data) cells.add(cell(secScore(m.scores(), sub, sections), subMax, locale));
-                rows.add(new EvaluationRow(RowKind.DETAIL, sub.name(), DocumentNumber.of(subMax, locale), cells));
-            }
+            addDetailRows(rows, sec, 1, sections, itemsBySectionId, allScores, data, locale);
             double sMax = secMax(sec, sections, itemsBySectionId);
             var cells = new ArrayList<ScoreCell>();
             cells.add(cell(avg(allScores, sec, sections), sMax, locale));
             for (var m : data) cells.add(cell(secScore(m.scores(), sec, sections), sMax, locale));
-            rows.add(new EvaluationRow(RowKind.SECTION, sec.name(), DocumentNumber.of(sMax, locale), cells));
+            rows.add(new EvaluationRow(RowKind.SECTION, sec.name(), DocumentNumber.of(sMax, locale), cells, 0));
         }
 
         double tMax = topSections.stream()
@@ -181,7 +171,7 @@ public class TestProtocolPdfService {
         var totalCells = new ArrayList<ScoreCell>();
         totalCells.add(cell(tAvg, tMax, locale));
         for (var m : data) totalCells.add(cell(m.total(), tMax, locale));
-        rows.add(new EvaluationRow(RowKind.TOTAL, null, DocumentNumber.of(tMax, locale), totalCells));
+        rows.add(new EvaluationRow(RowKind.TOTAL, null, DocumentNumber.of(tMax, locale), totalCells, 0));
 
         var document = header(run.stationId(), protocolName, testDate);
         document.put("members", memberNames);
@@ -223,7 +213,7 @@ public class TestProtocolPdfService {
     private double secMax(
             TestProtocolSection sec, List<TestProtocolSection> all, Map<Integer, List<TestProtocolItem>> items) {
         double d = items.getOrDefault(sec.id(), List.of()).stream()
-                .mapToDouble(TestProtocolItem::points)
+                .mapToDouble(TestProtocolItem::maxPoints)
                 .sum();
         double c = all.stream()
                 .filter(s -> Objects.equals(s.parentId(), sec.id()))
@@ -236,9 +226,36 @@ public class TestProtocolPdfService {
         double d = scores.getOrDefault(sec.id(), 0.0);
         double c = all.stream()
                 .filter(s -> Objects.equals(s.parentId(), sec.id()))
-                .mapToDouble(s -> scores.getOrDefault(s.id(), 0.0))
+                .mapToDouble(s -> secScore(scores, s, all))
                 .sum();
         return d + c;
+    }
+
+    /**
+     * Adds a detail row for every section under the given one, depth first, each indented by how deep
+     * it sits, so the sum row of a top-level section stands below everything it adds up.
+     */
+    private void addDetailRows(
+            List<EvaluationRow> rows,
+            TestProtocolSection parent,
+            int depth,
+            List<TestProtocolSection> all,
+            Map<Integer, List<TestProtocolItem>> items,
+            List<Map<Integer, Double>> allScores,
+            List<MS> data,
+            Locale locale) {
+        var children = all.stream()
+                .filter(s -> Objects.equals(s.parentId(), parent.id()))
+                .sorted(Comparator.comparingInt(TestProtocolSection::position))
+                .toList();
+        for (var sub : children) {
+            double subMax = secMax(sub, all, items);
+            var cells = new ArrayList<ScoreCell>();
+            cells.add(cell(avg(allScores, sub, all), subMax, locale));
+            for (var m : data) cells.add(cell(secScore(m.scores(), sub, all), subMax, locale));
+            rows.add(new EvaluationRow(RowKind.DETAIL, sub.name(), DocumentNumber.of(subMax, locale), cells, depth));
+            addDetailRows(rows, sub, depth + 1, all, items, allScores, data, locale);
+        }
     }
 
     private double avg(List<Map<Integer, Double>> allScores, TestProtocolSection sec, List<TestProtocolSection> all) {
@@ -283,8 +300,8 @@ public class TestProtocolPdfService {
     /**
      * One member's run, turned into the nested sections the member sheet prints.
      *
-     * <p>A section's header total counts its own items and those of its direct children, which is
-     * what the sheet has always shown.
+     * <p>A section's header total counts its own items and those of every section under it, at any
+     * depth, bonus points adding to the score but not to the maximum.
      */
     private final class MemberSheet {
         private final List<TestProtocolSection> sections;
@@ -321,6 +338,13 @@ public class TestProtocolPdfService {
             return itemsBySectionId.getOrDefault(section.id(), List.of());
         }
 
+        /** The items of a section and of every section under it, at any depth. */
+        private List<TestProtocolItem> itemsUnder(TestProtocolSection section) {
+            var all = new ArrayList<>(itemsOf(section));
+            for (var child : childrenOf(section.id())) all.addAll(itemsUnder(child));
+            return all;
+        }
+
         /**
          * Builds a section with its items and children.
          *
@@ -332,23 +356,18 @@ public class TestProtocolPdfService {
                     .toList();
             var children = childrenOf(section.id());
 
+            var items = sectionItems.stream()
+                    .map(item -> new SheetItem(
+                            item.label(), number(item.points()), checkedItems.contains(item.id()), item.bonus()))
+                    .toList();
+
             double score = 0;
             double max = 0;
             var testerIds = new LinkedHashSet<Integer>();
-            var items = new ArrayList<SheetItem>();
-            for (var item : sectionItems) {
-                boolean checked = checkedItems.contains(item.id());
-                max += item.points();
-                if (checked) score += item.points();
+            for (var item : itemsUnder(section)) {
+                max += item.maxPoints();
+                if (checkedItems.contains(item.id())) score += item.points();
                 if (itemTesterMap.containsKey(item.id())) testerIds.add(itemTesterMap.get(item.id()));
-                items.add(new SheetItem(item.label(), number(item.points()), checked));
-            }
-            for (var child : children) {
-                for (var item : itemsOf(child)) {
-                    max += item.points();
-                    if (checkedItems.contains(item.id())) score += item.points();
-                    if (itemTesterMap.containsKey(item.id())) testerIds.add(itemTesterMap.get(item.id()));
-                }
             }
 
             List<String> testers = topLevel
@@ -367,6 +386,9 @@ public class TestProtocolPdfService {
     }
 
     private record RenderedSection(SheetSection section, double score, double max) {}
+
+    /** One member's points per section, each counting only the section's own items, and their total. */
+    private record MS(Map<Integer, Double> scores, double total) {}
 
     /**
      * A section of the member sheet.
@@ -393,8 +415,9 @@ public class TestProtocolPdfService {
      * @param label what was tested
      * @param points the points it is worth, formatted
      * @param checked whether the member passed it
+     * @param bonus whether it is a bonus point, which the sheet marks as such
      */
-    public record SheetItem(String label, String points, boolean checked) {}
+    public record SheetItem(String label, String points, boolean checked, boolean bonus) {}
 
     /** How a row of the evaluation table is drawn. */
     public enum RowKind {
@@ -410,8 +433,9 @@ public class TestProtocolPdfService {
      * @param name the section's name, {@code null} for the total, which the template names
      * @param max the points available, formatted
      * @param cells the average first, then one cell per member in column order
+     * @param depth how deep the section sits, zero for top-level sections and the total
      */
-    public record EvaluationRow(RowKind kind, @Nullable String name, String max, List<ScoreCell> cells) {}
+    public record EvaluationRow(RowKind kind, @Nullable String name, String max, List<ScoreCell> cells, int depth) {}
 
     /**
      * A score in the evaluation table, coloured by how much of the maximum it reaches.

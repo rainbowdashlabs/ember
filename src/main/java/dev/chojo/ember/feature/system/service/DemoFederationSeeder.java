@@ -408,10 +408,10 @@ public class DemoFederationSeeder implements DemoSeeder {
                 partnerStation.id(), "Grundausbildung Prüfung", "Prüfungsbogen der Partnerwache", 70);
         var protoSection = protocolService.createSection(
                 partnerProtocol.id(), null, "Theorie", "Theoretische Grundlagen", 20, null, 0);
-        protocolService.createItem(protoSection.id(), "Notruf absetzen", "5 W-Fragen", 5, 0);
-        protocolService.createItem(protoSection.id(), "RLBS erklären", "Vier Grundaufgaben", 5, 1);
-        protocolService.createItem(protoSection.id(), "Fahrzeugkunde", "Fahrzeugtypen benennen", 5, 2);
-        protocolService.createItem(protoSection.id(), "Dienstgrade", "Dienstgrade der Feuerwehr", 5, 3);
+        protocolService.createItem(protoSection.id(), "Notruf absetzen", "5 W-Fragen", 5, 0, false);
+        protocolService.createItem(protoSection.id(), "RLBS erklären", "Vier Grundaufgaben", 5, 1, false);
+        protocolService.createItem(protoSection.id(), "Fahrzeugkunde", "Fahrzeugtypen benennen", 5, 2, false);
+        protocolService.createItem(protoSection.id(), "Dienstgrade", "Dienstgrade der Feuerwehr", 5, 3, true);
         federationService.createProtocolShare(partnerStation.id(), partnerProtocol.id(), ShareScope.ALL_PARTNERS);
 
         enableCapabilities(partner.id());

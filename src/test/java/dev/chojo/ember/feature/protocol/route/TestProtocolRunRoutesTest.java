@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.protocol.entity.TestProtocol;
 import dev.chojo.ember.feature.protocol.entity.TestProtocolRun;
 import dev.chojo.ember.feature.protocol.service.TestProtocolEvaluationService;
 import dev.chojo.ember.feature.protocol.service.TestProtocolEvaluationService.EvaluationResponse;
+import dev.chojo.ember.feature.protocol.service.TestProtocolExaminerService;
 import dev.chojo.ember.feature.protocol.service.TestProtocolGuards;
 import dev.chojo.ember.feature.protocol.service.TestProtocolPdfService;
 import dev.chojo.ember.feature.protocol.service.TestProtocolRunService;
@@ -61,8 +62,13 @@ class TestProtocolRunRoutesTest {
         pdfs = mock(TestProtocolPdfService.class);
         when(protocols.findProtocol(1)).thenReturn(Optional.of(PROTOCOL));
         when(protocols.findRun(5)).thenReturn(Optional.of(RUN));
-        harness = RouteHarness.serving(
-                new TestProtocolRoutes(protocols, new TestProtocolGuards(protocols), pdfs, runs, evaluations));
+        harness = RouteHarness.serving(new TestProtocolRoutes(
+                protocols,
+                new TestProtocolGuards(protocols),
+                pdfs,
+                runs,
+                evaluations,
+                mock(TestProtocolExaminerService.class)));
     }
 
     @Test

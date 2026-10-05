@@ -8,10 +8,9 @@ import { useI18n } from 'vue-i18n'
 import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import SuccessBadge from '@/components/badge/SuccessBadge.vue'
-import InfoBadge from '@/components/badge/InfoBadge.vue'
-import ErrorBadge from '@/components/badge/ErrorBadge.vue'
+import HelpPermissionGuard from '@/components/helpcenter/HelpPermissionGuard.vue'
+import { StationPermission } from '@/api/generated/schema'
+import RunDetailExampleSection from './rundetailhelp/RunDetailExampleSection.vue'
 
 const { t } = useI18n()
 </script>
@@ -24,39 +23,34 @@ const { t } = useI18n()
 
     <HelpSection :title="t('helpCenter.protocolRunDetail.membersTitle')">
       <p>{{ t('helpCenter.protocolRunDetail.membersText') }}</p>
+      <p>{{ t('helpCenter.protocolRunDetail.statusText') }}</p>
     </HelpSection>
 
-    <NeutralContainer>
-      <div class="space-y-2 text-sm">
-        <div class="font-semibold text-xs text-[var(--text-muted)] uppercase mb-1">{{ t('helpCenter.sample.protocol.runSpring') }}</div>
-        <div class="flex items-center justify-between p-2 rounded border border-[var(--border)]">
-          <span class="font-medium">{{ t('helpCenter.sample.people.lenaMueller') }}</span>
-          <div class="flex items-center gap-2">
-            <span class="text-xs text-[var(--text-muted)]">{{ t('helpCenter.sample.protocol.pointsOfSpaced', {points: 32, total: 34}) }}</span>
-            <SuccessBadge>{{ t('helpCenter.protocolRunDetail.statusPassed') }}</SuccessBadge>
-          </div>
-        </div>
-        <div class="flex items-center justify-between p-2 rounded border border-[var(--border)]">
-          <span class="font-medium">{{ t('helpCenter.sample.people.maxBauer') }}</span>
-          <div class="flex items-center gap-2">
-            <span class="text-xs text-[var(--text-muted)]">{{ t('helpCenter.sample.protocol.pointsOfSpaced', {points: 18, total: 34}) }}</span>
-            <ErrorBadge>{{ t('helpCenter.protocolRunDetail.statusFailed') }}</ErrorBadge>
-          </div>
-        </div>
-        <div class="flex items-center justify-between p-2 rounded border border-[var(--border)]">
-          <span class="font-medium">{{ t('helpCenter.sample.people.jonasWeber') }}</span>
-          <div class="flex items-center gap-2">
-            <span class="text-xs text-[var(--text-muted)]">-</span>
-            <InfoBadge>{{ t('helpCenter.protocolRunDetail.statusPending') }}</InfoBadge>
-          </div>
-        </div>
-      </div>
-    </NeutralContainer>
+    <RunDetailExampleSection />
+
+    <HelpSection :title="t('helpCenter.protocolRunDetail.sectionsTitle')">
+      <p>{{ t('helpCenter.protocolRunDetail.sectionsText') }}</p>
+    </HelpSection>
 
     <HelpSection :title="t('helpCenter.protocolRunDetail.howTo')">
       <p>{{ t('helpCenter.protocolRunDetail.step1') }}</p>
       <p>{{ t('helpCenter.protocolRunDetail.step2') }}</p>
+      <p>{{ t('helpCenter.protocolRunDetail.gradeButtonText') }}</p>
     </HelpSection>
+
+    <HelpPermissionGuard :permissions="[StationPermission.PROTOCOL_CREATE]"
+                         :label="t('helpCenter.permissionLabel.protocolCreate')">
+      <HelpSection :title="t('helpCenter.protocolRunDetail.planTitle')">
+        <p>{{ t('helpCenter.protocolRunDetail.planText') }}</p>
+      </HelpSection>
+    </HelpPermissionGuard>
+
+    <HelpPermissionGuard :permissions="[StationPermission.PROTOCOL_MANAGER]"
+                         :label="t('helpCenter.permissionLabel.protocolManager')">
+      <HelpSection :title="t('helpCenter.protocolRunDetail.closeTitle')">
+        <p>{{ t('helpCenter.protocolRunDetail.closeText') }}</p>
+      </HelpSection>
+    </HelpPermissionGuard>
 
     <HelpTip>{{ t('helpCenter.protocolRunDetail.tip') }}</HelpTip>
   </HelpArticle>

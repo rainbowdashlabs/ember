@@ -24272,41 +24272,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/federated/kb/files/{id}/copy": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Created */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["KbFile"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/federated/lending/available": {
         parameters: {
             query?: never;
@@ -24448,41 +24413,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/federated/protocols/{id}/copy": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Created */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["TestProtocol"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/federated/quiz/catalogs": {
         parameters: {
             query?: never;
@@ -24512,41 +24442,6 @@ export interface paths {
         };
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/federated/quiz/catalogs/{id}/copy": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Created */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["QuizCatalog"];
-                    };
-                };
-            };
-        };
         delete?: never;
         options?: never;
         head?: never;
@@ -25172,294 +25067,6 @@ export interface paths {
             };
         };
         delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/federation/shares/kb": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List the station's knowledge base shares */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["KbShareResponse"][];
-                    };
-                };
-            };
-        };
-        put?: never;
-        /** Share a knowledge base entry with partners */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "application/json": components["schemas"]["KbShareRequest"];
-                };
-            };
-            responses: {
-                /** @description Created */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["FederationShare"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/federation/shares/kb/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Stop sharing a knowledge base entry */
-        delete: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: number;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description No Content */
-                204: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/federation/shares/protocol": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List the station's test protocol shares */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["FederationShare"][];
-                    };
-                };
-            };
-        };
-        put?: never;
-        /** Share a test protocol with partners */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "application/json": components["schemas"]["ProtocolShareRequest"];
-                };
-            };
-            responses: {
-                /** @description Created */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["FederationShare"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/federation/shares/protocol/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Stop sharing a test protocol */
-        delete: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: number;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description No Content */
-                204: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/federation/shares/quiz": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List the station's quiz catalog shares */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["FederationShare"][];
-                    };
-                };
-            };
-        };
-        put?: never;
-        /** Share a quiz catalog with partners */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "application/json": components["schemas"]["QuizShareRequest"];
-                };
-            };
-            responses: {
-                /** @description Created */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["FederationShare"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/federation/shares/quiz/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Stop sharing a quiz catalog */
-        delete: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: number;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description No Content */
-                204: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
         options?: never;
         head?: never;
         patch?: never;
@@ -41645,6 +41252,82 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/protocols/{id}/sharing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Share a protocol with every partner, or stop sharing it */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ProtocolSharingRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/protocols/examiner-candidates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the members who may be named examiners: everybody allowed to grade protocols */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ExaminerCandidate"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/protocols/items/{id}": {
         parameters: {
             query?: never;
@@ -41912,6 +41595,106 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/protocols/runs/{id}/examiners": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the examiners of each section of a test run */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RunExaminers"];
+                    };
+                };
+            };
+        };
+        /** Replace the examiners of a test run */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["RunExaminers"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/protocols/runs/{id}/examiners/previous": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The examiners of the last planned run of the same protocol, as a starting point */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RunExaminers"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/protocols/runs/{id}/export-all": {
         parameters: {
             query?: never;
@@ -41934,6 +41717,44 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/protocols/runs/{id}/grading-scope": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What the caller may grade in a test run */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GradingScope"];
+                    };
                 };
             };
         };
@@ -42346,6 +42167,82 @@ export interface paths {
                 };
             };
         };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/protocols/sections/{id}/parent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Move a section, with everything under it, under another section or to the top level */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["SectionParentRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/protocols/sharing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List which of the station's protocols its partners may see */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProtocolSharing"];
+                    };
+                };
+            };
+        };
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -46594,6 +46491,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/quiz/catalogs/{id}/sharing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Share a catalog with every partner, or stop sharing it */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["CatalogSharingRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/quiz/catalogs/csv-draft": {
         parameters: {
             query?: never;
@@ -46671,6 +46608,42 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/quiz/catalogs/sharing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List which of the station's catalogs its partners may see */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CatalogSharing"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -55845,6 +55818,12 @@ export interface components {
             license: string | null;
             source: string | null;
         };
+        CatalogSharing: {
+            catalogIds: number[];
+        };
+        CatalogSharingRequest: {
+            shared?: boolean;
+        };
         CatalogTransfer: {
             catalog: components["schemas"]["CatalogTransferInfo"];
             categories: components["schemas"]["CatalogTransferCategory"][];
@@ -57736,6 +57715,11 @@ export interface components {
         };
         /** @enum {string} */
         EventType: "ONE_TIME" | "RECURRING" | "MONTHLY_FIRST" | "QUARTERLY" | "YEARLY";
+        ExaminerCandidate: {
+            /** Format: int32 */
+            memberId: number;
+            name: string;
+        };
         /** @enum {string} */
         Expected: "ITS_OWN" | "THE_CLUSTERS" | "INSTANCE_DEFAULT" | "WHEREVER_IT_IS";
         ExportColumnRequest: {
@@ -57908,21 +57892,6 @@ export interface components {
         FederationRequestBody: {
             /** Format: uuid */
             stationUid?: string;
-        };
-        FederationShare: {
-            /** Format: int32 */
-            catalogId: number | null;
-            /** Format: int32 */
-            fileId: number | null;
-            /** Format: int32 */
-            folderId: number | null;
-            /** Format: int32 */
-            id: number;
-            /** Format: int32 */
-            protocolId: number | null;
-            shareScope: components["schemas"]["ShareScope"];
-            /** Format: uuid */
-            stationId: string;
         };
         FederationShareResponse: {
             partnerIds: number[] | null;
@@ -58531,6 +58500,11 @@ export interface components {
         };
         /** @enum {string} */
         GeocodingProvider: "NONE" | "NOMINATIM" | "LOCATIONIQ" | "GEOAPIFY";
+        GradingScope: {
+            mayGrade: boolean;
+            restricted: boolean;
+            sectionIds: number[];
+        };
         GrantRequest: {
             /** Format: int32 */
             groupId?: number;
@@ -59361,24 +59335,6 @@ export interface components {
             memberIds: number[];
             tagIds: number[];
             userTypes: components["schemas"]["StationUserType"][];
-        };
-        KbShareRequest: {
-            /** Format: int32 */
-            fileId?: number;
-            /** Format: int32 */
-            folderId?: number;
-            partnerIds?: number[];
-            shareScope?: components["schemas"]["ShareScope"];
-        };
-        KbShareResponse: {
-            /** Format: int32 */
-            fileId: number | null;
-            /** Format: int32 */
-            folderId: number | null;
-            /** Format: int32 */
-            id: number;
-            partnerIds: number[];
-            shareScope: components["schemas"]["ShareScope"];
         };
         KbTag: {
             /** Format: int32 */
@@ -61662,6 +61618,7 @@ export interface components {
             sections: components["schemas"]["TestProtocolSection"][];
         };
         ProtocolItemRequest: {
+            bonus?: boolean | null;
             description?: string | null;
             label?: string;
             points?: number | null;
@@ -61701,10 +61658,11 @@ export interface components {
             /** Format: int32 */
             position?: number | null;
         };
-        ProtocolShareRequest: {
-            /** Format: int32 */
-            protocolId?: number;
-            shareScope?: components["schemas"]["ShareScope"];
+        ProtocolSharing: {
+            protocolIds: number[];
+        };
+        ProtocolSharingRequest: {
+            shared?: boolean;
         };
         ProviderBlock: {
             expiresAt: components["schemas"]["Instant"];
@@ -62157,11 +62115,6 @@ export interface components {
             description?: string | null;
             sources?: components["schemas"]["QuizSourceRequest"][] | null;
             title?: string | null;
-        };
-        QuizShareRequest: {
-            /** Format: int32 */
-            catalogId?: number;
-            shareScope?: components["schemas"]["ShareScope"];
         };
         QuizSourceRequest: {
             /** Format: int32 */
@@ -62982,7 +62935,11 @@ export interface components {
             members: components["schemas"]["RunMemberWithProgress"][];
             run: components["schemas"]["TestProtocolRun"];
         };
+        RunExaminers: {
+            sections: components["schemas"]["SectionExaminers"][];
+        };
         RunMemberWithProgress: {
+            doneSectionIds: number[];
             member: components["schemas"]["TestProtocolRunMember"];
             /** Format: int32 */
             sectionsDone: number;
@@ -63077,6 +63034,15 @@ export interface components {
             snippet: string;
             sourceStationUid: string | null;
             stationName: string | null;
+        };
+        SectionExaminers: {
+            memberIds: number[];
+            /** Format: int32 */
+            sectionId: number;
+        };
+        SectionParentRequest: {
+            /** Format: int32 */
+            parentId?: number | null;
         };
         SelfCheck: {
             /** Format: int32 */
@@ -63958,7 +63924,7 @@ export interface components {
             visibility: components["schemas"]["PageVisibility"];
         };
         /** @enum {string} */
-        StationPermission: "USER" | "LOGIN" | "ATTENDANCE_READ" | "ATTENDANCE_EDIT" | "ATTENDANCE_CONFIGURE" | "ATTENDANCE_EXPORT" | "ATTENDANCE_MANAGER" | "INVENTORY_CREATE_EXTERNAL" | "INVENTORY_CREATE_INTERNAL" | "INVENTORY_READ" | "INVENTORY_CREATE" | "INVENTORY_MOVEMENTS" | "INVENTORY_PROCUREMENT" | "INVENTORY_CHECK" | "INVENTORY_LENDING_REQUEST" | "INVENTORY_LENDING_MANAGER" | "INVENTORY_EDIT" | "INVENTORY_ASSIGN" | "INVENTORY_STORAGE" | "INVENTORY_MANAGER" | "EVENT_MANAGE_TEMPLATE" | "EVENT_MANAGE_CATEGORY" | "EVENT_INTERNAL" | "EVENT_EDIT" | "EVENT_REGISTRATION" | "EVENTS_FEDERATE" | "EVENT_MANAGER" | "DOCUMENT_READ" | "DOCUMENT_READ_MEMBER" | "DOCUMENT_EDIT" | "DOCUMENT_EDIT_MEMBER" | "DOCUMENT_MANAGER" | "MEMBER_READ" | "MEMBER_NOTES" | "MEMBER_GUARDIAN" | "MEMBER_CHANGES" | "MEMBER_MANAGE_GROUP" | "MEMBER_MANAGE_TAGS" | "MEMBER_SELF_UPLOAD" | "MEMBER_EDIT" | "MEMBER_FIELDS" | "MEMBER_EXPORT" | "MEMBER_MANAGER" | "WAITLIST_READ" | "WAITLIST_ADD" | "WAITLIST_EDIT" | "WAITLIST_MANAGER" | "NEWS_EDIT" | "NEWS_FEDERATE" | "NEWS_MANAGER" | "POLL_VIEW_RESULTS" | "POLL_CREATE" | "POLL_MANAGER" | "LOST_AND_FOUND_CREATE" | "LOST_AND_FOUND_MANAGE" | "LOST_AND_FOUND_MANAGER" | "CHECKLIST_READ" | "CHECKLIST_MANAGE" | "CHECKLIST_MANAGER" | "TEST_CATALOG_VIEW" | "TEST_CATALOG_EDIT" | "TEST_CONFIGURE" | "TEST_RESULT_READ" | "TEST_REVIEW" | "TEST_MANAGER" | "PROTOCOL_TESTER" | "PROTOCOL_CREATE" | "PROTOCOL_CONFIGURE" | "PROTOCOL_MANAGER" | "BOARD_USE" | "BOARD_EDIT" | "BOARD_FEDERATE" | "BOARD_MANAGER" | "PAGE_EDIT" | "PAGE_FORMS_VIEW" | "PAGE_POLLS_VIEW" | "PAGE_MANAGER" | "PROCEDURE_READ" | "PROCEDURE_EDIT" | "PROCEDURE_MANAGER" | "KNOWLEDGE_EDIT" | "KNOWLEDGE_FEDERATE" | "KNOWLEDGE_MANAGER" | "STATION_LOOK_AND_FEEL" | "STATION_GENERAL" | "STATION_MAIL" | "STATION_FEDERATION" | "STATION_MODULES" | "STATION_IMPORT_EXPORT" | "STATION_STATISTICS" | "STATION_MANAGER" | "STATION_ADMINISTRATOR";
+        StationPermission: "USER" | "LOGIN" | "ATTENDANCE_READ" | "ATTENDANCE_EDIT" | "ATTENDANCE_CONFIGURE" | "ATTENDANCE_EXPORT" | "ATTENDANCE_MANAGER" | "INVENTORY_CREATE_EXTERNAL" | "INVENTORY_CREATE_INTERNAL" | "INVENTORY_READ" | "INVENTORY_CREATE" | "INVENTORY_MOVEMENTS" | "INVENTORY_PROCUREMENT" | "INVENTORY_CHECK" | "INVENTORY_LENDING_REQUEST" | "INVENTORY_LENDING_MANAGER" | "INVENTORY_EDIT" | "INVENTORY_ASSIGN" | "INVENTORY_STORAGE" | "INVENTORY_MANAGER" | "EVENT_MANAGE_TEMPLATE" | "EVENT_MANAGE_CATEGORY" | "EVENT_INTERNAL" | "EVENT_EDIT" | "EVENT_REGISTRATION" | "EVENTS_FEDERATE" | "EVENT_MANAGER" | "DOCUMENT_READ" | "DOCUMENT_READ_MEMBER" | "DOCUMENT_EDIT" | "DOCUMENT_EDIT_MEMBER" | "DOCUMENT_MANAGER" | "MEMBER_READ" | "MEMBER_NOTES" | "MEMBER_GUARDIAN" | "MEMBER_CHANGES" | "MEMBER_MANAGE_GROUP" | "MEMBER_MANAGE_TAGS" | "MEMBER_SELF_UPLOAD" | "MEMBER_EDIT" | "MEMBER_FIELDS" | "MEMBER_EXPORT" | "MEMBER_MANAGER" | "WAITLIST_READ" | "WAITLIST_ADD" | "WAITLIST_EDIT" | "WAITLIST_MANAGER" | "NEWS_EDIT" | "NEWS_FEDERATE" | "NEWS_MANAGER" | "POLL_VIEW_RESULTS" | "POLL_CREATE" | "POLL_MANAGER" | "LOST_AND_FOUND_CREATE" | "LOST_AND_FOUND_MANAGE" | "LOST_AND_FOUND_MANAGER" | "CHECKLIST_READ" | "CHECKLIST_MANAGE" | "CHECKLIST_MANAGER" | "TEST_CATALOG_VIEW" | "TEST_CATALOG_EDIT" | "TEST_CONFIGURE" | "TEST_RESULT_READ" | "TEST_REVIEW" | "TEST_CATALOG_SHARE" | "TEST_MANAGER" | "PROTOCOL_TESTER" | "PROTOCOL_CREATE" | "PROTOCOL_CONFIGURE" | "PROTOCOL_SHARE" | "PROTOCOL_MANAGER" | "BOARD_USE" | "BOARD_EDIT" | "BOARD_FEDERATE" | "BOARD_MANAGER" | "PAGE_EDIT" | "PAGE_FORMS_VIEW" | "PAGE_POLLS_VIEW" | "PAGE_MANAGER" | "PROCEDURE_READ" | "PROCEDURE_EDIT" | "PROCEDURE_MANAGER" | "KNOWLEDGE_EDIT" | "KNOWLEDGE_FEDERATE" | "KNOWLEDGE_MANAGER" | "STATION_LOOK_AND_FEEL" | "STATION_GENERAL" | "STATION_MAIL" | "STATION_FEDERATION" | "STATION_MODULES" | "STATION_IMPORT_EXPORT" | "STATION_STATISTICS" | "STATION_MANAGER" | "STATION_ADMINISTRATOR";
         StationPermissionsRequest: {
             permissions?: string[];
         };
@@ -64398,6 +64364,7 @@ export interface components {
             updatedAt: components["schemas"]["Instant"];
         };
         TestProtocolItem: {
+            bonus: boolean;
             description: string;
             /** Format: int32 */
             id: number;
@@ -65471,6 +65438,8 @@ export type CapabilityType = components['schemas']['CapabilityType'];
 export type CatalogImportRejected = components['schemas']['CatalogImportRejected'];
 export type CatalogListResponse = components['schemas']['CatalogListResponse'];
 export type CatalogMetadata = components['schemas']['CatalogMetadata'];
+export type CatalogSharing = components['schemas']['CatalogSharing'];
+export type CatalogSharingRequest = components['schemas']['CatalogSharingRequest'];
 export type CatalogTransfer = components['schemas']['CatalogTransfer'];
 export type CatalogTransferCategory = components['schemas']['CatalogTransferCategory'];
 export type CatalogTransferInfo = components['schemas']['CatalogTransferInfo'];
@@ -65731,6 +65700,7 @@ export type EventSummary = components['schemas']['EventSummary'];
 export type EventTemplate = components['schemas']['EventTemplate'];
 export type EventTemplateFieldData = components['schemas']['EventTemplateFieldData'];
 export type EventType = components['schemas']['EventType'];
+export type ExaminerCandidate = components['schemas']['ExaminerCandidate'];
 export type Expected = components['schemas']['Expected'];
 export type ExportColumnRequest = components['schemas']['ExportColumnRequest'];
 export type ExportMovementsRequest = components['schemas']['ExportMovementsRequest'];
@@ -65756,7 +65726,6 @@ export type FederationContract = components['schemas']['FederationContract'];
 export type FederationInfoResponse = components['schemas']['FederationInfoResponse'];
 export type FederationPartner = components['schemas']['FederationPartner'];
 export type FederationRequestBody = components['schemas']['FederationRequestBody'];
-export type FederationShare = components['schemas']['FederationShare'];
 export type FederationShareResponse = components['schemas']['FederationShareResponse'];
 export type FederationStatus = components['schemas']['FederationStatus'];
 export type FederationTargetRequest = components['schemas']['FederationTargetRequest'];
@@ -65848,6 +65817,7 @@ export type GenerateEntry = components['schemas']['GenerateEntry'];
 export type GenerateQuestionsRequest = components['schemas']['GenerateQuestionsRequest'];
 export type GenerationPollResponse = components['schemas']['GenerationPollResponse'];
 export type GeocodingProvider = components['schemas']['GeocodingProvider'];
+export type GradingScope = components['schemas']['GradingScope'];
 export type GrantRequest = components['schemas']['GrantRequest'];
 export type GroupConflict = components['schemas']['GroupConflict'];
 export type GroupDetail = components['schemas']['GroupDetail'];
@@ -65950,8 +65920,6 @@ export type KbReach = components['schemas']['KbReach'];
 export type KbRefusalReason = components['schemas']['KbRefusalReason'];
 export type KbRestrictionRequest = components['schemas']['KbRestrictionRequest'];
 export type KbRestrictionResponse = components['schemas']['KbRestrictionResponse'];
-export type KbShareRequest = components['schemas']['KbShareRequest'];
-export type KbShareResponse = components['schemas']['KbShareResponse'];
 export type KbTag = components['schemas']['KbTag'];
 export type KbTagRequest = components['schemas']['KbTagRequest'];
 export type KbVersionResponse = components['schemas']['KbVersionResponse'];
@@ -66279,7 +66247,8 @@ export type ProtocolOrderRequest = components['schemas']['ProtocolOrderRequest']
 export type ProtocolRequest = components['schemas']['ProtocolRequest'];
 export type ProtocolRunRequest = components['schemas']['ProtocolRunRequest'];
 export type ProtocolSectionRequest = components['schemas']['ProtocolSectionRequest'];
-export type ProtocolShareRequest = components['schemas']['ProtocolShareRequest'];
+export type ProtocolSharing = components['schemas']['ProtocolSharing'];
+export type ProtocolSharingRequest = components['schemas']['ProtocolSharingRequest'];
 export type ProviderBlock = components['schemas']['ProviderBlock'];
 export type ProviderStanding = components['schemas']['ProviderStanding'];
 export type ProviderTestRequest = components['schemas']['ProviderTestRequest'];
@@ -66339,7 +66308,6 @@ export type QuizQuestionView = components['schemas']['QuizQuestionView'];
 export type QuizReportRequest = components['schemas']['QuizReportRequest'];
 export type QuizSectionDetail = components['schemas']['QuizSectionDetail'];
 export type QuizSectionRequest = components['schemas']['QuizSectionRequest'];
-export type QuizShareRequest = components['schemas']['QuizShareRequest'];
 export type QuizSourceRequest = components['schemas']['QuizSourceRequest'];
 export type QuizSuccessResponse = components['schemas']['QuizSuccessResponse'];
 export type QuizTeaserConfig = components['schemas']['QuizTeaserConfig'];
@@ -66445,6 +66413,7 @@ export type RoomDetail = components['schemas']['RoomDetail'];
 export type RuleRequest = components['schemas']['RuleRequest'];
 export type RuleResponse = components['schemas']['RuleResponse'];
 export type RunDetailResponse = components['schemas']['RunDetailResponse'];
+export type RunExaminers = components['schemas']['RunExaminers'];
 export type RunMemberWithProgress = components['schemas']['RunMemberWithProgress'];
 export type RunStatus = components['schemas']['RunStatus'];
 export type S3 = components['schemas']['S3'];
@@ -66458,6 +66427,8 @@ export type ScheduleMode = components['schemas']['ScheduleMode'];
 export type Scope = components['schemas']['Scope'];
 export type SearchResultItem = components['schemas']['SearchResultItem'];
 export type SearchResultResponse = components['schemas']['SearchResultResponse'];
+export type SectionExaminers = components['schemas']['SectionExaminers'];
+export type SectionParentRequest = components['schemas']['SectionParentRequest'];
 export type SelfCheck = components['schemas']['SelfCheck'];
 export type SelfCheckAnswer = components['schemas']['SelfCheckAnswer'];
 export type SelfCheckAnswerRequest = components['schemas']['SelfCheckAnswerRequest'];
@@ -67818,6 +67789,7 @@ export const StationPermission = {
     PROTOCOL_CONFIGURE: "PROTOCOL_CONFIGURE",
     PROTOCOL_CREATE: "PROTOCOL_CREATE",
     PROTOCOL_MANAGER: "PROTOCOL_MANAGER",
+    PROTOCOL_SHARE: "PROTOCOL_SHARE",
     PROTOCOL_TESTER: "PROTOCOL_TESTER",
     STATION_ADMINISTRATOR: "STATION_ADMINISTRATOR",
     STATION_FEDERATION: "STATION_FEDERATION",
@@ -67829,6 +67801,7 @@ export const StationPermission = {
     STATION_MODULES: "STATION_MODULES",
     STATION_STATISTICS: "STATION_STATISTICS",
     TEST_CATALOG_EDIT: "TEST_CATALOG_EDIT",
+    TEST_CATALOG_SHARE: "TEST_CATALOG_SHARE",
     TEST_CATALOG_VIEW: "TEST_CATALOG_VIEW",
     TEST_CONFIGURE: "TEST_CONFIGURE",
     TEST_MANAGER: "TEST_MANAGER",

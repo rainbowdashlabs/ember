@@ -8,6 +8,7 @@ import { useI18n } from 'vue-i18n'
 import IconButton from '@/components/button/IconButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
+import ProtocolItemPoints from '@/components/protocol/ProtocolItemPoints.vue'
 import type { TestProtocolItem } from '@/api/generated/schema'
 
 defineProps<{
@@ -30,7 +31,7 @@ const { t } = useI18n()
       <span>{{ item.label }}</span>
       <p v-if="item.description" class="text-[var(--text-muted)]">{{ item.description }}</p>
     </div>
-    <span class="text-xs text-[var(--text-muted)]">{{ item.points }}P</span>
+    <ProtocolItemPoints :item="item" />
     <template v-if="canEdit">
       <IconButton :icon="['fas', 'pen']" :label="t('common.edit')" @click="$emit('edit', item)" />
       <DeleteButton :label="t('common.delete')" @click="$emit('delete', item.id)" />

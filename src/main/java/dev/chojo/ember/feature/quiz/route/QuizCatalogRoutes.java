@@ -32,6 +32,7 @@ import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiParam;
 import io.javalin.openapi.OpenApiRequestBody;
 import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
@@ -87,6 +88,8 @@ public class QuizCatalogRoutes implements Routes {
                 StationPermission.TEST_CATALOG_VIEW,
                 StationPermission.TEST_RESULT_READ);
         routes.post(prefix + "/quiz/catalogs", this::createCatalog, StationPermission.TEST_CATALOG_EDIT);
+        routes.get(prefix + "/quiz/catalogs/sharing", this::listSharing, StationPermission.TEST_CATALOG_SHARE);
+        routes.put(prefix + "/quiz/catalogs/{id}/sharing", this::setSharing, StationPermission.TEST_CATALOG_SHARE);
         routes.get(
                 prefix + "/quiz/catalogs/{id}",
                 this::getCatalog,
@@ -130,37 +133,71 @@ public class QuizCatalogRoutes implements Routes {
     }
 
     @OpenApi(
+            path = "/api/v1/quiz/catalogs/sharing",
+            methods = HttpMethod.GET,
+            summary = "List which of the station's catalogs its partners may see",
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = CatalogSharing.class)))
+    private void listSharing(Context ctx) {
+        ctx.json(new CatalogSharing(
+                federationService.findSharedCatalogIds(StationSession.from(ctx).stationId())));
+    }
+
+    @OpenApi(
+            path = "/api/v1/quiz/catalogs/{id}/sharing",
+            methods = HttpMethod.PUT,
+            summary = "Share a catalog with every partner, or stop sharing it",
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CatalogSharingRequest.class)),
+            responses = @OpenApiResponse(status = "204"))
+    private void setSharing(Context ctx) {
+        int id = pathInt(ctx, "id");
+        guards.requireOwnedCatalog(ctx, id);
+        federationService.setShared(
+                StationSession.from(ctx).stationId(),
+                id,
+                ctx.bodyAsClass(CatalogSharingRequest.class).shared());
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    /**
+     * Which of the station's catalogs its federation partners may see.
+     *
+     * @param catalogIds the shared catalogs, each once
+     */
+    public record CatalogSharing(List<Integer> catalogIds) {}
+
+    /**
+     * Whether a catalog is to be shared with every partner of its station.
+     *
+     * @param shared whether partners may see it
+     */
+    public record CatalogSharingRequest(boolean shared) {}
+
+    @OpenApi(
             path = "/api/v1/quiz/catalogs/{id}",
             methods = HttpMethod.GET,
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = QuizCatalogDetail.class)))
     private void getCatalog(Context ctx) {
         int id = pathInt(ctx, "id");
-        catalogService
-                .findCatalog(id)
-                .ifPresentOrElse(
-                        catalog -> {
-                            var questions = questionService.findQuestions(id);
-                            var categories = catalogService.findCategories(catalog.stationId());
-                            var typeCounts = new LinkedHashMap<String, Integer>();
-                            for (var q : questions) {
-                                typeCounts.merge(q.quizQuestionType().name(), 1, Integer::sum);
-                            }
-                            ctx.json(new QuizCatalogDetail(
-                                    catalog.id(),
-                                    catalog.stationId(),
-                                    catalog.name(),
-                                    catalog.description(),
-                                    catalog.trainingEnabled(),
-                                    catalog.metadata(),
-                                    questions.size(),
-                                    typeCounts,
-                                    categories,
-                                    catalog.createdAt(),
-                                    catalog.updatedAt()));
-                        },
-                        () -> {
-                            throw QuizRefusal.QUIZ_CATALOG_NOT_HERE.raise();
-                        });
+        var catalog = guards.requireOwnedCatalog(ctx, id);
+        var questions = questionService.findQuestions(id);
+        var categories = catalogService.findCategories(catalog.stationId());
+        var typeCounts = new LinkedHashMap<String, Integer>();
+        for (var q : questions) {
+            typeCounts.merge(q.quizQuestionType().name(), 1, Integer::sum);
+        }
+        ctx.json(new QuizCatalogDetail(
+                catalog.id(),
+                catalog.stationId(),
+                catalog.name(),
+                catalog.description(),
+                catalog.trainingEnabled(),
+                catalog.metadata(),
+                questions.size(),
+                typeCounts,
+                categories,
+                catalog.createdAt(),
+                catalog.updatedAt()));
     }
 
     @OpenApi(

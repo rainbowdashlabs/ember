@@ -2,18 +2,42 @@
 
 ## v26.21.0
 
-Themenfarben erscheinen dort, wo sie fehlten. Das Bearbeiten von Kommentaren ist sicherer. E-Mail-Adressen von Mitgliedern erreichen nur noch die, die das Mitgliederverzeichnis lesen dürfen. Mitglieder, die ihr Konto über einen Link einrichten, bleiben in ihrer Wache, und die Einwilligung wird auf jedem Weg hinein abgefragt.
+Themenfarben erscheinen dort, wo sie fehlten. Das Bearbeiten von Kommentaren ist sicherer. E-Mail-Adressen von Mitgliedern erreichen nur noch die, die das Mitgliederverzeichnis lesen dürfen. Mitglieder, die ihr Konto über einen Link einrichten, bleiben in ihrer Wache, und die Einwilligung wird auf jedem Weg hinein abgefragt. Prüfungen lassen sich mit Prüfern je Abschnitt planen, und nur diese bewerten sie dann. Abschnitte lassen sich beliebig tief verschachteln und verschieben, und Prüfpunkte können Bonuspunkte sein. Prüfungsbögen lassen sich einzeln mit Partnerwachen teilen. Kopiert wird von Partnern nur, was sie teilen, und das auch von Partnern auf anderen Installationen.
+
+### Neue Funktionen
+
+- **Prüfungen lassen sich mit Prüfern planen.** Nach dem Anlegen einer Prüfung werden auf einer Planungsseite die Prüfer jedes Abschnitts festgelegt, auch mehrere, und wer einen Abschnitt prüft, prüft auch alles darunter. Sobald Prüfer festgelegt sind, bewerten nur noch sie die Prüfung, jeder seine Abschnitte und die ohne Prüfer, auch die Protokollverwaltung.
+- **Prüfungsbögen können Bonuspunkte haben.** Ein Prüfpunkt lässt sich in seinem Dialog als Bonus markieren. Er zählt abgehakt zur erreichten Punktzahl, aber nicht zur Höchstpunktzahl seines Abschnitts oder des Bogens, und hilft beim Erreichen der Bestehensgrenze.
+
+### Verbesserungen
+
+- **Die Bewertung nennt die nächste Station.** Nach „Geprüft & Beenden“ sieht der Prüfer den nächsten offenen Abschnitt in der Reihenfolge des Bogens und wer ihn dort bewertet. Nach dem letzten Abschnitt geht es beim ersten offenen weiter.
+- **Abschnitte lassen sich beliebig tief verschachteln.** Ein Unterabschnitt kann eigene Unterabschnitte haben, so tief wie nötig, im Editor, beim Bewerten, in der Auswertung und in den PDFs. Ein Abschnitt lässt sich ausschneiden und mit allem darunter in einen anderen Abschnitt oder auf die oberste Ebene einfügen.
+- **Die Prüfungsseite zeigt, was noch offen ist.** Bei jedem Mitglied einer Prüfung steht jeder Abschnitt als abgeschlossen oder offen, und beim Bewerten werden die noch nicht abgeschlossenen Abschnitte genannt. Eine Prüfung lässt sich wie die letzte Prüfung desselben Bogens planen.
+- **Fragenkataloge lassen sich mit Partnern teilen.** In der Liste der Kataloge kann jeder eigene Katalog mit allen Partnerwachen geteilt und wieder zurückgezogen werden, geteilte Kataloge sind markiert. Die neue Berechtigung „Testkataloge teilen“, Teil der Testverwaltung, erlaubt das.
+- **Prüfungsbögen lassen sich mit Partnern teilen.** In der Liste der Prüfungsbögen kann jeder eigene Bogen mit allen Partnerwachen geteilt und wieder zurückgezogen werden. Geteilte Bögen sind in der Liste markiert, und die neue Berechtigung „Protokolle teilen“, Teil der Protokollverwaltung, erlaubt das.
 
 ### Sicherheit
 
 - **Namen in Erwähnungen erscheinen als Text.** Beim Bearbeiten eines Kommentars wurde der Name eines erwähnten Mitglieds als Teil der Seite gelesen statt als Text gezeigt. Jetzt erscheint er immer als Text.
 - **Mitgliederlisten tragen keine E-Mail-Adressen mehr.** Seiten, auf denen nur ein Mitglied ausgewählt wird, etwa Inventar, Anwesenheit oder Sichtbarkeitsfilter, bekamen die E-Mail-Adresse jedes Mitglieds, und die Mitgliedermenüs zeigten sie an. Diese Adressen erreichen jetzt nur noch die, die das Mitgliederverzeichnis lesen dürfen, und Mitgliedermenüs zeigen nur Namen.
+- **Kopieren von Partnern übernimmt nur Geteiltes.** Beim Kopieren eines Prüfungsbogens oder Wiki-Artikels von einer Partnerwache ließen sich Inhalte anderer Wachen derselben Installation erreichen, die nie geteilt wurden. Eine Kopie wird jetzt immer bei der Partnerwache geholt, die nur Geteiltes herausgibt.
+- **Fragenkataloge öffnen sich nur in ihrer Wache.** Name, Beschreibung und Kategorien eines Fragenkatalogs einer anderen Wache ließen sich von allen öffnen, die Kataloge ansehen dürfen. Ein Katalog öffnet sich jetzt nur noch in der Wache, zu der er gehört.
+
+### Änderungen
+
 - **Die Einwilligung wird auf jedem Weg hinein abgefragt.** Wer über einen Link ein Passwort oder einen Passkey einrichtet, bekommt dieselbe Einwilligung wie beim Anmelden, und wer angemeldet ist und nie gefragt wurde, sieht sie einmal. Jede Antwort ist eine Schaltfläche derselben Art, und keine freiwillige Speicherung ist vorab eingeschaltet.
+- **Eine Prüfung endet, sobald jeder Abschnitt geprüft ist.** Der Button „Prüfung abschließen“ entfällt: Wer den letzten offenen Abschnitt mit „Geprüft & Weiter“ oder „Geprüft & Beenden“ markiert, schließt die Prüfung des Mitglieds ab, und das Ergebnis wird gespeichert. Bis jeder Abschnitt markiert ist, auch die der anderen Prüfer, bleibt die Prüfung offen.
 
 ### Fehlerbehebungen
 
 - **Feld-Vorlagen wurden Probemitgliedern gestellt.** Felder aus einer Vorlage für Profilfelder kamen auf das gerade gezeigte Formular, und das war beim Öffnen das der Probemitglieder. Felder aus einer Vorlage entstehen jetzt ohne Zielgruppe und werden danach jeweils den passenden Formularen gestellt.
 - **Manche Themenfarben fehlten.** Auf vielen Seiten erschienen Hervorhebungen, Links, Hintergründe unter dem Mauszeiger, Fortschrittsbalken, Fehlermeldungen und Erfolgsmarkierungen ohne ihre Farbe. Jetzt erscheinen sie in den Themenfarben.
+- **Ein Mitglied konnte von einem Prüfer festgehalten bleiben.** Verließ ein Prüfer die Bewertung, ohne sie zu schließen, konnte niemand sonst dieses Mitglied mehr bewerten. Das Festhalten endet jetzt nach vier Stunden.
+- **Fragenkataloge von Partnern ließen sich nicht kopieren.** Das Kopieren eines Katalogs, den eine Partnerwache teilt, wurde immer abgelehnt. Jetzt entsteht eine Kopie mit allen Fragen.
+- **Kopieren von Partnern einer anderen Installation schlug fehl.** Ein Prüfungsbogen oder Wiki-Artikel einer Wache auf einer anderen Installation ließ sich öffnen, aber nicht kopieren. Beides lässt sich jetzt kopieren.
+- **Gruppen boten Mitglieder an, die sie nicht aufnehmen.** Die Auswahl zum Hinzufügen zu einer Gruppe, die auf Mitgliedstypen beschränkt ist, bot auch alle anderen an, und das Hinzufügen wurde abgelehnt. Jetzt stehen dort nur Mitglieder der Typen, die die Gruppe aufnimmt.
+- **Die Bewegungsliste ließ ein zweites Stück derselben Art weg.** Tauschte ein Mitglied zwei Stücke eines Inventars, etwa zwei Hemden, zeigte die exportierte Liste nur eines davon. Jedes dieser Stücke bekommt jetzt eine eigene Spalte.
 - **Mitglieder, die ihr Konto über einen Link einrichteten, blieben nicht in ihrer Wache.** In manchen Fällen landete ein Mitglied, das sein Konto über den Link aus der Mail eingerichtet hatte, immer wieder auf der Übersicht aller Wachen. Die gewählte Wache bleibt jetzt immer erhalten, und ein Mitglied mit nur einer Wache kommt direkt dorthin.
 
 ## v26.20.3

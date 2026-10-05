@@ -20,7 +20,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  copy: [catalogId: number]
+  copy: [shared: SharedQuizCatalog]
 }>()
 
 const { t } = useI18n()
@@ -48,9 +48,10 @@ const catalogPage = computed(() => props.shared.stationUid
         <MutedText v-if="shared.description" tag="p">{{ shared.description }}</MutedText>
         <div class="flex items-center justify-end border-t border-bg-light-accent dark:border-bg-dark-accent pt-2 mt-2">
           <IconButton
+            v-if="shared.stationUid"
             :icon="['fas', 'copy']"
             :label="t('federation.copyToStation')"
-            @click="emit('copy', shared.id)"
+            @click="emit('copy', shared)"
           />
         </div>
       </div>
@@ -65,9 +66,10 @@ const catalogPage = computed(() => props.shared.stationUid
         </div>
         <div class="flex items-center gap-2 shrink-0">
           <MutedIconButton
+            v-if="shared.stationUid"
             :icon="['fas', 'copy']"
             :label="t('federation.copyToStation')"
-            @click="emit('copy', shared.id)"
+            @click="emit('copy', shared)"
           />
         </div>
       </div>
