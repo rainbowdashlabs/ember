@@ -24,7 +24,7 @@ Theme colours show where they were missing. Editing a comment is safer. Email ad
 - **Quiz catalogs open only at their own station.** The name, description and categories of another station's quiz catalog could be opened by someone allowed to view catalogs. A catalog now opens only at the station it belongs to.
 
 ### Changes
-- **An exam is finished only once every section is checked.** "Finish exam" stays disabled until each section of the sheet has been marked with "Checked & next" or "Checked & exit", the sections of other examiners included.
+- **An exam finishes once every section is checked.** The "Finish exam" button is gone: marking the last open section with "Checked & next" or "Checked & exit" finishes a member's exam and stores the result. Until every section is marked, the sections of other examiners included, the exam stays open.
 
 ### Fixes
 

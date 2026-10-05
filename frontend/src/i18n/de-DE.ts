@@ -9397,8 +9397,6 @@ export default {
         totalScore: 'Gesamtpunktzahl',
         prevSection: 'Zurück',
         nextSection: 'Weiter',
-        finish: 'Prüfung abschließen',
-        finishNeedsEverySection: 'Die Prüfung lässt sich erst abschließen, wenn jeder Abschnitt als geprüft markiert ist, auch die der anderen Prüfer.',
         sections: 'Abschnitte',
         filterIncomplete: 'Nur unvollständige',
         markDone: 'Geprüft',

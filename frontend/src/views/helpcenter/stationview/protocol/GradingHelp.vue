@@ -67,11 +67,6 @@ const { t } = useI18n()
         </ButtonRow>
       </div>
       <p>{{ t('helpCenter.protocolGrading.finishText') }}</p>
-      <ButtonRow align="end">
-        <SuccessButton class="flex-1 sm:flex-initial" disabled>
-          <font-awesome-icon :icon="['fas', 'flag']" class="mr-1" /> {{ t('protocol.finish') }}
-        </SuccessButton>
-      </ButtonRow>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.protocolGrading.lockTitle')">

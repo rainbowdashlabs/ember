@@ -26,7 +26,6 @@ import { reportCaughtError } from '@/util/devErrorReporter'
 import { maxPointsOf, scoreOf } from './protocolPoints'
 import { protocolTree } from './protocolTree'
 import Alert from '@/components/feedback/Alert.vue'
-import MutedText from '@/components/typography/MutedText.vue'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -74,7 +73,7 @@ const openSections = computed(() => topSections.value.filter(section => !doneSec
 
 /**
  * Whether every top-level section of the sheet is marked as checked, other examiners' included,
- * which is the one state in which the examination may be finished.
+ * which is what finishes the examination.
  */
 const everySectionDone = computed(() => tree.value.childrenOf(null).every(section => doneSections.value.has(section.id)))
 
@@ -102,10 +101,6 @@ function toggleCheck(itemId: number) {
   checks.value.set(itemId, !checks.value.get(itemId))
   if (saveDebounce) clearTimeout(saveDebounce)
   saveDebounce = setTimeout(() => autoSave(), 500)
-}
-
-async function toggleSectionDone(sectionId: number) {
-  doneSections.value = new Set(await protocol.toggleSectionDone(runId.value, memberId.value, sectionId))
 }
 
 function serializeChecks(): Record<number, boolean> {
@@ -183,18 +178,33 @@ function savePrev() {
   })
 }
 
-function finishGrading() {
+function backToRun() {
+  return router.push({ name: 'protocol-run-detail', params: { id: runId.value } })
+}
+
+/**
+ * Marks a section as checked or takes the mark back, always after the ticks were saved: the mark
+ * that leaves no section open finishes the examination on the server, scored from what is stored.
+ *
+ * @returns whether this mark finished the examination
+ */
+async function markSection(sectionId: number): Promise<boolean> {
+  doneSections.value = new Set(await protocol.toggleSectionDone(runId.value, memberId.value, sectionId))
+  return everySectionDone.value
+}
+
+function toggleSectionDone(sectionId: number) {
   return runSave(async () => {
-    await protocol.completeMember(runId.value, memberId.value)
-    router.push({ name: 'protocol-run-detail', params: { id: runId.value } })
+    if (await markSection(sectionId)) await backToRun()
   })
 }
 
 function markDoneAndNext() {
   return runSave(async () => {
     const section = currentSection.value
-    if (section && !doneSections.value.has(section.id)) {
-      doneSections.value = new Set(await protocol.toggleSectionDone(runId.value, memberId.value, section.id))
+    if (section && !doneSections.value.has(section.id) && await markSection(section.id)) {
+      await backToRun()
+      return
     }
     goNextSection()
   })
@@ -203,18 +213,16 @@ function markDoneAndNext() {
 function markDoneAndExit() {
   return runSave(async () => {
     const section = currentSection.value
-    if (section && !doneSections.value.has(section.id)) {
-      await protocol.toggleSectionDone(runId.value, memberId.value, section.id)
-    }
+    if (section && !doneSections.value.has(section.id)) await markSection(section.id)
     await protocol.unlockMember(runId.value, memberId.value)
-    router.push({ name: 'protocol-run-detail', params: { id: runId.value } })
+    await backToRun()
   })
 }
 
 function saveAndExit() {
   return runSave(async () => {
     await protocol.unlockMember(runId.value, memberId.value)
-    router.push({ name: 'protocol-run-detail', params: { id: runId.value } })
+    await backToRun()
   })
 }
 
@@ -291,16 +299,10 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
             <font-awesome-icon :icon="['fas', 'chevron-left']" class="mr-1" /> {{ t('protocol.prevSection') }}
           </SecondaryButton>
           <div class="hidden sm:block flex-1" />
-          <SuccessButton v-if="currentSectionIndex === topSections.length - 1" class="flex-1 sm:flex-initial" :disabled="saving || !everySectionDone" @click="finishGrading">
-            <font-awesome-icon :icon="['fas', 'flag']" class="mr-1" /> {{ t('protocol.finish') }}
-          </SuccessButton>
           <PrimaryButton v-if="currentSectionIndex < topSections.length - 1" class="sm:flex-initial" :disabled="saving" @click="saveAndNext">
             {{ t('protocol.nextSection') }} <font-awesome-icon :icon="['fas', 'chevron-right']" class="ml-1" />
           </PrimaryButton>
         </ButtonRow>
-        <MutedText v-if="currentSectionIndex === topSections.length - 1 && !everySectionDone" tag="p" size="sm">
-          {{ t('protocol.finishNeedsEverySection') }}
-        </MutedText>
       </div>
     </template>
   </ViewContent>

@@ -284,11 +284,11 @@ class TestProtocolServiceTest extends RepositoryTestBase {
     @Test
     @Order(60)
     void toggleSectionDone() {
-        service.toggleSectionDone(runId, member.id(), sectionId, member.id());
+        service.toggleSectionDone(runId, member.id(), protocolId, sectionId, member.id());
         var done = service.findDoneSections(runId, member.id());
         assertTrue(done.contains(sectionId));
 
-        service.toggleSectionDone(runId, member.id(), sectionId, member.id());
+        service.toggleSectionDone(runId, member.id(), protocolId, sectionId, member.id());
         done = service.findDoneSections(runId, member.id());
         assertFalse(done.contains(sectionId));
     }
@@ -296,7 +296,7 @@ class TestProtocolServiceTest extends RepositoryTestBase {
     @Test
     @Order(61)
     void toggleSectionDoneNonexistentMember() {
-        service.toggleSectionDone(runId, 99999, sectionId, member.id());
+        service.toggleSectionDone(runId, 99999, protocolId, sectionId, member.id());
     }
 
     @Test
@@ -323,8 +323,34 @@ class TestProtocolServiceTest extends RepositoryTestBase {
         var done = service.findDoneSections(runId, member.id());
         service.findSections(protocolId).stream()
                 .filter(section -> section.parentId() == null && !done.contains(section.id()))
-                .forEach(section -> service.toggleSectionDone(runId, member.id(), section.id(), member.id()));
+                .forEach(section ->
+                        service.toggleSectionDone(runId, member.id(), protocolId, section.id(), member.id()));
         assertTrue(service.completeMember(runId, member.id(), protocolId));
+    }
+
+    /** The mark that leaves no section open finishes the examination, with the score of its ticks. */
+    @Test
+    @Order(65)
+    void markingTheLastSectionFinishesTheExamination() {
+        int sheet = service.createProtocol(station.id(), "Sheet", "", 50).id();
+        int knots =
+                service.createSection(sheet, null, "Knots", "", null, null, 0).id();
+        int radio =
+                service.createSection(sheet, null, "Radio", "", null, null, 1).id();
+        int knot = service.createItem(knots, "Bowline", "", 4.0, 0, false).id();
+        service.createItem(radio, "Call sign", "", 6.0, 0, false);
+        int run = service.createRun(sheet, station.id(), "Autumn", LocalDate.of(2026, 9, 1), member.id())
+                .id();
+        service.addRunMember(run, member.id());
+        service.saveChecks(run, member.id(), Map.of(knot, true), member.id(), sheet);
+
+        service.toggleSectionDone(run, member.id(), sheet, knots, member.id());
+        assertFalse(service.findRunMember(run, member.id()).orElseThrow().completed());
+
+        service.toggleSectionDone(run, member.id(), sheet, radio, member.id());
+        var finished = service.findRunMember(run, member.id()).orElseThrow();
+        assertTrue(finished.completed());
+        assertEquals(4.0, finished.totalScore());
     }
 
     @Test

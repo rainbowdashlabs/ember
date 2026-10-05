@@ -219,8 +219,3 @@ export function exportAllZip(runId: number): Promise<void> {
 export function evaluationPdf(runId: number): Promise<void> {
     return downloadAuthed(`/protocols/runs/${runId}/evaluation/export`, `protocol-${runId}-evaluation.pdf`)
 }
-
-export async function completeMember(runId: number, memberId: number): Promise<TestProtocolRunMember> {
-    const res = await client.post<TestProtocolRunMember>(`/protocols/runs/${runId}/members/${memberId}/complete`)
-    return res.data
-}

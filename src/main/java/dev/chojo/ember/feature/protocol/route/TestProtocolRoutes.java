@@ -573,7 +573,8 @@ public class TestProtocolRoutes implements Routes {
         var run = guards.requireRun(ctx, runId);
         guards.requireSection(ctx, sectionId);
         examiners.requireFinishable(run, gradingScope(ctx, run), sectionId);
-        service.toggleSectionDone(runId, memberId, sectionId, session.member().id());
+        service.toggleSectionDone(
+                runId, memberId, run.protocolId(), sectionId, session.member().id());
         ctx.json(service.findDoneSections(runId, memberId));
     }
 

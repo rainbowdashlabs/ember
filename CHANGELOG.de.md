@@ -24,7 +24,7 @@ Themenfarben erscheinen dort, wo sie fehlten. Das Bearbeiten von Kommentaren ist
 - **Fragenkataloge öffnen sich nur in ihrer Wache.** Name, Beschreibung und Kategorien eines Fragenkatalogs einer anderen Wache ließen sich von allen öffnen, die Kataloge ansehen dürfen. Ein Katalog öffnet sich jetzt nur noch in der Wache, zu der er gehört.
 
 ### Änderungen
-- **Eine Prüfung endet erst, wenn jeder Abschnitt geprüft ist.** „Prüfung abschließen“ bleibt gesperrt, bis jeder Abschnitt des Bogens mit „Geprüft & Weiter“ oder „Geprüft & Beenden“ markiert ist, auch die Abschnitte der anderen Prüfer.
+- **Eine Prüfung endet, sobald jeder Abschnitt geprüft ist.** Der Button „Prüfung abschließen“ entfällt: Wer den letzten offenen Abschnitt mit „Geprüft & Weiter“ oder „Geprüft & Beenden“ markiert, schließt die Prüfung des Mitglieds ab, und das Ergebnis wird gespeichert. Bis jeder Abschnitt markiert ist, auch die der anderen Prüfer, bleibt die Prüfung offen.
 
 ### Fehlerbehebungen
 

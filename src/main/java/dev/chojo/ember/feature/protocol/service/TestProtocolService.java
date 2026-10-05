@@ -545,7 +545,13 @@ public class TestProtocolService implements FederationServer {
         return repository.findDoneSections(rm.get().id());
     }
 
-    public void toggleSectionDone(int runId, int memberId, int sectionId, int doneBy) {
+    /**
+     * Marks a section of one member's sheet as checked, or takes the mark back.
+     *
+     * <p>The mark that leaves no top-level section open finishes the examination there and then, so
+     * the last examiner to mark their section closes the sheet without a further step.
+     */
+    public void toggleSectionDone(int runId, int memberId, int protocolId, int sectionId, int doneBy) {
         var rm = repository.findRunMember(runId, memberId);
         if (rm.isEmpty()) return;
         int runMemberId = rm.get().id();
@@ -553,15 +559,16 @@ public class TestProtocolService implements FederationServer {
         if (done.contains(sectionId)) {
             repository.unmarkSectionDone(runMemberId, sectionId);
             log.info("Unmarked section {} done for member {} on protocol run {}", sectionId, memberId, runId);
-        } else {
-            repository.markSectionDone(runMemberId, sectionId, doneBy);
-            log.info(
-                    "Marked section {} done for member {} on protocol run {} by member {}",
-                    sectionId,
-                    memberId,
-                    runId,
-                    doneBy);
+            return;
         }
+        repository.markSectionDone(runMemberId, sectionId, doneBy);
+        log.info(
+                "Marked section {} done for member {} on protocol run {} by member {}",
+                sectionId,
+                memberId,
+                runId,
+                doneBy);
+        if (everySectionDone(runMemberId, protocolId)) complete(runId, memberId, runMemberId, protocolId);
     }
 
     public int countDoneSections(int runMemberId) {
@@ -578,21 +585,29 @@ public class TestProtocolService implements FederationServer {
      * Finishes the examination of one member and stores their score.
      *
      * <p>Refused while any top-level section has not been marked as checked: a sheet nobody walked to
-     * the end is not an examination, whatever its ticks say.
+     * the end is not an examination, whatever its ticks say. Marking the last section finishes it on
+     * its own, so this is only ever needed by a client that marks no sections.
      *
-     * @return whether a member was completed; false when they are not part of the run
+     * @return whether a member was completed; false when they are not part of the run or were already
      */
     public boolean completeMember(int runId, int memberId, int protocolId) {
         var rm = repository.findRunMember(runId, memberId);
         if (rm.isEmpty()) return false;
         int runMemberId = rm.get().id();
+        if (!everySectionDone(runMemberId, protocolId)) {
+            throw TestProtocolRefusal.PROTOCOL_MEMBER_SECTIONS_OPEN.raise();
+        }
+        return complete(runId, memberId, runMemberId, protocolId);
+    }
 
+    private boolean everySectionDone(int runMemberId, int protocolId) {
         var done = Set.copyOf(repository.findDoneSections(runMemberId));
-        boolean sectionsOpen = repository.findSections(protocolId).stream()
+        return repository.findSections(protocolId).stream()
                 .filter(section -> section.parentId() == null)
-                .anyMatch(section -> !done.contains(section.id()));
-        if (sectionsOpen) throw TestProtocolRefusal.PROTOCOL_MEMBER_SECTIONS_OPEN.raise();
+                .allMatch(section -> done.contains(section.id()));
+    }
 
+    private boolean complete(int runId, int memberId, int runMemberId, int protocolId) {
         var checks = repository.findChecks(runMemberId);
         var allItems = repository.findAllItemsByProtocol(protocolId);
         var itemPoints = allItems.stream().collect(Collectors.toMap(TestProtocolItem::id, TestProtocolItem::points));
