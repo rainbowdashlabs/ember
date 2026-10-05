@@ -50,6 +50,17 @@ class TotpServiceTest {
         return Base64.getEncoder().encodeToString(key);
     }
 
+    /** Only a development instance knows the fixed code; a public demo has real visitors. */
+    @Test
+    void onlyADevelopmentInstanceKnowsTheFixedCode() throws Exception {
+        var settings = settingsWithKey(true, validKey());
+
+        assertTrue(new TotpService(settings, demoMode(true, false)).isDevCode(TotpService.DEV_CODE));
+        assertFalse(new TotpService(settings, demoMode(true, false)).isDevCode("123456"));
+        assertFalse(new TotpService(settings, demoMode(false, true)).isDevCode(TotpService.DEV_CODE));
+        assertFalse(new TotpService(settings, demoMode(false, false)).isDevCode(TotpService.DEV_CODE));
+    }
+
     @Test
     void generateSecretAndVerify() throws Exception {
         var service = new TotpService(settingsWithKey(true, validKey()), demoMode(false, false));
