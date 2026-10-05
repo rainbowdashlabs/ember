@@ -126,7 +126,10 @@ export default defineNuxtRouteMiddleware(async (to) => {
             useStations().setActiveStation(queryStation)
         } else if (!queryStation && !getItem('station_id')) {
             if (await waitsForFirstStation()) return navigateTo(FIRST_STATION_PATH)
-            return navigateTo({path: '/cross-station', query: {redirect: to.fullPath}})
+            const stations = useStations()
+            const sole = await stations.soleStationId()
+            if (!sole) return navigateTo({path: '/cross-station', query: {redirect: to.fullPath}})
+            stations.setActiveStation(sole)
         }
     }
 

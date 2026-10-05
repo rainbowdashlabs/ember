@@ -196,7 +196,7 @@ test.describe('Cluster', () => {
         expect(clusterOnly, 'the seeder makes somebody who belongs to a cluster and to no station').toBeTruthy()
 
         await page.goto('/login')
-        await page.getByRole('button', {name: 'Zustimmen'}).click()
+        await page.getByRole('button', {name: 'Alles erlauben'}).click()
         await page.getByText(`${clusterOnly!.firstName} ${clusterOnly!.lastName}`).first().click()
 
         await page.waitForURL(/\/cluster$/)
