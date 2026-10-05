@@ -135,7 +135,7 @@ check_feature_release() {
     if git merge-base --is-ancestor origin/main "$commit"; then
         say "- main can be fast-forwarded to $commit."
     else
-        problem "main has commits $head lacks, so it cannot be fast-forwarded. The Release Sync workflow rebases the branch onto main; run it, or rebase by hand."
+        problem "main has commits $head lacks, so it cannot be fast-forwarded. Run ./toolchain.sh release-sync locally to rebase the branch onto main, or rebase it by hand."
     fi
     require_green_ci "$commit"
     stop_on_problems

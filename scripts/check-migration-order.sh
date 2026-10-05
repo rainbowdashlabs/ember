@@ -53,9 +53,8 @@ done
 
 if [ "$problems" -ne 0 ]; then
     echo
-    echo "main gained a migration this release branch lacks. After a fix release the branch is rebased onto"
-    echo "main and its own patch renumbered by the Release Sync workflow; when that could not happen, rebase"
-    echo "it by hand."
+    echo "main gained a migration this release branch lacks. Run ./toolchain.sh release-sync locally: it"
+    echo "rebases the branch onto main and renumbers its own patch. When that cannot be done, rebase it by hand."
     exit 1
 fi
 

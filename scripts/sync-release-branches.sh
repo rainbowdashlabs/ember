@@ -1,32 +1,51 @@
 #!/usr/bin/env bash
 # Rebases every open release branch onto main, so the fixes released from main reach it.
 #
-# Usage: sync-release-branches.sh [--dry-run]
+# Usage: sync-release-branches.sh [--dry-run | --check]
+#
+# Run on a developer's machine: the rewritten commits carry the developer's git identity and are
+# signed when commit.gpgsign is on, so nothing here sets an identity or turns signing off. The work
+# happens in a scratch worktree; the checkout it is started from is left as it is.
 #
 # A release branch whose version is already tagged is never touched, even when it was not deleted
 # after its release, and neither is one without a commit of its own, as a release branch is until its
 # version bump is merged. For each other release/v* branch on origin that main has moved past:
 #   1. When main gained a patch at or above the branch's own patch number, the branch's own patch is
 #      renumbered above main's newest in every commit of the branch, through renumber-patch.sh.
-#   2. The branch is rebased onto main. Conflicts that only ever come from releasing in parallel are
-#      resolved: the migration version file takes the newest patch, build.gradle.kts keeps the release
-#      branch's version, and two version blocks added at the top of a changelog keep both, the release
-#      branch's above main's.
-#   3. The result is checked with check-migration-order.sh and pushed with a lease on the commit it
-#      started from, so a push to the branch in the meantime is never overwritten.
-# Any other conflict, or a failed check or push, leaves the branch as it was and opens an issue (or
-# comments on the open one) naming the branch and the files. --dry-run does all of it locally and
-# neither pushes nor opens issues.
+#   2. The branch is rebased onto main, every commit rewritten and signed. Conflicts that only ever
+#      come from releasing in parallel are resolved: the migration version file takes the newest patch,
+#      build.gradle.kts keeps the release branch's version, and two version blocks added at the top of
+#      a changelog keep both, the release branch's above main's.
+#   3. The result is checked with check-migration-order.sh and for a signature on every commit, and
+#      pushed with a lease on the commit it started from, so a push to the branch in the meantime is
+#      never overwritten.
+# Any other conflict, a signature that could not be made, or a failed check or push leaves the branch
+# as it was, prints what stopped it and fails. A failed signature is not retried. --dry-run does all of
+# it locally, unsigned, and pushes nothing.
+#
+# --check is what CI runs instead, and it writes to no branch: for each release branch that would be
+# rebased it opens an issue saying so (or updates the one open already), and it closes that issue once
+# the branch contains main.
 set -euo pipefail
 
 SCRIPTS="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPTS/shared/repository.sh"
+source "$SCRIPTS/shared/issues.sh"
+source "$SCRIPTS/shared/local-commits.sh"
 
 dry_run=0
-[ "${1:-}" = "--dry-run" ] && dry_run=1
+check=0
+case "${1:-}" in
+    --dry-run) dry_run=1 ;;
+    --check) check=1 ;;
+    "") ;;
+    *) echo "usage: sync-release-branches.sh [--dry-run | --check]" >&2; exit 2 ;;
+esac
 
+TEMP_BRANCHES="release-sync/"
 work=$(mktemp -d)
-trap 'rm -rf "$work"' EXIT
+tree="$work/tree"
+trap 'remove_scratch_worktree "$tree" "$TEMP_BRANCHES"; rm -rf "$work"' EXIT
 cp -r "$SCRIPTS" "$work/scripts"
 
 # Resolves conflict hunks in which both sides only changed the `version = "..."` line, keeping the
@@ -114,10 +133,55 @@ renumber_own_patches() {
     git for-each-ref --format='%(refname)' refs/original/ | xargs -r -n 1 git update-ref -d
 }
 
-# Rebases one release branch onto main and pushes it. Prints the files it could not resolve, if any.
+# Runs one rebase command with the conflict style the resolvers read. Fails with 1 when the rebase
+# stopped. When a signature could not be made it aborts the rebase, prints why and fails with 2,
+# without trying again.
+rebase_step() {
+    local output
+    if output=$(git -c merge.conflictStyle=diff3 rebase "$@" 2>&1); then
+        return 0
+    fi
+    if is_signing_failure "$output"; then
+        git rebase --abort
+        echo "(signing a commit failed, so nothing was pushed; run the sync again once the key signs)"
+        printf '%s\n' "$output" | grep -iE 'sign|error|fatal' | sed 's/^/  /' >&2
+        return 2
+    fi
+    return 1
+}
+
+# Whether a rebase is stopped in the current worktree.
+rebase_in_progress() {
+    [ -d "$(git rev-parse --git-path rebase-merge)" ]
+}
+
+# Rebases the checked out branch onto main, every commit rewritten and signed as configured. Prints
+# the files it could not resolve, or what else stopped it, if anything.
+rebase_onto_main() {
+    local unresolved status=0
+    rebase_step -q --force-rebase "$(signing_option)" "$MAIN_REF" || status=$?
+    while [ "$status" -eq 1 ] && rebase_in_progress && [ -n "$(git diff --name-only --diff-filter=U)" ]; do
+        unresolved=$(resolve_conflicts)
+        if [ -n "$unresolved" ]; then
+            git rebase --abort
+            printf '%s\n' "$unresolved"
+            return
+        fi
+        status=0
+        GIT_EDITOR=true rebase_step --continue || status=$?
+    done
+    if [ "$status" -eq 1 ]; then
+        if rebase_in_progress; then git rebase --abort; fi
+        echo "(the rebase stopped for a reason other than a conflict)"
+    fi
+}
+
+# Rebases one release branch onto main in the scratch worktree and pushes it. Prints what stopped it,
+# if anything; reports what it did on standard error.
 sync_branch() {
-    local branch="$1" old="$2" fork_point unresolved refusal
-    git checkout -q -B "$branch" "$old"
+    local branch="$1" old="$2" fork_point stopped unsigned count refusal
+    cd "$tree"
+    git checkout -q -B "$TEMP_BRANCHES$branch" "$old"
     fork_point=$(git merge-base "$MAIN_REF" HEAD)
 
     if ! renumber_own_patches "$fork_point" >&2; then
@@ -125,23 +189,10 @@ sync_branch() {
         return
     fi
 
-    if ! git -c merge.conflictStyle=diff3 rebase -q "$MAIN_REF" > /dev/null 2>&1; then
-        while [ -d "$(git rev-parse --git-path rebase-merge)" ]; do
-            unresolved=$(resolve_conflicts)
-            if [ -n "$unresolved" ]; then
-                git rebase --abort
-                printf '%s\n' "$unresolved"
-                return
-            fi
-            if GIT_EDITOR=true git -c merge.conflictStyle=diff3 rebase --continue > /dev/null 2>&1; then
-                break
-            fi
-            if [ -z "$(git diff --name-only --diff-filter=U)" ] && [ -d "$(git rev-parse --git-path rebase-merge)" ]; then
-                git rebase --abort
-                echo "(the rebase stopped for a reason other than a conflict)"
-                return
-            fi
-        done
+    stopped=$(rebase_onto_main)
+    if [ -n "$stopped" ]; then
+        printf '%s\n' "$stopped"
+        return
     fi
 
     if ! EVENT_NAME=push REF_NAME="$branch" bash "$SCRIPTS/check-migration-order.sh" >&2; then
@@ -149,11 +200,20 @@ sync_branch() {
         return
     fi
 
+    unsigned=$(unsigned_commits "$MAIN_REF..HEAD")
+    if [ -n "$unsigned" ]; then
+        sed 's/.*/(commit & is not signed, so nothing was pushed)/' <<< "$unsigned"
+        return
+    fi
+
+    count=$(git rev-list --count "$MAIN_REF..HEAD")
     if [ "$dry_run" -eq 1 ]; then
-        echo "Would push $branch at $(git rev-parse HEAD), leased on $old." >&2
+        echo "Would push $branch at $(git rev-parse HEAD) (commits: $count), leased on $old." >&2
     elif ! refusal=$(git push -q --force-with-lease="refs/heads/$branch:$old" origin "HEAD:refs/heads/$branch" 2>&1); then
         printf '%s\n' "$refusal" >&2
         push_refusal "$refusal"
+    else
+        echo "Rebased $branch onto main and pushed it with a lease: $(signing_description) commits: $count, now at $(git rev-parse --short HEAD) (was $(git rev-parse --short "$old"))." >&2
     fi
 }
 
@@ -169,39 +229,41 @@ push_refusal() {
     printf '%s\n' "${reasons:-(the push was refused by the remote)}"
 }
 
-# Opens an issue about a branch that could not be rebased, or comments on the one already open.
-report_failure() {
-    local branch="$1" files="$2" title body existing
-    title="Rebase of $branch onto main needs a hand"
+# The title of the issue that says a release branch is behind main.
+behind_title() {
+    printf '%s is behind main\n' "$1"
+}
+
+# Opens or updates the issue saying that a release branch does not contain main yet.
+report_behind() {
+    local branch="$1" body
     body=$(cat << EOF
-The release sync could not rebase \`$branch\` onto \`main\` and left the branch as it was.
+\`$branch\` does not contain \`main\` at $(git rev-parse --short "$MAIN_REF") yet.
 
-What stopped it:
-
-$(printf '%s\n' "$files" | sed 's/^/- /')
-
-Rebase the branch onto \`main\` by hand and resolve these. Renumber its own patch above main's newest
-with \`./toolchain.sh db-renumber-patch\` if needed, and push it with \`--force-with-lease\`.
+Run \`./toolchain.sh release-sync\` locally. It rebases the branch onto \`main\`, renumbers its own
+patch when needed, signs every rewritten commit and pushes the branch with a lease. This issue is
+closed once the branch contains \`main\`.
 EOF
 )
     if [ "$dry_run" -eq 1 ]; then
-        echo "Would open the issue: $title" >&2
-        printf '%s\n' "$body" >&2
+        echo "Would open or update the issue: $(behind_title "$branch")"
         return
     fi
-    existing=$(gh issue list --state open --search "\"$title\" in:title" --json number,title \
-        --jq ".[] | select(.title == \"$title\") | .number" | head -n 1)
-    if [ -n "$existing" ]; then
-        gh issue comment "$existing" --body "$body" > /dev/null
-        echo "Commented on issue #$existing." >&2
-    else
-        gh issue create --title "$title" --body "$body" > /dev/null
-        echo "Opened an issue: $title" >&2
-    fi
+    upsert_issue "$(behind_title "$branch")" "$body"
+}
+
+# Says how to rebase a branch the sync could not rebase.
+explain_failure() {
+    local branch="$1" problems="$2"
+    echo "Could not rebase $branch; it is left as it was:"
+    printf '%s\n' "$problems" | sed 's/^/  - /'
+    if grep -q "signing a commit failed" <<< "$problems"; then return; fi
+    echo "  Rebase it onto main by hand, renumber its own patch above main's newest with"
+    echo "  ./toolchain.sh db-renumber-patch when needed, and push it with --force-with-lease."
 }
 
 git fetch -q origin "+refs/heads/main:refs/remotes/origin/main" "+refs/heads/release/*:refs/remotes/origin/release/*"
-start=$(git rev-parse --abbrev-ref HEAD)
+[ "$check" -eq 1 ] || add_scratch_worktree "$tree" "$MAIN_REF"
 failed=0
 
 for branch in $(git for-each-ref --format='%(refname:strip=3)' 'refs/remotes/origin/release/v*'); do
@@ -212,23 +274,24 @@ for branch in $(git for-each-ref --format='%(refname:strip=3)' 'refs/remotes/ori
     fi
     if git merge-base --is-ancestor "$MAIN_REF" "$old"; then
         echo "$branch already contains main."
+        if [ "$check" -eq 1 ]; then close_issue "$(behind_title "$branch")" "\`$branch\` contains \`main\` now."; fi
         continue
     fi
     if git merge-base --is-ancestor "$old" "$MAIN_REF"; then
         echo "$branch has no commit of its own yet; it is rebased once its version bump is merged."
         continue
     fi
+    if [ "$check" -eq 1 ]; then
+        echo "$branch does not contain main; it needs ./toolchain.sh release-sync."
+        report_behind "$branch"
+        continue
+    fi
     echo "Rebasing $branch onto main."
     problems=$(sync_branch "$branch" "$old")
     if [ -n "$problems" ]; then
-        echo "Could not rebase $branch:"
-        printf '  %s\n' "$problems"
-        report_failure "$branch" "$problems"
+        explain_failure "$branch" "$problems"
         failed=1
-    elif [ "$dry_run" -eq 0 ]; then
-        echo "Rebased and pushed $branch."
     fi
 done
 
-git checkout -q "$start" 2> /dev/null || true
 exit "$failed"

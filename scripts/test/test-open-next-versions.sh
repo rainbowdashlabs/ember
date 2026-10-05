@@ -39,6 +39,15 @@ created() {
 new_repository
 released=$(git rev-parse HEAD)
 
+expect_pass "a check after a feature release" next --check
+expect_equal "the check lists both bumps and the release branch in one issue" "yes" \
+    "$(grep -q '^issue create --title Next versions to open' "$GH_LOG" &&
+        grep -q 'chore/bump-26.20.1' "$GH_LOG" && grep -q 'chore/bump-26.21.0' "$GH_LOG" &&
+        grep -q 'release branch `release/v26.21.0`' "$GH_LOG" && echo yes)"
+expect_equal "the check pushes no bump" "" "$(remote chore/bump-26.20.1)"
+expect_equal "the check opens no release branch" "" "$(remote release/v26.21.0)"
+expect_equal "the check opens no pull request" "0" "$(created)"
+
 expect_pass "a dry run after a feature release" next --dry-run
 expect_equal "a dry run pushes no bump" "" "$(remote chore/bump-26.20.1)"
 expect_equal "a dry run opens no release branch" "" "$(remote release/v26.21.0)"
@@ -72,8 +81,24 @@ git fetch -q origin
 git checkout -q -B main origin/main
 git tag -a v26.20.1 -m v26.20.1
 git push -q origin v26.20.1
+key="$(mktemp -d)/key"
+TEST_SCRATCH_DIRS+=("${key%/key}")
+ssh-keygen -q -t ed25519 -N '' -f "$key"
+git config gpg.format ssh
+git config commit.gpgsign true
+git config user.signingkey "$key.missing"
+expect_fail "a bump that cannot be signed stops the run" "Committing the bump to 26.20.2 failed" next
+expect_equal "nothing is pushed without a signature" "" "$(remote chore/bump-26.20.2)"
+git config user.signingkey "$key"
+printf 'uncommitted\n' > build.gradle.kts
 expect_pass "the next versions after a fix release" next
 expect_equal "main's bump carries the patch after the fix" "26.20.2" "$(remote_version chore/bump-26.20.2)"
+expect_equal "main's bump is signed" "yes" \
+    "$(git cat-file commit origin/chore/bump-26.20.2 | grep -q '^gpgsig' && echo yes)"
+expect_equal "the checkout keeps its changes" "uncommitted" "$(cat build.gradle.kts)"
+expect_equal "no scratch branch is left behind" "" "$(git for-each-ref refs/heads/release-next/)"
+git checkout -q -- build.gradle.kts
+git config commit.gpgsign false
 expect_equal "only main's bump is opened after a fix release" "3" "$(created)"
 expect_equal "the release branch is left alone after a fix release" "26.21.0" "$(remote_version release/v26.21.0)"
 

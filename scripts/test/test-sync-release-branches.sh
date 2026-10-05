@@ -8,6 +8,7 @@ export GH_LOG="$fake_bin/gh.log"
 cat > "$fake_bin/gh" << 'EOF'
 #!/usr/bin/env bash
 echo "$*" >> "$GH_LOG"
+if [ "$1 $2" = "issue list" ] && [ -n "${FAKE_OPEN_ISSUE:-}" ]; then echo "$FAKE_OPEN_ISSUE"; fi
 EOF
 chmod +x "$fake_bin/gh"
 export PATH="$fake_bin:$PATH"
@@ -83,10 +84,9 @@ commit_all "Change the same code on main"
 git push -q origin main
 
 expect_fail "a conflict in code stops the rebase" "Could not rebase release/v26.21.0" sync
+expect_equal "the stopped rebase names the file" "yes" "$(output=$(sync 2>&1); grep -qx -- '  - Code.java' <<< "$output" && echo yes)"
 expect_equal "the branch is left as it was" "$release_head" "$(git ls-remote origin refs/heads/release/v26.21.0 | cut -f1)"
-expect_equal "an issue names the branch and the file" "yes" \
-    "$(grep -q 'issue create --title Rebase of release/v26.21.0 onto main needs a hand' "$GH_LOG" &&
-        grep -qx -- '- Code.java' "$GH_LOG" && echo yes)"
+expect_equal "a local run opens no issue" "no" "$(grep -q '^issue' "$GH_LOG" 2> /dev/null && echo yes || echo no)"
 
 git push -q origin --delete release/v26.21.0
 git checkout -q -B release/v26.20.0 v26.20.0
@@ -115,5 +115,40 @@ chmod +x "$hook"
 expect_fail "a push refused by a repository rule names the rule" \
     "the push was refused: Cannot force-push to this branch" sync
 rm "$hook"
+release_head=$(git rev-parse release/v26.21.0)
+
+expect_pass "a check of a branch behind main" sync --check
+expect_equal "the check opens an issue for it" "yes" \
+    "$(grep -q '^issue create --title release/v26.21.0 is behind main' "$GH_LOG" && echo yes)"
+expect_equal "the check pushes nothing" "$release_head" "$(git ls-remote origin refs/heads/release/v26.21.0 | cut -f1)"
+expect_pass "a second check while the issue is open" env FAKE_OPEN_ISSUE=5 bash "$SCRIPTS/sync-release-branches.sh" --check
+expect_equal "the second check updates the issue" "yes" "$(grep -q '^issue edit 5 --body' "$GH_LOG" && echo yes)"
+expect_equal "the check opens no second issue" "1" "$(grep -c '^issue create' "$GH_LOG")"
+
+key="$(mktemp -d)/key"
+TEST_SCRATCH_DIRS+=("${key%/key}")
+ssh-keygen -q -t ed25519 -N '' -f "$key"
+git config gpg.format ssh
+git config commit.gpgsign true
+git config user.signingkey "$key.missing"
+expect_fail "a signature that cannot be made stops the sync" "signing a commit failed" sync
+expect_equal "the branch is left as it was without a signature" "$release_head" \
+    "$(git ls-remote origin refs/heads/release/v26.21.0 | cut -f1)"
+
+git config user.signingkey "$key"
+printf 'uncommitted\n' > Code.java
+expect_pass "the sync signs as configured" sync
+git fetch -q origin
+expect_equal "every rewritten commit is signed" "" \
+    "$(for commit in $(git rev-list origin/main..origin/release/v26.21.0); do
+        git cat-file commit "$commit" | grep -q '^gpgsig' || echo "$commit"; done)"
+expect_equal "the committer is the one who ran it" "test" "$(git log -1 --format=%cn origin/release/v26.21.0)"
+expect_equal "the checkout keeps its branch" "main" "$(git rev-parse --abbrev-ref HEAD)"
+expect_equal "the checkout keeps its changes" "uncommitted" "$(cat Code.java)"
+expect_equal "no scratch branch is left behind" "" "$(git for-each-ref refs/heads/release-sync/)"
+git checkout -q -- Code.java
+
+expect_pass "a check once the branch contains main" env FAKE_OPEN_ISSUE=5 bash "$SCRIPTS/sync-release-branches.sh" --check
+expect_equal "the check closes the issue" "yes" "$(grep -q '^issue close 5' "$GH_LOG" && echo yes)"
 
 finish
