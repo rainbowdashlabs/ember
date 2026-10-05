@@ -1,7 +1,8 @@
 name: Release
 
-# A feature release is the pull request from release/vX.Y.Z into main, labelled `release`: main is
-# fast-forwarded to the branch head, because none of GitHub's merge buttons can do that. A fix release
+# A feature release is the pull request from release/vX.Y.Z into main, open as a draft since the
+# branch started, labelled `release`: it is marked ready and main is fast-forwarded to the branch
+# head, because none of GitHub's merge buttons can do that. A fix release
 # is a merged pull request into main carrying the label, or a run by hand without a number.
 on:
   pull_request_target:
@@ -16,6 +17,7 @@ permissions:
   contents: write
   pull-requests: write
   issues: write
+  statuses: write
   actions: read
 
 concurrency:
@@ -102,10 +104,10 @@ jobs:
           } > "$RUNNER_TEMP/refusal.md"
           gh pr comment "$PR" --body-file "$RUNNER_TEMP/refusal.md"
 
-  # The bump pull requests are opened with the release token, because pull requests opened and
-  # branches pushed with the built-in token start no workflow, which would leave them without checks.
+  # The bumps are signed commits, so they are made locally with `./toolchain.sh release-next`; this
+  # job only lists them in an issue and writes to no branch.
   next:
-    name: Open the next versions
+    name: List the next versions to open
     needs: release
     runs-on: ubuntu-latest
     steps:
@@ -113,18 +115,12 @@ jobs:
         with:
           ref: main
           fetch-depth: 0
-          token: ${{ secrets.RELEASE_TOKEN || github.token }}
-      - name: Commit as the workflow
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-      - name: Open the version bumps and the next release branch
+      - name: Report the version bumps and the next release branch
         env:
-          GH_TOKEN: ${{ secrets.RELEASE_TOKEN || github.token }}
-        run: ./toolchain.sh release-next
+          GH_TOKEN: ${{ github.token }}
+        run: ./toolchain.sh release-next --check
 
   sync:
-    name: Rebase the release branches
+    name: Check the release branches
     needs: release
     uses: ./.github/workflows/release-sync.yml
-    secrets: inherit
