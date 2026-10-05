@@ -79,6 +79,30 @@ test.describe('Protocols', () => {
         await expect(page.getByRole('button', {name: 'Prüfer planen'})).toBeVisible()
     })
 
+    /**
+     * The examiner menu offers whoever may grade protocols, the manager planning the run among them,
+     * and a pick from it is what the run page then names for the section.
+     */
+    test('an examiner is picked for a section of a new run', async ({managerPage: page}) => {
+        const sheet = await createSheet(page)
+        await page.getByText(sheet).first().click()
+        await page.getByRole('button', {name: 'Abschnitt hinzufügen'}).click()
+        await page.getByRole('textbox').first().fill('Knoten')
+        await page.getByRole('button', {name: 'Speichern'}).last().click()
+        await expect(page.getByText('Knoten').first()).toBeVisible()
+
+        await startRun(page, sheet)
+        await page.getByRole('button', {name: 'Prüfer auswählen'}).click()
+        const offered = page.getByRole('option')
+        await expect(offered.first(), 'every candidate is offered by name').toHaveText(/\S/)
+        await offered.first().click()
+        await page.keyboard.press('Escape')
+
+        await page.getByRole('button', {name: 'Speichern'}).click()
+        await page.waitForURL(/\/station\/protocols\/runs\/\d+$/)
+        await expect(page.getByRole('button', {name: 'Prüfen'}).first()).toBeVisible()
+    })
+
     test('a member of a run is opened for grading', async ({managerPage: page}) => {
         await createRun(page, await createSheet(page))
 

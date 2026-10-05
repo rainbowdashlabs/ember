@@ -9,6 +9,7 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.protocol.service.TestProtocolExaminerService;
 import dev.chojo.ember.feature.protocol.service.TestProtocolExaminerService.GradingScope;
 import dev.chojo.ember.feature.protocol.service.TestProtocolExaminerService.SectionExaminers;
@@ -25,6 +26,7 @@ import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 
@@ -38,11 +40,14 @@ import java.util.Objects;
 public class TestProtocolExaminerRoutes implements Routes {
     private final TestProtocolExaminerService examiners;
     private final TestProtocolGuards guards;
+    private final MemberNameResolver names;
 
     @Inject
-    public TestProtocolExaminerRoutes(TestProtocolExaminerService examiners, TestProtocolGuards guards) {
+    public TestProtocolExaminerRoutes(
+            TestProtocolExaminerService examiners, TestProtocolGuards guards, MemberNameResolver names) {
         this.examiners = examiners;
         this.guards = guards;
+        this.names = names;
     }
 
     @Override
@@ -65,8 +70,18 @@ public class TestProtocolExaminerRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = ExaminerCandidate[].class)))
     private void listCandidates(Context ctx) {
         ctx.json(examiners.candidates(StationSession.from(ctx).stationId()).stream()
-                .map(ExaminerCandidate::of)
+                .map(member -> new ExaminerCandidate(member.id(), nameOf(member)))
+                .sorted(Comparator.comparing(ExaminerCandidate::name, String.CASE_INSENSITIVE_ORDER))
                 .toList());
+    }
+
+    /**
+     * What the menu calls a candidate. A member with an account keeps their name on the account, not
+     * on the membership, so the membership's own name is only the last resort: read alone it left
+     * every such member without a name, and the menu with nothing to show.
+     */
+    private String nameOf(StationMember member) {
+        return Objects.requireNonNullElse(names.identified(member.id()), member.displayName());
     }
 
     @OpenApi(
@@ -138,9 +153,5 @@ public class TestProtocolExaminerRoutes implements Routes {
      * @param memberId the station member
      * @param name     what the station calls them
      */
-    public record ExaminerCandidate(int memberId, String name) {
-        static ExaminerCandidate of(StationMember member) {
-            return new ExaminerCandidate(member.id(), member.displayName());
-        }
-    }
+    public record ExaminerCandidate(int memberId, String name) {}
 }

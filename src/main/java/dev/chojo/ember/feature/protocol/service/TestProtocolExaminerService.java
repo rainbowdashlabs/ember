@@ -20,7 +20,6 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -63,9 +62,7 @@ public class TestProtocolExaminerService {
 
     /** Who may be named an examiner at a station: everybody allowed to grade protocols. */
     public List<StationMember> candidates(int stationId) {
-        return members.findMembersWithPermission(stationId, StationPermission.PROTOCOL_TESTER).stream()
-                .sorted(Comparator.comparing(StationMember::displayName, String.CASE_INSENSITIVE_ORDER))
-                .toList();
+        return members.findMembersWithPermission(stationId, StationPermission.PROTOCOL_TESTER);
     }
 
     /**
