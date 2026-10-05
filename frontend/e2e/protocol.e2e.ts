@@ -24,12 +24,12 @@ async function createSheet(page: Page): Promise<string> {
 }
 
 /**
- * A run of that sheet, left open on the run's own page.
+ * A run of that sheet, left on the planning page a new run opens on.
  *
  * A run with nobody in it examines nobody, so a whole member type goes into it: the dialog keeps its
  * submit disabled until the sheet and a name are both there.
  */
-async function createRun(page: Page, sheet: string): Promise<string> {
+async function startRun(page: Page, sheet: string): Promise<string> {
     const run = unique('Lauf')
 
     await page.goto('/station/protocols/runs')
@@ -42,10 +42,20 @@ async function createRun(page: Page, sheet: string): Promise<string> {
     await page.keyboard.press('Escape')
 
     await page.getByRole('button', {name: 'Neuer Prüfungslauf'}).last().click()
-    await expect(page.getByText(run).first()).toBeVisible()
+    await page.waitForURL(/\/station\/protocols\/runs\/\d+\/plan$/)
+    return run
+}
 
-    await page.getByText(run).first().click()
-    await page.waitForURL(/\/station\/protocols\/runs\/\d+/)
+/**
+ * A run of that sheet, left open on the run's own page. It goes on without examiners, which leaves
+ * the run graded by every tester.
+ */
+async function createRun(page: Page, sheet: string): Promise<string> {
+    const run = await startRun(page, sheet)
+
+    await page.getByRole('button', {name: 'Ohne Prüfer weiter'}).click()
+    await page.waitForURL(/\/station\/protocols\/runs\/\d+$/)
+    await expect(page.getByText(run).first()).toBeVisible()
     return run
 }
 
@@ -57,6 +67,16 @@ test.describe('Protocols', () => {
     /** A test sheet exists to be run: the run is where people are actually examined. */
     test('a run is opened for a test sheet', async ({managerPage: page}) => {
         await createRun(page, await createSheet(page))
+    })
+
+    /** A run is planned on the page that opens after it is started, and saving the plan leads to the run. */
+    test('a new run is planned before it is graded', async ({managerPage: page}) => {
+        await startRun(page, await createSheet(page))
+
+        await expect(page.getByRole('button', {name: 'Wie beim letzten Mal'})).toBeVisible()
+        await page.getByRole('button', {name: 'Speichern'}).click()
+        await page.waitForURL(/\/station\/protocols\/runs\/\d+$/)
+        await expect(page.getByRole('button', {name: 'Prüfer planen'})).toBeVisible()
     })
 
     test('a member of a run is opened for grading', async ({managerPage: page}) => {

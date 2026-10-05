@@ -133,10 +133,6 @@ public class QuizCatalogRoutes implements Routes {
     }
 
     @OpenApi(
-            path = "/api/v1/quiz/catalogs/{id}",
-            methods = HttpMethod.GET,
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = QuizCatalogDetail.class)))
-    @OpenApi(
             path = "/api/v1/quiz/catalogs/sharing",
             methods = HttpMethod.GET,
             summary = "List which of the station's catalogs its partners may see",
@@ -177,6 +173,10 @@ public class QuizCatalogRoutes implements Routes {
      */
     public record CatalogSharingRequest(boolean shared) {}
 
+    @OpenApi(
+            path = "/api/v1/quiz/catalogs/{id}",
+            methods = HttpMethod.GET,
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = QuizCatalogDetail.class)))
     private void getCatalog(Context ctx) {
         int id = pathInt(ctx, "id");
         var catalog = guards.requireOwnedCatalog(ctx, id);
