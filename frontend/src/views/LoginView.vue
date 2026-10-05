@@ -7,7 +7,6 @@
 import {computed, onMounted, ref} from 'vue'
 import {useRoute} from 'vue-router'
 import {useI18n} from 'vue-i18n'
-import Alert from '@/components/feedback/Alert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import PageHeader from '@/components/typography/PageHeader.vue'
@@ -32,8 +31,7 @@ import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useDemoAccounts} from '@/composables/useDemoAccounts'
 import {useLoginConsent} from '@/composables/useLoginConsent'
 import DemoLogin from '@/views/loginview/DemoLogin.vue'
-import ConsentGate from '@/views/loginview/ConsentGate.vue'
-import LegalModal from '@/views/loginview/LegalModal.vue'
+import ConsentStep from '@/components/consent/ConsentStep.vue'
 import LoginForm from '@/views/loginview/LoginForm.vue'
 import DevDemoFooter from '@/views/loginview/DevDemoFooter.vue'
 import {describeFailure} from '@/util/failure'
@@ -50,11 +48,7 @@ const {
 } = demo
 
 const legal = useLoginConsent()
-const {
-  consent, scopes, consentHtml, consentLoading,
-  showPrivacyPolicy, privacyPolicyHtml, privacyPolicyLoading,
-  showTos, tosHtml, tosLoading,
-} = legal
+const {consent} = legal
 
 const identifier = ref('')
 const password = ref('')
@@ -256,21 +250,7 @@ const error = computed(() => loginError.value || demoError.value || passkeyError
                  :view="demoView" :error="error" :loading="loading" @login="loginAsDemo"/>
 
       <template v-if="!isDemo && !demoLoading">
-        <ConsentGate v-if="consent === null"
-                     v-model:scopes="scopes"
-                     :consent-loading="consentLoading" :consent-html="consentHtml"
-                     @accept="legal.acceptCurrentVersions" @deny="legal.deny"
-                     @show-privacy="legal.loadPrivacyPolicy" @show-tos="legal.loadTos"/>
-
-        <Alert v-if="consent === 'denied'" variant="error">
-          {{ t('login.storageDenied') }}
-        </Alert>
-
-        <LegalModal v-model="showPrivacyPolicy" :title="t('storageConsent.privacyPolicyTitle')"
-                    :loading="privacyPolicyLoading" :html="privacyPolicyHtml"/>
-
-        <LegalModal v-model="showTos" :title="t('storageConsent.tosTitle')"
-                    :loading="tosLoading" :html="tosHtml"/>
+        <ConsentStep :legal="legal"/>
 
         <LoginForm v-if="consent === 'accepted'" v-model:identifier="identifier"
                    v-model:password="password" v-model:trusted-device="trustedDevice"

@@ -2,17 +2,19 @@
 
 ## v26.21.0
 
-Themenfarben erscheinen dort, wo sie fehlten. Das Bearbeiten von Kommentaren ist sicherer. E-Mail-Adressen von Mitgliedern erreichen nur noch die, die das Mitgliederverzeichnis lesen dürfen.
+Themenfarben erscheinen dort, wo sie fehlten. Das Bearbeiten von Kommentaren ist sicherer. E-Mail-Adressen von Mitgliedern erreichen nur noch die, die das Mitgliederverzeichnis lesen dürfen. Mitglieder, die ihr Konto über einen Link einrichten, bleiben in ihrer Wache, und die Einwilligung wird auf jedem Weg hinein abgefragt.
 
 ### Sicherheit
 
 - **Namen in Erwähnungen erscheinen als Text.** Beim Bearbeiten eines Kommentars wurde der Name eines erwähnten Mitglieds als Teil der Seite gelesen statt als Text gezeigt. Jetzt erscheint er immer als Text.
 - **Mitgliederlisten tragen keine E-Mail-Adressen mehr.** Seiten, auf denen nur ein Mitglied ausgewählt wird, etwa Inventar, Anwesenheit oder Sichtbarkeitsfilter, bekamen die E-Mail-Adresse jedes Mitglieds, und die Mitgliedermenüs zeigten sie an. Diese Adressen erreichen jetzt nur noch die, die das Mitgliederverzeichnis lesen dürfen, und Mitgliedermenüs zeigen nur Namen.
+- **Die Einwilligung wird auf jedem Weg hinein abgefragt.** Wer über einen Link ein Passwort oder einen Passkey einrichtet, bekommt dieselbe Einwilligung wie beim Anmelden, und wer angemeldet ist und nie gefragt wurde, sieht sie einmal. Jede Antwort ist eine Schaltfläche derselben Art, und keine freiwillige Speicherung ist vorab eingeschaltet.
 
 ### Fehlerbehebungen
 
 - **Feld-Vorlagen wurden Probemitgliedern gestellt.** Felder aus einer Vorlage für Profilfelder kamen auf das gerade gezeigte Formular, und das war beim Öffnen das der Probemitglieder. Felder aus einer Vorlage entstehen jetzt ohne Zielgruppe und werden danach jeweils den passenden Formularen gestellt.
 - **Manche Themenfarben fehlten.** Auf vielen Seiten erschienen Hervorhebungen, Links, Hintergründe unter dem Mauszeiger, Fortschrittsbalken, Fehlermeldungen und Erfolgsmarkierungen ohne ihre Farbe. Jetzt erscheinen sie in den Themenfarben.
+- **Mitglieder, die ihr Konto über einen Link einrichteten, blieben nicht in ihrer Wache.** In manchen Fällen landete ein Mitglied, das sein Konto über den Link aus der Mail eingerichtet hatte, immer wieder auf der Übersicht aller Wachen. Die gewählte Wache bleibt jetzt immer erhalten, und ein Mitglied mit nur einer Wache kommt direkt dorthin.
 
 ## v26.20.3
 

@@ -25,7 +25,7 @@ test.describe('First start', () => {
 
     async function signIn(page: import('@playwright/test').Page, identifier: string) {
         await page.goto('/login')
-        await page.getByRole('button', {name: 'Zustimmen'}).click()
+        await page.getByRole('button', {name: 'Alles erlauben'}).click()
         await page.getByPlaceholder('E-Mail oder Benutzername').fill(identifier)
         await page.getByPlaceholder('Passwort', {exact: true}).fill(PASSWORD)
         await page.getByRole('button', {name: 'Anmelden', exact: true}).click()

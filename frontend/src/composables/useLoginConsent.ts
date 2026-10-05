@@ -6,7 +6,7 @@
 import { ref } from 'vue'
 import { session } from '@/api'
 import {
-  OPTIONAL_NECESSITIES, acceptStorage, denyStorage, getConsent, getGrantedScopes,
+  acceptStorage, denyStorage, getConsent, getGrantedScopes,
   getStoredLegalVersions, type StorageConsent, type StorageNecessityName,
 } from '@/api/storage'
 import { useConsentGuard } from '@/composables/useConsentGuard'
@@ -21,9 +21,8 @@ import { useConsentGuard } from '@/composables/useConsentGuard'
 export function useLoginConsent() {
   const {setNeedsReconsent} = useConsentGuard()
   const consent = ref<StorageConsent | null>(getConsent())
-  /** Starts with everything allowed, so declining a group is a deliberate act rather than the default. */
-  const scopes = ref<StorageNecessityName[]>(
-      consent.value === 'accepted' ? getGrantedScopes() : [...OPTIONAL_NECESSITIES])
+  /** Starts with no optional group allowed, so allowing one is a choice the visitor makes, never a default. */
+  const scopes = ref<StorageNecessityName[]>(consent.value === 'accepted' ? getGrantedScopes() : [])
   const consentHtml = ref('')
   const consentLoading = ref(false)
 
@@ -157,3 +156,6 @@ export function useLoginConsent() {
     recordAfterLogin,
   }
 }
+
+/** The consent a way in asks, as {@link useLoginConsent} hands it over. */
+export type LoginConsent = ReturnType<typeof useLoginConsent>
