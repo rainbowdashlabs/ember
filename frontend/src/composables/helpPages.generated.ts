@@ -268,6 +268,7 @@ export const HELP_PAGES: HelpPage[] = [
     {route: 'help-protocol-run-detail', path: '/helpcenter/station/protocols/runs/0', i18nPrefix: 'helpCenter.protocolRunDetail'},
     {route: 'help-protocol-evaluation', path: '/helpcenter/station/protocols/runs/0/evaluation', i18nPrefix: 'helpCenter.protocolEvaluation'},
     {route: 'help-protocol-grade', path: '/helpcenter/station/protocols/runs/0/grade/0', i18nPrefix: 'helpCenter.protocolGrading'},
+    {route: 'help-protocol-run-plan', path: '/helpcenter/station/protocols/runs/0/plan', i18nPrefix: 'helpCenter.protocolRunPlan'},
     {route: 'help-quiz-module-overview', path: '/helpcenter/station/quiz', i18nPrefix: 'helpCenter.quiz'},
     {route: 'help-quiz-ai', path: '/helpcenter/station/quiz/ai', i18nPrefix: 'helpCenter.quiz.ai'},
     {route: 'help-quiz-catalogs', path: '/helpcenter/station/quiz/catalogs', i18nPrefix: 'helpCenter.quiz'},

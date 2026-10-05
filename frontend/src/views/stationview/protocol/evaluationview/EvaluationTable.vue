@@ -37,6 +37,11 @@ function childSections(parentId: number): TestProtocolSection[] {
   return props.evalData.sections.filter(s => s.parentId === parentId).sort((a, b) => a.position - b.position)
 }
 
+/** Every section under a top-level one, depth first, with how deep it sits below it. */
+function descendantsOf(sectionId: number, depth = 1): { section: TestProtocolSection, depth: number }[] {
+  return childSections(sectionId).flatMap(child => [{section: child, depth}, ...descendantsOf(child.id, depth + 1)])
+}
+
 function sectionMaxPoints(sectionId: number): number {
   const direct = props.evalData.sectionMaxPoints[sectionId] ?? 0
   const childMax = childSections(sectionId).reduce((sum, c) => sum + sectionMaxPoints(c.id), 0)
@@ -96,7 +101,7 @@ function scoreColor(score: number, max: number): string {
           v-for="section in topSections()"
           :key="section.id"
           :section="section"
-          :child-sections="childSections(section.id)"
+          :descendants="descendantsOf(section.id)"
           :members="evalData.members"
           :section-max-points="sectionMaxPoints"
           :member-section-score="memberSectionScore"

@@ -5,6 +5,7 @@
  */
 <script setup lang="ts">
 import BaseButton from '@/components/button/BaseButton.vue'
+import ProtocolItemPoints from '@/components/protocol/ProtocolItemPoints.vue'
 import type { TestProtocolItem } from '@/api/generated/schema'
 
 defineProps<{
@@ -31,6 +32,6 @@ defineEmits<{
       :class="['w-6 h-6 transition-colors', checked ? 'text-[var(--color-success)]' : 'text-[var(--text-muted)]']"
     />
     <span class="flex-1 text-sm">{{ item.label }}</span>
-    <span class="text-xs text-[var(--text-muted)] font-mono">{{ item.points }}P</span>
+    <ProtocolItemPoints :item="item" />
   </BaseButton>
 </template>

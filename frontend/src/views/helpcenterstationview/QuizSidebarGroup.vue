@@ -70,6 +70,9 @@ const {t} = useI18n()
         <SidebarLink :icon="['fas', 'eye']" name="help-protocol-run-detail" to="/helpcenter/station/protocols/runs/0" @navigate="close">
           {{ t('sidebar.protocolRunDetail') }}
         </SidebarLink>
+        <SidebarLink :icon="['fas', 'user-check']" name="help-protocol-run-plan" to="/helpcenter/station/protocols/runs/0/plan" @navigate="close">
+          {{ t('helpCenter.protocolRunPlan.title') }}
+        </SidebarLink>
         <SidebarLink :icon="['fas', 'chart-bar']" name="help-protocol-evaluation" to="/helpcenter/station/protocols/runs/0/evaluation" @navigate="close">
           {{ t('sidebar.protocolEvaluation') }}
         </SidebarLink>

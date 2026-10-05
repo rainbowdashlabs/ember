@@ -21,8 +21,11 @@ import { useSession } from '@/composables/useSession'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { protocol, stationMembers } from '@/api'
-import type { MemberWithName, TestProtocolSection, TestProtocolItem } from '@/api/generated/schema'
+import type { GradingScope, MemberWithName, TestProtocolSection, TestProtocolItem } from '@/api/generated/schema'
 import { reportCaughtError } from '@/util/devErrorReporter'
+import { maxPointsOf, scoreOf } from './protocolPoints'
+import { protocolTree } from './protocolTree'
+import Alert from '@/components/feedback/Alert.vue'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -52,57 +55,39 @@ const pageTitle = computed(() => {
   return name ? t('pages.protocol-grade.titleNamed', {name}) : t('pages.protocol-grade.title')
 })
 
-const topSections = computed(() => sections.value.filter(s => !s.parentId).sort((a, b) => a.position - b.position))
+const scope = ref<GradingScope | null>(null)
+const tree = computed(() => protocolTree(sections.value, items.value))
+
+/** The sections whose points this examiner may change: every one, unless the run was planned. */
+const gradable = computed<ReadonlySet<number>>(() => scope.value?.restricted
+  ? new Set(scope.value.sectionIds)
+  : new Set(sections.value.map(section => section.id)))
+
+/** The top-level sections holding anything this examiner may grade, which are the steps of the sheet. */
+const topSections = computed(() => tree.value.childrenOf(null)
+  .filter(section => [...tree.value.subtreeOf(section.id)].some(id => gradable.value.has(id))))
 const currentSection = computed(() => topSections.value[currentSectionIndex.value])
 
-function childSections(parentId: number) {
-  return sections.value.filter(s => s.parentId === parentId).sort((a, b) => a.position - b.position)
-}
+/** The steps of this examiner not marked finished yet, which is what is easy to forget. */
+const openSections = computed(() => topSections.value.filter(section => !doneSections.value.has(section.id)))
 
-function sectionItems(sectionId: number): TestProtocolItem[] {
-  return items.value.filter(i => i.sectionId === sectionId).sort((a, b) => a.position - b.position)
-}
-
-function allCurrentItems(): TestProtocolItem[] {
-  if (!currentSection.value) return []
-  const result = [...sectionItems(currentSection.value.id)]
-  for (const sub of childSections(currentSection.value.id)) {
-    result.push(...sectionItems(sub.id))
-  }
-  return result
-}
-
-const currentSectionScore = computed(() => {
-  return allCurrentItems().reduce((sum, item) => {
-    return sum + (checks.value.get(item.id) ? item.points : 0)
-  }, 0)
-})
-
-const currentSectionMaxPoints = computed(() => {
-  return allCurrentItems().reduce((sum, item) => sum + item.points, 0)
-})
+const isChecked = (itemId: number) => checks.value.get(itemId) === true
 
 function sectionCheckedScore(sectionId: number): number {
-  const allItems = [...sectionItems(sectionId)]
-  for (const sub of childSections(sectionId)) allItems.push(...sectionItems(sub.id))
-  return allItems.reduce((sum, i) => sum + (checks.value.get(i.id) ? i.points : 0), 0)
+  return scoreOf(tree.value.itemsUnder(sectionId), isChecked)
 }
 
 function sectionMaxScore(sectionId: number): number {
-  const allItems = [...sectionItems(sectionId)]
-  for (const sub of childSections(sectionId)) allItems.push(...sectionItems(sub.id))
-  return allItems.reduce((sum, i) => sum + i.points, 0)
+  return tree.value.maxPointsUnder(sectionId)
 }
 
-const totalScore = computed(() => {
-  let sum = 0
-  for (const item of items.value) {
-    if (checks.value.get(item.id)) sum += item.points
-  }
-  return sum
-})
+const currentSectionScore = computed(() => (currentSection.value ? sectionCheckedScore(currentSection.value.id) : 0))
 
-const totalMaxPoints = computed(() => items.value.reduce((sum, i) => sum + i.points, 0))
+const currentSectionMaxPoints = computed(() => (currentSection.value ? sectionMaxScore(currentSection.value.id) : 0))
+
+const totalScore = computed(() => scoreOf(items.value, isChecked))
+
+const totalMaxPoints = computed(() => maxPointsOf(items.value))
 
 let saveDebounce: ReturnType<typeof setTimeout> | null = null
 
@@ -133,12 +118,14 @@ const {loading, failure, reload: loadData} = useAsyncLoader(async () => {
   storedRunId = runId.value
   storedMemberId = memberId.value
 
-  const [protocolData, existingChecks, doneIds, allMembers] = await Promise.all([
+  const [protocolData, existingChecks, doneIds, allMembers, gradingScope] = await Promise.all([
     protocol.getProtocol((await protocol.getRun(runId.value)).run.protocolId),
     protocol.getChecks(runId.value, memberId.value),
     protocol.getSectionsDone(runId.value, memberId.value),
     stationMembers.listMembers(),
+    protocol.getGradingScope(runId.value),
   ])
+  scope.value = gradingScope
   sections.value = protocolData.sections
   items.value = protocolData.items
   member.value = allMembers.find(m => m.id === memberId.value) ?? null
@@ -267,10 +254,14 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
         <span class="font-mono font-bold text-lg">{{ totalScore }} / {{ totalMaxPoints }}P</span>
       </div>
 
+      <Alert v-if="openSections.length > 0" variant="info" class="mb-4">
+        {{ t('protocol.openSections', {names: openSections.map(section => section.name).join(', ')}) }}
+      </Alert>
+
       <GradingSectionPanel
         :section="currentSection"
-        :child-sections="childSections(currentSection.id)"
-        :section-items="sectionItems"
+        :tree="tree"
+        :gradable="gradable"
         :checks="checks"
         :score="currentSectionScore"
         :max-points="currentSectionMaxPoints"

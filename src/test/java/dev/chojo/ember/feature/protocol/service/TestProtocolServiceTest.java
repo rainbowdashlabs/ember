@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.protocol.entity.TestProtocol;
+import dev.chojo.ember.feature.protocol.entity.TestProtocolItem;
 import dev.chojo.ember.feature.protocol.entity.TestProtocolSection;
 import dev.chojo.ember.feature.protocol.route.RemoteTestProtocolRoutes;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -168,7 +169,7 @@ class TestProtocolServiceTest extends RepositoryTestBase {
     @Test
     @Order(20)
     void createItem() {
-        var item = service.createItem(sectionId, "Knows stop signs", "Stop sign check", 10.0, 0);
+        var item = service.createItem(sectionId, "Knows stop signs", "Stop sign check", 10.0, 0, false);
         assertNotNull(item);
         assertEquals("Knows stop signs", item.label());
         itemId = item.id();
@@ -190,7 +191,7 @@ class TestProtocolServiceTest extends RepositoryTestBase {
     @Test
     @Order(23)
     void updateItem() {
-        assertTrue(service.updateItem(itemId, "Updated label", "Updated desc", 12.0, 1));
+        assertTrue(service.updateItem(itemId, "Updated label", "Updated desc", 12.0, false, 1));
     }
 
     @Test
@@ -486,7 +487,7 @@ class TestProtocolServiceTest extends RepositoryTestBase {
                 testProtocolRepo.createSection(srcProto.id(), childSec.id(), "GrandchildSection", "", null, null, 0);
         testProtocolRepo.createItem(parentSec.id(), "ParentItem", "parent item", 10.0, 0);
         testProtocolRepo.createItem(childSec.id(), "ChildItem", "child item", 5.0, 0);
-        testProtocolRepo.createItem(grandchildSec.id(), "GrandchildItem", "", 2.0, 0);
+        testProtocolRepo.createItem(grandchildSec.id(), "GrandchildItem", "", 2.0, 0, true);
         var share = federationRepo.createProtocolShare(stationB.id(), srcProto.id(), ShareScope.ALL_PARTNERS);
 
         var copied = service.copyFederatedProtocol(station.id(), stationB.uid(), srcProto.id());
@@ -498,7 +499,14 @@ class TestProtocolServiceTest extends RepositoryTestBase {
         assertEquals(
                 sectionNamed(copiedSections, "ChildSection").id(),
                 sectionNamed(copiedSections, "GrandchildSection").parentId());
-        assertEquals(3, service.findAllItemsByProtocol(copied.id()).size());
+        var copiedItems = service.findAllItemsByProtocol(copied.id());
+        assertEquals(3, copiedItems.size());
+        assertEquals(
+                List.of("GrandchildItem"),
+                copiedItems.stream()
+                        .filter(TestProtocolItem::bonus)
+                        .map(TestProtocolItem::label)
+                        .toList());
 
         federationRepo.deleteProtocolShare(share.id(), stationB.id());
         testProtocolRepo.deleteProtocol(srcProto.id(), stationB.id());
@@ -623,9 +631,9 @@ class TestProtocolServiceTest extends RepositoryTestBase {
         int sorted = service.createProtocol(station.id(), "Punkte", "", null).id();
         int section = service.createSection(sorted, null, "Abschnitt", "", null, null, 0)
                 .id();
-        int a = service.createItem(section, "A", "", 1, 0).id();
-        int b = service.createItem(section, "B", "", 1, 1).id();
-        int c = service.createItem(section, "C", "", 1, 2).id();
+        int a = service.createItem(section, "A", "", 1, 0, false).id();
+        int b = service.createItem(section, "B", "", 1, 1, false).id();
+        int c = service.createItem(section, "C", "", 1, 2, false).id();
 
         service.reorderItems(section, List.of(c, a, b));
         var refused = assertThrows(RefusalResponse.class, () -> service.reorderItems(section, List.of(a, b)));
@@ -645,16 +653,72 @@ class TestProtocolServiceTest extends RepositoryTestBase {
                 service.createSection(sorted, null, "Erster", "", null, null, 0).id();
         int second = service.createSection(sorted, null, "Zweiter", "", null, null, 1)
                 .id();
-        int a = service.createItem(second, "A", "", 1, 3).id();
-        int b = service.createItem(second, "B", "", 1, 4).id();
+        int a = service.createItem(second, "A", "", 1, 3, false).id();
+        int b = service.createItem(second, "B", "", 1, 4, false).id();
 
         service.updateSection(second, "Abschnitt vorne im Alphabet", "", null, null, null);
-        service.updateItem(b, "B, umbenannt", "", 2, null);
+        service.updateItem(b, "B, umbenannt", "", 2, false, null);
 
         assertEquals(List.of(first, second), idsAt(sorted, null));
         assertEquals(
                 List.of(a, b),
                 service.findItems(second).stream().map(item -> item.id()).toList());
+    }
+
+    /**
+     * A top-level section moves under a section two levels down, goes to the end of its new level, and
+     * the top level it left closes up behind it.
+     */
+    @Test
+    @Order(304)
+    void aSectionMovesUnderAnotherAtAnyDepth() {
+        int moving = service.createProtocol(station.id(), "Umzug", "", null).id();
+        int a = service.createSection(moving, null, "A", "", null, null, 0).id();
+        int b = service.createSection(moving, null, "B", "", null, null, 1).id();
+        int c = service.createSection(moving, null, "C", "", null, null, 2).id();
+        int deep = service.createSection(moving, c, "C1", "", null, null, 0).id();
+        int deeper =
+                service.createSection(moving, deep, "C1a", "", null, null, 0).id();
+
+        service.moveSection(a, deeper);
+
+        assertEquals(List.of(b, c), idsAt(moving, null));
+        assertEquals(List.of(a), idsAt(moving, deeper));
+        assertEquals(
+                List.of(0, 1),
+                service.findSections(moving).stream()
+                        .filter(section -> section.parentId() == null)
+                        .map(TestProtocolSection::position)
+                        .sorted()
+                        .toList());
+
+        service.moveSection(deeper, null);
+        assertEquals(List.of(b, c, deeper), idsAt(moving, null));
+        assertEquals(List.of(a), idsAt(moving, deeper));
+    }
+
+    /** A section cannot go into itself, one of its own subsections, or a section of another protocol. */
+    @Test
+    @Order(305)
+    void aSectionDoesNotMoveIntoItselfOrElsewhere() {
+        int moving = service.createProtocol(station.id(), "Kreis", "", null).id();
+        int other = service.createProtocol(station.id(), "Anderer", "", null).id();
+        int top = service.createSection(moving, null, "Oben", "", null, null, 0).id();
+        int inner =
+                service.createSection(moving, top, "Innen", "", null, null, 0).id();
+        int foreign =
+                service.createSection(other, null, "Fremd", "", null, null, 0).id();
+
+        for (int target : List.of(top, inner)) {
+            var refused = assertThrows(RefusalResponse.class, () -> service.moveSection(top, target));
+            assertEquals(TestProtocolRefusal.PROTOCOL_SECTION_MOVED_INTO_ITSELF, refused.refusal());
+        }
+        var elsewhere = assertThrows(RefusalResponse.class, () -> service.moveSection(top, foreign));
+        assertEquals(TestProtocolRefusal.PROTOCOL_SECTION_PARENT_ELSEWHERE_ON_MOVE, elsewhere.refusal());
+        var created = assertThrows(
+                RefusalResponse.class, () -> service.createSection(moving, foreign, "X", "", null, null, 0));
+        assertEquals(TestProtocolRefusal.PROTOCOL_SECTION_PARENT_ELSEWHERE_ON_CREATE, created.refusal());
+        assertEquals(List.of(top), idsAt(moving, null));
     }
 
     private static List<Integer> idsAt(int protocol, Integer parent) {

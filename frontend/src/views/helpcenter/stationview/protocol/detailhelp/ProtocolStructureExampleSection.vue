@@ -6,18 +6,17 @@
 <script lang="ts" setup>
 import { useI18n } from 'vue-i18n'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
-import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import EditButton from '@/components/button/EditButton.vue'
-import IconButton from '@/components/button/IconButton.vue'
-import DeleteButton from '@/components/button/DeleteButton.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
-import SubHeader from '@/components/typography/SubHeader.vue'
-import MutedText from '@/components/typography/MutedText.vue'
-import MutedIcon from '@/components/display/MutedIcon.vue'
+import { maxPointsOf } from '@/views/stationview/protocol/protocolPoints'
+import ProtocolEditorDemo from './ProtocolEditorDemo.vue'
+import { demoProtocolItems, demoProtocols } from '../fixtures'
 
 const { t } = useI18n()
+const [sample] = demoProtocols(t)
+const totalPoints = maxPointsOf(demoProtocolItems(t))
 </script>
 
 <template>
@@ -26,57 +25,18 @@ const { t } = useI18n()
       <SecondaryButton disabled>
         <font-awesome-icon :icon="['fas', 'chevron-left']" />
       </SecondaryButton>
-      <SectionHeader>{{ t('helpCenter.sample.protocol.jugendflamme1') }}</SectionHeader>
+      <SectionHeader>{{ sample?.name }}</SectionHeader>
       <EditButton disabled :label="t('common.edit')" />
       <span class="text-sm text-[var(--text-muted)] ml-auto">
-        {{ t('protocol.threshold') }}: {{ t('helpCenter.sample.protocol.points', {points: 25}) }} / {{ t('helpCenter.sample.protocol.points', {points: 34}) }} {{ t('protocol.total') }}
+        {{ t('protocol.threshold') }}: {{ t('helpCenter.sample.protocol.points', {points: sample?.passThreshold}) }}
+        / {{ t('helpCenter.sample.protocol.points', {points: totalPoints}) }} {{ t('protocol.total') }}
       </span>
     </div>
 
-    <div class="space-y-4">
-      <NeutralContainer class="space-y-2">
-        <div class="flex items-center gap-2">
-          <SubHeader>{{ t('helpCenter.sample.protocol.emergencyCall') }}</SubHeader>
-          <MutedText class="ml-auto">8P</MutedText>
-          <IconButton :icon="['fas', 'plus']" label="" disabled />
-          <IconButton :icon="['fas', 'folder-plus']" label="" disabled />
-          <IconButton :icon="['fas', 'pen']" label="" disabled />
-          <DeleteButton disabled />
-        </div>
+    <ProtocolEditorDemo />
 
-        <div class="flex items-center gap-2 pl-4 text-xs">
-          <MutedIcon :icon="['fas', 'square']" />
-          <span class="flex-1">{{ t('helpCenter.sample.protocol.fiveW') }}</span>
-          <span class="text-xs text-[var(--text-muted)]">5P</span>
-          <IconButton :icon="['fas', 'pen']" label="" disabled />
-          <DeleteButton disabled />
-        </div>
-        <div class="flex items-center gap-2 pl-4 text-xs">
-          <MutedIcon :icon="['fas', 'square']" />
-          <span class="flex-1">{{ t('helpCenter.sample.protocol.number112') }}</span>
-          <span class="text-xs text-[var(--text-muted)]">2P</span>
-          <IconButton :icon="['fas', 'pen']" label="" disabled />
-          <DeleteButton disabled />
-        </div>
-        <div class="flex items-center gap-2 pl-4 text-xs">
-          <MutedIcon :icon="['fas', 'square']" />
-          <span class="flex-1">{{ t('helpCenter.sample.protocol.number110') }}</span>
-          <span class="text-xs text-[var(--text-muted)]">1P</span>
-          <IconButton :icon="['fas', 'pen']" label="" disabled />
-          <DeleteButton disabled />
-        </div>
-      </NeutralContainer>
-
-      <NeutralContainer class="space-y-2">
-        <div class="flex items-center gap-2">
-          <SubHeader>{{ t('helpCenter.sample.protocol.knots') }}</SubHeader>
-          <MutedText class="ml-auto">11P</MutedText>
-        </div>
-      </NeutralContainer>
-
-      <PrimaryButton disabled>
-        <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" /> {{ t('protocol.addSection') }}
-      </PrimaryButton>
-    </div>
+    <PrimaryButton class="mt-4" disabled>
+      <font-awesome-icon :icon="['fas', 'plus']" class="mr-1" /> {{ t('protocol.addSection') }}
+    </PrimaryButton>
   </HelpSection>
 </template>

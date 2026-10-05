@@ -8,6 +8,9 @@ import { createCrudResource } from './crud'
 import { downloadAuthed } from '@/util/downloadAuthed'
 import type {
     EvaluationResponse,
+    ExaminerCandidate,
+    GradingScope,
+    RunExaminers,
     ProtocolDetailResponse,
     ProtocolItemRequest,
     ProtocolListResponse,
@@ -17,6 +20,7 @@ import type {
     ProtocolSharing,
     ProtocolSharingRequest,
     RemoteProtocolDetail,
+    SectionParentRequest,
     RunDetailResponse,
     TestProtocol,
     TestProtocolItem,
@@ -105,6 +109,11 @@ export async function reorderSections(protocolId: number, ids: number[]): Promis
     await client.put(`/protocols/${protocolId}/sections/order`, {ids})
 }
 
+/** Moves a section, with everything under it, under another section of its protocol or to the top level. */
+export async function moveSection(sectionId: number, parentId: number | null): Promise<void> {
+    await client.put(`/protocols/sections/${sectionId}/parent`, {parentId} satisfies SectionParentRequest)
+}
+
 /** Puts every point of a section into the given order. */
 export async function reorderItems(sectionId: number, ids: number[]): Promise<void> {
     await client.put(`/protocols/sections/${sectionId}/items/order`, {ids})
@@ -122,6 +131,35 @@ export async function createRun(protocolId: number, data: ProtocolRunRequest): P
 
 export async function closeRun(id: number): Promise<TestProtocolRun> {
     const res = await client.post<TestProtocolRun>(`/protocols/runs/${id}/close`)
+    return res.data
+}
+
+/** Everybody who may be named an examiner: the station's testers. */
+export async function listExaminerCandidates(): Promise<ExaminerCandidate[]> {
+    const res = await client.get<ExaminerCandidate[]>('/protocols/examiner-candidates')
+    return res.data
+}
+
+/** The examiners of each section of a run. */
+export async function getExaminers(runId: number): Promise<RunExaminers> {
+    const res = await client.get<RunExaminers>(`/protocols/runs/${runId}/examiners`)
+    return res.data
+}
+
+/** Replaces every examiner of a run. */
+export async function setExaminers(runId: number, plan: RunExaminers): Promise<void> {
+    await client.put(`/protocols/runs/${runId}/examiners`, plan)
+}
+
+/** The examiners of the last planned run of the same protocol, to start a recurring exam from. */
+export async function getPreviousExaminers(runId: number): Promise<RunExaminers> {
+    const res = await client.get<RunExaminers>(`/protocols/runs/${runId}/examiners/previous`)
+    return res.data
+}
+
+/** What the signed-in tester may grade in a run. */
+export async function getGradingScope(runId: number): Promise<GradingScope> {
+    const res = await client.get<GradingScope>(`/protocols/runs/${runId}/grading-scope`)
     return res.data
 }
 

@@ -71,6 +71,7 @@ const { t } = useI18n()
     <HelpSection :title="t('helpCenter.protocolRunList.howTo')">
       <p>{{ t('helpCenter.protocolRunList.step1') }}</p>
       <p>{{ t('helpCenter.protocolRunList.step2') }}</p>
+      <p>{{ t('helpCenter.protocolRunList.step3') }}</p>
     </HelpSection>
 
     <HelpTip>{{ t('helpCenter.protocolRunList.tip') }}</HelpTip>

@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:dd9c05e42033382908f405361113dd797777c919566fc017f495f56af4827713",
-  "generatedAt": "2026-10-02T23:16:13Z",
+  "schemaHash": "sha256:ceb1d9696098d29f7474fb3d4ee6ac54220909e3df5694d1cbae2da710584516",
+  "generatedAt": "2026-10-05T09:01:24Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -23279,7 +23279,7 @@
     "test_protocol_item": {
       "feature": "protocol",
       "scope": "STATION",
-      "tableHash": "sha256:e15291bfc8d3b1f0ea75474ad3146a2ef7799821ce1abac84d3fa4e1e87c8a03",
+      "tableHash": "sha256:83d276d90d2792970de5c18d8e9ac522fc0460ef70041398b2c847a5ae4822fc",
       "columns": [
         {
           "name": "id",
@@ -23322,6 +23322,13 @@
           "nullable": false,
           "verified": true,
           "description": "Display order position."
+        },
+        {
+          "name": "bonus",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "True for a bonus point: it adds to the score when checked but not to the maximum of its section or protocol."
         }
       ],
       "foreignKeys": [
@@ -23526,6 +23533,69 @@
         "reason": "Test protocol structure — pending detailed review"
       },
       "description": "Individual checkbox results within a protocol run for a member."
+    },
+    "test_protocol_run_examiner": {
+      "feature": "protocol",
+      "scope": "STATION",
+      "tableHash": "sha256:ef26aa39923045b93ed87a3df33502e67c08a55f6fda3267c4d9a80ba8b1d094",
+      "columns": [
+        {
+          "name": "run_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true
+        },
+        {
+          "name": "section_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true
+        },
+        {
+          "name": "member_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "member_id",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "run_id",
+          "refTable": "test_protocol_run",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "section_id",
+          "refTable": "test_protocol_section",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED",
+        "rationale": "Belongs in station transfer; handler in StationExportService/StationImportService not yet implemented"
+      },
+      "gdprExport": {
+        "status": "TRACKED",
+        "identityColumns": [
+          {
+            "type": "MEMBER_ID",
+            "column": "member_id"
+          }
+        ]
+      },
+      "gdprDeletion": {
+        "status": "TRACKED",
+        "reason": "Cascade-deleted via station_member(id) foreign key"
+      },
+      "description": "Who examines which section of a test run. An assignment covers the section and everything under it; a run with no rows here is graded by every tester, as before examiners existed."
     },
     "test_protocol_run_member": {
       "feature": "protocol",

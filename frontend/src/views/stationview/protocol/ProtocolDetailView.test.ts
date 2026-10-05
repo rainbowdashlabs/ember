@@ -8,19 +8,21 @@ import {ref} from 'vue'
 import {flushPromises, type VueWrapper} from '@vue/test-utils'
 import {mountSuspended} from '@nuxt/test-utils/runtime'
 import Spinner from '@/components/feedback/Spinner.vue'
-import ProtocolSectionCard from './protocoldetailview/ProtocolSectionCard.vue'
+import ProtocolSectionNode from './protocoldetailview/ProtocolSectionNode.vue'
 import ProtocolSectionModal from './protocoldetailview/ProtocolSectionModal.vue'
 import ProtocolDetailView from './ProtocolDetailView.vue'
 
 const getProtocol = vi.fn()
 const createSection = vi.fn()
 const reorderSections = vi.fn()
+const moveSection = vi.fn()
 
 vi.mock('@/api', () => ({
     protocol: {
         getProtocol: (...args: unknown[]) => getProtocol(...args),
         createSection: (...args: unknown[]) => createSection(...args),
         reorderSections: (...args: unknown[]) => reorderSections(...args),
+        moveSection: (...args: unknown[]) => moveSection(...args),
     },
 }))
 
@@ -62,11 +64,52 @@ describe('ProtocolDetailView', () => {
         getProtocol.mockReset()
         createSection.mockReset()
         reorderSections.mockReset()
+        moveSection.mockReset()
     })
 
-    function sectionNames(view: VueWrapper): string[] {
-        return view.findAllComponents(ProtocolSectionCard).map(card => card.props('section').name)
+    function topLevel(view: VueWrapper) {
+        return view.findAllComponents(ProtocolSectionNode).filter(node => node.props('depth') === 0)
     }
+
+    function sectionNames(view: VueWrapper): string[] {
+        return topLevel(view).map(node => node.props('section').name)
+    }
+
+    function nestedThreeDeep() {
+        const data = protocolWith(['Knoten', 'Leinen'])
+        data.sections.push(
+            {...data.sections[1]!, id: 3, name: 'Palstek', parentId: 2, position: 0} as never,
+            {...data.sections[1]!, id: 4, name: 'Doppelt', parentId: 3, position: 0} as never,
+        )
+        return data
+    }
+
+    it('draws a section three levels down', async () => {
+        getProtocol.mockResolvedValueOnce(nestedThreeDeep())
+        const view = await mountSuspended(ProtocolDetailView, {route: '/station/protocols/1'})
+        await flushPromises()
+
+        const depths = view.findAllComponents(ProtocolSectionNode).map(node => [node.props('section').name, node.props('depth')])
+        expect(depths).toEqual([['Knoten', 0], ['Leinen', 0], ['Palstek', 1], ['Doppelt', 2]])
+    })
+
+    it('cuts a section and pastes it under another, but never under itself', async () => {
+        getProtocol.mockResolvedValue(nestedThreeDeep())
+        moveSection.mockResolvedValue(undefined)
+        const view = await mountSuspended(ProtocolDetailView, {route: '/station/protocols/1'})
+        await flushPromises()
+
+        const leinen = topLevel(view)[1]!
+        await leinen.find('[aria-label="Ausschneiden"]').trigger('click')
+        await flushPromises()
+
+        const pasteTargets = view.findAll('button[aria-label^="In "]').map(button => button.attributes('aria-label'))
+        expect(pasteTargets).toEqual(['In „Knoten“ einfügen'])
+
+        await view.find('button[aria-label="In „Knoten“ einfügen"]').trigger('click')
+        await flushPromises()
+        expect(moveSection).toHaveBeenCalledWith(2, 1)
+    })
 
     it('moves a section on screen and saves the whole level without reading the protocol back', async () => {
         getProtocol.mockResolvedValueOnce(protocolWith(['Knoten', 'Leinen', 'Funk']))
@@ -110,10 +153,10 @@ describe('ProtocolDetailView', () => {
 
         expect(getProtocol).toHaveBeenCalledTimes(2)
         expect(view.findComponent(Spinner).exists()).toBe(false)
-        expect(view.findAllComponents(ProtocolSectionCard)).toHaveLength(1)
+        expect(topLevel(view)).toHaveLength(1)
 
         answer(protocolWith(['Knoten', 'Leinen']))
         await flushPromises()
-        expect(view.findAllComponents(ProtocolSectionCard)).toHaveLength(2)
+        expect(topLevel(view)).toHaveLength(2)
     })
 })

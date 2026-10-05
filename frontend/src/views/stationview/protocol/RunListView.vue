@@ -99,7 +99,7 @@ async function handleCreate() {
       tagIds: restriction.value.tagIds.length > 0 ? restriction.value.tagIds : undefined,
     })
     showCreateModal.value = false
-    router.push({ name: 'protocol-run-detail', params: { id: run.id } })
+    router.push({ name: 'protocol-run-plan', params: { id: run.id } })
   } catch (e) { failure.value = describeFailure(e, t) }
 }
 

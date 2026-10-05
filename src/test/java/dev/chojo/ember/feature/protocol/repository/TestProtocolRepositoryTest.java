@@ -147,7 +147,7 @@ class TestProtocolRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(23)
     void updateItem() {
-        assertTrue(testProtocolRepo.updateItem(itemId, "Knows traffic signs (updated)", "Updated", 12.0, 1));
+        assertTrue(testProtocolRepo.updateItem(itemId, "Knows traffic signs (updated)", "Updated", 12.0, false, 1));
     }
 
     @Test

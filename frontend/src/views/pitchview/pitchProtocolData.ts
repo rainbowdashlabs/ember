@@ -6,6 +6,7 @@
 import type {EvaluationResponse, MemberWithName, TestProtocolItem, TestProtocolSection} from '@/api/generated/schema'
 import type {PitchEvaluation, PitchGrading} from './pitchTypes'
 import {pitchMember} from './pitchMembers'
+import {protocolTree} from '@/views/stationview/protocol/protocolTree'
 
 /**
  * The badge test a demonstration works through. The grading panel and the evaluation table of the
@@ -25,7 +26,7 @@ const QUESTIONS = section(5, 'Fragen zur Wache', 6)
 const SECTIONS = [KNOTS, FIRST_AID, EQUIPMENT, ON_VEHICLE, QUESTIONS]
 
 function item(id: number, sectionId: number, label: string, points: number): TestProtocolItem {
-    return {id, sectionId, label, description: '', points, position: id}
+    return {id, sectionId, label, description: '', points, position: id, bonus: false}
 }
 
 const ITEMS: TestProtocolItem[] = [
@@ -40,8 +41,8 @@ const ITEMS: TestProtocolItem[] = [
 /** The section the tester is standing in, with three of its points already ticked. */
 export const PROTOCOL_GRADING: PitchGrading = {
     section: EQUIPMENT,
-    childSections: [ON_VEHICLE],
-    sectionItems: (sectionId: number) => ITEMS.filter(entry => entry.sectionId === sectionId),
+    tree: protocolTree(SECTIONS, ITEMS),
+    gradable: new Set(SECTIONS.map(entry => entry.id)) as ReadonlySet<number>,
     checks: new Map([[1, true], [2, true], [5, true]]) as ReadonlyMap<number, boolean>,
     score: 5,
     maxPoints: 10,

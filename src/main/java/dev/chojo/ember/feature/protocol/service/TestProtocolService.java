@@ -42,7 +42,9 @@ import org.slf4j.LoggerFactory;
 import java.time.LocalDate;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -235,6 +237,9 @@ public class TestProtocolService implements FederationServer {
             @Nullable Integer maxPoints,
             @Nullable Integer passThreshold,
             int position) {
+        if (parentId != null && !belongsTo(parentId, protocolId)) {
+            throw TestProtocolRefusal.PROTOCOL_SECTION_PARENT_ELSEWHERE_ON_CREATE.raise();
+        }
         TestProtocolSection section =
                 repository.createSection(protocolId, parentId, name, description, maxPoints, passThreshold, position);
         log.info(
@@ -280,23 +285,97 @@ public class TestProtocolService implements FederationServer {
         return repository.findAllItemsByProtocol(protocolId);
     }
 
-    public TestProtocolItem createItem(int sectionId, String label, String description, double points, int position) {
-        TestProtocolItem item = repository.createItem(sectionId, label, description, points, position);
-        log.info("Created protocol item {} (label='{}', points={}) in section {}", item.id(), label, points, sectionId);
+    /**
+     * Adds a point to a section.
+     *
+     * @param bonus whether it is a bonus point, which adds to the score but not to any maximum
+     */
+    public TestProtocolItem createItem(
+            int sectionId, String label, String description, double points, int position, boolean bonus) {
+        TestProtocolItem item = repository.createItem(sectionId, label, description, points, position, bonus);
+        log.info(
+                "Created protocol item {} (label='{}', points={}, bonus={}) in section {}",
+                item.id(),
+                label,
+                points,
+                bonus,
+                sectionId);
         return item;
     }
 
     /**
      * Changes a point.
      *
+     * @param bonus    whether it is a bonus point
      * @param position where it now stands in its section, or {@code null} to leave it where it is
      * @return whether there was such a point
      */
-    public boolean updateItem(int id, String label, String description, double points, @Nullable Integer position) {
-        boolean updated = repository.updateItem(id, label, description, points, position);
-        if (updated) log.info("Updated protocol item {} (label='{}', points={})", id, label, points);
+    public boolean updateItem(
+            int id, String label, String description, double points, boolean bonus, @Nullable Integer position) {
+        boolean updated = repository.updateItem(id, label, description, points, bonus, position);
+        if (updated) log.info("Updated protocol item {} (label='{}', points={}, bonus={})", id, label, points, bonus);
         else log.warn("Update of protocol item {} did not change any row", id);
         return updated;
+    }
+
+    private boolean belongsTo(int sectionId, int protocolId) {
+        return repository
+                .findSection(sectionId)
+                .filter(section -> section.protocolId() == protocolId)
+                .isPresent();
+    }
+
+    /**
+     * Puts a section, with everything under it, under another section of its protocol or at the top
+     * level. It goes to the end of its new level, and the level it left closes up behind it.
+     *
+     * <p>Checks hang on points and examiners on sections, so neither is touched: a run graded before the
+     * move reads the same afterwards.
+     *
+     * @param sectionId the section, already checked to belong to the caller's station
+     * @param parentId  the new parent, or {@code null} for the top level
+     */
+    public void moveSection(int sectionId, @Nullable Integer parentId) {
+        var section =
+                repository.findSection(sectionId).orElseThrow(TestProtocolRefusal.PROTOCOL_SECTION_NOT_HERE::raise);
+        var sections = repository.findSections(section.protocolId());
+        if (parentId != null) {
+            if (sections.stream().noneMatch(candidate -> candidate.id() == parentId)) {
+                throw TestProtocolRefusal.PROTOCOL_SECTION_PARENT_ELSEWHERE_ON_MOVE.raise();
+            }
+            if (subtreeOf(sectionId, sections).contains(parentId)) {
+                throw TestProtocolRefusal.PROTOCOL_SECTION_MOVED_INTO_ITSELF.raise();
+            }
+        }
+        if (Objects.equals(section.parentId(), parentId)) return;
+        int place = (int) sections.stream()
+                .filter(candidate -> Objects.equals(candidate.parentId(), parentId))
+                .count();
+        var leftBehind = sections.stream()
+                .filter(candidate -> Objects.equals(candidate.parentId(), section.parentId()))
+                .filter(candidate -> candidate.id() != sectionId)
+                .sorted(Comparator.comparingInt(TestProtocolSection::position))
+                .map(TestProtocolSection::id)
+                .toList();
+        Transactions.run(() -> {
+            repository.moveSection(sectionId, parentId, place);
+            if (!leftBehind.isEmpty()) repository.reorderSections(section.protocolId(), leftBehind);
+        });
+        log.info("Moved section {} of test protocol {} under {}", sectionId, section.protocolId(), parentId);
+    }
+
+    /** A section and every section under it, at any depth. */
+    static Set<Integer> subtreeOf(int sectionId, List<TestProtocolSection> sections) {
+        var found = new HashSet<Integer>();
+        var pending = new ArrayDeque<Integer>(List.of(sectionId));
+        while (!pending.isEmpty()) {
+            int current = pending.poll();
+            if (!found.add(current)) continue;
+            sections.stream()
+                    .filter(candidate -> Objects.equals(candidate.parentId(), current))
+                    .forEach(candidate -> pending.add(candidate.id()));
+        }
+        return found;
     }
 
     /**
@@ -603,7 +682,7 @@ public class TestProtocolService implements FederationServer {
         for (var item : source.items()) {
             Integer sectionId = sectionMap.get(item.sectionId());
             if (sectionId != null) {
-                createItem(sectionId, item.label(), item.description(), item.points(), item.position());
+                createItem(sectionId, item.label(), item.description(), item.points(), item.position(), item.bonus());
             }
         }
         return copy;

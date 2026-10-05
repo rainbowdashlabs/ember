@@ -26,17 +26,23 @@ import { describeFailure } from '@/util/failure'
 import { protocol, stationMembers } from '@/api'
 import {
   RunStatus,
+  StationPermission,
+  type GradingScope,
   type MemberWithName,
+  type RunExaminers,
   type TestProtocolRun,
+  type TestProtocolSection,
   type RunMemberWithProgress,
 } from '@/api/generated/schema'
+import RunMemberSections from './rundetailview/RunMemberSections.vue'
+import { protocolTree } from './protocolTree'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import { formatDate } from '@/util/format'
 
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
-const { canManageProtocol, canTestProtocol, loaded } = useSession()
+const { canManageProtocol, canTestProtocol, hasPermission, loaded } = useSession()
 
 
 const runId = computed(() => Number(route.params.id))
@@ -45,15 +51,34 @@ const runMembers = ref<RunMemberWithProgress[]>([])
 const memberMap = ref<Map<number, MemberWithName>>(new Map())
 const filterIncomplete = ref(false)
 
+const topSections = ref<TestProtocolSection[]>([])
+const examiners = ref<RunExaminers>({sections: []})
+const scope = ref<GradingScope | null>(null)
+
 const {loading, failure, reload: loadData} = useAsyncLoader(async () => {
-  const [runData, allMembers] = await Promise.all([
+  const [runData, allMembers, plan, gradingScope] = await Promise.all([
     protocol.getRun(runId.value),
     stationMembers.listMembers(),
+    protocol.getExaminers(runId.value),
+    protocol.getGradingScope(runId.value),
   ])
   run.value = runData.run
   runMembers.value = runData.members
   memberMap.value = new Map(allMembers.map(m => [m.id, m]))
+  examiners.value = plan
+  scope.value = gradingScope
+  const protocolData = await protocol.getProtocol(runData.run.protocolId)
+  topSections.value = protocolTree(protocolData.sections, []).childrenOf(null)
 }, {autoLoad: false})
+
+const canPlan = computed(() => hasPermission(StationPermission.PROTOCOL_CREATE) && run.value?.status === RunStatus.OPEN)
+const mayGrade = computed(() => canTestProtocol() && scope.value?.mayGrade === true)
+
+function examinerNames(sectionId: number): string[] {
+  return examiners.value.sections
+    .filter(entry => entry.sectionId === sectionId)
+    .flatMap(entry => entry.memberIds.map(memberName))
+}
 
 function memberName(memberId: number): string {
   const m = memberMap.value.get(memberId)
@@ -119,6 +144,10 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
         <PrimaryButton v-if="run?.status === RunStatus.OPEN && canManageProtocol()" @click="handleClose">
           {{ t('protocol.closeRun') }}
         </PrimaryButton>
+        <SecondaryButton v-if="canPlan" :icon="['fas', 'user-check']"
+                         @click="router.push({ name: 'protocol-run-plan', params: { id: runId } })">
+          {{ t('protocol.plan.open') }}
+        </SecondaryButton>
         <SecondaryButton @click="router.push({ name: 'protocol-evaluation', params: { id: runId } })">
           <font-awesome-icon :icon="['fas', 'chart-bar']" class="mr-1" /> {{ t('protocol.evaluation') }}
         </SecondaryButton>
@@ -148,13 +177,15 @@ watch(loaded, (v) => { if (v) loadData() }, { immediate: true })
                 {{ testerName(rm.member.lockedBy) }}
               </template>
             </div>
+            <RunMemberSections class="mt-1" :sections="topSections" :done-section-ids="rm.doneSectionIds"
+                               :examiner-names="examinerNames"/>
           </div>
           <span class="font-mono text-sm">{{ rm.member.totalScore }}P</span>
           <SuccessBadge v-if="rm.member.completed">{{ t('protocol.completed') }}</SuccessBadge>
           <ErrorBadge v-else-if="rm.member.lockedBy">{{ t('protocol.locked') }}</ErrorBadge>
           <SecondaryBadge v-else>{{ t('protocol.pending') }}</SecondaryBadge>
           <PrimaryButton
-            v-if="run.status === RunStatus.OPEN && canTestProtocol() && !rm.member.completed"
+            v-if="run.status === RunStatus.OPEN && mayGrade && !rm.member.completed"
             class="!text-sm !py-1 !px-3"
             @click="startGrading(rm.member.memberId)"
           >
