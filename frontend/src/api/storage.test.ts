@@ -13,12 +13,18 @@ import {
 describe('storage consent', () => {
     beforeEach(() => localStorage.clear())
 
-    it('writes nothing before consent is given', () => {
-        setItem('station_id', 'abc')
-        expect(getItem('station_id')).toBeNull()
+    it('writes no optional value before consent is given', () => {
+        setItem('sidebar_collapsed', 'true')
+        expect(getItem('sidebar_collapsed')).toBeNull()
     })
 
-    it('allows required values as soon as storage is accepted', () => {
+    /** A member who was never asked must still be able to stay in their station. */
+    it('keeps required values before anybody was asked', () => {
+        setItem('station_id', 'abc')
+        expect(getItem('station_id')).toBe('abc')
+    })
+
+    it('allows required values when only those are accepted', () => {
         acceptStorage(undefined, [])
         setItem('station_id', 'abc')
         expect(getItem('station_id')).toBe('abc')
@@ -59,7 +65,7 @@ describe('storage consent', () => {
         expect(getGrantedScopes()).toEqual([StorageNecessity.FUNCTIONAL, StorageNecessity.COMFORT])
     })
 
-    it('keeps nothing after a denial', () => {
+    it('keeps nothing optional after a denial', () => {
         acceptStorage(undefined, [StorageNecessity.COMFORT])
         setItem('sidebar_collapsed', 'true')
 
@@ -67,7 +73,7 @@ describe('storage consent', () => {
 
         expect(getGrantedScopes()).toEqual([])
         expect(getItem('sidebar_collapsed')).toBeNull()
-        expect(isStorageAllowed('station_id')).toBe(false)
+        expect(isStorageAllowed('sidebar_collapsed')).toBe(false)
     })
 
     it('never writes a key that is not declared', () => {

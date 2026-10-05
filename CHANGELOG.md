@@ -2,14 +2,20 @@
 
 ## v26.21.0
 
-Theme colours show where they were missing. Editing a comment is safer. Email addresses of members only reach those allowed to read the member register.
+Theme colours show where they were missing. Editing a comment is safer. Email addresses of members only reach those allowed to read the member register. Members who set up their account from a link stay in their station, and the consent is asked on every way in.
 
 ### Security
 
 - **Names in comment mentions are shown as text.** When a comment was edited, the name of a mentioned member was read as part of the page rather than shown as text. It is now always shown as text.
 - **Member lists no longer carry email addresses.** Pages that only let someone pick a member, such as inventory, attendance or visibility filters, received the email address of every member, and member menus showed it. These addresses now reach only those allowed to read the member register, and member menus show names only.
 
+### Changes
+
+- **The consent is asked on every way in.** Setting a password or a passkey from a link asks the same consent as the sign-in form, and anyone signed in who was never asked sees it once. Every answer is a button of the same kind, and no optional storage is switched on in advance.
+
 ### Fixes
+
+- **Members who set up their account from a link could not stay in their station.** In some cases a member who set up their account from the link in their mail was sent to the overview of all stations again and again. The chosen station is now always kept, and a member with a single station is taken straight to it.
 
 - **Field templates were asked of trial members.** Fields added from a profile field template were put to the form that was shown, which on opening was the one for trial members. Fields from a template are now created without an audience, and each is put to the right forms afterwards.
 - **Some theme colours were missing.** On many pages, highlights, links, backgrounds under the mouse pointer, progress bars, error messages and success marks were shown without their colour. They now show in the theme colours.

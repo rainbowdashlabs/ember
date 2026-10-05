@@ -19,17 +19,23 @@ import {createWebAuthnCredential, getWebAuthnCredential, webauthnErrorKey} from 
 import {decideSignInLanding} from '@/util/signInLanding'
 import {useStations} from '@/composables/useStations'
 import {useCluster} from '@/composables/useCluster'
+import {useLoginConsent} from '@/composables/useLoginConsent'
+import ConsentStep from '@/components/consent/ConsentStep.vue'
 
 /**
  * The screen behind every enrolment token: the guardian's QR, the member manager's code, the
  * re-onboarding mail and the console line all land here. It names whose account the token
  * opens, the member confirms, their device asks for the fingerprint, and then they are signed
  * in, because they now hold a passkey and signing in with it is the ordinary path.
+ *
+ * <p>Since this signs the member in without the sign-in form, it asks the same consent first.
  */
 const {t} = useI18n()
 const route = useRoute()
 const {setActiveStation, clearActiveStation} = useStations()
 const {setActiveCluster, clearActiveCluster} = useCluster()
+const legal = useLoginConsent()
+const {consent} = legal
 
 type Phase = 'code' | 'confirm' | 'creating' | 'signingIn' | 'failed'
 const phase = ref<Phase>('code')
@@ -41,6 +47,7 @@ const error = ref('')
 const cameFromSetup = route.query.fromSetup === '1'
 
 onMounted(() => {
+  void legal.loadConsentText()
   const fromQuery = route.query.code as string | undefined
   if (fromQuery) {
     code.value = fromQuery
@@ -80,6 +87,7 @@ async function signIn() {
     const begin = await passkeys.passkeySignInBegin()
     const credentialJson = await getWebAuthnCredential(begin.optionsJson)
     await passkeys.passkeySignInFinish(begin.challengeToken, credentialJson, false)
+    await legal.recordAfterLogin()
     clearActiveStation()
     clearActiveCluster()
     const landing = await decideSignInLanding(undefined)
@@ -95,11 +103,15 @@ async function signIn() {
 
 <template>
   <div class="flex min-h-screen items-center justify-center px-4 py-16">
-    <div class="w-full max-w-md space-y-6 text-center">
+    <div class="w-full space-y-6 text-center" :class="consent === 'accepted' ? 'max-w-md' : 'max-w-5xl'">
       <PageHeroIcon :icon="['fas', 'fingerprint']"/>
       <PageHeader class="text-2xl font-bold">{{ t('passkeys.enroll.title') }}</PageHeader>
 
-      <template v-if="phase === 'code'">
+      <div v-if="consent !== 'accepted'" class="text-left">
+        <ConsentStep :legal="legal"/>
+      </div>
+
+      <template v-else-if="phase === 'code'">
         <p>{{ t('passkeys.enroll.codePrompt') }}</p>
         <FailureAlert :message="error"/>
         <TextInput v-model="code" placeholder="K7RM-2WQD" class="font-mono tracking-widest"/>

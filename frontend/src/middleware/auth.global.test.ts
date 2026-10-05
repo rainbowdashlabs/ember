@@ -34,6 +34,7 @@ const state = vi.hoisted(() => ({
     remembered: [] as string[],
     forgotten: 0,
     firstStationNeeded: false,
+    soleStation: null as string | null,
 }))
 
 mockNuxtImport('navigateTo', () => (target: unknown) => {
@@ -115,6 +116,7 @@ vi.mock('~/composables/useStations', () => ({
             state.activeStation = stationId
             state.store.set('station_id', stationId)
         },
+        soleStationId: async () => state.soleStation,
     }),
 }))
 
@@ -178,6 +180,7 @@ describe('auth route guard', () => {
         state.navigations = []
         state.admin = false
         state.firstStationNeeded = false
+        state.soleStation = null
         state.sessionLoaded = false
         state.sessionLoads = 0
         state.clusters = []
@@ -268,6 +271,16 @@ describe('auth route guard', () => {
             {path: '/cross-station', query: {redirect: '/station/dashboard/overview'}},
         ])
         expect(localStorage.getItem('ember_last_activity'), 'the stamp was not refreshed').toBe(stamp)
+    })
+
+    /** Somebody with a single station has nothing to pick, so they go on into it. */
+    it('takes an account with one station into it instead of the picker', async () => {
+        state.soleStation = STATION
+
+        await run(route('/station/dashboard/overview'))
+
+        expect(state.navigations).toEqual([])
+        expect(state.activeStation).toBe(STATION)
     })
 
     /**
