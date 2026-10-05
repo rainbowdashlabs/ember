@@ -498,8 +498,11 @@ export default {
     storageConsent: {
         title: 'Einwilligung zur Datenverarbeitung',
         description: 'Diese Anwendung hält deine Anmeldung in einem geschützten Cookie und speichert Einstellungen im lokalen Speicher deines Browsers. Deine Daten werden ausschließlich zur Organisation deiner Jugendgruppe verwendet. Wir geben keine personenbezogenen Daten an Dritte weiter.',
-        accept: 'Zustimmen',
+        necessaryOnly: 'Nur Notwendiges',
+        acceptChoice: 'Auswahl übernehmen',
+        acceptAll: 'Alles erlauben',
         deny: 'Ablehnen',
+        answerHint: 'Mit den ersten drei Antworten stimmst du den Nutzungsbedingungen und der Datenschutzerklärung zu und legst fest, was im Browser bleiben darf. Technisch erforderliche Werte bleiben immer. Lehnst du ab, kannst du diese Anwendung nicht nutzen.',
         privacyPolicy: 'Datenschutzerklärung lesen',
         privacyPolicyTitle: 'Datenschutzerklärung',
         tos: 'Nutzungsbedingungen lesen',
@@ -512,8 +515,8 @@ export default {
             always: 'Immer aktiv',
             REQUIRED: {
                 title: 'Technisch erforderlich',
-                hint: 'Anmeldung, Sitzung und die Einwilligung selbst. Ohne diese Werte kannst du dich '
-                    + 'nicht anmelden.',
+                hint: 'Anmeldung, Sitzung, die gewählte Wache und die Einwilligung selbst. Ohne diese '
+                    + 'Werte funktioniert die Anwendung nicht, deshalb bleiben sie immer.',
             },
             FUNCTIONAL: {
                 title: 'Für einzelne Funktionen',
@@ -4808,6 +4811,7 @@ export default {
         verify: {
             title: 'Zwei-Faktor-Verifizierung',
             totpHint: 'Gib den 6-stelligen Code aus deiner Authenticator-App ein.',
+            devCode: 'Entwicklungsinstanz: Der Code {code} wird für jede Authenticator-App angenommen.',
             backupHint: 'Gib einen deiner Wiederherstellungscodes ein.',
             submit: 'Bestätigen',
             useBackupCode: 'Wiederherstellungscode verwenden',

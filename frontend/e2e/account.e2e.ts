@@ -85,7 +85,7 @@ test.describe('Account & session', () => {
         const account = (await cast()).plainMember
 
         await page.goto('/login')
-        await page.getByRole('button', {name: 'Zustimmen'}).click()
+        await page.getByRole('button', {name: 'Alles erlauben'}).click()
 
         await page.getByText(`${account.firstName} ${account.lastName}`).first().click()
 
@@ -102,7 +102,7 @@ test.describe('Account & session', () => {
         const {group, only} = await somebodyAtOneStationOnly(request)
 
         await page.goto('/login')
-        await page.getByRole('button', {name: 'Zustimmen'}).click()
+        await page.getByRole('button', {name: 'Alles erlauben'}).click()
 
         const choice = page.getByTestId('demo-station-choice').filter({hasText: group.stationName!})
         await expect(choice).toBeVisible()
@@ -122,7 +122,7 @@ test.describe('Account & session', () => {
         const {name, stations} = await somebodyAtSeveralStations(request)
 
         await page.goto('/login')
-        await page.getByRole('button', {name: 'Zustimmen'}).click()
+        await page.getByRole('button', {name: 'Alles erlauben'}).click()
 
         await page.getByPlaceholder('Name, Adresse, Rolle, Gruppe oder Merkmal suchen…').fill(name)
 

@@ -7,14 +7,23 @@
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
-import SuccessButton from '@/components/button/SuccessButton.vue'
-import ErrorButton from '@/components/button/ErrorButton.vue'
+import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import LinkButton from '@/components/button/LinkButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import StorageScopeChoice from '@/components/consent/StorageScopeChoice.vue'
-import type {StorageNecessityName} from '@/api/storage'
+import {OPTIONAL_NECESSITIES, type StorageNecessityName} from '@/api/storage'
 
+/**
+ * The consent asked before anybody signs in or sets up their account: the terms, the privacy policy
+ * and what may be kept in the browser.
+ *
+ * <p>Every answer is one button of the same kind, side by side. Allowing everything is not dressed
+ * up as the obvious choice and keeping only the necessary is not hidden behind a settings page or
+ * painted as a warning; no optional group starts switched on. Declining is offered as plainly, with
+ * what it means said next to it.
+ */
 const props = defineProps<{
   consentLoading: boolean
   consentHtml: string
@@ -31,6 +40,11 @@ const emit = defineEmits<{
 }>()
 
 const {t} = useI18n()
+
+function acceptWith(chosen: StorageNecessityName[]) {
+  scopes.value = chosen
+  emit('accept')
+}
 </script>
 
 <template>
@@ -48,13 +62,13 @@ const {t} = useI18n()
       <LinkButton @click="emit('showTos')">{{ t('storageConsent.tos') }}</LinkButton>
     </ButtonRow>
 
-    <ButtonRow pair>
-      <SuccessButton class="sm:flex-1" @click="emit('accept')">
-        {{ t('storageConsent.accept') }}
-      </SuccessButton>
-      <ErrorButton class="sm:flex-1" @click="emit('deny')">
-        {{ t('storageConsent.deny') }}
-      </ErrorButton>
+    <MutedText tag="p" size="sm">{{ t('storageConsent.answerHint') }}</MutedText>
+
+    <ButtonRow>
+      <SecondaryButton class="sm:flex-1" @click="acceptWith([])">{{ t('storageConsent.necessaryOnly') }}</SecondaryButton>
+      <SecondaryButton class="sm:flex-1" @click="acceptWith(scopes)">{{ t('storageConsent.acceptChoice') }}</SecondaryButton>
+      <SecondaryButton class="sm:flex-1" @click="acceptWith([...OPTIONAL_NECESSITIES])">{{ t('storageConsent.acceptAll') }}</SecondaryButton>
+      <SecondaryButton class="sm:flex-1" @click="emit('deny')">{{ t('storageConsent.deny') }}</SecondaryButton>
     </ButtonRow>
   </NeutralContainer>
 </template>

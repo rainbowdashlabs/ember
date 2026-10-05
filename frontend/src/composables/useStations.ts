@@ -77,6 +77,17 @@ export function useStations() {
         loadActiveLogo()
     }
 
+    /**
+     * The one station the account belongs to, where it belongs to exactly one. Somebody with a single
+     * station has nothing to choose between, so the overview of all stations is never where they are
+     * sent on their own.
+     */
+    async function soleStationId(): Promise<string | null> {
+        if (!loaded.value) await load()
+        const [only] = stationList.value
+        return stationList.value.length === 1 && only ? only.stationId : null
+    }
+
     function clearActiveStation() {
         removeItem('station_id')
         currentStationId.value = null
@@ -132,6 +143,7 @@ export function useStations() {
         clear,
         setActiveStation,
         clearActiveStation,
+        soleStationId,
         loadActiveLogo,
         getStationLogoUrl,
         hasMultipleStations,

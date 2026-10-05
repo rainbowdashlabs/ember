@@ -2,7 +2,7 @@
 
 ## v26.21.0
 
-Themenfarben erscheinen dort, wo sie fehlten. Das Bearbeiten von Kommentaren ist sicherer. E-Mail-Adressen von Mitgliedern erreichen nur noch die, die das Mitgliederverzeichnis lesen dürfen. Prüfungen lassen sich mit Prüfern je Abschnitt planen, und nur diese bewerten sie dann. Abschnitte lassen sich beliebig tief verschachteln und verschieben, und Prüfpunkte können Bonuspunkte sein. Prüfungsbögen lassen sich einzeln mit Partnerwachen teilen. Kopiert wird von Partnern nur, was sie teilen, und das auch von Partnern auf anderen Installationen.
+Themenfarben erscheinen dort, wo sie fehlten. Das Bearbeiten von Kommentaren ist sicherer. E-Mail-Adressen von Mitgliedern erreichen nur noch die, die das Mitgliederverzeichnis lesen dürfen. Mitglieder, die ihr Konto über einen Link einrichten, bleiben in ihrer Wache, und die Einwilligung wird auf jedem Weg hinein abgefragt. Prüfungen lassen sich mit Prüfern je Abschnitt planen, und nur diese bewerten sie dann. Abschnitte lassen sich beliebig tief verschachteln und verschieben, und Prüfpunkte können Bonuspunkte sein. Prüfungsbögen lassen sich einzeln mit Partnerwachen teilen. Kopiert wird von Partnern nur, was sie teilen, und das auch von Partnern auf anderen Installationen.
 
 ### Neue Funktionen
 
@@ -25,6 +25,8 @@ Themenfarben erscheinen dort, wo sie fehlten. Das Bearbeiten von Kommentaren ist
 - **Fragenkataloge öffnen sich nur in ihrer Wache.** Name, Beschreibung und Kategorien eines Fragenkatalogs einer anderen Wache ließen sich von allen öffnen, die Kataloge ansehen dürfen. Ein Katalog öffnet sich jetzt nur noch in der Wache, zu der er gehört.
 
 ### Änderungen
+
+- **Die Einwilligung wird auf jedem Weg hinein abgefragt.** Wer über einen Link ein Passwort oder einen Passkey einrichtet, bekommt dieselbe Einwilligung wie beim Anmelden, und wer angemeldet ist und nie gefragt wurde, sieht sie einmal. Jede Antwort ist eine Schaltfläche derselben Art, und keine freiwillige Speicherung ist vorab eingeschaltet.
 - **Eine Prüfung endet, sobald jeder Abschnitt geprüft ist.** Der Button „Prüfung abschließen“ entfällt: Wer den letzten offenen Abschnitt mit „Geprüft & Weiter“ oder „Geprüft & Beenden“ markiert, schließt die Prüfung des Mitglieds ab, und das Ergebnis wird gespeichert. Bis jeder Abschnitt markiert ist, auch die der anderen Prüfer, bleibt die Prüfung offen.
 
 ### Fehlerbehebungen
@@ -36,6 +38,7 @@ Themenfarben erscheinen dort, wo sie fehlten. Das Bearbeiten von Kommentaren ist
 - **Kopieren von Partnern einer anderen Installation schlug fehl.** Ein Prüfungsbogen oder Wiki-Artikel einer Wache auf einer anderen Installation ließ sich öffnen, aber nicht kopieren. Beides lässt sich jetzt kopieren.
 - **Gruppen boten Mitglieder an, die sie nicht aufnehmen.** Die Auswahl zum Hinzufügen zu einer Gruppe, die auf Mitgliedstypen beschränkt ist, bot auch alle anderen an, und das Hinzufügen wurde abgelehnt. Jetzt stehen dort nur Mitglieder der Typen, die die Gruppe aufnimmt.
 - **Die Bewegungsliste ließ ein zweites Stück derselben Art weg.** Tauschte ein Mitglied zwei Stücke eines Inventars, etwa zwei Hemden, zeigte die exportierte Liste nur eines davon. Jedes dieser Stücke bekommt jetzt eine eigene Spalte.
+- **Mitglieder, die ihr Konto über einen Link einrichteten, blieben nicht in ihrer Wache.** In manchen Fällen landete ein Mitglied, das sein Konto über den Link aus der Mail eingerichtet hatte, immer wieder auf der Übersicht aller Wachen. Die gewählte Wache bleibt jetzt immer erhalten, und ein Mitglied mit nur einer Wache kommt direkt dorthin.
 
 ## v26.20.3
 

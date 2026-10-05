@@ -2,7 +2,7 @@
 
 ## v26.21.0
 
-Theme colours show where they were missing. Editing a comment is safer. Email addresses of members only reach those allowed to read the member register. Exams can be planned with examiners per section, and only they grade them. Protocols nest to any depth, sections can be moved, and points can be bonus points. Protocols can be shared with partner stations one by one. Copying from partners is limited to what they share, and works with partners on other installations.
+Theme colours show where they were missing. Editing a comment is safer. Email addresses of members only reach those allowed to read the member register. Members who set up their account from a link stay in their station, and the consent is asked on every way in. Exams can be planned with examiners per section, and only they grade them. Protocols nest to any depth, sections can be moved, and points can be bonus points. Protocols can be shared with partner stations one by one. Copying from partners is limited to what they share, and works with partners on other installations.
 
 ### New Features
 
@@ -25,6 +25,8 @@ Theme colours show where they were missing. Editing a comment is safer. Email ad
 - **Quiz catalogs open only at their own station.** The name, description and categories of another station's quiz catalog could be opened by someone allowed to view catalogs. A catalog now opens only at the station it belongs to.
 
 ### Changes
+
+- **The consent is asked on every way in.** Setting a password or a passkey from a link asks the same consent as the sign-in form, and anyone signed in who was never asked sees it once. Every answer is a button of the same kind, and no optional storage is switched on in advance.
 - **An exam finishes once every section is checked.** The "Finish exam" button is gone: marking the last open section with "Checked & next" or "Checked & exit" finishes a member's exam and stores the result. Until every section is marked, the sections of other examiners included, the exam stays open.
 
 ### Fixes
@@ -36,6 +38,7 @@ Theme colours show where they were missing. Editing a comment is safer. Email ad
 - **Copying from a partner on another installation failed.** A protocol or a wiki article shared by a station on another installation could be opened but not copied. Both can be copied now.
 - **Groups offered members they do not accept.** The list for adding people to a group limited to member types also offered everyone else, and adding them was refused. It now offers only members of the types the group accepts.
 - **The movement sheet dropped a second item of the same kind.** When a member exchanged two items of one inventory, such as two shirts, the exported sheet showed only one of them. Each such item now gets a column of its own.
+- **Members who set up their account from a link could not stay in their station.** In some cases a member who set up their account from the link in their mail was sent to the overview of all stations again and again. The chosen station is now always kept, and a member with a single station is taken straight to it.
 
 ## v26.20.3
 

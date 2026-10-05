@@ -57,10 +57,18 @@ public class TotpService {
     private static final int SECRET_BYTES = 20;
     private static final Base32 BASE32 = new Base32();
 
+    /**
+     * The code a development instance takes for any account's authenticator, so that whoever works
+     * on the application can pass a second factor whose secret only a seeded account knows. Nothing
+     * outside a development instance accepts it.
+     */
+    public static final String DEV_CODE = "000000";
+
     private final TwoFactorSettings.TotpConfig config;
     private final byte[] encryptionKey;
     private final TimeBasedOneTimePasswordGenerator generator;
     private final Clock clock;
+    private final boolean development;
 
     @Inject
     public TotpService(TwoFactorSettings twoFactorSettings, Demo demo) {
@@ -72,6 +80,15 @@ public class TotpService {
         this.encryptionKey = resolveEncryptionKey(twoFactorSettings, demo, twoFactorSettings.secretKey());
         this.generator = generatorFor(config);
         this.clock = clock;
+        this.development = demo.dev();
+    }
+
+    /**
+     * Whether the code is {@link #DEV_CODE} on a development instance. A public demo instance is not
+     * one: it runs with real visitors, so it keeps its second factors.
+     */
+    public boolean isDevCode(String code) {
+        return development && DEV_CODE.equals(code);
     }
 
     private static TimeBasedOneTimePasswordGenerator generatorFor(TwoFactorSettings.TotpConfig config) {
