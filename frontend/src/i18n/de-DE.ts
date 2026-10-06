@@ -2562,7 +2562,7 @@ export default {
         stepRole: 'Rolle auswählen',
         stepRoleHint: 'Welche Rolle soll das neue Konto haben?',
         roleTrial: 'Probe',
-        roleTrialHint: 'Probemitglied ohne Standardrechte - schnuppert hinein.',
+        roleTrialHint: 'Mitglied auf Probe, ohne Standardrechte.',
         roleMember: 'Mitglied',
         roleMemberHint: 'Reguläres Mitglied der Wache.',
         roleMemberManager: 'Erziehungsberechtigter',
@@ -3089,7 +3089,7 @@ export default {
     },
     membersConfig: {
         roles: {
-            TRIAL: 'Schnupperer',
+            TRIAL: 'Probe',
             MEMBER: 'Mitglieder',
             GUARDIAN: 'Erziehungsberechtigte',
             TEAM: 'Team',
@@ -5675,7 +5675,7 @@ export default {
         startTesting: 'Probezeit starten',
         join: 'Aufnehmen',
         withdraw: 'Ausscheiden',
-        inviteTitle: 'Zum Reinschnuppern einladen',
+        inviteTitle: 'Zur Probe einladen',
         inviteText: '{name} bekommt eine Einladung per E-Mail. Ein Mitglied wird dabei noch nicht angelegt.',
         inviteAppointment: 'Termin',
         invitePickAppointment: 'Termin suchen…',

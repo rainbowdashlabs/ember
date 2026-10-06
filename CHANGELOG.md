@@ -1,5 +1,13 @@
 # Changelog
 
+## v26.22.0
+
+The German interface uses one name for trial members.
+
+### Changes
+
+- **One German name for trial members.** The German interface called trial members by two different names on different pages. It now uses one name everywhere, including the waiting list invitation and its email.
+
 ## v26.21.0
 
 Theme colours show where they were missing. Editing a comment is safer. Email addresses of members only reach those allowed to read the member register. Members who set up their account from a link stay in their station, and the consent is asked on every way in. Exams can be planned with examiners per section, and only they grade them. Protocols nest to any depth, sections can be moved, and points can be bonus points. Protocols can be shared with partner stations one by one. Copying from partners is limited to what they share, and works with partners on other installations.
