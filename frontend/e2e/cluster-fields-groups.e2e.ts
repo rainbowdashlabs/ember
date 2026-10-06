@@ -33,7 +33,7 @@ test.describe('Cluster fields and groups', () => {
 
         const tabs = page.getByRole('tab', {name: /Mitglieder|Erziehungsberechtigte|Team|Leitung/})
         await expect(tabs.first(), 'the kinds an association may ask are offered as forms').toBeVisible()
-        await expect(page.getByRole('tab', {name: 'Schnupperer', exact: true}), 'an association has no trial members')
+        await expect(page.getByRole('tab', {name: 'Probe', exact: true}), 'an association has no trial members')
             .toHaveCount(0)
 
         await expect(page.getByRole('button', {name: /Feld hinzufügen/i})).toBeVisible()

@@ -1706,14 +1706,14 @@ export const MODULE_TRACKS: PitchTrack[] = [
                 points: [
                     'Das Bestätigungsintervall hält die Liste sauber: wer nicht bestätigt, fällt heraus',
                     'Probegruppe und Beitrittsgruppe sagen, wo jemand landet',
-                    'Die Anwesenheitsschwelle legt fest, wie viel Schnuppern zur Aufnahme gehört',
+                    'Die Anwesenheitsschwelle legt fest, wie viel Probezeit zur Aufnahme gehört',
                 ],
             },
             {
                 kind: 'showcase', id: 'waitlist-testing', accent: 'primary', tone: 'accent',
                 chip: 'Wartelisten im Detail',
                 heading: 'Probezeit, und dann dabei',
-                lead: 'Wer eingeladen wurde, schnuppert erst mit. Die Anwesenheit zählt dabei automatisch mit, '
+                lead: 'Wer eingeladen wurde, ist erst auf Probe dabei. Die Anwesenheit zählt dabei automatisch mit, '
                     + 'bis die vereinbarte Schwelle erreicht ist.',
                 screens: [
                     {

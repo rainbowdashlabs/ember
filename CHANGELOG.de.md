@@ -36,6 +36,7 @@ Wachen erstellen aus eigenen Vorlagen und denen ihres Verbands Dokumente für ih
 - **Dokumente haben ein eigenes Menü.** In der Seitenleiste gibt es die Gruppe Dokumente mit Meine Dokumente, der Ablage, den Vorlagen, den erstellten Dokumenten und den Schriftarten, wobei Ablage, Vorlagen und Schriftarten bisher unter Mitglieder lagen. Alte Adressen und die Links in früheren Benachrichtigungen führen auf die neuen Seiten.
 - **Wachadministration verwaltet Dokumentvorlagen.** Das Recht der Wachadministration umfasst jetzt das neue Recht für Dokumentvorlagen, das auch Teil des Rechts für Dokumente ist.
 - **Verbandsadministration verwaltet Vorlagen und Schriften.** Das Recht der Verbandsadministration umfasst das neue Verbandsrecht für Dokumentvorlagen und Schriften, das auch die Medien des Verbands öffnet.
+- **Ein Name für Mitglieder auf Probe.** Die Oberfläche nannte sie je nach Seite "Probe" oder "Schnupperer". Jetzt heißen sie überall "Probe", auch in der Einladung von der Warteliste und ihrer E-Mail.
 
 ### Fehlerbehebungen
 

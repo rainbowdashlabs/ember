@@ -36,6 +36,7 @@ Stations turn their own templates and those of their association into documents 
 - **Documents have their own menu.** The sidebar has a Documents group with My documents, the document store, templates, generated documents and fonts, where the store, templates and fonts used to sit under Members. Old addresses and the links in earlier notifications lead to the new pages.
 - **Station administrators manage document templates.** The station administrator permission now includes the new permission for document templates, which is also part of the documents permission.
 - **Association administrators manage templates and fonts.** The association administrator permission includes the new association permission for document templates and fonts, which also opens the association's media.
+- **One German name for trial members.** The German interface called trial members by two different names on different pages. It now uses one name everywhere, including the waiting list invitation and its email.
 
 ### Fixes
 
