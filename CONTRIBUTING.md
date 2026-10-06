@@ -82,6 +82,13 @@ why.
 
 `./toolchain.sh release-check <pull request>` runs the same checks locally and changes nothing.
 
+The release pull request can also be merged with "Rebase and merge" instead of the label. `main` then
+holds the branch's commits under new hashes, with the merging person as committer. CI on `main`
+accepts the unreleased version `X.Y.0` one minor above the newest release when `CHANGELOG.md` has its
+block, and the workflow waits for that CI run, then tags `vX.Y.0` on the head of `main` and creates
+the release. A release pull request that carries the label was merged by the workflow and is not
+released a second time.
+
 ### Fix release
 
 Fix pull requests are squash-merged into `main` as usual. To release the fixes on `main`, either add

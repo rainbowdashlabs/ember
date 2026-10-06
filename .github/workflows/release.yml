@@ -2,8 +2,11 @@ name: Release
 
 # A feature release is the pull request from release/vX.Y.Z into main, open as a draft since the
 # branch started, labelled `release`: it is marked ready and main is fast-forwarded to the branch
-# head, because none of GitHub's merge buttons can do that. A fix release
-# is a merged pull request into main carrying the label, or a run by hand without a number.
+# head, because none of GitHub's merge buttons can do that. The same pull request rebased and
+# merged by hand is released too: main then holds the branch under new hashes, and its head is
+# tagged once CI passed on it, as a fix release would be. A release pull request that carries the
+# label when it is merged was merged by this workflow, so its merge starts nothing. A fix release is
+# a merged pull request into main carrying the label, or a run by hand without a number.
 on:
   pull_request_target:
     types: [labeled, closed]
@@ -35,8 +38,8 @@ jobs:
               || (github.event.pull_request.merged && github.event.pull_request.base.ref == 'main')))
       || (github.event.action == 'closed' && github.event.pull_request.merged
           && github.event.pull_request.base.ref == 'main'
-          && !startsWith(github.event.pull_request.head.ref, 'release/')
-          && contains(github.event.pull_request.labels.*.name, 'release'))
+          && startsWith(github.event.pull_request.head.ref, 'release/')
+              != contains(github.event.pull_request.labels.*.name, 'release'))
     steps:
       # main's own scripts run, never the pull request's: this trigger holds the release token.
       - uses: actions/checkout@v7
@@ -54,13 +57,14 @@ jobs:
           INPUT_PR: ${{ inputs.pull_request }}
           EVENT_PR: ${{ github.event.pull_request.number }}
           HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          MERGED: ${{ github.event.pull_request.merged }}
           MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
         run: |
           if [ -n "$INPUT_PR" ]; then
             printf 'kind=feature\npr=%s\n' "$INPUT_PR"
           elif [ -z "$EVENT_PR" ]; then
             printf 'kind=fix\n'
-          elif [[ "$HEAD_REF" == release/* ]]; then
+          elif [[ "$HEAD_REF" == release/* && "$MERGED" != true ]]; then
             printf 'kind=feature\npr=%s\n' "$EVENT_PR"
           else
             printf 'kind=fix\npr=%s\ncommit=%s\n' "$EVENT_PR" "$MERGE_SHA"

@@ -14,6 +14,8 @@
 #   main, renovate/**, or a pull        the same, or still the newest release: main keeps it until
 #     request from renovate/** into     the bump pull request opened after the release is merged
 #     main
+#   main after a feature release was    the version is one minor above the newest release, unreleased,
+#     rebased and merged                with its changelog block: the release workflow tags it next
 #   feature/**                          the version is the one of the open release branch, when there
 #                                       is exactly one
 #   a pull request into anything else   refused
@@ -71,6 +73,20 @@ require_next_patch_or_newest() {
         return
     fi
     require_next_patch
+}
+
+# main right after a release pull request was rebased and merged, before the release workflow tagged it:
+# it carries the next feature release, one minor above the newest one, and that release's changelog
+# block. It is judged by what it holds, so the release branch may be gone by then.
+require_next_patch_newest_or_merged_release() {
+    local newest
+    newest=$(newest_release_reachable_from HEAD)
+    if [ -n "$newest" ] && [ "$version" = "$(next_minor "$newest")" ] && [ -n "$(release_notes "$version" HEAD)" ]; then
+        echo "Version $version is the feature release merged into main; the release workflow tags it once CI passes."
+        require_unreleased
+        return
+    fi
+    require_next_patch_or_newest
 }
 
 open_release_branches() {
@@ -141,7 +157,8 @@ case "${EVENT_NAME:-push}" in
         ;;
     *)
         case "$REF_NAME" in
-            main | renovate/*) require_next_patch_or_newest ;;
+            main) require_next_patch_newest_or_merged_release ;;
+            renovate/*) require_next_patch_or_newest ;;
             fix/*) require_hotfix_or_release_fix ;;
             release/v*) require_release_branch_version "$REF_NAME" ;;
             feature/*) require_open_release_version ;;
