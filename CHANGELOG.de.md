@@ -1,5 +1,13 @@
 # Änderungsprotokoll
 
+## v26.22.0
+
+Mitglieder auf Probe heißen überall gleich.
+
+### Änderungen
+
+- **Ein Name für Mitglieder auf Probe.** Die Oberfläche nannte sie je nach Seite "Probe" oder "Schnupperer". Jetzt heißen sie überall "Probe", auch in der Einladung von der Warteliste und ihrer E-Mail.
+
 ## v26.21.0
 
 Themenfarben erscheinen dort, wo sie fehlten. Das Bearbeiten von Kommentaren ist sicherer. E-Mail-Adressen von Mitgliedern erreichen nur noch die, die das Mitgliederverzeichnis lesen dürfen. Mitglieder, die ihr Konto über einen Link einrichten, bleiben in ihrer Wache, und die Einwilligung wird auf jedem Weg hinein abgefragt. Prüfungen lassen sich mit Prüfern je Abschnitt planen, und nur diese bewerten sie dann. Abschnitte lassen sich beliebig tief verschachteln und verschieben, und Prüfpunkte können Bonuspunkte sein. Prüfungsbögen lassen sich einzeln mit Partnerwachen teilen. Kopiert wird von Partnern nur, was sie teilen, und das auch von Partnern auf anderen Installationen.
