@@ -1,7 +1,7 @@
 {
   "version": 1,
   "schemaHash": "sha256:c82bf2b54d8c4bb5e2348fd1d80784f27711ef5d68b319246ef3068ce315b639",
-  "generatedAt": "2026-10-05T13:31:10Z",
+  "generatedAt": "2026-10-06T13:40:08Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -6198,119 +6198,119 @@
           "name": "id",
           "type": "int4",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "Auto-generated primary key, also the storage key of the file."
         },
         {
           "name": "station_id",
           "type": "int4",
           "nullable": true,
-          "verified": false,
+          "verified": true,
           "description": "The station that owns the font. NULL for a font of an association or of the instance."
         },
         {
           "name": "cluster_id",
           "type": "int4",
           "nullable": true,
-          "verified": false,
+          "verified": true,
           "description": "The association that owns the font. NULL for a font of a station or of the instance."
         },
         {
           "name": "family",
           "type": "text",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "The family name templates pick the font by, as the uploader gave it. Unique per owner and style, ignoring case."
         },
         {
           "name": "style",
           "type": "text",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "REGULAR, BOLD, ITALIC or BOLD_ITALIC: which style of the family the file is."
         },
         {
           "name": "file_name",
           "type": "text",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "The name the file was uploaded under."
         },
         {
           "name": "outline",
           "type": "text",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "TRUETYPE for a font with TrueType outlines (every .ttf and some .otf), CFF for an OpenType font with PostScript outlines. Letters print both; fields on uploaded PDFs print TrueType outlines only."
         },
         {
           "name": "internal_family",
           "type": "text",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "The family name the file itself carries, read at upload, which is the name the letter renderer asks for."
         },
         {
           "name": "size_bytes",
           "type": "int8",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "The size of the file in bytes."
         },
         {
           "name": "sha256",
           "type": "text",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "The SHA-256 of the file as lowercase hex."
         },
         {
           "name": "uploaded_at",
           "type": "timestamptz",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "When the file was uploaded."
         },
         {
           "name": "uploaded_by",
           "type": "int4",
           "nullable": true,
-          "verified": false,
+          "verified": true,
           "description": "The account that uploaded the file, who confirmed that the owner may use the font. NULL once the account is gone."
         },
         {
           "name": "web_file_name",
           "type": "text",
           "nullable": true,
-          "verified": false,
+          "verified": true,
           "description": "The name the web version of the style was uploaded under, which the template editor shows the style in instead of the file documents print with. NULL where the style has no web version; the web columns are all set or all NULL."
         },
         {
           "name": "web_format",
           "type": "text",
           "nullable": true,
-          "verified": false,
+          "verified": true,
           "description": "WOFF2, WOFF, TRUETYPE or CFF: what the web version is, which decides the media type it is served as. NULL without a web version."
         },
         {
           "name": "web_size_bytes",
           "type": "int8",
           "nullable": true,
-          "verified": false,
+          "verified": true,
           "description": "The size of the web version in bytes, counted against the owner's room like the file itself. NULL without a web version."
         },
         {
           "name": "web_sha256",
           "type": "text",
           "nullable": true,
-          "verified": false,
+          "verified": true,
           "description": "The SHA-256 of the web version as lowercase hex. NULL without a web version."
         },
         {
           "name": "web_uploaded_at",
           "type": "timestamptz",
           "nullable": true,
-          "verified": false,
+          "verified": true,
           "description": "When the web version was uploaded. NULL without a web version."
         }
       ],
@@ -6335,13 +6335,27 @@
         }
       ],
       "stationTransfer": {
-        "status": "UNVERIFIED"
+        "status": "TRACKED",
+        "rationale": "A station's own fonts (station_id) and their files go with it. Fonts of an association or of the instance stay where they are; a template naming one prints in the default font until a font of that name is reachable again."
       },
       "gdprExport": {
-        "status": "UNVERIFIED"
+        "status": "TRACKED",
+        "identityColumns": [
+          {
+            "type": "ACCOUNT_ID",
+            "column": "uploaded_by"
+          }
+        ]
       },
       "gdprDeletion": {
-        "status": "UNVERIFIED"
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "uploaded_by",
+            "strategy": "NULL",
+            "reason": "FK ON DELETE SET NULL keeps the font, who uploaded it unlinked"
+          }
+        ]
       },
       "description": "A font uploaded for documents, one file per family and style. Owned by the instance (station_id and cluster_id both NULL), an association (cluster_id) or a station (station_id). A station reaches its own fonts, its association's and the instance's; on a family name found at several, the nearest owner wins. The file is kept in the owner's storage under fonts/<id>, an optional web version beside it under fonts/<id>-web. A browser receives either only in the template editor, the web version where there is one."
     },
@@ -6352,119 +6366,119 @@
           "name": "id",
           "type": "int4",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "Auto-generated primary key."
         },
         {
           "name": "station_id",
           "type": "int4",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "The station the document was filed at, the station of the member it is about, whoever owns the template."
         },
         {
           "name": "template_id",
           "type": "int4",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "The template the document was generated from, the station's own or one of its association."
         },
         {
           "name": "template_version",
           "type": "int4",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "The version of the template at the time, which a later change of the template does not touch."
         },
         {
           "name": "member_id",
           "type": "int4",
           "nullable": true,
-          "verified": false,
+          "verified": true,
           "description": "The member the document is about and was filed for. NULL once that member was deleted."
         },
         {
           "name": "generated_by",
           "type": "int4",
           "nullable": true,
-          "verified": false,
+          "verified": true,
           "description": "The member who generated it: a manager, the member themselves or their guardian. NULL once they are gone."
         },
         {
           "name": "generated_at",
           "type": "timestamptz",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "When the document was generated."
         },
         {
           "name": "self_service",
           "type": "bool",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "Whether it was generated through self service, which is what the cooldown of the template counts."
         },
         {
           "name": "document_id",
           "type": "int4",
           "nullable": true,
-          "verified": false,
+          "verified": true,
           "description": "The member document the file was filed as. NULL once that document was deleted."
         },
         {
           "name": "file_sha256",
           "type": "text",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "The SHA-256 of the generated file as lowercase hex, which ties the log to the exact bytes filed."
         },
         {
           "name": "pdf_original_id",
           "type": "int4",
           "nullable": true,
-          "verified": false,
+          "verified": true,
           "description": "The uploaded PDF the document was filled from, which a later upload of a new version does not touch. NULL for a letter."
         },
         {
           "name": "event_id",
           "type": "int4",
           "nullable": true,
-          "verified": false,
+          "verified": true,
           "description": "The appointment that requires the document and whose values it holds. NULL for a document generated on its own, and once the appointment was deleted."
         },
         {
           "name": "event_date",
           "type": "date",
           "nullable": true,
-          "verified": false,
+          "verified": true,
           "description": "The day of the appointment the document was generated for, which tells the dates of a repeating appointment apart. NULL where event_id never was set."
         },
         {
           "name": "issuer_id",
           "type": "int4",
           "nullable": true,
-          "verified": false,
+          "verified": true,
           "description": "The member who issues the document, whose name it prints and to whom the signature field named issuer belongs. NULL where the document names no issuer or none could be named, and once that member was deleted."
         },
         {
           "name": "issuer_function",
           "type": "text",
           "nullable": true,
-          "verified": false,
+          "verified": true,
           "description": "What the issuer does at the station, as the document printed it. NULL where it names no issuer function."
         },
         {
           "name": "issuer_fixed",
           "type": "bool",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "Whether the issuer is the one the template names for the station, as for every document of self service and every document to bring, rather than another member a manager picked for this one document. A signature of the template's issuer may be applied without the issuer signing each document by hand."
         },
         {
           "name": "issuer_signs",
           "type": "bool",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "Whether the document carries the empty signature field named issuer, which issuer_id is to sign."
         }
       ],
@@ -6519,13 +6533,44 @@
         }
       ],
       "stationTransfer": {
-        "status": "UNVERIFIED"
+        "status": "TRACKED"
       },
       "gdprExport": {
-        "status": "UNVERIFIED"
+        "status": "TRACKED",
+        "identityColumns": [
+          {
+            "type": "MEMBER_ID",
+            "column": "member_id"
+          },
+          {
+            "type": "MEMBER_ID",
+            "column": "generated_by"
+          },
+          {
+            "type": "MEMBER_ID",
+            "column": "issuer_id"
+          }
+        ]
       },
       "gdprDeletion": {
-        "status": "UNVERIFIED"
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "member_id",
+            "strategy": "NULL",
+            "reason": "FK ON DELETE SET NULL keeps the log of what the station generated, the member unlinked"
+          },
+          {
+            "column": "generated_by",
+            "strategy": "NULL",
+            "reason": "FK ON DELETE SET NULL keeps the log, who generated it unlinked"
+          },
+          {
+            "column": "issuer_id",
+            "strategy": "NULL",
+            "reason": "FK ON DELETE SET NULL keeps the log, who issued it unlinked"
+          }
+        ]
       },
       "description": "Every document generated from a template: which template and which state of it, about whom, by whom, when, and the file that came out."
     },
@@ -6536,70 +6581,70 @@
           "name": "id",
           "type": "int4",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "Auto-generated primary key."
         },
         {
           "name": "station_id",
           "type": "int4",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "The station the documents are filed at."
         },
         {
           "name": "template_id",
           "type": "int4",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "The template generated for every member of the run."
         },
         {
           "name": "started_by",
           "type": "int4",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "The manager who started the run, who is the uploader of every document it files."
         },
         {
           "name": "accept_missing",
           "type": "bool",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "Whether a member whose data the template needs is incomplete still gets a document, the gaps left to fill in by hand. Without it, such a member is listed as failed."
         },
         {
           "name": "issuer_id",
           "type": "int4",
           "nullable": true,
-          "verified": false,
+          "verified": true,
           "description": "The member who issues every document of the run, taken when the run was started: the template's issuer or another member the manager picked. NULL where there was none, and once that member was deleted, which every document still waiting then lacks."
         },
         {
           "name": "issuer_function",
           "type": "text",
           "nullable": true,
-          "verified": false,
+          "verified": true,
           "description": "What the issuer does at the station, printed in every document of the run. NULL where none is given."
         },
         {
           "name": "issuer_fixed",
           "type": "bool",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "Whether the issuer of the run is the one the template names for the station rather than one the manager picked."
         },
         {
           "name": "started_at",
           "type": "timestamptz",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "When the run was started."
         },
         {
           "name": "finished_at",
           "type": "timestamptz",
           "nullable": true,
-          "verified": false,
+          "verified": true,
           "description": "When the last member of the run was done. NULL while it runs."
         }
       ],
@@ -6630,13 +6675,27 @@
         }
       ],
       "stationTransfer": {
-        "status": "UNVERIFIED"
+        "status": "IGNORED",
+        "reason": "Work state of a background run; the documents it filed and the generation log go with the station"
       },
       "gdprExport": {
-        "status": "UNVERIFIED"
+        "status": "IGNORED",
+        "reason": "Work state of a background run; the documents it filed and the generation log are exported"
       },
       "gdprDeletion": {
-        "status": "UNVERIFIED"
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "started_by",
+            "strategy": "CASCADE",
+            "reason": "FK ON DELETE CASCADE removes the runs a deleted member started; their documents stay"
+          },
+          {
+            "column": "issuer_id",
+            "strategy": "NULL",
+            "reason": "FK ON DELETE SET NULL keeps the run; the documents still waiting miss the issuer"
+          }
+        ]
       },
       "description": "A run that generates one template for many members in the background and files each document with its member. Kept in the database so the run carries on after a restart and its progress survives a reload of the page."
     },
@@ -6647,56 +6706,56 @@
           "name": "job_id",
           "type": "int4",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "References the run."
         },
         {
           "name": "member_id",
           "type": "int4",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "The member a document is generated for."
         },
         {
           "name": "position",
           "type": "int4",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "Where the member stands in the run, counted from 0. Members are generated in this order."
         },
         {
           "name": "status",
           "type": "text",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "WAITING until the member is done, then FILED where the document was filed or FAILED where it could not be."
         },
         {
           "name": "generation_id",
           "type": "int4",
           "nullable": true,
-          "verified": false,
+          "verified": true,
           "description": "The entry in the generation log of the filed document. NULL while waiting, for a failure, and once the entry is gone."
         },
         {
           "name": "refusal_code",
           "type": "text",
           "nullable": true,
-          "verified": false,
+          "verified": true,
           "description": "The code of the refusal that kept the document from being filed, such as D-091 for missing data. NULL unless FAILED."
         },
         {
           "name": "refusal_detail",
           "type": "text",
           "nullable": true,
-          "verified": false,
+          "verified": true,
           "description": "What the refusal was about, such as the names of the missing values. NULL where it named nothing."
         },
         {
           "name": "done_at",
           "type": "timestamptz",
           "nullable": true,
-          "verified": false,
+          "verified": true,
           "description": "When the member was done. NULL while waiting."
         }
       ],
@@ -6721,13 +6780,22 @@
         }
       ],
       "stationTransfer": {
-        "status": "UNVERIFIED"
+        "status": "IGNORED",
+        "reason": "Work state of a background run; the documents it filed and the generation log go with the station"
       },
       "gdprExport": {
-        "status": "UNVERIFIED"
+        "status": "IGNORED",
+        "reason": "Work state of a background run; the documents it filed and the generation log are exported"
       },
       "gdprDeletion": {
-        "status": "UNVERIFIED"
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "member_id",
+            "strategy": "CASCADE",
+            "reason": "FK ON DELETE CASCADE on member delete"
+          }
+        ]
       },
       "description": "One member of a generation run and how it went for them."
     },
@@ -6738,21 +6806,21 @@
           "name": "generation_id",
           "type": "int4",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "References the generated document."
         },
         {
           "name": "member_id",
           "type": "int4",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "A person whose data went into the document."
         },
         {
           "name": "role",
           "type": "text",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "MEMBER for the member the document is about, GUARDIAN for a guardian whose data it holds."
         }
       ],
@@ -6771,13 +6839,26 @@
         }
       ],
       "stationTransfer": {
-        "status": "UNVERIFIED"
+        "status": "TRACKED"
       },
       "gdprExport": {
-        "status": "UNVERIFIED"
+        "status": "TRACKED",
+        "identityColumns": [
+          {
+            "type": "MEMBER_ID",
+            "column": "member_id"
+          }
+        ]
       },
       "gdprDeletion": {
-        "status": "UNVERIFIED"
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "member_id",
+            "strategy": "CASCADE",
+            "reason": "FK ON DELETE CASCADE on member delete"
+          }
+        ]
       },
       "description": "Every person whose data went into a generated document: the member it is about and the guardians it names."
     },
@@ -6788,168 +6869,168 @@
           "name": "id",
           "type": "int4",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "Auto-generated primary key."
         },
         {
           "name": "station_id",
           "type": "int4",
           "nullable": true,
-          "verified": false,
+          "verified": true,
           "description": "The station that owns the template. NULL for a template of an association."
         },
         {
           "name": "cluster_id",
           "type": "int4",
           "nullable": true,
-          "verified": false,
+          "verified": true,
           "description": "The association that owns the template, which its stations use but do not change. NULL for a template of a station."
         },
         {
           "name": "kind",
           "type": "text",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "What the template is made of: LETTER, a letterhead and a body written in Ember (document_template_letter), or PDF, an uploaded PDF filled in place (document_template_pdf)."
         },
         {
           "name": "name",
           "type": "text",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "What the template is called in the list of templates."
         },
         {
           "name": "title_pattern",
           "type": "text",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "The title a generated document is filed under, with placeholders such as {{today}} filled in when it is generated."
         },
         {
           "name": "file_name_pattern",
           "type": "text",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "The file name a generated document is filed under, with placeholders filled in when it is generated. The file always ends in .pdf."
         },
         {
           "name": "tags",
           "type": "_text",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "The names of the document tags a generated document is filed with. Tags missing at the station are created when a document is filed."
         },
         {
           "name": "hidden",
           "type": "bool",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "Whether a document generated by a manager is hidden from the member it names. Documents a member generates through self service are never hidden."
         },
         {
           "name": "keep_on_archive",
           "type": "bool",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "Whether a generated document outlasts the membership of the member it names."
         },
         {
           "name": "legal",
           "type": "bool",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "Whether the template makes a legal document. A legal template uses official names only and may not use the name a member is called by."
         },
         {
           "name": "for_appointments",
           "type": "bool",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "Whether appointments may require the template as a document to bring. Only such a template names the values of an appointment, and it is always legal."
         },
         {
           "name": "self_service",
           "type": "bool",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "Whether members of the audience may generate the document for themselves, and guardians for the members in their care. For a template of an association, whether it is offered for self service; each station then decides in document_template_station_use."
         },
         {
           "name": "self_service_cooldown_days",
           "type": "int4",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "How many days must pass before a member may generate the document again through self service. 0 means no wait."
         },
         {
           "name": "restriction_mode",
           "type": "text",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "AND or OR, how the parts of document_template_restriction combine."
         },
         {
           "name": "language",
           "type": "text",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "DE or EN, the language the documents are written in: it picks the pronouns of the gender profile field, how dates are written, and the words the letter prints itself."
         },
         {
           "name": "issuer_id",
           "type": "int4",
           "nullable": true,
-          "verified": false,
+          "verified": true,
           "description": "The member of the station who issues the documents of a station's template: their official name fills issuer.fullName and the signature field for the issuer is theirs. NULL where nobody is named, for a template of an association (each station names its own in document_template_station_use), and once that member was deleted, which the template then shows as missing."
         },
         {
           "name": "issuer_function",
           "type": "text",
           "nullable": true,
-          "verified": false,
+          "verified": true,
           "description": "What the issuer does at the station, such as the title of their office, which fills issuer.function. NULL where none is given."
         },
         {
           "name": "version",
           "type": "int4",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "Counts up with every change, so the generation log says which state of the template a document came from."
         },
         {
           "name": "created_at",
           "type": "timestamptz",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "When the template was created."
         },
         {
           "name": "created_by",
           "type": "int4",
           "nullable": true,
-          "verified": false,
+          "verified": true,
           "description": "The account that created the template. NULL once it is gone."
         },
         {
           "name": "updated_at",
           "type": "timestamptz",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "When the template was last changed."
         },
         {
           "name": "updated_by",
           "type": "int4",
           "nullable": true,
-          "verified": false,
+          "verified": true,
           "description": "The account that last changed the template. NULL once it is gone."
         },
         {
           "name": "archived_at",
           "type": "timestamptz",
           "nullable": true,
-          "verified": false,
+          "verified": true,
           "description": "When the template was archived. An archived template generates nothing more and stays for the documents generated from it. NULL while in use."
         }
       ],
@@ -6986,13 +7067,45 @@
         }
       ],
       "stationTransfer": {
-        "status": "UNVERIFIED"
+        "status": "TRACKED",
+        "rationale": "A station's own templates (station_id) go with it; an association's templates (cluster_id) stay with the association, and documents a station generated from them keep their files but lose their log entry on the way. Placeholders of profile questions name the question by its id inside the texts, which a transfer does not rewrite; they print as gaps until the template is saved again with the questions picked anew."
       },
       "gdprExport": {
-        "status": "UNVERIFIED"
+        "status": "TRACKED",
+        "identityColumns": [
+          {
+            "type": "ACCOUNT_ID",
+            "column": "created_by"
+          },
+          {
+            "type": "ACCOUNT_ID",
+            "column": "updated_by"
+          },
+          {
+            "type": "MEMBER_ID",
+            "column": "issuer_id"
+          }
+        ]
       },
       "gdprDeletion": {
-        "status": "UNVERIFIED"
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "created_by",
+            "strategy": "NULL",
+            "reason": "FK ON DELETE SET NULL keeps the template, its author unlinked"
+          },
+          {
+            "column": "updated_by",
+            "strategy": "NULL",
+            "reason": "FK ON DELETE SET NULL keeps the template, its last editor unlinked"
+          },
+          {
+            "column": "issuer_id",
+            "strategy": "NULL",
+            "reason": "FK ON DELETE SET NULL keeps the template, which then shows its issuer as missing"
+          }
+        ]
       },
       "description": "A template turned into a PDF for one member at a time, kept by a station (station_id) or by an association for all its stations (cluster_id). Never deleted, only archived, so every generated document keeps pointing at the template it came from."
     },
@@ -7003,112 +7116,112 @@
           "name": "id",
           "type": "int4",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "Auto-generated primary key."
         },
         {
           "name": "template_id",
           "type": "int4",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "References the PDF template."
         },
         {
           "name": "position",
           "type": "int4",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "The order of the fields as the editor lists them, counted from 0."
         },
         {
           "name": "kind",
           "type": "text",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "TEXT prints a text with placeholders, CHECK prints a cross where its text says yes, SIGNATURE becomes an empty PDF signature field named after its role."
         },
         {
           "name": "page",
           "type": "int4",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "The page the field is on, counted from 1."
         },
         {
           "name": "x",
           "type": "float8",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "The left edge in PDF points, in the user space of the page before rotation, crop box offset included."
         },
         {
           "name": "y",
           "type": "float8",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "The bottom edge in PDF points, in the user space of the page before rotation, crop box offset included."
         },
         {
           "name": "width",
           "type": "float8",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "The width in PDF points, before rotation."
         },
         {
           "name": "height",
           "type": "float8",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "The height in PDF points, before rotation."
         },
         {
           "name": "text",
           "type": "text",
           "nullable": true,
-          "verified": false,
+          "verified": true,
           "description": "The text with placeholders written as {{key}}, for TEXT and CHECK. NULL for SIGNATURE."
         },
         {
           "name": "font_size",
           "type": "float8",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "The size of the text in points, the largest it is drawn at."
         },
         {
           "name": "font_family",
           "type": "text",
           "nullable": true,
-          "verified": false,
+          "verified": true,
           "description": "The family name of the uploaded font the text is drawn in, as document_font names it, looked up among the fonts the station reaches. NULL for the default font, Liberation Sans."
         },
         {
           "name": "font_style",
           "type": "text",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "REGULAR, BOLD, ITALIC or BOLD_ITALIC: the style of the family the text is drawn in. A style the family lacks falls back to its regular one."
         },
         {
           "name": "align",
           "type": "text",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "LEFT, CENTER or RIGHT: where the text sits across the field."
         },
         {
           "name": "wrap",
           "type": "bool",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "Whether a long text runs onto further lines. Otherwise it stays on one line and shrinks to fit."
         },
         {
           "name": "role",
           "type": "text",
           "nullable": true,
-          "verified": false,
+          "verified": true,
           "description": "Who signs in a SIGNATURE field: PARTICIPANT, GUARDIAN_1, GUARDIAN_2 (left out for a member with fewer than two guardians), EACH_GUARDIAN (the box shared out into one field per guardian of the member), ANY_GUARDIAN (one field any guardian may sign) or ISSUER. NULL for every other kind."
         }
       ],
@@ -7121,13 +7234,15 @@
         }
       ],
       "stationTransfer": {
-        "status": "UNVERIFIED"
+        "status": "TRACKED"
       },
       "gdprExport": {
-        "status": "UNVERIFIED"
+        "status": "IGNORED",
+        "reason": "Template content written by the station, not per-member data"
       },
       "gdprDeletion": {
-        "status": "UNVERIFIED"
+        "status": "IGNORED",
+        "reason": "Template content written by the station, not per-member data"
       },
       "description": "The fields drawn on the pages of a PDF template. They are kept across new uploads of the PDF, so a new version can be checked against them."
     },
@@ -7138,21 +7253,21 @@
           "name": "template_id",
           "type": "int4",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "References the PDF template."
         },
         {
           "name": "field_name",
           "type": "text",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "The fully qualified name of the form field in the PDF."
         },
         {
           "name": "text",
           "type": "text",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "The text with placeholders written as {{key}}. A check box is ticked where the filled text says yes."
         }
       ],
@@ -7165,13 +7280,15 @@
         }
       ],
       "stationTransfer": {
-        "status": "UNVERIFIED"
+        "status": "TRACKED"
       },
       "gdprExport": {
-        "status": "UNVERIFIED"
+        "status": "IGNORED",
+        "reason": "Template content written by the station, not per-member data"
       },
       "gdprDeletion": {
-        "status": "UNVERIFIED"
+        "status": "IGNORED",
+        "reason": "Template content written by the station, not per-member data"
       },
       "description": "What the form fields an uploaded PDF brings are filled with. Form fields without a row keep what they show; all of them are flattened."
     },
@@ -7182,35 +7299,35 @@
           "name": "template_id",
           "type": "int4",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "References the document template."
         },
         {
           "name": "header",
           "type": "jsonb",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "The rows drawn at the top of every page, shaped like the rows of a page: each row up to three columns with their width, optionally with a line between the columns (columnLines), each holding a text with placeholders written as {{key}}, a picture from the media library by its content hash (an association's template from the library of its home station) or the logo of the station the document is generated at, a divider line with its label, a gap, or blocks stacked in it. A block may carry a restriction saying which members it is printed for, and a guardianCondition (SECOND_GUARDIAN or NO_SECOND_GUARDIAN) on whether the member has a second guardian."
         },
         {
           "name": "footer",
           "type": "jsonb",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "The rows drawn at the bottom of every page, shaped like the header."
         },
         {
           "name": "body",
           "type": "jsonb",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "The rows of the letter itself, shaped like the header, and also holding signature lines (SIGNATURE: the signer in the settings, the text below the line as its content), each an empty signature field per person who signs. A block whose restriction or guardian condition does not match the member is left out, and a row left with nothing is dropped."
         },
         {
           "name": "page",
           "type": "jsonb",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "The page margins in millimetres, the body font size in points, and the family names of the uploaded fonts the body, the header and the footer are set in (absent for the default font, Liberation Sans). The paper is always A4."
         }
       ],
@@ -7223,13 +7340,15 @@
         }
       ],
       "stationTransfer": {
-        "status": "UNVERIFIED"
+        "status": "TRACKED"
       },
       "gdprExport": {
-        "status": "UNVERIFIED"
+        "status": "IGNORED",
+        "reason": "Template content written by the station, not per-member data"
       },
       "gdprDeletion": {
-        "status": "UNVERIFIED"
+        "status": "IGNORED",
+        "reason": "Template content written by the station, not per-member data"
       },
       "description": "The content of a letter template: its header, its footer, its body and its page."
     },
@@ -7240,14 +7359,14 @@
           "name": "template_id",
           "type": "int4",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "References the PDF template."
         },
         {
           "name": "original_id",
           "type": "int4",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "The uploaded PDF the template fills now."
         }
       ],
@@ -7266,13 +7385,15 @@
         }
       ],
       "stationTransfer": {
-        "status": "UNVERIFIED"
+        "status": "TRACKED"
       },
       "gdprExport": {
-        "status": "UNVERIFIED"
+        "status": "IGNORED",
+        "reason": "Template content written by the station, not per-member data"
       },
       "gdprDeletion": {
-        "status": "UNVERIFIED"
+        "status": "IGNORED",
+        "reason": "Template content written by the station, not per-member data"
       },
       "description": "Which uploaded version of its PDF a PDF template fills now. A PDF template without a row has no PDF yet."
     },
@@ -7283,56 +7404,56 @@
           "name": "id",
           "type": "int4",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "Auto-generated primary key, also the storage key of the file."
         },
         {
           "name": "template_id",
           "type": "int4",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "The PDF template it was uploaded for."
         },
         {
           "name": "file_name",
           "type": "text",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "The name the file was uploaded under."
         },
         {
           "name": "size_bytes",
           "type": "int8",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "The size of the file in bytes."
         },
         {
           "name": "sha256",
           "type": "text",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "The SHA-256 of the file as lowercase hex."
         },
         {
           "name": "inspection",
           "type": "jsonb",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "What the PDF holds that fields care about, read at upload: each page with its crop box in points and its rotation, and the form fields it brings with their kind and where their first widget sits."
         },
         {
           "name": "uploaded_at",
           "type": "timestamptz",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "When the file was uploaded."
         },
         {
           "name": "uploaded_by",
           "type": "int4",
           "nullable": true,
-          "verified": false,
+          "verified": true,
           "description": "The account that uploaded the file. NULL once it is gone."
         }
       ],
@@ -7351,13 +7472,26 @@
         }
       ],
       "stationTransfer": {
-        "status": "UNVERIFIED"
+        "status": "TRACKED"
       },
       "gdprExport": {
-        "status": "UNVERIFIED"
+        "status": "TRACKED",
+        "identityColumns": [
+          {
+            "type": "ACCOUNT_ID",
+            "column": "uploaded_by"
+          }
+        ]
       },
       "gdprDeletion": {
-        "status": "UNVERIFIED"
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "uploaded_by",
+            "strategy": "NULL",
+            "reason": "FK ON DELETE SET NULL keeps the PDF the template fills, who uploaded it unlinked"
+          }
+        ]
       },
       "description": "Every uploaded version of the PDF a PDF template fills in. The file is kept in the storage of the template's owner under document-templates/<id>/original (an association's in its home station), as it arrived, and never changed; a new upload is a new row."
     },
@@ -7368,42 +7502,42 @@
           "name": "id",
           "type": "int4",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "Auto-generated primary key."
         },
         {
           "name": "template_id",
           "type": "int4",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "References the document template."
         },
         {
           "name": "user_type",
           "type": "text",
           "nullable": true,
-          "verified": false,
+          "verified": true,
           "description": "Required user type. Exactly one of user_type/group_id/tag_id/member_id must be set."
         },
         {
           "name": "group_id",
           "type": "int4",
           "nullable": true,
-          "verified": false,
+          "verified": true,
           "description": "Required group membership."
         },
         {
           "name": "tag_id",
           "type": "int4",
           "nullable": true,
-          "verified": false,
+          "verified": true,
           "description": "Required tag."
         },
         {
           "name": "member_id",
           "type": "int4",
           "nullable": true,
-          "verified": false,
+          "verified": true,
           "description": "Specific member (always OR-connected, bypasses AND/OR mode)."
         }
       ],
@@ -7434,13 +7568,15 @@
         }
       ],
       "stationTransfer": {
-        "status": "UNVERIFIED"
+        "status": "TRACKED"
       },
       "gdprExport": {
-        "status": "UNVERIFIED"
+        "status": "IGNORED",
+        "reason": "Template structure data, not per-member"
       },
       "gdprDeletion": {
-        "status": "UNVERIFIED"
+        "status": "IGNORED",
+        "reason": "Template structure data, not per-member"
       },
       "description": "Who may generate a self service template of a station for themselves. Empty means every member. A template of an association has none; each station sets its own audience in document_template_station_use_restriction. Shaped like event_restriction."
     },
@@ -7451,56 +7587,56 @@
           "name": "id",
           "type": "int4",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "Auto-generated primary key."
         },
         {
           "name": "template_id",
           "type": "int4",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "The template of the association."
         },
         {
           "name": "station_id",
           "type": "int4",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "The station that uses it."
         },
         {
           "name": "self_service",
           "type": "bool",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "Whether members of the station generate the document for themselves, and guardians for the members in their care. Only takes effect while the association offers the template for self service."
         },
         {
           "name": "restriction_mode",
           "type": "text",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "AND or OR, how the parts of document_template_station_use_restriction combine."
         },
         {
           "name": "issuer_id",
           "type": "int4",
           "nullable": true,
-          "verified": false,
+          "verified": true,
           "description": "The member of the station who issues the documents of the association's template at this station, as document_template.issuer_id does for a station's own template. NULL where the station named nobody, and once that member was deleted, which the template then shows as missing."
         },
         {
           "name": "issuer_function",
           "type": "text",
           "nullable": true,
-          "verified": false,
+          "verified": true,
           "description": "What the issuer does at the station, which fills issuer.function. NULL where none is given."
         },
         {
           "name": "updated_at",
           "type": "timestamptz",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "When the station last changed how it uses the template."
         }
       ],
@@ -7525,13 +7661,27 @@
         }
       ],
       "stationTransfer": {
-        "status": "UNVERIFIED"
+        "status": "IGNORED",
+        "reason": "Says how the station uses the templates of its association, which stay with the association; a station that moves leaves its association and starts without them"
       },
       "gdprExport": {
-        "status": "UNVERIFIED"
+        "status": "TRACKED",
+        "identityColumns": [
+          {
+            "type": "MEMBER_ID",
+            "column": "issuer_id"
+          }
+        ]
       },
       "gdprDeletion": {
-        "status": "UNVERIFIED"
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "issuer_id",
+            "strategy": "NULL",
+            "reason": "FK ON DELETE SET NULL keeps how the station uses the template, which then shows its issuer as missing"
+          }
+        ]
       },
       "description": "How a station uses a template of its association. Its managers generate every template of the association in use; whether its members generate one through self service, and who of them, the station decides here. A template without a row is not offered for self service at that station."
     },
@@ -7542,42 +7692,42 @@
           "name": "id",
           "type": "int4",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "Auto-generated primary key."
         },
         {
           "name": "use_id",
           "type": "int4",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "References how the station uses the template."
         },
         {
           "name": "user_type",
           "type": "text",
           "nullable": true,
-          "verified": false,
+          "verified": true,
           "description": "Required user type. Exactly one of user_type/group_id/tag_id/member_id must be set."
         },
         {
           "name": "group_id",
           "type": "int4",
           "nullable": true,
-          "verified": false,
+          "verified": true,
           "description": "Required group membership."
         },
         {
           "name": "tag_id",
           "type": "int4",
           "nullable": true,
-          "verified": false,
+          "verified": true,
           "description": "Required tag."
         },
         {
           "name": "member_id",
           "type": "int4",
           "nullable": true,
-          "verified": false,
+          "verified": true,
           "description": "Specific member (always OR-connected, bypasses AND/OR mode)."
         }
       ],
@@ -7608,13 +7758,16 @@
         }
       ],
       "stationTransfer": {
-        "status": "UNVERIFIED"
+        "status": "IGNORED",
+        "reason": "Belongs to how the station uses a template of its association, which a station that moves leaves behind"
       },
       "gdprExport": {
-        "status": "UNVERIFIED"
+        "status": "IGNORED",
+        "reason": "Template structure data, not per-member"
       },
       "gdprDeletion": {
-        "status": "UNVERIFIED"
+        "status": "IGNORED",
+        "reason": "Template structure data, not per-member"
       },
       "description": "Who of a station may generate a template of its association through self service. Empty means every member. Shaped like event_restriction."
     },
@@ -8389,35 +8542,35 @@
           "name": "id",
           "type": "int4",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "Auto-generated primary key."
         },
         {
           "name": "event_id",
           "type": "int4",
           "nullable": true,
-          "verified": false,
+          "verified": true,
           "description": "The appointment that requires the document. Exactly one of event_id and event_template_id is set."
         },
         {
           "name": "event_template_id",
           "type": "int4",
           "nullable": true,
-          "verified": false,
+          "verified": true,
           "description": "The appointment template that hands the requirement to every appointment made from it."
         },
         {
           "name": "template_id",
           "type": "int4",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "The document template required, one marked for appointments."
         },
         {
           "name": "position",
           "type": "int4",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "Where the document stands in the list, counted from 0."
         }
       ],
@@ -8442,13 +8595,15 @@
         }
       ],
       "stationTransfer": {
-        "status": "UNVERIFIED"
+        "status": "TRACKED"
       },
       "gdprExport": {
-        "status": "UNVERIFIED"
+        "status": "IGNORED",
+        "reason": "Event structure/template data, not per-member"
       },
       "gdprDeletion": {
-        "status": "UNVERIFIED"
+        "status": "IGNORED",
+        "reason": "Event structure/template data, not per-member"
       },
       "description": "A document template an appointment or an appointment template names as a document to bring. Every registered participant gets a copy filled with their data. An appointment made from a template starts with the template's list."
     },
@@ -18420,21 +18575,21 @@
           "name": "position",
           "type": "int4",
           "nullable": false,
-          "verified": false,
+          "verified": true,
           "description": "The order of the guardians of one member, counted from 0. The guardian at 0 is the first guardian, which documents name as guardian 1."
         },
         {
           "name": "created_at",
           "type": "timestamptz",
           "nullable": true,
-          "verified": false,
+          "verified": true,
           "description": "When the guardian was linked to the member. NULL for links made before this was recorded."
         },
         {
           "name": "created_by",
           "type": "int4",
           "nullable": true,
-          "verified": false,
+          "verified": true,
           "description": "The member who linked the guardian. NULL where nobody did (an import, a waiting list, a link made before this was recorded) or once they are gone."
         }
       ],
@@ -18481,6 +18636,11 @@
             "column": "managed_id",
             "strategy": "CASCADE",
             "reason": "FK ON DELETE CASCADE on member/account delete"
+          },
+          {
+            "column": "created_by",
+            "strategy": "NULL",
+            "reason": "FK ON DELETE SET NULL keeps the link, who made it unlinked"
           }
         ]
       },
