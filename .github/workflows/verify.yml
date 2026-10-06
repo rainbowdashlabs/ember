@@ -15,7 +15,7 @@ env:
   JAVA_VERSION: 25
   NODE_VERSION: 24
   # Typst is not packaged by any distribution, so it comes from its own release.
-  TYPST_VERSION: 0.14.2
+  TYPST_VERSION: 0.15.1
 
 jobs:
   verify-build-backend:
