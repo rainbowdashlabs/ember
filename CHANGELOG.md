@@ -1,5 +1,13 @@
 # Changelog
 
+## v26.22.0
+
+The German interface uses one name for trial members.
+
+### Changes
+
+- **One German name for trial members.** The German interface called trial members by two different names on different pages. It now uses one name everywhere, including the waiting list invitation and its email.
+
 ## v26.21.5
 
 The forms list shows, for each person a form can be filled in for, whether an answer is already on file.

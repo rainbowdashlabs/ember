@@ -1,5 +1,13 @@
 # Änderungsprotokoll
 
+## v26.22.0
+
+Mitglieder auf Probe heißen überall gleich.
+
+### Änderungen
+
+- **Ein Name für Mitglieder auf Probe.** Die Oberfläche nannte sie je nach Seite "Probe" oder "Schnupperer". Jetzt heißen sie überall "Probe", auch in der Einladung von der Warteliste und ihrer E-Mail.
+
 ## v26.21.5
 
 Die Umfrageliste zeigt für jede Person, für die eine Umfrage ausgefüllt werden kann, ob schon eine Antwort vorliegt.

@@ -407,7 +407,7 @@ export default {
                 userType: {
                     trial: {
                         name: 'Probe',
-                        desc: 'Für Schnuppermitglieder. Bringt keine eigenen Rechte mit und wird beim Eintritt zum Mitglied.',
+                        desc: 'Für Mitglieder auf Probe. Bringt keine eigenen Rechte mit und wird beim Eintritt zum Mitglied.',
                         example: 'Beispiel: Ein Kind, das ein paar Übungsdienste mitmacht, bevor es eintritt.',
                     },
                     member: {
@@ -1510,7 +1510,7 @@ volumes:
             byRoleText: 'Links stehen die Fragen, jede einmal beschrieben. Rechts steht, wem die '
                 + 'gewählte Frage gestellt wird. Dieselbe Frage kann mehreren Zielgruppen gestellt '
                 + 'werden, ohne zweimal zu existieren; so sammelt sie auch nur eine Antwort.',
-            roleTrial: 'Schnupperer - wer erst hereinschnuppert und noch kein Mitglied ist.',
+            roleTrial: 'Probe - wer auf Probe dabei und noch kein Mitglied ist.',
             roleMember: 'Mitglieder - alle Mitglieder der Wache.',
             roleGuardian: 'Erziehungsberechtigte - wer andere Mitglieder verwaltet.',
             roleTeam: 'Team - Teammitglieder.',
