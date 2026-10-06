@@ -311,7 +311,9 @@ class SetupServiceTest extends RepositoryTestBase {
 
     /** Whether the document places a raster image anywhere, however the writer spaces its dictionary keys. */
     private static boolean carriesAPicture(byte[] pdf) {
-        return IMAGE_SUBTYPE.matcher(new String(pdf, StandardCharsets.ISO_8859_1)).find();
+        return IMAGE_SUBTYPE
+                .matcher(new String(pdf, StandardCharsets.ISO_8859_1))
+                .find();
     }
 
     /** A small opaque square, raster so the logo store accepts it. */
