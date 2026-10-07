@@ -173,7 +173,7 @@ class StationSigningKeysTest extends RepositoryTestBase {
     void aDocumentSealedWithTheStationKeyValidatesTrustingTheAuthority() throws Exception {
         var key = signingKeys.forStation(stationRepo.create("Sealing station").id());
 
-        var sealed = new PdfSealer().seal(SealedPdfs.onePagePdf(), key.privateKey(), key.chain());
+        var sealed = SealedPdfs.sealedWith(key);
         var reports = SealedPdfs.validate(sealed, key.authority());
 
         var signature = reports.getDiagnosticData().getSignatures().getFirst();
@@ -223,7 +223,7 @@ class StationSigningKeysTest extends RepositoryTestBase {
     void rotationRetiresTheOldKeyAndDocumentsSealedWithItStillValidate() throws Exception {
         var station = stationRepo.create("Rotating station");
         var old = signingKeys.forStation(station.id());
-        var sealedBefore = new PdfSealer().seal(SealedPdfs.onePagePdf(), old.privateKey(), old.chain());
+        var sealedBefore = SealedPdfs.sealedWith(old);
 
         var rotated = signingKeys.rotate(station.id());
 
@@ -243,7 +243,7 @@ class StationSigningKeysTest extends RepositoryTestBase {
                         .orElseThrow());
 
         assertValidatesAsBefore(sealedBefore, old);
-        var sealedAfter = new PdfSealer().seal(SealedPdfs.onePagePdf(), rotated.privateKey(), rotated.chain());
+        var sealedAfter = SealedPdfs.sealedWith(rotated);
         assertValidatesAsBefore(sealedAfter, rotated);
     }
 

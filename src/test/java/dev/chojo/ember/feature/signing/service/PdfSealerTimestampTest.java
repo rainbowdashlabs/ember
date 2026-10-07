@@ -1,0 +1,265 @@
+/*
+ *     SPDX-License-Identifier: AGPL-3.0-only
+ *
+ *     Copyright (C) RainbowDashLabs and Contributor
+ */
+package dev.chojo.ember.feature.signing.service;
+
+import dev.chojo.ember.conf.file.elements.Signing;
+import dev.chojo.ember.feature.signing.entity.SealLevel;
+import dev.chojo.ember.feature.signing.entity.SealedDocument;
+import eu.europa.esig.dss.diagnostic.SignatureWrapper;
+import eu.europa.esig.dss.enumerations.Indication;
+import eu.europa.esig.dss.enumerations.SignatureLevel;
+import eu.europa.esig.dss.validation.reports.Reports;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.cert.X509Certificate;
+import java.time.Duration;
+import java.util.Arrays;
+import java.util.List;
+
+import static dev.chojo.ember.feature.signing.service.SealedPdfs.referencedDataIntact;
+import static dev.chojo.ember.feature.signing.service.SealedPdfs.validationErrors;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+/**
+ * Sealing with timestamps against timestamp services on the loopback address. Nothing here reaches the
+ * internet: every service is a {@link LocalTimestampService}, a closed port or a socket that never answers.
+ */
+class PdfSealerTimestampTest {
+    private static final Duration SHORT_TIMEOUT = Duration.ofSeconds(1);
+    private static final Duration SHORT_BUDGET = Duration.ofSeconds(1);
+
+    private static KeyPair keys;
+    private static X509Certificate certificate;
+    private static byte[] pdf;
+
+    private LocalTimestampService service;
+
+    @BeforeAll
+    static void createKeyAndDocument() throws Exception {
+        var generator = KeyPairGenerator.getInstance("RSA");
+        generator.initialize(2048);
+        keys = generator.generateKeyPair();
+        certificate = PdfSealerTest.selfSigned(keys);
+        pdf = SealedPdfs.onePagePdf();
+    }
+
+    @BeforeEach
+    void startService() throws Exception {
+        service = LocalTimestampService.start();
+    }
+
+    @AfterEach
+    void stopService() {
+        service.close();
+    }
+
+    @Test
+    void sealCarriesAValidTimestampFromTheService() {
+        var result = sealerAsking(service.url()).seal(pdf, keys.getPrivate(), List.of(certificate));
+
+        assertEquals(SealLevel.BASELINE_T, result.level());
+        assertEquals(service.url(), result.timestampedBy());
+        assertEquals(1, service.requests());
+        assertValidBaselineT(result.pdf());
+    }
+
+    @Test
+    void serviceThatIsDownIsSkippedForTheNextOne() throws Exception {
+        var result = sealerAsking(LocalTimestampService.unreachableUrl(), service.url())
+                .seal(pdf, keys.getPrivate(), List.of(certificate));
+
+        assertEquals(SealLevel.BASELINE_T, result.level());
+        assertEquals(service.url(), result.timestampedBy());
+        assertValidBaselineT(result.pdf());
+    }
+
+    @Test
+    void noServiceAnsweringSealsWithoutATimestamp() throws Exception {
+        var result = sealerAsking(LocalTimestampService.unreachableUrl(), LocalTimestampService.unreachableUrl())
+                .seal(pdf, keys.getPrivate(), List.of(certificate));
+
+        assertEquals(SealLevel.BASELINE_B, result.level());
+        assertNull(result.timestampedBy());
+        assertValidBaselineB(result.pdf());
+    }
+
+    @Test
+    void timestampsSwitchedOffAskNoService() {
+        var config = new Signing() {
+            @Override
+            public boolean timestamps() {
+                return false;
+            }
+
+            @Override
+            public List<String> timestampUrls() {
+                return List.of(service.url());
+            }
+        };
+
+        var result = new PdfSealer(new TimestampServices(config)).seal(pdf, keys.getPrivate(), List.of(certificate));
+
+        assertEquals(SealLevel.BASELINE_B, result.level());
+        assertEquals(0, service.requests());
+        assertValidBaselineB(result.pdf());
+    }
+
+    @Test
+    void emptyServiceListAsksNoService() {
+        var config = new Signing() {
+            @Override
+            public List<String> timestampUrls() {
+                return List.of();
+            }
+        };
+
+        var result = new PdfSealer(new TimestampServices(config)).seal(pdf, keys.getPrivate(), List.of(certificate));
+
+        assertEquals(SealLevel.BASELINE_B, result.level());
+        assertEquals(0, service.requests());
+    }
+
+    @Test
+    void serviceThatNeverAnswersIsLeftAfterTheTimeout() throws Exception {
+        try (var silent = LocalTimestampService.silent()) {
+            long started = System.nanoTime();
+            var result = sealerAsking(LocalTimestampService.urlOf(silent), service.url())
+                    .seal(pdf, keys.getPrivate(), List.of(certificate));
+            var elapsed = Duration.ofNanos(System.nanoTime() - started);
+
+            assertEquals(SealLevel.BASELINE_T, result.level());
+            assertEquals(service.url(), result.timestampedBy());
+            assertTrue(elapsed.compareTo(SHORT_TIMEOUT) >= 0, "waited for the silent service: " + elapsed);
+            assertTrue(elapsed.compareTo(SHORT_TIMEOUT.multipliedBy(4)) < 0, "gave up in time: " + elapsed);
+        }
+    }
+
+    @Test
+    void sealWithoutTimestampIsLiftedToBaselineTLater() throws Exception {
+        var unstamped = sealerAsking(LocalTimestampService.unreachableUrl())
+                .seal(pdf, keys.getPrivate(), List.of(certificate))
+                .pdf();
+
+        var result = sealerAsking(service.url()).addTimestamp(unstamped);
+
+        assertEquals(SealLevel.BASELINE_T, result.level());
+        assertEquals(service.url(), result.timestampedBy());
+        assertArrayEquals(unstamped, Arrays.copyOf(result.pdf(), unstamped.length), "first seal untouched");
+        assertValidBaselineT(result.pdf());
+    }
+
+    @Test
+    void liftingWithoutAServiceLeavesTheDocumentAsItIs() throws Exception {
+        var unstamped = sealerAsking()
+                .seal(pdf, keys.getPrivate(), List.of(certificate))
+                .pdf();
+
+        SealedDocument offline = sealerAsking().addTimestamp(unstamped);
+        SealedDocument down =
+                sealerAsking(LocalTimestampService.unreachableUrl()).addTimestamp(unstamped);
+
+        assertSame(unstamped, offline.pdf());
+        assertEquals(SealLevel.BASELINE_B, offline.level());
+        assertSame(unstamped, down.pdf());
+        assertEquals(SealLevel.BASELINE_B, down.level());
+        assertNull(down.timestampedBy());
+    }
+
+    @Test
+    void sealStopsAskingWhenTheBudgetIsSpent() throws Exception {
+        try (var first = LocalTimestampService.hanging();
+                var second = LocalTimestampService.hanging();
+                var third = LocalTimestampService.hanging()) {
+            var hanging = List.of(first, second, third);
+            long started = System.nanoTime();
+            var result = sealerWithBudget(hanging).seal(pdf, keys.getPrivate(), List.of(certificate));
+            var elapsed = Duration.ofNanos(System.nanoTime() - started);
+
+            assertEquals(SealLevel.BASELINE_B, result.level());
+            assertNull(result.timestampedBy());
+            assertValidBaselineB(result.pdf());
+            assertWithinBudget(elapsed, hanging);
+        }
+    }
+
+    @Test
+    void liftingStopsAskingWhenTheBudgetIsSpent() throws Exception {
+        var unstamped = sealerAsking()
+                .seal(pdf, keys.getPrivate(), List.of(certificate))
+                .pdf();
+        try (var first = LocalTimestampService.hanging();
+                var second = LocalTimestampService.hanging();
+                var third = LocalTimestampService.hanging()) {
+            var hanging = List.of(first, second, third);
+            long started = System.nanoTime();
+            var result = sealerWithBudget(hanging).addTimestamp(unstamped);
+            var elapsed = Duration.ofNanos(System.nanoTime() - started);
+
+            assertSame(unstamped, result.pdf());
+            assertEquals(SealLevel.BASELINE_B, result.level());
+            assertWithinBudget(elapsed, hanging);
+        }
+    }
+
+    private static PdfSealer sealerWithBudget(List<LocalTimestampService> services) {
+        var urls = services.stream().map(LocalTimestampService::url).toList();
+        return new PdfSealer(new TimestampServices(urls, TimestampServices.TIMEOUT, SHORT_BUDGET));
+    }
+
+    private static void assertWithinBudget(Duration elapsed, List<LocalTimestampService> services) {
+        int asked = services.stream().mapToInt(LocalTimestampService::requests).sum();
+        assertTrue(asked >= 1 && asked < services.size(), "services asked: " + asked);
+        assertTrue(elapsed.compareTo(SHORT_BUDGET.multipliedBy(3)) < 0, "gave up within the budget: " + elapsed);
+    }
+
+    private static PdfSealer sealerAsking(String... urls) {
+        return new PdfSealer(new TimestampServices(List.of(urls), SHORT_TIMEOUT, TimestampServices.BUDGET));
+    }
+
+    private static void assertValidBaselineT(byte[] sealed) {
+        var reports = validate(sealed);
+        var signature = onlySignature(reports);
+        assertEquals(SignatureLevel.PAdES_BASELINE_T, signature.getSignatureFormat());
+        assertTrue(signature.isSignatureValid(), "signature value and signed data");
+        assertTrue(referencedDataIntact(signature), "signed data");
+        var timestamps = reports.getDiagnosticData().getTimestampList();
+        assertEquals(1, timestamps.size());
+        var timestamp = timestamps.getFirst();
+        assertTrue(timestamp.isSignatureValid(), "timestamp signature");
+        assertTrue(timestamp.isMessageImprintDataIntact(), "timestamped data");
+        assertEquals(
+                Indication.PASSED,
+                reports.getDetailedReport().getBasicTimestampValidationIndication(timestamp.getId()));
+        assertEquals(List.of(), validationErrors(reports));
+    }
+
+    private static void assertValidBaselineB(byte[] sealed) {
+        var reports = validate(sealed);
+        var signature = onlySignature(reports);
+        assertEquals(SignatureLevel.PAdES_BASELINE_B, signature.getSignatureFormat());
+        assertTrue(signature.isSignatureValid(), "signature value and signed data");
+        assertEquals(List.of(), reports.getDiagnosticData().getTimestampList());
+    }
+
+    private static SignatureWrapper onlySignature(Reports reports) {
+        var signatures = reports.getDiagnosticData().getSignatures();
+        assertEquals(1, signatures.size());
+        return signatures.getFirst();
+    }
+
+    private static Reports validate(byte[] sealed) {
+        return SealedPdfs.validate(sealed, List.of(certificate, LocalTimestampService.certificate()));
+    }
+}

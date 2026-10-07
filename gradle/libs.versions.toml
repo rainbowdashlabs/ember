@@ -111,6 +111,7 @@ dss-validation = { group = "eu.europa.ec.joinup.sd-dss", name = "dss-validation"
 dss-policy-jaxb = { group = "eu.europa.ec.joinup.sd-dss", name = "dss-policy-jaxb" }
 dss-utils-apache-commons = { group = "eu.europa.ec.joinup.sd-dss", name = "dss-utils-apache-commons" }
 dss-crl-parser-x509crl = { group = "eu.europa.ec.joinup.sd-dss", name = "dss-crl-parser-x509crl" }
+dss-service = { group = "eu.europa.ec.joinup.sd-dss", name = "dss-service" }
 
 # iCal
 ical4j = { group = "org.mnode.ical4j", name = "ical4j", version = "4.3.0" }
@@ -189,5 +190,6 @@ dss = [
     "dss-validation",
     "dss-policy-jaxb",
     "dss-utils-apache-commons",
-    "dss-crl-parser-x509crl"
+    "dss-crl-parser-x509crl",
+    "dss-service"
 ]

@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.signing.service;
 
+import dev.chojo.ember.feature.signing.entity.SealingKey;
 import eu.europa.esig.dss.diagnostic.SignatureWrapper;
 import eu.europa.esig.dss.jaxb.object.Message;
 import eu.europa.esig.dss.model.DSSDocument;
@@ -63,6 +64,18 @@ final class SealedPdfs {
     }
 
     /**
+     * Seals {@link #onePagePdf()} with a station key, without a timestamp.
+     *
+     * @param key the station key
+     * @return the sealed document
+     */
+    static byte[] sealedWith(SealingKey key) throws IOException {
+        return new PdfSealer(TimestampServices.none())
+                .seal(onePagePdf(), key.privateKey(), key.chain())
+                .pdf();
+    }
+
+    /**
      * Validates a sealed document with DSS, offline, trusting one certificate.
      *
      * @param sealed          the sealed document
@@ -72,8 +85,20 @@ final class SealedPdfs {
      * @return the validation reports
      */
     static Reports validate(byte[] sealed, X509Certificate trustAnchor, byte[]... revocationLists) {
+        return validate(sealed, List.of(trustAnchor), revocationLists);
+    }
+
+    /**
+     * Validates a sealed document with DSS, offline, trusting the given certificates.
+     *
+     * @param sealed          the sealed document
+     * @param trustAnchors    the only certificates the validation trusts
+     * @param revocationLists DER encoded revocation lists the validation may consult
+     * @return the validation reports
+     */
+    static Reports validate(byte[] sealed, List<X509Certificate> trustAnchors, byte[]... revocationLists) {
         var trusted = new CommonTrustedCertificateSource();
-        trusted.addCertificate(new CertificateToken(trustAnchor));
+        trustAnchors.forEach(anchor -> trusted.addCertificate(new CertificateToken(anchor)));
         var verifier = new CommonCertificateVerifier(true);
         verifier.setTrustedCertSources(trusted);
         if (revocationLists.length > 0) {

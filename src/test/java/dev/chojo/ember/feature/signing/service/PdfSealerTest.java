@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.signing.service;
 
+import dev.chojo.ember.feature.signing.entity.SealLevel;
 import eu.europa.esig.dss.enumerations.SignatureLevel;
 import eu.europa.esig.dss.validation.reports.Reports;
 import org.bouncycastle.asn1.x500.X500Name;
@@ -32,6 +33,7 @@ import static dev.chojo.ember.feature.signing.service.SealedPdfs.validationError
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -40,7 +42,7 @@ class PdfSealerTest {
     private static X509Certificate certificate;
     private static byte[] pdf;
 
-    private final PdfSealer sealer = new PdfSealer();
+    private final PdfSealer sealer = new PdfSealer(TimestampServices.none());
 
     @BeforeAll
     static void createKeyAndDocument() throws Exception {
@@ -53,9 +55,13 @@ class PdfSealerTest {
 
     @Test
     void sealedDocumentCarriesAnIntactBaselineBSignature() {
-        var sealed = sealer.seal(pdf, keys.getPrivate(), List.of(certificate));
+        var result = sealer.seal(pdf, keys.getPrivate(), List.of(certificate));
+        var sealed = result.pdf();
 
         var reports = validate(sealed);
+
+        assertEquals(SealLevel.BASELINE_B, result.level());
+        assertNull(result.timestampedBy());
 
         var signatures = reports.getDiagnosticData().getSignatures();
         assertEquals(1, signatures.size());
@@ -70,7 +76,7 @@ class PdfSealerTest {
 
     @Test
     void sealKeepsTheOriginalBytesAsTheFirstRevision() {
-        var sealed = sealer.seal(pdf, keys.getPrivate(), List.of(certificate));
+        var sealed = sealer.seal(pdf, keys.getPrivate(), List.of(certificate)).pdf();
 
         assertTrue(sealed.length > pdf.length);
         assertArrayEquals(pdf, Arrays.copyOf(sealed, pdf.length));
@@ -78,7 +84,7 @@ class PdfSealerTest {
 
     @Test
     void tamperedByteInTheSignedRevisionBreaksTheSeal() {
-        var sealed = sealer.seal(pdf, keys.getPrivate(), List.of(certificate));
+        var sealed = sealer.seal(pdf, keys.getPrivate(), List.of(certificate)).pdf();
         var position = indexOf(sealed, TITLE.getBytes(StandardCharsets.US_ASCII));
         assertTrue(position >= 0, "title in the document");
         sealed[position] = (byte) 'e';
@@ -102,7 +108,8 @@ class PdfSealerTest {
         return SealedPdfs.validate(sealed, certificate);
     }
 
-    private static X509Certificate selfSigned(KeyPair keys) throws Exception {
+    /** @return a self-signed seal certificate for the key pair, valid from yesterday for 30 days */
+    static X509Certificate selfSigned(KeyPair keys) throws Exception {
         var subject = new X500Name("CN=Ember test seal");
         var now = Instant.now();
         var holder = new JcaX509v3CertificateBuilder(

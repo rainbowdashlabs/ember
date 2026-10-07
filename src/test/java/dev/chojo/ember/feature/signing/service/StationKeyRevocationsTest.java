@@ -246,7 +246,7 @@ class StationKeyRevocationsTest extends RepositoryTestBase {
     void aDocumentSealedWithARevokedKeyIsReportedRevoked() throws Exception {
         var station = stationRepo.create("Revoked seal station");
         var key = signingKeys.forStation(station.id());
-        var sealed = new PdfSealer().seal(SealedPdfs.onePagePdf(), key.privateKey(), key.chain());
+        var sealed = SealedPdfs.sealedWith(key);
         revocations.revoke(station.id(), serialOf(key), RevocationReason.KEY_COMPROMISE);
 
         var reports = SealedPdfs.validate(sealed, key.authority(), listBytes(key.authority()));
@@ -267,7 +267,7 @@ class StationKeyRevocationsTest extends RepositoryTestBase {
     void aListThatDoesNotNameTheKeyGivesTheValidationItsRevocationData() throws Exception {
         var station = stationRepo.create("Good seal station");
         var key = signingKeys.forStation(station.id());
-        var sealed = new PdfSealer().seal(SealedPdfs.onePagePdf(), key.privateKey(), key.chain());
+        var sealed = SealedPdfs.sealedWith(key);
         var other = stationRepo.create("Other revoked station");
         revocations.revoke(other.id(), serialOf(signingKeys.forStation(other.id())), RevocationReason.KEY_COMPROMISE);
 

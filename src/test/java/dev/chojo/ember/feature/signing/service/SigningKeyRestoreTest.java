@@ -112,7 +112,7 @@ class SigningKeyRestoreTest extends RepositoryTestBase {
     }
 
     private static byte[] seal(SealingKey key) throws Exception {
-        return new PdfSealer().seal(SealedPdfs.onePagePdf(), key.privateKey(), key.chain());
+        return SealedPdfs.sealedWith(key);
     }
 
     private static String serialOf(X509Certificate certificate) {

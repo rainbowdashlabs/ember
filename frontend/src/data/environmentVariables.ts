@@ -114,6 +114,12 @@ export const ENVIRONMENT_GROUPS: readonly EnvironmentGroup[] = [
         prefixes: ['documents'],
     },
     {
+        title: 'helpCenter.basics.configuration.envGroupSigning',
+        note: 'helpCenter.basics.configuration.envGroupSigningNote',
+        defaultOpen: false,
+        prefixes: ['signing'],
+    },
+    {
         title: 'helpCenter.basics.configuration.envGroupDefaultFont',
         note: 'helpCenter.basics.configuration.envGroupDefaultFontNote',
         defaultOpen: false,

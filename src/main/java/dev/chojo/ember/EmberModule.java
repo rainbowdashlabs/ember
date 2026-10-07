@@ -35,6 +35,7 @@ import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.conf.file.elements.Metrics;
 import dev.chojo.ember.conf.file.elements.Network;
 import dev.chojo.ember.conf.file.elements.PasskeySettings;
+import dev.chojo.ember.conf.file.elements.Signing;
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.conf.file.elements.TwoFactorSettings;
 import dev.chojo.ember.conf.file.elements.Updates;
@@ -897,6 +898,12 @@ public class EmberModule extends AbstractModule {
     @Singleton
     Updates updates(File config) {
         return config.updates();
+    }
+
+    @Provides
+    @Singleton
+    Signing signing(File config) {
+        return config.signing();
     }
 
     @Provides

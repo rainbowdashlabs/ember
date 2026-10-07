@@ -740,6 +740,8 @@ volumes:
                 envGroupMailImport: 'Dokumente aus Postfächern (Backend)',
                 envGroupDocuments: 'Erstellte Dokumente (Backend)',
                 envGroupDocumentsNote: 'Die Standardschrift erstellter Dokumente. Ohne sie druckt Ember in Liberation Sans.',
+                envGroupSigning: 'Siegel und Zeitstempel (Backend)',
+                envGroupSigningNote: 'Zeitstempel für die Siegel, mit denen die Wachen Dokumente versiegeln. Für den Zeitstempel eines Siegels fragt Ember öffentliche Zeitstempeldienste der Reihe nach und schickt ihnen nur einen Hashwert des Dokuments. Für eine Instanz ohne Internetzugang die Zeitstempel abschalten.',
                 envGroupDefaultFont: 'Standardschrift (Container)',
                 envGroupDefaultFontNote: 'Diese Variablen liest der Backend-Container beim Start, bevor Ember startet. Er lädt die Schrift Berlin Type herunter, prüft die Datei und legt den normalen und den fetten Schnitt im Verzeichnis der Standardschrift ab (DOCUMENTS_DEFAULTFONTDIR, im Docker-Image /app/data/default-font), dazu dieselben zwei Schnitte als Webschrift, in der der Editor einer Vorlage den Text zeigt. Liegen sie dort schon, lädt er nichts. Klappt der Download nicht, startet Ember trotzdem und druckt in Liberation Sans. Die Schrift ist nicht Teil von Ember und wird deshalb nicht mitgeliefert.',
                 envGroupFederation: 'Föderation (Backend)',
@@ -974,6 +976,10 @@ volumes:
                     },
                     documents: {
                         defaultFontDir: 'Verzeichnis, aus dem Ember beim Start die Standardschrift für erstellte Dokumente liest. Ember nimmt die Schriftfamilie, deren normalen Schnitt es dort findet, und druckt darin jeden Text, für den eine Vorlage keine Schrift wählt. Ist das Verzeichnis leer oder fehlt es, druckt Ember in Liberation Sans.',
+                    },
+                    signing: {
+                        timestamps: 'Ob jedes Siegel einen Zeitstempel von einem Zeitstempeldienst bekommt. Der Zeitstempel belegt, wann das Siegel entstanden ist, so dass es niemand nachträglich zurückdatieren kann, auch der Betreiber nicht. Antwortet kein Dienst, wird ohne Zeitstempel gesiegelt statt abgebrochen. Aus heißt: keine Anfrage nach außen, die Zeit eines Siegels ist dann nur die Uhr dieses Servers.',
+                        timestampUrls: 'Komma-getrennte Liste der Zeitstempeldienste (RFC 3161), die der Reihe nach gefragt werden, bis einer antwortet. Es sind öffentliche Dienste, kostenlos und ohne Konto. Jeder Dienst bekommt nur einen Hashwert, nie das Dokument. Nicht alle stehen auf der Liste vertrauenswürdiger Dienste von Adobe (FreeTSA nicht), daher kann Adobe Reader den Zeitstempel eines späteren Dienstes als nicht geprüft anzeigen; die Zeit belegt er trotzdem. Eine leere Liste schaltet Zeitstempel ab.',
                     },
                 },
                 variables: {
