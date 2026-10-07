@@ -2,7 +2,11 @@
 
 ## v26.22.0
 
-Mitglieder auf Probe heißen überall gleich.
+Hinter jedem Mitgliedsnamen liegt ein Kurzprofil. Mitglieder auf Probe heißen überall gleich.
+
+### Neue Funktionen
+
+- **Ein Kurzprofil hinter jedem Namen.** Wer mit der Maus auf dem Namen oder Bild eines Mitglieds verweilt oder am Handy auf das Bild tippt, sieht eine kleine Karte mit Bild, Erziehungsberechtigten, verwalteten Mitgliedern, Tags und Gruppen. Erwähnungen in Kommentaren öffnen dieselbe Karte.
 
 ### Änderungen
 

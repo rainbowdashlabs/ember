@@ -2,7 +2,11 @@
 
 ## v26.22.0
 
-The German interface uses one name for trial members.
+A short profile opens from any member's name. The German interface uses one name for trial members.
+
+### New Features
+
+- **A short profile behind every name.** Resting the pointer on a member's name or picture, or tapping the picture on a phone, opens a small card with their picture, guardians, managed members, tags and groups. Mentions in comments open the same card.
 
 ### Changes
 

@@ -45,7 +45,7 @@ const foldedAway = computed(() => Math.max(0, props.options.length - visible.val
         data-testid="member-select-chip"
         class="gap-1 bg-bg-light-accent px-2 py-1 dark:bg-bg-dark-accent"
     >
-      <MemberName :identity="identityOf(option)" class="text-sm"/>
+      <MemberName :identity="identityOf(option)" :card="false" class="text-sm"/>
       <button
           type="button"
           :aria-label="t('memberSelect.remove', {name: option.name})"
