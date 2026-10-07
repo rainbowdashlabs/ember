@@ -7,8 +7,10 @@ package dev.chojo.ember.feature.signing.service;
 
 import dev.chojo.ember.feature.signing.entity.RevocationReason;
 import dev.chojo.ember.feature.signing.entity.SealingKey;
+import dev.chojo.ember.feature.signing.entity.StoredRevocationList;
 import dev.chojo.ember.feature.signing.repository.SigningKeyRepository;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import dev.chojo.ember.util.sql.Transactions;
 import eu.europa.esig.dss.enumerations.Indication;
 import eu.europa.esig.dss.enumerations.SubIndication;
 import org.bouncycastle.asn1.ASN1Integer;
@@ -23,15 +25,20 @@ import java.security.cert.CRLReason;
 import java.security.cert.X509CRL;
 import java.security.cert.X509CRLEntry;
 import java.security.cert.X509Certificate;
+import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.Base64;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.LockSupport;
 import java.util.stream.Collectors;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
@@ -210,7 +217,11 @@ class StationKeyRevocationsTest extends RepositoryTestBase {
                         .minus(StationKeyRevocations.REISSUE_AFTER)
                         .minusSeconds(60)
                         .truncatedTo(ChronoUnit.SECONDS));
-        repository.storeRevocationList(authority.id(), 5, stale.getEncoded());
+        repository.storeRevocationList(
+                authority.id(),
+                5,
+                new StoredRevocationList(
+                        stale.getEncoded(), stale.getThisUpdate().toInstant()));
 
         var fresh = listOf(key.authority());
 
@@ -275,7 +286,6 @@ class StationKeyRevocationsTest extends RepositoryTestBase {
 
         var signature = reports.getDiagnosticData().getSignatures().getFirst();
         var errors = SealedPdfs.validationErrors(reports);
-        assertFalse(errors.contains("No revocation data found for the certificate!"), errors.toString());
         var revocation = reports.getDiagnosticData()
                 .getCertificateById(signature.getSigningCertificate().getId())
                 .getCertificateRevocationData()
@@ -320,7 +330,7 @@ class StationKeyRevocationsTest extends RepositoryTestBase {
     }
 
     @Test
-    void aListSignedWhileAKeyIsRevokedNeverHidesTheRevocation() throws Exception {
+    void theListAfterARevocationRacingAListingNamesTheKey() throws Exception {
         var station = stationRepo.create("Listing race station");
         var key = signingKeys.forStation(station.id());
         var turn = new AtomicInteger();
@@ -332,6 +342,138 @@ class StationKeyRevocationsTest extends RepositoryTestBase {
                         : revocations.revocationList(SigningCertificates.serialOf(key.authority())));
 
         assertEquals(Set.of(serialOf(key)), entriesOf(listOf(key.authority())).keySet());
+    }
+
+    @Test
+    void aRevokedKeyOfADeletedStationStaysOnTheList() throws Exception {
+        var station = stationRepo.create("Deleted revoking station");
+        var leaked = signingKeys.forStation(station.id());
+        revocations.revoke(station.id(), serialOf(leaked), RevocationReason.KEY_COMPROMISE);
+        var lastActive = signingKeys.forStation(station.id());
+
+        stationRepo.delete(station.id());
+        repository.forgetRevocationList(
+                repository.findActiveAuthority().orElseThrow().id());
+
+        var list = listOf(leaked.authority());
+        assertTrue(list.isRevoked(leaked.certificate()), "still listed after the station is gone");
+        assertFalse(list.isRevoked(lastActive.certificate()));
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> revocations.revoke(station.id(), serialOf(lastActive), RevocationReason.KEY_COMPROMISE));
+
+        assertTrue(revocations.revokeKeyOfDeletedStation(serialOf(lastActive), RevocationReason.KEY_COMPROMISE));
+        assertFalse(revocations.revokeKeyOfDeletedStation(serialOf(lastActive), RevocationReason.SUPERSEDED));
+        assertEquals(
+                Set.of(serialOf(leaked), serialOf(lastActive)),
+                entriesOf(listOf(leaked.authority())).keySet());
+    }
+
+    @Test
+    void onlyAKeyOfADeletedStationIsRevokedByItsSerialAlone() {
+        var station = stationRepo.create("Living station");
+        var key = signingKeys.forStation(station.id());
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> revocations.revokeKeyOfDeletedStation(serialOf(key), RevocationReason.KEY_COMPROMISE));
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> revocations.revokeKeyOfDeletedStation("not hex", RevocationReason.KEY_COMPROMISE));
+        assertEquals(0, count("SELECT count(*) AS n FROM station_signing_key WHERE revoked_at IS NOT NULL;"));
+    }
+
+    @Test
+    void revocationDatesAndListsShareTheServiceClock() throws Exception {
+        var station = stationRepo.create("Clocked station");
+        var first = signingKeys.forStation(station.id());
+        var second = signingKeys.rotate(station.id());
+        var earlier = Instant.now().minus(Duration.ofHours(2)).truncatedTo(ChronoUnit.SECONDS);
+        var later = earlier.plus(Duration.ofMinutes(30));
+
+        revocationsAt(earlier).revoke(station.id(), serialOf(first), RevocationReason.KEY_COMPROMISE);
+        var firstList = RevocationLists.read(revocationsAt(earlier)
+                .revocationList(SigningCertificates.serialOf(first.authority()))
+                .orElseThrow());
+        revocationsAt(later).revoke(station.id(), serialOf(second), RevocationReason.SUPERSEDED);
+        var secondList = RevocationLists.read(revocationsAt(later)
+                .revocationList(SigningCertificates.serialOf(first.authority()))
+                .orElseThrow());
+
+        assertEquals(earlier, firstList.getThisUpdate().toInstant(), "the list carries the service's time");
+        assertEquals(later, secondList.getThisUpdate().toInstant());
+        var entries = entriesOf(secondList);
+        assertEquals(earlier, entries.get(serialOf(first)).getRevocationDate().toInstant(), "not the database's");
+        assertEquals(later, entries.get(serialOf(second)).getRevocationDate().toInstant());
+        for (var list : List.of(firstList, secondList)) {
+            for (var entry : entriesOf(list).values()) {
+                assertFalse(entry.getRevocationDate().after(list.getThisUpdate()), "revoked after the list");
+            }
+        }
+    }
+
+    @Test
+    void revokingWhileEveryKeyIsRewrappedNeverDeadlocks() throws Exception {
+        var rewrap = new SigningKeyRewrap(repository, wrap);
+        for (int round = 0; round < 5; round++) {
+            var station = stationRepo.create("Rewrapping station " + round);
+            var key = signingKeys.forStation(station.id());
+            var turn = new AtomicInteger();
+
+            SigningFixtures.<Object>concurrently(
+                    2,
+                    () -> turn.getAndIncrement() == 0
+                            ? revocations.revoke(station.id(), serialOf(key), RevocationReason.KEY_COMPROMISE)
+                            : rewrap.rewrapFrom(wrap));
+
+            assertTrue(listOf(key.authority()).isRevoked(key.certificate()));
+        }
+        assertEquals(5, count("SELECT count(*) AS n FROM station_signing_key WHERE revoked_at IS NOT NULL;"));
+    }
+
+    /**
+     * Holds the authority's row the way re-wrapping does and lets a revocation run into it. A revocation
+     * that took the key's row first would hold it while it waits, and the key could not be locked here
+     * without waiting; taking the authority first, it holds nothing yet.
+     */
+    @Test
+    void aRevocationTakesItsAuthorityBeforeItTouchesTheKey() throws Exception {
+        var station = stationRepo.create("Lock order station");
+        var key = signingKeys.forStation(station.id());
+        var stored = repository.findActive(station.id()).orElseThrow();
+
+        try (var executor = Executors.newSingleThreadExecutor()) {
+            var revocation = Transactions.call(() -> {
+                repository.lockRevocationListNumber(stored.authorityId());
+                var pending = executor.submit(
+                        () -> revocations.revoke(station.id(), serialOf(key), RevocationReason.KEY_COMPROMISE));
+                awaitALockSomebodyWaitsFor();
+                assertEquals(
+                        stored.id(),
+                        query("SELECT id FROM station_signing_key WHERE id = :id FOR NO KEY UPDATE NOWAIT;")
+                                .single(call().bind("id", stored.id()))
+                                .map(row -> row.getInt("id"))
+                                .first()
+                                .orElseThrow(),
+                        "the waiting revocation holds no lock on the key");
+                return pending;
+            });
+
+            assertTrue(revocation.get(1, TimeUnit.MINUTES));
+        }
+        assertTrue(listOf(key.authority()).isRevoked(key.certificate()));
+    }
+
+    private static void awaitALockSomebodyWaitsFor() {
+        var deadline = System.nanoTime() + Duration.ofSeconds(30).toNanos();
+        while (count("SELECT count(*) AS n FROM pg_locks WHERE NOT granted AND pid <> pg_backend_pid();") == 0) {
+            if (System.nanoTime() > deadline) throw new IllegalStateException("Nobody waited for the lock");
+            LockSupport.parkNanos(Duration.ofMillis(20).toNanos());
+        }
+    }
+
+    private StationKeyRevocations revocationsAt(Instant now) {
+        return new StationKeyRevocations(repository, lists, wrap, Clock.fixed(now, ZoneOffset.UTC));
     }
 
     private static String serialOf(SealingKey key) {

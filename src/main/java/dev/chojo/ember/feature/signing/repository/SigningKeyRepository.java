@@ -9,10 +9,12 @@ import de.chojo.sadu.queries.api.call.Call;
 import dev.chojo.ember.feature.signing.entity.RevocationReason;
 import dev.chojo.ember.feature.signing.entity.RevokedKey;
 import dev.chojo.ember.feature.signing.entity.StoredAuthority;
+import dev.chojo.ember.feature.signing.entity.StoredRevocationList;
 import dev.chojo.ember.feature.signing.entity.StoredSigningKey;
 import dev.chojo.ember.feature.signing.entity.StoredStationKey;
 import jakarta.inject.Singleton;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -29,8 +31,18 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * a second caller waits for the row lock of the first and then finds nothing left to change.
  *
  * <p>Each authority keeps its newest revocation list and the number it was issued under. Issuing the
- * next one locks the authority's row, and so does dropping the stored list after a revocation, so a
- * revocation is never lost between a list being signed and being stored.
+ * next one locks the authority's row, and so does revoking one of its keys, so a revocation is never
+ * lost between a list being signed and being stored.
+ *
+ * <p><b>Lock order.</b> A transaction that locks rows of both tables takes the authority rows first, in
+ * the order of their ids when it takes several, and the station key rows after them. Re-wrapping every
+ * key, revoking a key and issuing a revocation list all follow it, so none of them waits for another in
+ * a circle. Storing a station key takes only a key-share lock on its authority's row, which none of
+ * those locks conflicts with.
+ *
+ * <p>Station keys outlive their station: deleting a station leaves its keys without a station, so a
+ * revoked key stays on its authority's lists and a key of a deleted station can still be revoked by its
+ * serial number.
  */
 @Singleton
 public class SigningKeyRepository {
@@ -198,48 +210,65 @@ public class SigningKeyRepository {
     }
 
     /**
-     * Revokes one of a station's keys, active or retired, and retires it if it was still active. Waits
-     * for a caller revoking or retiring the same key at the same time, and leaves a key that was
-     * revoked already as it is.
-     *
-     * @param stationId    the station the key belongs to
-     * @param serialNumber the key's certificate serial number, lower-case hexadecimal
-     * @param reason       why it is revoked
-     * @return the authority that issued the key when this call revoked it, empty when the station
-     *         holds no such key or it was revoked already
+     * @param stationId    the station
+     * @param serialNumber a certificate serial number, lower-case hexadecimal
+     * @return the authority that issued the station's key with that serial number, revoked or not,
+     *         or empty when the station holds no such key
      */
-    public Optional<Integer> revoke(int stationId, String serialNumber, RevocationReason reason) {
+    public Optional<Integer> authorityOfStationKey(int stationId, String serialNumber) {
         return query("""
-                        UPDATE station_signing_key
-                        SET revoked_at        = now(),
-                            revocation_reason = :reason,
-                            retired_at        = coalesce(retired_at, now())
+                        SELECT signing_ca_id
+                        FROM station_signing_key
                         WHERE station_id = :station_id
-                          AND serial_number = :serial_number
-                          AND revoked_at IS NULL
-                        RETURNING signing_ca_id;""")
-                .single(call().bind("station_id", stationId)
-                        .bind("serial_number", serialNumber)
-                        .bind("reason", reason))
+                          AND serial_number = :serial_number;""")
+                .single(call().bind("station_id", stationId).bind("serial_number", serialNumber))
                 .map(row -> row.getInt("signing_ca_id"))
                 .first();
     }
 
     /**
-     * @param stationId    the station
      * @param serialNumber a certificate serial number, lower-case hexadecimal
-     * @return whether the station holds a key with that serial number, revoked or not
+     * @return the authority that issued the key with that serial number of a station that was deleted,
+     *         revoked or not, or empty when no deleted station held such a key
      */
-    public boolean holds(int stationId, String serialNumber) {
+    public Optional<Integer> authorityOfDeletedStationKey(String serialNumber) {
         return query("""
-                        SELECT 1 AS held
+                        SELECT signing_ca_id
                         FROM station_signing_key
-                        WHERE station_id = :station_id
+                        WHERE station_id IS NULL
                           AND serial_number = :serial_number;""")
-                .single(call().bind("station_id", stationId).bind("serial_number", serialNumber))
-                .map(row -> row.getInt("held"))
-                .first()
-                .isPresent();
+                .single(call().bind("serial_number", serialNumber))
+                .map(row -> row.getInt("signing_ca_id"))
+                .first();
+    }
+
+    /**
+     * Revokes a station key, active or retired, and retires it if it was still active. Leaves a key
+     * that was revoked already as it is. Lock the issuing authority first
+     * ({@link #lockRevocationListNumber(int)}), as the lock order requires.
+     *
+     * @param authorityId  the authority that issued the key
+     * @param serialNumber the key's certificate serial number, lower-case hexadecimal
+     * @param reason       why it is revoked
+     * @param revokedAt    the revocation date its authority's lists give for it
+     * @return true when this call revoked the key, false when that authority issued no such key or it
+     *         was revoked already
+     */
+    public boolean revoke(int authorityId, String serialNumber, RevocationReason reason, Instant revokedAt) {
+        return query("""
+                        UPDATE station_signing_key
+                        SET revoked_at        = :revoked_at,
+                            revocation_reason = :reason,
+                            retired_at        = coalesce(retired_at, :revoked_at)
+                        WHERE signing_ca_id = :signing_ca_id
+                          AND serial_number = :serial_number
+                          AND revoked_at IS NULL;""")
+                .single(call().bind("signing_ca_id", authorityId)
+                        .bind("serial_number", serialNumber)
+                        .bind("reason", reason)
+                        .bind("revoked_at", revokedAt, INSTANT_TIMESTAMP))
+                .update()
+                .changed();
     }
 
     /**
@@ -267,17 +296,17 @@ public class SigningKeyRepository {
      * @return the newest revocation list it issued, empty before the first and after a revocation
      *         made it outdated
      */
-    public Optional<byte[]> findRevocationList(int authorityId) {
-        return query("SELECT crl FROM signing_ca WHERE id = :id AND crl IS NOT NULL;")
+    public Optional<StoredRevocationList> findRevocationList(int authorityId) {
+        return query("SELECT crl, crl_issued_at FROM signing_ca WHERE id = :id AND crl IS NOT NULL;")
                 .single(call().bind("id", authorityId))
-                .map(row -> row.getBytes("crl"))
+                .map(StoredRevocationList.map())
                 .first();
     }
 
     /**
-     * Locks an authority's revocation list until the surrounding transaction ends, so only one caller
-     * issues the next one. A revocation of one of its keys waits for the lock too. Only meaningful
-     * inside a transaction.
+     * Locks an authority's row, and with it its revocation list, until the surrounding transaction
+     * ends, so only one caller issues the next list. A revocation of one of its keys takes the lock
+     * too. Only meaningful inside a transaction.
      *
      * @param authorityId the authority
      * @return the number of the newest list it issued, 0 before the first
@@ -295,11 +324,19 @@ public class SigningKeyRepository {
      *
      * @param authorityId the authority
      * @param number      the list's number
-     * @param list        the list, DER encoded
+     * @param list        the list and when it was issued
      */
-    public void storeRevocationList(int authorityId, long number, byte[] list) {
-        query("UPDATE signing_ca SET crl_number = :number, crl = :crl WHERE id = :id;")
-                .single(call().bind("id", authorityId).bind("number", number).bind("crl", list))
+    public void storeRevocationList(int authorityId, long number, StoredRevocationList list) {
+        query("""
+                        UPDATE signing_ca
+                        SET crl_number    = :number,
+                            crl           = :crl,
+                            crl_issued_at = :crl_issued_at
+                        WHERE id = :id;""")
+                .single(call().bind("id", authorityId)
+                        .bind("number", number)
+                        .bind("crl", list.list())
+                        .bind("crl_issued_at", list.issuedAt(), INSTANT_TIMESTAMP))
                 .update();
     }
 
@@ -309,7 +346,7 @@ public class SigningKeyRepository {
      * @param authorityId the authority
      */
     public void forgetRevocationList(int authorityId) {
-        query("UPDATE signing_ca SET crl = NULL WHERE id = :id;")
+        query("UPDATE signing_ca SET crl = NULL, crl_issued_at = NULL WHERE id = :id;")
                 .single(call().bind("id", authorityId))
                 .update();
     }

@@ -15,7 +15,8 @@ import jakarta.inject.Singleton;
  *
  * <p>When the at-rest secret changes, the keys wrapped under the old one no longer open. This
  * re-encrypts every authority and every station key, active and retired alike, so retired keys stay
- * readable for revocation and history. The whole run is one transaction: the rows are locked, each
+ * readable for revocation and history. The whole run is one transaction: the rows are locked, the
+ * authorities before the station keys as {@link SigningKeyRepository} prescribes, each
  * key is unwrapped with the old secret and wrapped with the current one, and a single key that does
  * not open with the old secret rolls everything back, leaving every stored key as it was.
  *

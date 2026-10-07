@@ -42,7 +42,7 @@ class PdfSealerTest {
     private static X509Certificate certificate;
     private static byte[] pdf;
 
-    private final PdfSealer sealer = SealedPdfs.sealer(TimestampServices.none());
+    private final PdfSealer sealer = SealedPdfs.sealer(SealedPdfs.noTimestamps());
 
     @BeforeAll
     static void createKeyAndDocument() throws Exception {

@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.storage.credential.CredentialCipher;
 import dev.chojo.ember.feature.storage.credential.CredentialCipherException;
 import dev.chojo.ember.feature.storage.credential.EncryptedBlob;
 import dev.chojo.ember.feature.storage.credential.EncryptionKeyFile;
+import dev.chojo.ember.util.Sha256;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
@@ -21,6 +22,7 @@ import java.security.KeyFactory;
 import java.security.PrivateKey;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.Arrays;
+import java.util.Base64;
 
 /**
  * Wraps signing private keys for storage and unwraps them again, with AES-256-GCM.
@@ -30,11 +32,12 @@ import java.util.Arrays;
  * generated key file). There is no configuration value of its own, so the key file belongs in every
  * backup: without it no signing key opens again.
  *
- * <p>The derivation is {@link CredentialCipher#derivedFrom(String, String)}, {@code SHA-256(purpose, secret)},
- * the construction the federation key transfer already uses. The at-rest secret is 32 uniformly random
- * bytes, so one hash under a purpose of its own is a sound key derivation (the extract step of HKDF adds
- * nothing for a key that is already uniform), and the purpose keeps the wrapping key apart from the
- * at-rest key itself: a value sealed by one never opens with the other.
+ * <p>The derivation is {@code SHA-256(purpose, 0x00, secret)} over the 32 decoded bytes of the secret,
+ * not over its base64 text, so every spelling of the same secret (padded or not) opens the same keys.
+ * The at-rest secret is 32 uniformly random bytes, so one hash under a purpose of its own is a sound key
+ * derivation (the extract step of HKDF adds nothing for a key that is already uniform), and the purpose
+ * keeps the wrapping key apart from the at-rest key itself: a value sealed by one never opens with the
+ * other.
  *
  * <p>A wrapped key is one version byte ({@value #VERSION}), the 12-byte IV and the GCM ciphertext with its
  * tag. The ciphertext holds the length of the key algorithm name, the name in ASCII and the PKCS#8
@@ -71,7 +74,12 @@ public class SigningKeyWrap {
      */
     public SigningKeyWrap(String atRestSecret) {
         requireUsable(atRestSecret);
-        this.cipher = CredentialCipher.derivedFrom(PURPOSE, atRestSecret);
+        byte[] key = wrappingKey(atRestSecret);
+        try {
+            this.cipher = new CredentialCipher(Base64.getEncoder().encodeToString(key));
+        } finally {
+            Arrays.fill(key, (byte) 0);
+        }
     }
 
     /**
@@ -175,6 +183,19 @@ public class SigningKeyWrap {
             throw new SigningKeyWrapException("The unwrapped signing key cannot be read as " + algorithm, e);
         } finally {
             Arrays.fill(encoded, (byte) 0);
+        }
+    }
+
+    private static byte[] wrappingKey(String atRestSecret) {
+        byte[] secret = Base64.getDecoder().decode(atRestSecret);
+        try {
+            var digest = Sha256.digest();
+            digest.update(PURPOSE.getBytes(StandardCharsets.US_ASCII));
+            digest.update((byte) 0);
+            digest.update(secret);
+            return digest.digest();
+        } finally {
+            Arrays.fill(secret, (byte) 0);
         }
     }
 

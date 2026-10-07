@@ -91,7 +91,7 @@ public class StationSigningKeys {
      * @param baseUrl      the installation's public base address, whose host names it in the
      *                     certificates and below which its revocation lists are published
      */
-    public StationSigningKeys(
+    StationSigningKeys(
             SigningKeyRepository keys,
             SigningCertificates certificates,
             SigningKeyWrap wrap,

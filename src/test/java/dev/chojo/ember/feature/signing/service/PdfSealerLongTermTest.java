@@ -23,7 +23,11 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
+import java.net.SocketTimeoutException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.cert.X509CRL;
 import java.security.cert.X509Certificate;
 import java.time.Duration;
@@ -45,8 +49,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Sealing with station keys up to {@code BASELINE-LT}: the station chain with its authority's list from
- * the database, and the timestamp service's chain with its list fetched from a local server, all inside
- * one budget per seal. Nothing here reaches the internet.
+ * the database, and the timestamp service's chain with its status answer or its list fetched from a local
+ * server, all inside one budget per seal, and never from an address that is not HTTP. Nothing here
+ * reaches the internet.
  */
 class PdfSealerLongTermTest extends RepositoryTestBase {
     private static final String SECRET = Base64.getEncoder().encodeToString(new byte[32]);
@@ -173,6 +178,52 @@ class PdfSealerLongTermTest extends RepositoryTestBase {
     }
 
     @Test
+    void aStatusResponderThatAnswersGivesLongTermWithoutTheList() throws Exception {
+        var key = keyOf("Status station");
+        try (var answering = LocalTimestampService.withStatusResponder()) {
+            var result = sealerAsking(answering.url()).seal(pdf, key.privateKey(), key.chain());
+
+            assertEquals(SealLevel.BASELINE_LT, result.level());
+            assertTrue(answering.statusRequests() >= 1, "the status responder was asked");
+            assertEquals(0, answering.listRequests(), "its answer made the list unnecessary");
+            assertValidLongTerm(result.pdf(), key);
+        }
+    }
+
+    @Test
+    void aStatusResponderThatIsDownFallsBackToTheList() throws Exception {
+        var key = keyOf("Status down station");
+        try (var down = LocalTimestampService.withStatusResponderAt(LocalTimestampService.unreachableUrl())) {
+            var result = sealerAsking(down.url()).seal(pdf, key.privateKey(), key.chain());
+
+            assertEquals(SealLevel.BASELINE_LT, result.level());
+            assertEquals(1, down.listRequests(), "the list stood in for the status answer");
+            assertValidLongTerm(result.pdf(), key);
+        }
+    }
+
+    @Test
+    void revocationAddressesThatAreNotHttpAreNeverRead(@TempDir Path directory) throws Exception {
+        var key = keyOf("Directory list station");
+        var file = directory.resolve("list.crl");
+        Files.write(file, LocalTimestampService.revocationList());
+        try (var directoryService = LocalTimestampService.silent();
+                var stamping = LocalTimestampService.listingAt(
+                        "ldap://127.0.0.1:" + directoryService.getLocalPort() + "/cn=list",
+                        file.toUri().toString())) {
+            var result = sealerAsking(stamping.url()).seal(pdf, key.privateKey(), key.chain());
+
+            assertEquals(SealLevel.BASELINE_T, result.level(), "the valid list in the file was not read");
+            assertValidBaselineT(result.pdf(), key);
+            directoryService.setSoTimeout(100);
+            assertThrows(
+                    SocketTimeoutException.class,
+                    directoryService::accept,
+                    "the directory address was never connected to");
+        }
+    }
+
+    @Test
     void timestampsOffSealAtBWithoutAnyRequest() throws Exception {
         var key = keyOf("Offline station");
 
@@ -223,12 +274,15 @@ class PdfSealerLongTermTest extends RepositoryTestBase {
     }
 
     private PdfSealer sealerAsking(String... urls) {
-        return new PdfSealer(
-                new TimestampServices(List.of(urls), SHORT_TIMEOUT, TimestampServices.BUDGET), revocations);
+        var pinned = Arrays.stream(urls).map(LocalTimestampService::pinned).toList();
+        return new PdfSealer(new TimestampServices(pinned, SHORT_TIMEOUT, TimestampServices.BUDGET), revocations);
     }
 
     private PdfSealer sealerWithBudget(String url) {
-        return new PdfSealer(new TimestampServices(List.of(url), TimestampServices.TIMEOUT, SHORT_BUDGET), revocations);
+        return new PdfSealer(
+                new TimestampServices(
+                        List.of(LocalTimestampService.pinned(url)), TimestampServices.TIMEOUT, SHORT_BUDGET),
+                revocations);
     }
 
     private static void assertValidLongTerm(byte[] sealed, SealingKey key) {

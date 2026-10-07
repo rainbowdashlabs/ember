@@ -8,7 +8,9 @@ CREATE TABLE IF NOT EXISTS ember_schema.signing_ca
     created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
     retired_at          TIMESTAMPTZ,
     crl_number          BIGINT      NOT NULL DEFAULT 0,
-    crl                 BYTEA
+    crl                 BYTEA,
+    crl_issued_at       TIMESTAMPTZ,
+    CONSTRAINT signing_ca_crl_issued_check CHECK ((crl IS NULL) = (crl_issued_at IS NULL))
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS signing_ca_active_idx
@@ -35,11 +37,13 @@ COMMENT ON COLUMN ember_schema.signing_ca.crl_number
     IS 'Number of the newest revocation list this authority issued, counting up from 1 with every list; 0 before the first.';
 COMMENT ON COLUMN ember_schema.signing_ca.crl
     IS 'The newest revocation list this authority issued, DER encoded, kept so it is not signed anew for every reader. Public. Emptied when one of its station keys is revoked, so the next reader gets a list that names it.';
+COMMENT ON COLUMN ember_schema.signing_ca.crl_issued_at
+    IS 'When the stored revocation list was issued, the thisUpdate it carries, kept so its age is known without reading the list. Null exactly when no list is stored.';
 
 CREATE TABLE IF NOT EXISTS ember_schema.station_signing_key
 (
     id                  SERIAL PRIMARY KEY,
-    station_id          INT         NOT NULL REFERENCES ember_schema.station (id) ON DELETE CASCADE,
+    station_id          INT         REFERENCES ember_schema.station (id) ON DELETE SET NULL,
     signing_ca_id       INT         NOT NULL REFERENCES ember_schema.signing_ca (id),
     serial_number       TEXT        NOT NULL UNIQUE,
     certificate         BYTEA       NOT NULL,
@@ -57,15 +61,18 @@ CREATE UNIQUE INDEX IF NOT EXISTS station_signing_key_active_idx
     ON ember_schema.station_signing_key (station_id)
     WHERE retired_at IS NULL;
 
+CREATE INDEX IF NOT EXISTS station_signing_key_station_idx
+    ON ember_schema.station_signing_key (station_id);
+
 CREATE INDEX IF NOT EXISTS station_signing_key_signing_ca_idx
     ON ember_schema.station_signing_key (signing_ca_id);
 
 COMMENT ON TABLE ember_schema.station_signing_key
-    IS 'The keys a station seals documents with, each with a certificate issued by one of the installation''s authorities. Created the first time a station seals a document; a station has at most one active key, and retired keys stay so older documents can still be traced to them.';
+    IS 'The keys a station seals documents with, each with a certificate issued by one of the installation''s authorities. Created the first time a station seals a document; a station has at most one active key, and retired keys stay so older documents can still be traced to them. Keys outlive their station, so its revocations are never lost.';
 COMMENT ON COLUMN ember_schema.station_signing_key.id
     IS 'Primary key.';
 COMMENT ON COLUMN ember_schema.station_signing_key.station_id
-    IS 'The station that seals with this key. The keys go with the station when it is deleted.';
+    IS 'The station that seals with this key. Null once the station was deleted: the key stays, so a revoked key stays on its authority''s revocation lists and a key of a deleted station can still be revoked.';
 COMMENT ON COLUMN ember_schema.station_signing_key.signing_ca_id
     IS 'The authority that issued the station certificate, which completes its chain even after a newer authority took over.';
 COMMENT ON COLUMN ember_schema.station_signing_key.serial_number
@@ -79,7 +86,7 @@ COMMENT ON COLUMN ember_schema.station_signing_key.valid_until
 COMMENT ON COLUMN ember_schema.station_signing_key.created_at
     IS 'When the key was created.';
 COMMENT ON COLUMN ember_schema.station_signing_key.retired_at
-    IS 'When the key stopped being used for new seals; null while it is the station''s active key.';
+    IS 'When the key stopped being used for new seals; null while it is the station''s active key, and still null for the last active key of a deleted station, which seals nothing more.';
 COMMENT ON COLUMN ember_schema.station_signing_key.revoked_at
     IS 'When the key was revoked, the date its authority''s revocation lists give for it; null while it is not revoked. A revoked key is always retired.';
 COMMENT ON COLUMN ember_schema.station_signing_key.revocation_reason

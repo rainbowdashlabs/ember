@@ -646,4 +646,8 @@
   "configKey" : "signing.timestampUrls",
   "env" : "SIGNING_TIMESTAMPURLS",
   "default" : "http://timestamp.digicert.com,http://timestamp.sectigo.com,http://timestamp.globalsign.com/tsa/r6advanced1,http://time.certum.pl,http://timestamp.acs.microsoft.com,http://timestamp.apple.com/ts01,https://freetsa.org/tsr"
+}, {
+  "configKey" : "signing.timestampRoots",
+  "env" : null,
+  "default" : "{}"
 } ]

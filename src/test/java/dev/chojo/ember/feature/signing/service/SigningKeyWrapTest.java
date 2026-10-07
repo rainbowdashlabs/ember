@@ -20,6 +20,7 @@ import java.util.Base64;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -129,6 +130,23 @@ class SigningKeyWrapTest {
         byte[] wrapped = new SigningKeyWrap(storage).wrap(generate("EC"));
 
         new SigningKeyWrap(SECRET).unwrap(wrapped);
+    }
+
+    @Test
+    void everySpellingOfTheSameSecretOpensTheSameKeys() throws Exception {
+        String unpadded = Base64.getEncoder().withoutPadding().encodeToString(filled((byte) 3));
+        assertNotEquals(SECRET, unpadded, "two spellings of the same 32 bytes");
+        PrivateKey key = generate("EC");
+
+        byte[] wrapped = new SigningKeyWrap(SECRET).wrap(key);
+
+        assertArrayEquals(
+                key.getEncoded(), new SigningKeyWrap(unpadded).unwrap(wrapped).getEncoded());
+        assertArrayEquals(
+                key.getEncoded(),
+                new SigningKeyWrap(SECRET)
+                        .unwrap(new SigningKeyWrap(unpadded).wrap(key))
+                        .getEncoded());
     }
 
     @Test

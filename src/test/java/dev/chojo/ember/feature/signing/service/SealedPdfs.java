@@ -77,9 +77,14 @@ final class SealedPdfs {
      * @return the sealed document
      */
     static byte[] sealedWith(SealingKey key) throws IOException {
-        return sealer(TimestampServices.none())
+        return sealer(noTimestamps())
                 .seal(onePagePdf(), key.privateKey(), key.chain())
                 .pdf();
+    }
+
+    /** @return services that are never asked, so every seal stays without a timestamp */
+    static TimestampServices noTimestamps() {
+        return new TimestampServices(List.of(), TimestampServices.TIMEOUT, TimestampServices.BUDGET);
     }
 
     /**

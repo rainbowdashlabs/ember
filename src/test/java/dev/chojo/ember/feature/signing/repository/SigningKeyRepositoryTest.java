@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.signing.repository;
 
 import dev.chojo.ember.feature.signing.entity.RevocationReason;
 import dev.chojo.ember.feature.signing.entity.RevokedKey;
+import dev.chojo.ember.feature.signing.entity.StoredRevocationList;
 import dev.chojo.ember.feature.signing.entity.StoredSigningKey;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import dev.chojo.ember.util.sql.Transactions;
@@ -30,7 +31,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * The stored authorities and station keys: one active authority and one active key per station, the
- * first stored one kept when two arrive, retiring only once, and wrapped keys replaced in place.
+ * first stored one kept when two arrive, retiring only once, wrapped keys replaced in place, and keys
+ * outliving the station they belonged to.
  */
 class SigningKeyRepositoryTest extends RepositoryTestBase {
     private final SigningKeyRepository repository = new SigningKeyRepository();
@@ -164,19 +166,29 @@ class SigningKeyRepositoryTest extends RepositoryTestBase {
     }
 
     @Test
-    void deletingAStationTakesItsKeys() {
+    void aRevokedKeyOfADeletedStationStaysListedForItsAuthority() {
         var station = stationRepo.create("Deleted signing station");
-        repository.storeActive(station.id(), authorityId(), key("gone"));
+        int authorityId = authorityId();
+        var revoked = key("revoked before the deletion");
+        repository.storeActive(station.id(), authorityId, revoked);
+        repository.revoke(authorityId, revoked.serialNumber(), RevocationReason.KEY_COMPROMISE, Instant.now());
+        var active = key("active at the deletion");
+        repository.storeActive(station.id(), authorityId, active);
 
         stationRepo.delete(station.id());
 
         assertEquals(
-                0,
-                query("SELECT count(*) AS n FROM station_signing_key WHERE station_id = :station_id;")
-                        .single(call().bind("station_id", station.id()))
-                        .map(row -> row.getInt("n"))
-                        .first()
-                        .orElseThrow());
+                List.of(revoked.serialNumber()),
+                repository.revokedBy(authorityId).stream()
+                        .map(RevokedKey::serialNumber)
+                        .toList());
+        assertEquals(Optional.of(authorityId), repository.authorityOfDeletedStationKey(revoked.serialNumber()));
+        assertEquals(Optional.of(authorityId), repository.authorityOfDeletedStationKey(active.serialNumber()));
+        assertTrue(repository
+                .authorityOfStationKey(station.id(), active.serialNumber())
+                .isEmpty());
+        assertTrue(repository.findActive(station.id()).isEmpty());
+        assertEquals(2, Transactions.call(repository::lockStationKeys).size(), "both keys stay for re-wrapping");
     }
 
     @Test
@@ -188,17 +200,17 @@ class SigningKeyRepositoryTest extends RepositoryTestBase {
         repository.retire(repository.findActive(station.id()).orElseThrow().id());
         var active = key("active");
         repository.storeActive(station.id(), authorityId, active);
+        var first = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+        var second = first.plusSeconds(1);
 
-        assertEquals(
-                Optional.of(authorityId),
-                repository.revoke(station.id(), active.serialNumber(), RevocationReason.KEY_COMPROMISE));
-        assertEquals(
-                Optional.empty(), repository.revoke(station.id(), active.serialNumber(), RevocationReason.SUPERSEDED));
+        assertTrue(repository.revoke(authorityId, active.serialNumber(), RevocationReason.KEY_COMPROMISE, first));
+        assertFalse(repository.revoke(authorityId, active.serialNumber(), RevocationReason.SUPERSEDED, second));
         assertTrue(repository.findActive(station.id()).isEmpty(), "an active key is retired with it");
-        assertEquals(
-                Optional.of(authorityId),
-                repository.revoke(station.id(), retired.serialNumber(), RevocationReason.SUPERSEDED));
-        assertEquals(Optional.empty(), repository.revoke(station.id(), "ffff", RevocationReason.SUPERSEDED));
+        assertTrue(repository.revoke(authorityId, retired.serialNumber(), RevocationReason.SUPERSEDED, second));
+        assertFalse(repository.revoke(authorityId, "ffff", RevocationReason.SUPERSEDED, second));
+        assertFalse(
+                repository.revoke(Integer.MAX_VALUE, retired.serialNumber(), RevocationReason.SUPERSEDED, second),
+                "only through the authority that issued it");
 
         var revoked = repository.revokedBy(authorityId);
         assertEquals(
@@ -207,20 +219,26 @@ class SigningKeyRepositoryTest extends RepositoryTestBase {
         assertEquals(
                 List.of(RevocationReason.KEY_COMPROMISE, RevocationReason.SUPERSEDED),
                 revoked.stream().map(RevokedKey::reason).toList());
-        assertFalse(revoked.getFirst().revokedAt().isAfter(revoked.getLast().revokedAt()));
+        assertEquals(
+                List.of(first, second),
+                revoked.stream().map(RevokedKey::revokedAt).toList());
         assertEquals(List.of(), repository.revokedBy(Integer.MAX_VALUE));
     }
 
     @Test
-    void holdsOnlyTheStationsOwnKeys() {
+    void aKeyIsFoundOnlyThroughItsOwnStation() {
         var station = stationRepo.create("Holding station");
         var other = stationRepo.create("Other holding station");
+        int authorityId = authorityId();
         var held = key("held");
-        repository.storeActive(station.id(), authorityId(), held);
+        repository.storeActive(station.id(), authorityId, held);
 
-        assertTrue(repository.holds(station.id(), held.serialNumber()));
-        assertFalse(repository.holds(other.id(), held.serialNumber()));
-        assertFalse(repository.holds(station.id(), "ffff"));
+        assertEquals(Optional.of(authorityId), repository.authorityOfStationKey(station.id(), held.serialNumber()));
+        assertTrue(repository
+                .authorityOfStationKey(other.id(), held.serialNumber())
+                .isEmpty());
+        assertTrue(repository.authorityOfStationKey(station.id(), "ffff").isEmpty());
+        assertTrue(repository.authorityOfDeletedStationKey(held.serialNumber()).isEmpty(), "its station exists");
     }
 
     @Test
@@ -243,10 +261,12 @@ class SigningKeyRepositoryTest extends RepositoryTestBase {
         assertTrue(repository.findRevocationList(authorityId).isEmpty());
 
         Transactions.run(() -> assertEquals(0L, repository.lockRevocationListNumber(authorityId)));
-        repository.storeRevocationList(authorityId, 1, bytes("list one"));
+        var issuedAt = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+        repository.storeRevocationList(authorityId, 1, new StoredRevocationList(bytes("list one"), issuedAt));
 
-        assertArrayEquals(
-                bytes("list one"), repository.findRevocationList(authorityId).orElseThrow());
+        var stored = repository.findRevocationList(authorityId).orElseThrow();
+        assertArrayEquals(bytes("list one"), stored.list());
+        assertEquals(issuedAt, stored.issuedAt());
         Transactions.run(() -> assertEquals(1L, repository.lockRevocationListNumber(authorityId)));
 
         repository.forgetRevocationList(authorityId);

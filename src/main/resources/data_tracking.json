@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:74515a8dc9e9c4f3053c70c5f5feb98fb83cdba6016474c9931bdd37f0c7e812",
-  "generatedAt": "2026-10-07T22:44:28Z",
+  "schemaHash": "sha256:4549ea1add154ee27d5b8d22241ac4ea4221679009f8312477b69fdc1196948f",
+  "generatedAt": "2026-10-07T23:34:36Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -22737,7 +22737,7 @@
     "signing_ca": {
       "feature": "signing",
       "scope": "INSTANCE",
-      "tableHash": "sha256:1a34bc67e27106b26c28ec12e1629dc295c67ff1cc3a7d9dc1523caa02cb8159",
+      "tableHash": "sha256:f5695d9962a92d153c5797aefccde4adbca23cd5eb27c0bc0c27a2974865462d",
       "columns": [
         {
           "name": "id",
@@ -22801,6 +22801,13 @@
           "nullable": true,
           "verified": true,
           "description": "The newest revocation list this authority issued, DER encoded, kept so it is not signed anew for every reader. Public. Emptied when one of its station keys is revoked, so the next reader gets a list that names it."
+        },
+        {
+          "name": "crl_issued_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When the stored revocation list was issued, the thisUpdate it carries, kept so its age is known without reading the list. Null exactly when no list is stored."
         }
       ],
       "foreignKeys": [],
@@ -24693,7 +24700,7 @@
     "station_signing_key": {
       "feature": "signing",
       "scope": "STATION",
-      "tableHash": "sha256:bbeca14ef2acb5f9ad2feeca60d2a30c3c13a1be405cce79d44bbc67c49f435b",
+      "tableHash": "sha256:c98ff3ea36d6d3d2375028d8396d1d59d0f82295c15d5ff5ddb3ea8406fca730",
       "columns": [
         {
           "name": "id",
@@ -24705,9 +24712,9 @@
         {
           "name": "station_id",
           "type": "int4",
-          "nullable": false,
+          "nullable": true,
           "verified": true,
-          "description": "The station that seals with this key. The keys go with the station when it is deleted."
+          "description": "The station that seals with this key. Null once the station was deleted: the key stays, so a revoked key stays on its authority's revocation lists and a key of a deleted station can still be revoked."
         },
         {
           "name": "signing_ca_id",
@@ -24756,7 +24763,7 @@
           "type": "timestamptz",
           "nullable": true,
           "verified": true,
-          "description": "When the key stopped being used for new seals; null while it is the station's active key."
+          "description": "When the key stopped being used for new seals; null while it is the station's active key, and still null for the last active key of a deleted station, which seals nothing more."
         },
         {
           "name": "revoked_at",
@@ -24784,7 +24791,7 @@
           "column": "station_id",
           "refTable": "station",
           "refColumn": "id",
-          "onDelete": "CASCADE"
+          "onDelete": "SET NULL"
         }
       ],
       "stationTransfer": {
@@ -24797,9 +24804,9 @@
       },
       "gdprDeletion": {
         "status": "IGNORED",
-        "reason": "Key material of the station, not personal data."
+        "reason": "Key material of the station, not personal data. Kept even when the station is deleted, so a revoked key stays on its authority's revocation lists."
       },
-      "description": "The keys a station seals documents with, each with a certificate issued by one of the installation's authorities. Created the first time a station seals a document; a station has at most one active key, and retired keys stay so older documents can still be traced to them."
+      "description": "The keys a station seals documents with, each with a certificate issued by one of the installation's authorities. Created the first time a station seals a document; a station has at most one active key, and retired keys stay so older documents can still be traced to them. Keys outlive their station, so its revocations are never lost."
     },
     "station_storage_config": {
       "feature": "storage",

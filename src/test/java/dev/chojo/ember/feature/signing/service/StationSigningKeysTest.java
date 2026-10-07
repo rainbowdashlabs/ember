@@ -10,6 +10,8 @@ import dev.chojo.ember.feature.signing.repository.SigningKeyRepository;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import eu.europa.esig.dss.enumerations.Indication;
 import eu.europa.esig.dss.enumerations.SignatureLevel;
+import eu.europa.esig.dss.enumerations.SubIndication;
+import eu.europa.esig.dss.validation.reports.Reports;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -187,15 +189,7 @@ class StationSigningKeysTest extends RepositoryTestBase {
         var chain = signature.getCertificateChain();
         assertEquals(2, chain.size());
         assertTrue(chain.getLast().isTrusted(), "the authority is the trust anchor");
-        assertEquals(
-                Indication.INDETERMINATE,
-                reports.getSimpleReport().getIndication(signature.getId()),
-                "no revocation data is embedded yet, which is all that keeps it from passing");
-        assertEquals(
-                List.of(
-                        "The certificate validation is not conclusive!",
-                        "No revocation data found for the certificate!"),
-                SealedPdfs.validationErrors(reports));
+        assertIndeterminateForWantOfRevocationData(reports);
     }
 
     @Test
@@ -384,12 +378,25 @@ class StationSigningKeysTest extends RepositoryTestBase {
                 key.certificate().getSerialNumber().toString(),
                 signature.getSigningCertificate().getSerialNumber());
         assertTrue(signature.getCertificateChain().getLast().isTrusted(), "the issuing authority is the anchor");
-        assertEquals(Indication.INDETERMINATE, reports.getSimpleReport().getIndication(signature.getId()));
+        assertIndeterminateForWantOfRevocationData(reports);
+    }
+
+    /**
+     * A seal without revocation data, validated offline: indeterminate for that reason alone, which is
+     * what the seals of this class are without a list to consult.
+     */
+    private static void assertIndeterminateForWantOfRevocationData(Reports reports) {
+        var signature = reports.getDiagnosticData().getSignatures().getFirst();
         assertEquals(
-                List.of(
-                        "The certificate validation is not conclusive!",
-                        "No revocation data found for the certificate!"),
-                SealedPdfs.validationErrors(reports));
+                Indication.INDETERMINATE,
+                reports.getSimpleReport().getIndication(signature.getId()),
+                "no revocation data is embedded, which is all that keeps it from passing");
+        assertEquals(
+                SubIndication.CERTIFICATE_CHAIN_GENERAL_FAILURE,
+                reports.getSimpleReport().getSubIndication(signature.getId()));
+        assertTrue(
+                signature.getSigningCertificate().getCertificateRevocationData().isEmpty(),
+                "no revocation data for the station certificate");
     }
 
     private static void setStationKeyValidity(Duration left) {

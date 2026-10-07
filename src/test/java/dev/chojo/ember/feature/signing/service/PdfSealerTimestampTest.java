@@ -16,13 +16,17 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.cert.X509Certificate;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 import static dev.chojo.ember.feature.signing.service.SealedPdfs.referencedDataIntact;
 import static dev.chojo.ember.feature.signing.service.SealedPdfs.validationErrors;
@@ -35,6 +39,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Sealing with timestamps against timestamp services on the loopback address. Nothing here reaches the
  * internet: every service is a {@link LocalTimestampService}, a closed port or a socket that never answers.
+ * Each service is pinned to the local test root, and a timestamp that does not chain to the pinned root
+ * counts as that service failing.
  *
  * <p>The seal certificate here is self-signed and needs no revocation data, so a timestamped seal
  * reaches {@code BASELINE-LT} with the local service's list alone. Station chains, and seals that stop
@@ -219,9 +225,86 @@ class PdfSealerTimestampTest {
         }
     }
 
+    @Test
+    void aTimestampFromAnotherRootIsRefusedAndTheNextServiceAsked() throws Exception {
+        try (var impostor = LocalTimestampService.start()) {
+            var services = List.of(
+                    new TimestampServices.Service(impostor.url(), LocalTimestampService.otherRoot()), service.pinned());
+
+            var result = SealedPdfs.sealer(new TimestampServices(services, SHORT_TIMEOUT, TimestampServices.BUDGET))
+                    .seal(pdf, keys.getPrivate(), List.of(certificate));
+
+            assertEquals(1, impostor.requests(), "asked, and its answer refused");
+            assertEquals(SealLevel.BASELINE_LT, result.level());
+            assertEquals(service.url(), result.timestampedBy());
+            assertValidTimestamped(result.pdf());
+        }
+    }
+
+    @Test
+    void onlyTimestampsFromAnotherRootSealWithoutATimestamp() {
+        var services = List.of(new TimestampServices.Service(service.url(), LocalTimestampService.otherRoot()));
+
+        var result = SealedPdfs.sealer(new TimestampServices(services, SHORT_TIMEOUT, TimestampServices.BUDGET))
+                .seal(pdf, keys.getPrivate(), List.of(certificate));
+
+        assertEquals(1, service.requests());
+        assertEquals(SealLevel.BASELINE_B, result.level());
+        assertNull(result.timestampedBy());
+    }
+
+    @Test
+    void aConfiguredServiceWithoutAPinnedRootIsNeverAsked(@TempDir Path directory) throws Exception {
+        var rootFile = directory.resolve("root.pem");
+        Files.write(rootFile, LocalTimestampService.root().getEncoded());
+        try (var unpinned = LocalTimestampService.start()) {
+            var config = new Signing() {
+                @Override
+                public List<String> timestampUrls() {
+                    return List.of(unpinned.url(), service.url());
+                }
+
+                @Override
+                public Map<String, String> timestampRoots() {
+                    return Map.of(service.url(), rootFile.toString());
+                }
+            };
+
+            var result =
+                    SealedPdfs.sealer(new TimestampServices(config)).seal(pdf, keys.getPrivate(), List.of(certificate));
+
+            assertEquals(0, unpinned.requests(), "no root, never asked");
+            assertEquals(SealLevel.BASELINE_LT, result.level());
+            assertEquals(service.url(), result.timestampedBy());
+        }
+    }
+
+    @Test
+    void liftingATimestampedDocumentAddsAnotherDocumentTimestamp() {
+        var stamped = sealerAsking(service.url())
+                .seal(pdf, keys.getPrivate(), List.of(certificate))
+                .pdf();
+
+        var result = sealerAsking(service.url()).lift(stamped);
+
+        assertEquals(SealLevel.BASELINE_LT, result.level());
+        assertEquals(2, service.requests());
+        assertArrayEquals(stamped, Arrays.copyOf(result.pdf(), stamped.length), "the stamped seal untouched");
+        var reports = validate(result.pdf());
+        var timestamps = reports.getDiagnosticData().getTimestampList();
+        assertEquals(2, timestamps.size(), "the signature's timestamp and a document timestamp");
+        for (var timestamp : timestamps) {
+            assertTrue(timestamp.isSignatureValid(), "timestamp signature");
+            assertEquals(
+                    Indication.PASSED,
+                    reports.getDetailedReport().getBasicTimestampValidationIndication(timestamp.getId()));
+        }
+        assertEquals(List.of(), validationErrors(reports));
+    }
+
     private static PdfSealer sealerWithBudget(List<LocalTimestampService> services) {
-        var urls = services.stream().map(LocalTimestampService::url).toList();
-        return SealedPdfs.sealer(new TimestampServices(urls, TimestampServices.TIMEOUT, SHORT_BUDGET));
+        var pinned = services.stream().map(LocalTimestampService::pinned).toList();
+        return SealedPdfs.sealer(new TimestampServices(pinned, TimestampServices.TIMEOUT, SHORT_BUDGET));
     }
 
     private static void assertWithinBudget(Duration elapsed, List<LocalTimestampService> services) {
@@ -231,7 +314,8 @@ class PdfSealerTimestampTest {
     }
 
     private static PdfSealer sealerAsking(String... urls) {
-        return SealedPdfs.sealer(new TimestampServices(List.of(urls), SHORT_TIMEOUT, TimestampServices.BUDGET));
+        var pinned = Arrays.stream(urls).map(LocalTimestampService::pinned).toList();
+        return SealedPdfs.sealer(new TimestampServices(pinned, SHORT_TIMEOUT, TimestampServices.BUDGET));
     }
 
     private static void assertValidTimestamped(byte[] sealed) {

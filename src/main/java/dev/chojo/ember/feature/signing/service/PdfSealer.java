@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.signing.service;
 
 import dev.chojo.ember.feature.signing.entity.SealedDocument;
 import eu.europa.esig.dss.alert.LogOnStatusAlert;
+import eu.europa.esig.dss.alert.SilentOnStatusAlert;
 import eu.europa.esig.dss.alert.exception.AlertException;
 import eu.europa.esig.dss.enumerations.DigestAlgorithm;
 import eu.europa.esig.dss.enumerations.EncryptionAlgorithm;
@@ -18,6 +19,7 @@ import eu.europa.esig.dss.model.SignatureValue;
 import eu.europa.esig.dss.model.ToBeSigned;
 import eu.europa.esig.dss.model.x509.CertificateToken;
 import eu.europa.esig.dss.pades.PAdESSignatureParameters;
+import eu.europa.esig.dss.pades.PAdESTimestampParameters;
 import eu.europa.esig.dss.pades.signature.PAdESService;
 import eu.europa.esig.dss.pdf.pdfbox.PdfBoxDefaultObjectFactory;
 import eu.europa.esig.dss.spi.DSSUtils;
@@ -44,8 +46,9 @@ import java.util.Objects;
  * backend as an incremental update, so the bytes of the original document stay untouched and
  * covered. It holds the signing certificate and the chain it is given, a signing time from this
  * server's clock, and SHA-256 digests. With timestamps on, the signature also carries a timestamp
- * from the first of the {@link TimestampServices} that answers, which proves the seal existed at
- * that time ({@code BASELINE-T}). A further revision then adds the validation material, so the seal
+ * from the first of the {@link TimestampServices} that answers with a timestamp chaining to the root
+ * pinned for it, which proves the seal existed at that time ({@code BASELINE-T}). A further revision
+ * then adds the validation material, so the seal
  * can be checked later without asking anyone ({@code BASELINE-LT}): every certificate of the seal and
  * of the timestamp, the current revocation list of the installation authority that issued the
  * station certificate, and the revocation data of the timestamp service's certificates.
@@ -133,7 +136,7 @@ public class PdfSealer {
         if (round.isEmpty()) return SealedDocument.withoutTimestamp(sealed);
         byte[] stamped;
         try {
-            stamped = extend(sealed, SignatureLevel.PAdES_BASELINE_T, round.get());
+            stamped = documentTimestamped(sealed, round.get());
         } catch (DSSException e) {
             log.warn("Could not add a timestamp to a sealed document: {}", e.getMessage());
             return SealedDocument.withoutTimestamp(sealed);
@@ -165,6 +168,12 @@ public class PdfSealer {
         return DSSUtils.toByteArray(service.signDocument(document, parameters, value));
     }
 
+    private byte[] documentTimestamped(byte[] sealed, TimestampServices.Round round) {
+        var parameters = new PAdESTimestampParameters();
+        parameters.setDigestAlgorithm(DIGEST);
+        return DSSUtils.toByteArray(service(round, false).timestamp(new InMemoryDocument(sealed), parameters));
+    }
+
     private byte[] extend(byte[] sealed, SignatureLevel level, TimestampServices.Round round) {
         var parameters = new PAdESSignatureParameters();
         parameters.setSignatureLevel(level);
@@ -174,15 +183,21 @@ public class PdfSealer {
     }
 
     /**
-     * @param round                     the seal's outside calls, or null when nothing may be fetched
-     * @param requireEveryRevocationData whether a certificate without revocation data fails the step,
-     *                                  which only the step adding the validation material needs; the
-     *                                  others only log it
+     * @param round               the seal's outside calls, or null when nothing may be fetched
+     * @param addsValidationData  whether this is the step adding the validation material: there a
+     *                            certificate without revocation data fails the step, while the other
+     *                            steps only log it, and a document whose seal another document
+     *                            timestamp already took past {@code BASELINE-LT} still gets the material
+     *                            for its newest timestamp
      */
-    private PAdESService service(TimestampServices.@Nullable Round round, boolean requireEveryRevocationData) {
+    private PAdESService service(TimestampServices.@Nullable Round round, boolean addsValidationData) {
         var verifier = new CommonCertificateVerifier(true);
         SealRevocationSources.configure(verifier, revocations, round);
-        if (!requireEveryRevocationData) verifier.setAlertOnMissingRevocationData(new LogOnStatusAlert(Level.WARN));
+        if (addsValidationData) {
+            verifier.setAugmentationAlertOnHigherSignatureLevel(new SilentOnStatusAlert());
+        } else {
+            verifier.setAlertOnMissingRevocationData(new LogOnStatusAlert(Level.WARN));
+        }
         var service = new PAdESService(verifier);
         service.setPdfObjFactory(new PdfBoxDefaultObjectFactory());
         if (round != null) service.setTspSource(round);
