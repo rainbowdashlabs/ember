@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.signing.entity.StoredSigningKey;
 import dev.chojo.ember.feature.storage.credential.CredentialCipher;
 import dev.chojo.ember.feature.storage.credential.CredentialCipherException;
 import dev.chojo.ember.feature.storage.credential.EncryptedBlob;
+import dev.chojo.ember.feature.storage.credential.EncryptionKeyFile;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
@@ -134,7 +135,9 @@ public class SigningKeyWrap {
             return cipher.decrypt(blob);
         } catch (CredentialCipherException e) {
             throw new SigningKeyWrapException(
-                    "The signing key does not open: it was wrapped under another encryption key or has been altered",
+                    "The signing key does not open: it was wrapped under another at-rest encryption key or has been"
+                            + " altered. Restore the key file " + EncryptionKeyFile.DEFAULT_PATH
+                            + " (or storage.credentialEncryptionKey) from the same backup as the database",
                     e);
         }
     }

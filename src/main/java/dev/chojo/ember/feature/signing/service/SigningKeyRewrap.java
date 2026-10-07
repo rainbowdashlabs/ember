@@ -19,10 +19,12 @@ import jakarta.inject.Singleton;
  * key is unwrapped with the old secret and wrapped with the current one, and a single key that does
  * not open with the old secret rolls everything back, leaving every stored key as it was.
  *
- * <p>Nothing calls this yet: there is no route, scheduled task or configuration value for it. It is
- * meant to run once, by an operator action, right after the secret changed and before anything is
- * sealed again; a key created under the new secret in between does not open with the old one and
- * stops the run.
+ * <p>Nothing calls this, on purpose: Ember has no way to change the at-rest secret, and changing it by
+ * hand already leaves federation keys and mailbox passwords unreadable. It is ready for the day the
+ * secret can be rotated as a whole, and then belongs in that rotation: run once, right after the secret
+ * changed and before anything is sealed again, with the old secret still at hand. A key created under
+ * the new secret in between does not open with the old one and stops the run. Restoring a database
+ * backup does not need it, since the key file from the same backup opens the keys as they are.
  */
 @Singleton
 public class SigningKeyRewrap {
