@@ -359,7 +359,11 @@ public enum DocumentRefusal implements Refusal {
     DOCUMENT_WEB_FONT_NOT_A_FONT(
             121,
             HttpStatus.BAD_REQUEST,
-            "Only WOFF2, WOFF, TrueType (.ttf) and OpenType (.otf) files can be a web version");
+            "Only WOFF2, WOFF, TrueType (.ttf) and OpenType (.otf) files can be a web version"),
+
+    /** A template list asked for by a kind of template or an order that does not exist. */
+    DOCUMENT_TEMPLATE_LIST_UNKNOWN_CHOICE(
+            122, HttpStatus.BAD_REQUEST, "The templates cannot be listed by that kind or in that order");
 
     private final Definition definition;
 

@@ -101,4 +101,5 @@ export default {
     'D-112': 'Nur ein Datum bekommt in einer Vorlage ein Format',
     'D-120': 'Diese Schrift lässt sich im Editor nicht zeigen, deshalb steht ihr Name an ihrer Stelle',
     'D-121': 'Nur WOFF2-, WOFF-, TrueType- (.ttf) und OpenType-Dateien (.otf) können eine Webfassung sein',
+    'D-122': 'Nach dieser Art oder in dieser Reihenfolge lassen sich die Vorlagen nicht auflisten',
 }
