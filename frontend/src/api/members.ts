@@ -7,6 +7,7 @@ import client from './client'
 import type {
     InviteRequest,
     IssuedOneTimePassword,
+    MemberCard,
     MemberInviteResponse,
     MemberSearchResult,
     MessageResponse,
@@ -92,6 +93,12 @@ export async function searchMembers(query?: string, limit = 20): Promise<MemberS
     const params: Record<string, string | number> = {limit}
     if (query) params.q = query
     const res = await client.get<MemberSearchResult[]>('/members/search', {params})
+    return res.data
+}
+
+/** The short card shown when somebody looks at the name of a member of their own station. */
+export async function getMemberCard(memberUid: string): Promise<MemberCard> {
+    const res = await client.get<MemberCard>(`/station-members/by-uid/${memberUid}/card`)
     return res.data
 }
 

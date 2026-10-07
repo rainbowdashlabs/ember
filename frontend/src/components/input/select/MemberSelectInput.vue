@@ -186,7 +186,7 @@ onMounted(() => {
                    text-left text-sm transition-colors hover:border-primary disabled:opacity-50"
             @keydown.down.prevent="open = true"
         >
-          <MemberName v-if="triggerIdentity" :identity="triggerIdentity" class="min-w-0 flex-1"/>
+          <MemberName v-if="triggerIdentity" :identity="triggerIdentity" :card="false" class="min-w-0 flex-1"/>
           <span v-else class="flex-1 truncate" :class="values.length === 0 ? 'text-(--text-muted)' : ''">
             {{ triggerLabel }}
           </span>

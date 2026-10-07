@@ -50730,6 +50730,53 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/station-members/by-uid/{uid}/card": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get the short profile card of a member of the caller's station */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    uid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MemberCard"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/station-members/completions": {
         parameters: {
             query?: never;
@@ -60287,6 +60334,19 @@ export interface components {
             memberId: number;
             reason: string | null;
         };
+        MemberCard: {
+            children: components["schemas"]["MemberIdentity"][];
+            former: boolean;
+            groups: components["schemas"]["MemberCardLabel"][];
+            identity: components["schemas"]["MemberIdentity"];
+            name: string;
+            parents: components["schemas"]["MemberIdentity"][];
+            tags: components["schemas"]["MemberCardLabel"][];
+        };
+        MemberCardLabel: {
+            color: string | null;
+            name: string;
+        };
         MemberCheckState: {
             assigned: components["schemas"]["InventoryItem"][];
             lastCheck: components["schemas"]["InventoryCheck"] | null;
@@ -66265,6 +66325,8 @@ export type MediaFolderRequest = components['schemas']['MediaFolderRequest'];
 export type MediaPruneResult = components['schemas']['MediaPruneResult'];
 export type MediaTagRequest = components['schemas']['MediaTagRequest'];
 export type MemberAbsence = components['schemas']['MemberAbsence'];
+export type MemberCard = components['schemas']['MemberCard'];
+export type MemberCardLabel = components['schemas']['MemberCardLabel'];
 export type MemberCheckState = components['schemas']['MemberCheckState'];
 export type MemberCompletion = components['schemas']['MemberCompletion'];
 export type MemberDocumentResponse = components['schemas']['MemberDocumentResponse'];

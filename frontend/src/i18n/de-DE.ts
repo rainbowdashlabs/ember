@@ -3225,6 +3225,16 @@ export default {
         showMore: '+{count} weitere',
         showFewer: 'Weniger zeigen',
     },
+    memberCard: {
+        open: 'Kurzprofil von {name} öffnen',
+        label: 'Kurzprofil von {name}',
+        guardians: 'Erziehungsberechtigte',
+        managedMembers: 'Verwaltete Mitglieder',
+        tags: 'Tags',
+        groups: 'Gruppen',
+        former: 'Ehemaliges Mitglied',
+        loadFailed: 'Das Kurzprofil konnte nicht geladen werden.',
+    },
     memberGroups: {
         title: 'Gruppen',
         create: 'Neue Gruppe',

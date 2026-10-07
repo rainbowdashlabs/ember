@@ -2,10 +2,11 @@
 
 ## v26.22.0
 
-A new name a member gives themselves waits for the member management to approve it. The German interface uses one name for trial members.
+A short profile opens from any member's name. A new name a member gives themselves waits for the member management to approve it. The German interface uses one name for trial members.
 
 ### New Features
 
+- **A short profile behind every name.** Resting the pointer on a member's name or picture, or tapping the picture on a phone, opens a small card with their picture, guardians, managed members, tags and groups. Mentions in comments open the same card.
 - **A new name waits for approval.** When members change their own name, it only takes effect once someone allowed to confirm member changes approves it under Members → Changes. A declined name can carry a reason, which the member sees in the notification.
 
 ### Changes
