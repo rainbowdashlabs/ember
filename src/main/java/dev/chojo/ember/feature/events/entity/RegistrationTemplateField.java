@@ -29,7 +29,7 @@ public record RegistrationTemplateField(
                 row.getInt("id"),
                 row.getInt("template_id"),
                 row.getString("name"),
-                FieldType.valueOf(row.getString("field_type")),
+                row.getEnum("field_type", FieldType.class),
                 EventQuestionSettings.parse(row.getString("config")),
                 row.getInt("position"),
                 row.getBoolean("overview"));

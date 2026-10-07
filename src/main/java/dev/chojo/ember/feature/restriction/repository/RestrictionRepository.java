@@ -69,7 +69,7 @@ public class RestrictionRepository {
                         "SELECT %s AS mode FROM %s WHERE %s = :id;",
                         type.modeColumn(), type.entityTable(), type.entityIdColumn())
                 .single(call().bind("id", entityId))
-                .map(row -> RestrictionMode.valueOf(row.getString("mode")))
+                .map(row -> row.getEnum("mode", RestrictionMode.class))
                 .first()
                 .orElse(RestrictionMode.AND);
     }
