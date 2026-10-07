@@ -18,6 +18,8 @@ import type {PersonIdentity} from '@/util/personIdentity'
  * <p>A name that leads somewhere is painted like everything else that leads somewhere, and a name
  * carrying its group's colour keeps that colour: the group is the one thing about a person a list is
  * allowed to say in colour, and it outranks the link.
+ *
+ * <p>A linked name opens no member card: the whole name is the link, so a press on it belongs there.
  */
 const props = defineProps<{
   identity?: PersonIdentity | null
@@ -35,7 +37,7 @@ const routes = useInventoryRoutes()
       class="inline-block font-medium hover:underline"
       @click.stop
   >
-    <MemberName :identity="props.identity"/>
+    <MemberName :identity="props.identity" :card="false"/>
   </router-link>
   <MemberName v-else :identity="props.identity"/>
 </template>

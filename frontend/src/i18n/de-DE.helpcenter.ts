@@ -5066,6 +5066,8 @@ volumes:
             whatIsText: 'Hier verwaltest du alle Mitglieder deiner Wache - vom Anlegen und Einladen neuer Mitglieder über die Pflege ihrer Profile bis hin zur Organisation in Gruppen und Tags. Du kannst Mitglieder auch importieren oder als ehemalig markieren.',
             pagesTitle: 'Was findest du hier?',
             pagesText: 'Mitglieder anlegen, importieren, die Mitgliederliste durchsuchen, Detailprofile ansehen und bearbeiten, Gruppen und Tags verwalten, Profiländerungen prüfen und ehemalige Mitglieder einsehen.',
+            cardTitle: 'Kurzprofil',
+            cardText: 'Überall, wo ein Mitglied mit Bild und Namen steht, steckt ein Kurzprofil dahinter. Bleib mit der Maus kurz auf dem Namen oder dem Bild, oder tippe am Handy auf das Bild. Dann siehst du die Erziehungsberechtigten, die verwalteten Mitglieder, die Tags und die Gruppen. Das klappt auch bei Erwähnungen in Kommentaren.',
             overviewTip: 'Mitglieder werden per E-Mail eingeladen. Sie können ihr Profil selbst vervollständigen.',
         },
         inventoryModuleOverview: {

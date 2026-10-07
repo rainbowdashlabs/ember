@@ -37328,6 +37328,42 @@
         } ]
       }
     },
+    "/api/v1/station-members/by-uid/{uid}/card" : {
+      "get" : {
+        "summary" : "Get the short profile card of a member of the caller's station",
+        "tags" : [ "Station Members" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MemberCard"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "uid",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ]
+      }
+    },
     "/api/v1/station-members/completions" : {
       "get" : {
         "summary" : "List the active members of the caller's station for autocomplete",
@@ -56599,6 +56635,57 @@
           }
         },
         "required" : [ "id", "memberId", "absentFrom", "absentUntil", "reason", "createdAt", "createdBy" ]
+      },
+      "MemberCard" : {
+        "type" : "object",
+        "properties" : {
+          "identity" : {
+            "$ref" : "#/components/schemas/MemberIdentity"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "former" : {
+            "type" : "boolean"
+          },
+          "parents" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/MemberIdentity"
+            }
+          },
+          "children" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/MemberIdentity"
+            }
+          },
+          "tags" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/MemberCardLabel"
+            }
+          },
+          "groups" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/MemberCardLabel"
+            }
+          }
+        },
+        "required" : [ "identity", "name", "former", "parents", "children", "tags", "groups" ]
+      },
+      "MemberCardLabel" : {
+        "type" : "object",
+        "properties" : {
+          "name" : {
+            "type" : "string"
+          },
+          "color" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "name", "color" ]
       },
       "MemberCheckState" : {
         "type" : "object",
