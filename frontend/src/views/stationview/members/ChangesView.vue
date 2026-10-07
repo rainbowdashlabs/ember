@@ -18,6 +18,7 @@ import {useSidebarCounts} from '@/composables/useSidebarCounts'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useChangeAcknowledgement} from '@/composables/useChangeAcknowledgement'
 import PendingTabContent from './changesview/PendingTabContent.vue'
+import NameRequestsPanel from './changesview/NameRequestsPanel.vue'
 import HistoryTabContent from './changesview/HistoryTabContent.vue'
 import {formatDateTime} from '@/util/format'
 import {describeFailure} from '@/util/failure'
@@ -145,6 +146,8 @@ function onTabChange(tab: string) {
       <TabBar :tabs="tabs" :model-value="activeTab" @update:model-value="onTabChange"/>
 
       <FailureAlert :failure="failure ?? acknowledgeFailure"/>
+
+      <NameRequestsPanel v-if="activeTab === 'pending'"/>
 
       <PendingTabContent
           v-if="activeTab === 'pending'"

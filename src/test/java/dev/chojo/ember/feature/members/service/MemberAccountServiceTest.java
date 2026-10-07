@@ -32,8 +32,10 @@ import org.junit.jupiter.api.function.Executable;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -53,6 +55,7 @@ class MemberAccountServiceTest {
     private AccountEmailService emails;
     private StepUpGuard stepUp;
     private LoginNameService loginNames;
+    private NameChangeService nameChanges;
     private MemberAccountService service;
 
     private static Account target(String email, InstanceUserType type) {
@@ -84,8 +87,9 @@ class MemberAccountServiceTest {
         emails = mock(AccountEmailService.class);
         stepUp = mock(StepUpGuard.class);
         loginNames = mock(LoginNameService.class);
+        nameChanges = mock(NameChangeService.class);
         service = new MemberAccountService(
-                accounts, members, auth, loginNames, emails, stepUp, mock(MemberNameResolver.class));
+                accounts, members, auth, loginNames, emails, stepUp, mock(MemberNameResolver.class), nameChanges);
         when(accounts.update(anyInt(), any(), any(), any())).thenReturn(true);
     }
 
@@ -204,6 +208,50 @@ class MemberAccountServiceTest {
         var answer = update(manager(), own, new UpdateAccountRequest("new@test.com", null, "A", "B"));
 
         assertEquals(EmailChangeResult.WAITING, answer.emailChange());
+    }
+
+    @Test
+    void ownNewNameWaitsWhereItNeedsApproval() {
+        int own = TestSessions.ACCOUNT_ID;
+        var account = TestSessions.account();
+        when(accounts.findById(own)).thenReturn(Optional.of(account));
+        when(nameChanges.needsApproval(any())).thenReturn(true);
+
+        var answer = update(
+                TestSessions.member(STATION_ID), own, new UpdateAccountRequest(account.email(), null, "Neu", "Name"));
+
+        assertTrue(answer.nameWaits());
+        verify(accounts).update(own, account.email(), account.firstName(), account.lastName());
+        verify(nameChanges).request(account, "Neu", "Name");
+    }
+
+    @Test
+    void anUnchangedNameAsksNobody() {
+        int own = TestSessions.ACCOUNT_ID;
+        var account = TestSessions.account();
+        when(accounts.findById(own)).thenReturn(Optional.of(account));
+        when(nameChanges.needsApproval(any())).thenReturn(true);
+
+        var answer = update(
+                TestSessions.member(STATION_ID),
+                own,
+                new UpdateAccountRequest(account.email(), null, account.firstName(), account.lastName()));
+
+        assertFalse(answer.nameWaits());
+        verify(nameChanges, never()).request(any(), anyString(), anyString());
+    }
+
+    @Test
+    void somebodyElsesNameIsWrittenAtOnce() {
+        targetIsAtTheStation();
+        when(accounts.findById(TARGET)).thenReturn(Optional.of(target("tom@test.com", InstanceUserType.USER)));
+        when(nameChanges.needsApproval(any())).thenReturn(true);
+
+        var answer = update(manager(), TARGET, new UpdateAccountRequest("tom@test.com", null, "Tim", "T"));
+
+        assertFalse(answer.nameWaits());
+        verify(accounts).update(TARGET, "tom@test.com", "Tim", "T");
+        verify(nameChanges, never()).request(any(), anyString(), anyString());
     }
 
     @Test

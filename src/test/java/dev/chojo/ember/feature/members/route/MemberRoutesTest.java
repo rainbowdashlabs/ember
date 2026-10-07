@@ -73,7 +73,7 @@ class MemberRoutesTest {
     @Test
     void anAccountUpdateIsHandedToTheService() {
         when(memberAccounts.update(any(), eq(3), eq(TARGET), any()))
-                .thenReturn(new UpdateAccountResponse("Account updated", EmailChangeResult.COMMITTED));
+                .thenReturn(new UpdateAccountResponse("Account updated", EmailChangeResult.COMMITTED, false));
 
         var answer = harness.request(client -> client.put(
                 PREFIX + "/members/" + TARGET,

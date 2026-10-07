@@ -80,7 +80,10 @@ public enum NotificationType {
     FEDERATION_REQUEST_ACCEPTED(
             NotificationParams.FederationRequestAnswered.class, "notification.federationRequestAccepted"),
     FEDERATION_REQUEST_DECLINED(
-            NotificationParams.FederationRequestAnswered.class, "notification.federationRequestDeclined");
+            NotificationParams.FederationRequestAnswered.class, "notification.federationRequestDeclined"),
+    NAME_CHANGE_REQUESTED(NotificationParams.NameChangeRequested.class, "notification.nameChangeRequested"),
+    NAME_CHANGE_APPROVED(NotificationParams.NameChangeApproved.class, "notification.nameChangeApproved"),
+    NAME_CHANGE_DENIED(NotificationParams.NameChangeDenied.class, "notification.nameChangeDenied");
 
     private final Class<? extends NotificationParams> paramsType;
     private final String localeKey;
