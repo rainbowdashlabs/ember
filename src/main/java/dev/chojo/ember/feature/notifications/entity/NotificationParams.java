@@ -329,4 +329,33 @@ public sealed interface NotificationParams {
      * filling with paperwork waiting to be sorted, which is what this counts.
      */
     record MailImportUnbound(int count) implements NotificationParams {}
+
+    /**
+     * A member asked for a new register name, which waits for somebody who confirms member changes.
+     *
+     * @param memberName    the name they carry now
+     * @param requestedName the name they asked for
+     */
+    record NameChangeRequested(String memberName, String requestedName) implements NotificationParams {}
+
+    /**
+     * The name a member asked for was approved and is theirs now.
+     *
+     * @param newName the name the account carries from now on
+     */
+    record NameChangeApproved(String newName) implements NotificationParams {}
+
+    /**
+     * The name a member asked for was turned down. The text reads differently with and without a
+     * reason, so the reason picks the variant rather than leaving an empty placeholder behind.
+     *
+     * @param requestedName the name that was asked for
+     * @param reason        why it was turned down, where the decider said
+     */
+    record NameChangeDenied(String requestedName, @Nullable String reason) implements NotificationParams {
+        @Override
+        public @Nullable String variant() {
+            return reason == null ? null : "WITH_REASON";
+        }
+    }
 }

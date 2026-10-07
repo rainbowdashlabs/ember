@@ -75,6 +75,9 @@ const typeIcons: Partial<Record<NotificationType, string>> = {
   FEDERATION_REQUEST_RECEIVED: 'share-nodes',
   FEDERATION_REQUEST_ACCEPTED: 'share-nodes',
   FEDERATION_REQUEST_DECLINED: 'share-nodes',
+  NAME_CHANGE_REQUESTED: 'id-card',
+  NAME_CHANGE_APPROVED: 'id-card',
+  NAME_CHANGE_DENIED: 'id-card',
 }
 
 /** A day as the database writes one, which is not how anybody here reads one. */

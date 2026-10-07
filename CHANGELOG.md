@@ -2,7 +2,11 @@
 
 ## v26.22.0
 
-The German interface uses one name for trial members.
+A new name a member gives themselves waits for the member management to approve it. The German interface uses one name for trial members.
+
+### New Features
+
+- **A new name waits for approval.** When members change their own name, it only takes effect once someone allowed to confirm member changes approves it under Members → Changes. A declined name can carry a reason, which the member sees in the notification.
 
 ### Changes
 

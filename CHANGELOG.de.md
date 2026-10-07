@@ -2,7 +2,11 @@
 
 ## v26.22.0
 
-Mitglieder auf Probe heißen überall gleich.
+Ändern Mitglieder ihren eigenen Namen, bestätigt die Mitgliederverwaltung ihn zuerst. Mitglieder auf Probe heißen überall gleich.
+
+### Neue Funktionen
+
+- **Ein neuer Name wartet auf Bestätigung.** Ändern Mitglieder ihren eigenen Namen, gilt er erst, wenn jemand mit dem Recht, Mitgliederänderungen zu bestätigen, ihn unter Mitglieder → Änderungen freigibt. Eine Ablehnung kann eine Begründung haben, die das Mitglied in der Benachrichtigung sieht.
 
 ### Änderungen
 

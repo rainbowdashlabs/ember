@@ -21,6 +21,7 @@ export function notificationMessageKey(type: string, localeKey: string, params: 
     if (type === 'EXPIRY_REMINDER') return expiryReminderKey(params)
     if (type === 'EVENT_DATE_DROPPED' && !params.nextDate) return 'notification.eventDateDroppedLast'
     if (type === 'EVENT_CANCELLED') return eventCancelledKey(localeKey, params)
+    if (type === 'NAME_CHANGE_DENIED' && params.reason) return 'notification.nameChangeDeniedWithReason'
     return localeKey
 }
 

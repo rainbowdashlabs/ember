@@ -182,7 +182,10 @@
     "MAIL_IMPORT_UNBOUND": "Documents waiting to be sorted",
     "FEDERATION_REQUEST_RECEIVED": "Federation request from {stationName}",
     "FEDERATION_REQUEST_ACCEPTED": "Federation with {stationName} accepted",
-    "FEDERATION_REQUEST_DECLINED": "Federation with {stationName} declined"
+    "FEDERATION_REQUEST_DECLINED": "Federation with {stationName} declined",
+    "NAME_CHANGE_REQUESTED": "Name change: {memberName}",
+    "NAME_CHANGE_APPROVED": "New name approved",
+    "NAME_CHANGE_DENIED": "New name declined"
   },
   "digest": {
     "subject.one": "{stationName}: 1 new notification",
@@ -245,7 +248,10 @@
     "MAIL_IMPORT_UNBOUND": "Documents",
     "FEDERATION_REQUEST_RECEIVED": "Federation",
     "FEDERATION_REQUEST_ACCEPTED": "Federation",
-    "FEDERATION_REQUEST_DECLINED": "Federation"
+    "FEDERATION_REQUEST_DECLINED": "Federation",
+    "NAME_CHANGE_REQUESTED": "Name Change",
+    "NAME_CHANGE_APPROVED": "Name Change",
+    "NAME_CHANGE_DENIED": "Name Change"
   },
   "message": {
     "notification.newNews": "{title} - by {author}",
@@ -318,6 +324,10 @@
     "notification.mailImportUnbound": "{count} documents that arrived by mail are not on a member yet",
     "notification.federationRequestReceived": "{stationName} would like to become a partner station",
     "notification.federationRequestAccepted": "{stationName} accepted the federation request",
-    "notification.federationRequestDeclined": "{stationName} declined the federation request"
+    "notification.federationRequestDeclined": "{stationName} declined the federation request",
+    "notification.nameChangeRequested": "{memberName} asked to be named {requestedName}",
+    "notification.nameChangeApproved": "Your new name {newName} was approved",
+    "notification.nameChangeDenied": "Your new name {requestedName} was declined",
+    "notification.nameChangeDenied.WITH_REASON": "Your new name {requestedName} was declined: {reason}"
   }
 }

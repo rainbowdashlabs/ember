@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:ceb1d9696098d29f7474fb3d4ee6ac54220909e3df5694d1cbae2da710584516",
-  "generatedAt": "2026-10-05T09:01:24Z",
+  "schemaHash": "sha256:4554d7b3fff9f949ceade3e44acda0c5a65c0048f8cdd09ab8bd698f4e298c9d",
+  "generatedAt": "2026-10-07T10:52:18Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -17276,6 +17276,119 @@
         "reason": "Station configuration, holds no personal data"
       },
       "description": "One step of a flow: who acknowledges it, which item it is about, and what custody that item is in afterwards."
+    },
+    "name_change_request": {
+      "feature": "members",
+      "scope": "USER",
+      "tableHash": "sha256:db57b6b72aebbfaa2ef59b7b4dfa48db13ac663e398ba1c8913786b6225e7d18",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Primary key."
+        },
+        {
+          "name": "account_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The account whose name is to change."
+        },
+        {
+          "name": "first_name",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The first name asked for."
+        },
+        {
+          "name": "last_name",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The last name asked for."
+        },
+        {
+          "name": "requested_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the name was asked for, or last asked for again."
+        },
+        {
+          "name": "decided_by",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The account that approved or denied it; null while open, for a withdrawal, and once that account is gone."
+        },
+        {
+          "name": "decided_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When the request was approved, denied or withdrawn; null while it is open."
+        },
+        {
+          "name": "outcome",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "APPROVED, DENIED or WITHDRAWN; null while the request is open."
+        },
+        {
+          "name": "reason",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "Why a request was denied, shown to the member in the notification; optional."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "account_id",
+          "refTable": "account",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "decided_by",
+          "refTable": "account",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        }
+      ],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "Account-scoped data, not part of a station export"
+      },
+      "gdprExport": {
+        "status": "TRACKED",
+        "identityColumns": [
+          {
+            "type": "ACCOUNT_ID",
+            "column": "account_id"
+          }
+        ]
+      },
+      "gdprDeletion": {
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "account_id",
+            "strategy": "CASCADE",
+            "reason": "FK ON DELETE CASCADE on account delete"
+          },
+          {
+            "column": "decided_by",
+            "strategy": "ANONYMIZE",
+            "reason": "FK ON DELETE SET NULL keeps the decision and drops who made it"
+          }
+        ]
+      },
+      "description": "A register name a member asked for and that waits for a member manager. The name on the account only changes once a request is approved; a newer request replaces the open one."
     },
     "news": {
       "feature": "news",

@@ -258,4 +258,7 @@ export default {
         + 'Administration der Instanz erstellen',
     'M-206': ONE_TIME_PASSWORD_PASSKEYS_ONLY,
     'M-207': 'Dein Einmalpasswort ist abgelaufen. Bitte frag deine Administration nach einem neuen',
+    'M-208': 'Dieser Namenswunsch ist nicht mehr offen, vielleicht wurde schon darüber entschieden',
+    'M-209': 'Es wartet kein Namenswunsch von dir',
+    'M-210': 'Die Begründung ist zu lang',
 }
