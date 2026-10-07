@@ -229,7 +229,7 @@ async function save() {
       >
         <DocumentRequirementsEditor
             v-model="documentRequirements.chosen.value"
-            :offered="documentRequirements.offered.value"
+            :offered-count="documentRequirements.offeredCount.value"
         />
       </TemplateEditBody>
     </div>

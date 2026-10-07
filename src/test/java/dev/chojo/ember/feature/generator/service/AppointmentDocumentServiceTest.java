@@ -9,13 +9,18 @@ import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
+import dev.chojo.ember.feature.events.service.EventRestrictionService;
 import dev.chojo.ember.feature.generator.entity.RequiredTemplate;
 import dev.chojo.ember.feature.generator.entity.RequirementStatus;
+import dev.chojo.ember.feature.generator.entity.TemplateSort;
 import dev.chojo.ember.feature.generator.repository.EventRequirementRepository;
 import dev.chojo.ember.feature.generator.service.AppointmentDocumentService.ParticipantDocuments;
+import dev.chojo.ember.feature.generator.service.DocumentTemplateService.DocumentTemplateSummary;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.question.FieldType;
+import dev.chojo.ember.feature.restriction.RestrictionSelection;
+import dev.chojo.ember.feature.restriction.RestrictionType;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -90,7 +95,8 @@ class AppointmentDocumentServiceTest extends GeneratorTestBase {
                 eventRegistrationRepo,
                 eventFieldRepo,
                 memberNameResolver,
-                wiring.issuers());
+                wiring.issuers(),
+                new EventRestrictionService(eventRepo, restrictionService));
     }
 
     private static StationEvent event(String name) {
@@ -129,7 +135,9 @@ class AppointmentDocumentServiceTest extends GeneratorTestBase {
         int consent = forAppointments("Einverständnis", CONSENT);
         requirements.setForEvent(wiring.owner(), marathon.id(), List.of(consent));
 
-        var before = appointments.documentsToBring(as(guardian), marathon, DAY);
+        var before = appointments
+                .documentsToBring(as(guardian), marathon, DAY, false)
+                .own();
         assertEquals(1, before.size(), "only the child takes part");
         var forLena = before.getFirst();
         assertEquals(lena.id(), forLena.memberId());
@@ -151,7 +159,8 @@ class AppointmentDocumentServiceTest extends GeneratorTestBase {
         assertFalse(entry.selfService());
 
         var after = appointments
-                .documentsToBring(as(guardian), marathon, DAY)
+                .documentsToBring(as(guardian), marathon, DAY, false)
+                .own()
                 .getFirst()
                 .documents()
                 .getFirst();
@@ -169,7 +178,8 @@ class AppointmentDocumentServiceTest extends GeneratorTestBase {
                                 .build(),
                         manager.id());
         var changed = appointments
-                .documentsToBring(as(guardian), marathon, DAY)
+                .documentsToBring(as(guardian), marathon, DAY, false)
+                .own()
                 .getFirst()
                 .documents()
                 .getFirst();
@@ -181,7 +191,8 @@ class AppointmentDocumentServiceTest extends GeneratorTestBase {
         int form = forAppointments("Teilnahme", "{{member.fullName}} am {{event.start}}");
         requirements.setForEvent(wiring.owner(), marathon.id(), List.of(form));
 
-        List<ParticipantDocuments> own = appointments.documentsToBring(as(lena), marathon, DAY);
+        List<ParticipantDocuments> own =
+                appointments.documentsToBring(as(lena), marathon, DAY, false).own();
         assertEquals(
                 List.of(lena.id()),
                 own.stream().map(ParticipantDocuments::memberId).toList());
@@ -200,9 +211,17 @@ class AppointmentDocumentServiceTest extends GeneratorTestBase {
         assertEquals(lastUsed, requirements.forEvent(marathon.id()).getFirst().lastUsedAt());
     }
 
-    private RequiredTemplate offeredTemplate(int templateId) {
-        return requirements.offered(wiring.owner()).stream()
-                .filter(template -> template.templateId() == templateId)
+    private List<DocumentTemplateSummary> offered() {
+        return requirements
+                .offered(
+                        wiring.owner(),
+                        new TemplateQuery(null, null, null, TemplateSort.NAME, 0, TemplateQuery.MAX_SIZE))
+                .items();
+    }
+
+    private DocumentTemplateSummary offeredTemplate(int templateId) {
+        return offered().stream()
+                .filter(template -> template.id() == templateId)
                 .findFirst()
                 .orElseThrow();
     }
@@ -213,7 +232,13 @@ class AppointmentDocumentServiceTest extends GeneratorTestBase {
         requirements.setForEvent(wiring.owner(), marathon.id(), List.of(form));
         requirements.setForEvent(wiring.owner(), camp.id(), List.of(form));
 
-        assertTrue(appointments.documentsToBring(as(max), marathon, DAY).isEmpty());
+        var forMax = appointments.documentsToBring(as(max), marathon, DAY, false);
+        assertEquals(
+                List.of(form),
+                forMax.required().stream().map(RequiredTemplate::templateId).toList(),
+                "who sees the appointment sees what it asks for");
+        assertTrue(forMax.own().isEmpty());
+        assertNull(forMax.participants(), "and nobody else's copies");
         refused(
                 DocumentRefusal.DOCUMENT_REQUIREMENT_NOT_YOURS,
                 () -> appointments.generate(as(max), marathon, DAY, form, max.id()));
@@ -233,7 +258,78 @@ class AppointmentDocumentServiceTest extends GeneratorTestBase {
         var quiet = event("Ohne Dokumente");
         eventRegistrationRepo.create(quiet.id(), lena.id(), DAY);
 
-        assertTrue(appointments.documentsToBring(as(lena), quiet, DAY).isEmpty());
+        var nothing = appointments.documentsToBring(as(lena), quiet, DAY, false);
+        assertTrue(nothing.required().isEmpty());
+        assertTrue(nothing.own().isEmpty());
+    }
+
+    /**
+     * An appointment that takes no registrations has nobody registered, so whoever sees it takes their
+     * copy, and the organiser sees everybody who took one.
+     */
+    @Test
+    void withoutRegistrationsEveryReaderTakesACopy() {
+        var open = eventRepo.create(
+                wiring.station().id(),
+                "Tag der offenen Tür",
+                null,
+                StationEvent.EventType.ONE_TIME,
+                null,
+                START,
+                START.plus(Duration.ofHours(4)),
+                null,
+                false,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null);
+        int form = forAppointments("Offen", "{{member.fullName}}");
+        requirements.setForEvent(wiring.owner(), open.id(), List.of(form));
+        restrictionService.setRestrictions(
+                RestrictionType.EVENT, open.id(), new RestrictionSelection(null, null, null, List.of(max.id()), null));
+
+        var forMax = appointments.documentsToBring(as(max), open, DAY, false);
+        assertEquals(
+                List.of(max.id()),
+                forMax.own().stream().map(ParticipantDocuments::memberId).toList());
+        appointments.generate(as(max), open, DAY, form, max.id());
+
+        assertTrue(
+                appointments
+                        .documentsToBring(as(guardian), open, DAY, false)
+                        .own()
+                        .isEmpty(),
+                "the appointment is meant for none of the guardian's household");
+        refused(
+                DocumentRefusal.DOCUMENT_REQUIREMENT_NOT_YOURS,
+                () -> appointments.generate(as(guardian), open, DAY, form, lena.id()));
+
+        var overview =
+                appointments.documentsToBring(as(guardian), open, DAY, true).participants();
+        assertNotNull(overview);
+        assertTrue(overview.stream().anyMatch(participant -> participant.memberId() == max.id()));
+    }
+
+    /** Whoever manages the registrations sees where every participant stands, not only their own. */
+    @Test
+    void anOrganiserSeesEveryParticipant() {
+        int form = forAppointments("Überblick", "{{member.fullName}}");
+        requirements.setForEvent(wiring.owner(), marathon.id(), List.of(form));
+        appointments.generate(as(lena), marathon, DAY, form, lena.id());
+
+        var overview = appointments.documentsToBring(as(max), marathon, DAY, true);
+
+        var participants = overview.participants();
+        assertNotNull(participants);
+        var forLena = participants.stream()
+                .filter(participant -> participant.memberId() == lena.id())
+                .findFirst()
+                .orElseThrow();
+        assertEquals(RequirementStatus.GENERATED, forLena.documents().getFirst().status());
+        assertTrue(overview.own().isEmpty(), "the organiser takes no part themselves");
     }
 
     @Test
@@ -264,8 +360,8 @@ class AppointmentDocumentServiceTest extends GeneratorTestBase {
         int other = plain("Nicht für Termine");
         var event = event("Prüfung");
 
-        assertTrue(requirements.offered(wiring.owner()).stream().anyMatch(t -> t.templateId() == form));
-        assertFalse(requirements.offered(wiring.owner()).stream().anyMatch(t -> t.templateId() == other));
+        assertTrue(offered().stream().anyMatch(t -> t.id() == form));
+        assertFalse(offered().stream().anyMatch(t -> t.id() == other));
         refused(
                 DocumentRefusal.DOCUMENT_TEMPLATE_NOT_FOR_APPOINTMENTS,
                 () -> requirements.setForEvent(wiring.owner(), event.id(), List.of(other)));

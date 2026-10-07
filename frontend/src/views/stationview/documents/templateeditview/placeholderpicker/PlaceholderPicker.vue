@@ -6,6 +6,7 @@
 <script lang="ts" setup>
 import {computed, nextTick, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
+import {useEventListener} from '@vueuse/core'
 import SearchInput from '@/components/input/text/SearchInput.vue'
 import type {Placeholder} from '@/api/generated/schema'
 import {branchesAlong, offeredPlaceholders, placeholderTree, searchPlaceholders} from './placeholderTree'
@@ -28,8 +29,10 @@ import PlaceholderMatches from './PlaceholderMatches.vue'
  * and an own one. The date is handed on with the format in its key and the example in its label. Where
  * no editor above names the formats, a date is handed on as it is.
  *
- * <p>Picking a placeholder hands it on and starts over at the top. The steps come from the station's
- * catalogue, so nothing here reads structure from a key.
+ * <p>Picking a placeholder hands it on and starts over at the top. Picking it with shift held hands it
+ * on as one of several and stays where it is, the search included, so the next one is a click away.
+ * Shift is read from the press that chose the entry, a key press on it as much as a click. The steps
+ * come from the station's catalogue, so nothing here reads structure from a key.
  *
  * <p>A legal template is not offered the name a member is called by. Whether the values of an
  * appointment are offered is decided with the placeholders handed in, by whether the template is for
@@ -41,13 +44,19 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  pick: [choice: PlaceholderChoice]
+  /** A placeholder chosen; `more` when shift was held and further ones are to follow. */
+  pick: [choice: PlaceholderChoice, more: boolean]
 }>()
 
 const {t} = useI18n()
 const dates = usePlaceholderDates()
 
 const root = ref<HTMLElement | null>(null)
+let shiftHeld = false
+
+useEventListener(root, 'click', (event: MouseEvent) => {
+  shiftHeld = event.shiftKey
+}, {capture: true})
 const query = ref('')
 const trail = ref<string[]>([])
 const dating = ref<Placeholder | null>(null)
@@ -99,10 +108,12 @@ function chooseFormat(format: string) {
 }
 
 function hand(choice: PlaceholderChoice) {
-  emit('pick', choice)
+  const more = shiftHeld
+  emit('pick', choice, more)
+  dating.value = null
+  if (more) return
   trail.value = []
   query.value = ''
-  dating.value = null
 }
 </script>
 

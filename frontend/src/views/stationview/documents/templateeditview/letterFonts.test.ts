@@ -5,9 +5,9 @@
  */
 /** @vitest-environment happy-dom */
 import {describe, expect, it} from 'vitest'
-import {CellContentType, DocumentTemplateKind} from '@/api/generated/schema'
+import {CellContentType, DocumentTemplateKind, PdfFieldKind, TextAlign} from '@/api/generated/schema'
 import {emptyDraft} from './templateDraft'
-import {letterFamilies} from './letterFonts'
+import {letterFamilies, templateFamilies} from './letterFonts'
 
 function row(content: string, nested?: string) {
     const config = nested ? {cells: [{contentType: CellContentType.MARKDOWN, content: nested}]} : {}
@@ -31,5 +31,24 @@ describe('letterFamilies', () => {
 
     it('names none for a PDF template', () => {
         expect(letterFamilies(emptyDraft(DocumentTemplateKind.PDF))).toEqual([])
+    })
+})
+
+describe('templateFamilies', () => {
+    it('names the fonts of a PDF template\'s text fields once each, and none of its other fields', () => {
+        const draft = emptyDraft(DocumentTemplateKind.PDF)
+        const text = {
+            kind: PdfFieldKind.TEXT, rect: {page: 1, x: 0, y: 0, width: 10, height: 10}, text: 'A', fontSize: 10,
+            fontFamily: 'Hausschrift', fontStyle: null, align: TextAlign.LEFT, wrap: false, role: null,
+            withoutLine: false, printText: false,
+        }
+        draft.fields = [text, {...text}, {...text, fontFamily: null}, {...text, kind: PdfFieldKind.CHECK, fontFamily: 'Kreuz'}]
+
+        expect(templateFamilies(draft)).toEqual(['Hausschrift', null])
+    })
+
+    it('names a letter\'s families for a letter', () => {
+        const draft = emptyDraft(DocumentTemplateKind.LETTER)
+        expect(templateFamilies(draft)).toEqual(letterFamilies(draft))
     })
 })

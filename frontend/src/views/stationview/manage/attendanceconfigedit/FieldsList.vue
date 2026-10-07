@@ -62,7 +62,14 @@ function groupName(groupId: number): string {
     <EmptyState v-if="fields.length === 0">{{ t('attendanceConfig.noFields') }}</EmptyState>
 
     <FieldLayoutPreview
-        :fields="props.fields.map(field => ({name: field.name, width: parseConfig(field.config).width}))"
+        :fields="props.fields.map(field => ({
+          name: field.name,
+          fieldType: field.fieldType,
+          required: parseConfig(field.config).required,
+          width: parseConfig(field.config).width,
+        }))"
+        :hint="t('attendanceConfig.fieldsPreviewHint')"
+        :editable="false"
     />
 
     <DragList :items="fields" :key-fn="(f) => f.id" @reorder="(from, to) => emit('reorder', from, to)">

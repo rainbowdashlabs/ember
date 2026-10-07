@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.documents.service.DocumentDoor;
 import dev.chojo.ember.feature.documents.service.DocumentService;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplateKind;
 import dev.chojo.ember.feature.generator.entity.FieldRect;
+import dev.chojo.ember.feature.generator.entity.FontStyle;
 import dev.chojo.ember.feature.generator.entity.FormBinding;
 import dev.chojo.ember.feature.generator.entity.FormField;
 import dev.chojo.ember.feature.generator.entity.FormFieldKind;
@@ -212,8 +213,13 @@ class PdfTemplateServiceTest extends RepositoryTestBase {
         assertEquals(Sha256.hex(form), pdf.sha256());
         assertEquals(
                 List.of(
-                        new FormField("person.name", FormFieldKind.TEXT, new FieldRect(1, 100, 600, 200, 20)),
-                        new FormField("agree", FormFieldKind.CHECK, new FieldRect(1, 100, 500, 20, 20))),
+                        new FormField(
+                                "person.name",
+                                FormFieldKind.TEXT,
+                                new FieldRect(1, 100, 600, 200, 20),
+                                "Name der Person",
+                                "Alt"),
+                        new FormField("agree", FormFieldKind.CHECK, new FieldRect(1, 100, 500, 20, 20), null, null)),
                 pdf.inspection().formFields());
         assertArrayEquals(form, pdfs.current(owner, template.id()).orElseThrow().data());
     }
@@ -360,6 +366,42 @@ class PdfTemplateServiceTest extends RepositoryTestBase {
                 saved.fields());
         assertEquals(List.of(new FormBinding("person.name", "{{member.fullName}}")), saved.formBindings());
         assertEquals(3, saved.version());
+    }
+
+    /** A signature field keeps its text, trimmed, and whether it draws its line and prints the text. */
+    @Test
+    void aSignatureFieldKeepsItsTextAndItsTwoSwitches() throws IOException {
+        var template = uploaded("Unterschrift", TestPdfs.plain(1));
+        var rect = new FieldRect(1, 100, 100, 150, 40);
+        var sent = new PdfField(
+                PdfFieldKind.SIGNATURE,
+                rect,
+                "  Unterschrift {{guardian1.fullName}} ",
+                9,
+                TextAlign.CENTER,
+                false,
+                SignatureRole.GUARDIAN_1,
+                null,
+                FontStyle.REGULAR,
+                true,
+                true);
+
+        var saved = withFields(template, request("Unterschrift", null, List.of(sent), List.of(), false));
+
+        assertEquals(
+                List.of(new PdfField(
+                        PdfFieldKind.SIGNATURE,
+                        rect,
+                        "Unterschrift {{guardian1.fullName}}",
+                        9,
+                        TextAlign.CENTER,
+                        false,
+                        SignatureRole.GUARDIAN_1,
+                        null,
+                        FontStyle.REGULAR,
+                        true,
+                        true)),
+                saved.fields());
     }
 
     /** A new version of the PDF keeps the fields; documents filled before keep naming the old one. */

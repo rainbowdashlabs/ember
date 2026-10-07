@@ -10,15 +10,17 @@ import dev.chojo.ember.api.RouteSupport;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.feature.generator.entity.DocumentTemplateKind;
+import dev.chojo.ember.feature.generator.entity.TemplateSort;
 import dev.chojo.ember.feature.generator.service.DocumentGenerationService;
 import dev.chojo.ember.feature.generator.service.DocumentGenerationService.GeneratedDocumentResponse;
 import dev.chojo.ember.feature.generator.service.DocumentGeneratorService.PreviewResponse;
 import dev.chojo.ember.feature.generator.service.DocumentIssuerService.IssuerChoice;
 import dev.chojo.ember.feature.generator.service.DocumentTemplateRequest;
 import dev.chojo.ember.feature.generator.service.DocumentTemplateService;
-import dev.chojo.ember.feature.generator.service.DocumentTemplateService.DocumentTemplateSummary;
 import dev.chojo.ember.feature.generator.service.SelfServiceDocumentService;
 import dev.chojo.ember.feature.generator.service.SelfServiceDocumentService.SelfServiceOffer;
+import dev.chojo.ember.feature.generator.service.TemplateQuery.TemplatePage;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import io.javalin.http.Context;
@@ -124,12 +126,22 @@ public class DocumentGenerationRoutes implements Routes {
     @OpenApi(
             path = "/api/v1/document-generation/templates",
             methods = HttpMethod.GET,
-            summary = "The document templates a manager can generate documents from",
+            summary = "One page of the document templates a manager can generate documents from",
             tags = {"Documents"},
-            responses =
-                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = DocumentTemplateSummary[].class)))
+            queryParams = {
+                @OpenApiParam(name = "q", description = "What the name contains"),
+                @OpenApiParam(name = "kind", type = DocumentTemplateKind.class),
+                @OpenApiParam(
+                        name = "forAppointments",
+                        type = Boolean.class,
+                        description = "Only templates for appointments when true, only the others when false"),
+                @OpenApiParam(name = "sort", type = TemplateSort.class),
+                @OpenApiParam(name = "page", type = Integer.class, description = "Counted from 0"),
+                @OpenApiParam(name = "size", type = Integer.class)
+            },
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = TemplatePage.class)))
     private void usable(Context ctx) {
-        ctx.json(generation.usable(StationSession.from(ctx).owner()));
+        ctx.json(generation.usable(StationSession.from(ctx).owner(), TemplateQueries.of(ctx)));
     }
 
     /**

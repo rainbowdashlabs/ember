@@ -10,12 +10,16 @@ import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.refusal.DocumentRefusal;
+import dev.chojo.ember.feature.generator.entity.DocumentTemplateKind;
+import dev.chojo.ember.feature.generator.entity.TemplateSort;
 import dev.chojo.ember.feature.generator.service.DocumentGenerationService;
 import dev.chojo.ember.feature.generator.service.DocumentGenerationService.GeneratedDocumentResponse;
 import dev.chojo.ember.feature.generator.service.DocumentGeneratorService.PreviewResponse;
 import dev.chojo.ember.feature.generator.service.DocumentIssuerService.IssuerChoice;
 import dev.chojo.ember.feature.generator.service.DocumentTemplateService;
 import dev.chojo.ember.feature.generator.service.SelfServiceDocumentService;
+import dev.chojo.ember.feature.generator.service.TemplateQuery;
+import dev.chojo.ember.feature.generator.service.TemplateQuery.TemplatePage;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.owner.Owner;
@@ -64,7 +68,7 @@ class DocumentGenerationRoutesTest {
                 .thenThrow(DocumentRefusal.DOCUMENT_TEMPLATE_NOT_HERE.raise());
         when(members.findById(11)).thenReturn(Optional.of(member(11, 3)));
         when(members.findById(12)).thenReturn(Optional.of(member(12, 4)));
-        when(generation.usable(OWNER)).thenReturn(List.of());
+        when(generation.usable(eq(OWNER), any())).thenReturn(new TemplatePage(List.of(), 0, 0, 24));
         when(generation.preview(any(), eq(8), eq(11), any()))
                 .thenReturn(new PreviewResponse("JVBER", List.of(), List.of(), null));
         when(generation.previewDraft(any(), any(), any(), any()))
@@ -113,6 +117,35 @@ class DocumentGenerationRoutesTest {
         verify(generation).generate(any(), eq(8), eq(11), isNull());
         verify(generation).generate(any(), eq(8), eq(11), eq(new IssuerChoice(14, "Kassenwart")));
         verify(generation, never()).generate(any(), anyInt(), eq(12), any());
+    }
+
+    @Test
+    void theTemplateListReadsWhatItIsAskedForAndLeavesTheRestOpen() {
+        harness.run((server, client) -> {
+            var filer = harness.as(TestSessions.member(3, StationPermission.DOCUMENT_EDIT_MEMBER));
+            assertEquals(
+                    200,
+                    client.get(
+                                    PREFIX
+                                            + "/document-generation/templates?q=Aus&kind=pdf&forAppointments=false&sort=NAME&page=2&size=8",
+                                    filer)
+                            .code());
+            verify(generation)
+                    .usable(OWNER, new TemplateQuery("Aus", DocumentTemplateKind.PDF, false, TemplateSort.NAME, 2, 8));
+
+            assertEquals(
+                    200,
+                    client.get(PREFIX + "/document-generation/templates", filer).code());
+            verify(generation)
+                    .usable(
+                            OWNER,
+                            new TemplateQuery(null, null, null, TemplateSort.LAST_USED, 0, TemplateQuery.DEFAULT_SIZE));
+
+            assertEquals(
+                    400,
+                    client.get(PREFIX + "/document-generation/templates?sort=SIDEWAYS", filer)
+                            .code());
+        });
     }
 
     @Test

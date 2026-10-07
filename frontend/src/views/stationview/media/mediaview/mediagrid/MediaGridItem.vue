@@ -60,7 +60,7 @@ function onCheckboxClick(e: MouseEvent) {
             <CheckboxInput :model-value="selected" class="pointer-events-none"/>
         </div>
         <FileThumbnail
-            :url="entry.file.contentHash ? mediaPictureUrl(entry.file.contentHash, 320) : ''"
+            :url="entry.file.contentHash ? mediaPictureUrl(entry.file.contentHash, 640) : ''"
             :mime-type="entry.file.mimeType"
             :alt="entry.file.defaultAltText ?? entry.file.fileName"
             size="aspect-square w-full"

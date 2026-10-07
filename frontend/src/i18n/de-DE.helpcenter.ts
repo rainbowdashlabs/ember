@@ -1725,14 +1725,19 @@ volumes:
                 + 'Wache: Ein Klick auf die Vorlage öffnet die Einstellung, dort schaltet sie das Selbst-Erstellen ein '
                 + 'und wählt, für wen. Das geht nur, wenn der Verband die Vorlage dafür anbietet.',
             listTitle: 'Die Liste der Vorlagen',
-            listText: 'Die Liste beginnt mit den Vorlagen, aus denen an dieser Wache zuletzt ein Dokument erstellt '
-                + 'wurde. Vorlagen, die noch nie verwendet wurden, stehen am Ende. Über die Spalten sortierst du '
-                + 'stattdessen nach Name, „Erstellt", „Geändert" oder „Zuletzt verwendet" und filterst nach Tagen.',
-            listPickerText: 'Auch beim Erstellen für ein Mitglied, für viele Mitglieder und bei den mitzubringenden '
-                + 'Dokumenten eines Termins stehen die zuletzt verwendeten Vorlagen oben. Unter Meine Dokumente stehen '
-                + 'die Vorlagen oben, die zuletzt für dieses Mitglied selbst erstellt wurden.',
+            listText: 'Jede Vorlage steht als Kachel mit einem Bild ihrer ersten Seite da, die Platzhalter mit ihrem '
+                + 'Namen statt mit Daten. Abzeichen nennen die Art und jede Einstellung, die an ist: rechtlich, für '
+                + 'Termine, Selbst erstellen, vom Verband, archiviert. Die Liste beginnt mit den Vorlagen, aus denen '
+                + 'an dieser Wache zuletzt ein Dokument erstellt wurde. Oben suchst du nach dem Namen, filterst nach '
+                + 'Brief oder PDF und sortierst nach Name oder Datum, immer über alle Vorlagen und nicht nur über die '
+                + 'gerade gezeigte Seite.',
+            listPickerText: 'Wo eine Vorlage gewählt wird, beim Erstellen für ein Mitglied, für viele Mitglieder und '
+                + 'bei den mitzubringenden Dokumenten eines Termins, öffnet sich dieselbe Auswahl mit Kacheln, Suche '
+                + 'und Seiten. Die Lupe auf einer Kachel zeigt die erste Seite groß. Bei einem Termin markierst du '
+                + 'mehrere Vorlagen und übernimmst sie zusammen. Unter Meine Dokumente stehen die Vorlagen oben, die '
+                + 'zuletzt für dieses Mitglied selbst erstellt wurden.',
             duplicateTitle: 'Vorlage duplizieren',
-            duplicateText: '„Duplizieren" in der Zeile einer Vorlage oder im Editor legt eine Kopie mit dem Namen '
+            duplicateText: '„Duplizieren" auf der Kachel einer Vorlage oder im Editor legt eine Kopie mit dem Namen '
                 + '„Kopie von …" an und öffnet sie im Editor. Die Kopie übernimmt alles, was gespeichert ist: Brief '
                 + 'oder PDF mit Feldern, Ablage, Selbst-Erstellen mit Wartezeit und Zielgruppe. Sie beginnt bei '
                 + 'Version 1. Erstellte Dokumente und Termine bleiben bei der alten Vorlage.',
@@ -2895,7 +2900,7 @@ volumes:
             attachmentsTitle: 'Dateien zum Termin',
             attachmentsText: 'Gibt der Termin Dateien mit, stehen sie unter den Angaben, jede mit ihrer Größe und einer Schaltfläche zum Herunterladen. Du siehst nur die Dateien, die für dich gedacht sind: eine interne Datei trägt ein Abzeichen „Intern" und erscheint nur bei den Leuten, die den Termin durchführen.',
             documentsToBringTitle: 'Mitzubringende Dokumente',
-            documentsToBringText: 'Verlangt der Termin Dokumente, etwa eine Einverständniserklärung, stehen sie unter den Dateien, sobald du oder eines deiner Kinder angemeldet ist. Für jede angemeldete Person gibt es eine eigene Zeile.',
+            documentsToBringText: 'Verlangt der Termin Dokumente, etwa eine Einverständniserklärung, nennt er sie unter „Mitzubringende Dokumente". Sobald du oder eines deiner Kinder angemeldet ist, gibt es dort für jede angemeldete Person eine eigene Zeile zum Herunterladen. Wer die Anmeldungen verwaltet, sieht dort zusätzlich für alle Teilnehmenden, ob ihr Exemplar schon erstellt ist.',
             documentsToBringDownloadText: '„Herunterladen" füllt das Dokument mit den Daten der Person und des Termins aus und legt es zusätzlich bei ihren Dokumenten ab. Drucke es aus, unterschreibe es und bring es zum Termin mit. Ändert die Wache die Vorlage, wird beim nächsten Herunterladen ein neues Dokument erstellt.',
             commentsTitle: 'Kommentare',
             commentsText: 'Unter dem Termin findest du einen Kommentarbereich. Hier können alle Mitglieder Fragen stellen oder Hinweise geben. Deine eigenen Kommentare kannst du ändern und löschen, und wer Termine verwaltet, kann auch die Kommentare anderer löschen.',
@@ -5118,7 +5123,7 @@ volumes:
             attachmentsInternalText: 'Mit dem Schalter „Intern" legst du fest, wer eine Datei bekommt. Ohne ihn sieht sie jeder, der den Termin sehen darf, Partnerwachen eingeschlossen. Mit ihm bleibt sie bei den Leuten, die den Termin durchführen: Wer Termine bearbeiten darf oder das Recht auf interne Termindaten hat, sieht sie, sonst niemand, und an Partnerwachen wird sie nicht weitergegeben.',
             attachmentsFilesText: 'Dateien liegen weiterhin in den Medien der Wache. Ein angehängtes Bild oder Dokument lässt sich dort nicht löschen, solange ein Termin es mitgibt, und derselbe Laufzettel kann an mehreren Terminen hängen, ohne mehrfach zu belegen.',
             documentsTitle: 'Mitzubringende Dokumente',
-            documentsText: 'Unter „Mitzubringende Dokumente" wählst du Dokumentvorlagen, die als „Für Termine" markiert sind, etwa eine Einverständniserklärung. Jede angemeldete Person oder ihre Erziehungsberechtigten laden auf der Terminseite ein Exemplar herunter, ausgefüllt mit ihren Daten und denen des Termins.',
+            documentsText: 'Unter „Mitzubringende Dokumente" öffnet „Dokument hinzufügen" die Auswahl der Dokumentvorlagen, die als „Für Termine" markiert sind, etwa eine Einverständniserklärung. Dort suchst du, siehst die erste Seite jeder Vorlage und übernimmst mehrere auf einmal. Jede angemeldete Person oder ihre Erziehungsberechtigten laden auf der Terminseite ein Exemplar herunter, ausgefüllt mit ihren Daten und denen des Termins.',
             documentsTemplateText: 'Wird der Termin aus einer Termin-Vorlage erstellt, kommen deren Dokumente mit. Eine archivierte Vorlage bleibt in der Liste, bis du sie entfernst, lässt sich aber nicht neu hinzufügen.',
             title: 'Termin erstellen / bearbeiten',
             subtitle: 'Einen Termin einrichten oder ändern.',

@@ -91,9 +91,18 @@ public final class PdfInspector {
         var fields = new ArrayList<FormField>();
         for (PDField field : form.getFieldTree()) {
             if (!(field instanceof PDTerminalField terminal)) continue;
-            fields.add(new FormField(field.getFullyQualifiedName(), kindOf(field), firstRect(document, terminal)));
+            fields.add(new FormField(
+                    field.getFullyQualifiedName(),
+                    kindOf(field),
+                    firstRect(document, terminal),
+                    blankAsNull(field.getAlternateFieldName()),
+                    field instanceof PDTextField ? blankAsNull(field.getValueAsString()) : null));
         }
         return fields;
+    }
+
+    private static @Nullable String blankAsNull(@Nullable String text) {
+        return text == null || text.isBlank() ? null : text.strip();
     }
 
     private static FormFieldKind kindOf(PDField field) {

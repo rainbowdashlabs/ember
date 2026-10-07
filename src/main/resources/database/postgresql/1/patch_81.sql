@@ -327,6 +327,8 @@ CREATE TABLE IF NOT EXISTS ember_schema.document_template_field
     align       TEXT             NOT NULL CHECK (align IN ('LEFT', 'CENTER', 'RIGHT')),
     wrap        BOOLEAN          NOT NULL DEFAULT FALSE,
     role        TEXT             NULL CHECK (role IN ('PARTICIPANT', 'GUARDIAN_1', 'GUARDIAN_2', 'EACH_GUARDIAN', 'ANY_GUARDIAN', 'ISSUER')),
+    without_line BOOLEAN         NOT NULL DEFAULT FALSE,
+    print_text  BOOLEAN          NOT NULL DEFAULT FALSE,
     CHECK ((kind = 'SIGNATURE') = (role IS NOT NULL))
 );
 
@@ -348,7 +350,7 @@ COMMENT ON COLUMN ember_schema.document_template_field.y IS
 COMMENT ON COLUMN ember_schema.document_template_field.width IS 'The width in PDF points, before rotation.';
 COMMENT ON COLUMN ember_schema.document_template_field.height IS 'The height in PDF points, before rotation.';
 COMMENT ON COLUMN ember_schema.document_template_field.text IS
-    'The text with placeholders written as {{key}}, for TEXT and CHECK. NULL for SIGNATURE.';
+    'The text with placeholders written as {{key}}: printed by TEXT, deciding the cross of CHECK, and for SIGNATURE the text under the line, printed only where print_text is set. NULL for a SIGNATURE without one.';
 COMMENT ON COLUMN ember_schema.document_template_field.font_size IS 'The size of the text in points, the largest it is drawn at.';
 COMMENT ON COLUMN ember_schema.document_template_field.font_family IS
     'The family name of the uploaded font the text is drawn in, as document_font names it, looked up among the fonts the station reaches. NULL for the default font, Liberation Sans.';
@@ -359,6 +361,10 @@ COMMENT ON COLUMN ember_schema.document_template_field.wrap IS
     'Whether a long text runs onto further lines. Otherwise it stays on one line and shrinks to fit.';
 COMMENT ON COLUMN ember_schema.document_template_field.role IS
     'Who signs in a SIGNATURE field: PARTICIPANT, GUARDIAN_1, GUARDIAN_2 (left out for a member with fewer than two guardians), EACH_GUARDIAN (the box shared out into one field per guardian of the member), ANY_GUARDIAN (one field any guardian may sign) or ISSUER. NULL for every other kind.';
+COMMENT ON COLUMN ember_schema.document_template_field.without_line IS
+    'For SIGNATURE: true where no line is drawn to sign on, because the PDF already has one. FALSE for every other kind.';
+COMMENT ON COLUMN ember_schema.document_template_field.print_text IS
+    'For SIGNATURE: true where its text is printed under the line; otherwise the text shows in the template editor only. FALSE for every other kind.';
 
 CREATE TABLE IF NOT EXISTS ember_schema.document_template_form_binding
 (

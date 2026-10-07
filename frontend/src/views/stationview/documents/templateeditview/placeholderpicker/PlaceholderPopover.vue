@@ -7,13 +7,15 @@
 import {useI18n} from 'vue-i18n'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Popover from '@/components/feedback/Popover.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 import type {Placeholder} from '@/api/generated/schema'
 import type {PlaceholderChoice} from './placeholderKey'
 import PlaceholderPicker from './PlaceholderPicker.vue'
 
 /**
  * The placeholder picker behind a button, for a place too narrow to show it open, such as a field on
- * a PDF or the title of a template. It closes once a placeholder is picked.
+ * a PDF or the title of a template. It closes once a placeholder is picked, unless shift was held, so
+ * several go in one after another; a line under the picker says so.
  */
 defineProps<{
   placeholders: Placeholder[]
@@ -26,9 +28,9 @@ const emit = defineEmits<{
 
 const {t} = useI18n()
 
-function pick(choice: PlaceholderChoice, close: () => void) {
+function pick(choice: PlaceholderChoice, more: boolean, close: () => void) {
   emit('pick', choice)
-  close()
+  if (!more) close()
 }
 </script>
 
@@ -42,7 +44,8 @@ function pick(choice: PlaceholderChoice, close: () => void) {
       </SecondaryButton>
     </template>
     <template #default="{close}">
-      <PlaceholderPicker :placeholders="placeholders" :legal="legal" @pick="choice => pick(choice, close)"/>
+      <PlaceholderPicker :placeholders="placeholders" :legal="legal" @pick="(choice, more) => pick(choice, more, close)"/>
+      <MutedText tag="p" class="mt-2">{{ t('documentTemplates.placeholderPicker.keepOpenHint') }}</MutedText>
     </template>
   </Popover>
 </template>

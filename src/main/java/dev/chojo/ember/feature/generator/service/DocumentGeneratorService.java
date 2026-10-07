@@ -392,6 +392,22 @@ public class DocumentGeneratorService {
             var batch = batch(List.of(memberId));
             return batch.preview(batch.prepare(source, memberId, context));
         }
+        var drawn = drawnWithoutMember(source);
+        return new PreviewResponse(encode(drawn.pdf()), List.of(), drawn.unprintable(), null);
+    }
+
+    /**
+     * A template drawn without a member, its placeholders shown by their labels: what its picture shows,
+     * so a picture never carries anybody's data.
+     *
+     * @param source the template
+     * @return the PDF
+     */
+    public byte[] drawWithoutMember(Source source) {
+        return drawnWithoutMember(source).pdf();
+    }
+
+    private PdfStamper.Stamped drawnWithoutMember(Source source) {
         var keys = PlaceholderCatalogue.keysOf(
                 source.titlePattern(),
                 source.fileNamePattern(),
@@ -401,7 +417,7 @@ public class DocumentGeneratorService {
         var labels = new LinkedHashMap<String, String>();
         keys.forEach(key -> labels.put(key, PlaceholderCatalogue.labelOf(known, key)));
         Integer stationId = source.owner() instanceof Owner.Station station ? station.stationId() : null;
-        var drawn = drawingOf(source)
+        return drawingOf(source)
                 .draw(new Sheet(
                         stationId,
                         MemberView.EVERYBODY,
@@ -410,7 +426,6 @@ public class DocumentGeneratorService {
                         labels,
                         true,
                         () -> today(stationId)));
-        return new PreviewResponse(encode(drawn.pdf()), List.of(), drawn.unprintable(), null);
     }
 
     /**

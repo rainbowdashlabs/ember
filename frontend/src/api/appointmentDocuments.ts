@@ -4,7 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import type {GeneratedDocumentResponse, ParticipantDocuments, RequiredTemplate} from '@/api/generated/schema'
+import type {TemplatePages} from './documentTemplates'
+import type {AppointmentDocuments, GeneratedDocumentResponse, RequiredTemplate, TemplatePage} from '@/api/generated/schema'
 
 /** Who asks for documents to bring: an appointment or an appointment template, by id. */
 export interface RequirementOwner {
@@ -12,9 +13,9 @@ export interface RequirementOwner {
     id: number
 }
 
-/** The document templates appointments may ask participants to bring. */
-export async function offeredTemplates(): Promise<RequiredTemplate[]> {
-    const res = await client.get<RequiredTemplate[]>('/document-requirements/templates')
+/** One page of the document templates appointments may ask participants to bring. */
+export const offeredTemplates: TemplatePages = async query => {
+    const res = await client.get<TemplatePage>('/document-requirements/templates', {params: query})
     return res.data
 }
 
@@ -30,10 +31,19 @@ export async function setRequirements(owner: RequirementOwner, templateIds: numb
     return res.data
 }
 
-/** The documents to bring for the reader and the members in their care who take part on a date. */
-export async function documentsToBring(eventId: number, date: string): Promise<ParticipantDocuments[]> {
-    const res = await client.get<ParticipantDocuments[]>(`/events/${eventId}/documents-to-bring`, {params: {date}})
+/**
+ * The documents an appointment asks for on a date: the list for every reader, the copies of the reader
+ * and the members in their care who take part, and every participant's for whoever manages the
+ * registrations.
+ */
+export async function documentsToBring(eventId: number, date: string): Promise<AppointmentDocuments> {
+    const res = await client.get<AppointmentDocuments>(`/events/${eventId}/documents-to-bring`, {params: {date}})
     return res.data
+}
+
+/** Where the first page of a document the appointment asks for is served, for whoever sees the appointment. */
+export function toBringPictureUrl(eventId: number, templateId: number, size: number): string {
+    return `/events/${eventId}/documents-to-bring/${templateId}/picture?size=${size}`
 }
 
 /** Generates a participant's copy of a document the appointment asks for and files it with them. */

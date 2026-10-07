@@ -117,10 +117,11 @@ public class DocumentGenerationService {
      * association.
      *
      * @param owner the station
-     * @return the templates by name
+     * @param query the search, order and page
+     * @return the page of templates asked for
      */
-    public List<DocumentTemplateService.DocumentTemplateSummary> usable(Owner.Station owner) {
-        return templates.list(owner, false);
+    public TemplateQuery.TemplatePage usable(Owner.Station owner, TemplateQuery query) {
+        return query.pageOf(templates.list(owner, false));
     }
 
     /**

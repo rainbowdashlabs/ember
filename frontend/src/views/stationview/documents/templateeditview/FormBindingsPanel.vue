@@ -16,7 +16,8 @@ import FormBindingRow from './FormBindingRow.vue'
 /**
  * The form fields the PDF brings. Text fields and check boxes can be filled from placeholders; every
  * other kind keeps what it shows. All of them are flattened into the page when a document is made, so
- * nobody types into a generated form.
+ * nobody types into a generated form. A field chosen on the page is the entry marked here, and an
+ * entry chosen here marks its field on the page.
  *
  * <p>A field the template fills that a newer upload of the PDF no longer has is listed apart, to be
  * removed before the template can be saved.
@@ -27,6 +28,12 @@ const props = defineProps<{
   formFields: FormField[]
   placeholders: Placeholder[]
   legal: boolean
+  /** The field chosen on the page or in the list, by name. */
+  chosen: string | null
+}>()
+
+const emit = defineEmits<{
+  choose: [name: string]
 }>()
 
 const {t} = useI18n()
@@ -50,7 +57,8 @@ function setText(name: string, text: string) {
     <SubHeader>{{ t('documentTemplates.formFieldsTitle') }}</SubHeader>
     <MutedText size="sm" tag="p">{{ t('documentTemplates.formFieldsHint') }}</MutedText>
     <FormBindingRow v-for="field in fillable" :key="field.name" :field="field" :placeholders="placeholders" :legal="legal"
-                    :model-value="textOf(field.name)" @update:model-value="text => setText(field.name, text)"/>
+                    :chosen="chosen === field.name" :model-value="textOf(field.name)"
+                    @update:model-value="text => setText(field.name, text)" @choose="emit('choose', field.name)"/>
     <MutedText v-if="others.length > 0" size="sm" tag="p">{{ t('documentTemplates.formFieldsOther', {fields: others.join(', ')}) }}</MutedText>
     <Alert v-for="binding in gone" :key="binding.fieldName" variant="error">
       <div class="flex items-center justify-between gap-2">

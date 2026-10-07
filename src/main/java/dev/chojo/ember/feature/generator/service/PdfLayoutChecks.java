@@ -88,20 +88,11 @@ final class PdfLayoutChecks {
             throw DocumentRefusal.DOCUMENT_TEMPLATE_FIELD_INCOMPLETE.raise();
         }
         var rect = requireOnPage(original, field.rect());
-        if (field.kind() == PdfFieldKind.SIGNATURE) {
-            var role = field.role();
-            if (role == null) throw DocumentRefusal.DOCUMENT_TEMPLATE_FIELD_INCOMPLETE.raise();
-            return new PdfField(PdfFieldKind.SIGNATURE, rect, null, DEFAULT_FONT_SIZE, TextAlign.LEFT, false, role);
-        }
+        if (field.kind() == PdfFieldKind.SIGNATURE) return signature(field, rect, maxText);
         String text = Objects.requireNonNullElse(field.text(), "").strip();
         if (text.isEmpty()) throw DocumentRefusal.DOCUMENT_TEMPLATE_FIELD_INCOMPLETE.raise();
-        if (text.length() > maxText) {
-            throw DocumentRefusal.DOCUMENT_TEMPLATE_TEXT_TOO_LONG.raise(RefusalDetail.count(maxText));
-        }
-        double size = field.fontSize() > 0 ? field.fontSize() : DEFAULT_FONT_SIZE;
-        if (size < MIN_FONT_SIZE || size > MAX_FONT_SIZE) {
-            throw DocumentRefusal.DOCUMENT_TEMPLATE_FIELD_SIZE_OUT_OF_BOUNDS.raise();
-        }
+        requireFits(text, maxText);
+        double size = checkedSize(field);
         var align = Objects.requireNonNullElse(field.align(), TextAlign.LEFT);
         if (field.kind() != PdfFieldKind.TEXT) return new PdfField(field.kind(), rect, text, size, align, false, null);
         return new PdfField(
@@ -114,6 +105,43 @@ final class PdfLayoutChecks {
                 null,
                 familyOf(field.fontFamily()),
                 Objects.requireNonNullElse(field.fontStyle(), FontStyle.REGULAR));
+    }
+
+    /**
+     * A signature field as it is kept: its signer, whether it draws its line, and its text, which may be
+     * empty and is kept even while it does not print, so switching the printing on brings it back.
+     */
+    private static PdfField signature(PdfField field, FieldRect rect, int maxText) {
+        var role = field.role();
+        if (role == null) throw DocumentRefusal.DOCUMENT_TEMPLATE_FIELD_INCOMPLETE.raise();
+        String text = Objects.requireNonNullElse(field.text(), "").strip();
+        requireFits(text, maxText);
+        return new PdfField(
+                PdfFieldKind.SIGNATURE,
+                rect,
+                text.isEmpty() ? null : text,
+                checkedSize(field),
+                Objects.requireNonNullElse(field.align(), TextAlign.LEFT),
+                false,
+                role,
+                null,
+                FontStyle.REGULAR,
+                field.withoutLine(),
+                field.printText());
+    }
+
+    private static void requireFits(String text, int maxText) {
+        if (text.length() > maxText) {
+            throw DocumentRefusal.DOCUMENT_TEMPLATE_TEXT_TOO_LONG.raise(RefusalDetail.count(maxText));
+        }
+    }
+
+    private static double checkedSize(PdfField field) {
+        double size = field.fontSize() > 0 ? field.fontSize() : DEFAULT_FONT_SIZE;
+        if (size < MIN_FONT_SIZE || size > MAX_FONT_SIZE) {
+            throw DocumentRefusal.DOCUMENT_TEMPLATE_FIELD_SIZE_OUT_OF_BOUNDS.raise();
+        }
+        return size;
     }
 
     /** The family a text field names, or null for the default font where it names none. */

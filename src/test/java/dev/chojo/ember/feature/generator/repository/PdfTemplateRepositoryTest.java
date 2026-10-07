@@ -41,7 +41,7 @@ class PdfTemplateRepositoryTest extends RepositoryTestBase {
     private static final DocumentTemplateRepository templates = new DocumentTemplateRepository();
     private static final PdfInspection INSPECTION = new PdfInspection(
             List.of(new PdfPage(0, 0, 595, 842, 90)),
-            List.of(new FormField("name", FormFieldKind.TEXT, new FieldRect(1, 10, 20, 30, 40))));
+            List.of(new FormField("name", FormFieldKind.TEXT, new FieldRect(1, 10, 20, 30, 40), "Name", "Alt")));
 
     private static int templateId;
     private static int author;

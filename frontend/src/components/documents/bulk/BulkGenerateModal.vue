@@ -30,7 +30,6 @@ import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {showToast} from '@/util/toast'
 import IssuerOverride from '../IssuerOverride.vue'
-import {recentlyUsedFirst} from '../recentlyUsedFirst'
 import {selectionFor} from './bulkGeneration'
 import BulkMemberChoice from './BulkMemberChoice.vue'
 import BulkPreviewSummary from './BulkPreviewSummary.vue'
@@ -41,7 +40,8 @@ import TemplateChoice from '../TemplateChoice.vue'
  * (the ones chosen in the member list, or an audience of groups, user types and tags), look at the
  * document of the first member with the data every member still lacks, decide whether gaps are filed
  * as lines to fill in by hand, and start. The run goes on without the screen; its progress and results
- * stand in the document store. The templates used most recently at the station come first.
+ * stand in the document store. The template is chosen in the template picker, which opens on the
+ * templates used most recently at the station.
  *
  * <p>Where the document names its issuer, the first look shows the template's issuer, and another
  * current member of the station can be picked for the whole run; a new pick asks for a new look.
@@ -59,11 +59,11 @@ const emit = defineEmits<{
 
 const {t} = useI18n()
 
-const templates = ref<DocumentTemplateSummary[]>([])
+const template = ref<DocumentTemplateSummary | null>(null)
 const groups = ref<GroupEntry[]>([])
 const tags = ref<TagEntry[]>([])
 const members = ref<MemberOption[]>([])
-const templateId = ref<number | null>(null)
+const templateId = computed(() => template.value?.id ?? null)
 const audience = ref<RestrictionSelection>(emptyRestriction())
 const acceptMissing = ref(false)
 const preview = ref<BulkPreviewResponse | null>(null)
@@ -72,15 +72,13 @@ const issuer = ref<IssuerChoice | null>(null)
 
 const chosen = computed(() => props.memberIds ?? null)
 const selection = computed(() => selectionFor(chosen.value, audience.value))
-const templateName = computed(() => templates.value.find(template => template.id === templateId.value)?.name ?? '')
+const templateName = computed(() => template.value?.name ?? '')
 
 const loader = useAsyncLoader(async () => {
-  const [usable, lists, completions] = await Promise.all([
-    documentTemplates.usableTemplates(),
+  const [lists, completions] = await Promise.all([
     audienceLists(),
     stationMembers.listCompletions().catch(() => []),
   ])
-  templates.value = recentlyUsedFirst(usable)
   groups.value = lists.groups
   tags.value = lists.tags
   members.value = completions.map(fromCompletion)
@@ -119,7 +117,7 @@ watch([templateId, audience, issuer], () => {
     <div class="space-y-4" data-testid="bulk-generate-modal">
       <SubHeader>{{ t('documentTemplates.bulk.title') }}</SubHeader>
       <FailureAlert :failure="loader.failure.value ?? looking.failure.value ?? starting.failure.value"/>
-      <TemplateChoice v-model="templateId" :templates="templates" :loading="loader.loading.value"/>
+      <TemplateChoice v-model="template"/>
       <BulkMemberChoice v-model="audience" :member-ids="chosen" :groups="groups" :tags="tags"/>
       <IssuerOverride v-if="templateIssuer" :key="templateId ?? 0" v-model="issuer" :template-issuer="templateIssuer"
                       :members="members"/>

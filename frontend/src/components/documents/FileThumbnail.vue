@@ -27,6 +27,8 @@ const props = defineProps<{
   alt?: string
   /** The size classes of the tile, so a list and a row can ask for different ones. */
   size?: string
+  /** Shows the picture from its top rather than its middle, where a page that does not fit says what it is. */
+  anchorTop?: boolean
 }>()
 
 const root = ref<HTMLElement | null>(null)
@@ -100,7 +102,7 @@ onUnmounted(() => {
       :class="size ?? 'h-12 w-12'"
       class="shrink-0 flex items-center justify-center overflow-hidden rounded-theme bg-bg-light-accent/40 dark:bg-bg-dark-accent/40"
   >
-    <img v-if="objectUrl" :src="objectUrl" :alt="alt ?? ''" class="h-full w-full object-cover"/>
+    <img v-if="objectUrl" :src="objectUrl" :alt="alt ?? ''" :class="{'object-top': anchorTop}" class="h-full w-full object-cover"/>
     <font-awesome-icon v-else :icon="fileKindIcon(mimeType)" class="text-(--text-muted)"/>
   </div>
 </template>

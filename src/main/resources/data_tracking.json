@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:1398fb07da53b6ad704b3070933eb119afc66b00322b60e6f108d7e6966cae60",
-  "generatedAt": "2026-10-07T12:43:53Z",
+  "schemaHash": "sha256:b74a4b46abc056aab91a9f84feabc41a30a4a01a3941a8db2abbf0802cba666f",
+  "generatedAt": "2026-10-07T13:43:15Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -7110,7 +7110,7 @@
       "description": "A template turned into a PDF for one member at a time, kept by a station (station_id) or by an association for all its stations (cluster_id). Never deleted, only archived, so every generated document keeps pointing at the template it came from."
     },
     "document_template_field": {
-      "tableHash": "sha256:de740bdeb471e4ba8c5733167b8500f01762cd28aa131d06adc9d1131f6935c0",
+      "tableHash": "sha256:dce280d592810f68da3e301d3fdd0ff253c8e8c51078854b3f5e2cf38776089d",
       "columns": [
         {
           "name": "id",
@@ -7180,7 +7180,7 @@
           "type": "text",
           "nullable": true,
           "verified": true,
-          "description": "The text with placeholders written as {{key}}, for TEXT and CHECK. NULL for SIGNATURE."
+          "description": "The text with placeholders written as {{key}}: printed by TEXT, deciding the cross of CHECK, and for SIGNATURE the text under the line, printed only where print_text is set. NULL for a SIGNATURE without one."
         },
         {
           "name": "font_size",
@@ -7223,6 +7223,20 @@
           "nullable": true,
           "verified": true,
           "description": "Who signs in a SIGNATURE field: PARTICIPANT, GUARDIAN_1, GUARDIAN_2 (left out for a member with fewer than two guardians), EACH_GUARDIAN (the box shared out into one field per guardian of the member), ANY_GUARDIAN (one field any guardian may sign) or ISSUER. NULL for every other kind."
+        },
+        {
+          "name": "without_line",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "For SIGNATURE: true where no line is drawn to sign on, because the PDF already has one. FALSE for every other kind."
+        },
+        {
+          "name": "print_text",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "For SIGNATURE: true where its text is printed under the line; otherwise the text shows in the template editor only. FALSE for every other kind."
         }
       ],
       "foreignKeys": [

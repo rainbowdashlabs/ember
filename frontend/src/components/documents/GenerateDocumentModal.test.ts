@@ -9,18 +9,13 @@ import {mountSuspended} from '@nuxt/test-utils/runtime'
 import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
 import GenerateDocumentModal from './GenerateDocumentModal.vue'
 import IssuerOverride from './IssuerOverride.vue'
+import TemplateChoice from './TemplateChoice.vue'
 
 const previewForMember = vi.fn()
 const generateForMember = vi.fn()
 
 vi.mock('@/api', () => ({
     documentTemplates: {
-        usableTemplates: vi.fn(async () => [
-            {id: 1, name: 'Bescheinigung', ofAssociation: false, lastUsedAt: null, forAppointments: false},
-            {id: 2, name: 'Einverständnis', ofAssociation: true, lastUsedAt: '2026-10-01T09:00:00Z', forAppointments: false},
-            {id: 3, name: 'Ausweis', ofAssociation: false, lastUsedAt: '2026-10-02T09:00:00Z', forAppointments: false},
-            {id: 4, name: 'Zeltlager', ofAssociation: false, lastUsedAt: '2026-10-03T09:00:00Z', forAppointments: true},
-        ]),
         previewForMember: (...args: unknown[]) => previewForMember(...args),
         generateForMember: (...args: unknown[]) => generateForMember(...args),
     },
@@ -32,26 +27,21 @@ vi.mock('@/api', () => ({
 async function mountDialog(props: Record<string, unknown>) {
     const dialog = await mountSuspended(GenerateDocumentModal, {
         props: {modelValue: true, ...props},
-        global: {stubs: {Modal: {template: '<div><slot/></div>'}, GeneratedPreview: true}},
+        global: {stubs: {Modal: {template: '<div><slot/></div>'}, GeneratedPreview: true, TemplateChoice: true}},
     })
     await flushPromises()
     return dialog
 }
 
-async function templateChoices() {
-    const dialog = await mountDialog({memberId: 4})
-    return dialog.findAll('[data-testid="template-choice"] option:not([disabled])').map(option => option.text())
-}
-
 async function chooseTemplate(dialog: VueWrapper, id: number) {
-    await dialog.find('[data-testid="template-choice"]').setValue(String(id))
+    dialog.findComponent(TemplateChoice).vm.$emit('update:modelValue', {id, name: `Vorlage ${id}`})
     await flushPromises()
 }
 
 /**
- * A station generates from its own templates and from those of its association, which only the
- * association changes; the choice says which is which, and offers what was used last first. A member's
- * page names the member; the document store asks for one, and draws nothing until somebody is chosen.
+ * The template is chosen in the template picker, which leaves out templates for appointments. A
+ * member's page names the member; the document store asks for one, and draws nothing until somebody is
+ * chosen.
  */
 describe('GenerateDocumentModal', () => {
     beforeEach(() => {
@@ -60,15 +50,10 @@ describe('GenerateDocumentModal', () => {
         generateForMember.mockResolvedValue({documentId: 42, generationId: 7, missing: [], title: 'Ausweis'})
     })
 
-    it('marks the templates of the association', async () => {
-        const options = await templateChoices()
+    it('asks the picker to leave out the templates for appointments', async () => {
+        const dialog = await mountDialog({memberId: 4})
 
-        expect(options).toContain('Bescheinigung')
-        expect(options).toContain('Einverständnis (Vom Verband)')
-    })
-
-    it('lists the templates used most recently first and leaves out those for appointments', async () => {
-        expect(await templateChoices()).toEqual(['Ausweis', 'Einverständnis (Vom Verband)', 'Bescheinigung'])
+        expect(dialog.findComponent(TemplateChoice).props('fixed')).toEqual({forAppointments: false})
     })
 
     it('generates for the member handed in without asking for one', async () => {

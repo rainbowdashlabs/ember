@@ -294,6 +294,59 @@ class PdfStamperTest {
         }
     }
 
+    /** A PDF that already has a line to sign on gets the field without a second line over it. */
+    @Test
+    void aSignatureFieldWithoutItsLineStaysAFieldAndDrawsNothing() throws IOException {
+        var rect = new FieldRect(1, 60, 100, 150, 40);
+        var stamped = stamp(
+                TestPdfs.plain(1),
+                new PdfField(
+                        PdfFieldKind.SIGNATURE,
+                        rect,
+                        null,
+                        10,
+                        TextAlign.LEFT,
+                        false,
+                        SignatureRole.PARTICIPANT,
+                        null,
+                        FontStyle.REGULAR,
+                        true,
+                        false));
+
+        try (var document = Loader.loadPDF(stamped.pdf())) {
+            assertNotNull(document.getDocumentCatalog().getAcroForm(null).getField("participant"));
+        }
+        assertFalse(TestPdfs.darkAt(TestPdfs.picture(stamped.pdf()), 130, 100.3f), "no line of its own");
+    }
+
+    /** The text of a signature field prints under the line only where it is asked to, the line above it. */
+    @Test
+    void aSignatureFieldPrintsItsTextUnderTheLineWhereAsked() throws IOException {
+        var rect = new FieldRect(1, 60, 100, 150, 40);
+        var printed = stamp(TestPdfs.plain(1), signatureWithText(rect, true));
+        var kept = stamp(TestPdfs.plain(1), signatureWithText(rect, false));
+
+        assertEquals("Unterschrift", drawn(TestPdfs.positions(printed.pdf(), 1)).strip());
+        assertTrue(TestPdfs.darkAt(TestPdfs.picture(printed.pdf()), 130, 113.3f), "the line raised above the text");
+        assertEquals("", drawn(TestPdfs.positions(kept.pdf(), 1)).strip());
+        assertTrue(TestPdfs.darkAt(TestPdfs.picture(kept.pdf()), 130, 100.3f), "the line at the bottom");
+    }
+
+    private static PdfField signatureWithText(FieldRect rect, boolean printText) {
+        return new PdfField(
+                PdfFieldKind.SIGNATURE,
+                rect,
+                "Unterschrift",
+                10,
+                TextAlign.LEFT,
+                false,
+                SignatureRole.PARTICIPANT,
+                null,
+                FontStyle.REGULAR,
+                false,
+                printText);
+    }
+
     /** Any guardian signs in one field; a second guardian the member lacks has no field and no line. */
     @Test
     void oneGuardianSignsOnceAndAnAbsentSecondGuardianNotAtAll() throws IOException {

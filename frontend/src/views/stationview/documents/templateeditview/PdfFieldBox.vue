@@ -8,6 +8,7 @@ import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {PdfFieldKind} from '@/api/generated/schema'
 import type {ScreenBox} from './pdfViewport'
+import type {FieldTextLook} from './pdfFieldLook'
 
 /**
  * One field over the page: dragged to move, dragged by its corner to resize, and moved with the arrow
@@ -15,12 +16,18 @@ import type {ScreenBox} from './pdfViewport'
  *
  * <p>It reports how far it went in CSS pixels and leaves turning that into points to whoever holds the
  * page's viewport. A drag holds the pointer, so it keeps going when it runs past the box.
+ *
+ * <p>A text field shows its text the way it prints: in its size on the page as drawn, its alignment,
+ * its font and style, and on one line or wrapped. The text is black whatever the theme, since it stands
+ * on the white page; what does not fit the box is cut off as it would be on paper.
  */
 const props = defineProps<{
   box: ScreenBox
   kind: PdfFieldKind
   label: string
   selected: boolean
+  /** How a text field's text looks on the page as drawn; absent for a check mark or a signature. */
+  look?: FieldTextLook | null
 }>()
 
 const emit = defineEmits<{
@@ -46,8 +53,20 @@ const style = computed(() => ({
 }))
 
 const tone = computed(() => props.kind === PdfFieldKind.SIGNATURE
-    ? 'border-secondary-accent bg-secondary/20'
-    : 'border-primary bg-primary/15')
+    ? 'border-secondary-accent bg-secondary/10'
+    : 'border-primary bg-primary/10')
+
+const textStyle = computed(() => {
+  const look = props.look
+  if (!look) return {}
+  return {
+    fontSize: `${look.fontSizePx}px`,
+    textAlign: look.align,
+    fontWeight: look.bold ? '700' : '400',
+    fontStyle: look.italic ? 'italic' : 'normal',
+    ...(look.fontFamily ? {fontFamily: look.fontFamily} : {}),
+  }
+})
 
 let drag: {x: number; y: number; resizing: boolean} | null = null
 
@@ -88,7 +107,9 @@ function step(event: KeyboardEvent) {
        :style="style" role="button" tabindex="0" :aria-label="label" :aria-pressed="selected" data-testid="pdf-field-box"
        @pointerdown="start($event, false)" @pointermove="follow" @pointerup="stop" @pointercancel="stop"
        @keydown="step" @focus="emit('select')">
-    <span class="block truncate px-0.5 text-[10px] leading-tight">{{ label }}</span>
+    <span class="absolute inset-0 overflow-hidden px-0.5 leading-tight text-black" data-testid="pdf-field-text"
+          :class="look ? (look.wrap ? 'whitespace-pre-wrap break-words' : 'whitespace-pre') : 'truncate text-xs font-medium'"
+          :style="textStyle">{{ label }}</span>
     <span class="absolute -bottom-1.5 -right-1.5 size-3 rounded-full bg-primary cursor-nwse-resize" :title="t('documentTemplates.resizeField')"
           aria-hidden="true" @pointerdown="start($event, true)" @pointermove="follow" @pointerup="stop" @pointercancel="stop"/>
   </div>

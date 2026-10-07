@@ -113,9 +113,10 @@ public class PdfTemplateRepository {
         var role = field.role();
         query("""
                 INSERT INTO document_template_field(template_id, position, kind, page, x, y, width, height, text,
-                                                    font_size, align, wrap, role, font_family, font_style)
+                                                    font_size, align, wrap, role, font_family, font_style,
+                                                    without_line, print_text)
                 VALUES (:template_id, :position, :kind, :page, :x, :y, :width, :height, :text,
-                        :font_size, :align, :wrap, :role, :font_family, :font_style);""")
+                        :font_size, :align, :wrap, :role, :font_family, :font_style, :without_line, :print_text);""")
                 .single(call().bind("template_id", templateId)
                         .bind("position", position)
                         .bind("kind", field.kind())
@@ -130,7 +131,9 @@ public class PdfTemplateRepository {
                         .bind("wrap", field.wrap())
                         .bind("role", role == null ? null : role.name())
                         .bind("font_family", field.fontFamily())
-                        .bind("font_style", Objects.requireNonNullElse(field.fontStyle(), FontStyle.REGULAR)))
+                        .bind("font_style", Objects.requireNonNullElse(field.fontStyle(), FontStyle.REGULAR))
+                        .bind("without_line", field.withoutLine())
+                        .bind("print_text", field.printText()))
                 .insert();
     }
 

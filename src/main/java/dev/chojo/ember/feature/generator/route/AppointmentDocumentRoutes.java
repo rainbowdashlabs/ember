@@ -13,11 +13,14 @@ import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.feature.events.entity.EventTemplate;
 import dev.chojo.ember.feature.events.route.EventVisibility;
 import dev.chojo.ember.feature.events.service.EventTemplateService;
+import dev.chojo.ember.feature.generator.entity.DocumentTemplateKind;
 import dev.chojo.ember.feature.generator.entity.RequiredTemplate;
+import dev.chojo.ember.feature.generator.entity.TemplateSort;
 import dev.chojo.ember.feature.generator.service.AppointmentDocumentService;
-import dev.chojo.ember.feature.generator.service.AppointmentDocumentService.ParticipantDocuments;
+import dev.chojo.ember.feature.generator.service.AppointmentDocumentService.AppointmentDocuments;
 import dev.chojo.ember.feature.generator.service.DocumentGenerationService.GeneratedDocumentResponse;
 import dev.chojo.ember.feature.generator.service.EventRequirementService;
+import dev.chojo.ember.feature.generator.service.TemplateQuery.TemplatePage;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -97,11 +100,18 @@ public class AppointmentDocumentRoutes implements Routes {
     @OpenApi(
             path = "/api/v1/document-requirements/templates",
             methods = HttpMethod.GET,
-            summary = "The document templates appointments may ask participants to bring",
+            summary = "One page of the document templates appointments may ask participants to bring",
             tags = {"Events"},
-            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = RequiredTemplate[].class)))
+            queryParams = {
+                @OpenApiParam(name = "q", description = "What the name contains"),
+                @OpenApiParam(name = "kind", type = DocumentTemplateKind.class),
+                @OpenApiParam(name = "sort", type = TemplateSort.class),
+                @OpenApiParam(name = "page", type = Integer.class, description = "Counted from 0"),
+                @OpenApiParam(name = "size", type = Integer.class)
+            },
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = TemplatePage.class)))
     private void offered(Context ctx) {
-        ctx.json(requirements.offered(StationSession.from(ctx).owner()));
+        ctx.json(requirements.offered(StationSession.from(ctx).owner(), TemplateQueries.of(ctx)));
     }
 
     @OpenApi(
@@ -164,18 +174,20 @@ public class AppointmentDocumentRoutes implements Routes {
     @OpenApi(
             path = "/api/v1/events/{id}/documents-to-bring",
             methods = HttpMethod.GET,
-            summary = "The documents to bring for the reader and the members in their care who take part on a date",
+            summary =
+                    "The documents an appointment asks for on a date, the reader's own copies and, for whoever manages the registrations, every participant's",
             tags = {"Events"},
             pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
             queryParams = @OpenApiParam(name = "date", required = true),
             responses = {
-                @OpenApiResponse(status = "200", content = @OpenApiContent(from = ParticipantDocuments[].class)),
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = AppointmentDocuments.class)),
                 @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void toBring(Context ctx) {
         var session = StationSession.from(ctx);
         var event = visibility.requireVisibleEvent(session, pathInt(ctx, "id"));
-        ctx.json(documents.documentsToBring(session, event, date(ctx)));
+        boolean overview = session.hasPermission(StationPermission.EVENT_REGISTRATION);
+        ctx.json(documents.documentsToBring(session, event, date(ctx), overview));
     }
 
     @OpenApi(

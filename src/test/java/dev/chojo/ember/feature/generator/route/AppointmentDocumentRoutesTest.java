@@ -17,8 +17,12 @@ import dev.chojo.ember.feature.events.service.EventTemplateService;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplateKind;
 import dev.chojo.ember.feature.generator.entity.RequiredTemplate;
 import dev.chojo.ember.feature.generator.service.AppointmentDocumentService;
+import dev.chojo.ember.feature.generator.service.AppointmentDocumentService.AppointmentDocuments;
 import dev.chojo.ember.feature.generator.service.DocumentGenerationService.GeneratedDocumentResponse;
+import dev.chojo.ember.feature.generator.service.DocumentTemplateService.DocumentTemplateSummary;
 import dev.chojo.ember.feature.generator.service.EventRequirementService;
+import dev.chojo.ember.feature.generator.service.TemplateQuery;
+import dev.chojo.ember.feature.generator.service.TemplateQuery.TemplatePage;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.owner.Owner;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,6 +39,7 @@ import static dev.chojo.ember.api.RouteHarness.json;
 import static dev.chojo.ember.api.RouteHarness.refusalOf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -52,6 +57,23 @@ class AppointmentDocumentRoutesTest {
     private static final LocalDate DAY = LocalDate.parse("2026-09-27");
     private static final RequiredTemplate CONSENT =
             new RequiredTemplate(8, "Einverständnis", DocumentTemplateKind.PDF, 1, false, null);
+    private static final TemplatePage OFFERED = new TemplatePage(
+            List.of(new DocumentTemplateSummary(
+                    8,
+                    "Einverständnis",
+                    DocumentTemplateKind.PDF,
+                    false,
+                    true,
+                    false,
+                    false,
+                    1,
+                    Instant.EPOCH,
+                    Instant.EPOCH,
+                    null,
+                    null)),
+            1,
+            0,
+            TemplateQuery.DEFAULT_SIZE);
 
     private EventRequirementService requirements;
     private AppointmentDocumentService documents;
@@ -68,12 +90,13 @@ class AppointmentDocumentRoutesTest {
         when(visibility.requireVisibleEvent(any(), eq(6))).thenThrow(EventRefusal.EVENT_NOT_YOURS_TO_SEE.raise());
         when(eventTemplates.findById(7)).thenReturn(Optional.of(eventTemplate(7, 3)));
         when(eventTemplates.findById(9)).thenReturn(Optional.of(eventTemplate(9, 4)));
-        when(requirements.offered(OWNER)).thenReturn(List.of(CONSENT));
+        when(requirements.offered(eq(OWNER), any())).thenReturn(OFFERED);
         when(requirements.forEvent(5)).thenReturn(List.of(CONSENT));
         when(requirements.setForEvent(OWNER, 5, List.of(8))).thenReturn(List.of(CONSENT));
         when(requirements.forEventTemplate(7)).thenReturn(List.of(CONSENT));
         when(requirements.setForEventTemplate(OWNER, 7, List.of())).thenReturn(List.of());
-        when(documents.documentsToBring(any(), eq(event), eq(DAY))).thenReturn(List.of());
+        when(documents.documentsToBring(any(), eq(event), eq(DAY), anyBoolean()))
+                .thenReturn(new AppointmentDocuments(List.of(CONSENT), List.of(), null));
         when(documents.generate(any(), eq(event), eq(DAY), eq(8), eq(11)))
                 .thenReturn(new GeneratedDocumentResponse(40, 41, "Einverständnis", List.of()));
         harness = RouteHarness.serving(
@@ -122,6 +145,7 @@ class AppointmentDocumentRoutesTest {
             assertEquals(
                     "Einverständnis",
                     json(client.get(PREFIX + "/document-requirements/templates", editor))
+                            .path("items")
                             .path(0)
                             .path("name")
                             .asString());
@@ -182,6 +206,15 @@ class AppointmentDocumentRoutesTest {
                     200,
                     client.get(PREFIX + "/events/5/documents-to-bring?date=2026-09-27", member)
                             .code());
+            verify(documents).documentsToBring(any(), any(), eq(DAY), eq(false));
+            assertEquals(
+                    200,
+                    client.get(
+                                    PREFIX + "/events/5/documents-to-bring?date=2026-09-27",
+                                    harness.as(TestSessions.member(
+                                            3, StationPermission.USER, StationPermission.EVENT_REGISTRATION)))
+                            .code());
+            verify(documents).documentsToBring(any(), any(), eq(DAY), eq(true));
             var generated =
                     client.post(PREFIX + "/events/5/documents-to-bring/8/members/11?date=2026-09-27", null, member);
             assertEquals(201, generated.code());

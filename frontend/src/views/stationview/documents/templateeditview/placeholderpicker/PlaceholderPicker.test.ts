@@ -72,7 +72,21 @@ describe('PlaceholderPicker', () => {
         await choose(wrapper, 'Stammdaten')
         await wrapper.find('[data-testid="placeholder-member.firstName"]').trigger('click')
 
-        expect(wrapper.emitted('pick')?.[0]).toEqual([{key: 'member.firstName', label: 'Vorname'}])
+        expect(wrapper.emitted('pick')?.[0]).toEqual([{key: 'member.firstName', label: 'Vorname'}, false])
+        expect(wrapper.find('[data-testid="placeholder-picker-level"]').exists()).toBe(false)
+    })
+
+    it('stays where it is with shift held, so several are picked one after another', async () => {
+        const wrapper = picker()
+        await wrapper.find('[data-testid="placeholder-category-MEMBER"]').trigger('click')
+        await choose(wrapper, 'Stammdaten')
+        await wrapper.find('[data-testid="placeholder-member.firstName"]').trigger('click', {shiftKey: true})
+
+        expect(wrapper.emitted('pick')?.[0]).toEqual([{key: 'member.firstName', label: 'Vorname'}, true])
+        expect(steps(wrapper)).toEqual(['Mitglied', 'Stammdaten'])
+
+        await wrapper.find('[data-testid="placeholder-member.firstName"]').trigger('click')
+        expect(wrapper.emitted('pick')?.[1]).toEqual([{key: 'member.firstName', label: 'Vorname'}, false])
         expect(wrapper.find('[data-testid="placeholder-picker-level"]').exists()).toBe(false)
     })
 
@@ -95,7 +109,7 @@ describe('PlaceholderPicker', () => {
         ])
 
         await wrapper.find('[data-testid="placeholder-guardian1.profile.2"]').trigger('click')
-        expect(wrapper.emitted('pick')?.[0]).toEqual([{key: 'guardian1.profile.2', label: 'Erziehungsberechtigte 1: Allergien'}])
+        expect(wrapper.emitted('pick')?.[0]).toEqual([{key: 'guardian1.profile.2', label: 'Erziehungsberechtigte 1: Allergien'}, false])
         expect((wrapper.find('[data-testid="placeholder-picker-search"] input').element as HTMLInputElement).value).toBe('')
     })
 
@@ -111,7 +125,7 @@ describe('PlaceholderPicker', () => {
         await wrapper.find('[data-testid="placeholder-picker-search"] input').setValue('geburtsdatum')
         await wrapper.find('[data-testid="placeholder-member.birthDate"]').trigger('click')
 
-        expect(wrapper.emitted('pick')?.[0]).toEqual([{key: 'member.birthDate', label: 'Geburtsdatum'}])
+        expect(wrapper.emitted('pick')?.[0]).toEqual([{key: 'member.birthDate', label: 'Geburtsdatum'}, false])
     })
 })
 
@@ -149,8 +163,9 @@ describe('PlaceholderPicker, the format of a date', () => {
         return wrapper.findAll('[data-testid="placeholder-date-format"] li .flex-1').map(example => example.text())
     }
 
+    /** The choice handed on first, without whether more were to follow. */
     function picked(wrapper: VueWrapper) {
-        return wrapper.findComponent(PlaceholderPicker).emitted('pick')?.[0]
+        return wrapper.findComponent(PlaceholderPicker).emitted('pick')?.[0]?.slice(0, 1)
     }
 
     it('offers a day every format without a time of day, on the example day', async () => {

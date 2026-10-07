@@ -424,6 +424,8 @@ public class StorageQuotaService {
                     FONTS,
                     ASSOCIATION_FONTS -> quota.kb().bytes();
             case IMAGE_KB_FILE_PICTURE,
+                    IMAGE_DOCUMENT_TEMPLATE_PICTURE,
+                    IMAGE_ASSOCIATION_DOCUMENT_TEMPLATE_PICTURE,
                     IMAGE_AVATAR,
                     IMAGE_STATION_LOGO,
                     DOCUMENT,

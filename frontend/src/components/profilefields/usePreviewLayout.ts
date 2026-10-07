@@ -3,10 +3,9 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {onBeforeUnmount, ref, type Ref} from 'vue'
-import {FieldWidths, type FieldWidthName} from '@/components/profilefields/fieldLayout'
+import {onBeforeUnmount, ref, shallowRef, type Ref} from 'vue'
+import {FieldWidths, type FieldWidthName, type PreviewField} from './fieldLayout'
 import {moveWithin} from '@/util/reorder'
-import type {AskedField} from './askedField'
 
 /** The row is six columns wide, which is what each width costs. */
 const SPANS: Record<FieldWidthName, number> = {
@@ -37,23 +36,26 @@ function nearestWidth(span: number): FieldWidthName {
  * and the change is only handed on when the pointer is let go: a drag across six questions would
  * otherwise be six writes, five of which nobody meant.
  *
+ * <p>A field is told apart by itself rather than by an id, since not every form numbers its questions
+ * before they are saved; the list handed in keeps its entries for as long as a drag lasts.
+ *
  * @param fields the form as it currently stands
  * @param onMove  called with the places to move between once a move is finished
  * @param onResize called with the field and its new width once a resize is finished
  */
-export function usePreviewLayout(
-    fields: Ref<AskedField[]>,
+export function usePreviewLayout<T extends PreviewField>(
+    fields: Ref<readonly T[]>,
     onMove: (from: number, to: number) => void,
-    onResize: (field: AskedField, width: FieldWidthName) => void,
+    onResize: (field: T, width: FieldWidthName) => void,
 ) {
     /** The order being shown, which is the real one except while something is being dragged. */
-    const order = ref<AskedField[] | null>(null)
-    const movingId = ref<number | null>(null)
-    const resizingId = ref<number | null>(null)
+    const order = shallowRef<readonly T[] | null>(null)
+    const moving = shallowRef<T | null>(null)
+    const resizing = shallowRef<T | null>(null)
     /** The width the field under the pointer would take if the pointer were let go now. */
     const resizingTo = ref<FieldWidthName | null>(null)
 
-    function shown(): AskedField[] {
+    function shown(): readonly T[] {
         return order.value ?? fields.value
     }
 
@@ -94,25 +96,25 @@ export function usePreviewLayout(
         return Number.isNaN(index) ? null : index
     }
 
-    function startMove(field: AskedField) {
-        if (resizingId.value !== null) return
+    function startMove(field: T) {
+        if (resizing.value !== null) return
         release()
-        movingId.value = field.id
+        moving.value = field
         order.value = [...fields.value]
 
         const move = (moved: PointerEvent) => {
-            const from = shown().findIndex(entry => entry.id === field.id)
+            const from = shown().indexOf(field)
             const to = indexUnder(moved)
             if (to === null || to === from) return
-            order.value = moveWithin(shown(), from, to)
+            order.value = moveWithin([...shown()], from, to)
         }
 
         const finish = () => {
             release()
-            const from = fields.value.findIndex(entry => entry.id === field.id)
-            const to = shown().findIndex(entry => entry.id === field.id)
+            const from = fields.value.indexOf(field)
+            const to = shown().indexOf(field)
             order.value = null
-            movingId.value = null
+            moving.value = null
             if (from !== to && from >= 0 && to >= 0) onMove(from, to)
         }
 
@@ -126,11 +128,11 @@ export function usePreviewLayout(
      * currently wide: the same drag lands on the same width in a narrow window and a wide one. The
      * event stops before anything can refuse the resize, or the tile behind the handle starts moving.
      */
-    function startResize(field: AskedField, event: PointerEvent, grid: HTMLElement | null) {
+    function startResize(field: T, event: PointerEvent, grid: HTMLElement | null) {
         event.stopPropagation()
-        if (movingId.value !== null || !grid) return
+        if (moving.value !== null || !grid) return
         release()
-        resizingId.value = field.id
+        resizing.value = field
         resizingTo.value = null
         const startX = event.clientX
         const column = grid.getBoundingClientRect().width / 6
@@ -144,7 +146,7 @@ export function usePreviewLayout(
         const finish = () => {
             release()
             const width = resizingTo.value
-            resizingId.value = null
+            resizing.value = null
             resizingTo.value = null
             if (width && width !== field.width) onResize(field, width)
         }
@@ -153,10 +155,10 @@ export function usePreviewLayout(
     }
 
     /** What one question is drawn at right now, which is the drag in progress where there is one. */
-    function widthOf(field: AskedField): FieldWidthName {
-        if (resizingId.value === field.id && resizingTo.value) return resizingTo.value
+    function widthOf(field: T): FieldWidthName {
+        if (resizing.value === field && resizingTo.value) return resizingTo.value
         return (field.width ?? FieldWidths.FULL) as FieldWidthName
     }
 
-    return {shown, startMove, startResize, widthOf, movingId, resizingId}
+    return {shown, startMove, startResize, widthOf, moving, resizing}
 }

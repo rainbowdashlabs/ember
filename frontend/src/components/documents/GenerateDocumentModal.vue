@@ -19,7 +19,6 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import GeneratedPreview from './GeneratedPreview.vue'
 import TemplateChoice from './TemplateChoice.vue'
 import IssuerOverride from './IssuerOverride.vue'
-import {recentlyUsedFirst} from './recentlyUsedFirst'
 import {fromCompletion} from '@/components/input/select/memberOption'
 import {documentTemplates, stationMembers} from '@/api'
 import type {DocumentTemplateSummary, IssuerChoice, PreviewIssuer, PreviewResponse} from '@/api/generated/schema'
@@ -30,8 +29,8 @@ import {showToast} from '@/util/toast'
 /**
  * Generates a document from a template for one member: choose the template, look at the result with
  * the data it still lacks, and file it with the member. Missing data prints as lines to fill in, so a
- * manager may still file the document after the warning. The templates used most recently at the
- * station come first.
+ * manager may still file the document after the warning. The template is chosen in the template
+ * picker, which opens on the templates used most recently at the station.
  *
  * <p>A member's page hands the member in. The document store has nobody in front of it, so there the
  * member is chosen in the dialog, from the members handed in instead.
@@ -62,22 +61,19 @@ const ISSUER_SETTLE_MS = 400
 
 const {t} = useI18n()
 
-const templates = ref<DocumentTemplateSummary[]>([])
+const NOT_FOR_APPOINTMENTS = {forAppointments: false}
+
+const chosen = ref<DocumentTemplateSummary | null>(null)
 const issuerCandidates = ref<MemberOption[]>([])
-const templateId = ref<number | null>(null)
+const templateId = computed(() => chosen.value?.id ?? null)
 const chosenMember = ref('')
 const preview = ref<PreviewResponse | null>(null)
 const templateIssuer = ref<PreviewIssuer | null>(null)
 const issuer = ref<IssuerChoice | null>(null)
-const chosen = computed(() => templates.value.find(template => template.id === templateId.value) ?? null)
 const memberId = computed(() => props.memberId ?? (chosenMember.value ? Number(chosenMember.value) : null))
 
 const loader = useAsyncLoader(async () => {
-  const [usable, completions] = await Promise.all([
-    documentTemplates.usableTemplates(),
-    stationMembers.listCompletions().catch(() => []),
-  ])
-  templates.value = recentlyUsedFirst(usable.filter(template => !template.forAppointments))
+  const completions = await stationMembers.listCompletions().catch(() => [])
   issuerCandidates.value = completions.map(fromCompletion)
 })
 
@@ -111,7 +107,7 @@ watchDebounced(issuer, () => {
     <div class="space-y-4" data-testid="generate-document-modal">
       <SubHeader>{{ t('documentTemplates.generateTitle') }}</SubHeader>
       <FailureAlert :failure="loader.failure.value ?? drawing.failure.value ?? filing.failure.value"/>
-      <TemplateChoice v-model="templateId" :templates="templates" :loading="loader.loading.value"/>
+      <TemplateChoice v-model="chosen" :fixed="NOT_FOR_APPOINTMENTS"/>
       <LabelledField v-if="props.memberId === null" :label="t('documentTemplates.generateMember')">
         <MemberSelectInput v-model="chosenMember" :members="props.members" data-testid="generate-member"/>
       </LabelledField>

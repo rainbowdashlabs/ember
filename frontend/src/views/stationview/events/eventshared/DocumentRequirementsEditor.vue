@@ -9,35 +9,40 @@ import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
-import LabelledField from '@/components/input/LabelledField.vue'
-import IconButton from '@/components/button/IconButton.vue'
-import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
-import type {RequiredTemplate} from '@/api/generated/schema'
+import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import TemplatePickerModal from '@/components/documents/templatepicker/TemplatePickerModal.vue'
+import {appointmentDocuments} from '@/api'
+import {StationModule, StationPermission, type DocumentTemplateSummary, type RequiredTemplate} from '@/api/generated/schema'
+import {useSession} from '@/composables/useSession'
+import RequiredTemplateRow from './RequiredTemplateRow.vue'
+import {asRequired} from './useDocumentRequirements'
 
 /**
  * The documents an appointment or an appointment template asks participants to bring: document
- * templates marked for appointments. Every registered participant gets a copy filled with their data
- * and the appointment's. A template archived since it was chosen stays until it is taken off, but
- * cannot be chosen anew.
+ * templates marked for appointments, chosen in the template picker. Every registered participant gets
+ * a copy filled with their data and the appointment's. A template archived since it was chosen stays
+ * until it is taken off, but cannot be chosen anew.
+ *
+ * <p>It shows wherever the station uses documents, also while no template is marked for appointments
+ * yet: then it says so and leads to the templates, rather than leaving no trace of the feature.
  */
 const chosen = defineModel<RequiredTemplate[]>({required: true})
 
-const props = defineProps<{
-  /** The templates for appointments the station offers. */
-  offered: RequiredTemplate[]
+defineProps<{
+  /** How many templates for appointments the station offers. */
+  offeredCount: number
 }>()
 
 const {t} = useI18n()
+const {isModuleEnabled, hasPermission} = useSession()
 
-const adding = ref<number | null>(null)
-const addable = computed(() => props.offered.filter(template =>
-    !chosen.value.some(taken => taken.templateId === template.templateId)))
+const shown = computed(() => isModuleEnabled(StationModule.DOCUMENTS) || chosen.value.length > 0)
+const mayWriteTemplates = computed(() => hasPermission(StationPermission.DOCUMENT_TEMPLATE_EDIT))
+const chosenIds = computed(() => chosen.value.map(template => template.templateId))
+const picking = ref(false)
 
-function add(value: string | number | null | undefined) {
-  const template = addable.value.find(candidate => candidate.templateId === Number(value))
-  if (template) chosen.value = [...chosen.value, template]
-  adding.value = null
+function add(templates: DocumentTemplateSummary[]) {
+  chosen.value = [...chosen.value, ...templates.map(asRequired)]
 }
 
 function remove(templateId: number) {
@@ -46,21 +51,22 @@ function remove(templateId: number) {
 </script>
 
 <template>
-  <NeutralContainer v-if="offered.length > 0 || chosen.length > 0" class="space-y-3" data-testid="document-requirements">
+  <NeutralContainer v-if="shown" class="space-y-3" data-testid="document-requirements">
     <SubHeader>{{ t('events.documents.title') }}</SubHeader>
     <MutedText size="sm" tag="p">{{ t('events.documents.hint') }}</MutedText>
+    <MutedText v-if="offeredCount === 0" size="sm" tag="p" data-testid="document-requirements-none">
+      {{ t('events.documents.noneOffered') }}
+      <NuxtLink v-if="mayWriteTemplates" :to="{name: 'documents-templates'}">{{ t('events.documents.toTemplates') }}</NuxtLink>
+    </MutedText>
     <ul v-if="chosen.length > 0" class="space-y-2">
-      <li v-for="template in chosen" :key="template.templateId" class="flex items-center gap-2" data-testid="document-requirement">
-        <span class="flex-1">{{ template.name }}</span>
-        <SecondaryBadge v-if="template.archived">{{ t('events.documents.archived') }}</SecondaryBadge>
-        <IconButton :icon="['fas', 'xmark']" :label="t('events.documents.remove')" @click="remove(template.templateId)"/>
-      </li>
+      <RequiredTemplateRow v-for="template in chosen" :key="template.templateId" :template="template"
+                           @remove="remove(template.templateId)"/>
     </ul>
-    <LabelledField v-if="addable.length > 0" :label="t('events.documents.add')">
-      <SelectInput :model-value="adding" data-testid="document-requirement-add" @update:model-value="add">
-        <option :value="null" disabled>{{ t('events.documents.choose') }}</option>
-        <option v-for="template in addable" :key="template.templateId" :value="template.templateId">{{ template.name }}</option>
-      </SelectInput>
-    </LabelledField>
+    <SecondaryButton v-if="offeredCount > 0" :icon="['fas', 'plus']" data-testid="document-requirement-add"
+                     @click="picking = true">
+      {{ t('events.documents.add') }}
+    </SecondaryButton>
+    <TemplatePickerModal v-model="picking" :pages="appointmentDocuments.offeredTemplates" :chosen-ids="chosenIds"
+                         multiple @pick="add"/>
   </NeutralContainer>
 </template>

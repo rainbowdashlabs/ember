@@ -23,15 +23,23 @@ export function freeSigner(fields: readonly PdfField[]): SignatureRole | null {
 }
 
 /**
- * A new field in the middle of the page shown, upright to the reader whichever way the page is turned.
- * A signature field takes the first signer without one.
+ * A new field in the middle of the part of the page in view, upright to the reader whichever way the
+ * page is turned. Zoomed in, that is the part scrolled to, so the field lands where the reader is
+ * looking rather than somewhere off screen; without a view it is the middle of the whole page. A
+ * signature field takes the first signer without one.
  */
-export function newField(kind: PdfFieldKind, page: number, geometry: PageGeometry, fields: readonly PdfField[]): PdfField {
+export function newField(
+    kind: PdfFieldKind,
+    page: number,
+    geometry: PageGeometry,
+    fields: readonly PdfField[],
+    view: ScreenBox = {left: 0, top: 0, width: geometry.width, height: geometry.height},
+): PdfField {
     const scale = scaleOf(geometry)
     const size = NEW_SIZE[kind]
     const box = keptOnCanvas(geometry, {
-        left: (geometry.width - size.width * scale) / 2,
-        top: (geometry.height - size.height * scale) / 2,
+        left: view.left + (view.width - size.width * scale) / 2,
+        top: view.top + (view.height - size.height * scale) / 2,
         width: size.width * scale,
         height: size.height * scale,
     })
@@ -46,6 +54,8 @@ export function newField(kind: PdfFieldKind, page: number, geometry: PageGeometr
         role: signature ? freeSigner(fields) : null,
         fontFamily: null,
         fontStyle: FontStyle.REGULAR,
+        withoutLine: false,
+        printText: false,
     }
 }
 

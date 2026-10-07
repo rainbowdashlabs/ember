@@ -15,6 +15,8 @@ import dev.chojo.ember.api.refusal.ClusterRefusal;
 import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.feature.generator.entity.DateFormatCheck;
 import dev.chojo.ember.feature.generator.entity.DateFormatCheckRequest;
+import dev.chojo.ember.feature.generator.entity.DocumentTemplateKind;
+import dev.chojo.ember.feature.generator.entity.TemplateSort;
 import dev.chojo.ember.feature.generator.route.DocumentGenerationRoutes.DraftPreviewRequest;
 import dev.chojo.ember.feature.generator.service.DocumentGenerationService;
 import dev.chojo.ember.feature.generator.service.DocumentGeneratorService.PreviewResponse;
@@ -24,12 +26,12 @@ import dev.chojo.ember.feature.generator.service.DocumentTemplateCopyService.Doc
 import dev.chojo.ember.feature.generator.service.DocumentTemplateRequest;
 import dev.chojo.ember.feature.generator.service.DocumentTemplateService;
 import dev.chojo.ember.feature.generator.service.DocumentTemplateService.DocumentTemplateResponse;
-import dev.chojo.ember.feature.generator.service.DocumentTemplateService.DocumentTemplateSummary;
 import dev.chojo.ember.feature.generator.service.DocumentTemplateService.PlaceholderCatalogueResponse;
 import dev.chojo.ember.feature.generator.service.LetterImportService;
 import dev.chojo.ember.feature.generator.service.LetterImportService.Importer;
 import dev.chojo.ember.feature.generator.service.LetterImportService.LetterImport;
 import dev.chojo.ember.feature.generator.service.PdfTemplateService;
+import dev.chojo.ember.feature.generator.service.TemplateQuery.TemplatePage;
 import dev.chojo.ember.owner.Owner;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
@@ -156,18 +158,23 @@ public class AssociationDocumentTemplateRoutes implements Routes {
     @OpenApi(
             path = "/api/v1/cluster/document-templates",
             methods = HttpMethod.GET,
-            summary = "The document templates of the association",
+            summary = "One page of the document templates of the association",
             tags = {"Cluster"},
-            queryParams =
-                    @OpenApiParam(
-                            name = "archived",
-                            type = Boolean.class,
-                            description = "List the archived templates instead of those in use"),
-            responses =
-                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = DocumentTemplateSummary[].class)))
+            queryParams = {
+                @OpenApiParam(
+                        name = "archived",
+                        type = Boolean.class,
+                        description = "List the archived templates instead of those in use"),
+                @OpenApiParam(name = "q", description = "What the name contains"),
+                @OpenApiParam(name = "kind", type = DocumentTemplateKind.class),
+                @OpenApiParam(name = "sort", type = TemplateSort.class),
+                @OpenApiParam(name = "page", type = Integer.class, description = "Counted from 0"),
+                @OpenApiParam(name = "size", type = Integer.class)
+            },
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = TemplatePage.class)))
     private void list(Context ctx) {
         boolean archived = ctx.queryParamAsClass("archived", Boolean.class).getOrDefault(false);
-        ctx.json(templates.list(association(ctx), archived));
+        ctx.json(TemplateQueries.of(ctx).pageOf(templates.list(association(ctx), archived)));
     }
 
     @OpenApi(

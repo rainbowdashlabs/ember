@@ -14233,11 +14233,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** The document templates of the association */
+        /** One page of the document templates of the association */
         get: {
             parameters: {
                 query?: {
                     archived?: boolean;
+                    kind?: components["schemas"]["DocumentTemplateKind"];
+                    page?: number;
+                    q?: string;
+                    size?: number;
+                    sort?: components["schemas"]["TemplateSort"];
                 };
                 header?: never;
                 path?: never;
@@ -14251,7 +14256,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["DocumentTemplateSummary"][];
+                        "application/json": components["schemas"]["TemplatePage"];
                     };
                 };
             };
@@ -14529,6 +14534,53 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cluster/document-templates/{id}/picture": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The first page of an association's template, drawn without a member */
+        get: {
+            parameters: {
+                query?: {
+                    size?: number;
+                };
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -18913,10 +18965,17 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** The document templates a manager can generate documents from */
+        /** One page of the document templates a manager can generate documents from */
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    forAppointments?: boolean;
+                    kind?: components["schemas"]["DocumentTemplateKind"];
+                    page?: number;
+                    q?: string;
+                    size?: number;
+                    sort?: components["schemas"]["TemplateSort"];
+                };
                 header?: never;
                 path?: never;
                 cookie?: never;
@@ -18929,7 +18988,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["DocumentTemplateSummary"][];
+                        "application/json": components["schemas"]["TemplatePage"];
                     };
                 };
             };
@@ -19231,10 +19290,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** The document templates appointments may ask participants to bring */
+        /** One page of the document templates appointments may ask participants to bring */
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    kind?: components["schemas"]["DocumentTemplateKind"];
+                    page?: number;
+                    q?: string;
+                    size?: number;
+                    sort?: components["schemas"]["TemplateSort"];
+                };
                 header?: never;
                 path?: never;
                 cookie?: never;
@@ -19247,7 +19312,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["RequiredTemplate"][];
+                        "application/json": components["schemas"]["TemplatePage"];
                     };
                 };
             };
@@ -19361,11 +19426,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** The document templates of the station */
+        /** One page of the document templates of the station */
         get: {
             parameters: {
                 query?: {
                     archived?: boolean;
+                    kind?: components["schemas"]["DocumentTemplateKind"];
+                    page?: number;
+                    q?: string;
+                    size?: number;
+                    sort?: components["schemas"]["TemplateSort"];
                 };
                 header?: never;
                 path?: never;
@@ -19379,7 +19449,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["DocumentTemplateSummary"][];
+                        "application/json": components["schemas"]["TemplatePage"];
                     };
                 };
             };
@@ -19657,6 +19727,53 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/document-templates/{id}/picture": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The first page of a template the station uses, drawn without a member */
+        get: {
+            parameters: {
+                query?: {
+                    size?: number;
+                };
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -22396,7 +22513,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** The documents to bring for the reader and the members in their care who take part on a date */
+        /** The documents an appointment asks for on a date, the reader's own copies and, for whoever manages the registrations, every participant's */
         get: {
             parameters: {
                 query: {
@@ -22416,7 +22533,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["ParticipantDocuments"][];
+                        "application/json": components["schemas"]["AppointmentDocuments"];
                     };
                 };
                 /** @description Bad Request */
@@ -22483,6 +22600,54 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/{id}/documents-to-bring/{templateId}/picture": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The first page of a document an appointment asks for, drawn without a member */
+        get: {
+            parameters: {
+                query?: {
+                    size?: number;
+                };
+                header?: never;
+                path: {
+                    id: number;
+                    templateId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -57965,6 +58130,11 @@ export interface components {
         ApplyTierRequest: {
             stationUids?: string[];
         };
+        AppointmentDocuments: {
+            own: components["schemas"]["ParticipantDocuments"][];
+            participants: components["schemas"]["ParticipantDocuments"][] | null;
+            required: components["schemas"]["RequiredTemplate"][];
+        };
         AppointmentField: {
             /** Format: int32 */
             attendanceFieldId: number | null;
@@ -61346,6 +61516,8 @@ export interface components {
             kind: components["schemas"]["FormFieldKind"];
             name: string;
             rect: components["schemas"]["FieldRect"] | null;
+            tooltip: string | null;
+            value: string | null;
         };
         /** @enum {string} */
         FormFieldKind: "TEXT" | "CHECK" | "SIGNATURE" | "OTHER";
@@ -64522,9 +64694,11 @@ export interface components {
             fontSize: number;
             fontStyle: components["schemas"]["FontStyle"] | null;
             kind: components["schemas"]["PdfFieldKind"];
+            printText: boolean;
             rect: components["schemas"]["FieldRect"];
             role: components["schemas"]["SignatureRole"] | null;
             text: string | null;
+            withoutLine: boolean;
             wrap: boolean;
         };
         /** @enum {string} */
@@ -67518,7 +67692,7 @@ export interface components {
         /** @enum {string} */
         StorageBackendType: "LOCAL" | "SMB" | "SFTP" | "S3";
         /** @enum {string} */
-        StorageCategory: "MEDIA_FILES" | "INSTANCE_MEDIA_FILES" | "MEDIA_IMAGES" | "KB_FILES" | "MEMBER_DOCUMENTS" | "DOCUMENT_TEMPLATES" | "ASSOCIATION_DOCUMENT_TEMPLATES" | "FONTS" | "ASSOCIATION_FONTS" | "INSTANCE_FONTS" | "MOVEMENT_DOCUMENTS" | "BOARD_ATTACHMENTS" | "IMAGE_AVATAR" | "IMAGE_LOST_AND_FOUND" | "IMAGE_LOGO_FRAGMENT" | "IMAGE_STATION_LOGO" | "IMAGE_QUIZ_QUESTION" | "IMAGE_KB_ICON" | "IMAGE_KB_IMAGE" | "IMAGE_KB_FILE_PICTURE" | "DOCUMENT" | "DISCOVERY_KEY" | "MAP_TILE_CACHE" | "DEMO_AVATAR" | "IMAGE_DISCOVERY_LOGO";
+        StorageCategory: "MEDIA_FILES" | "INSTANCE_MEDIA_FILES" | "MEDIA_IMAGES" | "KB_FILES" | "MEMBER_DOCUMENTS" | "DOCUMENT_TEMPLATES" | "ASSOCIATION_DOCUMENT_TEMPLATES" | "FONTS" | "ASSOCIATION_FONTS" | "INSTANCE_FONTS" | "MOVEMENT_DOCUMENTS" | "BOARD_ATTACHMENTS" | "IMAGE_AVATAR" | "IMAGE_LOST_AND_FOUND" | "IMAGE_LOGO_FRAGMENT" | "IMAGE_STATION_LOGO" | "IMAGE_QUIZ_QUESTION" | "IMAGE_KB_ICON" | "IMAGE_KB_IMAGE" | "IMAGE_KB_FILE_PICTURE" | "IMAGE_DOCUMENT_TEMPLATE_PICTURE" | "IMAGE_ASSOCIATION_DOCUMENT_TEMPLATE_PICTURE" | "DOCUMENT" | "DISCOVERY_KEY" | "MAP_TILE_CACHE" | "DEMO_AVATAR" | "IMAGE_DISCOVERY_LOGO";
         StorageQuotaPreset: {
             /** Format: int64 */
             board: number;
@@ -67767,6 +67941,15 @@ export interface components {
             /** Format: int32 */
             position: number;
         };
+        TemplatePage: {
+            items: components["schemas"]["DocumentTemplateSummary"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            size: number;
+            /** Format: int32 */
+            total: number;
+        };
         TemplateRequest: {
             name?: string;
         };
@@ -67779,6 +67962,8 @@ export interface components {
             displayName: string;
             optional: boolean;
         };
+        /** @enum {string} */
+        TemplateSort: "LAST_USED" | "NAME" | "CREATED" | "UPDATED";
         TemplateUseRequest: {
             audience?: components["schemas"]["RestrictionAudience"] | null;
             issuerFunction?: string | null;
@@ -68787,6 +68972,7 @@ export type ApplicationStatus = components['schemas']['ApplicationStatus'];
 export type ApplyPresetRequest = components['schemas']['ApplyPresetRequest'];
 export type ApplyRequest = components['schemas']['ApplyRequest'];
 export type ApplyTierRequest = components['schemas']['ApplyTierRequest'];
+export type AppointmentDocuments = components['schemas']['AppointmentDocuments'];
 export type AppointmentField = components['schemas']['AppointmentField'];
 export type AppointmentTemplateField = components['schemas']['AppointmentTemplateField'];
 export type AppointRequest = components['schemas']['AppointRequest'];
@@ -70137,9 +70323,11 @@ export type TemplateDetail = components['schemas']['TemplateDetail'];
 export type TemplateDetailResponse = components['schemas']['TemplateDetailResponse'];
 export type TemplateFieldRequest = components['schemas']['TemplateFieldRequest'];
 export type TemplateGroupEntry = components['schemas']['TemplateGroupEntry'];
+export type TemplatePage = components['schemas']['TemplatePage'];
 export type TemplateRequest = components['schemas']['TemplateRequest'];
 export type TemplateRestrictions = components['schemas']['TemplateRestrictions'];
 export type TemplateSection = components['schemas']['TemplateSection'];
+export type TemplateSort = components['schemas']['TemplateSort'];
 export type TemplateUseRequest = components['schemas']['TemplateUseRequest'];
 export type TemplateUseResponse = components['schemas']['TemplateUseResponse'];
 export type TestProtocol = components['schemas']['TestProtocol'];
@@ -71541,8 +71729,10 @@ export const StorageCategory = {
     DOCUMENT: "DOCUMENT",
     DOCUMENT_TEMPLATES: "DOCUMENT_TEMPLATES",
     FONTS: "FONTS",
+    IMAGE_ASSOCIATION_DOCUMENT_TEMPLATE_PICTURE: "IMAGE_ASSOCIATION_DOCUMENT_TEMPLATE_PICTURE",
     IMAGE_AVATAR: "IMAGE_AVATAR",
     IMAGE_DISCOVERY_LOGO: "IMAGE_DISCOVERY_LOGO",
+    IMAGE_DOCUMENT_TEMPLATE_PICTURE: "IMAGE_DOCUMENT_TEMPLATE_PICTURE",
     IMAGE_KB_FILE_PICTURE: "IMAGE_KB_FILE_PICTURE",
     IMAGE_KB_ICON: "IMAGE_KB_ICON",
     IMAGE_KB_IMAGE: "IMAGE_KB_IMAGE",
@@ -71589,6 +71779,13 @@ export const TaskOutcome = {
     NOT_RUN_YET: "NOT_RUN_YET",
     RUNNING: "RUNNING",
     SUCCEEDED: "SUCCEEDED",
+} as const;
+
+export const TemplateSort = {
+    CREATED: "CREATED",
+    LAST_USED: "LAST_USED",
+    NAME: "NAME",
+    UPDATED: "UPDATED",
 } as const;
 
 export const TestStatus = {

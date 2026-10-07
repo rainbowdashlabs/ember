@@ -4,24 +4,27 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {ref, watch} from 'vue'
+import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {appointmentDocuments} from '@/api'
-import type {ParticipantDocuments, RequiredDocumentStatus} from '@/api/generated/schema'
+import type {AppointmentDocuments} from '@/api/generated/schema'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {fetchCopy} from './documentsToBring'
-import DocumentToBringRow from './DocumentToBringRow.vue'
+import {documentTiles, type ParticipantCopy} from './documentTiles'
+import DocumentToBringTile from './DocumentToBringTile.vue'
 
 /**
- * The documents the appointment asks participants to bring, for the reader and every member in their
- * care who takes part on the date: a copy filled with the participant's data to download, print and
- * sign. Getting it the first time files it in the participant's documents. Nothing shows for a reader
- * nobody of whose takes part, or where the appointment asks for nothing.
+ * The documents the appointment asks participants to bring on the date, one tile each with a picture
+ * of its first page. Everyone who sees the appointment sees them. The reader and every member in their
+ * care who takes part (on an appointment without registrations: all of them) download a copy filled
+ * with the participant's data to print and sign; getting it the first time files it in the
+ * participant's documents. An event manager opens from each tile where every participant stands.
+ * Nothing shows where the appointment asks for nothing.
  */
 const props = defineProps<{
   eventId: number
@@ -31,15 +34,17 @@ const props = defineProps<{
 
 const {t} = useI18n()
 
-const participants = ref<ParticipantDocuments[]>([])
+const documents = ref<AppointmentDocuments | null>(null)
+const tiles = computed(() => documents.value ? documentTiles(documents.value) : [])
+const takesPart = computed(() => (documents.value?.own.length ?? 0) > 0)
 
 const {failure, reload} = useAsyncLoader(async isCurrent => {
   const loaded = await appointmentDocuments.documentsToBring(props.eventId, props.date)
-  if (isCurrent()) participants.value = loaded
+  if (isCurrent()) documents.value = loaded
 }, {autoLoad: false})
 
-const fetching = useAsyncAction(async (memberId: number, document: RequiredDocumentStatus) => {
-  await fetchCopy(props.eventId, props.date, memberId, document)
+const fetching = useAsyncAction(async (copy: ParticipantCopy) => {
+  await fetchCopy(props.eventId, props.date, copy.memberId, copy.document)
   await reload()
 })
 
@@ -47,15 +52,15 @@ watch(() => [props.eventId, props.date], reload, {immediate: true})
 </script>
 
 <template>
-  <NeutralContainer v-if="participants.length > 0 || failure" class="space-y-3" data-testid="documents-to-bring">
+  <NeutralContainer v-if="tiles.length > 0 || failure" class="space-y-3" data-testid="documents-to-bring">
     <SubHeader>{{ t('events.documents.toBringTitle') }}</SubHeader>
-    <MutedText size="sm" tag="p">{{ t('events.documents.toBringHint') }}</MutedText>
+    <MutedText size="sm" tag="p">
+      {{ takesPart ? t('events.documents.toBringHint') : t('events.documents.toBringOthersHint') }}
+    </MutedText>
     <FailureAlert :failure="failure ?? fetching.failure.value"/>
-    <div v-for="participant in participants" :key="participant.memberId" class="space-y-2">
-      <span class="font-semibold">{{ participant.name }}</span>
-      <DocumentToBringRow v-for="document in participant.documents" :key="document.templateId"
-                          :document="document" :busy="fetching.running.value"
-                          @fetch="fetching.run(participant.memberId, document)"/>
+    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <DocumentToBringTile v-for="tile in tiles" :key="tile.template.templateId" :event-id="eventId" :tile="tile"
+                           :busy="fetching.running.value" @fetch="fetching.run"/>
     </div>
   </NeutralContainer>
 </template>

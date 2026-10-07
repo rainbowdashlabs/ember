@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {DocumentTemplateKind} from '@/api/generated/schema'
+import {DocumentTemplateKind, PdfFieldKind} from '@/api/generated/schema'
 import {familiesIn} from '@/components/input/markdowneditor/textFont'
 import type {TemplateDraft} from './templateDraft'
 
@@ -24,4 +24,16 @@ export function letterFamilies(draft: TemplateDraft): (string | null)[] {
     const {bodyFont, headerFont, footerFont} = draft.page
     const words = textsIn([draft.header, draft.body, draft.footer]).flatMap(familiesIn)
     return [bodyFont ?? null, headerFont ?? null, footerFont ?? null, ...new Set(words)]
+}
+
+/**
+ * The families a template shows its text in, which the editor loads to show it in them: a letter's,
+ * or the fonts of a PDF template's text fields, null where a field keeps the default font.
+ */
+export function templateFamilies(draft: TemplateDraft): (string | null)[] {
+    if (draft.kind === DocumentTemplateKind.PDF) {
+        return [...new Set(draft.fields.filter(field => field.kind === PdfFieldKind.TEXT)
+            .map(field => field.fontFamily ?? null))]
+    }
+    return letterFamilies(draft)
 }

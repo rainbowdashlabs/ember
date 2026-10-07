@@ -89,7 +89,7 @@ watch(() => props.eventId, load)
           @click="previewed = attachment"
       >
         <FileThumbnail
-            :url="events.eventAttachmentPictureUrl(eventId, attachment.id, 96)"
+            :url="events.eventAttachmentPictureUrl(eventId, attachment.id, 192)"
             :mime-type="attachment.mimeType"
             :alt="nameOf(attachment)"
         />

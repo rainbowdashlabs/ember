@@ -6,29 +6,28 @@
 import {ref} from 'vue'
 import {appointmentDocuments} from '@/api'
 import type {RequirementOwner} from '@/api/appointmentDocuments'
-import type {RequiredTemplate} from '@/api/generated/schema'
-import {recentlyUsedFirst} from '@/components/documents/recentlyUsedFirst'
+import type {DocumentTemplateSummary, RequiredTemplate} from '@/api/generated/schema'
 
 /**
  * The documents an appointment or an appointment template asks participants to bring, as the editor
- * holds them until it saves: the templates for appointments the station offers, the most recently used
- * first, and the ones chosen.
+ * holds them until it saves: how many templates for appointments the station offers, which the picker
+ * then pages through, and the ones chosen.
  *
  * <p>An appointment made from an appointment template takes the template's documents into the
  * editor's list, the same way it takes its registration questions, so the save that creates the
  * appointment writes them.
  */
 export function useDocumentRequirements() {
-    const offered = ref<RequiredTemplate[]>([])
+    const offeredCount = ref(0)
     const chosen = ref<RequiredTemplate[]>([])
 
-    /** Reads what can be asked for and, for a saved appointment or template, what it asks for. */
+    /** Reads whether anything can be asked for and, for a saved appointment or template, what it asks for. */
     async function load(owner: RequirementOwner | null) {
         const [offer, current] = await Promise.all([
-            appointmentDocuments.offeredTemplates(),
+            appointmentDocuments.offeredTemplates({size: 1}),
             owner ? appointmentDocuments.listRequirements(owner) : Promise.resolve([]),
         ])
-        offered.value = recentlyUsedFirst(offer)
+        offeredCount.value = offer.total
         chosen.value = current
     }
 
@@ -43,7 +42,24 @@ export function useDocumentRequirements() {
         chosen.value = await appointmentDocuments.setRequirements(owner, chosen.value.map(template => template.templateId))
     }
 
-    return {offered, chosen, load, takeFrom, save}
+    return {offeredCount, chosen, load, takeFrom, save}
+}
+
+/**
+ * A template taken in the picker as a document the appointment asks for. It is in use, since the
+ * picker offers no archived template.
+ *
+ * @param template the template as the picker lists it
+ */
+export function asRequired(template: DocumentTemplateSummary): RequiredTemplate {
+    return {
+        templateId: template.id,
+        name: template.name,
+        kind: template.kind,
+        version: template.version,
+        archived: false,
+        lastUsedAt: template.lastUsedAt ?? null,
+    }
 }
 
 /**

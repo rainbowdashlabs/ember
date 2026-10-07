@@ -47,10 +47,13 @@ public class EventRequirementService {
      * What appointments and appointment templates of the station may ask for.
      *
      * @param owner the station
-     * @return the templates for appointments in use, by name
+     * @param query the search, order and page
+     * @return the page asked for of the station's own templates for appointments in use
      */
-    public List<RequiredTemplate> offered(Owner.Station owner) {
-        return requirements.offered(owner.stationId());
+    public TemplateQuery.TemplatePage offered(Owner.Station owner, TemplateQuery query) {
+        return query.pageOf(templates.list(owner, false).stream()
+                .filter(template -> template.forAppointments() && !template.ofAssociation())
+                .toList());
     }
 
     /**

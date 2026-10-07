@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.knowledgebase.service;
 
+import dev.chojo.ember.feature.knowledgebase.repository.KnowledgeBaseRepository;
 import dev.chojo.ember.feature.media.entity.MediaContent;
 import dev.chojo.ember.feature.media.image.ImageFormat;
 import dev.chojo.ember.feature.media.image.ImageProfile;
@@ -43,7 +44,6 @@ import java.util.concurrent.ConcurrentHashMap;
 public class KbFilePictureService {
     private static final Logger log = LoggerFactory.getLogger(KbFilePictureService.class);
     private static final StorageCategory CATEGORY = StorageCategory.IMAGE_KB_FILE_PICTURE;
-    private static final int PDF_DPI = 96;
     private static final String PDF_TYPE = "application/pdf";
     private static final Set<String> UNTYPED = Set.of("application/octet-stream", "binary/octet-stream");
 
@@ -52,13 +52,19 @@ public class KbFilePictureService {
     private final ImageVariants images;
     private final KbFileStorageService files;
     private final StationRepository stationRepository;
+    private final KnowledgeBaseRepository repository;
     private final Set<String> unmakeable = ConcurrentHashMap.newKeySet();
 
     @Inject
-    public KbFilePictureService(ImageVariants images, KbFileStorageService files, StationRepository stationRepository) {
+    public KbFilePictureService(
+            ImageVariants images,
+            KbFileStorageService files,
+            StationRepository stationRepository,
+            KnowledgeBaseRepository repository) {
         this.images = images;
         this.files = files;
         this.stationRepository = stationRepository;
+        this.repository = repository;
     }
 
     /**
@@ -74,7 +80,7 @@ public class KbFilePictureService {
             return;
         }
         try {
-            var picture = FilePicture.of(type, data, PDF_DPI);
+            var picture = FilePicture.of(type, data);
             if (picture.isEmpty()) {
                 unmakeable.add(memo(stationId, fileId));
                 return;
@@ -123,6 +129,26 @@ public class KbFilePictureService {
 
     private static boolean isUntyped(@Nullable String storedType) {
         return storedType == null || storedType.isBlank() || UNTYPED.contains(storedType.toLowerCase(Locale.ROOT));
+    }
+
+    /**
+     * Draws the picture of every wiki file that has pages again, for pictures drawn before the page
+     * was drawn as finely as it is now. A file that cannot be read is logged and skipped.
+     *
+     * @return how many files were read and drawn again
+     */
+    public int redrawPages() {
+        int redrawn = 0;
+        for (var file : repository.findPagedFiles()) {
+            var stored = files.read(file.stationId(), file.fileId());
+            if (stored.isEmpty()) {
+                log.warn("Wiki file {} could not be read back to draw its picture again", file.fileId());
+                continue;
+            }
+            make(file.stationId(), file.fileId(), file.mimeType(), stored.get().data());
+            redrawn++;
+        }
+        return redrawn;
     }
 
     /** Removes every size of a file's picture. */

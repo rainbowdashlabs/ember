@@ -114,8 +114,13 @@ export function contentUrl(documentId: number): string {
     return `/documents/${documentId}/content`
 }
 
-/** Where the picture of a document is served from, for the tile to show. */
-export function thumbnailUrl(documentId: number, size = 256): string {
+/**
+ * Where the picture of a document is served from, for the tile to show.
+ *
+ * <p>The size is the longest side. A portrait page is narrower than that, and a tile shows the page
+ * across its full width, so the picture asked for is large enough for that width on a dense screen.
+ */
+export function thumbnailUrl(documentId: number, size = 1024): string {
     return `/documents/${documentId}/thumbnail?size=${size}`
 }
 

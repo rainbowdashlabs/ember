@@ -92,6 +92,7 @@ public final class TestPdfs {
 
             var name = new PDTextField(form);
             name.setPartialName("name");
+            name.setAlternateFieldName("Name der Person");
             name.setDefaultAppearance("/Helv 11 Tf 0 g");
             var nameWidget = name.getWidgets().getFirst();
             nameWidget.setRectangle(NAME_BOX);

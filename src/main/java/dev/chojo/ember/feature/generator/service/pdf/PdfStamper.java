@@ -51,6 +51,9 @@ public class PdfStamper {
     /** The gap in points between the fields a signature box is shared out into. */
     private static final double SIGNATURE_GAP = 12;
 
+    /** The height a line of a signature field's text takes, as a multiple of its size. */
+    private static final double SIGNATURE_TEXT_LEADING = 1.3;
+
     private final StampFonts fonts;
 
     @Inject
@@ -122,7 +125,7 @@ public class PdfStamper {
                     continue;
                 }
                 for (var box : signatureBoxes(field.rect(), role.fieldNames(guardians))) {
-                    place(byPage, box.rect(), new Mark.Line());
+                    placeSignature(byPage, field, box.rect(), fill);
                     signatures.add(box);
                 }
             }
@@ -139,6 +142,28 @@ public class PdfStamper {
 
     /** One signature field with the part of its box it takes. */
     private record SignatureBox(FieldRect rect, String name) {}
+
+    /**
+     * What one signer's part of a signature field prints: its text along the bottom where it is to print,
+     * and the line to sign on above it, which a PDF that already has a line leaves out. The text takes at
+     * most half of the part, so a box drawn too low still leaves room to sign.
+     */
+    private static void placeSignature(
+            TreeMap<Integer, List<Placed>> byPage, PdfField field, FieldRect rect, UnaryOperator<String> fill) {
+        var text = field.text();
+        var lineRect = rect;
+        if (field.printText() && text != null) {
+            double textHeight = Math.min(rect.height() / 2, field.fontSize() * SIGNATURE_TEXT_LEADING);
+            place(
+                    byPage,
+                    new FieldRect(rect.page(), rect.x(), rect.y(), rect.width(), textHeight),
+                    new Mark.Text(
+                            fill.apply(text), (float) field.fontSize(), field.align(), false, null, FontStyle.REGULAR));
+            lineRect = new FieldRect(
+                    rect.page(), rect.x(), rect.y() + textHeight, rect.width(), rect.height() - textHeight);
+        }
+        if (!field.withoutLine()) place(byPage, lineRect, new Mark.Line());
+    }
 
     /**
      * Shares a signature box out among the fields it holds, side by side with a small gap between them.

@@ -173,6 +173,7 @@ import dev.chojo.ember.feature.generator.route.DocumentGenerationRoutes;
 import dev.chojo.ember.feature.generator.route.DocumentTemplateRoutes;
 import dev.chojo.ember.feature.generator.route.GenerationJobRoutes;
 import dev.chojo.ember.feature.generator.route.GenerationLogRoutes;
+import dev.chojo.ember.feature.generator.route.TemplatePictureRoutes;
 import dev.chojo.ember.feature.generator.service.GenerationJobRunner;
 import dev.chojo.ember.feature.generator.service.font.DefaultFont;
 import dev.chojo.ember.feature.insights.route.StationInsightsRoutes;
@@ -365,6 +366,7 @@ import dev.chojo.ember.feature.system.service.DemoTwoFactorSeeder;
 import dev.chojo.ember.feature.system.service.DemoVideoSeeder;
 import dev.chojo.ember.feature.system.service.DemoWaitingListSeeder;
 import dev.chojo.ember.feature.system.service.ProblemReportSweeper;
+import dev.chojo.ember.feature.system.service.SchemaFingerprint;
 import dev.chojo.ember.feature.system.service.UpdateCheckService;
 import dev.chojo.ember.feature.traffic.route.AdminTrafficRoutes;
 import dev.chojo.ember.feature.traffic.route.StationTrafficRoutes;
@@ -443,6 +445,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(MemberTableRoutes.class);
         routesBinder.addBinding().to(DocumentRoutes.class);
         routesBinder.addBinding().to(DocumentTemplateRoutes.class);
+        routesBinder.addBinding().to(TemplatePictureRoutes.class);
         routesBinder.addBinding().to(DocumentGenerationRoutes.class);
         routesBinder.addBinding().to(DocumentFontRoutes.class);
         routesBinder.addBinding().to(GenerationJobRoutes.class);
@@ -972,6 +975,8 @@ public class EmberModule extends AbstractModule {
      *
      * <p>The migration is skipped only in full demo mode, which drops and migrates the schema on every
      * start anyway; everywhere else it must run before services whose constructors already query it.
+     * In dev mode a schema built from other migrations is dropped first ({@link SchemaFingerprint}), so a
+     * database a branch with more patches left ahead does not stop the start.
      * Before 1.60 merges duplicate profile fields, their answers and definitions are copied to the data
      * volume, not to a table, because a table would travel with a station export. The configuration is
      * thread-scoped so that services grouping writes with {@code Transactions.run} reach their
@@ -982,6 +987,7 @@ public class EmberModule extends AbstractModule {
     QueryConfiguration queryConfiguration(DataSource dataSource, Database database, Demo demo)
             throws SQLException, IOException {
         if (!demo.enabled()) {
+            if (demo.dev()) SchemaFingerprint.ofThisDatabase().dropSchemaIfChanged(dataSource, database.schema());
             SqlUpdater.builder(dataSource, PostgreSql.get())
                     .setReplacements(new QueryReplacement("ember_schema", database.schema()))
                     .setSchemas(database.schema())

@@ -174,6 +174,31 @@ public enum StorageCategory {
             MimeLists.IMAGES,
             false,
             Optional.empty()),
+    /**
+     * The picture of a station's document template: its first page drawn without a member, kept per
+     * version. Derived from the template and made again whenever it is missing, so it is not charged
+     * to the station.
+     */
+    IMAGE_DOCUMENT_TEMPLATE_PICTURE(
+            "images/document-template-pictures",
+            StorageScope.Kind.STATION,
+            true,
+            QuotaMode.UNTRACKED,
+            MimeLists.IMAGES,
+            false,
+            Optional.empty()),
+    /**
+     * The picture of an association's document template, the same as a station's, kept with the
+     * association.
+     */
+    IMAGE_ASSOCIATION_DOCUMENT_TEMPLATE_PICTURE(
+            "images/document-template-pictures",
+            StorageScope.Kind.ASSOCIATION,
+            true,
+            QuotaMode.UNTRACKED,
+            MimeLists.IMAGES,
+            false,
+            Optional.empty()),
     DOCUMENT(
             "documents",
             StorageScope.Kind.INSTANCE,

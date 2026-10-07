@@ -236,7 +236,7 @@ const bodyHandlers = {
       <DocumentRequirementsEditor
           v-if="!loading"
           v-model="documentRequirements.chosen.value"
-          :offered="documentRequirements.offered.value"
+          :offered-count="documentRequirements.offeredCount.value"
       />
 
       <AttachmentsCard

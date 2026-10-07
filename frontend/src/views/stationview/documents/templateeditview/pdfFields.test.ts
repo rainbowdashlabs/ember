@@ -22,6 +22,12 @@ describe('PDF fields in the editor', () => {
         expect(field.role).toBeNull()
     })
 
+    it('places a new field in the middle of the part in view when zoomed in', () => {
+        const field = newField(PdfFieldKind.TEXT, 1, upright, [], {left: 0, top: 0, width: 400, height: 400})
+
+        expect(field.rect).toEqual({page: 1, x: 20, y: 734, width: 160, height: 16})
+    })
+
     it('places a new field upright to the reader on a turned page', () => {
         const field = newField(PdfFieldKind.TEXT, 1, turned, [])
 

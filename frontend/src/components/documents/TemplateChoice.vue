@@ -4,37 +4,49 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import LabelledField from '@/components/input/LabelledField.vue'
-import SelectInput from '@/components/input/select/SelectInput.vue'
-import MutedText from '@/components/typography/MutedText.vue'
+import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import FileThumbnail from '@/components/documents/FileThumbnail.vue'
+import TemplateBadges from '@/components/documents/templatepicker/TemplateBadges.vue'
+import TemplatePickerModal from '@/components/documents/templatepicker/TemplatePickerModal.vue'
+import {stationTemplateSource, usableTemplates, type TemplateListQuery} from '@/api/documentTemplates'
 import type {DocumentTemplateSummary} from '@/api/generated/schema'
 
 /**
- * The template a document is generated from, out of the templates offered; an association's template
- * says so after its name. Once loaded, a station without templates is told it has none.
+ * The template a document is generated from: the one chosen, with its picture and badges, and a button
+ * opening the template picker over the templates a manager can generate from.
  */
-const templateId = defineModel<number | null>({required: true})
+const template = defineModel<DocumentTemplateSummary | null>({required: true})
 
 defineProps<{
-  templates: DocumentTemplateSummary[]
-  loading: boolean
+  /** What the picker asks for besides the reader's choice, such as leaving out templates for appointments. */
+  fixed?: TemplateListQuery
 }>()
 
+const CHOSEN_PICTURE_SIZE = 256
+
 const {t} = useI18n()
+const picking = ref(false)
 </script>
 
 <template>
-  <MutedText v-if="!loading && templates.length === 0" size="sm" tag="p">
-    {{ t('documentTemplates.noTemplates') }}
-  </MutedText>
-  <LabelledField v-else :label="t('documentTemplates.template')">
-    <SelectInput :model-value="templateId" data-testid="template-choice"
-                 @update:model-value="value => templateId = value === null ? null : Number(value)">
-      <option :value="null" disabled>{{ t('documentTemplates.chooseTemplate') }}</option>
-      <option v-for="template in templates" :key="template.id" :value="template.id">
-        {{ template.ofAssociation ? t('documentTemplates.namedOfAssociation', {name: template.name}) : template.name }}
-      </option>
-    </SelectInput>
+  <LabelledField :label="t('documentTemplates.template')">
+    <div class="flex items-center gap-3" data-testid="template-choice">
+      <template v-if="template">
+        <FileThumbnail :url="stationTemplateSource.pictureUrl(template.id, CHOSEN_PICTURE_SIZE)" mime-type="application/pdf"
+                       :alt="template.name" size="h-20 w-16" anchor-top/>
+        <div class="min-w-0 flex-1 space-y-1">
+          <div class="truncate font-medium" data-testid="template-choice-name">{{ template.name }}</div>
+          <TemplateBadges :template="template"/>
+        </div>
+      </template>
+      <SecondaryButton :icon="['fas', 'file-lines']" data-testid="template-choice-open" @click="picking = true">
+        {{ template ? t('documentTemplates.browse.chooseOther') : t('documentTemplates.chooseTemplate') }}
+      </SecondaryButton>
+    </div>
+    <TemplatePickerModal v-model="picking" :pages="usableTemplates" :fixed="fixed"
+                         :chosen-ids="template ? [template.id] : []" @pick="picked => template = picked[0] ?? template"/>
   </LabelledField>
 </template>

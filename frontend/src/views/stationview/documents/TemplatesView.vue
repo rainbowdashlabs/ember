@@ -8,28 +8,29 @@ import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
+import IconButton from '@/components/button/IconButton.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ToggleSetting from '@/components/input/toggle/ToggleSetting.vue'
-import TableColumnPicker from '@/components/table/TableColumnPicker.vue'
-import {DocumentTemplateKind, type DocumentTemplateSummary} from '@/api/generated/schema'
-import {useAsyncLoader} from '@/composables/useAsyncLoader'
-import {useDataTable} from '@/composables/useDataTable'
-import TemplateTable from './templatesview/TemplateTable.vue'
-import {LAST_USED_COLUMN, templateColumns} from './templatesview/templateColumns'
+import TemplateBrowseControls from '@/components/documents/templatepicker/TemplateBrowseControls.vue'
+import TemplateResults from '@/components/documents/templatepicker/TemplateResults.vue'
+import TemplateTile from '@/components/documents/templatepicker/TemplateTile.vue'
+import {useTemplatePages} from '@/components/documents/templatepicker/useTemplatePages'
+import {DocumentTemplateKind} from '@/api/generated/schema'
+import {templateTarget} from './templatesview/templateTarget'
 import type {TemplateScreens} from './templateScreens'
 import {useTemplateDuplication} from './useTemplateDuplication'
 
 /**
- * The document templates of a station or an association: letters written in Ember and uploaded PDFs
- * filled in place. An archived template generates nothing more and stays for the documents it made; the
- * switch lists those instead of the ones in use. A station's list also holds the templates of its
- * association, marked as such, which it uses but does not change. The list opens on the templates used
- * last; any of them can be duplicated, and the editor opens on the copy. Documents are generated from
- * them in the document store and on a member's page, not here.
+ * The document templates of a station or an association, as tiles showing their first page: letters
+ * written in Ember and uploaded PDFs filled in place. An archived template generates nothing more and
+ * stays for the documents it made; the switch lists those instead of the ones in use. A station's list
+ * also holds the templates of its association, marked as such, which it uses but does not change. The
+ * list opens on the templates used last; search, kind and order are answered by the server over every
+ * template. Any of them can be duplicated, and the editor opens on the copy. Documents are generated
+ * from them in the document store and on a member's page, not here.
  */
 const props = defineProps<{
   screens: TemplateScreens
@@ -39,21 +40,11 @@ const {t} = useI18n()
 const router = useRouter()
 
 const showArchived = ref(false)
-const templates = ref<DocumentTemplateSummary[]>([])
+const browse = useTemplatePages(query => props.screens.source.list(showArchived.value, query))
 
-const {loading, failure, reload} = useAsyncLoader(async () => {
-  templates.value = await props.screens.source.list(showArchived.value)
-})
+const filtered = computed(() => browse.search.value.trim() !== '' || browse.kind.value !== null)
 
-watch(showArchived, () => reload())
-
-const table = useDataTable<DocumentTemplateSummary>({
-  id: 'document-templates',
-  rows: templates,
-  columns: computed(() => templateColumns(t, props.screens.useRoute !== null)),
-  rowKey: template => template.id,
-  sort: {key: LAST_USED_COLUMN, direction: 'desc'},
-})
+watch(showArchived, () => browse.fromTheStart())
 
 const duplication = useTemplateDuplication(props.screens)
 
@@ -74,15 +65,26 @@ function create(kind?: DocumentTemplateKind) {
             {{ t('documentTemplates.createPdf') }}
           </SecondaryButton>
         </ButtonRow>
-        <div class="flex flex-wrap items-center gap-3">
-          <ToggleSetting v-model="showArchived" :label="t('documentTemplates.showArchived')"/>
-          <TableColumnPicker :table="table"/>
-        </div>
+        <ToggleSetting v-model="showArchived" :label="t('documentTemplates.showArchived')"/>
       </div>
-      <FailureAlert :failure="failure ?? duplication.failure.value"/>
-      <Spinner v-if="loading" size="lg"/>
-      <TemplateTable v-else :table="table" :screens="screens" :duplicating="duplication.running.value"
-                     @duplicate="duplication.run"/>
+      <TemplateBrowseControls v-model:search="browse.search.value" v-model:kind="browse.kind.value"
+                              v-model:sort="browse.sort.value"/>
+      <FailureAlert :failure="browse.loader.failure.value ?? duplication.failure.value"/>
+      <TemplateResults v-model:page="browse.page.value" :result="browse.result.value"
+                       :loading="browse.loader.loading.value" :page-count="browse.pageCount.value"
+                       :empty-text="filtered ? t('documentTemplates.browse.none') : t('documentTemplates.empty')"
+                       data-testid="document-templates">
+        <template #tile="{template}">
+          <TemplateTile :template="template" :picture-url="screens.source.pictureUrl(template.id)"
+                        :to="templateTarget(template, screens)">
+            <template #actions>
+              <IconButton :icon="['fas', 'copy']" :label="t('documentTemplates.duplicate')"
+                          :disabled="duplication.running.value" data-testid="template-duplicate"
+                          @click="duplication.run(template)"/>
+            </template>
+          </TemplateTile>
+        </template>
+      </TemplateResults>
     </div>
   </ViewContent>
 </template>

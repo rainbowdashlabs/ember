@@ -11127,7 +11127,7 @@
         }
       },
       "get" : {
-        "summary" : "The document templates of the association",
+        "summary" : "One page of the document templates of the association",
         "tags" : [ "Cluster" ],
         "responses" : {
           "200" : {
@@ -11135,10 +11135,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "type" : "array",
-                  "items" : {
-                    "$ref" : "#/components/schemas/DocumentTemplateSummary"
-                  }
+                  "$ref" : "#/components/schemas/TemplatePage"
                 }
               }
             }
@@ -11149,6 +11146,38 @@
           "in" : "query",
           "schema" : {
             "type" : "boolean"
+          }
+        }, {
+          "name" : "q",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "kind",
+          "in" : "query",
+          "schema" : {
+            "$ref" : "#/components/schemas/DocumentTemplateKind"
+          }
+        }, {
+          "name" : "sort",
+          "in" : "query",
+          "schema" : {
+            "$ref" : "#/components/schemas/TemplateSort"
+          }
+        }, {
+          "name" : "page",
+          "in" : "query",
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "size",
+          "in" : "query",
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
           }
         } ]
       }
@@ -11355,6 +11384,43 @@
           "name" : "id",
           "in" : "path",
           "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/cluster/document-templates/{id}/picture" : {
+      "get" : {
+        "summary" : "The first page of an association's template, drawn without a member",
+        "tags" : [ "Documents" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "size",
+          "in" : "query",
           "schema" : {
             "type" : "integer",
             "format" : "int32"
@@ -14503,7 +14569,7 @@
     },
     "/api/v1/document-generation/templates" : {
       "get" : {
-        "summary" : "The document templates a manager can generate documents from",
+        "summary" : "One page of the document templates a manager can generate documents from",
         "tags" : [ "Documents" ],
         "responses" : {
           "200" : {
@@ -14511,15 +14577,51 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "type" : "array",
-                  "items" : {
-                    "$ref" : "#/components/schemas/DocumentTemplateSummary"
-                  }
+                  "$ref" : "#/components/schemas/TemplatePage"
                 }
               }
             }
           }
-        }
+        },
+        "parameters" : [ {
+          "name" : "q",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "kind",
+          "in" : "query",
+          "schema" : {
+            "$ref" : "#/components/schemas/DocumentTemplateKind"
+          }
+        }, {
+          "name" : "forAppointments",
+          "in" : "query",
+          "schema" : {
+            "type" : "boolean"
+          }
+        }, {
+          "name" : "sort",
+          "in" : "query",
+          "schema" : {
+            "$ref" : "#/components/schemas/TemplateSort"
+          }
+        }, {
+          "name" : "page",
+          "in" : "query",
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "size",
+          "in" : "query",
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
       }
     },
     "/api/v1/document-generation/templates/{templateId}/jobs" : {
@@ -14769,7 +14871,7 @@
     },
     "/api/v1/document-requirements/templates" : {
       "get" : {
-        "summary" : "The document templates appointments may ask participants to bring",
+        "summary" : "One page of the document templates appointments may ask participants to bring",
         "tags" : [ "Events" ],
         "responses" : {
           "200" : {
@@ -14777,15 +14879,45 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "type" : "array",
-                  "items" : {
-                    "$ref" : "#/components/schemas/RequiredTemplate"
-                  }
+                  "$ref" : "#/components/schemas/TemplatePage"
                 }
               }
             }
           }
-        }
+        },
+        "parameters" : [ {
+          "name" : "q",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "kind",
+          "in" : "query",
+          "schema" : {
+            "$ref" : "#/components/schemas/DocumentTemplateKind"
+          }
+        }, {
+          "name" : "sort",
+          "in" : "query",
+          "schema" : {
+            "$ref" : "#/components/schemas/TemplateSort"
+          }
+        }, {
+          "name" : "page",
+          "in" : "query",
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "size",
+          "in" : "query",
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
       }
     },
     "/api/v1/document-template-import" : {
@@ -14890,7 +15022,7 @@
         }
       },
       "get" : {
-        "summary" : "The document templates of the station",
+        "summary" : "One page of the document templates of the station",
         "tags" : [ "Documents" ],
         "responses" : {
           "200" : {
@@ -14898,10 +15030,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "type" : "array",
-                  "items" : {
-                    "$ref" : "#/components/schemas/DocumentTemplateSummary"
-                  }
+                  "$ref" : "#/components/schemas/TemplatePage"
                 }
               }
             }
@@ -14912,6 +15041,38 @@
           "in" : "query",
           "schema" : {
             "type" : "boolean"
+          }
+        }, {
+          "name" : "q",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "kind",
+          "in" : "query",
+          "schema" : {
+            "$ref" : "#/components/schemas/DocumentTemplateKind"
+          }
+        }, {
+          "name" : "sort",
+          "in" : "query",
+          "schema" : {
+            "$ref" : "#/components/schemas/TemplateSort"
+          }
+        }, {
+          "name" : "page",
+          "in" : "query",
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "size",
+          "in" : "query",
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
           }
         } ]
       }
@@ -15118,6 +15279,43 @@
           "name" : "id",
           "in" : "path",
           "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/document-templates/{id}/picture" : {
+      "get" : {
+        "summary" : "The first page of a template the station uses, drawn without a member",
+        "tags" : [ "Documents" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "size",
+          "in" : "query",
           "schema" : {
             "type" : "integer",
             "format" : "int32"
@@ -18688,7 +18886,7 @@
     },
     "/api/v1/events/{id}/documents-to-bring" : {
       "get" : {
-        "summary" : "The documents to bring for the reader and the members in their care who take part on a date",
+        "summary" : "The documents an appointment asks for on a date, the reader's own copies and, for whoever manages the registrations, every participant's",
         "tags" : [ "Events" ],
         "responses" : {
           "200" : {
@@ -18696,10 +18894,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "type" : "array",
-                  "items" : {
-                    "$ref" : "#/components/schemas/ParticipantDocuments"
-                  }
+                  "$ref" : "#/components/schemas/AppointmentDocuments"
                 }
               }
             }
@@ -18789,6 +18984,51 @@
           "required" : true,
           "schema" : {
             "type" : "string"
+          }
+        } ]
+      }
+    },
+    "/api/v1/events/{id}/documents-to-bring/{templateId}/picture" : {
+      "get" : {
+        "summary" : "The first page of a document an appointment asks for, drawn without a member",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "templateId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "size",
+          "in" : "query",
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
           }
         } ]
       }
@@ -44547,6 +44787,30 @@
           }
         }
       },
+      "AppointmentDocuments" : {
+        "type" : "object",
+        "properties" : {
+          "required" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/RequiredTemplate"
+            }
+          },
+          "own" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ParticipantDocuments"
+            }
+          },
+          "participants" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "$ref" : "#/components/schemas/ParticipantDocuments"
+            }
+          }
+        },
+        "required" : [ "required", "own", "participants" ]
+      },
       "AppointmentField" : {
         "type" : "object",
         "properties" : {
@@ -54407,9 +54671,15 @@
             }, {
               "type" : "null"
             } ]
+          },
+          "tooltip" : {
+            "type" : [ "string", "null" ]
+          },
+          "value" : {
+            "type" : [ "string", "null" ]
           }
         },
-        "required" : [ "name", "kind", "rect" ]
+        "required" : [ "name", "kind", "rect", "tooltip", "value" ]
       },
       "FormFieldKind" : {
         "type" : "string",
@@ -63476,9 +63746,15 @@
             }, {
               "type" : "null"
             } ]
+          },
+          "withoutLine" : {
+            "type" : "boolean"
+          },
+          "printText" : {
+            "type" : "boolean"
           }
         },
-        "required" : [ "kind", "rect", "text", "fontSize", "align", "wrap", "role", "fontFamily", "fontStyle" ]
+        "required" : [ "kind", "rect", "text", "fontSize", "align", "wrap", "role", "fontFamily", "fontStyle", "withoutLine", "printText" ]
       },
       "PdfFieldKind" : {
         "type" : "string",
@@ -72222,7 +72498,7 @@
       },
       "StorageCategory" : {
         "type" : "string",
-        "enum" : [ "MEDIA_FILES", "INSTANCE_MEDIA_FILES", "MEDIA_IMAGES", "KB_FILES", "MEMBER_DOCUMENTS", "DOCUMENT_TEMPLATES", "ASSOCIATION_DOCUMENT_TEMPLATES", "FONTS", "ASSOCIATION_FONTS", "INSTANCE_FONTS", "MOVEMENT_DOCUMENTS", "BOARD_ATTACHMENTS", "IMAGE_AVATAR", "IMAGE_LOST_AND_FOUND", "IMAGE_LOGO_FRAGMENT", "IMAGE_STATION_LOGO", "IMAGE_QUIZ_QUESTION", "IMAGE_KB_ICON", "IMAGE_KB_IMAGE", "IMAGE_KB_FILE_PICTURE", "DOCUMENT", "DISCOVERY_KEY", "MAP_TILE_CACHE", "DEMO_AVATAR", "IMAGE_DISCOVERY_LOGO" ]
+        "enum" : [ "MEDIA_FILES", "INSTANCE_MEDIA_FILES", "MEDIA_IMAGES", "KB_FILES", "MEMBER_DOCUMENTS", "DOCUMENT_TEMPLATES", "ASSOCIATION_DOCUMENT_TEMPLATES", "FONTS", "ASSOCIATION_FONTS", "INSTANCE_FONTS", "MOVEMENT_DOCUMENTS", "BOARD_ATTACHMENTS", "IMAGE_AVATAR", "IMAGE_LOST_AND_FOUND", "IMAGE_LOGO_FRAGMENT", "IMAGE_STATION_LOGO", "IMAGE_QUIZ_QUESTION", "IMAGE_KB_ICON", "IMAGE_KB_IMAGE", "IMAGE_KB_FILE_PICTURE", "IMAGE_DOCUMENT_TEMPLATE_PICTURE", "IMAGE_ASSOCIATION_DOCUMENT_TEMPLATE_PICTURE", "DOCUMENT", "DISCOVERY_KEY", "MAP_TILE_CACHE", "DEMO_AVATAR", "IMAGE_DISCOVERY_LOGO" ]
       },
       "StorageQuotaPreset" : {
         "type" : "object",
@@ -72968,6 +73244,30 @@
         },
         "required" : [ "groupId", "position" ]
       },
+      "TemplatePage" : {
+        "type" : "object",
+        "properties" : {
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/DocumentTemplateSummary"
+            }
+          },
+          "total" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "page" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "size" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "items", "total", "page", "size" ]
+      },
       "TemplateRequest" : {
         "type" : "object",
         "properties" : {
@@ -73002,6 +73302,10 @@
           }
         },
         "required" : [ "displayName", "content", "optional" ]
+      },
+      "TemplateSort" : {
+        "type" : "string",
+        "enum" : [ "LAST_USED", "NAME", "CREATED", "UPDATED" ]
       },
       "TemplateUseRequest" : {
         "type" : "object",

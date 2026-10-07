@@ -54,8 +54,11 @@ const emit = defineEmits<{
 const {t} = useI18n()
 
 const page = ref(1)
+const zoom = ref(1)
+const fieldCanvas = ref<InstanceType<typeof PdfFieldCanvas> | null>(null)
 const pageCount = ref(0)
 const selected = ref<number | null>(null)
+const chosenFormField = ref<string | null>(null)
 const geometry = ref<PageGeometry | null>(null)
 
 const pdf = computed(() => props.saved?.pdf ?? null)
@@ -73,9 +76,17 @@ function turnTo(number: number) {
   selected.value = null
 }
 
+/** Chooses a form field's entry from its list, turning to the page it sits on. */
+function chooseFormFieldEntry(name: string) {
+  chosenFormField.value = name
+  const sitsOn = pdf.value?.inspection.formFields.find(field => field.name === name)?.rect?.page
+  if (sitsOn && sitsOn !== page.value) turnTo(sitsOn)
+}
+
 function add(kind: PdfFieldKind) {
   if (!geometry.value) return
-  draft.value.fields = [...draft.value.fields, newField(kind, page.value, geometry.value, draft.value.fields)]
+  const view = fieldCanvas.value?.visibleBox()
+  draft.value.fields = [...draft.value.fields, newField(kind, page.value, geometry.value, draft.value.fields, view)]
   selected.value = draft.value.fields.length - 1
 }
 
@@ -112,18 +123,23 @@ function removeChosen() {
       </div>
     </Alert>
     <template v-if="source">
-      <PdfFieldToolbar :page="page" :page-count="pageCount" :can-add="!!geometry" @page="turnTo" @add="add"/>
+      <PdfFieldToolbar :page="page" :page-count="pageCount" :can-add="!!geometry" :zoom="zoom" @page="turnTo" @add="add"
+                       @zoom="value => zoom = value"/>
       <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
-        <PdfFieldCanvas :source="source" :page="page" :fields="draft.fields" :selected="selected" :labels="labels"
+        <PdfFieldCanvas ref="fieldCanvas" :source="source" :page="page" :zoom="zoom" :fields="draft.fields" :selected="selected" :labels="labels"
+                        :form-fields="pdf?.inspection.formFields ?? []" :form-bindings="draft.formBindings"
+                        :chosen-form-field="chosenFormField"
                         @loaded="count => pageCount = count" @drawn="drawn => geometry = drawn"
-                        @select="index => selected = index" @change="change"/>
+                        @select="index => selected = index" @change="change"
+                        @choose-form-field="name => chosenFormField = name"/>
         <PdfFieldSettings v-if="chosen" :model-value="chosen" :placeholders="placeholders" :legal="draft.legal"
                           :fonts="fonts" :default-family="defaultFamily" @update:model-value="changeChosen"
                           @remove="removeChosen"/>
         <MutedText v-else size="sm" tag="p">{{ t('documentTemplates.chooseField') }}</MutedText>
       </div>
       <FormBindingsPanel v-if="pdf && pdf.inspection.formFields.length > 0" v-model="draft.formBindings"
-                         :form-fields="pdf.inspection.formFields" :placeholders="placeholders" :legal="draft.legal"/>
+                         :form-fields="pdf.inspection.formFields" :placeholders="placeholders" :legal="draft.legal"
+                         :chosen="chosenFormField" @choose="chooseFormFieldEntry"/>
     </template>
   </NeutralContainer>
 </template>

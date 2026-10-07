@@ -65,25 +65,6 @@ public class EventRequirementRepository {
     }
 
     /**
-     * The templates of a station appointments may ask for: those for appointments that are in use.
-     *
-     * @param stationId the station
-     * @return the templates by name
-     */
-    public List<RequiredTemplate> offered(int stationId) {
-        return query("""
-                SELECT t.id AS template_id, t.name, t.kind, t.version, FALSE AS archived, %s
-                FROM document_template t
-                WHERE t.station_id = :station_id
-                  AND t.for_appointments
-                  AND t.archived_at IS NULL
-                ORDER BY lower(t.name), t.id;""", LAST_USED)
-                .single(call().bind("station_id", stationId))
-                .map(RequiredTemplate.map())
-                .all();
-    }
-
-    /**
      * Replaces what an appointment asks for.
      *
      * @param eventId     the appointment
@@ -116,6 +97,28 @@ public class EventRequirementRepository {
                 FROM unnest(:template_ids::INT[]) WITH ORDINALITY AS chosen(template_id, position);""", owner)
                 .single(call().bind("id", ownerId).bind("template_ids", templateIds, PostgreSqlTypes.INTEGER))
                 .insert();
+    }
+
+    /**
+     * The members who have a copy still filed of a document an appointment asks for on a date. For an
+     * appointment without registrations this is the only list of who takes part.
+     *
+     * @param eventId   the appointment
+     * @param eventDate the date
+     * @return the members, each once
+     */
+    public List<Integer> copiedBy(int eventId, LocalDate eventDate) {
+        return query("""
+                SELECT DISTINCT member_id
+                FROM document_generation
+                WHERE event_id = :event_id
+                  AND event_date = :event_date
+                  AND member_id IS NOT NULL
+                  AND document_id IS NOT NULL
+                ORDER BY member_id;""")
+                .single(call().bind("event_id", eventId).bind("event_date", eventDate))
+                .map(row -> row.getInt("member_id"))
+                .all();
     }
 
     /**

@@ -102,6 +102,14 @@ public class MediaFileRepository {
                 .all();
     }
 
+    /** Every PDF in every library, the instance's included, whose picture is its first page drawn. */
+    public List<StationFile> findPdfs() {
+        return query("""
+                        SELECT %s FROM station_file
+                        WHERE lower(mime_type) = 'application/pdf'
+                        ORDER BY id;""", FILE_COLUMNS).single().map(StationFile.map()).all();
+    }
+
     /**
      * Every file in one library, newest first.
      *

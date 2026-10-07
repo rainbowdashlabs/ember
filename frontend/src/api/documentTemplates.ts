@@ -27,9 +27,30 @@ import type {
     PlaceholderCatalogueResponse,
     PreviewResponse,
     SelfServiceOffer,
+    TemplatePage,
+    TemplateSort,
     TemplateUseRequest,
     TemplateUseResponse,
 } from '@/api/generated/schema'
+
+/**
+ * What a list of templates is asked for. The server searches, sorts and pages over every template, so
+ * the first page by name starts with the first name of all of them.
+ */
+export interface TemplateListQuery {
+    /** What the name contains, ignoring case. */
+    q?: string
+    kind?: DocumentTemplateSummary['kind']
+    /** Only templates for appointments when true, only the others when false. */
+    forAppointments?: boolean
+    sort?: TemplateSort
+    /** Counted from 0. */
+    page?: number
+    size?: number
+}
+
+/** Reads one page of templates from wherever a screen takes them. */
+export type TemplatePages = (query: TemplateListQuery) => Promise<TemplatePage>
 
 /**
  * The templates of one owner: a station or an association. Each lists, writes and archives its own
@@ -37,7 +58,9 @@ import type {
  * PDF template. A station's list also holds the templates of its association, marked as such.
  */
 export interface TemplateSource {
-    list(archived: boolean): Promise<DocumentTemplateSummary[]>
+    list(archived: boolean, query: TemplateListQuery): Promise<TemplatePage>
+    /** Where the first page of a template is served as a picture, drawn without a member. */
+    pictureUrl(id: number, size?: number): string
     get(id: number): Promise<DocumentTemplateResponse>
     create(request: DocumentTemplateRequest): Promise<DocumentTemplateResponse>
     update(id: number, request: DocumentTemplateRequest): Promise<DocumentTemplateResponse>
@@ -68,6 +91,12 @@ export interface TemplateSource {
 }
 
 /**
+ * The longest side of a template's picture on a tile: a portrait page shown across the full width of
+ * a tile on a dense screen.
+ */
+export const TEMPLATE_PICTURE_SIZE = 1024
+
+/**
  * The templates of an owner whose routes start with the prefix: none for the station, `/cluster` for
  * the association.
  */
@@ -77,7 +106,11 @@ function sourceAt(prefix: string): TemplateSource {
     const crud = createCrudResource<DocumentTemplateSummary, DocumentTemplateRequest, DocumentTemplateRequest,
         DocumentTemplateResponse, DocumentTemplateResponse>(templates)
     return {
-        list: archived => crud.list({archived}),
+        async list(archived, query) {
+            const res = await client.get<TemplatePage>(templates, {params: {archived, ...query}})
+            return res.data
+        },
+        pictureUrl: (id, size = TEMPLATE_PICTURE_SIZE) => at(id, `/picture?size=${size}`),
         get: crud.get,
         create: crud.create,
         update: crud.update,
@@ -137,9 +170,9 @@ export async function setTemplateUse(templateId: number, request: TemplateUseReq
     return res.data
 }
 
-/** The templates a manager can generate documents from: the station's own and its association's. */
-export async function usableTemplates(): Promise<DocumentTemplateSummary[]> {
-    const res = await client.get<DocumentTemplateSummary[]>('/document-generation/templates')
+/** One page of the templates a manager can generate documents from: the station's own and its association's. */
+export const usableTemplates: TemplatePages = async query => {
+    const res = await client.get<TemplatePage>('/document-generation/templates', {params: query})
     return res.data
 }
 

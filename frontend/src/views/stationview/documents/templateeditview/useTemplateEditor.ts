@@ -24,7 +24,7 @@ import {useAsyncAction} from '@/composables/useAsyncAction'
 import {provideFontSamples} from '@/composables/useFontSamples'
 import {useEditorFonts} from '@/composables/useEditorFonts'
 import {draftOf, emptyDraft, requestOf, type TemplateDraft} from './templateDraft'
-import {letterFamilies} from './letterFonts'
+import {templateFamilies} from './letterFonts'
 import {placeholdersOfTemplate} from './placeholderpicker/placeholderTree'
 import {placeholderLabels, providePlaceholderDates, type PlaceholderDates} from './placeholderpicker/placeholderDates'
 import type {TemplateScreens} from '../templateScreens'
@@ -61,8 +61,8 @@ async function stationChoices(): Promise<StationChoices> {
  * preview choose from, and for a PDF template the PDF it fills.
  *
  * <p>The font pickers below draw their samples through the owner's font source, which this provides.
- * While the editor is open, the font files of the families the letter uses are loaded through the same
- * source, so its text shows in them ({@link useEditorFonts}); they go when the editor closes. The
+ * While the editor is open, the font files of the families the letter or the PDF's text fields use are
+ * loaded through the same source, so their text shows in them ({@link useEditorFonts}); they go when the editor closes. The
  * placeholder pickers below get the date formats and tokens of the catalogue, the owner's check of an own
  * format, and the language their examples are written in: the template's, or the owner's until the
  * template names one. The labels of keys carry the
@@ -99,7 +99,7 @@ export function useTemplateEditor(
     const fontList = shallowRef<DocumentFontsResponse | null>(null)
     const fonts = computed<readonly FontFamilyOption[]>(() => fontList.value?.reachable ?? [])
     provideFontSamples(screens.fonts.sample)
-    const usedFamilies = computed(() => letterFamilies(draft.value))
+    const usedFamilies = computed(() => templateFamilies(draft.value))
     useEditorFonts(screens.fonts.file, () => fontList.value, () => usedFamilies.value)
 
     const dates = computed<PlaceholderDates>(() => {

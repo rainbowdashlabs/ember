@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.events.entity.AppointmentField;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
+import dev.chojo.ember.feature.events.service.EventRestrictionService;
 import dev.chojo.ember.feature.generator.entity.GenerationContext;
 import dev.chojo.ember.feature.generator.entity.GenerationOrigin;
 import dev.chojo.ember.feature.generator.entity.RequiredTemplate;
@@ -26,7 +27,10 @@ import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * The documents an appointment asks its participants to bring, as a participant or their guardian
@@ -55,6 +59,7 @@ public class AppointmentDocumentService {
     private final EventFieldRepository fields;
     private final MemberNameResolver names;
     private final DocumentIssuerService issuers;
+    private final EventRestrictionService audience;
 
     @Inject
     public AppointmentDocumentService(
@@ -66,7 +71,9 @@ public class AppointmentDocumentService {
             EventRegistrationRepository registrations,
             EventFieldRepository fields,
             MemberNameResolver names,
-            DocumentIssuerService issuers) {
+            DocumentIssuerService issuers,
+            EventRestrictionService audience) {
+        this.audience = audience;
         this.requirements = requirements;
         this.templates = templates;
         this.generator = generator;
@@ -106,23 +113,76 @@ public class AppointmentDocumentService {
     public record ParticipantDocuments(int memberId, String name, List<RequiredDocumentStatus> documents) {}
 
     /**
-     * The documents to bring for every member the reader acts for who takes part on the date.
+     * What an appointment asks participants to bring on a date, as one reader sees it.
      *
-     * @param session the reader
-     * @param event   the appointment, already checked to be one the reader may see
-     * @param date    the date of the appointment
-     * @return one entry per participant the reader acts for, none where the appointment asks for nothing
+     * @param required     every document the appointment asks for, in its order, which anybody who sees
+     *                     the appointment may know
+     * @param own          the documents of the reader and every member in their care who takes part
+     * @param participants the documents of every participant, for whoever manages the registrations;
+     *                     null for anybody else
      */
-    public List<ParticipantDocuments> documentsToBring(StationSession session, StationEvent event, LocalDate date) {
+    public record AppointmentDocuments(
+            List<RequiredTemplate> required,
+            List<ParticipantDocuments> own,
+            @Nullable List<ParticipantDocuments> participants) {}
+
+    /**
+     * The documents an appointment asks for on a date: the list itself for every reader, the copies of
+     * the participants the reader acts for, and for an organiser where every participant stands.
+     *
+     * @param session  the reader
+     * @param event    the appointment, already checked to be one the reader may see
+     * @param date     the date of the appointment
+     * @param overview whether the reader manages the registrations and is shown every participant
+     * @return what the reader sees; all empty where the appointment asks for nothing
+     */
+    public AppointmentDocuments documentsToBring(
+            StationSession session, StationEvent event, LocalDate date, boolean overview) {
         var required = inUse(event.id());
-        if (required.isEmpty()) return List.of();
-        var registered = registrations.findRegisteredMemberIds(event.id(), date);
-        var participants = guardians.household(session.user()).stream()
-                .filter(registered::contains)
-                .toList();
-        if (participants.isEmpty()) return List.of();
-        var copies = requirements.latest(event.id(), date, participants);
-        return participants.stream()
+        if (required.isEmpty()) return new AppointmentDocuments(List.of(), List.of(), overview ? List.of() : null);
+        var household = guardians.household(session.user());
+        List<Integer> own;
+        List<Integer> everyone;
+        if (event.requiresRegistration()) {
+            everyone = registrations.findRegisteredMemberIds(event.id(), date);
+            own = household.stream().filter(everyone::contains).toList();
+        } else {
+            everyone = requirements.copiedBy(event.id(), date);
+            own = household.stream()
+                    .filter(memberId -> mayAttend(event, memberId))
+                    .toList();
+        }
+        var asked = new LinkedHashSet<>(own);
+        if (overview) asked.addAll(everyone);
+        var copies = asked.isEmpty() ? List.<RequirementGeneration>of() : requirements.latest(event.id(), date, asked);
+        return new AppointmentDocuments(
+                required,
+                participantsOf(own, required, copies),
+                overview ? participantsOf(everyone, required, copies) : null);
+    }
+
+    /**
+     * Whether a member takes part in the appointment on the date: registered where it takes
+     * registrations, and anybody it is meant for where it takes none, since nobody could ever be
+     * registered for that.
+     */
+    private boolean takesPart(StationEvent event, LocalDate date, int memberId) {
+        if (!event.requiresRegistration()) return mayAttend(event, memberId);
+        return registrations.findRegisteredMemberIds(event.id(), date).contains(memberId);
+    }
+
+    /**
+     * Whether the appointment is meant for the member: they may see it and belong to its audience. Read
+     * with the member's own rights only, so a manager's right to register anybody does not hand them
+     * copies of documents for appointments that are not theirs to attend.
+     */
+    private boolean mayAttend(StationEvent event, int memberId) {
+        return audience.canRegister(event.id(), memberId, Set.of());
+    }
+
+    private List<ParticipantDocuments> participantsOf(
+            Collection<Integer> memberIds, List<RequiredTemplate> required, List<RequirementGeneration> copies) {
+        return memberIds.stream()
                 .map(memberId -> new ParticipantDocuments(
                         memberId, names.identified(memberId), statuses(required, copies, memberId)))
                 .toList();
@@ -140,8 +200,7 @@ public class AppointmentDocumentService {
      */
     public GeneratedDocumentResponse generate(
             StationSession session, StationEvent event, LocalDate date, int templateId, int memberId) {
-        if (!guardians.mayActFor(session.user(), memberId)
-                || !registrations.findRegisteredMemberIds(event.id(), date).contains(memberId)) {
+        if (!guardians.mayActFor(session.user(), memberId) || !takesPart(event, date, memberId)) {
             throw DocumentRefusal.DOCUMENT_REQUIREMENT_NOT_YOURS.raise();
         }
         boolean required = inUse(event.id()).stream().anyMatch(template -> template.templateId() == templateId);
