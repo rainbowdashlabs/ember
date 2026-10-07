@@ -6,7 +6,6 @@
 package dev.chojo.ember.feature.members.service;
 
 import dev.chojo.ember.api.MemberIdentity;
-import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.feature.members.entity.MemberCard;
 import dev.chojo.ember.feature.members.entity.MemberCard.MemberCardLabel;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
@@ -35,7 +34,6 @@ public class MemberCardService {
     private final MemberIdentityFactory identityFactory;
     private final UserTagService tagService;
     private final MemberGroupService groupService;
-    private final PrivateTags privateTags;
 
     @Inject
     public MemberCardService(
@@ -43,35 +41,33 @@ public class MemberCardService {
             MemberNameResolver nameResolver,
             MemberIdentityFactory identityFactory,
             UserTagService tagService,
-            MemberGroupService groupService,
-            PrivateTags privateTags) {
+            MemberGroupService groupService) {
         this.memberService = memberService;
         this.nameResolver = nameResolver;
         this.identityFactory = identityFactory;
         this.tagService = tagService;
         this.groupService = groupService;
-        this.privateTags = privateTags;
     }
 
     /**
-     * The card of a member of the reader's station. Private tags are on it only for a reader allowed
-     * to view members.
+     * The card of a member of the reader's station.
      *
-     * @param reader    the reader, whose station the member has to be at
-     * @param memberUid the member looked at
+     * @param stationId       the reader's station
+     * @param stationUid      the same station's uid, which the identities on the card carry
+     * @param memberUid       the member looked at
+     * @param privateTagsSeen whether the reader may view members, which is what puts private tags on
+     *                        the card
      * @return the card, or empty where the uid names nobody at this station
      */
-    public Optional<MemberCard> find(StationSession reader, UUID memberUid) {
-        int stationId = reader.stationId();
+    public Optional<MemberCard> find(int stationId, UUID stationUid, UUID memberUid, boolean privateTagsSeen) {
         return memberService
                 .resolveId(stationId, memberUid)
                 .flatMap(memberService::findById)
                 .filter(member -> member.stationId() == stationId)
-                .map(member -> cardOf(reader, member));
+                .map(member -> cardOf(stationUid, member, privateTagsSeen));
     }
 
-    private MemberCard cardOf(StationSession reader, StationMember member) {
-        UUID stationUid = reader.stationUid();
+    private MemberCard cardOf(UUID stationUid, StationMember member, boolean privateTagsSeen) {
         var identity = identityOf(stationUid, member);
         var name = Objects.requireNonNullElse(nameResolver.identified(member.id()), member.displayName());
         if (member.former()) {
@@ -83,7 +79,7 @@ public class MemberCardService {
                 false,
                 identitiesOf(stationUid, memberService.findManagers(member.id())),
                 identitiesOf(stationUid, memberService.findManaged(member.id())),
-                tagsOf(reader, member.id()),
+                tagsOf(member.id(), privateTagsSeen),
                 groupsOf(member.id()));
     }
 
@@ -95,11 +91,13 @@ public class MemberCardService {
         return members.stream().map(member -> identityOf(stationUid, member)).toList();
     }
 
-    private List<MemberCardLabel> tagsOf(StationSession reader, int memberId) {
-        return privateTags.visibleTo(reader, tagService.findTagsForMember(memberId)).stream()
-                .sorted(Comparator.comparingInt(UserTag::position).reversed())
-                .map(tag -> new MemberCardLabel(tag.name(), tag.color()))
-                .toList();
+    private List<MemberCardLabel> tagsOf(int memberId, boolean privateTagsSeen) {
+        var tags = tagService.findTagsForMember(memberId);
+        return (privateTagsSeen ? tags : PrivateTags.withoutPrivate(tags))
+                .stream()
+                        .sorted(Comparator.comparingInt(UserTag::position).reversed())
+                        .map(tag -> new MemberCardLabel(tag.name(), tag.color()))
+                        .toList();
     }
 
     private List<MemberCardLabel> groupsOf(int memberId) {
