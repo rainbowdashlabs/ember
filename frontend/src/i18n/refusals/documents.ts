@@ -102,4 +102,8 @@ export default {
     'D-120': 'Diese Schrift lässt sich im Editor nicht zeigen, deshalb steht ihr Name an ihrer Stelle',
     'D-121': 'Nur WOFF2-, WOFF-, TrueType- (.ttf) und OpenType-Dateien (.otf) können eine Webfassung sein',
     'D-122': 'Nach dieser Art oder in dieser Reihenfolge lassen sich die Vorlagen nicht auflisten',
+    'D-123': 'Ein versiegeltes Dokument wird aufbewahrt und lässt sich nicht löschen',
+    'D-124': 'Ein versiegeltes Dokument bleibt bei den Mitgliedern, für die es versiegelt wurde',
+    'D-125': 'Dieses Dokument ist nicht versiegelt und nimmt deshalb keine versiegelte Fassung auf',
+    'D-126': 'Das Dokument hat inzwischen eine neuere versiegelte Fassung, deshalb wurde diese nicht abgelegt',
 }

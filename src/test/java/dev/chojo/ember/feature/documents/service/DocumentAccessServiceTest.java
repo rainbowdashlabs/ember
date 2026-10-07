@@ -100,7 +100,8 @@ class DocumentAccessServiceTest {
                 false,
                 uploadedBy,
                 null,
-                Instant.now());
+                Instant.now(),
+                false);
     }
 
     private static void assertRefused(Refusal refusal, Executable call) {

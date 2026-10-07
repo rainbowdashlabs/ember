@@ -68,7 +68,8 @@ class WaitingListAnswersTest extends RepositoryTestBase {
                 mock(Notifier.class),
                 new AccountInviteService(accountRepo, mock(AuthService.class)),
                 new WaitlistInvitationMessage(eventRepo, eventFieldRepo, emailService),
-                new DomainEventBus(Set.of()));
+                new DomainEventBus(Set.of()),
+                newDocumentService());
         station = stationRepo.create("WaitlistAnswersStation");
     }
 

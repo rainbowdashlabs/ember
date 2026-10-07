@@ -17,6 +17,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DownloadButton from '@/components/button/DownloadButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import FileView from '@/components/documents/FileView.vue'
+import SealedVersionList from '@/components/documents/SealedVersionList.vue'
 import {formatDate, formatSize} from '@/util/format'
 import {downloadAuthed} from '@/util/downloadAuthed'
 import {contentUrl as stationContentUrl} from '@/api/documents'
@@ -31,7 +32,8 @@ type BoundMember = MemberLike & {formerAt?: string | null}
  *
  * <p>Whom it concerns is decided here rather than at the upload, because that is usually noticed
  * while reading it, and it is a set rather than a list to add to: somebody put on it by mistake
- * has to come off again.
+ * has to come off again. A sealed document is locked: it offers neither removing nor choosing its
+ * members, and lists its sealed versions instead.
  */
 const modelValue = defineModel<boolean>({required: true})
 
@@ -71,6 +73,9 @@ watch(() => props.document, (document) => {
 }, {immediate: true})
 
 const memberOptions = computed(() => (props.allMembers ?? []).map(fromMember))
+
+/** Whether the reader may remove the document and choose its members, which a seal takes from everybody. */
+const canChange = computed(() => props.canEdit && !props.document?.sealed)
 
 /**
  * Whom the document names: the members bound to it, marked where they have left, and the names of
@@ -116,8 +121,10 @@ async function download() {
 
       <div class="flex items-center gap-2">
         <DownloadButton @click="download"/>
-        <DeleteButton v-if="props.canEdit" @click="emit('remove', props.document)"/>
+        <DeleteButton v-if="canChange" @click="emit('remove', props.document)"/>
       </div>
+
+      <SealedVersionList v-if="props.document.sealed" :versions="props.document.sealedVersions"/>
 
       <FileView
           :source="props.contentUrl(props.document.id)"
@@ -128,7 +135,7 @@ async function download() {
       <div class="grid gap-4 sm:grid-cols-2">
         <div class="space-y-1">
           <FieldLabel>{{ t('documents.boundMembers') }}</FieldLabel>
-          <template v-if="props.canEdit">
+          <template v-if="canChange">
             <MemberSelectInput
                 v-model:selected="members"
                 multiple

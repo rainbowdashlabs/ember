@@ -16,6 +16,7 @@ import dev.chojo.ember.event.events.WaitlistPublicRegistration;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AccountInviteService;
 import dev.chojo.ember.feature.account.service.SetupMail;
+import dev.chojo.ember.feature.documents.service.DocumentService;
 import dev.chojo.ember.feature.legal.entity.ConsentProof;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -87,6 +88,7 @@ public class WaitingListService implements TaskSource {
     private final AccountInviteService accountInviteService;
     private final WaitlistInvitationMessage invitationMessage;
     private final DomainEventBus eventBus;
+    private final DocumentService documentService;
 
     @Inject
     public WaitingListService(
@@ -100,7 +102,8 @@ public class WaitingListService implements TaskSource {
             Notifier notifier,
             AccountInviteService accountInviteService,
             WaitlistInvitationMessage invitationMessage,
-            DomainEventBus eventBus) {
+            DomainEventBus eventBus,
+            DocumentService documentService) {
         this.repository = repository;
         this.stationRepository = stationRepository;
         this.stationMemberRepository = stationMemberRepository;
@@ -112,6 +115,7 @@ public class WaitingListService implements TaskSource {
         this.accountInviteService = accountInviteService;
         this.invitationMessage = invitationMessage;
         this.eventBus = eventBus;
+        this.documentService = documentService;
     }
 
     public List<WaitingList> findByStation(int stationId) {
@@ -769,7 +773,8 @@ public class WaitingListService implements TaskSource {
 
     /**
      * Withdraw an entry (from WAITING, INVITED, or TESTING).
-     * Deletes the linked member, orphaned account, and the entry itself.
+     * Deletes the linked member, orphaned account, and the entry itself. The member's documents are
+     * released first, as for any member who is deleted: what was kept for the record keeps their name.
      */
     public void withdrawEntry(int entryId) {
         var entry =
@@ -782,6 +787,7 @@ public class WaitingListService implements TaskSource {
         if (memberId != null) {
             var member = stationMemberRepository.findById(memberId).orElse(null);
             if (member != null) {
+                documentService.memberLeaves(member.id(), DocumentService.Leaving.DELETED);
                 stationMemberRepository.delete(member.id());
                 Integer accountId = member.accountId();
                 if (accountId != null) {

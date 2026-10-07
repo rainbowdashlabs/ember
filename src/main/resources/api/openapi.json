@@ -15506,7 +15506,7 @@
     },
     "/api/v1/documents/ids" : {
       "get" : {
-        "summary" : "Every document the filters match, by id, to act on all of them at once",
+        "summary" : "Every document the filters match that can be removed, by id, to remove all of them at once",
         "tags" : [ "Members" ],
         "responses" : {
           "200" : {
@@ -60347,9 +60347,18 @@
             "items" : {
               "type" : "string"
             }
+          },
+          "sealed" : {
+            "type" : "boolean"
+          },
+          "sealedVersions" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/SealedVersionResponse"
+            }
           }
         },
-        "required" : [ "id", "title", "fileName", "mimeType", "sizeBytes", "hidden", "keepOnArchive", "hasThumbnail", "uploadedBy", "uploaderName", "createdAt", "memberIds", "departedNames", "tags" ]
+        "required" : [ "id", "title", "fileName", "mimeType", "sizeBytes", "hidden", "keepOnArchive", "hasThumbnail", "uploadedBy", "uploaderName", "createdAt", "memberIds", "departedNames", "tags", "sealed", "sealedVersions" ]
       },
       "MemberExportRequest" : {
         "type" : "object",
@@ -69396,6 +69405,43 @@
       "Scope" : {
         "type" : "string",
         "enum" : [ "STATION", "INSTANCE", "USER", "CLUSTER" ]
+      },
+      "SealLevel" : {
+        "type" : "string",
+        "enum" : [ "BASELINE_B", "BASELINE_T", "BASELINE_LT" ]
+      },
+      "SealedVersionResponse" : {
+        "type" : "object",
+        "properties" : {
+          "version" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "sha256" : {
+            "type" : "string"
+          },
+          "sizeBytes" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "sealLevel" : {
+            "$ref" : "#/components/schemas/SealLevel"
+          },
+          "timestampedBy" : {
+            "type" : [ "string", "null" ]
+          },
+          "sealedAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "supersededAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "version", "sha256", "sizeBytes", "sealLevel", "timestampedBy", "sealedAt", "supersededAt" ]
       },
       "SearchResultItem" : {
         "type" : "object",

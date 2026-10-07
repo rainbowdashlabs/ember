@@ -66,6 +66,7 @@ import dev.chojo.ember.feature.discovery.repository.DiscoveryPeerRepository;
 import dev.chojo.ember.feature.discovery.repository.DiscoveryPingRepository;
 import dev.chojo.ember.feature.discovery.repository.DiscoveryStationCacheRepository;
 import dev.chojo.ember.feature.documents.repository.DocumentRepository;
+import dev.chojo.ember.feature.documents.repository.SealedVersionRepository;
 import dev.chojo.ember.feature.documents.service.DocumentIntake;
 import dev.chojo.ember.feature.documents.service.DocumentService;
 import dev.chojo.ember.feature.equipment.repository.EquipmentAvailabilityRepository;
@@ -503,7 +504,23 @@ public abstract class RepositoryTestBase {
      */
     protected static DocumentService newDocumentService(StorageService storage) {
         return new DocumentService(
-                memberDocumentRepo, storage, new ImageVariants(storage), stationRepo, newDocumentIntake());
+                memberDocumentRepo,
+                new SealedVersionRepository(),
+                storage,
+                new ImageVariants(storage),
+                stationRepo,
+                newDocumentIntake());
+    }
+
+    /**
+     * A member document store over this class's local storage, for tests that only need members to be
+     * able to leave.
+     *
+     * @return the store
+     */
+    protected static DocumentService newDocumentService() {
+        var backend = localStorage();
+        return newDocumentService(new StorageService(new StorageBackendResolver(backend), backend));
     }
 
     /**

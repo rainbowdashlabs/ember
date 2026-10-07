@@ -64,6 +64,8 @@ class DocumentRoutesTest {
             null,
             List.of(),
             List.of(),
+            List.of(),
+            false,
             List.of());
 
     private DocumentCatalogService catalog;
@@ -82,7 +84,19 @@ class DocumentRoutesTest {
         when(catalog.find(7)).thenReturn(Optional.of(document(7)));
         when(catalog.find(9))
                 .thenReturn(Optional.of(new Document(
-                        9, 4, "Fremd", "f.pdf", "application/pdf", 1, false, false, false, null, null, Instant.EPOCH)));
+                        9,
+                        4,
+                        "Fremd",
+                        "f.pdf",
+                        "application/pdf",
+                        1,
+                        false,
+                        false,
+                        false,
+                        null,
+                        null,
+                        Instant.EPOCH,
+                        false)));
         when(catalog.view(any())).thenReturn(VIEW);
         when(catalog.setTags(any(), any())).thenReturn(VIEW);
         when(catalog.setMembers(any(), anyList())).thenReturn(VIEW);
@@ -98,7 +112,7 @@ class DocumentRoutesTest {
 
     private static Document document(int id) {
         return new Document(
-                id, 3, "Akte", "a.pdf", "application/pdf", 1, false, false, false, null, null, Instant.EPOCH);
+                id, 3, "Akte", "a.pdf", "application/pdf", 1, false, false, false, null, null, Instant.EPOCH, false);
     }
 
     @Test

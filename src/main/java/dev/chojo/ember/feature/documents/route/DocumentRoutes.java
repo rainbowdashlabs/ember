@@ -232,7 +232,7 @@ public class DocumentRoutes implements Routes {
     @OpenApi(
             path = "/api/v1/documents/ids",
             methods = HttpMethod.GET,
-            summary = "Every document the filters match, by id, to act on all of them at once",
+            summary = "Every document the filters match that can be removed, by id, to remove all of them at once",
             tags = {"Members"},
             queryParams = {
                 @OpenApiParam(name = "memberIds", description = "Only what is bound to one of them, comma separated"),

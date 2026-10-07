@@ -363,7 +363,21 @@ public enum DocumentRefusal implements Refusal {
 
     /** A template list asked for by a kind of template or an order that does not exist. */
     DOCUMENT_TEMPLATE_LIST_UNKNOWN_CHOICE(
-            122, HttpStatus.BAD_REQUEST, "The templates cannot be listed by that kind or in that order");
+            122, HttpStatus.BAD_REQUEST, "The templates cannot be listed by that kind or in that order"),
+
+    /** A sealed document asked to be removed, alone or among others. */
+    DOCUMENT_SEALED_NOT_REMOVABLE(123, HttpStatus.CONFLICT, "A sealed document is kept and cannot be deleted"),
+
+    /** The members of a sealed document asked to be changed. */
+    DOCUMENT_SEALED_MEMBERS_FIXED(
+            124, HttpStatus.CONFLICT, "A sealed document stays with the members it was sealed for"),
+
+    /** A sealed version offered for a document that was not filed sealed. */
+    DOCUMENT_NOT_SEALED(125, HttpStatus.CONFLICT, "This document is not sealed, so it takes no sealed version"),
+
+    /** A sealed version built on a version of the document that another one has superseded since. */
+    DOCUMENT_SEALED_VERSION_OUTDATED(
+            126, HttpStatus.CONFLICT, "The document has a newer sealed version since, so this one was not filed");
 
     private final Definition definition;
 

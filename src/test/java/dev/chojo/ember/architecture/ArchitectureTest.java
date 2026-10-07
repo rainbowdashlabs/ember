@@ -25,6 +25,7 @@ import dev.chojo.ember.feature.notifications.repository.NotificationRepository;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.storage.repository.ClusterStationStorageRepository;
 import dev.chojo.ember.feature.storage.repository.ClusterStorageConfigRepository;
+import dev.chojo.ember.feature.storage.service.PdfCompressor;
 import dev.chojo.ember.owner.Owner;
 import jakarta.inject.Singleton;
 import tools.jackson.databind.ObjectMapper;
@@ -113,6 +114,19 @@ public class ArchitectureTest {
             .should()
             .dependOnClassesThat()
             .areAssignableTo(CommentRepository.class);
+
+    /**
+     * Member documents are stored byte for byte. Sealed documents live among them, and a sealed PDF whose
+     * bytes were rewritten no longer matches its seal, so the PDF compressor of the knowledge base never
+     * reaches the member documents, nor anything that files into them.
+     */
+    @ArchTest
+    static final ArchRule memberDocumentsAreNeverCompressed = noClasses()
+            .that()
+            .resideInAnyPackage("dev.chojo.ember.feature.documents..", "dev.chojo.ember.feature.signing..")
+            .should()
+            .dependOnClassesThat()
+            .areAssignableTo(PdfCompressor.class);
 
     /**
      * A domain event handler belongs to the feature whose behaviour it carries, in that feature's

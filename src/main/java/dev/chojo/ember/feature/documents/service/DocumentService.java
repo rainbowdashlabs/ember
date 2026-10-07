@@ -5,9 +5,12 @@
  */
 package dev.chojo.ember.feature.documents.service;
 
+import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.feature.documents.entity.Document;
+import dev.chojo.ember.feature.documents.entity.SealedVersion;
 import dev.chojo.ember.feature.documents.entity.Uploader;
 import dev.chojo.ember.feature.documents.repository.DocumentRepository;
+import dev.chojo.ember.feature.documents.repository.SealedVersionRepository;
 import dev.chojo.ember.feature.media.entity.MediaContent;
 import dev.chojo.ember.feature.media.image.ImageProfile;
 import dev.chojo.ember.feature.media.image.MediaTypes;
@@ -48,7 +51,11 @@ public class DocumentService {
     /** The bytes as they were uploaded. */
     private static final Variant CONTENT = new Variant("content");
 
+    /** What every sealed file is. */
+    static final String SEALED_TYPE = "application/pdf";
+
     private final DocumentRepository repository;
+    private final SealedVersionRepository versions;
     private final StorageService storage;
     private final ImageVariants images;
     private final StationRepository stationRepository;
@@ -57,11 +64,13 @@ public class DocumentService {
     @Inject
     public DocumentService(
             DocumentRepository repository,
+            SealedVersionRepository versions,
             StorageService storage,
             ImageVariants images,
             StationRepository stationRepository,
             DocumentIntake intake) {
         this.repository = repository;
+        this.versions = versions;
         this.storage = storage;
         this.images = images;
         this.stationRepository = stationRepository;
@@ -132,15 +141,39 @@ public class DocumentService {
         String type = Objects.requireNonNullElse(mimeType, MediaTypes.UNTYPED);
         var document = repository.create(
                 stationId, title, fileName, type, data.length, hidden, keepOnArchive, uploader, memberIds);
-        var scope = scope(stationId);
-        storage.store(scope, StorageCategory.MEMBER_DOCUMENTS, contentKey(document.id()), CONTENT, data, type);
-        if (storeThumbnail(scope, document.id(), type, data)) {
-            repository.markThumbnail(document.id());
-        }
+        storage.store(
+                scope(stationId), StorageCategory.MEMBER_DOCUMENTS, contentKey(document.id()), CONTENT, data, type);
         repository.setTags(document.id(), stationId, tags);
-        index(document.id(), stationId, title, type, data);
+        describe(document, data);
         log.info("Stored document {} for station {} ({} bytes)", document.id(), stationId, data.length);
         return repository.findById(document.id()).orElse(document);
+    }
+
+    /**
+     * Makes what is kept beside a document's file from the file it serves: the picture a tile shows and
+     * what the search reads. Neither touches the file.
+     *
+     * @param document the document
+     * @param data     the bytes it serves
+     */
+    void describe(Document document, byte[] data) {
+        if (storeThumbnail(scope(document.stationId()), document.id(), document.mimeType(), data)) {
+            repository.markThumbnail(document.id());
+        }
+        index(document.id(), document.stationId(), document.title(), document.mimeType(), data);
+    }
+
+    /**
+     * Keeps a sealed file under its SHA-256. The key names the content, so a file once stored there is
+     * never replaced by other bytes.
+     *
+     * @param stationId the station the document belongs to
+     * @param sha256    the file's SHA-256, lower-case hexadecimal
+     * @param data      the sealed file
+     */
+    void storeSealed(int stationId, String sha256, byte[] data) {
+        storage.store(
+                scope(stationId), StorageCategory.MEMBER_DOCUMENTS, sealedKey(sha256), CONTENT, data, SEALED_TYPE);
     }
 
     /**
@@ -154,12 +187,38 @@ public class DocumentService {
     }
 
     /**
-     * The bytes of a document, as they were uploaded, whatever the station switched off. For the
-     * personal data export and the search index, never for a reader.
+     * The bytes a document serves, whatever the station switched off: as they were uploaded, or for a
+     * sealed document its current sealed version. For the personal data export and the search index,
+     * never for a reader.
      */
     public Optional<byte[]> read(Document document) {
+        if (document.sealed()) return versions.current(document.id()).flatMap(version -> read(document, version));
         return storage.readAllBytes(
                 scope(document.stationId()), StorageCategory.MEMBER_DOCUMENTS, contentKey(document.id()), CONTENT);
+    }
+
+    /**
+     * The bytes of one sealed version of a document, whatever the station switched off. For the personal
+     * data export, never for a reader.
+     *
+     * @param document the sealed document
+     * @param version  one of its versions
+     * @return the sealed file, or empty when it is not in the store
+     */
+    public Optional<byte[]> read(Document document, SealedVersion version) {
+        return storage.readAllBytes(
+                scope(document.stationId()), StorageCategory.MEMBER_DOCUMENTS, sealedKey(version.sha256()), CONTENT);
+    }
+
+    /**
+     * The sealed versions of a document, newest first.
+     *
+     * @param document the document
+     * @return its versions, none for a document that is not sealed
+     */
+    public List<SealedVersion> sealedVersions(Document document) {
+        if (!document.sealed()) return List.of();
+        return versions.versionsOf(document.id());
     }
 
     /**
@@ -179,7 +238,8 @@ public class DocumentService {
     }
 
     /**
-     * Removes documents a reader chose, at a station that keeps documents.
+     * Removes documents a reader chose, at a station that keeps documents. A choice holding a sealed
+     * document removes nothing.
      *
      * @param stationId the station they belong to
      * @param documents the documents, already checked to be the reader's to remove
@@ -187,13 +247,16 @@ public class DocumentService {
      */
     public void remove(int stationId, List<Document> documents, DocumentDoor door) {
         requireKept(stationId, door);
+        documents.forEach(DocumentService::requireUnsealed);
         documents.forEach(this::delete);
     }
 
     /**
-     * Removes a document and everything kept for it.
+     * Removes a document and everything kept for it. A sealed document is never removed this way; only
+     * deleting its station takes it.
      */
     public void delete(Document document) {
+        requireUnsealed(document);
         storage.deletePrefix(scope(document.stationId()), StorageCategory.MEMBER_DOCUMENTS, contentKey(document.id()));
         storage.deletePrefix(
                 scope(document.stationId()), StorageCategory.MEMBER_DOCUMENTS, thumbnailKey(document.id()));
@@ -302,7 +365,8 @@ public class DocumentService {
      * marked to be kept stays: with the member where they are archived, and under their name where they
      * are deleted, since a deleted member is not there to stay with. A kept document that named nobody
      * would become the station's own paperwork, readable far more widely than what was filed about one
-     * person, so the name is what keeps it somebody's.
+     * person, so the name is what keeps it somebody's. A sealed document is always marked to be kept, and
+     * the database refuses letting go of its members any other way.
      *
      * @param memberId the member leaving
      * @param leaving  how they leave
@@ -345,8 +409,25 @@ public class DocumentService {
         return new StorageScope.Station(stationId, stationRepository.requireUid(stationId));
     }
 
+    /**
+     * Refuses removing a sealed document.
+     *
+     * @param document the document
+     */
+    static void requireUnsealed(Document document) {
+        if (document.sealed()) throw DocumentRefusal.DOCUMENT_SEALED_NOT_REMOVABLE.raise();
+    }
+
     private static String contentKey(int documentId) {
         return documentId + "/file";
+    }
+
+    /**
+     * The key a sealed file is kept under: its SHA-256 alone, not the document's id, so the key says
+     * what the bytes are and stays right wherever the rows that name it are carried.
+     */
+    private static String sealedKey(String sha256) {
+        return "sealed/" + sha256;
     }
 
     /** The key a document's picture is kept under, beside the document itself. */

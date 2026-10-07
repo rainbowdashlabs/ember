@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:a099df10c724afd6aecf7eb921edcd60beda245b31939a78b7f453bd6592e3ac",
-  "generatedAt": "2026-10-07T21:16:21Z",
+  "schemaHash": "sha256:74515a8dc9e9c4f3053c70c5f5feb98fb83cdba6016474c9931bdd37f0c7e812",
+  "generatedAt": "2026-10-07T22:44:28Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -17872,7 +17872,7 @@
     "member_document": {
       "feature": "members",
       "scope": "STATION",
-      "tableHash": "sha256:b0cbdfed64bbb10e64bf6bff3869b96dd676eb3db5a3587636af12877aa9d03a",
+      "tableHash": "sha256:1541f452feacdda9365e92efca79278599f9445552578478a5514d0d3c4cee27",
       "columns": [
         {
           "name": "id",
@@ -17951,6 +17951,13 @@
           "nullable": true,
           "verified": true,
           "description": "The account that filed the document from the association, which holds no membership at the document's station. Empty for a document filed at the station, which names its uploader as a member instead."
+        },
+        {
+          "name": "sealed",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether the document is sealed and therefore locked: it cannot be deleted, the members it is about cannot be changed, it is always kept when they leave, under their name where they are deleted, and its file is never replaced. Its files are its sealed versions. Only the deletion of its station takes it away."
         }
       ],
       "foreignKeys": [
@@ -18136,7 +18143,7 @@
           {
             "column": "member_id",
             "strategy": "CASCADE",
-            "reason": "FK ON DELETE CASCADE on member/account delete"
+            "reason": "FK ON DELETE CASCADE on member/account delete. The member's documents are released first: a binding on a document kept for the record, which a sealed one always is, becomes the departed name instead"
           }
         ]
       },
@@ -18282,6 +18289,102 @@
         "status": "IGNORED",
         "reason": "Joins a document to a label, with nobody in it."
       }
+    },
+    "member_document_version": {
+      "feature": "members",
+      "scope": "STATION",
+      "tableHash": "sha256:c4d8cae334c4021353b47a6bfe2e949c67567be8fc71f7bd2269eae05eb3bf58",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Primary key."
+        },
+        {
+          "name": "document_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The sealed document this is a version of. The versions go only with the document, which goes only with its station."
+        },
+        {
+          "name": "version",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The number of the version within its document, counting up from 1 in the order they were sealed."
+        },
+        {
+          "name": "sha256",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "SHA-256 of the sealed file, lower-case hexadecimal. The file is stored under it, so the name of the file is a check of its bytes."
+        },
+        {
+          "name": "size_bytes",
+          "type": "int8",
+          "nullable": false,
+          "verified": true,
+          "description": "How large the sealed file is."
+        },
+        {
+          "name": "seal_level",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The PAdES baseline level the seal reached: BASELINE_B without a timestamp, BASELINE_T with one, BASELINE_LT with the timestamp and the material to check both offline."
+        },
+        {
+          "name": "timestamped_by",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "The address of the timestamp service whose timestamp the file carries; null for a seal without a timestamp."
+        },
+        {
+          "name": "sealed_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the version was filed."
+        },
+        {
+          "name": "superseded_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When a later version took its place; null for the current version. A superseded version stays stored."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "document_id",
+          "refTable": "member_document",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED"
+      },
+      "gdprExport": {
+        "status": "TRACKED"
+      },
+      "gdprDeletion": {
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "document_id",
+            "strategy": "RETAIN",
+            "reason": "A sealed document outlasts the deletion of the members it is about, under their departed name, and so do its versions; only deleting the station removes them",
+            "legalBasis": "GDPR Art. 17(3)(e): kept as evidence for the establishment, exercise or defence of legal claims"
+          }
+        ]
+      },
+      "description": "The sealed versions of a sealed member document, one row per sealed file. Each file is stored once under its SHA-256 and never replaced; a later signature adds a version that supersedes the one before, which stays. Exactly one version of a document is current."
     },
     "member_group": {
       "feature": "members",
@@ -27268,5 +27371,36 @@
       "description": "Pending WebAuthn challenges, single use, short lived. Replaces the account_token rows the two-factor ceremonies used, and additionally carries ceremonies that do not know the account yet."
     }
   },
-  "fileStores": {}
+  "fileStores": {
+    "sealed_member_documents": {
+      "path": "station/{stationUid}/member-documents/sealed/{sha256}/content",
+      "linkedTable": "member_document_version",
+      "linkColumn": "sha256",
+      "feature": "members",
+      "stationTransfer": {
+        "status": "TRACKED",
+        "rationale": "Copied byte for byte with the station's other member document files. The key is the file's SHA-256 alone, so it stays right when the document rows get new ids on the other side."
+      },
+      "gdprExport": {
+        "status": "TRACKED",
+        "identityColumns": [
+          {
+            "type": "MEMBER_ID",
+            "column": "member_id"
+          }
+        ]
+      },
+      "gdprDeletion": {
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "member_id",
+            "strategy": "RETAIN",
+            "reason": "A sealed document outlasts the deletion of the members it is about, under their departed name, with every version; only deleting the station removes its files",
+            "legalBasis": "GDPR Art. 17(3)(e): kept as evidence for the establishment, exercise or defence of legal claims"
+          }
+        ]
+      }
+    }
+  }
 }

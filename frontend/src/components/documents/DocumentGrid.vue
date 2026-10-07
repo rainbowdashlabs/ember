@@ -17,7 +17,7 @@ const props = withDefaults(defineProps<{
   documents: MemberDocumentResponse[]
   /** Where a tile's picture comes from, or null where the door the reader comes through serves none. */
   thumbnailUrl?: ((documentId: number) => string) | null
-  /** Whether each tile can be chosen, for acting on several documents at once. */
+  /** Whether each tile can be chosen, for removing several documents at once. A sealed one never can. */
   selectable?: boolean
   /** Whether the choice is held as it is, because the documents shown are about to be replaced. */
   choiceHeld?: boolean
@@ -60,7 +60,7 @@ function choose(documentId: number, chosen: boolean) {
   <EmptyHint v-if="props.documents.length === 0">{{ t('documents.none') }}</EmptyHint>
   <div v-else class="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
     <div v-for="document in props.documents" :key="document.id" class="relative">
-      <div v-if="props.selectable" class="absolute top-2 left-2 z-10">
+      <div v-if="props.selectable && !document.sealed" class="absolute top-2 left-2 z-10">
         <CheckboxInput
             :model-value="selected.includes(document.id)"
             :aria-label="t('documents.select')"

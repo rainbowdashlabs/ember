@@ -43,6 +43,8 @@ function document(overrides: Partial<MemberDocumentResponse> = {}): MemberDocume
         memberIds: [],
         departedNames: ['Lena Weg'],
         tags: [],
+        sealed: false,
+        sealedVersions: [],
         ...overrides,
     }
 }

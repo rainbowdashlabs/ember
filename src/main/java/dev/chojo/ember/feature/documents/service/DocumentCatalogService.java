@@ -5,10 +5,13 @@
  */
 package dev.chojo.ember.feature.documents.service;
 
+import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.feature.documents.entity.Document;
 import dev.chojo.ember.feature.documents.entity.DocumentFilter;
 import dev.chojo.ember.feature.documents.entity.DocumentTag;
+import dev.chojo.ember.feature.documents.entity.SealedVersion;
 import dev.chojo.ember.feature.documents.repository.DocumentRepository;
+import dev.chojo.ember.feature.signing.entity.SealLevel;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -72,7 +75,8 @@ public class DocumentCatalogService {
     }
 
     /**
-     * Every document the filter matches, by id, so a reader can choose all of them at once.
+     * Every document the filter matches that can be removed, by id, so a reader can choose all of them
+     * at once. Sealed documents are never among them.
      */
     public List<Integer> ids(int stationId, DocumentFilter filter) {
         documentService.requireKept(stationId, DocumentDoor.STATION);
@@ -99,17 +103,20 @@ public class DocumentCatalogService {
     }
 
     /**
-     * Binds a document to exactly these members.
+     * Binds a document to exactly these members. A sealed document stays with the members it was sealed
+     * for.
      */
     public MemberDocumentResponse setMembers(Document document, List<Integer> memberIds) {
         documentService.requireKept(document.stationId(), DocumentDoor.STATION);
+        if (document.sealed()) throw DocumentRefusal.DOCUMENT_SEALED_MEMBERS_FIXED.raise();
         documents.setMembers(document.id(), memberIds);
         return view(document);
     }
 
     /**
      * A document as a reader sees it, with the members it is bound to, the names of those who were
-     * deleted while it was kept for them, who put it in, and the words it carries.
+     * deleted while it was kept for them, who put it in, the words it carries, and for a sealed one its
+     * sealed versions.
      */
     public MemberDocumentResponse view(Document document) {
         return new MemberDocumentResponse(
@@ -128,6 +135,10 @@ public class DocumentCatalogService {
                 documents.departedOf(document.id()),
                 documents.findTags(document.id()).stream()
                         .map(DocumentTag::name)
+                        .toList(),
+                document.sealed(),
+                documentService.sealedVersions(document).stream()
+                        .map(SealedVersionResponse::of)
                         .toList());
     }
 
@@ -148,6 +159,8 @@ public class DocumentCatalogService {
      *                      association, or null where nobody did or they are gone
      * @param memberIds     the members it is bound to, so a reader can tell whose it is
      * @param departedNames the names of members who were deleted while it was kept for them
+     * @param sealed        whether it is sealed, which locks it: never deleted, its members fixed
+     * @param sealedVersions its sealed versions, newest first; none for a document that is not sealed
      */
     public record MemberDocumentResponse(
             int id,
@@ -163,7 +176,41 @@ public class DocumentCatalogService {
             Instant createdAt,
             List<Integer> memberIds,
             List<String> departedNames,
-            List<String> tags) {}
+            List<String> tags,
+            boolean sealed,
+            List<SealedVersionResponse> sealedVersions) {}
+
+    /**
+     * One sealed version of a document as a reader sees it.
+     *
+     * @param version       its number within the document, counting from 1
+     * @param sha256        SHA-256 of the sealed file, lower-case hexadecimal
+     * @param sizeBytes     how large the sealed file is
+     * @param sealLevel     the level its seal reached
+     * @param timestampedBy the timestamp service whose timestamp it carries, or null
+     * @param sealedAt      when it was filed
+     * @param supersededAt  when a later version took its place, or null for the version the document serves
+     */
+    public record SealedVersionResponse(
+            int version,
+            String sha256,
+            long sizeBytes,
+            SealLevel sealLevel,
+            @Nullable String timestampedBy,
+            Instant sealedAt,
+            @Nullable Instant supersededAt) {
+
+        static SealedVersionResponse of(SealedVersion version) {
+            return new SealedVersionResponse(
+                    version.version(),
+                    version.sha256(),
+                    version.sizeBytes(),
+                    version.sealLevel(),
+                    version.timestampedBy(),
+                    version.sealedAt(),
+                    version.supersededAt());
+        }
+    }
 
     /**
      * A page of the station's documents.

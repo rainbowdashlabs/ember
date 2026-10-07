@@ -2497,6 +2497,18 @@ export default {
         pruneMessage: 'Die {count} ausgewählten Dokumente werden endgültig gelöscht, auch die zum Behalten markierten.',
         pruned: '{count} Dokumente gelöscht.',
         filingRules: 'Regeln für Anhänge aus Postfächern',
+        sealed: 'Versiegelt',
+        sealedNote: 'Versiegelt: Das Dokument wird aufbewahrt, lässt sich nicht löschen und bleibt bei den Mitgliedern, für die es versiegelt wurde.',
+        sealedVersions: 'Versiegelte Fassungen',
+        sealedVersion: 'Fassung {version}',
+        sealedCurrent: 'Aktuell',
+        sealedSuperseded: 'Ersetzt am {date}',
+        sealedHash: 'SHA-256 {hash}',
+        sealLevel: {
+            BASELINE_B: 'Siegel ohne Zeitstempel',
+            BASELINE_T: 'Siegel mit Zeitstempel',
+            BASELINE_LT: 'Siegel mit Zeitstempel, offline prüfbar',
+        },
     },
     documentFonts: {
         defaultFont: 'Standard ({family})',

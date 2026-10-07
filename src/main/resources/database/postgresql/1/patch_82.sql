@@ -84,3 +84,145 @@ COMMENT ON COLUMN ember_schema.station_signing_key.revoked_at
     IS 'When the key was revoked, the date its authority''s revocation lists give for it; null while it is not revoked. A revoked key is always retired.';
 COMMENT ON COLUMN ember_schema.station_signing_key.revocation_reason
     IS 'Why the key was revoked, as its authority''s revocation lists state it: KEY_COMPROMISE when the private key leaked, SUPERSEDED when it was replaced, CESSATION_OF_OPERATION when the station stopped sealing with it. Null while it is not revoked.';
+
+ALTER TABLE ember_schema.member_document
+    ADD COLUMN sealed BOOLEAN NOT NULL DEFAULT FALSE;
+
+ALTER TABLE ember_schema.member_document
+    ADD CONSTRAINT member_document_sealed_kept CHECK (NOT sealed OR keep_on_archive);
+
+COMMENT ON COLUMN ember_schema.member_document.sealed
+    IS 'Whether the document is sealed and therefore locked: it cannot be deleted, the members it is about cannot be changed, it is always kept when they leave, under their name where they are deleted, and its file is never replaced. Its files are its sealed versions. Only the deletion of its station takes it away.';
+COMMENT ON CONSTRAINT member_document_sealed_kept ON ember_schema.member_document
+    IS 'A sealed document is always kept when its members leave.';
+
+CREATE TABLE IF NOT EXISTS ember_schema.member_document_version
+(
+    id             SERIAL PRIMARY KEY,
+    document_id    INTEGER     NOT NULL REFERENCES ember_schema.member_document (id) ON DELETE CASCADE,
+    version        INTEGER     NOT NULL CHECK (version > 0),
+    sha256         TEXT        NOT NULL CHECK (sha256 ~ '^[0-9a-f]{64}$'),
+    size_bytes     BIGINT      NOT NULL,
+    seal_level     TEXT        NOT NULL CHECK (seal_level IN ('BASELINE_B', 'BASELINE_T', 'BASELINE_LT')),
+    timestamped_by TEXT,
+    sealed_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    superseded_at  TIMESTAMPTZ,
+    CONSTRAINT member_document_version_number UNIQUE (document_id, version),
+    CONSTRAINT member_document_version_content UNIQUE (document_id, sha256),
+    CONSTRAINT member_document_version_timestamp CHECK ((seal_level = 'BASELINE_B') = (timestamped_by IS NULL))
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS member_document_version_current_idx
+    ON ember_schema.member_document_version (document_id)
+    WHERE superseded_at IS NULL;
+
+COMMENT ON TABLE ember_schema.member_document_version
+    IS 'The sealed versions of a sealed member document, one row per sealed file. Each file is stored once under its SHA-256 and never replaced; a later signature adds a version that supersedes the one before, which stays. Exactly one version of a document is current.';
+COMMENT ON COLUMN ember_schema.member_document_version.id
+    IS 'Primary key.';
+COMMENT ON COLUMN ember_schema.member_document_version.document_id
+    IS 'The sealed document this is a version of. The versions go only with the document, which goes only with its station.';
+COMMENT ON COLUMN ember_schema.member_document_version.version
+    IS 'The number of the version within its document, counting up from 1 in the order they were sealed.';
+COMMENT ON COLUMN ember_schema.member_document_version.sha256
+    IS 'SHA-256 of the sealed file, lower-case hexadecimal. The file is stored under it, so the name of the file is a check of its bytes.';
+COMMENT ON COLUMN ember_schema.member_document_version.size_bytes
+    IS 'How large the sealed file is.';
+COMMENT ON COLUMN ember_schema.member_document_version.seal_level
+    IS 'The PAdES baseline level the seal reached: BASELINE_B without a timestamp, BASELINE_T with one, BASELINE_LT with the timestamp and the material to check both offline.';
+COMMENT ON COLUMN ember_schema.member_document_version.timestamped_by
+    IS 'The address of the timestamp service whose timestamp the file carries; null for a seal without a timestamp.';
+COMMENT ON COLUMN ember_schema.member_document_version.sealed_at
+    IS 'When the version was filed.';
+COMMENT ON COLUMN ember_schema.member_document_version.superseded_at
+    IS 'When a later version took its place; null for the current version. A superseded version stays stored.';
+COMMENT ON CONSTRAINT member_document_version_content ON ember_schema.member_document_version
+    IS 'The same sealed file is never filed twice as versions of one document.';
+
+CREATE OR REPLACE FUNCTION ember_schema.member_document_keep_sealed() RETURNS TRIGGER
+    LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    IF EXISTS (SELECT 1 FROM ember_schema.station s WHERE s.id = OLD.station_id) THEN
+        RAISE EXCEPTION 'Member document % is sealed and cannot be deleted', OLD.id
+            USING ERRCODE = 'restrict_violation';
+    END IF;
+    RETURN OLD;
+END;
+$$;
+
+COMMENT ON FUNCTION ember_schema.member_document_keep_sealed()
+    IS 'Refuses deleting a sealed member document while its station exists. Deleting the station still takes it, since the cascade from the station runs after the station row is gone.';
+
+CREATE TRIGGER member_document_keep_sealed
+    BEFORE DELETE
+    ON ember_schema.member_document
+    FOR EACH ROW
+    WHEN (OLD.sealed)
+EXECUTE FUNCTION ember_schema.member_document_keep_sealed();
+
+CREATE OR REPLACE FUNCTION ember_schema.member_document_keep_sealed_part() RETURNS TRIGGER
+    LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    IF EXISTS (SELECT 1
+               FROM ember_schema.member_document d
+                        JOIN ember_schema.station s ON s.id = d.station_id
+               WHERE d.id = OLD.document_id
+                 AND d.sealed) THEN
+        RAISE EXCEPTION 'Member document % is sealed, so its % rows cannot be deleted', OLD.document_id, TG_TABLE_NAME
+            USING ERRCODE = 'restrict_violation';
+    END IF;
+    RETURN OLD;
+END;
+$$;
+
+COMMENT ON FUNCTION ember_schema.member_document_keep_sealed_part()
+    IS 'Refuses deleting a member binding or a version of a sealed member document while the document and its station exist, which keeps its members and its files as they were sealed. A member leaving turns their binding into their name instead. Deleting the station takes the document and its rows with it, in whichever order its cascades run.';
+
+CREATE TRIGGER member_document_member_keep_sealed
+    BEFORE DELETE
+    ON ember_schema.member_document_member
+    FOR EACH ROW
+EXECUTE FUNCTION ember_schema.member_document_keep_sealed_part();
+
+CREATE TRIGGER member_document_version_keep_sealed
+    BEFORE DELETE
+    ON ember_schema.member_document_version
+    FOR EACH ROW
+EXECUTE FUNCTION ember_schema.member_document_keep_sealed_part();
+
+CREATE OR REPLACE FUNCTION ember_schema.member_document_refuse_sealed_change() RETURNS TRIGGER
+    LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    RAISE EXCEPTION 'A sealed member document stays as it was sealed (%)', TG_TABLE_NAME
+        USING ERRCODE = 'restrict_violation';
+END;
+$$;
+
+COMMENT ON FUNCTION ember_schema.member_document_refuse_sealed_change()
+    IS 'Refuses a change the triggers calling it name: unsealing a member document, rewriting a sealed version, or taking back that a version was superseded.';
+
+CREATE TRIGGER member_document_stays_sealed
+    BEFORE UPDATE OF sealed
+    ON ember_schema.member_document
+    FOR EACH ROW
+    WHEN (OLD.sealed AND NOT NEW.sealed)
+EXECUTE FUNCTION ember_schema.member_document_refuse_sealed_change();
+
+CREATE TRIGGER member_document_version_stays
+    BEFORE UPDATE OF document_id, version, sha256, size_bytes, seal_level, timestamped_by, sealed_at
+    ON ember_schema.member_document_version
+    FOR EACH ROW
+EXECUTE FUNCTION ember_schema.member_document_refuse_sealed_change();
+
+CREATE TRIGGER member_document_version_stays_superseded
+    BEFORE UPDATE OF superseded_at
+    ON ember_schema.member_document_version
+    FOR EACH ROW
+    WHEN (OLD.superseded_at IS NOT NULL)
+EXECUTE FUNCTION ember_schema.member_document_refuse_sealed_change();

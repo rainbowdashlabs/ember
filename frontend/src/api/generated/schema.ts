@@ -20162,7 +20162,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Every document the filters match, by id, to act on all of them at once */
+        /** Every document the filters match that can be removed, by id, to remove all of them at once */
         get: {
             parameters: {
                 query?: {
@@ -63546,6 +63546,8 @@ export interface components {
             keepOnArchive: boolean;
             memberIds: number[];
             mimeType: string;
+            sealed: boolean;
+            sealedVersions: components["schemas"]["SealedVersionResponse"][];
             /** Format: int64 */
             sizeBytes: number;
             tags: string[];
@@ -66612,6 +66614,19 @@ export interface components {
         ScheduleMode: "FIXED_DELAY" | "FIXED_RATE" | "ONCE";
         /** @enum {string} */
         Scope: "STATION" | "INSTANCE" | "USER" | "CLUSTER";
+        SealedVersionResponse: {
+            sealedAt: components["schemas"]["Instant"];
+            sealLevel: components["schemas"]["SealLevel"];
+            sha256: string;
+            /** Format: int64 */
+            sizeBytes: number;
+            supersededAt: components["schemas"]["Instant"] | null;
+            timestampedBy: string | null;
+            /** Format: int32 */
+            version: number;
+        };
+        /** @enum {string} */
+        SealLevel: "BASELINE_B" | "BASELINE_T" | "BASELINE_LT";
         SearchResultItem: {
             file: components["schemas"]["KbFile"];
             snippet: string;
@@ -70139,6 +70154,8 @@ export type SavePageRequest = components['schemas']['SavePageRequest'];
 export type SavePresetRequest = components['schemas']['SavePresetRequest'];
 export type ScheduleMode = components['schemas']['ScheduleMode'];
 export type Scope = components['schemas']['Scope'];
+export type SealedVersionResponse = components['schemas']['SealedVersionResponse'];
+export type SealLevel = components['schemas']['SealLevel'];
 export type SearchResultItem = components['schemas']['SearchResultItem'];
 export type SearchResultResponse = components['schemas']['SearchResultResponse'];
 export type SectionExaminers = components['schemas']['SectionExaminers'];
@@ -71450,6 +71467,12 @@ export const Scope = {
     INSTANCE: "INSTANCE",
     STATION: "STATION",
     USER: "USER",
+} as const;
+
+export const SealLevel = {
+    BASELINE_B: "BASELINE_B",
+    BASELINE_LT: "BASELINE_LT",
+    BASELINE_T: "BASELINE_T",
 } as const;
 
 export const SelfCheckAnswer = {

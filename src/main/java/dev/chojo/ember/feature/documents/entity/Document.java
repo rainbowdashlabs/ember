@@ -31,6 +31,8 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param uploaderAccountId the account that filed it from the association, which has no membership at
  *                          this station, or null for anything filed at the station
  * @param createdAt         when it was put there
+ * @param sealed            whether it is sealed and so locked: never deleted while its station exists,
+ *                          its members fixed, always kept, its files its sealed versions
  */
 public record Document(
         int id,
@@ -44,7 +46,8 @@ public record Document(
         boolean hasThumbnail,
         @Nullable Integer uploadedBy,
         @Nullable Integer uploaderAccountId,
-        Instant createdAt) {
+        Instant createdAt,
+        boolean sealed) {
 
     public static RowMapping<Document> map() {
         return row -> new Document(
@@ -59,6 +62,7 @@ public record Document(
                 row.getBoolean("has_thumbnail"),
                 row.getObject("uploaded_by", Integer.class),
                 row.getObject("uploader_account_id", Integer.class),
-                row.get("created_at", INSTANT_TIMESTAMP));
+                row.get("created_at", INSTANT_TIMESTAMP),
+                row.getBoolean("sealed"));
     }
 }
