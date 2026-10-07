@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:b74a4b46abc056aab91a9f84feabc41a30a4a01a3941a8db2abbf0802cba666f",
-  "generatedAt": "2026-10-07T13:43:15Z",
+  "schemaHash": "sha256:92e001b73bcb91e27b022d3511455b3f32ce489a221ecdc771e7f694d3b9c8c4",
+  "generatedAt": "2026-10-07T20:43:17Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -22631,6 +22631,69 @@
       },
       "description": "Nonces of signed requests from other instances already taken, so a captured request cannot be sent again. Shared by discovery pings and beacon deliveries; swept once expired."
     },
+    "signing_ca": {
+      "feature": "signing",
+      "scope": "INSTANCE",
+      "tableHash": "sha256:ec7db0b41a4e3dc0aa00de5821d8d7f5ba39a1e4bd1f8177dae3aed783bc0aad",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Always 1, so the installation can hold only one authority."
+        },
+        {
+          "name": "serial_number",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "Serial number of the self-signed authority certificate, lower-case hexadecimal."
+        },
+        {
+          "name": "certificate",
+          "type": "bytea",
+          "nullable": false,
+          "verified": true,
+          "description": "The self-signed authority certificate, DER encoded. Public: readers trust sealed documents through it."
+        },
+        {
+          "name": "wrapped_private_key",
+          "type": "bytea",
+          "nullable": false,
+          "verified": true,
+          "description": "The authority's private key, encrypted with a key derived from the installation's at-rest encryption key. Never stored in clear; useless without that key file or setting."
+        },
+        {
+          "name": "valid_until",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the authority certificate expires, copied from the certificate."
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the authority was created."
+        }
+      ],
+      "foreignKeys": [],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "The authority belongs to this installation and never moves with a station; the new installation issues the station a certificate under its own authority."
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Key material of the installation, not personal data."
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Key material of the installation, not personal data."
+      },
+      "description": "The installation's own certificate authority, which issues the certificates the stations seal documents with. One row at most, created the first time any station seals a document."
+    },
     "station": {
       "feature": "station",
       "scope": "STATION",
@@ -24502,6 +24565,90 @@
         "reason": "Station configuration, not personal data"
       },
       "description": "Signing secrets a mail provider issued to a station, used to verify its delivery reports."
+    },
+    "station_signing_key": {
+      "feature": "signing",
+      "scope": "STATION",
+      "tableHash": "sha256:20b3470b38edfea64642e53ab1f9b8d3019cf05759e5387a93c0c19e97b0da5b",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Primary key."
+        },
+        {
+          "name": "station_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The station that seals with this key. The keys go with the station when it is deleted."
+        },
+        {
+          "name": "serial_number",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "Serial number of the station certificate, lower-case hexadecimal, unique among the certificates the authority issued."
+        },
+        {
+          "name": "certificate",
+          "type": "bytea",
+          "nullable": false,
+          "verified": true,
+          "description": "The station certificate issued by the installation's authority, DER encoded. Public: it is embedded in every document the key seals."
+        },
+        {
+          "name": "wrapped_private_key",
+          "type": "bytea",
+          "nullable": false,
+          "verified": true,
+          "description": "The station's private key, encrypted with a key derived from the installation's at-rest encryption key. Never stored in clear; useless without that key file or setting."
+        },
+        {
+          "name": "valid_until",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the station certificate expires, copied from the certificate."
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the key was created."
+        },
+        {
+          "name": "retired_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When the key stopped being used for new seals; null while it is the station's active key."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "station_id",
+          "refTable": "station",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "Signing keys stay with the installation whose authority issued them; the new installation issues the station a fresh key, and documents sealed before the move keep validating through their embedded chain."
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Key material of the station, not personal data."
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Key material of the station, not personal data."
+      },
+      "description": "The keys a station seals documents with, each with a certificate issued by the installation's authority. Created the first time a station seals a document; a station has at most one active key, and retired keys stay so older documents can still be traced to them."
     },
     "station_storage_config": {
       "feature": "storage",
