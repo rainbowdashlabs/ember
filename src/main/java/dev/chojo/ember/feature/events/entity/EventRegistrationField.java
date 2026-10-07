@@ -37,7 +37,7 @@ public record EventRegistrationField(
                 row.getInt("id"),
                 row.getInt("event_id"),
                 row.getString("name"),
-                FieldType.valueOf(row.getString("field_type")),
+                row.getEnum("field_type", FieldType.class),
                 EventQuestionSettings.parse(row.getString("config")),
                 row.getInt("position"),
                 row.getBoolean("overview"));
