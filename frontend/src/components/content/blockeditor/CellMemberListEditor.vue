@@ -17,7 +17,7 @@ import MemberListDynamicList from './MemberListDynamicList.vue'
 import MemberListManualList from './MemberListManualList.vue'
 import MemberListStaticList from './MemberListStaticList.vue'
 import {listGroups} from '@/api/memberGroups'
-import {listTags} from '@/api/userTags'
+import {listChoosableTags} from '@/api/userTags'
 import {getMemberPickerByUid} from '@/api/members'
 import {resolveMemberListSource, type MemberListSource} from '@/api/pageManage'
 import {MemberListSortBy, type MemberGroup, type ResolvedMember, type UserTag} from '@/api/generated/schema'
@@ -52,7 +52,7 @@ async function ensureGroupsLoaded() {
 async function ensureTagsLoaded() {
     if (tagsLoaded.value) return
     tagsLoaded.value = true
-    try { tagsList.value = await listTags() } catch { tagsList.value = [] }
+    try { tagsList.value = await listChoosableTags() } catch { tagsList.value = [] }
 }
 
 async function resolveNames(uids: string[]) {

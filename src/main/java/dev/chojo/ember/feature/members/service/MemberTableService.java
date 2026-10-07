@@ -118,8 +118,14 @@ public class MemberTableService {
         }
 
         var members = membersById(station.id());
-        var cellsOf =
-                new Cells(people, valuesOfChosenFields(kept, readable), readable, questions, namesOf(members), station);
+        var cellsOf = new Cells(
+                people,
+                valuesOfChosenFields(kept, readable),
+                readable,
+                questions,
+                namesOf(members),
+                station,
+                permissions.contains(StationPermission.MEMBER_READ));
         var rows = new ArrayList<MemberTable.MemberTableRow>();
         for (var memberId : people.memberIds()) {
             var member = members.get(memberId);
@@ -269,11 +275,14 @@ public class MemberTableService {
             Map<Integer, ProfileField> readable,
             Map<Integer, MemberTableQuestion> questions,
             Map<Integer, String> names,
-            Station station) {
+            Station station,
+            boolean privateTagsSeen) {
 
         String valueOf(MemberTableColumn column, RichMember member) {
             Integer fieldId = column.fieldId();
-            if (column.kind() == MemberTableColumnKind.BUILTIN) return Builtin.valueOf(column.key(), member, people);
+            if (column.kind() == MemberTableColumnKind.BUILTIN) {
+                return Builtin.valueOf(column.key(), member, people, privateTagsSeen);
+            }
             if (fieldId == null) return "";
             return column.kind() == MemberTableColumnKind.PROFILE_FIELD
                     ? profileValue(fieldId, member.id())
@@ -359,7 +368,11 @@ public class MemberTableService {
             return null;
         }
 
-        static String valueOf(String key, RichMember member, MemberTablePeople people) {
+        /**
+         * The value of a built-in column. Private tags are left out of the tags unless the reader may
+         * view members, which a reader drawing an appointment's registrations need not.
+         */
+        static String valueOf(String key, RichMember member, MemberTablePeople people, boolean privateTagsSeen) {
             for (var builtin : values()) {
                 if (!builtin.key.equals(key)) continue;
                 return switch (builtin) {
@@ -373,6 +386,8 @@ public class MemberTableService {
                                 .orElse("");
                     case TAGS ->
                         member.tags().stream()
+                                .filter(tag ->
+                                        privateTagsSeen || !tag.visibility().restricted())
                                 .map(RichMember.TagEntry::name)
                                 .reduce((a, b) -> a + ", " + b)
                                 .orElse("");

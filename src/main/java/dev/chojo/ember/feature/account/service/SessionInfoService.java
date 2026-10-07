@@ -25,6 +25,7 @@ import dev.chojo.ember.feature.members.repository.UserSettingsRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
+import dev.chojo.ember.feature.members.service.PrivateTags;
 import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -106,7 +107,7 @@ public class SessionInfoService {
         if (member != null) {
             managed = memberService.findManaged(member.id());
             groups = groupService.findGroupsForMember(member.id());
-            tags = userTagRepository.findTagsForMember(member.id());
+            tags = PrivateTags.withoutPrivate(userTagRepository.findTagsForMember(member.id()));
             roleIds = stationMemberRepository.findPermissions(member.id()).stream()
                     .map(Permission::id)
                     .toList();

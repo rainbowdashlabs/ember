@@ -351,7 +351,7 @@ public class MemberNameResolver {
     private MemberIdentity.@Nullable DisplayTag resolveDisplayTag(int memberId) {
         List<UserTag> tags = tagService.findTagsForMember(memberId);
         return tags.stream()
-                .filter(t -> t.visible() && hasColor(t.color()))
+                .filter(t -> t.visibility().badge() && hasColor(t.color()))
                 .max(Comparator.comparingInt(UserTag::position))
                 .map(t -> new MemberIdentity.DisplayTag(
                         t.name(), Objects.requireNonNull(t.color(), "only tags with a color are shown")))

@@ -75,12 +75,13 @@ class BoardFederationTargetRouteTest extends RepositoryTestBase {
                 .first()
                 .orElseThrow();
 
-        federatedBoardService = new FederatedBoardService(federatedBoardRepo);
+        federatedBoardService = new FederatedBoardService(federatedBoardRepo, privateTags);
         var boardService = new BoardService(
                 boardRepo,
                 mock(StationMemberService.class),
                 mock(MemberGroupService.class),
-                mock(UserTagService.class));
+                mock(UserTagService.class),
+                privateTags);
         var routes = new BoardRoutes(
                 boardService,
                 federatedBoardService,

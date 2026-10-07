@@ -183,7 +183,7 @@ const questionTypes = computed<FormQuestionType[]>(() => QUESTION_TYPES_BY_PURPO
 const { loading, failure: loadFailure } = useAsyncLoader(async () => {
   const [groups, tags, members] = await Promise.all([
     memberGroups.listGroups(),
-    userTags.listTags(),
+    userTags.listChoosableTags(),
     stationMembers.listMembers(),
   ])
   allGroups.value = groups

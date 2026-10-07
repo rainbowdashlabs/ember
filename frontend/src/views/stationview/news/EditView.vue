@@ -197,7 +197,7 @@ async function loadAnnouncement(eventId: number) {
 const { loading, failure, reload } = useAsyncLoader(async () => {
   const [groupList, tagList, memberList] = await Promise.all([
     memberGroups.listGroups(),
-    userTags.listTags(),
+    userTags.listChoosableTags(),
     stationMembers.listCompletions().catch(() => []),
   ])
   groups.value = groupList

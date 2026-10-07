@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.members.repository;
 
 import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.members.entity.TagVisibility;
 import dev.chojo.ember.feature.members.entity.UserTag;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
@@ -28,7 +29,7 @@ import static de.chojo.sadu.queries.api.query.Query.query;
  */
 @Singleton
 public class UserTagRepository {
-    private static final String USER_TAG_COLUMNS = "id, station_id, name, color, visible, position";
+    private static final String USER_TAG_COLUMNS = "id, station_id, name, color, visibility, position";
     private static final String STATION_MEMBER_COLUMNS = StationMember.COLUMNS;
 
     /**
@@ -39,11 +40,30 @@ public class UserTagRepository {
      * @return the created tag
      */
     public UserTag create(int stationId, String name) {
+        return create(stationId, name, null, TagVisibility.PLAIN);
+    }
+
+    /**
+     * Creates a new tag for a station, placed above every tag it already has.
+     *
+     * @param stationId  the station identifier
+     * @param name       the tag name
+     * @param color      the badge colour, or {@code null} for none
+     * @param visibility who sees the tag
+     * @return the created tag
+     */
+    public UserTag create(int stationId, String name, @Nullable String color, TagVisibility visibility) {
         return SqlSupport.insertReturning(
                 """
-                INSERT INTO user_tag(station_id, name, position)
-                VALUES(:station_id, :name, coalesce((SELECT max(position) + 1 FROM user_tag WHERE station_id = :station_id), 0))
-                RETURNING %s;""", call().bind("station_id", stationId).bind("name", name), UserTag.map(), USER_TAG_COLUMNS);
+                INSERT INTO user_tag(station_id, name, color, visibility, position)
+                VALUES(:station_id, :name, :color, :visibility, coalesce((SELECT max(position) + 1 FROM user_tag WHERE station_id = :station_id), 0))
+                RETURNING %s;""",
+                call().bind("station_id", stationId)
+                        .bind("name", name)
+                        .bind("color", color)
+                        .bind("visibility", visibility),
+                UserTag.map(),
+                USER_TAG_COLUMNS);
     }
 
     /**
@@ -67,22 +87,70 @@ public class UserTagRepository {
     /**
      * Updates a tag's name, color, visibility, and position.
      */
-    public boolean update(int id, String name, @Nullable String color, boolean visible, int position) {
+    public boolean update(int id, String name, @Nullable String color, TagVisibility visibility, int position) {
         return query("""
                 UPDATE user_tag
                 SET
-                    name     = :name,
-                    color    = :color,
-                    visible  = :visible,
-                    position = :position
+                    name       = :name,
+                    color      = :color,
+                    visibility = :visibility,
+                    position   = :position
                 WHERE id = :id;""")
                 .single(call().bind("id", id)
                         .bind("name", name)
                         .bind("color", color)
-                        .bind("visible", visible)
+                        .bind("visibility", visibility)
                         .bind("position", position))
                 .update()
                 .changed();
+    }
+
+    /**
+     * Which of these tags are private.
+     *
+     * @param tagIds the tags
+     * @return the ids among them whose tag is private
+     */
+    public Set<Integer> findPrivateIds(Collection<Integer> tagIds) {
+        if (tagIds == null || tagIds.isEmpty()) return Set.of();
+        return new HashSet<>(query("""
+                SELECT id FROM user_tag WHERE id = ANY(:tag_ids) AND visibility = 'PRIVATE';""")
+                .single(call().bind("tag_ids", List.copyOf(tagIds), PostgreSqlTypes.INTEGER))
+                .map(row -> row.getInt("id"))
+                .all());
+    }
+
+    /**
+     * How many audiences, restrictions and access rules select people by this tag.
+     *
+     * <p>These are the places that store the tag as a reference of their own. A member question or a
+     * page member list keeps it inside its configuration instead and is not counted: a private tag
+     * there lets nobody through, so it shows nothing.
+     *
+     * @param tagId the tag
+     * @return the number of rows naming the tag
+     */
+    public long countSelectingUses(int tagId) {
+        return query("""
+                SELECT (SELECT count(*) FROM event_restriction WHERE tag_id = :tag_id)
+                     + (SELECT count(*) FROM event_view_restriction WHERE tag_id = :tag_id)
+                     + (SELECT count(*) FROM event_template_restriction WHERE tag_id = :tag_id)
+                     + (SELECT count(*) FROM event_template_view_restriction WHERE tag_id = :tag_id)
+                     + (SELECT count(*) FROM quiz_test_restriction WHERE tag_id = :tag_id)
+                     + (SELECT count(*) FROM form_restriction WHERE tag_id = :tag_id)
+                     + (SELECT count(*) FROM news_restriction WHERE tag_id = :tag_id)
+                     + (SELECT count(*) FROM document_template_restriction WHERE tag_id = :tag_id)
+                     + (SELECT count(*) FROM document_template_station_use_restriction WHERE tag_id = :tag_id)
+                     + (SELECT count(*) FROM kb_access_grant WHERE tag_id = :tag_id)
+                     + (SELECT count(*) FROM checklist_member_filter WHERE tag_id = :tag_id)
+                     + (SELECT count(*) FROM board_view_access WHERE tag_id = :tag_id)
+                     + (SELECT count(*) FROM board_edit_access WHERE tag_id = :tag_id)
+                     + (SELECT count(*) FROM federation_board_local_view_override WHERE tag_id = :tag_id)
+                     + (SELECT count(*) FROM federation_board_local_edit_override WHERE tag_id = :tag_id) AS uses;""")
+                .single(call().bind("tag_id", tagId))
+                .map(row -> row.getLong("uses"))
+                .first()
+                .orElse(0L);
     }
 
     /**
@@ -123,7 +191,7 @@ public class UserTagRepository {
                 FROM user_tag_entry ute
                 JOIN user_tag ut ON ut.id = ute.tag_id
                 WHERE ute.member_id = ANY(:member_ids)
-                  AND ut.visible
+                  AND ut.visibility = 'BADGE'
                   AND ut.color IS NOT NULL AND ut.color <> ''
                 ORDER BY ute.member_id, ut.position DESC;""", SqlSupport.alias("ut", USER_TAG_COLUMNS))
                 .single(call().bind("member_ids", List.copyOf(memberIds), PostgreSqlTypes.INTEGER))
@@ -135,18 +203,22 @@ public class UserTagRepository {
     }
 
     /**
-     * The tags each of these members carries, in one query for the whole list.
+     * The tags each of these members carries that are not private, in one query for the whole list.
+     * Private tags are left out because results grouped or filtered by them would show who carries
+     * them.
      *
      * @param memberIds the members
-     * @return member id to the ids of their tags, holding only members with at least one tag
+     * @return member id to the ids of their tags, holding only members with at least one such tag
      */
-    public Map<Integer, Set<Integer>> findTagIdsOfMembers(Collection<Integer> memberIds) {
+    public Map<Integer, Set<Integer>> findOpenTagIdsOfMembers(Collection<Integer> memberIds) {
         if (memberIds == null || memberIds.isEmpty()) return Map.of();
         Map<Integer, Set<Integer>> tags = new HashMap<>();
         for (var entry : query("""
-                SELECT member_id, tag_id
-                FROM user_tag_entry
-                WHERE member_id = ANY(:member_ids);""")
+                SELECT ute.member_id, ute.tag_id
+                FROM user_tag_entry ute
+                JOIN user_tag ut ON ut.id = ute.tag_id
+                WHERE ute.member_id = ANY(:member_ids)
+                  AND ut.visibility <> 'PRIVATE';""")
                 .single(call().bind("member_ids", List.copyOf(memberIds), PostgreSqlTypes.INTEGER))
                 .map(row -> Map.entry(row.getInt("member_id"), row.getInt("tag_id")))
                 .all()) {

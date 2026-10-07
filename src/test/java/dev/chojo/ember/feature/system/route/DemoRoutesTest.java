@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.cluster.service.ClusterService;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.Permission;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.members.entity.TagVisibility;
 import dev.chojo.ember.feature.members.entity.UserTag;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
@@ -99,7 +100,8 @@ class DemoRoutesTest {
         when(members.findPermissions(100)).thenReturn(List.of(new Permission(1, StationPermission.LOGIN)));
         when(groups.findGroupsForMember(100))
                 .thenReturn(List.of(new MemberGroup(1, 1, "Crew", null, 0, null, List.of())));
-        when(tags.findTagsForMember(100)).thenReturn(List.of(new UserTag(1, 1, "Driver", null, true, 0)));
+        when(tags.findTagsForMember(100))
+                .thenReturn(List.of(new UserTag(1, 1, "Driver", null, TagVisibility.BADGE, 0)));
         when(profiles.isProfileComplete(100)).thenReturn(true);
         when(accounts.findById(10)).thenReturn(Optional.of(member));
         when(accounts.findAll()).thenReturn(List.of(member, admin));

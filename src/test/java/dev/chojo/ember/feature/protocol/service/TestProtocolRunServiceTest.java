@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
+import dev.chojo.ember.feature.members.service.PrivateTags;
 import dev.chojo.ember.feature.protocol.entity.TestProtocolRunMember;
 import dev.chojo.ember.feature.protocol.service.TestProtocolRunService.ProtocolRunRequest;
 import org.junit.jupiter.api.BeforeEach;
@@ -60,7 +61,7 @@ class TestProtocolRunServiceTest {
         groups = mock(MemberGroupRepository.class);
         tags = mock(UserTagRepository.class);
         accounts = mock(AccountRepository.class);
-        service = new TestProtocolRunService(protocols, pdfs, members, groups, tags, accounts);
+        service = new TestProtocolRunService(protocols, pdfs, members, groups, tags, accounts, mock(PrivateTags.class));
         when(protocols.createRun(anyInt(), anyInt(), any(), any(), anyInt())).thenReturn(RUN);
     }
 

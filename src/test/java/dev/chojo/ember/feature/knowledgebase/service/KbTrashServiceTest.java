@@ -56,7 +56,7 @@ class KbTrashServiceTest extends RepositoryTestBase {
         searchService = new KbSearchService(knowledgeBaseRepo, stationRepo);
         contentService = new KbContentService(
                 knowledgeBaseRepo, contentBlocks(), noCellDescriptions(), stationRepo, fileStorage, searchService);
-        accessService = new KbAccessService(knowledgeBaseRepo, memberGroupRepo, userTagRepo);
+        accessService = new KbAccessService(knowledgeBaseRepo, memberGroupRepo, userTagRepo, privateTags);
         service = new KbTrashService(
                 knowledgeBaseRepo,
                 fileStorage,

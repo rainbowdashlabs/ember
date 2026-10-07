@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.generator.repository.GenerationJobRepository;
 import dev.chojo.ember.feature.generator.service.DocumentGeneratorService.PreviewResponse;
 import dev.chojo.ember.feature.generator.service.DocumentIssuerService.IssuerChoice;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
+import dev.chojo.ember.feature.members.service.PrivateTags;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import dev.chojo.ember.feature.restriction.service.RestrictionService;
 import dev.chojo.ember.util.sql.Transactions;
@@ -70,6 +71,7 @@ public class BulkGenerationService {
     private final MemberNameResolver names;
     private final DocumentService documents;
     private final DocumentIssuerService issuers;
+    private final PrivateTags privateTags;
 
     @Inject
     public BulkGenerationService(
@@ -80,7 +82,8 @@ public class BulkGenerationService {
             RestrictionService restrictions,
             MemberNameResolver names,
             DocumentService documents,
-            DocumentIssuerService issuers) {
+            DocumentIssuerService issuers,
+            PrivateTags privateTags) {
         this.templates = templates;
         this.generator = generator;
         this.jobs = jobs;
@@ -89,6 +92,7 @@ public class BulkGenerationService {
         this.names = names;
         this.documents = documents;
         this.issuers = issuers;
+        this.privateTags = privateTags;
     }
 
     /**
@@ -297,6 +301,7 @@ public class BulkGenerationService {
             if (!current.containsAll(memberIds)) throw DocumentRefusal.DOCUMENT_JOB_MEMBER_NOT_HERE.raise();
         } else {
             var audience = Objects.requireNonNullElse(selection.audience(), RestrictionAudience.empty());
+            privateTags.requireChoosable(audience.tagIds());
             memberIds = byName(restrictions.membersIn(stationId, audience));
         }
         if (memberIds.isEmpty()) throw DocumentRefusal.DOCUMENT_JOB_NO_MEMBERS.raise();

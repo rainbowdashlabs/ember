@@ -6,11 +6,15 @@
 package dev.chojo.ember.feature.members.service;
 
 import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.api.StationSession;
+import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.members.entity.MemberCard.MemberCardLabel;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.members.entity.TagVisibility;
 import dev.chojo.ember.feature.members.entity.UserTag;
+import dev.chojo.ember.feature.members.repository.UserTagRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -51,6 +55,19 @@ class MemberCardServiceTest {
                 LocalDate.of(2020, 1, 1));
     }
 
+    /**
+     * A reader at the station.
+     *
+     * @param mayViewMembers whether the reader holds the right to view members
+     */
+    private static StationSession reader(boolean mayViewMembers) {
+        var reader = mock(StationSession.class);
+        when(reader.stationId()).thenReturn(STATION_ID);
+        when(reader.stationUid()).thenReturn(STATION_UID);
+        when(reader.hasPermission(StationPermission.MEMBER_READ)).thenReturn(mayViewMembers);
+        return reader;
+    }
+
     @BeforeEach
     void setup() {
         memberService = mock(StationMemberService.class);
@@ -59,7 +76,13 @@ class MemberCardServiceTest {
         groupService = mock(MemberGroupService.class);
         var identityFactory = mock(MemberIdentityFactory.class);
         when(identityFactory.enrich(any())).thenAnswer(call -> call.getArgument(0));
-        cards = new MemberCardService(memberService, nameResolver, identityFactory, tagService, groupService);
+        cards = new MemberCardService(
+                memberService,
+                nameResolver,
+                identityFactory,
+                tagService,
+                groupService,
+                new PrivateTags(mock(UserTagRepository.class)));
         when(memberService.resolveId(STATION_ID, MEMBER_UID)).thenReturn(Optional.of(20));
     }
 
@@ -71,14 +94,14 @@ class MemberCardServiceTest {
         when(memberService.findManaged(20)).thenReturn(List.of(member(22, STATION_ID, false)));
         when(tagService.findTagsForMember(20))
                 .thenReturn(List.of(
-                        new UserTag(1, STATION_ID, "Driver", null, false, 1),
-                        new UserTag(2, STATION_ID, "Medic", "#ff0000", true, 5)));
+                        new UserTag(1, STATION_ID, "Driver", null, TagVisibility.PLAIN, 1),
+                        new UserTag(2, STATION_ID, "Medic", "#ff0000", TagVisibility.BADGE, 5)));
         when(groupService.findGroupsForMember(20))
                 .thenReturn(List.of(
                         new MemberGroup(1, STATION_ID, "Youth", "#00ff00", 2, null, List.of()),
                         new MemberGroup(2, STATION_ID, "Board", null, 9, null, List.of())));
 
-        var card = cards.find(STATION_ID, STATION_UID, MEMBER_UID).orElseThrow();
+        var card = cards.find(reader(false), MEMBER_UID).orElseThrow();
 
         assertEquals(new MemberIdentity(STATION_UID, MEMBER_UID), card.identity());
         assertEquals("Maximilian \"Max\" Hoffmann", card.name());
@@ -103,7 +126,7 @@ class MemberCardServiceTest {
         when(memberService.findById(20)).thenReturn(Optional.of(member(20, STATION_ID, true)));
         when(nameResolver.identified(20)).thenReturn("Frozen Name 20");
 
-        var card = cards.find(STATION_ID, STATION_UID, MEMBER_UID).orElseThrow();
+        var card = cards.find(reader(false), MEMBER_UID).orElseThrow();
 
         assertTrue(card.former());
         assertEquals("Frozen Name 20", card.name());
@@ -119,18 +142,45 @@ class MemberCardServiceTest {
 
         assertEquals(
                 "Frozen Name 20",
-                cards.find(STATION_ID, STATION_UID, MEMBER_UID).orElseThrow().name());
+                cards.find(reader(false), MEMBER_UID).orElseThrow().name());
     }
 
     @Test
     void aUidNamingNobodyHereHasNoCard() {
-        assertTrue(cards.find(STATION_ID, STATION_UID, UUID.randomUUID()).isEmpty());
+        assertTrue(cards.find(reader(false), UUID.randomUUID()).isEmpty());
     }
 
     @Test
     void aMemberOfAnotherStationHasNoCardHere() {
         when(memberService.findById(20)).thenReturn(Optional.of(member(20, 99, false)));
 
-        assertTrue(cards.find(STATION_ID, STATION_UID, MEMBER_UID).isEmpty());
+        assertTrue(cards.find(reader(false), MEMBER_UID).isEmpty());
+    }
+
+    @Test
+    void aPrivateTagIsOnTheCardForAReaderAllowedToViewMembers() {
+        tagMemberPrivately();
+
+        assertEquals(
+                List.of(new MemberCardLabel("Medic", "#ff0000"), new MemberCardLabel("Watched", null)),
+                cards.find(reader(true), MEMBER_UID).orElseThrow().tags());
+    }
+
+    @Test
+    void aPrivateTagIsNotOnTheCardForAReaderNotAllowedToViewMembers() {
+        tagMemberPrivately();
+
+        assertEquals(
+                List.of(new MemberCardLabel("Medic", "#ff0000")),
+                cards.find(reader(false), MEMBER_UID).orElseThrow().tags());
+    }
+
+    /** Gives the member one tag everybody sees and one private tag below it. */
+    private void tagMemberPrivately() {
+        when(memberService.findById(20)).thenReturn(Optional.of(member(20, STATION_ID, false)));
+        when(tagService.findTagsForMember(20))
+                .thenReturn(List.of(
+                        new UserTag(1, STATION_ID, "Watched", null, TagVisibility.PRIVATE, 1),
+                        new UserTag(2, STATION_ID, "Medic", "#ff0000", TagVisibility.BADGE, 5)));
     }
 }

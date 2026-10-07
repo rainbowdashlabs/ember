@@ -199,7 +199,7 @@ public record RichMember(
     public record GroupEntry(int id, String name) {}
 
     /**
-     * A tag entry with id and name.
+     * A tag entry with id, name and who sees it.
      */
-    public record TagEntry(int id, String name) {}
+    public record TagEntry(int id, String name, TagVisibility visibility) {}
 }

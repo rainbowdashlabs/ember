@@ -52,7 +52,7 @@ export function useResultView(formId: Ref<number>, enabled: Ref<boolean>) {
 
     async function loadChoices() {
         if (!enabled.value) return
-        const [g, tg, f] = await Promise.all([memberGroups.listGroups(), userTags.listTags(), profileFields.listFields()])
+        const [g, tg, f] = await Promise.all([memberGroups.listGroups(), userTags.listChoosableTags(), profileFields.listFields()])
         groups.value = g
         tags.value = tg
         fields.value = f

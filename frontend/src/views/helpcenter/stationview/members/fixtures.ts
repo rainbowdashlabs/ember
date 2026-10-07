@@ -6,6 +6,7 @@
 import {
   FieldType,
   StationUserType,
+  TagVisibility,
   type EnrichedMemberChangeSummary,
   type MemberGroupSet,
   type MemberIdentity,
@@ -43,8 +44,8 @@ function identity(id: number, name: string): MemberIdentity {
 /** Two tags, the first one visible on the profile. */
 export function demoTags(t: Translate): UserTag[] {
   return [
-    {id: 1, stationId: STATION_UID, position: 0, name: t('helpCenter.sample.groups.firstAiders'), color: '#ec2929', visible: true},
-    {id: 2, stationId: STATION_UID, position: 1, name: t('helpCenter.sample.groups.drivers'), color: '#3694FF', visible: false},
+    {id: 1, stationId: STATION_UID, position: 0, name: t('helpCenter.sample.groups.firstAiders'), color: '#ec2929', visibility: TagVisibility.BADGE},
+    {id: 2, stationId: STATION_UID, position: 1, name: t('helpCenter.sample.groups.drivers'), color: '#3694FF', visibility: TagVisibility.PLAIN},
   ]
 }
 

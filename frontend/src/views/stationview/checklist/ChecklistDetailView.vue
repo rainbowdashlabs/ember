@@ -74,7 +74,7 @@ const {loading, failure: loadFailure, reload} = useAsyncLoader(async (isCurrent)
   const [d, g, ts, m] = await Promise.all([
     checklists.getChecklist(checklistId.value),
     memberGroups.listGroups(),
-    userTags.listTags(),
+    userTags.listChoosableTags(),
     stationMembers.listMembers(false),
   ])
   if (!isCurrent()) return

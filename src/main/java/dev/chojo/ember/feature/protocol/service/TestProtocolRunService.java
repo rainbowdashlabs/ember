@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
+import dev.chojo.ember.feature.members.service.PrivateTags;
 import dev.chojo.ember.feature.protocol.entity.TestProtocolRun;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -45,6 +46,7 @@ public class TestProtocolRunService {
     private final MemberGroupRepository groups;
     private final UserTagRepository tags;
     private final AccountRepository accounts;
+    private final PrivateTags privateTags;
 
     @Inject
     public TestProtocolRunService(
@@ -53,13 +55,15 @@ public class TestProtocolRunService {
             StationMemberRepository members,
             MemberGroupRepository groups,
             UserTagRepository tags,
-            AccountRepository accounts) {
+            AccountRepository accounts,
+            PrivateTags privateTags) {
         this.protocols = protocols;
         this.pdfs = pdfs;
         this.members = members;
         this.groups = groups;
         this.tags = tags;
         this.accounts = accounts;
+        this.privateTags = privateTags;
     }
 
     /**
@@ -74,6 +78,7 @@ public class TestProtocolRunService {
      * @param createdBy  the member starting it
      */
     public TestProtocolRun start(int protocolId, int stationId, int createdBy, ProtocolRunRequest request) {
+        privateTags.requireChoosable(orEmpty(request.tagIds()));
         var run = protocols.createRun(
                 protocolId,
                 stationId,

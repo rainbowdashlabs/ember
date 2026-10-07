@@ -123,7 +123,7 @@ const {loading, failure: loadFailure} = useAsyncLoader(async () => {
         boards.getFields(boardKey.value),
         stationMembers.listAllPermissions(),
         memberGroups.listGroups(),
-        userTags.listTags(),
+        userTags.listChoosableTags(),
         boards.getViewAccess(boardKey.value),
         boards.getEditAccess(boardKey.value),
     ])

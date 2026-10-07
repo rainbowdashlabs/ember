@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.UserTag;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
+import dev.chojo.ember.feature.members.service.PrivateTags;
 import dev.chojo.ember.feature.restriction.Restriction;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
@@ -51,12 +52,15 @@ public class KbAccessService {
     private final KnowledgeBaseRepository repository;
     private final MemberGroupRepository memberGroupRepository;
     private final UserTagRepository userTagRepository;
+    private final PrivateTags privateTags;
 
     @Inject
     public KbAccessService(
             KnowledgeBaseRepository repository,
             MemberGroupRepository memberGroupRepository,
-            UserTagRepository userTagRepository) {
+            UserTagRepository userTagRepository,
+            PrivateTags privateTags) {
+        this.privateTags = privateTags;
         this.repository = repository;
         this.memberGroupRepository = memberGroupRepository;
         this.userTagRepository = userTagRepository;
@@ -113,6 +117,8 @@ public class KbAccessService {
      * @param grants   the audiences and their levels
      */
     public void setGrants(@Nullable Integer folderId, @Nullable Integer fileId, List<GrantEntry> grants) {
+        privateTags.requireChoosable(
+                grants.stream().map(GrantEntry::tagId).filter(Objects::nonNull).toList());
         repository.clearRestrictions(folderId, fileId);
         for (var grant : grants) {
             repository.addRestriction(

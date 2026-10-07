@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.members.entity.UserTag;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
+import dev.chojo.ember.feature.members.service.PrivateTags;
 import dev.chojo.ember.feature.restriction.Restriction;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.restriction.RestrictionSet;
@@ -59,6 +60,7 @@ public class ChecklistService {
     private final MemberGroupRepository memberGroupRepository;
     private final UserTagRepository userTagRepository;
     private final EventRegistrationRepository registrationRepository;
+    private final PrivateTags privateTags;
 
     @Inject
     public ChecklistService(
@@ -66,12 +68,14 @@ public class ChecklistService {
             StationMemberRepository memberRepository,
             MemberGroupRepository memberGroupRepository,
             UserTagRepository userTagRepository,
-            EventRegistrationRepository registrationRepository) {
+            EventRegistrationRepository registrationRepository,
+            PrivateTags privateTags) {
         this.repository = repository;
         this.memberRepository = memberRepository;
         this.memberGroupRepository = memberGroupRepository;
         this.userTagRepository = userTagRepository;
         this.registrationRepository = registrationRepository;
+        this.privateTags = privateTags;
     }
 
     public List<ChecklistSummary> findSummaries(int stationId) {
@@ -141,6 +145,7 @@ public class ChecklistService {
             FilterSpec filter,
             @Nullable OccurrenceSpec occurrence,
             int createdBy) {
+        privateTags.requireChoosable(filter.tagIds());
         var checklist = repository.create(
                 stationId,
                 name,
@@ -172,6 +177,7 @@ public class ChecklistService {
      * Refresh must be triggered explicitly.
      */
     public Checklist update(int id, String name, String description, RestrictionMode mode, FilterSpec filter) {
+        if (filter != null) privateTags.requireChoosable(filter.tagIds());
         repository.updateMetadata(id, name, description, mode);
         if (filter != null) {
             repository.replaceFilter(id, filter.userTypes(), filter.groupIds(), filter.tagIds(), filter.memberIds());

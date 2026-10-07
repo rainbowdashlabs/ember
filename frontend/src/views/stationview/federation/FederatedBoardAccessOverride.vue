@@ -39,7 +39,7 @@ async function loadData() {
     try {
         const [groups, tags, override] = await Promise.all([
             memberGroups.listGroups(),
-            userTags.listTags(),
+            userTags.listChoosableTags(),
             federatedBoards.getAccessOverride(props.partnerUid, props.boardKey),
         ])
         allGroups.value = groups

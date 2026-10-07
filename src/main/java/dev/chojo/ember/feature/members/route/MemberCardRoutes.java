@@ -52,9 +52,8 @@ public class MemberCardRoutes implements Routes {
                 @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void card(Context ctx) {
-        var session = StationSession.from(ctx);
         ctx.json(cardService
-                .find(session.stationId(), session.stationUid(), pathUuid(ctx, "uid"))
+                .find(StationSession.from(ctx), pathUuid(ctx, "uid"))
                 .orElseThrow(MemberRefusal.MEMBER_NOT_HERE_BY_UID::raise));
     }
 }

@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
+import dev.chojo.ember.feature.members.service.PrivateTags;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
@@ -33,7 +34,8 @@ class ChecklistSelectionTest {
             members,
             mock(MemberGroupRepository.class),
             mock(UserTagRepository.class),
-            mock(EventRegistrationRepository.class));
+            mock(EventRegistrationRepository.class),
+            mock(PrivateTags.class));
 
     private static StationMember member(int id) {
         return new StationMember(id, 3, null, null, false, null, "M" + id, StationUserType.MEMBER, LocalDate.EPOCH);

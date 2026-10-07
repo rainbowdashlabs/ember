@@ -28,9 +28,16 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 /**
  * Data access for the unified restriction tables. Resolving the member identity and the manager
  * bypass happens in {@link dev.chojo.ember.feature.restriction.service.RestrictionService}.
+ *
+ * <p>A member's private tags never take part in a restriction. A restriction cannot be saved naming
+ * one, and an audience kept inside some other configuration that names one lets nobody through,
+ * because answering for it would show who carries it.
  */
 @Singleton
 public class RestrictionRepository {
+    private static final String OPEN_TAG_IDS = """
+            ARRAY(SELECT ute.tag_id FROM user_tag_entry ute JOIN user_tag ut ON ut.id = ute.tag_id
+                  WHERE ute.member_id = sm.id AND ut.visibility <> 'PRIVATE')""";
 
     /**
      * Loads every restriction row of an entity, ordered by id.
@@ -87,7 +94,7 @@ public class RestrictionRepository {
                   AND check_restriction(
                         :rtable, :fk_column, :entity_id, :mode, sm.id, sm.user_type,
                         ARRAY(SELECT mge.group_id FROM member_group_entry mge WHERE mge.member_id = sm.id),
-                        ARRAY(SELECT ute.tag_id FROM user_tag_entry ute WHERE ute.member_id = sm.id));""")
+                        %s);""", OPEN_TAG_IDS)
                 .single(call().bind("station_id", stationId)
                         .bind("rtable", type.table())
                         .bind("fk_column", type.fkColumn())
@@ -111,10 +118,10 @@ public class RestrictionRepository {
                 SELECT sm.id,
                        sm.user_type,
                        ARRAY(SELECT mge.group_id FROM member_group_entry mge WHERE mge.member_id = sm.id) AS group_ids,
-                       ARRAY(SELECT ute.tag_id FROM user_tag_entry ute WHERE ute.member_id = sm.id) AS tag_ids
+                       %s AS tag_ids
                 FROM station_member sm
                 WHERE sm.station_id = :station_id
-                  AND sm.former = FALSE;""")
+                  AND sm.former = FALSE;""", OPEN_TAG_IDS)
                 .single(call().bind("station_id", stationId))
                 .map(RestrictionRepository::identityOf)
                 .all();
@@ -132,9 +139,9 @@ public class RestrictionRepository {
                 SELECT sm.id,
                        sm.user_type,
                        ARRAY(SELECT mge.group_id FROM member_group_entry mge WHERE mge.member_id = sm.id) AS group_ids,
-                       ARRAY(SELECT ute.tag_id FROM user_tag_entry ute WHERE ute.member_id = sm.id) AS tag_ids
+                       %s AS tag_ids
                 FROM station_member sm
-                WHERE sm.id = ANY(:member_ids);""")
+                WHERE sm.id = ANY(:member_ids);""", OPEN_TAG_IDS)
                 .single(call().bind("member_ids", List.copyOf(memberIds), PostgreSqlTypes.INTEGER))
                 .map(RestrictionRepository::identityOf)
                 .all();

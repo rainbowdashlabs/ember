@@ -45,7 +45,7 @@ class MemberCardRoutesTest {
     @Test
     void anyMemberReadsTheCardWithoutAMemberPermission() {
         var identity = new MemberIdentity(UUID.randomUUID(), MEMBER_UID);
-        when(cardService.find(eq(STATION_ID), any(), eq(MEMBER_UID)))
+        when(cardService.find(any(), eq(MEMBER_UID)))
                 .thenReturn(Optional.of(new MemberCard(
                         identity,
                         "Mara Nager",
@@ -66,7 +66,7 @@ class MemberCardRoutesTest {
 
     @Test
     void aUidWithoutACardIsNotFound() {
-        when(cardService.find(eq(STATION_ID), any(), eq(MEMBER_UID))).thenReturn(Optional.empty());
+        when(cardService.find(any(), eq(MEMBER_UID))).thenReturn(Optional.empty());
 
         harness.run((server, client) -> assertEquals(
                 MemberRefusal.MEMBER_NOT_HERE_BY_UID,
