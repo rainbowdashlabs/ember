@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:92e001b73bcb91e27b022d3511455b3f32ce489a221ecdc771e7f694d3b9c8c4",
-  "generatedAt": "2026-10-07T20:43:17Z",
+  "schemaHash": "sha256:bc471b3ad8d5d528c341ab410c4b221a1452dbe8b66ee54e4159ce1c5d0d890c",
+  "generatedAt": "2026-10-07T21:02:08Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -22634,14 +22634,14 @@
     "signing_ca": {
       "feature": "signing",
       "scope": "INSTANCE",
-      "tableHash": "sha256:ec7db0b41a4e3dc0aa00de5821d8d7f5ba39a1e4bd1f8177dae3aed783bc0aad",
+      "tableHash": "sha256:9455496fe52cfa77302c4b25d93f31f27c01a46e68c57f527c28fb69f97049b3",
       "columns": [
         {
           "name": "id",
           "type": "int4",
           "nullable": false,
           "verified": true,
-          "description": "Always 1, so the installation can hold only one authority."
+          "description": "Primary key."
         },
         {
           "name": "serial_number",
@@ -22677,6 +22677,13 @@
           "nullable": false,
           "verified": true,
           "description": "When the authority was created."
+        },
+        {
+          "name": "retired_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When a newer authority took over issuing station certificates; null while this one is the active authority."
         }
       ],
       "foreignKeys": [],
@@ -22692,7 +22699,7 @@
         "status": "IGNORED",
         "reason": "Key material of the installation, not personal data."
       },
-      "description": "The installation's own certificate authority, which issues the certificates the stations seal documents with. One row at most, created the first time any station seals a document."
+      "description": "The installation's own certificate authorities, which issue the certificates the stations seal documents with. The first is created the first time any station seals a document; at most one is active, and a retired authority stays so the station certificates it issued and the documents sealed with them can still be traced to it."
     },
     "station": {
       "feature": "station",
@@ -24569,7 +24576,7 @@
     "station_signing_key": {
       "feature": "signing",
       "scope": "STATION",
-      "tableHash": "sha256:20b3470b38edfea64642e53ab1f9b8d3019cf05759e5387a93c0c19e97b0da5b",
+      "tableHash": "sha256:f389f1734825cd57432b24520e78372062910c6cefd575787c5046356c4c6987",
       "columns": [
         {
           "name": "id",
@@ -24586,11 +24593,18 @@
           "description": "The station that seals with this key. The keys go with the station when it is deleted."
         },
         {
+          "name": "signing_ca_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The authority that issued the station certificate, which completes its chain even after a newer authority took over."
+        },
+        {
           "name": "serial_number",
           "type": "text",
           "nullable": false,
           "verified": true,
-          "description": "Serial number of the station certificate, lower-case hexadecimal, unique among the certificates the authority issued."
+          "description": "Serial number of the station certificate, lower-case hexadecimal, unique among the certificates the authorities issued."
         },
         {
           "name": "certificate",
@@ -24630,6 +24644,12 @@
       ],
       "foreignKeys": [
         {
+          "column": "signing_ca_id",
+          "refTable": "signing_ca",
+          "refColumn": "id",
+          "onDelete": "NO ACTION"
+        },
+        {
           "column": "station_id",
           "refTable": "station",
           "refColumn": "id",
@@ -24648,7 +24668,7 @@
         "status": "IGNORED",
         "reason": "Key material of the station, not personal data."
       },
-      "description": "The keys a station seals documents with, each with a certificate issued by the installation's authority. Created the first time a station seals a document; a station has at most one active key, and retired keys stay so older documents can still be traced to them."
+      "description": "The keys a station seals documents with, each with a certificate issued by one of the installation's authorities. Created the first time a station seals a document; a station has at most one active key, and retired keys stay so older documents can still be traced to them."
     },
     "station_storage_config": {
       "feature": "storage",

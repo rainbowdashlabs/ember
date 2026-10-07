@@ -30,9 +30,12 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
+import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 import static dev.chojo.ember.feature.signing.service.SealedPdfs.indexOf;
 import static dev.chojo.ember.feature.signing.service.SealedPdfs.referencedDataIntact;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -43,8 +46,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Station signing keys created on first use under the installation's authority, stored wrapped, and
- * good for a seal a reader trusting the authority accepts.
+ * Station signing keys created on first use under the installation's authority, stored wrapped, good
+ * for a seal a reader trusting the authority accepts, rotated before they expire, and issued by a
+ * renewed authority once the old one could no longer cover a full station term.
  */
 class StationSigningKeysTest extends RepositoryTestBase {
     private static final String INSTALLATION = "ember.example.org";
@@ -67,14 +71,14 @@ class StationSigningKeysTest extends RepositoryTestBase {
     @Test
     void firstUseCreatesTheAuthorityAndTheStationKey() {
         var station = stationRepo.create("First use station");
-        assertTrue(repository.findAuthority().isEmpty());
+        assertTrue(repository.findActiveAuthority().isEmpty());
         assertTrue(repository.findActive(station.id()).isEmpty());
 
         var key = signingKeys.forStation(station.id());
 
         assertEquals(2, key.chain().size());
-        var authority = repository.findAuthority().orElseThrow();
-        var stationKey = repository.findActive(station.id()).orElseThrow();
+        var authority = repository.findActiveAuthority().orElseThrow().key();
+        var stationKey = repository.findActive(station.id()).orElseThrow().key();
         assertArrayEquals(authority.certificate(), encoded(key.authority()));
         assertArrayEquals(stationKey.certificate(), encoded(key.certificate()));
         assertEquals(SigningCertificates.serialOf(key.certificate()), stationKey.serialNumber());
@@ -190,26 +194,13 @@ class StationSigningKeysTest extends RepositoryTestBase {
     @Test
     void concurrentFirstUseStoresOneKey() throws Exception {
         var station = stationRepo.create("Concurrent station");
-        int callers = 4;
-        var start = new CountDownLatch(1);
-        var results = new ArrayList<CompletableFuture<SealingKey>>();
-        try (var executor = Executors.newFixedThreadPool(callers)) {
-            for (int i = 0; i < callers; i++) {
-                results.add(CompletableFuture.supplyAsync(
-                        () -> {
-                            awaitQuietly(start);
-                            return signingKeys.forStation(station.id());
-                        },
-                        executor));
-            }
-            start.countDown();
-            CompletableFuture.allOf(results.toArray(CompletableFuture[]::new)).get(2, TimeUnit.MINUTES);
-        }
 
-        var first = results.getFirst().join();
+        var results = concurrently(4, () -> signingKeys.forStation(station.id()));
+
+        var first = results.getFirst();
         for (var result : results) {
-            assertEquals(first.certificate(), result.join().certificate());
-            assertEquals(first.authority(), result.join().authority());
+            assertEquals(first.certificate(), result.certificate());
+            assertEquals(first.authority(), result.authority());
         }
         assertEquals(1, count("SELECT count(*) AS n FROM station_signing_key;"));
         assertEquals(1, count("SELECT count(*) AS n FROM signing_ca;"));
@@ -218,6 +209,120 @@ class StationSigningKeysTest extends RepositoryTestBase {
     @Test
     void anUnknownStationIsRefused() {
         assertThrows(IllegalArgumentException.class, () -> signingKeys.forStation(Integer.MAX_VALUE));
+        assertThrows(IllegalArgumentException.class, () -> signingKeys.rotate(Integer.MAX_VALUE));
+    }
+
+    @Test
+    void rotationRetiresTheOldKeyAndDocumentsSealedWithItStillValidate() throws Exception {
+        var station = stationRepo.create("Rotating station");
+        var old = signingKeys.forStation(station.id());
+        var sealedBefore = new PdfSealer().seal(SealedPdfs.onePagePdf(), old.privateKey(), old.chain());
+
+        var rotated = signingKeys.rotate(station.id());
+
+        assertNotEquals(
+                old.certificate().getSerialNumber(), rotated.certificate().getSerialNumber());
+        assertNotEquals(old.certificate().getPublicKey(), rotated.certificate().getPublicKey());
+        assertEquals(old.authority(), rotated.authority());
+        assertEquals(rotated.certificate(), signingKeys.forStation(station.id()).certificate());
+        assertEquals(2, count("SELECT count(*) AS n FROM station_signing_key;"));
+        assertEquals(1, count("SELECT count(*) AS n FROM station_signing_key WHERE retired_at IS NOT NULL;"));
+        assertEquals(
+                SigningCertificates.serialOf(old.certificate()),
+                query("SELECT serial_number FROM station_signing_key WHERE retired_at IS NOT NULL;")
+                        .single(call())
+                        .map(row -> row.getString("serial_number"))
+                        .first()
+                        .orElseThrow());
+
+        assertValidatesAsBefore(sealedBefore, old);
+        var sealedAfter = new PdfSealer().seal(SealedPdfs.onePagePdf(), rotated.privateKey(), rotated.chain());
+        assertValidatesAsBefore(sealedAfter, rotated);
+    }
+
+    @Test
+    void aKeyCloseToExpiryIsRotatedOnItsNextUse() {
+        var station = stationRepo.create("Expiring station");
+        var old = signingKeys.forStation(station.id());
+
+        setStationKeyValidity(StationSigningKeys.ROTATION_MARGIN.plusDays(1));
+        assertEquals(old.certificate(), signingKeys.forStation(station.id()).certificate(), "not yet due");
+
+        setStationKeyValidity(StationSigningKeys.ROTATION_MARGIN.minusDays(1));
+        var next = signingKeys.forStation(station.id());
+
+        assertNotEquals(old.certificate().getSerialNumber(), next.certificate().getSerialNumber());
+        assertEquals(2, count("SELECT count(*) AS n FROM station_signing_key;"));
+        assertEquals(1, count("SELECT count(*) AS n FROM station_signing_key WHERE retired_at IS NULL;"));
+        assertEquals(next.certificate(), signingKeys.forStation(station.id()).certificate());
+    }
+
+    @Test
+    void concurrentRotationLeavesOneActiveKey() throws Exception {
+        var station = stationRepo.create("Concurrent rotation station");
+        var old = signingKeys.forStation(station.id());
+
+        var results = concurrently(4, () -> signingKeys.rotate(station.id()));
+
+        var first = results.getFirst();
+        assertNotEquals(old.certificate(), first.certificate());
+        for (var result : results) assertEquals(first.certificate(), result.certificate());
+        assertEquals(2, count("SELECT count(*) AS n FROM station_signing_key;"));
+        assertEquals(1, count("SELECT count(*) AS n FROM station_signing_key WHERE retired_at IS NULL;"));
+    }
+
+    @Test
+    void anAuthorityThatCannotCoverAFullStationTermIsRenewed() throws Exception {
+        var existing = stationRepo.create("Station under the old authority");
+        var before = signingKeys.forStation(existing.id());
+        var oldAuthority = before.authority();
+        query("UPDATE signing_ca SET valid_until = now() + INTERVAL '4 years';")
+                .single(call())
+                .update();
+
+        assertEquals(oldAuthority, signingKeys.forStation(existing.id()).authority(), "no issuing, no renewal");
+        assertEquals(1, count("SELECT count(*) AS n FROM signing_ca;"));
+
+        var newcomer = signingKeys.forStation(
+                stationRepo.create("Station under the new authority").id());
+
+        var newAuthority = newcomer.authority();
+        assertNotEquals(oldAuthority, newAuthority);
+        assertEquals(2, count("SELECT count(*) AS n FROM signing_ca;"));
+        assertEquals(1, count("SELECT count(*) AS n FROM signing_ca WHERE retired_at IS NULL;"));
+        assertArrayEquals(
+                encoded(newAuthority),
+                repository.findActiveAuthority().orElseThrow().key().certificate());
+        assertPathValidates(newcomer.certificate(), newAuthority);
+        assertAbout(Duration.ofDays(365L * SigningCertificates.STATION_YEARS), newcomer.certificate());
+
+        var stillOld = signingKeys.forStation(existing.id());
+        assertEquals(before.certificate(), stillOld.certificate());
+        assertEquals(oldAuthority, stillOld.authority());
+        assertPathValidates(stillOld.certificate(), oldAuthority);
+
+        var rotated = signingKeys.rotate(existing.id());
+        assertEquals(newAuthority, rotated.authority());
+        assertPathValidates(rotated.certificate(), newAuthority);
+    }
+
+    @Test
+    void concurrentRenewalStoresOneNewAuthority() throws Exception {
+        signingKeys.forStation(stationRepo.create("Renewal seed station").id());
+        query("UPDATE signing_ca SET valid_until = now() + INTERVAL '1 year';")
+                .single(call())
+                .update();
+        var stations = List.of(
+                stationRepo.create("Renewal station one").id(),
+                stationRepo.create("Renewal station two").id(),
+                stationRepo.create("Renewal station three").id());
+        var next = new AtomicInteger();
+
+        var results = concurrently(stations.size(), () -> signingKeys.forStation(stations.get(next.getAndIncrement())));
+
+        for (var result : results) assertEquals(results.getFirst().authority(), result.authority());
+        assertEquals(2, count("SELECT count(*) AS n FROM signing_ca;"));
+        assertEquals(1, count("SELECT count(*) AS n FROM signing_ca WHERE retired_at IS NULL;"));
     }
 
     @Test
@@ -265,6 +370,47 @@ class StationSigningKeysTest extends RepositoryTestBase {
 
     private static int count(String sql) {
         return query(sql).single(call()).map(row -> row.getInt("n")).first().orElseThrow();
+    }
+
+    private static void assertValidatesAsBefore(byte[] sealed, SealingKey key) {
+        var reports = SealedPdfs.validate(sealed, key.authority());
+        var signature = reports.getDiagnosticData().getSignatures().getFirst();
+        assertTrue(signature.isSignatureValid(), "signature value and signed data");
+        assertTrue(referencedDataIntact(signature), "signed data");
+        assertEquals(
+                key.certificate().getSerialNumber().toString(),
+                signature.getSigningCertificate().getSerialNumber());
+        assertTrue(signature.getCertificateChain().getLast().isTrusted(), "the issuing authority is the anchor");
+        assertEquals(Indication.INDETERMINATE, reports.getSimpleReport().getIndication(signature.getId()));
+        assertEquals(
+                List.of(
+                        "The certificate validation is not conclusive!",
+                        "No revocation data found for the certificate!"),
+                SealedPdfs.validationErrors(reports));
+    }
+
+    private static void setStationKeyValidity(Duration left) {
+        query("UPDATE station_signing_key SET valid_until = :valid_until WHERE retired_at IS NULL;")
+                .single(call().bind("valid_until", Instant.now().plus(left), INSTANT_TIMESTAMP))
+                .update();
+    }
+
+    private static List<SealingKey> concurrently(int callers, Supplier<SealingKey> call) throws Exception {
+        var start = new CountDownLatch(1);
+        var results = new ArrayList<CompletableFuture<SealingKey>>();
+        try (var executor = Executors.newFixedThreadPool(callers)) {
+            for (int i = 0; i < callers; i++) {
+                results.add(CompletableFuture.supplyAsync(
+                        () -> {
+                            awaitQuietly(start);
+                            return call.get();
+                        },
+                        executor));
+            }
+            start.countDown();
+            CompletableFuture.allOf(results.toArray(CompletableFuture[]::new)).get(2, TimeUnit.MINUTES);
+        }
+        return results.stream().map(CompletableFuture::join).toList();
     }
 
     private static void awaitQuietly(CountDownLatch latch) {

@@ -129,10 +129,10 @@ public class SigningCertificates {
                 .addRDN(BCStyle.O, bounded(installation))
                 .build();
         var issuerCertificate = authority.certificate();
-        var notBefore = Instant.now().minus(CLOCK_SKEW);
-        var notAfter = earlier(
-                plusYears(notBefore, STATION_YEARS),
-                issuerCertificate.getNotAfter().toInstant());
+        var now = Instant.now();
+        var notBefore = now.minus(CLOCK_SKEW);
+        var notAfter =
+                earlier(fullStationTermEnd(now), issuerCertificate.getNotAfter().toInstant());
         try {
             var extensions = new JcaX509ExtensionUtils();
             var builder = new JcaX509v3CertificateBuilder(
@@ -157,6 +157,17 @@ public class SigningCertificates {
         } catch (GeneralSecurityException | CertIOException e) {
             throw new IllegalStateException("The station's signing certificate could not be issued", e);
         }
+    }
+
+    /**
+     * When a station certificate issued at the given moment expires, unless its authority expires
+     * first. An authority that holds at least this long issues a station certificate its full term.
+     *
+     * @param issuedAt when the certificate is issued
+     * @return the end of its full term
+     */
+    public static Instant fullStationTermEnd(Instant issuedAt) {
+        return plusYears(issuedAt.minus(CLOCK_SKEW), STATION_YEARS);
     }
 
     /**
