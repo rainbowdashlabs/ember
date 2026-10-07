@@ -40,4 +40,15 @@ public record SealedDocument(
     public static SealedDocument timestamped(byte[] pdf, String timestampedBy) {
         return new SealedDocument(pdf, SealLevel.BASELINE_T, timestampedBy);
     }
+
+    /**
+     * A document whose seal carries a timestamp and the validation material for both.
+     *
+     * @param pdf           the sealed document
+     * @param timestampedBy the address of the timestamp service that answered
+     * @return the document at {@link SealLevel#BASELINE_LT}
+     */
+    public static SealedDocument longTerm(byte[] pdf, String timestampedBy) {
+        return new SealedDocument(pdf, SealLevel.BASELINE_LT, timestampedBy);
+    }
 }

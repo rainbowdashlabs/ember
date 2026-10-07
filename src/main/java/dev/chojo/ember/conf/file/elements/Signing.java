@@ -24,7 +24,9 @@ public class Signing {
      *
      * <p>A timestamp proves the seal existed at that moment, so nobody, the operator included, can
      * date a seal back later. Only a hash of the sealed document leaves the installation, never the
-     * document. When no service answers, the seal is made without a timestamp instead of failing.
+     * document. Ember also fetches the timestamp services' public revocation lists, which carry no
+     * data from the document. When no service answers, the seal is made without a timestamp instead
+     * of failing.
      * Switched off, nothing leaves the installation and the time of a seal is only this server's
      * clock, which is the right setting for an installation without outbound access.
      */

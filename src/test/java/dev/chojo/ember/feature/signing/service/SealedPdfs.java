@@ -18,6 +18,9 @@ import eu.europa.esig.dss.spi.validation.CommonCertificateVerifier;
 import eu.europa.esig.dss.spi.x509.CommonTrustedCertificateSource;
 import eu.europa.esig.dss.spi.x509.revocation.crl.ExternalResourcesCRLSource;
 import eu.europa.esig.dss.validation.reports.Reports;
+import org.apache.pdfbox.Loader;
+import org.apache.pdfbox.cos.COSName;
+import org.apache.pdfbox.cos.COSStream;
 import org.apache.pdfbox.pdfwriter.compress.CompressParameters;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
@@ -31,9 +34,13 @@ import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.security.cert.X509CRL;
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+
+import static org.mockito.Mockito.mock;
 
 /**
  * A small document to seal and an offline DSS validation of a sealed one, for the sealing tests.
@@ -70,9 +77,42 @@ final class SealedPdfs {
      * @return the sealed document
      */
     static byte[] sealedWith(SealingKey key) throws IOException {
-        return new PdfSealer(TimestampServices.none())
+        return sealer(TimestampServices.none())
                 .seal(onePagePdf(), key.privateKey(), key.chain())
                 .pdf();
+    }
+
+    /**
+     * A sealer that knows no revocation list of its own, for seals whose chain no installation
+     * authority issued or that need none.
+     *
+     * @param timestamps the timestamp services it asks
+     * @return the sealer
+     */
+    static PdfSealer sealer(TimestampServices timestamps) {
+        return new PdfSealer(timestamps, mock(StationKeyRevocations.class));
+    }
+
+    /**
+     * The revocation lists a sealed document carries in its document security store.
+     *
+     * @param sealed the sealed document
+     * @return every list, in the order the store holds them
+     */
+    static List<X509CRL> embeddedRevocationLists(byte[] sealed) throws IOException {
+        try (var document = Loader.loadPDF(sealed)) {
+            var store = document.getDocumentCatalog().getCOSObject().getCOSDictionary(COSName.getPDFName("DSS"));
+            if (store == null) return List.of();
+            var lists = store.getCOSArray(COSName.getPDFName("CRLs"));
+            if (lists == null) return List.of();
+            var result = new ArrayList<X509CRL>();
+            for (int i = 0; i < lists.size(); i++) {
+                try (var in = ((COSStream) lists.getObject(i)).createInputStream()) {
+                    result.add(RevocationLists.read(in.readAllBytes()));
+                }
+            }
+            return result;
+        }
     }
 
     /**

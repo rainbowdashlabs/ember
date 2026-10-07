@@ -12,5 +12,10 @@ public enum SealLevel {
     /** Sealed without a timestamp: the signing time is only this server's clock. */
     BASELINE_B,
     /** Sealed with a timestamp from a timestamp service, which proves when the seal existed. */
-    BASELINE_T
+    BASELINE_T,
+    /**
+     * Sealed with a timestamp and the material to check it later without asking anyone: every
+     * certificate of the seal and of the timestamp, with revocation data for each one that needs it.
+     */
+    BASELINE_LT
 }
