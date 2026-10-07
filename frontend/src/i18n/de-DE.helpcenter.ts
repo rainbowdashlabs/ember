@@ -1768,6 +1768,8 @@ volumes:
             historyText: 'Im Verlauf-Tab siehst du alle früheren Änderungen.',
             badgeText: 'Die rote Zahl neben „Änderungen" in der Seitenleiste zeigt an, wie viele unbestätigte Änderungen es gibt.',
             tip: 'Bestätige Änderungen zeitnah, damit die Daten immer aktuell sind.',
+            namesTitle: 'Gewünschte Namen',
+            namesText: 'Ändert ein Mitglied seinen eigenen Namen, gilt der neue Name erst, wenn du ihn bestätigst. Solche Wünsche stehen oben unter „Gewünschte Namen". Mit Bestätigen bekommt das Mitglied den neuen Namen. Mit Ablehnen bleibt der alte Name, und du kannst eine Begründung dazuschreiben. Das Mitglied bekommt in beiden Fällen eine Benachrichtigung. Gehört das Mitglied zu mehreren Wachen, reicht die Entscheidung einer Wache.',
         },
         membersFormer: {
             title: 'Ehemalige Mitglieder',

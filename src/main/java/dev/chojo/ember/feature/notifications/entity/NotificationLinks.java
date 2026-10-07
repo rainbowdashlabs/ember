@@ -217,4 +217,22 @@ public final class NotificationLinks {
     public static NotificationLink federation() {
         return new NotificationLink("station-federation", Map.of());
     }
+
+    /**
+     * The page on which member changes are confirmed, where open name requests wait.
+     *
+     * @return the link a name request carries
+     */
+    public static NotificationLink memberChanges() {
+        return new NotificationLink("members-changes", Map.of());
+    }
+
+    /**
+     * The reader's own account profile, where their register name is shown and changed.
+     *
+     * @return the link a decision on their name request carries
+     */
+    public static NotificationLink ownAccountProfile() {
+        return new NotificationLink("account-avatar", Map.of());
+    }
 }

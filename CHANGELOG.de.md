@@ -2,11 +2,12 @@
 
 ## v26.22.0
 
-Hinter jedem Mitgliedsnamen liegt ein Kurzprofil. Mitglieder auf Probe heißen überall gleich.
+Hinter jedem Mitgliedsnamen liegt ein Kurzprofil. Ändern Mitglieder ihren eigenen Namen, bestätigt die Mitgliederverwaltung ihn zuerst. Mitglieder auf Probe heißen überall gleich.
 
 ### Neue Funktionen
 
 - **Ein Kurzprofil hinter jedem Namen.** Wer mit der Maus auf dem Namen oder Bild eines Mitglieds verweilt oder am Handy auf das Bild tippt, sieht eine kleine Karte mit Bild, Erziehungsberechtigten, verwalteten Mitgliedern, Tags und Gruppen. Erwähnungen in Kommentaren öffnen dieselbe Karte.
+- **Ein neuer Name wartet auf Bestätigung.** Ändern Mitglieder ihren eigenen Namen, gilt er erst, wenn jemand mit dem Recht, Mitgliederänderungen zu bestätigen, ihn unter Mitglieder → Änderungen freigibt. Eine Ablehnung kann eine Begründung haben, die das Mitglied in der Benachrichtigung sieht.
 
 ### Änderungen
 

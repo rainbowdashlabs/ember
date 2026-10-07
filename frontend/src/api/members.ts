@@ -11,7 +11,10 @@ import type {
     MemberInviteResponse,
     MemberSearchResult,
     MessageResponse,
+    NameChangeView,
     OnboardAgainResponse,
+    OwnNameChange,
+    OwnNameChangeResponse,
     PasskeyCodeResponse,
     ResetPasswordRequest,
     UpdateAccountResponse,
@@ -97,6 +100,33 @@ export async function searchMembers(query?: string, limit = 20): Promise<MemberS
 export async function getMemberCard(memberUid: string): Promise<MemberCard> {
     const res = await client.get<MemberCard>(`/station-members/by-uid/${memberUid}/card`)
     return res.data
+}
+
+/** The new names the station's members asked for and that wait for somebody who confirms member changes. */
+export async function listNameChangeRequests(): Promise<NameChangeView[]> {
+    const res = await client.get<NameChangeView[]>('/name-change-requests')
+    return res.data
+}
+
+/** Approves a name request; the member's account takes the new name. */
+export async function approveNameChange(requestId: number): Promise<void> {
+    await client.post(`/name-change-requests/${requestId}/approve`)
+}
+
+/** Turns a name request down, with a reason the member is shown, or none. */
+export async function denyNameChange(requestId: number, reason: string | null): Promise<void> {
+    await client.post(`/name-change-requests/${requestId}/deny`, {reason})
+}
+
+/** The new name the reader asked for and that still waits, or null. */
+export async function getOwnNameChange(): Promise<OwnNameChange | null> {
+    const res = await client.get<OwnNameChangeResponse>('/account/name-change-request')
+    return res.data.pending
+}
+
+/** Takes back the new name the reader asked for. */
+export async function withdrawOwnNameChange(): Promise<void> {
+    await client.delete('/account/name-change-request')
 }
 
 /** Resolves a single member by its UUID for picker display. Returns {@code null} if not found. */
