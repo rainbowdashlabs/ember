@@ -26,7 +26,7 @@ public record UserTag(
                 row.getInt("station_id"),
                 row.getString("name"),
                 row.getString("color"),
-                TagVisibility.valueOf(row.getString("visibility")),
+                row.getEnum("visibility", TagVisibility.class),
                 row.getInt("position"));
     }
 }
