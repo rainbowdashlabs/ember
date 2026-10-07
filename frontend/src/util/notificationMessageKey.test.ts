@@ -41,4 +41,12 @@ describe('notificationMessageKey', () => {
         expect(notificationMessageKey('EXPIRY_REMINDER', 'notification.expiryReminder', {kind: 'EXPIRES_IN', days: '1'}))
             .toBe('notification.expiryReminderInOne')
     })
+
+    it('gives a declined name its reason where the decider wrote one', () => {
+        expect(notificationMessageKey('NAME_CHANGE_DENIED', 'notification.nameChangeDenied',
+            {requestedName: 'Mia Neu', reason: 'Bitte mit Ausweis'}))
+            .toBe('notification.nameChangeDeniedWithReason')
+        expect(notificationMessageKey('NAME_CHANGE_DENIED', 'notification.nameChangeDenied', {requestedName: 'Mia Neu'}))
+            .toBe('notification.nameChangeDenied')
+    })
 })

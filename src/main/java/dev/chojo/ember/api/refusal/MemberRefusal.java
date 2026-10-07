@@ -766,7 +766,16 @@ public enum MemberRefusal implements Refusal {
 
     /** A sign-in with a one-time password whose time is up. */
     ONE_TIME_PASSWORD_EXPIRED(
-            207, HttpStatus.UNAUTHORIZED, "Your one-time password has expired. Ask your administration for a new one");
+            207, HttpStatus.UNAUTHORIZED, "Your one-time password has expired. Ask your administration for a new one"),
+
+    /** A decision on a name request that is no longer open, or belongs to nobody at this station. */
+    NAME_CHANGE_NOT_OPEN(208, HttpStatus.NOT_FOUND, "This name request is not open, it may have been decided already"),
+
+    /** Taking back a name request when none is waiting. */
+    NAME_CHANGE_NONE_WAITING(209, HttpStatus.NOT_FOUND, "No name change of yours is waiting"),
+
+    /** A reason for denying a name request longer than a notification can carry. */
+    NAME_CHANGE_REASON_TOO_LONG(210, HttpStatus.BAD_REQUEST, "The reason is too long");
 
     private final Definition definition;
 

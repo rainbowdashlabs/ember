@@ -182,7 +182,10 @@
     "MAIL_IMPORT_UNBOUND": "Dokumente warten auf Zuordnung",
     "FEDERATION_REQUEST_RECEIVED": "Partnerschaftsanfrage von {stationName}",
     "FEDERATION_REQUEST_ACCEPTED": "Partnerschaft mit {stationName} angenommen",
-    "FEDERATION_REQUEST_DECLINED": "Partnerschaft mit {stationName} abgelehnt"
+    "FEDERATION_REQUEST_DECLINED": "Partnerschaft mit {stationName} abgelehnt",
+    "NAME_CHANGE_REQUESTED": "Namensänderung: {memberName}",
+    "NAME_CHANGE_APPROVED": "Neuer Name bestätigt",
+    "NAME_CHANGE_DENIED": "Neuer Name abgelehnt"
   },
   "digest": {
     "subject.one": "{stationName}: 1 neue Benachrichtigung",
@@ -245,7 +248,10 @@
     "MAIL_IMPORT_UNBOUND": "Dokumente",
     "FEDERATION_REQUEST_RECEIVED": "Föderation",
     "FEDERATION_REQUEST_ACCEPTED": "Föderation",
-    "FEDERATION_REQUEST_DECLINED": "Föderation"
+    "FEDERATION_REQUEST_DECLINED": "Föderation",
+    "NAME_CHANGE_REQUESTED": "Namensänderung",
+    "NAME_CHANGE_APPROVED": "Namensänderung",
+    "NAME_CHANGE_DENIED": "Namensänderung"
   },
   "message": {
     "notification.newNews": "{title} - von {author}",
@@ -318,6 +324,10 @@
     "notification.mailImportUnbound": "{count} per Mail eingegangene Dokumente sind noch keinem Mitglied zugeordnet",
     "notification.federationRequestReceived": "{stationName} möchte Partnerwache werden",
     "notification.federationRequestAccepted": "{stationName} hat die Partnerschaftsanfrage angenommen",
-    "notification.federationRequestDeclined": "{stationName} hat die Partnerschaftsanfrage abgelehnt"
+    "notification.federationRequestDeclined": "{stationName} hat die Partnerschaftsanfrage abgelehnt",
+    "notification.nameChangeRequested": "{memberName} möchte {requestedName} heißen",
+    "notification.nameChangeApproved": "Dein neuer Name {newName} wurde bestätigt",
+    "notification.nameChangeDenied": "Dein neuer Name {requestedName} wurde abgelehnt",
+    "notification.nameChangeDenied.WITH_REASON": "Dein neuer Name {requestedName} wurde abgelehnt: {reason}"
   }
 }
