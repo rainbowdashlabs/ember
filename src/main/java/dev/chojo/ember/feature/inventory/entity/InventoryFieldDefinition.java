@@ -83,7 +83,7 @@ public record InventoryFieldDefinition(
      */
     public static RowMapping<InventoryFieldDefinition> map() {
         return row -> {
-            FieldType type = FieldType.valueOf(row.getString("field_type"));
+            FieldType type = row.getEnum("field_type", FieldType.class);
             return new InventoryFieldDefinition(
                     row.getInt("id"),
                     row.getInt("inventory_id"),
