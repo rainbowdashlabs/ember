@@ -6,6 +6,7 @@ junit = "6.1.3"
 javalin = "7.2.3"
 testcontainers = "2.0.5"
 commonmark = "0.30.0"
+dss = "6.5"
 
 [plugins]
 spotless = { id = "com.diffplug.spotless", version = "8.10.2" }
@@ -102,6 +103,15 @@ commons-csv = { group = "org.apache.commons", name = "commons-csv", version = "1
 # PDF
 pdfbox = { group = "org.apache.pdfbox", name = "pdfbox", version = "3.0.8" }
 
+# PDF signatures (PAdES)
+dss-bom = { group = "eu.europa.ec.joinup.sd-dss", name = "dss-bom", version.ref = "dss" }
+dss-pades-pdfbox = { group = "eu.europa.ec.joinup.sd-dss", name = "dss-pades-pdfbox" }
+dss-cms-object = { group = "eu.europa.ec.joinup.sd-dss", name = "dss-cms-object" }
+dss-validation = { group = "eu.europa.ec.joinup.sd-dss", name = "dss-validation" }
+dss-policy-jaxb = { group = "eu.europa.ec.joinup.sd-dss", name = "dss-policy-jaxb" }
+dss-utils-apache-commons = { group = "eu.europa.ec.joinup.sd-dss", name = "dss-utils-apache-commons" }
+dss-crl-parser-x509crl = { group = "eu.europa.ec.joinup.sd-dss", name = "dss-crl-parser-x509crl" }
+
 # iCal
 ical4j = { group = "org.mnode.ical4j", name = "ical4j", version = "4.3.0" }
 
@@ -172,4 +182,12 @@ commonmark = [
     "commonmark-ext-image-attributes",
     "commonmark-ext-task-list-items",
     "commonmark-ext-alerts"
+]
+dss = [
+    "dss-pades-pdfbox",
+    "dss-cms-object",
+    "dss-validation",
+    "dss-policy-jaxb",
+    "dss-utils-apache-commons",
+    "dss-crl-parser-x509crl"
 ]

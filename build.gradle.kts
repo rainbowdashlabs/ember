@@ -68,6 +68,8 @@ dependencies {
     implementation(libs.sshd.sftp)
     implementation(libs.aws.s3)
     implementation(libs.pdfbox)
+    implementation(platform(libs.dss.bom))
+    implementation(libs.bundles.dss) { exclude(group = "com.sun.activation", module = "jakarta.activation") }
     implementation(libs.ical4j)
     implementation(libs.rome)
     implementation(libs.rome.modules)
