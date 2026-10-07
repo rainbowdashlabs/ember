@@ -16,6 +16,7 @@ export const CHOOSER_CATEGORIES = [
         {type: 'QUOTE', icon: 'quote-left', key: 'chooseQuote'},
         {type: 'DIVIDER', icon: 'minus', key: 'chooseDivider'},
         {type: 'SPACER', icon: 'arrows-up-down', key: 'chooseSpacer'},
+        {type: 'SIGNATURE', icon: 'signature', key: 'chooseSignature'},
         {type: 'ACCORDION', icon: 'chevron-down', key: 'chooseAccordion'},
         {type: 'TABS', icon: 'table-columns', key: 'chooseTabs'},
         {type: 'HERO_BANNER', icon: 'rocket', key: 'chooseHero'},
@@ -55,3 +56,23 @@ export const CHOOSER_CATEGORIES = [
         {type: 'FORMS_CTA', icon: 'clipboard-list', key: 'chooseFormsCta'},
     ]},
 ] as const
+
+/** One category of the chooser with the kinds of block it offers. */
+export type ChooserCategory = {key: string, items: readonly (typeof CHOOSER_CATEGORIES)[number]['items'][number][]}
+
+/** The kinds only a printed letter holds, offered only where an editor names them. */
+const LETTER_ONLY: readonly string[] = ['SIGNATURE']
+
+/**
+ * The chooser's categories, narrowed to the kinds an editor allows; a category left empty is left out.
+ *
+ * @param allowed the kinds allowed, every kind but those only a letter holds where none are named
+ */
+export function chooserCategories(allowed?: readonly string[]): ChooserCategory[] {
+    return CHOOSER_CATEGORIES
+        .map(category => ({
+            key: category.key,
+            items: category.items.filter(item => allowed ? allowed.includes(item.type) : !LETTER_ONLY.includes(item.type)),
+        }))
+        .filter(category => category.items.length > 0)
+}

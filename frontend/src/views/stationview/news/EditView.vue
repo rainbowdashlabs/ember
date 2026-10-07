@@ -14,7 +14,7 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import type {
-    BlockCellRequest, BlockRowRequest, ContentRow, MemberCompletion, MemberGroup, PartnerResponse, UserTag,
+    BlockRowRequest, MemberCompletion, MemberGroup, PartnerResponse, UserTag,
 } from '@/api/generated/schema'
 import { ContentMode, NewsVisibilityRole, ShareScope, StationPermission } from '@/api/generated/schema'
 import { userTypesOf } from '@/util/stationUserTypes'
@@ -23,7 +23,7 @@ import { buildAnnouncementDraft, type AnnouncementDraft } from './editview/annou
 import AnnouncementNotice from './editview/AnnouncementNotice.vue'
 import ContentPanel from './editview/ContentPanel.vue'
 import type {RowEditData} from '@/components/content/blockeditor/EditorRow.vue'
-import {markdownAsSingleBlock} from '@/util/blockSwitch'
+import {markdownAsSingleBlock, toBlockRequests, toEditRows} from '@/util/blockSwitch'
 import AttachmentsPanel from './editview/AttachmentsPanel.vue'
 import EditActions from './editview/EditActions.vue'
 import {useNewsAttachments} from './editview/useNewsAttachments'
@@ -85,40 +85,9 @@ const partners = ref<PartnerResponse[]>([])
 const stationUid = computed(() => sessionInfo.value?.stationId ?? '')
 const {attachments, load: loadAttachments, add: addAttachment, remove: removeAttachment, reorder: reorderAttachments, persist: persistAttachments} = useNewsAttachments()
 
-/**
- * The saved shape of a block tree turned into the shape the editor works on. Ids of zero mark rows
- * and cells that do not exist yet, which is how the save path tells new from moved.
- */
-function toEditRows(saved: ContentRow[]): RowEditData[] {
-    return [...saved]
-        .sort((a, b) => a.sortOrder - b.sortOrder)
-        .map(r => ({
-            id: r.id,
-            sortOrder: r.sortOrder,
-            cells: [...r.cells]
-                .sort((a, b) => a.sortOrder - b.sortOrder)
-                .map(c => ({
-                    id: c.id,
-                    sortOrder: c.sortOrder,
-                    widthPercent: c.widthPercent,
-                    contentType: c.contentType,
-                    content: c.content,
-                    config: c.config as Record<string, unknown>,
-                })),
-        }))
-}
 
 function toSaveRows(): BlockRowRequest[] {
-    return rows.value.map((r, ri) => ({
-        sortOrder: ri,
-        cells: r.cells.map((c, ci): BlockCellRequest => ({
-            sortOrder: ci,
-            widthPercent: c.widthPercent,
-            contentType: c.contentType,
-            content: c.content,
-            config: c.config,
-        })),
-    }))
+    return toBlockRequests(rows.value)
 }
 
 /**

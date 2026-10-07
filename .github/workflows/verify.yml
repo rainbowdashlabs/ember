@@ -66,6 +66,7 @@ jobs:
           - suite: testServices
             tools: true
           - suite: testOther
+            tools: true
           - suite: testTracking
     steps:
       - uses: actions/checkout@v7

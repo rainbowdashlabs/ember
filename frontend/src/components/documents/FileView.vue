@@ -10,8 +10,8 @@ import client from '@/api/client'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import EmptyHint from '@/components/typography/EmptyHint.vue'
-import IconButton from '@/components/button/IconButton.vue'
 import PdfCanvas from '@/components/documents/PdfCanvas.vue'
+import PagePager from '@/components/documents/PagePager.vue'
 import {fileKindOf} from '@/util/fileKind'
 import {describeFailure, FailureKind, type Failure} from '@/util/failure'
 
@@ -129,11 +129,6 @@ function pdfFailed() {
   loading.value = false
 }
 
-function turnTo(wanted: number) {
-  if (wanted < 1 || wanted > pageCount.value) return
-  page.value = wanted
-}
-
 watch(() => props.source, load, {immediate: true})
 onUnmounted(() => {
   current++
@@ -179,21 +174,8 @@ onUnmounted(() => {
       />
     </div>
 
-    <div v-if="pageCount > 1" class="flex items-center justify-center gap-4" data-testid="file-view-pages">
-      <IconButton
-          :icon="['fas', 'chevron-left']"
-          :label="t('common.previous')"
-          :disabled="page <= 1"
-          @click="turnTo(page - 1)"
-      />
-      <span class="text-sm">{{ page }} / {{ pageCount }}</span>
-      <IconButton
-          :icon="['fas', 'chevron-right']"
-          :label="t('common.next')"
-          :disabled="page >= pageCount"
-          @click="turnTo(page + 1)"
-      />
-    </div>
+    <PagePager v-if="pageCount > 1" v-model:page="page" :page-count="pageCount" :label="`${page} / ${pageCount}`"
+               class="justify-center" data-testid="file-view-pages"/>
 
     <p v-if="truncated" class="text-xs text-(--text-muted)">{{ t('files.truncated') }}</p>
   </div>

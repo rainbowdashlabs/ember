@@ -9,13 +9,14 @@ import {useI18n} from 'vue-i18n'
 import SearchInput from '@/components/input/text/SearchInput.vue'
 import BaseButton from '@/components/button/BaseButton.vue'
 import {usePageClipboard} from '@/composables/usePageClipboard'
-import {CHOOSER_CATEGORIES} from './cellChoosers'
+import {useBlockEditorOptions} from '@/composables/useBlockEditorOptions'
+import {chooserCategories} from './cellChoosers'
 
 /**
  * Picker shown inside an EMPTY cell. Offers a category-grouped grid of content-type buttons plus
  * a paste-here shortcut when the clipboard holds a cell. Owns its own search filter - the parent
  * just listens for the chosen content type via {@code pick} or applies a clipboard paste via
- * {@code paste-here}.
+ * {@code paste-here}. Only the kinds the surrounding editor allows are offered.
  */
 const emit = defineEmits<{
     pick: [type: string]
@@ -24,15 +25,15 @@ const emit = defineEmits<{
 
 const {t} = useI18n()
 const {hasClipboard, clipboardType} = usePageClipboard()
+const options = useBlockEditorOptions()
 
 const search = ref('')
 const filteredCategories = computed(() => {
     const q = search.value.trim().toLowerCase()
-    if (!q) return CHOOSER_CATEGORIES.map(c => ({...c, items: [...c.items]}))
-    return CHOOSER_CATEGORIES
+    return chooserCategories(options.value.allowedKinds)
         .map(c => ({
             ...c,
-            items: c.items.filter(i => t(`stationPages.editor.${i.key}`).toLowerCase().includes(q)),
+            items: c.items.filter(i => !q || t(`stationPages.editor.${i.key}`).toLowerCase().includes(q)),
         }))
         .filter(c => c.items.length > 0)
 })

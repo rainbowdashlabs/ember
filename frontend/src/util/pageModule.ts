@@ -23,6 +23,7 @@ const MODULES: ReadonlyArray<readonly [string, string]> = [
     ['/station/checklist', 'pageModule.checklists'],
     ['/station/dashboard', 'pageModule.dashboard'],
     ['/station/discovery', 'pageModule.discovery'],
+    ['/station/documents', 'pageModule.documents'],
     ['/station/events', 'pageModule.events'],
     ['/station/federate', 'pageModule.federation'],
     ['/station/federation', 'pageModule.federation'],

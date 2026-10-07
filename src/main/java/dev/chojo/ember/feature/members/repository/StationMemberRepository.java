@@ -24,6 +24,7 @@ import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -806,6 +807,9 @@ public class StationMemberRepository {
      * nobody's ward in {@link #findManaged(int)}: they are neither told about the member nor listed
      * as looking after them.
      *
+     * <p>They come in the order the member page sets, the first guardian first, which is the order
+     * documents name them in.
+     *
      * @param managedId the member looked after
      * @return their guardians who have not left
      */
@@ -813,21 +817,84 @@ public class StationMemberRepository {
         return query("""
                 SELECT %s FROM station_member sm
                 JOIN member_manager mm ON sm.id = mm.manager_id
-                WHERE mm.managed_id = :managed_id AND sm.former = FALSE;""", SqlSupport.alias("sm", STATION_MEMBER_COLUMNS))
+                WHERE mm.managed_id = :managed_id AND sm.former = FALSE
+                ORDER BY mm.position, mm.created_at NULLS FIRST, mm.manager_id;""", SqlSupport.alias("sm", STATION_MEMBER_COLUMNS))
                 .single(call().bind("managed_id", managedId))
                 .map(StationMember.map())
                 .all();
     }
 
     /**
-     * Adds a manager relation between two members. Adding an already existing relation is a
-     * no-op.
+     * The guardians of several members who are still at the station, as {@link #findManagers(int)} reads
+     * them for one, in one read.
+     *
+     * @param managedIds the members looked after
+     * @return the guardians of each member in the order the member page sets, by member; a member without
+     *         any guardian is absent
+     */
+    public Map<Integer, List<StationMember>> findManagersOf(Collection<Integer> managedIds) {
+        if (managedIds.isEmpty()) return Map.of();
+        var guardians = new HashMap<Integer, List<StationMember>>();
+        query("""
+                SELECT mm.managed_id, %s FROM station_member sm
+                JOIN member_manager mm ON sm.id = mm.manager_id
+                WHERE mm.managed_id = ANY(:managed_ids) AND sm.former = FALSE
+                ORDER BY mm.managed_id, mm.position, mm.created_at NULLS FIRST, mm.manager_id;""", SqlSupport.alias("sm", STATION_MEMBER_COLUMNS))
+                .single(call().bind("managed_ids", List.copyOf(managedIds), PostgreSqlTypes.INTEGER))
+                .map(row ->
+                        Map.entry(row.getInt("managed_id"), StationMember.map().map(row)))
+                .all()
+                .forEach(guardian -> guardians
+                        .computeIfAbsent(guardian.getKey(), ignored -> new ArrayList<>())
+                        .add(guardian.getValue()));
+        return guardians;
+    }
+
+    /**
+     * Adds a manager relation between two members that nobody in particular made, as an import or a
+     * waiting list does. Adding an already existing relation is a no-op.
      */
     public void addManager(int managerId, int managedId) {
-        query(
-                        "INSERT INTO member_manager(manager_id, managed_id) VALUES(:manager_id, :managed_id) ON CONFLICT DO NOTHING;")
-                .single(call().bind("manager_id", managerId).bind("managed_id", managedId))
+        addManager(managerId, managedId, null);
+    }
+
+    /**
+     * Adds a manager relation between two members, behind the guardians the member already has.
+     * Adding an already existing relation is a no-op and keeps who made it and when.
+     *
+     * @param createdBy the member who links them, or null where nobody does
+     */
+    public void addManager(int managerId, int managedId, @Nullable Integer createdBy) {
+        query("""
+                INSERT INTO member_manager(manager_id, managed_id, position, created_at, created_by)
+                VALUES (:manager_id, :managed_id,
+                        (SELECT coalesce(max(position) + 1, 0) FROM member_manager WHERE managed_id = :managed_id),
+                        now(), :created_by)
+                ON CONFLICT DO NOTHING;""")
+                .single(call().bind("manager_id", managerId)
+                        .bind("managed_id", managedId)
+                        .bind("created_by", createdBy))
                 .insert();
+    }
+
+    /**
+     * Puts the guardians of a member in the given order, the first one first. Guardians the list
+     * leaves out keep their place behind the ones it names.
+     *
+     * @param managedId  the member looked after
+     * @param managerIds their guardians in order
+     */
+    public void orderManagers(int managedId, List<Integer> managerIds) {
+        query("""
+                UPDATE member_manager mm
+                SET position = coalesce(
+                        (SELECT (ordered.place - 1)::int
+                         FROM unnest(:manager_ids) WITH ORDINALITY AS ordered(manager_id, place)
+                         WHERE ordered.manager_id = mm.manager_id),
+                        cardinality(:manager_ids) + mm.position)
+                WHERE mm.managed_id = :managed_id;""")
+                .single(call().bind("managed_id", managedId).bind("manager_ids", managerIds, PostgreSqlTypes.INTEGER))
+                .update();
     }
 
     public boolean removeManager(int managerId, int managedId) {

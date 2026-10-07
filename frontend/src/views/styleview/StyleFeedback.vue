@@ -20,9 +20,13 @@ import Popover from '@/components/feedback/Popover.vue'
 import SidePanel from '@/components/feedback/SidePanel.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
+import FloatingPanel from '@/components/feedback/FloatingPanel.vue'
+import TextInput from '@/components/input/text/TextInput.vue'
 
 const modalOpen = ref(false)
 const sidePanelOpen = ref(false)
+const floatingOpen = ref(false)
+const floatingText = ref('')
 </script>
 
 <template>
@@ -109,5 +113,15 @@ const sidePanelOpen = ref(false)
       </template>
       <MutedText size="sm">Closes on a press outside, on escape, or when focus leaves it.</MutedText>
     </Popover>
+  </section>
+
+  <section class="space-y-4">
+    <SectionHeader>Floating Panel</SectionHeader>
+    <FloatingPanel v-model:open="floatingOpen" class="inline-block" label="Floating Panel" role="dialog" align="start" panel-class="p-3 w-56">
+      <template #trigger="{triggerAttrs}">
+        <PrimaryButton v-bind="triggerAttrs" @click="floatingOpen = !floatingOpen">Open Floating Panel</PrimaryButton>
+      </template>
+      <TextInput v-model="floatingText" placeholder="Takes the focus inside a dialog too"/>
+    </FloatingPanel>
   </section>
 </template>

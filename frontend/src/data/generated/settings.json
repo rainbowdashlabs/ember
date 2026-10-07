@@ -634,4 +634,8 @@
   "configKey" : "mailImport.logRetentionDays",
   "env" : "MAIL_IMPORT_LOGRETENTIONDAYS",
   "default" : "365"
+}, {
+  "configKey" : "documents.defaultFontDir",
+  "env" : "DOCUMENTS_DEFAULTFONTDIR",
+  "default" : "data/default-font"
 } ]

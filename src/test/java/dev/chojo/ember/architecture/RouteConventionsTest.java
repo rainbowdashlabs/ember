@@ -17,6 +17,7 @@ import dev.chojo.ember.api.RegisteredRoutes;
 import dev.chojo.ember.api.RegisteredRoutes.Route;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.api.auth.StationFree;
 import dev.chojo.ember.feature.federation.contract.FederationContractCatalog;
@@ -142,7 +143,8 @@ class RouteConventionsTest {
      * missing control repeated nine times rather than nine mistakes.
      *
      * <p>Saying it can be done in any of the ways the codebase already uses: reading
-     * {@code session.stationId()}, calling a {@code RouteSupport.requireOwned*} helper or
+     * {@code session.stationId()}, handing {@code session.owner()} to a shared core that looks the row up
+     * by its owner, calling a {@code RouteSupport.requireOwned*} helper or
      * {@code EventVisibility.requireVisibleEvent}, which checks the station before the audience, going
      * through a {@code *Guards} class, or resolving the federation partner whose station scopes a
      * {@code /remote} lookup. A handler that does none of them, directly or through a method of its
@@ -377,6 +379,7 @@ class RouteConventionsTest {
                 && CALLER_READS.contains(name)
                 && call.getTarget().getRawParameterTypes().isEmpty()) return true;
         if (name.equals("guards")) return true;
+        if (name.equals("owner") && access.getTargetOwner().isEquivalentTo(StationSession.class)) return true;
         return access.getTargetOwner().getSimpleName().endsWith("Guards");
     }
 

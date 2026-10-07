@@ -103,6 +103,17 @@ describe('Modal', () => {
         expect(wrapper.emitted('update:modelValue')?.[0]).toEqual([false])
     })
 
+    /** Anything else that claims the escape, such as an open list inside the dialog, keeps it open. */
+    it('stays open when something else inside handled the escape', async () => {
+        const wrapper = await mountModal(true, '<input id="field">')
+        const field = document.getElementById('field')!
+        field.addEventListener('keydown', event => event.preventDefault())
+
+        press(field, 'Escape')
+
+        expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+    })
+
     /**
      * A screen reader announces the dialog by its title, which is the heading its content opens
      * with.

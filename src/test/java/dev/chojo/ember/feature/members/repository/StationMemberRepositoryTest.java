@@ -158,6 +158,45 @@ class StationMemberRepositoryTest extends RepositoryTestBase {
         assertEquals(memberId1, managers.getFirst().id());
     }
 
+    /**
+     * The guardians of several members are read in one go, in the order the member page sets, without one
+     * who left; a member without any is absent.
+     */
+    @Test
+    @Order(21)
+    void findManagersOfSeveralMembers() {
+        var elsewhere = stationRepo.create("Guardians Of Many Station");
+        var first = stationMemberRepo.create(
+                elsewhere.id(),
+                accountRepo.create("many-first@test.com", "Erste", "Person").id());
+        var second = stationMemberRepo.create(
+                elsewhere.id(),
+                accountRepo.create("many-second@test.com", "Zweite", "Person").id());
+        var left = stationMemberRepo.create(
+                elsewhere.id(),
+                accountRepo.create("many-left@test.com", "Weg", "Person").id());
+        var ward = stationMemberRepo.create(
+                elsewhere.id(),
+                accountRepo.create("many-ward@test.com", "Kind", "Eins").id());
+        var alone = stationMemberRepo.create(
+                elsewhere.id(),
+                accountRepo.create("many-alone@test.com", "Kind", "Zwei").id());
+        stationMemberRepo.addManager(first.id(), ward.id());
+        stationMemberRepo.addManager(second.id(), ward.id());
+        stationMemberRepo.addManager(left.id(), ward.id());
+        stationMemberRepo.orderManagers(ward.id(), List.of(second.id(), first.id(), left.id()));
+        stationMemberRepo.setFormer(left.id(), true);
+
+        var guardians = stationMemberRepo.findManagersOf(List.of(ward.id(), alone.id()));
+
+        assertEquals(
+                List.of(second.id(), first.id()),
+                guardians.get(ward.id()).stream().map(StationMember::id).toList());
+        assertFalse(guardians.containsKey(alone.id()));
+        assertTrue(stationMemberRepo.findManagersOf(List.of()).isEmpty());
+        stationRepo.delete(elsewhere.id());
+    }
+
     @Test
     @Order(19)
     void aGuardianWhoLeftIsNoLongerFoundAsOne() {

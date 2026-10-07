@@ -83,6 +83,20 @@ watch(
                     name="help-cluster-news" @navigate="close"/>
       <SidebarGroup :icon="['fas', 'calendar']" :label="t('clusterSidebar.events')" to="/helpcenter/cluster/events"
                     name="help-cluster-events" @navigate="close"/>
+      <SidebarGroup :icon="['fas', 'file-signature']" :label="t('clusterSidebar.documents')">
+        <SidebarLink :icon="['fas', 'file-signature']" name="help-cluster-document-templates"
+                     to="/helpcenter/cluster/templates" @navigate="close">
+          {{ t('clusterSidebar.documentTemplates') }}
+        </SidebarLink>
+        <SidebarLink :icon="['fas', 'font']" name="help-cluster-document-fonts"
+                     to="/helpcenter/cluster/fonts" @navigate="close">
+          {{ t('clusterSidebar.documentFonts') }}
+        </SidebarLink>
+        <SidebarLink :icon="['fas', 'image']" name="help-cluster-media"
+                     to="/helpcenter/cluster/media" @navigate="close">
+          {{ t('clusterSidebar.media') }}
+        </SidebarLink>
+      </SidebarGroup>
 
       <SidebarGroup :icon="['fas', 'boxes-stacked']" :label="t('clusterSidebar.inventory')">
         <SidebarLink :icon="['fas', 'boxes-stacked']" name="help-cluster-inventory"

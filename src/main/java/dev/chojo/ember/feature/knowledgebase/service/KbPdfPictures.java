@@ -9,6 +9,7 @@ import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -82,18 +83,38 @@ public class KbPdfPictures {
      * @return the rewritten body with the pictures it now points at
      */
     public Placed place(int stationId, String markdown) {
+        return place(stationId, markdown, "img-");
+    }
+
+    /**
+     * Places every picture of the station that the markdown shows, under names that start with the given
+     * prefix, so the pictures of several texts placed into one document do not take each other's names.
+     *
+     * @param stationId the station whose pictures may be placed
+     * @param markdown  the text
+     * @param prefix    what every picture's name starts with
+     * @return the rewritten text with the pictures it now points at
+     */
+    public Placed place(int stationId, String markdown, String prefix) {
+        if (!showsPictures(markdown)) return new Placed(markdown, Map.of());
         var stationUid = stationRepository.requireUid(stationId).toString();
         var namesByUrl = new LinkedHashMap<String, String>();
         var pictures = new LinkedHashMap<String, byte[]>();
         Function<String, String> localName = url -> namesByUrl.computeIfAbsent(url, u -> read(stationId, stationUid, u)
                 .map(picture -> {
-                    String local = "img-" + (pictures.size() + 1) + "." + picture.extension();
+                    String local = prefix + (pictures.size() + 1) + "." + picture.extension();
                     pictures.put(local, picture.data());
                     return local;
                 })
                 .orElse(u));
         String placed = rewriteSources(rewriteSources(markdown, MARKDOWN_IMAGE, localName), HTML_IMAGE, localName);
         return new Placed(placed, pictures);
+    }
+
+    /** Whether a text shows any picture, which spares a text without one every lookup. */
+    private static boolean showsPictures(String markdown) {
+        return MARKDOWN_IMAGE.matcher(markdown).find()
+                || HTML_IMAGE.matcher(markdown).find();
     }
 
     /**
@@ -111,7 +132,13 @@ public class KbPdfPictures {
         return out.toString();
     }
 
-    private record Picture(byte[] data, String extension) {}
+    /**
+     * A picture a PDF compiler can print.
+     *
+     * @param data      its bytes
+     * @param extension the file extension its type is printed under
+     */
+    public record Picture(byte[] data, String extension) {}
 
     private Optional<Picture> read(int stationId, String stationUid, String url) {
         try {
@@ -146,7 +173,14 @@ public class KbPdfPictures {
                 .flatMap(image -> printable(image.data(), image.contentType()));
     }
 
-    private static Optional<Picture> printable(byte[] data, String contentType) {
+    /**
+     * The picture as a PDF compiler prints it, or empty where its type is not one it prints.
+     *
+     * @param data        the picture's bytes
+     * @param contentType its media type, or null where it is not known
+     * @return the printable picture
+     */
+    public static Optional<Picture> printable(byte[] data, @Nullable String contentType) {
         return Optional.ofNullable(contentType)
                 .map(PRINTABLE_TYPES::get)
                 .map(extension -> new Picture(data, extension));

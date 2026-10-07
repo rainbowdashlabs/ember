@@ -351,6 +351,13 @@ export function useFieldsConfig(port: FieldsPort) {
     const birthDateField = computed(() =>
         allFields.value.find(f => f.fieldType === FieldType.BIRTH_DATE) ?? null)
 
+    /**
+     * The owner's gender field, which decides whether another may be added. The server also refuses one
+     * where the association already asks it, which this list does not show.
+     */
+    const genderField = computed(() =>
+        allFields.value.find(f => f.fieldType === FieldType.GENDER) ?? null)
+
     function select(fieldId: number | null) {
         selectedFieldId.value = fieldId
     }
@@ -661,6 +668,7 @@ export function useFieldsConfig(port: FieldsPort) {
         formFor,
         dateFields,
         birthDateField,
+        genderField,
         showFieldModal,
         editingField,
         loading,

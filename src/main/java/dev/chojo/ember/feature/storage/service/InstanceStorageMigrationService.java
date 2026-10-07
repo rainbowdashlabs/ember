@@ -118,6 +118,10 @@ public class InstanceStorageMigrationService {
             for (StorageCategory category : movable(StorageScope.Kind.STATION)) {
                 stats = stats.plus(copyCategory(source, target, scope, category, keys));
             }
+            var association = new StorageScope.Association(station.id(), station.uid());
+            for (StorageCategory category : movable(StorageScope.Kind.ASSOCIATION)) {
+                stats = stats.plus(copyCategory(source, target, association, category, keys));
+            }
         }
         for (StorageCategory category : movable(StorageScope.Kind.INSTANCE)) {
             stats = stats.plus(copyCategory(source, target, new StorageScope.Instance(), category, keys));

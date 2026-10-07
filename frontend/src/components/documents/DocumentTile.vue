@@ -39,7 +39,7 @@ const icon = computed(() => fileKindIcon(props.document.mimeType))
       @click="emit('open', props.document)"
   >
     <div class="aspect-[4/3] bg-bg-light-accent/40 dark:bg-bg-dark-accent/40 flex items-center justify-center overflow-hidden">
-      <img v-if="props.thumbnail" :src="props.thumbnail" :alt="props.document.title" class="h-full w-full object-cover"/>
+      <img v-if="props.thumbnail" :src="props.thumbnail" :alt="props.document.title" class="h-full w-full object-cover object-top"/>
       <font-awesome-icon v-else :icon="icon" class="h-10 w-10 text-(--text-muted)"/>
     </div>
     <div class="p-3 space-y-1">

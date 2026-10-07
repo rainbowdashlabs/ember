@@ -4,6 +4,9 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {
+    GENDER_ALREADY_ASKED,
+    GENDER_NOT_FROM_CHOICE,
+    PRONOUN_TOO_LONG,
     EXPIRY_OUT_OF_RANGE,
     PICTURE_NOT_HERE,
     STATION_NOT_HERE,
@@ -261,4 +264,7 @@ export default {
     'M-208': 'Dieser Namenswunsch ist nicht mehr offen, vielleicht wurde schon darüber entschieden',
     'M-209': 'Es wartet kein Namenswunsch von dir',
     'M-210': 'Die Begründung ist zu lang',
+    'M-211': GENDER_ALREADY_ASKED,
+    'M-212': GENDER_NOT_FROM_CHOICE,
+    'M-213': PRONOUN_TOO_LONG,
 }

@@ -4,10 +4,11 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import IconButton from '@/components/button/IconButton.vue'
 import DropdownMenuItem from '@/components/button/DropdownMenuItem.vue'
-import {useEditorActionsMenu} from '@/components/content/blockeditor/useEditorActionsMenu'
+import Popover from '@/components/feedback/Popover.vue'
 import QuestionSettings from './QuestionSettings.vue'
 import type {QuestionDraft} from '../types'
 import type {PageChoice} from '../pageChoice'
@@ -44,12 +45,7 @@ const emit = defineEmits<{
 
 const {t} = useI18n()
 
-const {open, rootRef, toggle, close} = useEditorActionsMenu()
-
-function take(action: () => void) {
-  action()
-  close()
-}
+const open = ref(false)
 
 /** Opens the menu from outside, which is what a chip under the title does. */
 function show(event: MouseEvent) {
@@ -61,31 +57,33 @@ defineExpose({show})
 </script>
 
 <template>
-  <div ref="rootRef" class="relative">
-    <IconButton :icon="['fas', 'ellipsis']" :label="t('forms.questionMenu.open')" data-testid="question-menu-trigger"
-                class="text-(--text-muted) hover:text-(--text)" @click="toggle"/>
-    <div v-if="open" data-testid="question-menu"
-         class="absolute right-0 top-full z-20 mt-1 w-80 max-w-[calc(100vw-2rem)] rounded-theme border border-(--border) bg-(--bg) py-1 shadow-lg">
+  <Popover v-model:open="open" :label="t('forms.questionMenu.open')" role="dialog" test-id="question-menu"
+           panel-class="w-80 max-w-[calc(100vw-2rem)] py-1">
+    <template #trigger="{toggle, triggerAttrs}">
+      <IconButton :icon="['fas', 'ellipsis']" :label="t('forms.questionMenu.open')" data-testid="question-menu-trigger"
+                  class="text-(--text-muted) hover:text-(--text)" v-bind="triggerAttrs" @click.stop="toggle"/>
+    </template>
+    <template #default="{close}">
       <QuestionSettings v-model:question="question"/>
-      <DropdownMenuItem v-if="!describing" :icon="['fas', 'align-left']" @click="take(() => emit('describe'))">
+      <DropdownMenuItem v-if="!describing" :icon="['fas', 'align-left']" @click="emit('describe'); close()">
         {{ t('forms.questionMenu.describe') }}
       </DropdownMenuItem>
-      <DropdownMenuItem :icon="['fas', 'copy']" data-testid="question-duplicate" @click="take(() => emit('duplicate'))">
+      <DropdownMenuItem :icon="['fas', 'copy']" data-testid="question-duplicate" @click="emit('duplicate'); close()">
         {{ t('forms.questionMenu.duplicate') }}
       </DropdownMenuItem>
-      <DropdownMenuItem :icon="['fas', 'chevron-up']" :disabled="first" @click="take(() => emit('move', -1))">
+      <DropdownMenuItem :icon="['fas', 'chevron-up']" :disabled="first" @click="emit('move', -1); close()">
         {{ t('forms.questionMenu.moveUp') }}
       </DropdownMenuItem>
-      <DropdownMenuItem :icon="['fas', 'chevron-down']" :disabled="last" @click="take(() => emit('move', 1))">
+      <DropdownMenuItem :icon="['fas', 'chevron-down']" :disabled="last" @click="emit('move', 1); close()">
         {{ t('forms.questionMenu.moveDown') }}
       </DropdownMenuItem>
       <DropdownMenuItem v-for="page in otherPages" :key="page.index" :icon="['fas', 'arrow-right']"
-                        @click="take(() => emit('moveToPage', page.index))">
+                        @click="emit('moveToPage', page.index); close()">
         {{ t('forms.questionMenu.moveToPage', {page: page.label}) }}
       </DropdownMenuItem>
-      <DropdownMenuItem :icon="['fas', 'trash']" destructive @click="take(() => emit('remove'))">
+      <DropdownMenuItem :icon="['fas', 'trash']" destructive @click="emit('remove'); close()">
         {{ t('forms.questionMenu.remove') }}
       </DropdownMenuItem>
-    </div>
-  </div>
+    </template>
+  </Popover>
 </template>

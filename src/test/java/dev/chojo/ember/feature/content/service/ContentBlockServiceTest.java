@@ -5,11 +5,17 @@
  */
 package dev.chojo.ember.feature.content.service;
 
+import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.api.refusal.PageRefusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.content.entity.CellConfig;
 import dev.chojo.ember.feature.content.entity.CellContentType;
+import dev.chojo.ember.feature.content.entity.GuardianCondition;
+import dev.chojo.ember.feature.generator.entity.SignatureRole;
+import dev.chojo.ember.feature.restriction.RestrictionAudience;
+import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -107,6 +113,86 @@ class ContentBlockServiceTest extends RepositoryTestBase {
                     ContentBlockService.Scope.ARTICLE));
         } finally {
             blocks.delete(container.id());
+        }
+    }
+
+    @Test
+    void aLetterTakesTextPicturesAndStackedBlocksOnly() {
+        var nestedText = CellConfig.parse(
+                CellContentType.NESTED_ROWS,
+                CellConfig.MAPPER.readTree("{\"rows\":[{\"cells\":[{\"contentType\":\"MARKDOWN\"}]}]}"));
+        assertDoesNotThrow(() -> blocks.requireFits(
+                station.id(),
+                List.of(
+                        row(CellContentType.MARKDOWN, "Hallo", CellConfig.EMPTY),
+                        row(CellContentType.IMAGE, "logo", CellContentType.IMAGE.emptyConfig()),
+                        row(CellContentType.EMPTY, "", CellConfig.EMPTY),
+                        row(CellContentType.NESTED_ROWS, "", nestedText)),
+                ContentBlockService.Scope.LETTER));
+
+        var video = assertThrows(
+                RefusalResponse.class,
+                () -> blocks.requireFits(
+                        station.id(),
+                        List.of(row(CellContentType.VIDEO, "https://example.org", CellConfig.EMPTY)),
+                        ContentBlockService.Scope.LETTER));
+        assertEquals(DocumentRefusal.DOCUMENT_TEMPLATE_BLOCK_NOT_TAKEN, video.refusal());
+
+        var nestedMap = CellConfig.parse(
+                CellContentType.NESTED_ROWS,
+                CellConfig.MAPPER.readTree("{\"rows\":[{\"cells\":[{\"contentType\":\"MAP\"}]}]}"));
+        assertThrows(
+                RefusalResponse.class,
+                () -> blocks.requireFits(
+                        station.id(),
+                        List.of(row(CellContentType.NESTED_ROWS, "", nestedMap)),
+                        ContentBlockService.Scope.LETTER),
+                "a block a letter does not print is refused one level down as well");
+    }
+
+    @Test
+    void rowsKeptOutsideAContainerCarryWhoEachBlockIsFor() {
+        var audience = new RestrictionAudience(
+                List.of(StationUserType.MEMBER), List.of(), List.of(), List.of(), RestrictionMode.AND);
+        var rows = ContentBlockService.rowsOf(List.of(new ContentBlockService.RowData(
+                3,
+                List.of(new ContentBlockService.CellData(
+                        1,
+                        40.0,
+                        CellContentType.MARKDOWN,
+                        "Nur Mitglieder",
+                        CellConfig.EMPTY,
+                        audience,
+                        GuardianCondition.NO_SECOND_GUARDIAN)),
+                true)));
+
+        var cell = rows.getFirst().cells().getFirst();
+        assertEquals(3, rows.getFirst().sortOrder());
+        assertTrue(rows.getFirst().columnLines());
+        assertEquals(40.0, cell.widthPercent());
+        assertEquals("Nur Mitglieder", cell.content());
+        assertEquals(audience, cell.restriction());
+        assertEquals(GuardianCondition.NO_SECOND_GUARDIAN, cell.guardianCondition());
+    }
+
+    /** A signature line is printed only, so only a letter holds one, and a letter holds lines and gaps too. */
+    @Test
+    void aSignatureLineIsForLettersOnly() {
+        var signature = new CellConfig.SignatureConfig(SignatureRole.ISSUER);
+        assertDoesNotThrow(() -> blocks.requireFits(
+                station.id(),
+                List.of(
+                        row(CellContentType.SIGNATURE, "", signature),
+                        row(CellContentType.DIVIDER, "", new CellConfig.DividerConfig("Termine")),
+                        row(CellContentType.SPACER, "", new CellConfig.SpacerConfig(20))),
+                ContentBlockService.Scope.LETTER));
+
+        for (var scope : List.of(ContentBlockService.Scope.PAGE, ContentBlockService.Scope.ARTICLE)) {
+            var refused = assertThrows(
+                    RefusalResponse.class,
+                    () -> blocks.requireFits(
+                            station.id(), List.of(row(CellContentType.SIGNATURE, "", signature)), scope));
+            assertEquals(PageRefusal.CONTENT_BLOCK_ONLY_IN_LETTERS, refused.refusal());
         }
     }
 

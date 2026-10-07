@@ -21,6 +21,12 @@ import javax.imageio.ImageIO;
  * else has none.
  */
 public final class FilePicture {
+    /**
+     * How finely the first page of a PDF is drawn for its picture. An A4 page comes out about 1240
+     * pixels wide, enough for a tile on a dense screen to show its text sharp.
+     */
+    public static final int PAGE_DPI = 150;
+
     private static final String PDF = "application/pdf";
 
     private FilePicture() {}
@@ -33,13 +39,13 @@ public final class FilePicture {
     /**
      * The picture of a file as image bytes.
      *
-     * @param dpi how finely a PDF page is drawn
-     * @return the file itself for an image, its first page as a PNG for a PDF, and empty otherwise
+     * @return the file itself for an image, its first page drawn at {@link #PAGE_DPI} as a PNG for a PDF,
+     *     and empty otherwise
      */
-    public static Optional<byte[]> of(@Nullable String mimeType, byte[] data, int dpi) throws IOException {
+    public static Optional<byte[]> of(@Nullable String mimeType, byte[] data) throws IOException {
         if (mimeType != null && mimeType.startsWith("image/")) return Optional.of(data);
         if (!PDF.equals(mimeType)) return Optional.empty();
-        var page = firstPage(data, dpi);
+        var page = firstPage(data, PAGE_DPI);
         if (page == null) return Optional.empty();
         var out = new ByteArrayOutputStream();
         ImageIO.write(page, "png", out);

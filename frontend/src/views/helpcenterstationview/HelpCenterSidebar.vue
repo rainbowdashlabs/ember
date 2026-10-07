@@ -12,9 +12,11 @@ import SidebarExpandableLink from '@/components/navigation/SidebarExpandableLink
 import BaseButton from '@/components/button/BaseButton.vue'
 import SearchInput from '@/components/input/text/SearchInput.vue'
 import MembersSidebarGroup from '@/views/helpcenterstationview/MembersSidebarGroup.vue'
+import DocumentsSidebarGroup from '@/views/helpcenterstationview/DocumentsSidebarGroup.vue'
 import InventorySidebarGroup from '@/views/helpcenterstationview/InventorySidebarGroup.vue'
 import ModuleSidebarGroups from '@/views/helpcenterstationview/ModuleSidebarGroups.vue'
 import {useHelpSearch} from '@/composables/useHelpSearch'
+import {escapeHtml} from '@/util/html'
 import {STEP_ORDER} from '@/views/stationview/setup/steps'
 
 /**
@@ -46,10 +48,6 @@ function highlightSnippet(result: (typeof searchResults.value)[number]): string 
   const match = escapeHtml(s.substring(result.matchStart, result.matchEnd))
   const after = escapeHtml(s.substring(result.matchEnd))
   return `${before}<mark class="bg-amber-300 dark:bg-amber-600 text-inherit rounded-xs px-0.5">${match}</mark>${after}`
-}
-
-function escapeHtml(text: string): string {
-  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
 </script>
 
@@ -224,6 +222,8 @@ function escapeHtml(text: string): string {
     </SidebarGroup>
 
     <MembersSidebarGroup :close="close"/>
+
+    <DocumentsSidebarGroup :close="close"/>
 
     <InventorySidebarGroup :close="close"/>
 

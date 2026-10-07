@@ -50,8 +50,13 @@ public enum ImageProfile {
         return switch (category) {
             case IMAGE_AVATAR, IMAGE_STATION_LOGO, IMAGE_LOGO_FRAGMENT, IMAGE_KB_ICON, IMAGE_DISCOVERY_LOGO ->
                 Optional.of(ICON_SET);
-            case MEDIA_IMAGES, IMAGE_LOST_AND_FOUND, IMAGE_QUIZ_QUESTION, IMAGE_KB_IMAGE, IMAGE_KB_FILE_PICTURE ->
-                Optional.of(CONTENT);
+            case MEDIA_IMAGES,
+                    IMAGE_LOST_AND_FOUND,
+                    IMAGE_QUIZ_QUESTION,
+                    IMAGE_KB_IMAGE,
+                    IMAGE_KB_FILE_PICTURE,
+                    IMAGE_DOCUMENT_TEMPLATE_PICTURE,
+                    IMAGE_ASSOCIATION_DOCUMENT_TEMPLATE_PICTURE -> Optional.of(CONTENT);
             case MEDIA_FILES, INSTANCE_MEDIA_FILES -> Optional.of(LIBRARY);
             default -> Optional.empty();
         };

@@ -17,7 +17,8 @@ import {computed} from 'vue'
 
 /**
  * A member's avatar and name, with an optional second line (such as the address) that stands under
- * the name rather than under the avatar, so it lines up whatever size the picture has.
+ * the name rather than under the avatar, so it lines up whatever size the picture has. The name keeps
+ * to one line, cut short with an ellipsis only where the space runs out.
  *
  * <p>The avatar opens the member's card: on a tap, and with a mouse also when the pointer rests on
  * the avatar or the name. `card` turns that off where the name sits inside something that is itself
@@ -56,15 +57,15 @@ const opensCard = computed(() =>
       :enabled="opensCard"
       :identity="identity ?? {}"
       :name="displayName"
-      class="inline-flex items-center gap-1.5"
+      class="inline-flex min-w-0 max-w-full items-center gap-1.5"
   >
     <BareButton v-if="opensCard" v-bind="triggerAttrs" class="shrink-0 rounded-full" data-testid="member-card-trigger" @click="toggle">
       <UserAvatar :identity="identity" :name="displayName" :size="size"/>
     </BareButton>
     <UserAvatar v-else :identity="identity" :name="displayName" :size="size"/>
     <span class="inline-flex min-w-0 flex-col">
-      <span class="inline-flex items-center gap-1.5">
-        <span data-testid="member-name" :style="identity?.nameColor ? { color: identity.nameColor } : {}"><slot>{{ displayName }}</slot></span>
+      <span class="inline-flex min-w-0 items-center gap-1.5">
+        <span data-testid="member-name" class="truncate" :style="identity?.nameColor ? { color: identity.nameColor } : {}"><slot>{{ displayName }}</slot></span>
         <DisplayTagBadge v-if="identity?.displayTag" :tag="identity.displayTag"/>
         <StationBadge v-if="isExternal && identity?.name" :station-name="identity?.stationName ?? ''" />
       </span>

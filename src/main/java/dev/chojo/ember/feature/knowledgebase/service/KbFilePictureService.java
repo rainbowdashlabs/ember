@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.knowledgebase.service;
 
+import dev.chojo.ember.feature.knowledgebase.repository.KnowledgeBaseRepository;
 import dev.chojo.ember.feature.media.entity.MediaContent;
 import dev.chojo.ember.feature.media.image.ImageFormat;
 import dev.chojo.ember.feature.media.image.ImageProfile;
@@ -12,6 +13,7 @@ import dev.chojo.ember.feature.media.service.ImageVariants;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageScope;
+import dev.chojo.ember.util.ByteSignature;
 import dev.chojo.ember.util.FilePicture;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -19,8 +21,6 @@ import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
@@ -44,9 +44,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class KbFilePictureService {
     private static final Logger log = LoggerFactory.getLogger(KbFilePictureService.class);
     private static final StorageCategory CATEGORY = StorageCategory.IMAGE_KB_FILE_PICTURE;
-    private static final int PDF_DPI = 96;
     private static final String PDF_TYPE = "application/pdf";
-    private static final byte[] PDF_SIGNATURE = "%PDF-".getBytes(StandardCharsets.US_ASCII);
     private static final Set<String> UNTYPED = Set.of("application/octet-stream", "binary/octet-stream");
 
     private static final ImageProfile PROFILE = ImageProfile.CONTENT;
@@ -54,13 +52,19 @@ public class KbFilePictureService {
     private final ImageVariants images;
     private final KbFileStorageService files;
     private final StationRepository stationRepository;
+    private final KnowledgeBaseRepository repository;
     private final Set<String> unmakeable = ConcurrentHashMap.newKeySet();
 
     @Inject
-    public KbFilePictureService(ImageVariants images, KbFileStorageService files, StationRepository stationRepository) {
+    public KbFilePictureService(
+            ImageVariants images,
+            KbFileStorageService files,
+            StationRepository stationRepository,
+            KnowledgeBaseRepository repository) {
         this.images = images;
         this.files = files;
         this.stationRepository = stationRepository;
+        this.repository = repository;
     }
 
     /**
@@ -76,7 +80,7 @@ public class KbFilePictureService {
             return;
         }
         try {
-            var picture = FilePicture.of(type, data, PDF_DPI);
+            var picture = FilePicture.of(type, data);
             if (picture.isEmpty()) {
                 unmakeable.add(memo(stationId, fileId));
                 return;
@@ -115,7 +119,7 @@ public class KbFilePictureService {
         if (!isUntyped(storedType)) return storedType;
         var image = ImageFormat.sniff(data);
         if (image.isPresent()) return image.get().mimeType();
-        return startsWith(data, PDF_SIGNATURE) ? PDF_TYPE : storedType;
+        return ByteSignature.startsWith(data, "%PDF-") ? PDF_TYPE : storedType;
     }
 
     /** Whether a file of this stored type may turn out to have a picture once its bytes are read. */
@@ -127,9 +131,24 @@ public class KbFilePictureService {
         return storedType == null || storedType.isBlank() || UNTYPED.contains(storedType.toLowerCase(Locale.ROOT));
     }
 
-    private static boolean startsWith(byte[] data, byte[] prefix) {
-        if (data.length < prefix.length) return false;
-        return Arrays.equals(data, 0, prefix.length, prefix, 0, prefix.length);
+    /**
+     * Draws the picture of every wiki file that has pages again, for pictures drawn before the page
+     * was drawn as finely as it is now. A file that cannot be read is logged and skipped.
+     *
+     * @return how many files were read and drawn again
+     */
+    public int redrawPages() {
+        int redrawn = 0;
+        for (var file : repository.findPagedFiles()) {
+            var stored = files.read(file.stationId(), file.fileId());
+            if (stored.isEmpty()) {
+                log.warn("Wiki file {} could not be read back to draw its picture again", file.fileId());
+                continue;
+            }
+            make(file.stationId(), file.fileId(), file.mimeType(), stored.get().data());
+            redrawn++;
+        }
+        return redrawn;
     }
 
     /** Removes every size of a file's picture. */

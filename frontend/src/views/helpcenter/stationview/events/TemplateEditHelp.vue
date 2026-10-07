@@ -96,6 +96,10 @@ const noop = () => undefined
       <p>{{ t('helpCenter.eventTemplateEdit.fieldOrderText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.eventTemplateEdit.documentsTitle')">
+      <p>{{ t('helpCenter.eventTemplateEdit.documentsText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.eventTemplateEdit.backTitle')">
       <p>{{ t('helpCenter.eventTemplateEdit.backText') }}</p>
     </HelpSection>

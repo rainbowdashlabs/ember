@@ -7,7 +7,7 @@ let
   }) {};
 in
 pkgs.mkShell {
-  packages = with pkgs; [jdk25 python314 pipenv nodejs_24 typst pandoc libreoffice-still libwebp qpdf];
+  packages = with pkgs; [jdk25 python314 pipenv nodejs_24 typst pandoc libreoffice-still libwebp qpdf unzip];
 
   # Playwright downloads its own browsers and links them against a Debian-shaped system, which is
   # not what this one is. `playwright install --with-deps` therefore asks for sudo and fails. The

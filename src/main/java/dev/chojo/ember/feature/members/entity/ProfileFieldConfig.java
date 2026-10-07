@@ -5,11 +5,16 @@
  */
 package dev.chojo.ember.feature.members.entity;
 
+import dev.chojo.ember.feature.generator.entity.DocumentLanguage;
 import dev.chojo.ember.feature.question.QuestionConfigs;
 import dev.chojo.ember.feature.question.QuestionSettings;
 import org.jspecify.annotations.Nullable;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 
 /**
  * What a profile field's question is made of, parsed from JSON.
@@ -47,6 +52,9 @@ import java.util.List;
  *                         new date is entered; nothing means once
  * @param remindMember     whether the member, and whoever looks after them, is reminded
  * @param remindManagement whether the member management is reminded
+ * @param pronouns         for a gender field, the pronouns each answer stands for, keyed by the answer and
+ *                         then by language code ({@link DocumentLanguage#code()}). An answer or a language without
+ *                         pronouns uses the member's first name.
  */
 public record ProfileFieldConfig(
         @Nullable String description,
@@ -63,9 +71,69 @@ public record ProfileFieldConfig(
         @Nullable List<Integer> reminderDays,
         @Nullable Integer repeatEveryDays,
         @Nullable Boolean remindMember,
-        @Nullable Boolean remindManagement) {
+        @Nullable Boolean remindManagement,
+        @Nullable Map<String, Map<String, PronounSet>> pronouns) {
     private static final ProfileFieldConfig EMPTY = new ProfileFieldConfig(
-            null, false, false, null, null, false, null, null, null, null, null, null, null, null, null);
+            null, false, false, null, null, false, null, null, null, null, null, null, null, null, null, null);
+
+    /**
+     * The pronouns one answer of a gender field stands for in one language.
+     *
+     * @param answer   the answer as it is stored, or null where there is none
+     * @param language the language of the document
+     * @return the pronouns, or empty where the member's first name stands instead
+     */
+    public Optional<PronounSet> pronounsOf(@Nullable String answer, DocumentLanguage language) {
+        if (answer == null || pronouns == null) return Optional.empty();
+        return Optional.ofNullable(pronouns.get(answer))
+                .map(byLanguage -> byLanguage.get(language.code()))
+                .filter(set -> !set.saysNothing());
+    }
+
+    /**
+     * The settings as a gender field keeps them: pronouns only for the answers it still offers, none
+     * in a language that names no word, and none for an answer that names a word in no language, which
+     * all mean the member's first name.
+     *
+     * @return the settings with their pronouns so pruned, or as they are where they name none
+     */
+    public ProfileFieldConfig withPronounsOfItsAnswers() {
+        if (pronouns == null) return this;
+        var kept = new LinkedHashMap<String, Map<String, PronounSet>>();
+        for (String answer : Objects.requireNonNullElse(options, List.<String>of())) {
+            var spoken = new LinkedHashMap<String, PronounSet>();
+            Objects.requireNonNullElse(pronouns.get(answer), Map.<String, PronounSet>of())
+                    .forEach((language, words) -> {
+                        if (words != null && !words.saysNothing()) spoken.put(language, words);
+                    });
+            if (!spoken.isEmpty()) kept.put(answer, spoken);
+        }
+        return withPronouns(kept);
+    }
+
+    /**
+     * @param pronouns the pronouns of each answer, keyed by the answer and then by language code
+     * @return the same settings with these pronouns
+     */
+    public ProfileFieldConfig withPronouns(Map<String, Map<String, PronounSet>> pronouns) {
+        return new ProfileFieldConfig(
+                description,
+                notifyOnChange,
+                overview,
+                options,
+                defaultValue,
+                computed,
+                sourceField,
+                sourceFieldId,
+                ageMode,
+                showAge,
+                warnFromDays,
+                reminderDays,
+                repeatEveryDays,
+                remindMember,
+                remindManagement,
+                pronouns);
+    }
 
     /**
      * The settings of a field that names none.

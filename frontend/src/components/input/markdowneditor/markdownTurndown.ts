@@ -4,6 +4,9 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import TurndownService from 'turndown'
+import {extendTurndownWithBlockAlign} from './blockAlign'
+import {cssColorHex} from '@/util/contrastColor'
+import {extendTurndownWithTextSize} from './textSize'
 
 /**
  * Converts the editor's HTML back into the Markdown that is stored.
@@ -11,13 +14,16 @@ import TurndownService from 'turndown'
  * Everything Markdown itself can express is written as Markdown; the rest is kept as the inline
  * HTML the renderer already accepts, so a formatting choice the user made survives a round trip
  * instead of being silently dropped. Highlights are the one hybrid: the default yellow becomes
- * `==text==`, any other colour has to stay HTML to carry the colour.
+ * `==text==`, any other colour has to stay HTML to carry the colour. Colours are written as hex
+ * codes, whatever form the browser reads them back in. Inline code keeps its spaces as written,
+ * several in a row included, the way a code block does.
  */
 export function createMarkdownTurndown(): TurndownService {
   const turndown = new TurndownService({
     headingStyle: 'atx',
     codeBlockStyle: 'fenced',
     bulletListMarker: '-',
+    preformattedCode: true,
   })
 
   turndown.addRule('strikethrough', {filter: ['del', 's'], replacement: (c) => `~~${c}~~`})
@@ -27,7 +33,8 @@ export function createMarkdownTurndown(): TurndownService {
     filter: ['mark'],
     replacement: (c, node) => {
       const el = node as HTMLElement
-      const color = el.getAttribute('data-color') || el.style.backgroundColor
+      const written = el.getAttribute('data-color') || el.style.backgroundColor
+      const color = cssColorHex(written) ?? written
       if (color && color !== '#fef08a') {
         return `<mark data-color="${color}" style="background-color: ${color}">${c}</mark>`
       }
@@ -38,7 +45,8 @@ export function createMarkdownTurndown(): TurndownService {
   turndown.addRule('coloredText', {
     filter: (node) => node.nodeName === 'SPAN' && !!(node as HTMLElement).style.color,
     replacement: (c, node) => {
-      const color = (node as HTMLElement).style.color
+      const written = (node as HTMLElement).style.color
+      const color = cssColorHex(written) ?? written
       return color ? `<span style="color: ${color}">${c}</span>` : c
     },
   })
@@ -80,6 +88,9 @@ export function createMarkdownTurndown(): TurndownService {
       return `\n<iframe src="${src}" frameborder="0" allowfullscreen></iframe>\n`
     },
   })
+
+  extendTurndownWithBlockAlign(turndown)
+  extendTurndownWithTextSize(turndown)
 
   return turndown
 }

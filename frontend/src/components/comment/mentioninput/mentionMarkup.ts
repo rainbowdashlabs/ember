@@ -4,14 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import type {MemberCompletion} from '@/api/generated/schema'
-
-function escapeHtml(value: string): string {
-  return value
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-}
+import {escapeHtml} from '@/util/html'
 
 /**
  * The name a mention chip shows: the member's current name where they are known, else the one stored

@@ -13,10 +13,18 @@ import CommentSection from '@/components/comment/CommentSection.vue'
 import NoteEditor from '@/components/comment/NoteEditor.vue'
 import EventGeneralInfoPanel from './EventGeneralInfoPanel.vue'
 import EventAttachmentsPanel from './EventAttachmentsPanel.vue'
+import DocumentsToBringPanel from './DocumentsToBringPanel.vue'
 import {isRecurringEvent} from '@/api/events'
 import {eventCommentSource} from '@/api/comments'
-import {StationPermission, type AbsentMemberResponse, type AppointmentField, type StationEvent} from '@/api/generated/schema'
+import {
+  StationModule,
+  StationPermission,
+  type AbsentMemberResponse,
+  type AppointmentField,
+  type StationEvent,
+} from '@/api/generated/schema'
 import type {MemberLike} from '@/components/input/select/memberOption'
+import {useSession} from '@/composables/useSession'
 
 const props = defineProps<{
   event: StationEvent
@@ -44,6 +52,9 @@ const {t} = useI18n()
 
 const commentSource = computed(() => eventCommentSource(props.eventId, props.focusedDate))
 
+const {isModuleEnabled} = useSession()
+const keepsDocuments = computed(() => isModuleEnabled(StationModule.DOCUMENTS))
+
 /**
  * Whoever writes the event, which is more than whoever runs it.
  *
@@ -70,6 +81,8 @@ const canEditEvent = computed(() => props.canManageEvents || props.hasPermission
     />
 
     <EventAttachmentsPanel :event-id="eventId"/>
+
+    <DocumentsToBringPanel v-if="keepsDocuments && effectiveDate" :event-id="eventId" :date="effectiveDate"/>
 
     <NeutralContainer v-if="isRecurringEvent(event.eventType) && (canManageEvents || canManageAttendance)" class="space-y-3">
       <SubHeader>{{ t('eventDetail.absentMembers') }}</SubHeader>

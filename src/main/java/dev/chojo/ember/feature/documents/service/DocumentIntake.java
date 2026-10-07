@@ -50,9 +50,21 @@ public class DocumentIntake {
      * @return the file as it arrived
      */
     public Upload read(int stationId, @Nullable UploadedFile file, Refusals refusals) {
+        return readAtMost(quota.perFileLimitBytes(stationId), file, refusals);
+    }
+
+    /**
+     * Reads an upload, refusing one that is missing, larger than the limit given, or cannot be read, for
+     * a file whose limit is not the station's. The size is checked before the bytes are.
+     *
+     * @param maxBytes the largest file taken
+     * @param file     the uploaded file, or null where the request carried none
+     * @param refusals what to refuse with
+     * @return the file as it arrived
+     */
+    public static Upload readAtMost(long maxBytes, @Nullable UploadedFile file, Refusals refusals) {
         if (file == null) throw refusals.missing().raise();
-        if (file.size() > quota.perFileLimitBytes(stationId))
-            throw refusals.tooLarge().raise();
+        if (file.size() > maxBytes) throw refusals.tooLarge().raise();
         try (var in = file.content()) {
             return new Upload(file.filename(), file.contentType(), in.readAllBytes());
         } catch (IOException e) {

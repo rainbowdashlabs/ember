@@ -14,7 +14,7 @@ import ProfileTab from './ProfileTab.vue'
 import PermissionsTab from './PermissionsTab.vue'
 import MemberRelationsPanel from '../relations/MemberRelationsPanel.vue'
 import InventoryTab from './InventoryTab.vue'
-import MemberDocumentsPanel from '@/components/documents/MemberDocumentsPanel.vue'
+import DocumentsTab from './DocumentsTab.vue'
 import type { ChangeEntry } from '@/api/profileFieldChanges'
 import type { ProfileQuestion } from '@/api/profileFields'
 import type {
@@ -61,6 +61,7 @@ defineEmits<{
   'reload-changes': []
   'link-manager': [id: number]
   'remove-manager': [id: number]
+  'reorder-managers': [fromIndex: number, toIndex: number]
   'create-manager': [data: { firstName: string; lastName: string; email: string }]
   'link-managed': [id: number]
   'remove-managed': [id: number]
@@ -105,6 +106,7 @@ const activeTab = ref('profile')
     :get-manager-fields="getManagerFields" :get-manager-field-value="getManagerFieldValue"
     @link-manager="$emit('link-manager', $event)"
     @remove-manager="$emit('remove-manager', $event)"
+    @reorder-managers="(from, to) => $emit('reorder-managers', from, to)"
     @create-manager="$emit('create-manager', $event)"
     @link-managed="$emit('link-managed', $event)"
     @remove-managed="$emit('remove-managed', $event)"
@@ -126,10 +128,9 @@ const activeTab = ref('profile')
     @hand-out-new="(inventoryId, sizeId) => $emit('hand-out-new', inventoryId, sizeId)"
   />
 
-  <MemberDocumentsPanel
+  <DocumentsTab
     v-if="activeTab === 'documents'"
     :member-id="memberId"
-    :can-upload="canEdit"
     :can-edit="canEdit"
     :all-members="allMembers"
   />

@@ -108,6 +108,13 @@ import dev.chojo.ember.feature.federation.service.LendingService;
 import dev.chojo.ember.feature.feed.repository.FeedMetricsRepository;
 import dev.chojo.ember.feature.feed.repository.FeedTokenRepository;
 import dev.chojo.ember.feature.form.repository.FormRepository;
+import dev.chojo.ember.feature.generator.repository.DocumentFontRepository;
+import dev.chojo.ember.feature.generator.service.PlaceholderCatalogue;
+import dev.chojo.ember.feature.generator.service.PlaceholderResolver;
+import dev.chojo.ember.feature.generator.service.font.DefaultFont;
+import dev.chojo.ember.feature.generator.service.font.FontFileCache;
+import dev.chojo.ember.feature.generator.service.font.FontLibrary;
+import dev.chojo.ember.feature.generator.service.store.OwnerStores;
 import dev.chojo.ember.feature.insights.repository.PageHitRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryArtRepository;
 import dev.chojo.ember.feature.inventory.repository.InventoryCheckRepository;
@@ -159,6 +166,7 @@ import dev.chojo.ember.feature.members.repository.SavedFilterRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.repository.UserSettingsRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
+import dev.chojo.ember.feature.members.service.GenderFields;
 import dev.chojo.ember.feature.members.service.GroupMembershipService;
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
@@ -229,6 +237,7 @@ import org.mockito.Mockito;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 import java.nio.file.Path;
+import java.time.Clock;
 import java.util.Base64;
 import java.util.Map;
 import java.util.Optional;
@@ -429,6 +438,64 @@ public abstract class RepositoryTestBase {
     }
 
     /**
+     * The fonts documents print with, over the given storage and the shared repositories.
+     *
+     * @param storage where the font files are
+     * @return the library
+     */
+    protected static FontLibrary newFontLibrary(StorageService storage) {
+        return newFontLibrary(storage, DefaultFont.absent());
+    }
+
+    /**
+     * The fonts the documents of every owner reach, printing what names no family in a default font.
+     */
+    protected static FontLibrary newFontLibrary(StorageService storage, DefaultFont defaultFont) {
+        return new FontLibrary(
+                new DocumentFontRepository(),
+                newOwnerStores(),
+                storage,
+                defaultFont,
+                new FontFileCache(storageRoot.resolve("font-cache")));
+    }
+
+    /**
+     * Where the owners of templates keep their files and pictures, over the shared repositories.
+     *
+     * @return the stores
+     */
+    protected static OwnerStores newOwnerStores() {
+        return new OwnerStores(clusterService, stationRepo);
+    }
+
+    /**
+     * What templates of a station or an association can name, over the shared repositories.
+     *
+     * @return the catalogue
+     */
+    protected static PlaceholderCatalogue newPlaceholderCatalogue() {
+        return new PlaceholderCatalogue(profileFieldRepo, clusterProfileFieldService, stationRepo, newOwnerStores());
+    }
+
+    /**
+     * Fills placeholders from the shared repositories, with today read from the given clock.
+     *
+     * @param clock what today is
+     * @return the resolver
+     */
+    protected static PlaceholderResolver newPlaceholderResolver(Clock clock) {
+        return new PlaceholderResolver(
+                stationRepo,
+                stationMemberRepo,
+                memberNameResolver,
+                profileFieldRepo,
+                profileFieldCore,
+                new GenderFields(profileFieldCore, stationRepo),
+                clusterService,
+                clock);
+    }
+
+    /**
      * A member document store over the given storage, with the shared repositories and the intake.
      *
      * @param storage where the files go
@@ -593,7 +660,11 @@ public abstract class RepositoryTestBase {
                 clusterStationGroupRepo);
         clusterStationGroupService = new ClusterStationGroupService(clusterStationGroupRepo, clusterRepo, stationRepo);
         clusterProfileFieldService = new ClusterProfileFieldService(
-                clusterProfileFieldRepo, clusterRepo, clusterStationGroupRepo, profileFieldCore);
+                clusterProfileFieldRepo,
+                clusterRepo,
+                clusterStationGroupRepo,
+                profileFieldCore,
+                new GenderFields(profileFieldCore, stationRepo));
         clusterStorageQuotaRepo = new ClusterStorageQuotaRepository();
         clusterGovernanceService = new ClusterGovernanceService(
                 clusterRepo, clusterStationGroupRepo, stationRepo, new DomainEventBus(Set.of()));
@@ -848,7 +919,13 @@ public abstract class RepositoryTestBase {
      */
     protected static ProfileFieldService newProfileFieldService(ProfileFieldCore core) {
         return new ProfileFieldService(
-                profileFieldRepo, profileFieldChangeRepo, stationMemberRepo, accountRepo, memberGroupRepo, core);
+                profileFieldRepo,
+                profileFieldChangeRepo,
+                stationMemberRepo,
+                accountRepo,
+                memberGroupRepo,
+                core,
+                new GenderFields(core, stationRepo));
     }
 
     /**

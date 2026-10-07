@@ -4,18 +4,20 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import TextInput from '@/components/input/text/TextInput.vue'
 import FieldTypePicker from '@/components/input/FieldTypePicker.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import {FieldType} from '@/api/generated/schema'
+import type {FieldType} from '@/api/generated/schema'
 import {useFieldsCapabilities} from '@/composables/useFieldsConfig'
 
 const props = defineProps<{
-  /** False once another field of the station already is the birth date. */
-  birthDateAvailable: boolean
+  /**
+   * The types offered but not available, because another field of the owner already is the one field of
+   * that type it may have: the date of birth, the gender.
+   */
+  unavailable: readonly FieldType[]
   /**
    * Whether this kind of entry is called anything. A spacer is a gap: nobody wants to think of a name
    * for one, and it is numbered where it is written down instead.
@@ -34,9 +36,6 @@ const {t} = useI18n()
  * may not declare a date of birth, because the station declares its own and the two would collide.
  */
 const capabilities = useFieldsCapabilities()
-
-/** A second date of birth is offered but not available: one per station is what makes it findable. */
-const unavailable = computed<FieldType[]>(() => props.birthDateAvailable ? [] : [FieldType.BIRTH_DATE])
 </script>
 
 <template>
@@ -47,7 +46,7 @@ const unavailable = computed<FieldType[]>(() => props.birthDateAvailable ? [] : 
     </div>
     <div class="space-y-1">
       <FieldLabel>{{ t('fieldTypes.type') }}</FieldLabel>
-      <FieldTypePicker v-model="fieldType" :types="capabilities.types" :unavailable="unavailable"
+      <FieldTypePicker v-model="fieldType" :types="capabilities.types" :unavailable="props.unavailable"
                        data-testid="field-type"/>
     </div>
     <div v-if="props.named" class="space-y-1">

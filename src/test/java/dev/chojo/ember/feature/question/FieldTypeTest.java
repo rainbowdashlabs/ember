@@ -39,6 +39,7 @@ class FieldTypeTest {
         kinds.put(FieldType.TIME, Optional.of(QuestionKind.TIME));
         kinds.put(FieldType.BOOLEAN, Optional.of(QuestionKind.BOOLEAN));
         kinds.put(FieldType.CHOICE, Optional.of(QuestionKind.CHOICE));
+        kinds.put(FieldType.GENDER, Optional.of(QuestionKind.CHOICE));
         kinds.put(FieldType.URL, Optional.of(QuestionKind.URL));
         kinds.put(FieldType.MEMBER, Optional.of(QuestionKind.MEMBER));
         kinds.put(FieldType.MEMBER_LIST, Optional.of(QuestionKind.MEMBER_LIST));
@@ -60,8 +61,8 @@ class FieldTypeTest {
 
     /** A number with a fraction is a step setting on a number, not a type of its own. */
     @Test
-    void theVocabularyHasTwentyThreeNamesAndNoDecimal() {
-        assertEquals(23, FieldType.values().length);
+    void theVocabularyHasTwentyFourNamesAndNoDecimal() {
+        assertEquals(24, FieldType.values().length);
         assertThrows(IllegalArgumentException.class, () -> FieldType.valueOf("DECIMAL"));
     }
 
@@ -104,6 +105,7 @@ class FieldTypeTest {
                         FieldType.DATE,
                         FieldType.BOOLEAN,
                         FieldType.CHOICE,
+                        FieldType.GENDER,
                         FieldType.AGE,
                         FieldType.BIRTH_DATE,
                         FieldType.EXPIRY_DATE,

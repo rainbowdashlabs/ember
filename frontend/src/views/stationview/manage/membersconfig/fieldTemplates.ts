@@ -5,6 +5,7 @@
  */
 import type {FieldSettings} from '@/api/profileFields'
 import type {FieldType} from '@/api/generated/schema'
+import type {PronounOffer} from './fieldmodal/genderPronouns'
 
 /**
  * One question a template writes down.
@@ -30,10 +31,8 @@ export interface FieldTemplate {
   fields: TemplateField[]
 }
 
-/**
- * Default templates offered as quick-add buttons in the members config view.
- */
-export const fieldTemplates: FieldTemplate[] = [
+/** The templates of what is known about a member, offered before the gender. */
+const MEMBER_DATA_TEMPLATES: readonly FieldTemplate[] = [
   {
     name: 'Adresse', icon: 'house', fields: [
       {name: 'Straße', fieldType: 'TEXT', config: {}, required: true},
@@ -93,16 +92,10 @@ export const fieldTemplates: FieldTemplate[] = [
       {name: 'Personalnummer', fieldType: 'TEXT', config: {}, readonly: true},
     ],
   },
-  {
-    name: 'Geschlecht', icon: 'rainbow', fields: [
-      {
-        name: 'Geschlecht',
-        fieldType: 'CHOICE',
-        config: {options: ['Männlich', 'Weiblich', 'Divers', 'Nicht-binär', 'Andere']},
-        readonly: true,
-      },
-    ],
-  },
+]
+
+/** The templates of qualifications, offered after the gender. */
+const QUALIFICATION_TEMPLATES: readonly FieldTemplate[] = [
   {
     name: 'Jugendflamme', icon: 'fire', fields: [
       {
@@ -138,3 +131,34 @@ export const fieldTemplates: FieldTemplate[] = [
     ],
   },
 ]
+
+/**
+ * The gender template, whose two predefined answers carry their pronouns.
+ *
+ * @param presets the two predefined answers as the server names them
+ */
+function genderTemplate(presets: PronounOffer['presets']): FieldTemplate {
+  return {
+    name: 'Geschlecht', icon: 'rainbow', fields: [
+      {
+        name: 'Geschlecht',
+        fieldType: 'GENDER',
+        config: {
+          options: ['Männlich', 'Weiblich', 'Divers', 'Nicht-binär', 'Andere'],
+          pronouns: {Männlich: presets.MALE, Weiblich: presets.FEMALE},
+        },
+        readonly: true,
+      },
+    ],
+  }
+}
+
+/**
+ * Default templates offered as quick-add buttons in the members config view.
+ *
+ * @param presets the two predefined answers of a gender field as the server names them, which the
+ *                gender template carries
+ */
+export function fieldTemplates(presets: PronounOffer['presets']): FieldTemplate[] {
+  return [...MEMBER_DATA_TEMPLATES, genderTemplate(presets), ...QUALIFICATION_TEMPLATES]
+}

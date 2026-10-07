@@ -17,6 +17,12 @@ export interface LayoutField {
     width?: string | null
 }
 
+/** A field as the preview of a form draws it: its name and whether it must be answered besides. */
+export interface PreviewField extends LayoutField {
+    name: string
+    required?: boolean
+}
+
 /**
  * How much of a row a field takes. A station with thirty fields reads as thirty boxes under each
  * other unless the short ones are allowed to stand beside each other.

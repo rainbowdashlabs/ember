@@ -114,6 +114,14 @@ public class DocumentRepository {
                 .update();
     }
 
+    /** Every PDF document of every station, whose picture is its first page drawn. */
+    public List<Document> findPdfs() {
+        return query("""
+                SELECT %s FROM member_document
+                WHERE lower(mime_type) = 'application/pdf'
+                ORDER BY id;""", COLUMNS).single().map(Document.map()).all();
+    }
+
     public Optional<Document> findById(int documentId) {
         return query("SELECT %s FROM member_document WHERE id = :id;", COLUMNS)
                 .single(call().bind("id", documentId))

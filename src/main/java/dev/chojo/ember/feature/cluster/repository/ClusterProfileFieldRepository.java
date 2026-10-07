@@ -18,6 +18,7 @@ import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 import tools.jackson.databind.JsonNode;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -329,6 +330,28 @@ public class ClusterProfileFieldRepository {
                 WHERE cpfv.member_id = :member_id
                   AND %s;""", REACHES_STATION)
                 .single(call().bind("member_id", memberId))
+                .map(ProfileFieldValue.map())
+                .all();
+    }
+
+    /**
+     * What several members answered to the questions their stations are actually asked, as
+     * {@link #findValues(int)} reads it for one, in one read.
+     *
+     * @param memberIds the station members
+     * @return one entry per member and answered field that reaches the member's station
+     */
+    public List<ProfileFieldValue> findValuesOf(Collection<Integer> memberIds) {
+        if (memberIds.isEmpty()) return List.of();
+        return query("""
+                SELECT cpfv.member_id, cpfv.field_id, cpfv.value
+                FROM cluster_profile_field_value cpfv
+                JOIN cluster_profile_field cpf ON cpf.id = cpfv.field_id
+                JOIN station_member sm ON sm.id = cpfv.member_id
+                JOIN station s ON s.id = sm.station_id AND s.cluster_id = cpf.cluster_id
+                WHERE cpfv.member_id = ANY(:member_ids)
+                  AND %s;""", REACHES_STATION)
+                .single(call().bind("member_ids", List.copyOf(memberIds), PostgreSqlTypes.INTEGER))
                 .map(ProfileFieldValue.map())
                 .all();
     }

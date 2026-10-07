@@ -10,7 +10,7 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
-import MutedIconButton from '@/components/button/MutedIconButton.vue'
+import EditorCursorPanel from './EditorCursorPanel.vue'
 
 defineProps<{
   position: { top: number; left: number }
@@ -39,18 +39,7 @@ function onInput() {
 </script>
 
 <template>
-  <div
-    class="absolute z-30 w-80 rounded-lg shadow-lg border border-[var(--border)] bg-[var(--bg)] p-3 space-y-2"
-    :style="{ top: position.top + 'px', left: position.left + 'px' }"
-  >
-    <div class="flex items-center justify-between">
-      <div class="flex items-center gap-2">
-        <font-awesome-icon :icon="['fas', 'play']" class="text-[var(--color-primary)] w-3.5 h-3.5" />
-        <span class="text-sm font-medium">{{ t('markdownEditor.embedVideo') }}</span>
-      </div>
-      <MutedIconButton :icon="['fas', 'xmark']" :label="t('common.close')" hover="text" @click="$emit('cancel')"/>
-    </div>
-
+  <EditorCursorPanel :position="position" :icon="['fas', 'play']" :title="t('markdownEditor.embedVideo')" @cancel="$emit('cancel')">
     <div>
       <label :for="urlId" class="block text-xs text-[var(--text-muted)] mb-0.5">{{ t('markdownEditor.videoUrl') }}</label>
       <TextInput :id="urlId" v-model="videoUrl" placeholder="https://www.youtube.com/watch?v=..." class="!text-sm" @input="onInput" />
@@ -68,5 +57,5 @@ function onInput() {
       </PrimaryButton>
       <SecondaryButton compact @click="$emit('cancel')">{{ t('common.cancel') }}</SecondaryButton>
     </ButtonRow>
-  </div>
+  </EditorCursorPanel>
 </template>

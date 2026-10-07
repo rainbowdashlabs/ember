@@ -24,6 +24,8 @@ import {useEventFieldDefaults} from './eventeditview/useEventFieldDefaults'
 import {useEventFederationShare} from './eventeditview/useEventFederationShare'
 import {useEventAttachments} from './eventeditview/useEventAttachments'
 import AttachmentsCard from './eventeditview/AttachmentsCard.vue'
+import DocumentRequirementsEditor from './eventshared/DocumentRequirementsEditor.vue'
+import {useDocumentRequirements} from './eventshared/useDocumentRequirements'
 import {asSaved} from './eventshared/eventQuestions'
 import {useSession} from '@/composables/useSession'
 import {useAsyncAction} from '@/composables/useAsyncAction'
@@ -50,6 +52,7 @@ const data = useEventEditData(
 )
 const fieldDefaults = useEventFieldDefaults()
 const federationShare = useEventFederationShare(canFederate)
+const documentRequirements = useDocumentRequirements()
 
 /**
  * What the editor itself turned down, as opposed to what the server did. An end before its own
@@ -88,6 +91,7 @@ async function applyEventTemplate(templateId: string | undefined) {
     const detail = await events.getTemplate(Number(templateId))
     form.applyTemplate(detail)
     registrationFields.value = [...registrationFields.value, ...detail.registrationFields.map(asDefinition)]
+    await documentRequirements.takeFrom({kind: 'event-templates', id: Number(templateId)})
     flashTemplateApplied(t('eventTemplates.applied'))
   } catch (e) {
     reportCaughtError(e, 'applyEventTemplate')
@@ -119,6 +123,7 @@ const {loading, failure} = useAsyncLoader(async () => {
   await until(loaded).toBe(true)
   try {
     await data.load()
+    await documentRequirements.load(isEdit.value ? {kind: 'events', id: eventId.value!} : null)
     if (isEdit.value) {
       await Promise.all([
         form.loadEvent(eventId.value!),
@@ -150,6 +155,7 @@ async function writeEvent() {
   await events.setEventFields(savedEventId, {fields: form.namedFields()})
   await events.setRegistrationFields(savedEventId, registrationFields.value.filter(f => f.name?.trim()).map(asSaved))
   await federationShare.save(savedEventId)
+  await documentRequirements.save({kind: 'events', id: savedEventId})
 }
 
 const {running: saving, failure: saveFailure, run: submit} = useAsyncAction(async () => {
@@ -225,6 +231,12 @@ const bodyHandlers = {
           v-model:registration-fields="registrationFields"
           v-bind="bodyProps"
           v-on="bodyHandlers"
+      />
+
+      <DocumentRequirementsEditor
+          v-if="!loading"
+          v-model="documentRequirements.chosen.value"
+          :offered-count="documentRequirements.offeredCount.value"
       />
 
       <AttachmentsCard

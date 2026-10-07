@@ -61,6 +61,19 @@ beforeEach(() => {
 })
 
 describe('useMemberManagers', () => {
+    it('saves a guardian moved to the top as the first guardian', async () => {
+        const first = member(7, 70, 'GUARDIAN')
+        const second = member(8, 80, 'GUARDIAN')
+        setManagers.mockResolvedValue([second, first])
+        const managers = managersFor([])
+        managers.managers.value = [first, second]
+
+        await managers.reorderManagers(1, 0)
+
+        expect(setManagers).toHaveBeenCalledWith(1, {managerIds: [8, 7]})
+        expect(managers.managers.value.map(m => m.id)).toEqual([8, 7])
+    })
+
     it('makes somebody entered as a guardian a guardian', async () => {
         await managersFor([]).createManager({firstName: 'Petra', lastName: 'Sorge', email: 'petra@example.test'})
 

@@ -4116,6 +4116,245 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/document-fonts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The fonts the instance offers every station */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DocumentFontsResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Upload one style of a font family for the documents of every station */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DocumentFontsResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/document-fonts/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete a font of the instance that no template in use prints with */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DocumentFontsResponse"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/document-fonts/{id}/web": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Give a font style of the instance the web version the template editor loads instead */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DocumentFontsResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        /** Remove the web version of a font style of the instance */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DocumentFontsResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/document-fonts/sample": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A picture of sample text in a font family the instance offers, or the default font */
+        get: {
+            parameters: {
+                query?: {
+                    family?: string;
+                    style?: string;
+                    v?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "image/png": string;
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/feed-metrics": {
         parameters: {
             query?: never;
@@ -13529,6 +13768,863 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/cluster/document-fonts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The association's fonts, and every font family its templates can print in */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DocumentFontsResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Upload one style of a font family for the documents of the association and its stations */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DocumentFontsResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cluster/document-fonts/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete a font of the association that no template in use prints with */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DocumentFontsResponse"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cluster/document-fonts/{id}/web": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Give a font style of the association the web version the template editor loads instead */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DocumentFontsResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        /** Remove the web version of a font style of the association */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DocumentFontsResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cluster/document-fonts/file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A font file of a family the association's templates reach, or of the default font, for the template editor */
+        get: {
+            parameters: {
+                query?: {
+                    family?: string;
+                    style?: string;
+                    v?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "font/ttf": string;
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cluster/document-fonts/sample": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A picture of sample text in a font family the association's templates reach, or the default font */
+        get: {
+            parameters: {
+                query?: {
+                    family?: string;
+                    style?: string;
+                    v?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "image/png": string;
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cluster/document-placeholders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The placeholders a document template of the association can name */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PlaceholderCatalogueResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cluster/document-placeholders/date-format": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The example day in an own date format of an association's template, or why it cannot be printed */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["DateFormatCheckRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DateFormatCheck"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cluster/document-template-import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Read the body of a Word or OpenDocument text into a letter template of the association */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LetterImport"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cluster/document-template-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Draw a document template of the association as the editor holds it, with its placeholders */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["DraftPreviewRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PreviewResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cluster/document-templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One page of the document templates of the association */
+        get: {
+            parameters: {
+                query?: {
+                    archived?: boolean;
+                    kind?: components["schemas"]["DocumentTemplateKind"];
+                    page?: number;
+                    q?: string;
+                    size?: number;
+                    sort?: components["schemas"]["TemplateSort"];
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TemplatePage"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Create a document template of the association */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["DocumentTemplateRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DocumentTemplateResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cluster/document-templates/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A document template of the association */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DocumentTemplateResponse"];
+                    };
+                };
+            };
+        };
+        /** Change a document template of the association, counting its version up */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["DocumentTemplateRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DocumentTemplateResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cluster/document-templates/{id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive a document template of the association, which its stations then no longer use */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DocumentTemplateResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cluster/document-templates/{id}/duplicate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Copy a document template of the association as a new template of the association */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["DocumentTemplateCopyRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DocumentTemplateCopy"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cluster/document-templates/{id}/pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The PDF a PDF template of the association fills now, as it was uploaded */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Upload a new version of the PDF a PDF template of the association fills, keeping its fields */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DocumentTemplateResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cluster/document-templates/{id}/picture": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The first page of an association's template, drawn without a member */
+        get: {
+            parameters: {
+                query?: {
+                    size?: number;
+                };
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cluster/document-templates/{id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Take an archived document template of the association back into use */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DocumentTemplateResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/cluster/fields": {
         parameters: {
             query?: never;
@@ -17452,6 +18548,1358 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/document-fonts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The station's fonts, and every font family its templates can print in */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DocumentFontsResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Upload one style of a font family for the station's documents */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DocumentFontsResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/document-fonts/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete a font of the station that no template in use prints with */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DocumentFontsResponse"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/document-fonts/{id}/web": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Give a font style of the station the web version the template editor loads instead */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DocumentFontsResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        /** Remove the web version of a font style of the station */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DocumentFontsResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/document-fonts/file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A font file of a family the station's templates reach, or of the default font, for the template editor */
+        get: {
+            parameters: {
+                query?: {
+                    family?: string;
+                    style?: string;
+                    v?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "font/ttf": string;
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/document-fonts/sample": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A picture of sample text in a font family the station's templates reach, or the default font */
+        get: {
+            parameters: {
+                query?: {
+                    family?: string;
+                    style?: string;
+                    v?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "image/png": string;
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/document-generation/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The latest runs that generate a template for many members, the newest first */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GenerationJobSummary"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/document-generation/jobs/{jobId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A run that generates a template for many members, with how it went for each */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    jobId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GenerationJobResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/document-generation/log": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The documents the station generated from a template, the newest first, one page at a time */
+        get: {
+            parameters: {
+                query?: {
+                    limit?: number;
+                    offset?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GeneratedDocumentEntry"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/document-generation/templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One page of the document templates a manager can generate documents from */
+        get: {
+            parameters: {
+                query?: {
+                    forAppointments?: boolean;
+                    kind?: components["schemas"]["DocumentTemplateKind"];
+                    page?: number;
+                    q?: string;
+                    size?: number;
+                    sort?: components["schemas"]["TemplateSort"];
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TemplatePage"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/document-generation/templates/{templateId}/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start generating a template for many members in the background */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    templateId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["JobStartRequest"];
+                };
+            };
+            responses: {
+                /** @description Accepted */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GenerationJobResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/document-generation/templates/{templateId}/jobs/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Draw a template for the first of many members and list what every member lacks */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    templateId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["JobPreviewRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BulkPreviewResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/document-generation/templates/{templateId}/members/{memberId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Generate a document for a member and file it in their documents */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    memberId: number;
+                    templateId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ManagerGenerationRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GeneratedDocumentResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/document-generation/templates/{templateId}/members/{memberId}/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Draw a document for a member without filing it, listing the values that are missing */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    memberId: number;
+                    templateId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ManagerGenerationRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PreviewResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/document-placeholders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The placeholders a document template of the station can name */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PlaceholderCatalogueResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/document-placeholders/date-format": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The example day in an own date format, or why the format cannot be printed */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["DateFormatCheckRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DateFormatCheck"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/document-requirements/templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One page of the document templates appointments may ask participants to bring */
+        get: {
+            parameters: {
+                query?: {
+                    kind?: components["schemas"]["DocumentTemplateKind"];
+                    page?: number;
+                    q?: string;
+                    size?: number;
+                    sort?: components["schemas"]["TemplateSort"];
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TemplatePage"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/document-template-import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Read the body of a Word or OpenDocument text into a letter template, gaps in brackets as placeholders */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LetterImport"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/document-template-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Draw a document template as the editor holds it, for a member or with its placeholders */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["DraftPreviewRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PreviewResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/document-templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One page of the document templates of the station */
+        get: {
+            parameters: {
+                query?: {
+                    archived?: boolean;
+                    kind?: components["schemas"]["DocumentTemplateKind"];
+                    page?: number;
+                    q?: string;
+                    size?: number;
+                    sort?: components["schemas"]["TemplateSort"];
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TemplatePage"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Create a document template */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["DocumentTemplateRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DocumentTemplateResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/document-templates/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A document template with its letter */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DocumentTemplateResponse"];
+                    };
+                };
+            };
+        };
+        /** Change a document template, counting its version up */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["DocumentTemplateRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DocumentTemplateResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/document-templates/{id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive a document template, which then generates nothing more */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DocumentTemplateResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/document-templates/{id}/duplicate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Copy a template of the station, or one of its association, as a new template of the station */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["DocumentTemplateCopyRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DocumentTemplateCopy"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/document-templates/{id}/pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The PDF a PDF template fills now, as it was uploaded */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Upload a new version of the PDF a PDF template fills, keeping its fields */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DocumentTemplateResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/document-templates/{id}/picture": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The first page of a template the station uses, drawn without a member */
+        get: {
+            parameters: {
+                query?: {
+                    size?: number;
+                };
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/document-templates/{id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Take an archived document template back into use */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DocumentTemplateResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/document-templates/{id}/use": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** How the station uses a template of its association */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TemplateUseResponse"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        /** Set whether and for whom the station offers a template of its association for self service */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["TemplateUseRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TemplateUseResponse"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/documents": {
         parameters: {
             query?: never;
@@ -18075,6 +20523,79 @@ export interface paths {
                 };
             };
         };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/event-templates/{id}/document-requirements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The documents an appointment template hands to the appointments made from it */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RequiredTemplate"][];
+                    };
+                };
+            };
+        };
+        /** Set the documents an appointment template hands to the appointments made from it */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["RequirementsRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RequiredTemplate"][];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -19906,6 +22427,227 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/{id}/document-requirements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The documents an appointment asks participants to bring */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RequiredTemplate"][];
+                    };
+                };
+            };
+        };
+        /** Set the documents an appointment asks participants to bring */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["RequirementsRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RequiredTemplate"][];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/{id}/documents-to-bring": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The documents an appointment asks for on a date, the reader's own copies and, for whoever manages the registrations, every participant's */
+        get: {
+            parameters: {
+                query: {
+                    date: string;
+                };
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AppointmentDocuments"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/{id}/documents-to-bring/{templateId}/members/{memberId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Generate a participant's copy of a document the appointment asks for and file it with them */
+        post: {
+            parameters: {
+                query: {
+                    date: string;
+                };
+                header?: never;
+                path: {
+                    id: number;
+                    memberId: number;
+                    templateId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GeneratedDocumentResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/{id}/documents-to-bring/{templateId}/picture": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The first page of a document an appointment asks for, drawn without a member */
+        get: {
+            parameters: {
+                query?: {
+                    size?: number;
+                };
+                header?: never;
+                path: {
+                    id: number;
+                    templateId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -41194,6 +43936,42 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/pronoun-presets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The languages a gender field gives pronouns in, with the roles each tells apart and the two predefined answers */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PronounLanguage"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/protocols": {
         parameters: {
             query?: never;
@@ -48864,6 +51642,101 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/self-service/documents/{memberId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The documents the reader may generate for themselves or a member in their care */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    memberId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SelfServiceOffer"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/self-service/documents/{memberId}/templates/{templateId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Generate a document for oneself or a member in one's care and file it with them */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    memberId: number;
+                    templateId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GeneratedDocumentResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Too Many Requests */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/session": {
         parameters: {
             query?: never;
@@ -55257,6 +58130,11 @@ export interface components {
         ApplyTierRequest: {
             stationUids?: string[];
         };
+        AppointmentDocuments: {
+            own: components["schemas"]["ParticipantDocuments"][];
+            participants: components["schemas"]["ParticipantDocuments"][] | null;
+            required: components["schemas"]["RequiredTemplate"][];
+        };
         AppointmentField: {
             /** Format: int32 */
             attendanceFieldId: number | null;
@@ -55713,6 +58591,8 @@ export interface components {
             config?: unknown;
             content?: string;
             contentType?: string;
+            guardianCondition?: components["schemas"]["GuardianCondition"] | null;
+            restriction?: components["schemas"]["RestrictionAudience"] | null;
             /** Format: int32 */
             sortOrder?: number;
             widthPercent?: number;
@@ -55732,6 +58612,7 @@ export interface components {
         };
         BlockRowRequest: {
             cells?: components["schemas"]["BlockCellRequest"][];
+            columnLines?: boolean | null;
             /** Format: int32 */
             sortOrder?: number;
         };
@@ -55994,6 +58875,14 @@ export interface components {
             /** Format: int32 */
             refusedTotal: number;
         };
+        BulkPreviewResponse: {
+            gaps: components["schemas"]["MemberGaps"][];
+            /** Format: int32 */
+            memberCount: number;
+            preview: components["schemas"]["PreviewResponse"] | null;
+            /** Format: int32 */
+            previewMemberId: number | null;
+        };
         BulkRetireResponse: {
             /** Format: int32 */
             passedOver: number;
@@ -56132,7 +59021,7 @@ export interface components {
             /** Format: int64 */
             totalBytes: number;
         };
-        CellConfig: components["schemas"]["AccordionConfig"] | components["schemas"]["AchievementsConfig"] | components["schemas"]["AddressCardConfig"] | components["schemas"]["AudioEmbedConfig"] | components["schemas"]["BlogSignupConfig"] | components["schemas"]["CalloutConfig"] | components["schemas"]["CodeBlockConfig"] | components["schemas"]["CountdownConfig"] | components["schemas"]["DividerConfig"] | components["schemas"]["ExternalLinkCardConfig"] | components["schemas"]["FeaturedEventConfig"] | components["schemas"]["FileDownloadConfig"] | components["schemas"]["FormsCtaConfig"] | components["schemas"]["HeroBannerConfig"] | components["schemas"]["ImageConfig"] | components["schemas"]["ImageGalleryConfig"] | components["schemas"]["KbArticleConfig"] | components["schemas"]["MapConfig"] | components["schemas"]["MarkdownConfig"] | components["schemas"]["MemberListConfig"] | components["schemas"]["MemberSpotlightConfig"] | components["schemas"]["NestedRowsConfig"] | components["schemas"]["NewsTeaserConfig"] | components["schemas"]["PageLinkConfig"] | components["schemas"]["PartnerStationsConfig"] | components["schemas"]["PastEventRecapConfig"] | components["schemas"]["PdfConfig"] | components["schemas"]["PollEmbedConfig"] | components["schemas"]["QuizTeaserConfig"] | components["schemas"]["QuoteConfig"] | components["schemas"]["SpacerConfig"] | components["schemas"]["StatsCounterConfig"] | components["schemas"]["TabsConfig"] | components["schemas"]["UpcomingEventsConfig"] | components["schemas"]["VideoConfig"];
+        CellConfig: components["schemas"]["AccordionConfig"] | components["schemas"]["AchievementsConfig"] | components["schemas"]["AddressCardConfig"] | components["schemas"]["AudioEmbedConfig"] | components["schemas"]["BlogSignupConfig"] | components["schemas"]["CalloutConfig"] | components["schemas"]["CodeBlockConfig"] | components["schemas"]["CountdownConfig"] | components["schemas"]["DividerConfig"] | components["schemas"]["ExternalLinkCardConfig"] | components["schemas"]["FeaturedEventConfig"] | components["schemas"]["FileDownloadConfig"] | components["schemas"]["FormsCtaConfig"] | components["schemas"]["HeroBannerConfig"] | components["schemas"]["ImageConfig"] | components["schemas"]["ImageGalleryConfig"] | components["schemas"]["KbArticleConfig"] | components["schemas"]["MapConfig"] | components["schemas"]["MarkdownConfig"] | components["schemas"]["MemberListConfig"] | components["schemas"]["MemberSpotlightConfig"] | components["schemas"]["NestedRowsConfig"] | components["schemas"]["NewsTeaserConfig"] | components["schemas"]["PageLinkConfig"] | components["schemas"]["PartnerStationsConfig"] | components["schemas"]["PastEventRecapConfig"] | components["schemas"]["PdfConfig"] | components["schemas"]["PollEmbedConfig"] | components["schemas"]["QuizTeaserConfig"] | components["schemas"]["QuoteConfig"] | components["schemas"]["SignatureConfig"] | components["schemas"]["SpacerConfig"] | components["schemas"]["StatsCounterConfig"] | components["schemas"]["TabsConfig"] | components["schemas"]["UpcomingEventsConfig"] | components["schemas"]["VideoConfig"];
         CellConfigByType: {
             ACCORDION: components["schemas"]["AccordionConfig"];
             ACHIEVEMENTS: components["schemas"]["AchievementsConfig"];
@@ -56165,6 +59054,7 @@ export interface components {
             POLL_EMBED: components["schemas"]["PollEmbedConfig"];
             QUIZ_TEASER: components["schemas"]["QuizTeaserConfig"];
             QUOTE: components["schemas"]["QuoteConfig"];
+            SIGNATURE: components["schemas"]["SignatureConfig"];
             SPACER: components["schemas"]["SpacerConfig"];
             STATS_COUNTER: components["schemas"]["StatsCounterConfig"];
             TABS: components["schemas"]["TabsConfig"];
@@ -56172,7 +59062,7 @@ export interface components {
             VIDEO: components["schemas"]["VideoConfig"];
         };
         /** @enum {string} */
-        CellContentType: "EMPTY" | "MARKDOWN" | "IMAGE" | "VIDEO" | "CALLOUT" | "QUOTE" | "DIVIDER" | "SPACER" | "ACCORDION" | "PDF" | "FILE_DOWNLOAD" | "COUNTDOWN" | "FEATURED_EVENT" | "UPCOMING_EVENTS" | "KB_ARTICLE" | "NEWS_TEASER" | "PAGE_LINK" | "MAP" | "ADDRESS_CARD" | "PARTNER_STATIONS" | "MEMBER_SPOTLIGHT" | "MEMBER_LIST_SPOTLIGHT" | "STATS_COUNTER" | "IMAGE_GALLERY" | "HERO_BANNER" | "PAST_EVENT_RECAP" | "TABS" | "ACHIEVEMENTS" | "EXTERNAL_LINK_CARD" | "BLOG_SIGNUP" | "AUDIO_EMBED" | "POLL_EMBED" | "QUIZ_TEASER" | "FORMS_CTA" | "CODE_BLOCK" | "NESTED_ROWS";
+        CellContentType: "EMPTY" | "MARKDOWN" | "IMAGE" | "VIDEO" | "CALLOUT" | "QUOTE" | "DIVIDER" | "SPACER" | "ACCORDION" | "PDF" | "FILE_DOWNLOAD" | "COUNTDOWN" | "FEATURED_EVENT" | "UPCOMING_EVENTS" | "KB_ARTICLE" | "NEWS_TEASER" | "PAGE_LINK" | "MAP" | "ADDRESS_CARD" | "PARTNER_STATIONS" | "MEMBER_SPOTLIGHT" | "MEMBER_LIST_SPOTLIGHT" | "STATS_COUNTER" | "IMAGE_GALLERY" | "HERO_BANNER" | "PAST_EVENT_RECAP" | "TABS" | "ACHIEVEMENTS" | "EXTERNAL_LINK_CARD" | "BLOG_SIGNUP" | "AUDIO_EMBED" | "POLL_EMBED" | "QUIZ_TEASER" | "FORMS_CTA" | "CODE_BLOCK" | "NESTED_ROWS" | "SIGNATURE";
         CellResponse: {
             checked: boolean;
             /** Format: int32 */
@@ -56718,8 +59608,10 @@ export interface components {
             config: components["schemas"]["CellConfig"];
             content: string;
             contentType: components["schemas"]["CellContentType"];
+            guardianCondition?: components["schemas"]["GuardianCondition"];
             /** Format: int32 */
             id: number;
+            restriction?: components["schemas"]["RestrictionAudience"];
             /** Format: int32 */
             rowId: number;
             /** Format: int32 */
@@ -56730,6 +59622,7 @@ export interface components {
         ContentMode: "SIMPLE" | "RICH";
         ContentRow: {
             cells: components["schemas"]["ContentCell"][];
+            columnLines: boolean;
             /** Format: int32 */
             containerId: number;
             /** Format: int32 */
@@ -57075,6 +59968,32 @@ export interface components {
             event: components["schemas"]["EventSummary"];
             nextDate: components["schemas"]["LocalDate"] | null;
             previousDate: components["schemas"]["LocalDate"] | null;
+        };
+        DateFormatCheck: {
+            detail: string | null;
+            example: string | null;
+            problem: components["schemas"]["DateFormatProblem"] | null;
+        };
+        DateFormatCheckRequest: {
+            clock?: boolean;
+            language?: components["schemas"]["DocumentLanguage"];
+            pattern?: string;
+        };
+        DateFormatOption: {
+            english: string;
+            german: string;
+            kind: components["schemas"]["DateKind"];
+            written: string;
+        };
+        /** @enum {string} */
+        DateFormatProblem: "EMPTY" | "TOO_LONG" | "UNKNOWN" | "NO_TOKEN" | "CLOCK";
+        /** @enum {string} */
+        DateKind: "DATE" | "DATE_TIME";
+        DateTokenOption: {
+            clock: boolean;
+            english: string;
+            german: string;
+            written: string;
         };
         DateValue: {
             value: string;
@@ -57423,6 +60342,26 @@ export interface components {
         DividerConfig: {
             label?: string;
         };
+        DocumentFontsResponse: {
+            defaultFamily: string;
+            defaultStyles: components["schemas"]["FontStyle"][];
+            own: components["schemas"]["DocumentFontView"][];
+            reachable: components["schemas"]["FontFamilyOption"][];
+        };
+        DocumentFontView: {
+            family: string;
+            fileName: string;
+            /** Format: int32 */
+            id: number;
+            outline: components["schemas"]["FontOutline"];
+            /** Format: int64 */
+            sizeBytes: number;
+            style: components["schemas"]["FontStyle"];
+            uploadedAt: components["schemas"]["Instant"];
+            web: components["schemas"]["WebFontView"] | null;
+        };
+        /** @enum {string} */
+        DocumentLanguage: "DE" | "EN";
         DocumentPage: {
             documents: components["schemas"]["MemberDocumentResponse"][];
             /** Format: int32 */
@@ -57436,6 +60375,97 @@ export interface components {
         DocumentResponse: {
             html: string;
             version: string;
+        };
+        DocumentTemplateCopy: {
+            fontsOutOfReach: string[];
+            /** Format: int32 */
+            picturesOutOfReach: number;
+            template: components["schemas"]["DocumentTemplateResponse"];
+        };
+        DocumentTemplateCopyRequest: {
+            name?: string | null;
+        };
+        /** @enum {string} */
+        DocumentTemplateKind: "LETTER" | "PDF";
+        DocumentTemplateRequest: {
+            audience?: components["schemas"]["RestrictionAudience"] | null;
+            body?: components["schemas"]["BlockRowRequest"][] | null;
+            /** Format: int32 */
+            cooldownDays?: number | null;
+            fields?: components["schemas"]["PdfField"][] | null;
+            fileNamePattern?: string | null;
+            footer?: components["schemas"]["BlockRowRequest"][] | null;
+            forAppointments?: boolean;
+            formBindings?: components["schemas"]["FormBinding"][] | null;
+            header?: components["schemas"]["BlockRowRequest"][] | null;
+            hidden?: boolean;
+            issuerFunction?: string | null;
+            /** Format: int32 */
+            issuerId?: number | null;
+            keepOnArchive?: boolean | null;
+            kind?: components["schemas"]["DocumentTemplateKind"] | null;
+            language?: components["schemas"]["DocumentLanguage"] | null;
+            legal?: boolean;
+            name?: string | null;
+            page?: components["schemas"]["LetterPage"] | null;
+            selfService?: boolean;
+            tags?: string[] | null;
+            titlePattern?: string | null;
+        };
+        DocumentTemplateResponse: {
+            archivedAt: components["schemas"]["Instant"] | null;
+            audience: components["schemas"]["RestrictionAudience"];
+            body: components["schemas"]["ContentRow"][];
+            /** Format: int32 */
+            cooldownDays: number;
+            fields: components["schemas"]["PdfField"][];
+            fileNamePattern: string;
+            footer: components["schemas"]["ContentRow"][];
+            forAppointments: boolean;
+            formBindings: components["schemas"]["FormBinding"][];
+            header: components["schemas"]["ContentRow"][];
+            hidden: boolean;
+            /** Format: int32 */
+            id: number;
+            issuerFunction: string | null;
+            /** Format: int32 */
+            issuerId: number | null;
+            keepOnArchive: boolean;
+            kind: components["schemas"]["DocumentTemplateKind"];
+            language: components["schemas"]["DocumentLanguage"];
+            legal: boolean;
+            name: string;
+            page: components["schemas"]["LetterPage"];
+            pdf: components["schemas"]["PdfOriginal"] | null;
+            selfService: boolean;
+            tags: string[];
+            titlePattern: string;
+            updatedAt: components["schemas"]["Instant"];
+            /** Format: int32 */
+            version: number;
+        };
+        DocumentTemplateSummary: {
+            archivedAt: components["schemas"]["Instant"] | null;
+            createdAt: components["schemas"]["Instant"];
+            forAppointments: boolean;
+            /** Format: int32 */
+            id: number;
+            kind: components["schemas"]["DocumentTemplateKind"];
+            lastUsedAt: components["schemas"]["Instant"] | null;
+            legal: boolean;
+            name: string;
+            ofAssociation: boolean;
+            selfService: boolean;
+            updatedAt: components["schemas"]["Instant"];
+            /** Format: int32 */
+            version: number;
+        };
+        DraftPreviewRequest: {
+            /** Format: int32 */
+            memberId?: number | null;
+            template?: components["schemas"]["DocumentTemplateRequest"] | null;
+            /** Format: int32 */
+            templateId?: number | null;
         };
         EligibleMembers: {
             eligibleManagedMemberIds: number[];
@@ -58243,13 +61273,21 @@ export interface components {
         };
         /** @enum {string} */
         FieldOrigin: "STATION" | "CLUSTER";
+        FieldRect: {
+            height: number;
+            /** Format: int32 */
+            page: number;
+            width: number;
+            x: number;
+            y: number;
+        };
         FieldRequest: {
             config?: unknown;
             fieldType?: components["schemas"]["FieldType"];
             name?: string;
         };
         /** @enum {string} */
-        FieldType: "TEXT" | "LONG_TEXT" | "NUMBER" | "DATE" | "TIME" | "BOOLEAN" | "CHOICE" | "URL" | "MEMBER" | "MEMBER_LIST" | "BIRTH_DATE" | "EXPIRY_DATE" | "AGE" | "SECTION" | "SPACER" | "LOCATION" | "MEMBER_OF_GROUP" | "MEMBER_LIST_OF_GROUP" | "MEMBER_OF_TYPE" | "MEMBER_LIST_OF_TYPE" | "MEMBER_OF_TAG" | "MEMBER_LIST_OF_TAG" | "LANE_ASSIGNEE";
+        FieldType: "TEXT" | "LONG_TEXT" | "NUMBER" | "DATE" | "TIME" | "BOOLEAN" | "CHOICE" | "GENDER" | "URL" | "MEMBER" | "MEMBER_LIST" | "BIRTH_DATE" | "EXPIRY_DATE" | "AGE" | "SECTION" | "SPACER" | "LOCATION" | "MEMBER_OF_GROUP" | "MEMBER_LIST_OF_GROUP" | "MEMBER_OF_TYPE" | "MEMBER_LIST_OF_TYPE" | "MEMBER_OF_TAG" | "MEMBER_LIST_OF_TAG" | "LANE_ASSIGNEE";
         FieldUpdateRequest: {
             config?: components["schemas"]["FieldConfig"];
             label?: string;
@@ -58366,6 +61404,20 @@ export interface components {
             /** Format: int32 */
             parentId: number | null;
         };
+        FontFamilyOption: {
+            editorVersion: string | null;
+            family: string;
+            origin: components["schemas"]["FontOrigin"];
+            printsOnPdf: boolean;
+            sample: string;
+            styles: components["schemas"]["FontStyle"][];
+        };
+        /** @enum {string} */
+        FontOrigin: "STATION" | "ASSOCIATION" | "INSTANCE" | "BUILT_IN";
+        /** @enum {string} */
+        FontOutline: "TRUETYPE" | "CFF";
+        /** @enum {string} */
+        FontStyle: "REGULAR" | "BOLD" | "ITALIC" | "BOLD_ITALIC";
         ForeignKey: {
             column: string;
             onDelete: string;
@@ -58433,6 +61485,10 @@ export interface components {
             RATING: components["schemas"]["RatingAnswer"];
             TEXT: components["schemas"]["TextAnswer"];
         };
+        FormBinding: {
+            fieldName: string;
+            text: string;
+        };
         FormDraft: {
             answers: {
                 [key: string]: components["schemas"]["FormAnswerValue"];
@@ -58456,6 +61512,15 @@ export interface components {
             canMarkFormer: boolean;
             reason: string | null;
         };
+        FormField: {
+            kind: components["schemas"]["FormFieldKind"];
+            name: string;
+            rect: components["schemas"]["FieldRect"] | null;
+            tooltip: string | null;
+            value: string | null;
+        };
+        /** @enum {string} */
+        FormFieldKind: "TEXT" | "CHECK" | "SIGNATURE" | "OTHER";
         FormLayout: {
             pages: components["schemas"]["FormPage"][];
             questions: components["schemas"]["FormQuestion"][];
@@ -58723,6 +61788,34 @@ export interface components {
             startDate?: string;
             startTime?: string | null;
         };
+        GeneratedDocumentEntry: {
+            /** Format: int32 */
+            documentId: number | null;
+            generatedAt: components["schemas"]["Instant"];
+            generatedByName: string | null;
+            /** Format: int32 */
+            id: number;
+            issuerFunction: string | null;
+            issuerName: string | null;
+            /** Format: int32 */
+            memberId: number | null;
+            memberName: string | null;
+            ofAssociation: boolean;
+            selfService: boolean;
+            /** Format: int32 */
+            templateId: number;
+            templateName: string;
+            /** Format: int32 */
+            templateVersion: number;
+        };
+        GeneratedDocumentResponse: {
+            /** Format: int32 */
+            documentId: number;
+            /** Format: int32 */
+            generationId: number;
+            missing: components["schemas"]["MissingValue"][];
+            title: string;
+        };
         GeneratedQuestionWithMeta: {
             /** Format: int32 */
             categoryId: number | null;
@@ -58745,6 +61838,27 @@ export interface components {
             model?: string | null;
             provider?: components["schemas"]["AiVendor"] | null;
             userPrompt?: string | null;
+        };
+        GenerationJobResponse: {
+            job: components["schemas"]["GenerationJobSummary"];
+            members: components["schemas"]["JobMemberResult"][];
+        };
+        GenerationJobSummary: {
+            acceptMissing: boolean;
+            /** Format: int32 */
+            failed: number;
+            /** Format: int32 */
+            filed: number;
+            finishedAt: components["schemas"]["Instant"] | null;
+            /** Format: int32 */
+            id: number;
+            startedAt: components["schemas"]["Instant"];
+            startedByName: string;
+            /** Format: int32 */
+            templateId: number;
+            templateName: string;
+            /** Format: int32 */
+            total: number;
         };
         GenerationPollResponse: {
             done: boolean;
@@ -58808,6 +61922,8 @@ export interface components {
         GroupSetRequest: {
             name?: string;
         };
+        /** @enum {string} */
+        GuardianCondition: "SECOND_GUARDIAN" | "NO_SECOND_GUARDIAN";
         GuardianEntry: {
             email?: string;
             firstName?: string;
@@ -59346,6 +62462,11 @@ export interface components {
             name: string;
             password: string;
         };
+        IssuerChoice: {
+            function?: string | null;
+            /** Format: int32 */
+            memberId?: number;
+        };
         ItemAssignment: {
             /** Format: int32 */
             itemId?: number;
@@ -59455,6 +62576,29 @@ export interface components {
         };
         JobIdResponse: {
             jobId: string;
+        };
+        JobMemberResult: {
+            detail: components["schemas"]["RefusalDetail"] | null;
+            /** Format: int32 */
+            documentId: number | null;
+            /** Format: int32 */
+            memberId: number;
+            name: string;
+            refusalCode: string | null;
+            status: components["schemas"]["JobMemberStatus"];
+        };
+        /** @enum {string} */
+        JobMemberStatus: "WAITING" | "FILED" | "FAILED";
+        JobPreviewRequest: {
+            audience?: components["schemas"]["RestrictionAudience"] | null;
+            issuer?: components["schemas"]["IssuerChoice"] | null;
+            memberIds?: number[] | null;
+        };
+        JobStartRequest: {
+            acceptMissing?: boolean;
+            audience?: components["schemas"]["RestrictionAudience"] | null;
+            issuer?: components["schemas"]["IssuerChoice"] | null;
+            memberIds?: number[] | null;
         };
         /** @enum {string} */
         KbAccessLevel: "NONE" | "READ" | "WRITE" | "MANAGE";
@@ -59770,6 +62914,34 @@ export interface components {
             /** Format: int32 */
             requestItemId: number;
             status: string;
+        };
+        LetterImport: {
+            recognised: string[];
+            rows: components["schemas"]["ContentRow"][];
+            unrecognised: string[];
+        };
+        LetterPage: {
+            bodyFont: string | null;
+            /** Format: int32 */
+            fontSizePt: number;
+            footerFont: string | null;
+            headerFont: string | null;
+            /** Format: int32 */
+            marginBottomMm: number;
+            /** Format: int32 */
+            marginLeftMm: number;
+            /** Format: int32 */
+            marginRightMm: number;
+            /** Format: int32 */
+            marginTopMm: number;
+        };
+        /** @enum {string} */
+        LetterPart: "LETTERHEAD" | "BODY";
+        LetterPartRules: {
+            kinds: components["schemas"]["CellContentType"][];
+            /** Format: int32 */
+            maxColumns: number;
+            part: components["schemas"]["LetterPart"];
         };
         Likert: {
             /**
@@ -60240,6 +63412,9 @@ export interface components {
             firstName: string;
             lastName: string;
         };
+        ManagerGenerationRequest: {
+            issuer?: components["schemas"]["IssuerChoice"] | null;
+        };
         MapConfig: {
             /** Format: int32 */
             heightPx?: number;
@@ -60386,6 +63561,13 @@ export interface components {
             showInternalId?: boolean | null;
             showName?: boolean | null;
             showSize?: boolean | null;
+        };
+        MemberGaps: {
+            /** Format: int32 */
+            memberId: number;
+            missing: components["schemas"]["MissingValue"][];
+            name: string;
+            refusalCode: string | null;
         };
         MemberGroup: {
             color: string | null;
@@ -60694,6 +63876,10 @@ export interface components {
         };
         MissingStepsResponse: {
             missingSteps: string[];
+        };
+        MissingValue: {
+            key: string;
+            label: string;
         };
         /** @enum {string} */
         Mode: "OFF" | "OPTIONAL" | "ENCOURAGED" | "PREFERRED" | "PASSWORDLESS";
@@ -61389,6 +64575,12 @@ export interface components {
             headers: string[];
             rows: string[][];
         };
+        ParticipantDocuments: {
+            documents: components["schemas"]["RequiredDocumentStatus"][];
+            /** Format: int32 */
+            memberId: number;
+            name: string;
+        };
         PartnerEventDetail: {
             event: components["schemas"]["SharedEvent"];
             places: components["schemas"]["RemotePlaces"] | null;
@@ -61496,6 +64688,45 @@ export interface components {
             heightPx?: number;
             url?: string;
         };
+        PdfField: {
+            align: components["schemas"]["TextAlign"];
+            fontFamily: string | null;
+            fontSize: number;
+            fontStyle: components["schemas"]["FontStyle"] | null;
+            kind: components["schemas"]["PdfFieldKind"];
+            printText: boolean;
+            rect: components["schemas"]["FieldRect"];
+            role: components["schemas"]["SignatureRole"] | null;
+            text: string | null;
+            withoutLine: boolean;
+            wrap: boolean;
+        };
+        /** @enum {string} */
+        PdfFieldKind: "TEXT" | "CHECK" | "SIGNATURE";
+        PdfInspection: {
+            formFields: components["schemas"]["FormField"][];
+            pages: components["schemas"]["PdfPage"][];
+        };
+        PdfOriginal: {
+            fileName: string;
+            /** Format: int32 */
+            id: number;
+            inspection: components["schemas"]["PdfInspection"];
+            sha256: string;
+            /** Format: int64 */
+            sizeBytes: number;
+            /** Format: int32 */
+            templateId: number;
+            uploadedAt: components["schemas"]["Instant"];
+        };
+        PdfPage: {
+            height: number;
+            /** Format: int32 */
+            rotation: number;
+            width: number;
+            x: number;
+            y: number;
+        };
         PeerAnnouncement: {
             baseUrl?: string;
             firstSeenBy?: string;
@@ -61546,6 +64777,24 @@ export interface components {
             title: string;
             updatedAt: components["schemas"]["Instant"];
         };
+        Placeholder: {
+            category: components["schemas"]["PlaceholderCategory"];
+            dateKind: components["schemas"]["DateKind"] | null;
+            eventOnly: boolean;
+            informal: boolean;
+            key: string;
+            label: string;
+            path: string[];
+        };
+        PlaceholderCatalogueResponse: {
+            dateFormats: components["schemas"]["DateFormatOption"][];
+            dateTokens: components["schemas"]["DateTokenOption"][];
+            language: components["schemas"]["DocumentLanguage"];
+            letterParts: components["schemas"]["LetterPartRules"][];
+            placeholders: components["schemas"]["Placeholder"][];
+        };
+        /** @enum {string} */
+        PlaceholderCategory: "MEMBER" | "PRONOUNS" | "GUARDIAN1" | "GUARDIAN2" | "STATION" | "ASSOCIATION" | "APPOINTMENT" | "ISSUER" | "DOCUMENT";
         PlaceholderValues: {
             values?: {
                 [key: string]: string;
@@ -61619,6 +64868,19 @@ export interface components {
             perImage?: number;
             /** Format: int64 */
             total?: number;
+        };
+        PreviewIssuer: {
+            fixed: boolean;
+            function: string | null;
+            /** Format: int32 */
+            memberId: number | null;
+            name: string | null;
+        };
+        PreviewResponse: {
+            issuer: components["schemas"]["PreviewIssuer"] | null;
+            missing: components["schemas"]["MissingValue"][];
+            pdfBase64: string;
+            unprintable: string[];
         };
         PreviewResult: {
             members: components["schemas"]["MemberPreview"][];
@@ -61856,6 +65118,11 @@ export interface components {
             notifyOnChange: boolean;
             options: string[] | null;
             overview: boolean;
+            pronouns: {
+                [key: string]: {
+                    [key: string]: components["schemas"]["PronounSet"];
+                };
+            } | null;
             reminderDays: number[] | null;
             remindManagement: boolean | null;
             remindMember: boolean | null;
@@ -61887,6 +65154,21 @@ export interface components {
             /** Format: int32 */
             memberId: number;
             value: string;
+        };
+        PronounLanguage: {
+            code: string;
+            female: components["schemas"]["PronounSet"];
+            language: components["schemas"]["DocumentLanguage"];
+            male: components["schemas"]["PronounSet"];
+            roles: components["schemas"]["PronounRole"][];
+        };
+        /** @enum {string} */
+        PronounRole: "SUBJECT" | "OBJECT" | "DATIVE" | "POSSESSIVE";
+        PronounSet: {
+            dative: string | null;
+            object: string | null;
+            possessive: string | null;
+            subject: string | null;
         };
         ProtocolChecksRequest: {
             checks?: {
@@ -62949,6 +66231,16 @@ export interface components {
             /** Format: int32 */
             requeued: number;
         };
+        RequiredDocumentStatus: {
+            /** Format: int32 */
+            documentId: number | null;
+            generatedAt: components["schemas"]["Instant"] | null;
+            name: string;
+            outdated: boolean;
+            status: components["schemas"]["RequirementStatus"];
+            /** Format: int32 */
+            templateId: number;
+        };
         RequiredInventoryItem: {
             /** Format: int32 */
             assignedQuantity: number;
@@ -62963,6 +66255,16 @@ export interface components {
             /** Format: int32 */
             requiredQuantity: number;
             sizes: components["schemas"]["InventorySize"][];
+        };
+        RequiredTemplate: {
+            archived: boolean;
+            kind: components["schemas"]["DocumentTemplateKind"];
+            lastUsedAt: components["schemas"]["Instant"] | null;
+            name: string;
+            /** Format: int32 */
+            templateId: number;
+            /** Format: int32 */
+            version: number;
         };
         RequirementItem: {
             /** Format: int32 */
@@ -62997,6 +66299,9 @@ export interface components {
             stationGroupId: number | null;
             userType: components["schemas"]["StationUserType"] | null;
         };
+        RequirementsRequest: {
+            templateIds?: number[] | null;
+        };
         RequirementsResponse: {
             forcedForms: components["schemas"]["RequirementItem"][];
             forcedQuizzes: components["schemas"]["RequirementItem"][];
@@ -63004,6 +66309,8 @@ export interface components {
             registrationUpdates: components["schemas"]["RegistrationUpdateItem"][];
             selfChecks: components["schemas"]["SelfCheckItem"][];
         };
+        /** @enum {string} */
+        RequirementStatus: "NOT_GENERATED" | "GENERATED";
         ResetPasswordRequest: {
             /** Format: int32 */
             accountId?: number;
@@ -63097,7 +66404,7 @@ export interface components {
             userTypes?: components["schemas"]["StationUserType"][] | null;
         };
         /** @enum {string} */
-        RestrictionType: "EVENT" | "EVENT_VIEW" | "EVENT_TEMPLATE" | "EVENT_TEMPLATE_VIEW" | "QUIZ_TEST" | "FORM" | "NEWS" | "KB_FOLDER" | "KB_FILE";
+        RestrictionType: "EVENT" | "EVENT_VIEW" | "EVENT_TEMPLATE" | "EVENT_TEMPLATE_VIEW" | "QUIZ_TEST" | "FORM" | "NEWS" | "KB_FOLDER" | "KB_FILE" | "DOCUMENT_TEMPLATE" | "DOCUMENT_TEMPLATE_STATION_USE";
         ResultFieldCondition: {
             /** Format: int32 */
             fieldId?: number;
@@ -63496,6 +66803,15 @@ export interface components {
             state: components["schemas"]["SelfCheckState"];
             submittedAt: components["schemas"]["Instant"] | null;
         };
+        SelfServiceOffer: {
+            availableFrom: components["schemas"]["Instant"] | null;
+            lastUsedAt: components["schemas"]["Instant"] | null;
+            legal: boolean;
+            missing: components["schemas"]["MissingValue"][];
+            name: string;
+            /** Format: int32 */
+            templateId: number;
+        };
         SendableItem: {
             /** Format: int32 */
             id: number;
@@ -63867,6 +67183,11 @@ export interface components {
             /** Format: int32 */
             waitingListEntries: number;
         };
+        SignatureConfig: {
+            signer?: components["schemas"]["SignatureRole"];
+        };
+        /** @enum {string} */
+        SignatureRole: "PARTICIPANT" | "GUARDIAN_1" | "GUARDIAN_2" | "EACH_GUARDIAN" | "ANY_GUARDIAN" | "ISSUER";
         SignInClaimRequest: {
             claimToken?: string;
         };
@@ -64205,7 +67526,7 @@ export interface components {
             visibility: components["schemas"]["PageVisibility"];
         };
         /** @enum {string} */
-        StationPermission: "USER" | "LOGIN" | "ATTENDANCE_READ" | "ATTENDANCE_EDIT" | "ATTENDANCE_CONFIGURE" | "ATTENDANCE_EXPORT" | "ATTENDANCE_MANAGER" | "INVENTORY_CREATE_EXTERNAL" | "INVENTORY_CREATE_INTERNAL" | "INVENTORY_READ" | "INVENTORY_CREATE" | "INVENTORY_MOVEMENTS" | "INVENTORY_PROCUREMENT" | "INVENTORY_CHECK" | "INVENTORY_LENDING_REQUEST" | "INVENTORY_LENDING_MANAGER" | "INVENTORY_EDIT" | "INVENTORY_ASSIGN" | "INVENTORY_STORAGE" | "INVENTORY_MANAGER" | "EVENT_MANAGE_TEMPLATE" | "EVENT_MANAGE_CATEGORY" | "EVENT_INTERNAL" | "EVENT_EDIT" | "EVENT_REGISTRATION" | "EVENTS_FEDERATE" | "EVENT_MANAGER" | "DOCUMENT_READ" | "DOCUMENT_READ_MEMBER" | "DOCUMENT_EDIT" | "DOCUMENT_EDIT_MEMBER" | "DOCUMENT_MANAGER" | "MEMBER_READ" | "MEMBER_NOTES" | "MEMBER_GUARDIAN" | "MEMBER_CHANGES" | "MEMBER_MANAGE_GROUP" | "MEMBER_MANAGE_TAGS" | "MEMBER_SELF_UPLOAD" | "MEMBER_EDIT" | "MEMBER_FIELDS" | "MEMBER_EXPORT" | "MEMBER_MANAGER" | "WAITLIST_READ" | "WAITLIST_ADD" | "WAITLIST_EDIT" | "WAITLIST_MANAGER" | "NEWS_EDIT" | "NEWS_FEDERATE" | "NEWS_MANAGER" | "POLL_VIEW_RESULTS" | "POLL_CREATE" | "POLL_MANAGER" | "LOST_AND_FOUND_CREATE" | "LOST_AND_FOUND_MANAGE" | "LOST_AND_FOUND_MANAGER" | "CHECKLIST_READ" | "CHECKLIST_MANAGE" | "CHECKLIST_MANAGER" | "TEST_CATALOG_VIEW" | "TEST_CATALOG_EDIT" | "TEST_CONFIGURE" | "TEST_RESULT_READ" | "TEST_REVIEW" | "TEST_CATALOG_SHARE" | "TEST_MANAGER" | "PROTOCOL_TESTER" | "PROTOCOL_CREATE" | "PROTOCOL_CONFIGURE" | "PROTOCOL_SHARE" | "PROTOCOL_MANAGER" | "BOARD_USE" | "BOARD_EDIT" | "BOARD_FEDERATE" | "BOARD_MANAGER" | "PAGE_EDIT" | "PAGE_FORMS_VIEW" | "PAGE_POLLS_VIEW" | "PAGE_MANAGER" | "PROCEDURE_READ" | "PROCEDURE_EDIT" | "PROCEDURE_MANAGER" | "KNOWLEDGE_EDIT" | "KNOWLEDGE_FEDERATE" | "KNOWLEDGE_MANAGER" | "STATION_LOOK_AND_FEEL" | "STATION_GENERAL" | "STATION_MAIL" | "STATION_FEDERATION" | "STATION_MODULES" | "STATION_IMPORT_EXPORT" | "STATION_STATISTICS" | "STATION_MANAGER" | "STATION_ADMINISTRATOR";
+        StationPermission: "USER" | "LOGIN" | "ATTENDANCE_READ" | "ATTENDANCE_EDIT" | "ATTENDANCE_CONFIGURE" | "ATTENDANCE_EXPORT" | "ATTENDANCE_MANAGER" | "INVENTORY_CREATE_EXTERNAL" | "INVENTORY_CREATE_INTERNAL" | "INVENTORY_READ" | "INVENTORY_CREATE" | "INVENTORY_MOVEMENTS" | "INVENTORY_PROCUREMENT" | "INVENTORY_CHECK" | "INVENTORY_LENDING_REQUEST" | "INVENTORY_LENDING_MANAGER" | "INVENTORY_EDIT" | "INVENTORY_ASSIGN" | "INVENTORY_STORAGE" | "INVENTORY_MANAGER" | "EVENT_MANAGE_TEMPLATE" | "EVENT_MANAGE_CATEGORY" | "EVENT_INTERNAL" | "EVENT_EDIT" | "EVENT_REGISTRATION" | "EVENTS_FEDERATE" | "EVENT_MANAGER" | "DOCUMENT_READ" | "DOCUMENT_READ_MEMBER" | "DOCUMENT_EDIT" | "DOCUMENT_EDIT_MEMBER" | "DOCUMENT_TEMPLATE_EDIT" | "DOCUMENT_MANAGER" | "MEMBER_READ" | "MEMBER_NOTES" | "MEMBER_GUARDIAN" | "MEMBER_CHANGES" | "MEMBER_MANAGE_GROUP" | "MEMBER_MANAGE_TAGS" | "MEMBER_SELF_UPLOAD" | "MEMBER_EDIT" | "MEMBER_FIELDS" | "MEMBER_EXPORT" | "MEMBER_MANAGER" | "WAITLIST_READ" | "WAITLIST_ADD" | "WAITLIST_EDIT" | "WAITLIST_MANAGER" | "NEWS_EDIT" | "NEWS_FEDERATE" | "NEWS_MANAGER" | "POLL_VIEW_RESULTS" | "POLL_CREATE" | "POLL_MANAGER" | "LOST_AND_FOUND_CREATE" | "LOST_AND_FOUND_MANAGE" | "LOST_AND_FOUND_MANAGER" | "CHECKLIST_READ" | "CHECKLIST_MANAGE" | "CHECKLIST_MANAGER" | "TEST_CATALOG_VIEW" | "TEST_CATALOG_EDIT" | "TEST_CONFIGURE" | "TEST_RESULT_READ" | "TEST_REVIEW" | "TEST_CATALOG_SHARE" | "TEST_MANAGER" | "PROTOCOL_TESTER" | "PROTOCOL_CREATE" | "PROTOCOL_CONFIGURE" | "PROTOCOL_SHARE" | "PROTOCOL_MANAGER" | "BOARD_USE" | "BOARD_EDIT" | "BOARD_FEDERATE" | "BOARD_MANAGER" | "PAGE_EDIT" | "PAGE_FORMS_VIEW" | "PAGE_POLLS_VIEW" | "PAGE_MANAGER" | "PROCEDURE_READ" | "PROCEDURE_EDIT" | "PROCEDURE_MANAGER" | "KNOWLEDGE_EDIT" | "KNOWLEDGE_FEDERATE" | "KNOWLEDGE_MANAGER" | "STATION_LOOK_AND_FEEL" | "STATION_GENERAL" | "STATION_MAIL" | "STATION_FEDERATION" | "STATION_MODULES" | "STATION_IMPORT_EXPORT" | "STATION_STATISTICS" | "STATION_MANAGER" | "STATION_ADMINISTRATOR";
         StationPermissionsRequest: {
             permissions?: string[];
         };
@@ -64371,7 +67692,7 @@ export interface components {
         /** @enum {string} */
         StorageBackendType: "LOCAL" | "SMB" | "SFTP" | "S3";
         /** @enum {string} */
-        StorageCategory: "MEDIA_FILES" | "INSTANCE_MEDIA_FILES" | "MEDIA_IMAGES" | "KB_FILES" | "MEMBER_DOCUMENTS" | "MOVEMENT_DOCUMENTS" | "BOARD_ATTACHMENTS" | "IMAGE_AVATAR" | "IMAGE_LOST_AND_FOUND" | "IMAGE_LOGO_FRAGMENT" | "IMAGE_STATION_LOGO" | "IMAGE_QUIZ_QUESTION" | "IMAGE_KB_ICON" | "IMAGE_KB_IMAGE" | "IMAGE_KB_FILE_PICTURE" | "DOCUMENT" | "DISCOVERY_KEY" | "MAP_TILE_CACHE" | "DEMO_AVATAR" | "IMAGE_DISCOVERY_LOGO";
+        StorageCategory: "MEDIA_FILES" | "INSTANCE_MEDIA_FILES" | "MEDIA_IMAGES" | "KB_FILES" | "MEMBER_DOCUMENTS" | "DOCUMENT_TEMPLATES" | "ASSOCIATION_DOCUMENT_TEMPLATES" | "FONTS" | "ASSOCIATION_FONTS" | "INSTANCE_FONTS" | "MOVEMENT_DOCUMENTS" | "BOARD_ATTACHMENTS" | "IMAGE_AVATAR" | "IMAGE_LOST_AND_FOUND" | "IMAGE_LOGO_FRAGMENT" | "IMAGE_STATION_LOGO" | "IMAGE_QUIZ_QUESTION" | "IMAGE_KB_ICON" | "IMAGE_KB_IMAGE" | "IMAGE_KB_FILE_PICTURE" | "IMAGE_DOCUMENT_TEMPLATE_PICTURE" | "IMAGE_ASSOCIATION_DOCUMENT_TEMPLATE_PICTURE" | "DOCUMENT" | "DISCOVERY_KEY" | "MAP_TILE_CACHE" | "DEMO_AVATAR" | "IMAGE_DISCOVERY_LOGO";
         StorageQuotaPreset: {
             /** Format: int64 */
             board: number;
@@ -64620,6 +67941,15 @@ export interface components {
             /** Format: int32 */
             position: number;
         };
+        TemplatePage: {
+            items: components["schemas"]["DocumentTemplateSummary"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            size: number;
+            /** Format: int32 */
+            total: number;
+        };
         TemplateRequest: {
             name?: string;
         };
@@ -64631,6 +67961,30 @@ export interface components {
             content: string;
             displayName: string;
             optional: boolean;
+        };
+        /** @enum {string} */
+        TemplateSort: "LAST_USED" | "NAME" | "CREATED" | "UPDATED";
+        TemplateUseRequest: {
+            audience?: components["schemas"]["RestrictionAudience"] | null;
+            issuerFunction?: string | null;
+            /** Format: int32 */
+            issuerId?: number | null;
+            selfService?: boolean;
+        };
+        TemplateUseResponse: {
+            audience: components["schemas"]["RestrictionAudience"];
+            /** Format: int32 */
+            cooldownDays: number;
+            issuerFunction: string | null;
+            /** Format: int32 */
+            issuerId: number | null;
+            kind: components["schemas"]["DocumentTemplateKind"];
+            legal: boolean;
+            name: string;
+            offered: boolean;
+            selfService: boolean;
+            /** Format: int32 */
+            templateId: number;
         };
         TestProtocol: {
             createdAt: components["schemas"]["Instant"];
@@ -64732,6 +68086,8 @@ export interface components {
              */
             questionType: "TEXT";
         };
+        /** @enum {string} */
+        TextAlign: "LEFT" | "CENTER" | "RIGHT";
         TextAnswer: {
             text: string;
             /**
@@ -65520,6 +68876,15 @@ export interface components {
             challengeToken?: string;
             credentialJson?: string;
         };
+        /** @enum {string} */
+        WebFontFormat: "WOFF2" | "WOFF" | "TRUETYPE" | "CFF";
+        WebFontView: {
+            fileName: string;
+            format: components["schemas"]["WebFontFormat"];
+            /** Format: int64 */
+            sizeBytes: number;
+            uploadedAt: components["schemas"]["Instant"];
+        };
         WebhookUrl: {
             deliveryWebhookUrl: string;
             signingSecretSet: boolean;
@@ -65607,6 +68972,7 @@ export type ApplicationStatus = components['schemas']['ApplicationStatus'];
 export type ApplyPresetRequest = components['schemas']['ApplyPresetRequest'];
 export type ApplyRequest = components['schemas']['ApplyRequest'];
 export type ApplyTierRequest = components['schemas']['ApplyTierRequest'];
+export type AppointmentDocuments = components['schemas']['AppointmentDocuments'];
 export type AppointmentField = components['schemas']['AppointmentField'];
 export type AppointmentTemplateField = components['schemas']['AppointmentTemplateField'];
 export type AppointRequest = components['schemas']['AppointRequest'];
@@ -65703,6 +69069,7 @@ export type BrowseResponse = components['schemas']['BrowseResponse'];
 export type BulkDeleteRequest = components['schemas']['BulkDeleteRequest'];
 export type BulkMoveRequest = components['schemas']['BulkMoveRequest'];
 export type BulkOutcome = components['schemas']['BulkOutcome'];
+export type BulkPreviewResponse = components['schemas']['BulkPreviewResponse'];
 export type BulkRetireResponse = components['schemas']['BulkRetireResponse'];
 export type BulkSetRequest = components['schemas']['BulkSetRequest'];
 export type BulkSetResponse = components['schemas']['BulkSetResponse'];
@@ -65866,6 +69233,12 @@ export type Date = components['schemas']['Date'];
 export type DateAnswer = components['schemas']['DateAnswer'];
 export type DateConfig = components['schemas']['DateConfig'];
 export type DatedEvent = components['schemas']['DatedEvent'];
+export type DateFormatCheck = components['schemas']['DateFormatCheck'];
+export type DateFormatCheckRequest = components['schemas']['DateFormatCheckRequest'];
+export type DateFormatOption = components['schemas']['DateFormatOption'];
+export type DateFormatProblem = components['schemas']['DateFormatProblem'];
+export type DateKind = components['schemas']['DateKind'];
+export type DateTokenOption = components['schemas']['DateTokenOption'];
 export type DateValue = components['schemas']['DateValue'];
 export type DayCount = components['schemas']['DayCount'];
 export type DeclineBody = components['schemas']['DeclineBody'];
@@ -65920,9 +69293,19 @@ export type DiscoveryVisibility = components['schemas']['DiscoveryVisibility'];
 export type DispatchRequest = components['schemas']['DispatchRequest'];
 export type DisplayTag = components['schemas']['DisplayTag'];
 export type DividerConfig = components['schemas']['DividerConfig'];
+export type DocumentFontsResponse = components['schemas']['DocumentFontsResponse'];
+export type DocumentFontView = components['schemas']['DocumentFontView'];
+export type DocumentLanguage = components['schemas']['DocumentLanguage'];
 export type DocumentPage = components['schemas']['DocumentPage'];
 export type DocumentPlaceholder = components['schemas']['DocumentPlaceholder'];
 export type DocumentResponse = components['schemas']['DocumentResponse'];
+export type DocumentTemplateCopy = components['schemas']['DocumentTemplateCopy'];
+export type DocumentTemplateCopyRequest = components['schemas']['DocumentTemplateCopyRequest'];
+export type DocumentTemplateKind = components['schemas']['DocumentTemplateKind'];
+export type DocumentTemplateRequest = components['schemas']['DocumentTemplateRequest'];
+export type DocumentTemplateResponse = components['schemas']['DocumentTemplateResponse'];
+export type DocumentTemplateSummary = components['schemas']['DocumentTemplateSummary'];
+export type DraftPreviewRequest = components['schemas']['DraftPreviewRequest'];
 export type EligibleMembers = components['schemas']['EligibleMembers'];
 export type EmailChangeResponse = components['schemas']['EmailChangeResponse'];
 export type EmailChangeResult = components['schemas']['EmailChangeResult'];
@@ -66024,6 +69407,7 @@ export type FieldDefaultEntry = components['schemas']['FieldDefaultEntry'];
 export type FieldDefinitionRequest = components['schemas']['FieldDefinitionRequest'];
 export type FieldOrderRequest = components['schemas']['FieldOrderRequest'];
 export type FieldOrigin = components['schemas']['FieldOrigin'];
+export type FieldRect = components['schemas']['FieldRect'];
 export type FieldRequest = components['schemas']['FieldRequest'];
 export type FieldType = components['schemas']['FieldType'];
 export type FieldUpdateRequest = components['schemas']['FieldUpdateRequest'];
@@ -66046,17 +69430,24 @@ export type FlowRequest = components['schemas']['FlowRequest'];
 export type FlowResponse = components['schemas']['FlowResponse'];
 export type FolderRequest = components['schemas']['FolderRequest'];
 export type FolderTreeEntry = components['schemas']['FolderTreeEntry'];
+export type FontFamilyOption = components['schemas']['FontFamilyOption'];
+export type FontOrigin = components['schemas']['FontOrigin'];
+export type FontOutline = components['schemas']['FontOutline'];
+export type FontStyle = components['schemas']['FontStyle'];
 export type ForeignKey = components['schemas']['ForeignKey'];
 export type Form = components['schemas']['Form'];
 export type FormAnalytics = components['schemas']['FormAnalytics'];
 export type FormAnswer = components['schemas']['FormAnswer'];
 export type FormAnswerValue = components['schemas']['FormAnswerValue'];
 export type FormAnswerValueByType = components['schemas']['FormAnswerValueByType'];
+export type FormBinding = components['schemas']['FormBinding'];
 export type FormDraft = components['schemas']['FormDraft'];
 export type FormDraftRequest = components['schemas']['FormDraftRequest'];
 export type FormDraftResponse = components['schemas']['FormDraftResponse'];
 export type FormDuplicateRequest = components['schemas']['FormDuplicateRequest'];
 export type FormerCheckResponse = components['schemas']['FormerCheckResponse'];
+export type FormField = components['schemas']['FormField'];
+export type FormFieldKind = components['schemas']['FormFieldKind'];
 export type FormLayout = components['schemas']['FormLayout'];
 export type FormLayoutRequest = components['schemas']['FormLayoutRequest'];
 export type FormListEntry = components['schemas']['FormListEntry'];
@@ -66095,9 +69486,13 @@ export type GalleryItem = components['schemas']['GalleryItem'];
 export type GdprDeletionContext = components['schemas']['GdprDeletionContext'];
 export type GdprExportContext = components['schemas']['GdprExportContext'];
 export type GenerateDatesRequest = components['schemas']['GenerateDatesRequest'];
+export type GeneratedDocumentEntry = components['schemas']['GeneratedDocumentEntry'];
+export type GeneratedDocumentResponse = components['schemas']['GeneratedDocumentResponse'];
 export type GeneratedQuestionWithMeta = components['schemas']['GeneratedQuestionWithMeta'];
 export type GenerateEntry = components['schemas']['GenerateEntry'];
 export type GenerateQuestionsRequest = components['schemas']['GenerateQuestionsRequest'];
+export type GenerationJobResponse = components['schemas']['GenerationJobResponse'];
+export type GenerationJobSummary = components['schemas']['GenerationJobSummary'];
 export type GenerationPollResponse = components['schemas']['GenerationPollResponse'];
 export type GeocodingProvider = components['schemas']['GeocodingProvider'];
 export type GradingScope = components['schemas']['GradingScope'];
@@ -66109,6 +69504,7 @@ export type GroupRequest = components['schemas']['GroupRequest'];
 export type GroupRuleRefusedBody = components['schemas']['GroupRuleRefusedBody'];
 export type GroupRulesRequest = components['schemas']['GroupRulesRequest'];
 export type GroupSetRequest = components['schemas']['GroupSetRequest'];
+export type GuardianCondition = components['schemas']['GuardianCondition'];
 export type GuardianEntry = components['schemas']['GuardianEntry'];
 export type HandOutRequest = components['schemas']['HandOutRequest'];
 export type HandOutSelfChecksRequest = components['schemas']['HandOutSelfChecksRequest'];
@@ -66172,6 +69568,7 @@ export type InviteCodeResponse = components['schemas']['InviteCodeResponse'];
 export type InviteEntry = components['schemas']['InviteEntry'];
 export type InviteRequest = components['schemas']['InviteRequest'];
 export type IssuedOneTimePassword = components['schemas']['IssuedOneTimePassword'];
+export type IssuerChoice = components['schemas']['IssuerChoice'];
 export type ItemAssignment = components['schemas']['ItemAssignment'];
 export type ItemBooleanValue = components['schemas']['ItemBooleanValue'];
 export type ItemCheckHistoryEntry = components['schemas']['ItemCheckHistoryEntry'];
@@ -66189,6 +69586,10 @@ export type ItemTagsRequest = components['schemas']['ItemTagsRequest'];
 export type ItemTagsResponse = components['schemas']['ItemTagsResponse'];
 export type ItemTextValue = components['schemas']['ItemTextValue'];
 export type JobIdResponse = components['schemas']['JobIdResponse'];
+export type JobMemberResult = components['schemas']['JobMemberResult'];
+export type JobMemberStatus = components['schemas']['JobMemberStatus'];
+export type JobPreviewRequest = components['schemas']['JobPreviewRequest'];
+export type JobStartRequest = components['schemas']['JobStartRequest'];
 export type KbAccessLevel = components['schemas']['KbAccessLevel'];
 export type KbArticleConfig = components['schemas']['KbArticleConfig'];
 export type KbFavourite = components['schemas']['KbFavourite'];
@@ -66229,6 +69630,10 @@ export type LendingRequestItem = components['schemas']['LendingRequestItem'];
 export type LendingRequestResponse = components['schemas']['LendingRequestResponse'];
 export type LendingStatus = components['schemas']['LendingStatus'];
 export type LentOutItem = components['schemas']['LentOutItem'];
+export type LetterImport = components['schemas']['LetterImport'];
+export type LetterPage = components['schemas']['LetterPage'];
+export type LetterPart = components['schemas']['LetterPart'];
+export type LetterPartRules = components['schemas']['LetterPartRules'];
 export type Likert = components['schemas']['Likert'];
 export type LikertAnswer = components['schemas']['LikertAnswer'];
 export type LineCheck = components['schemas']['LineCheck'];
@@ -66296,6 +69701,7 @@ export type ManagedMemberResponse = components['schemas']['ManagedMemberResponse
 export type ManagedMemberSetValuesRequest = components['schemas']['ManagedMemberSetValuesRequest'];
 export type ManagedStationResponse = components['schemas']['ManagedStationResponse'];
 export type ManagerDetail = components['schemas']['ManagerDetail'];
+export type ManagerGenerationRequest = components['schemas']['ManagerGenerationRequest'];
 export type MapConfig = components['schemas']['MapConfig'];
 export type MapsGeocodingConfig = components['schemas']['MapsGeocodingConfig'];
 export type MapsTilesConfig = components['schemas']['MapsTilesConfig'];
@@ -66317,6 +69723,7 @@ export type MemberCheckState = components['schemas']['MemberCheckState'];
 export type MemberCompletion = components['schemas']['MemberCompletion'];
 export type MemberDocumentResponse = components['schemas']['MemberDocumentResponse'];
 export type MemberExportRequest = components['schemas']['MemberExportRequest'];
+export type MemberGaps = components['schemas']['MemberGaps'];
 export type MemberGroup = components['schemas']['MemberGroup'];
 export type MemberGroupSet = components['schemas']['MemberGroupSet'];
 export type MemberGroupsRequest = components['schemas']['MemberGroupsRequest'];
@@ -66359,6 +69766,7 @@ export type MetricsBatch = components['schemas']['MetricsBatch'];
 export type MetricsSubject = components['schemas']['MetricsSubject'];
 export type MigrationResponse = components['schemas']['MigrationResponse'];
 export type MissingStepsResponse = components['schemas']['MissingStepsResponse'];
+export type MissingValue = components['schemas']['MissingValue'];
 export type Mode = components['schemas']['Mode'];
 export type ModelInfo = components['schemas']['ModelInfo'];
 export type ModulesResponse = components['schemas']['ModulesResponse'];
@@ -66465,6 +69873,7 @@ export type PairRequestResponse = components['schemas']['PairRequestResponse'];
 export type PairRequestStatus = components['schemas']['PairRequestStatus'];
 export type PairRequestStatusQuery = components['schemas']['PairRequestStatusQuery'];
 export type ParseResult = components['schemas']['ParseResult'];
+export type ParticipantDocuments = components['schemas']['ParticipantDocuments'];
 export type PartnerEventDetail = components['schemas']['PartnerEventDetail'];
 export type PartnerPlacesView = components['schemas']['PartnerPlacesView'];
 export type PartnerResponse = components['schemas']['PartnerResponse'];
@@ -66482,6 +69891,11 @@ export type PasswordStepUpRequest = components['schemas']['PasswordStepUpRequest
 export type PastEventRecapConfig = components['schemas']['PastEventRecapConfig'];
 export type PatchItemRequest = components['schemas']['PatchItemRequest'];
 export type PdfConfig = components['schemas']['PdfConfig'];
+export type PdfField = components['schemas']['PdfField'];
+export type PdfFieldKind = components['schemas']['PdfFieldKind'];
+export type PdfInspection = components['schemas']['PdfInspection'];
+export type PdfOriginal = components['schemas']['PdfOriginal'];
+export type PdfPage = components['schemas']['PdfPage'];
 export type PeerAnnouncement = components['schemas']['PeerAnnouncement'];
 export type PeerResponse = components['schemas']['PeerResponse'];
 export type PeerSource = components['schemas']['PeerSource'];
@@ -66490,6 +69904,9 @@ export type PermissionNode = components['schemas']['PermissionNode'];
 export type PermissionsByMember = components['schemas']['PermissionsByMember'];
 export type PickerEvent = components['schemas']['PickerEvent'];
 export type PickerPage = components['schemas']['PickerPage'];
+export type Placeholder = components['schemas']['Placeholder'];
+export type PlaceholderCatalogueResponse = components['schemas']['PlaceholderCatalogueResponse'];
+export type PlaceholderCategory = components['schemas']['PlaceholderCategory'];
 export type PlaceholderValues = components['schemas']['PlaceholderValues'];
 export type PlacementResponse = components['schemas']['PlacementResponse'];
 export type PlannedLanding = components['schemas']['PlannedLanding'];
@@ -66502,6 +69919,8 @@ export type PollEmbedConfig = components['schemas']['PollEmbedConfig'];
 export type PollStatus = components['schemas']['PollStatus'];
 export type PoolRequest = components['schemas']['PoolRequest'];
 export type PresetRequest = components['schemas']['PresetRequest'];
+export type PreviewIssuer = components['schemas']['PreviewIssuer'];
+export type PreviewResponse = components['schemas']['PreviewResponse'];
 export type PreviewResult = components['schemas']['PreviewResult'];
 export type ProbeRequest = components['schemas']['ProbeRequest'];
 export type ProbeResult = components['schemas']['ProbeResult'];
@@ -66527,6 +69946,9 @@ export type ProfileFieldRequest = components['schemas']['ProfileFieldRequest'];
 export type ProfileFieldScope = components['schemas']['ProfileFieldScope'];
 export type ProfileFieldTarget = components['schemas']['ProfileFieldTarget'];
 export type ProfileFieldValue = components['schemas']['ProfileFieldValue'];
+export type PronounLanguage = components['schemas']['PronounLanguage'];
+export type PronounRole = components['schemas']['PronounRole'];
+export type PronounSet = components['schemas']['PronounSet'];
 export type ProtocolChecksRequest = components['schemas']['ProtocolChecksRequest'];
 export type ProtocolDetailResponse = components['schemas']['ProtocolDetailResponse'];
 export type ProtocolItemRequest = components['schemas']['ProtocolItemRequest'];
@@ -66671,11 +70093,15 @@ export type ReportData = components['schemas']['ReportData'];
 export type ReportPayload = components['schemas']['ReportPayload'];
 export type ReportRequest = components['schemas']['ReportRequest'];
 export type RequeuedMails = components['schemas']['RequeuedMails'];
+export type RequiredDocumentStatus = components['schemas']['RequiredDocumentStatus'];
 export type RequiredInventoryItem = components['schemas']['RequiredInventoryItem'];
+export type RequiredTemplate = components['schemas']['RequiredTemplate'];
 export type RequirementItem = components['schemas']['RequirementItem'];
 export type RequirementRequest = components['schemas']['RequirementRequest'];
 export type RequirementResponse = components['schemas']['RequirementResponse'];
+export type RequirementsRequest = components['schemas']['RequirementsRequest'];
 export type RequirementsResponse = components['schemas']['RequirementsResponse'];
+export type RequirementStatus = components['schemas']['RequirementStatus'];
 export type ResetPasswordRequest = components['schemas']['ResetPasswordRequest'];
 export type ResidueEntry = components['schemas']['ResidueEntry'];
 export type ResolvedMember = components['schemas']['ResolvedMember'];
@@ -66738,6 +70164,7 @@ export type SelfCheckSettlement = components['schemas']['SelfCheckSettlement'];
 export type SelfCheckState = components['schemas']['SelfCheckState'];
 export type SelfCheckSummary = components['schemas']['SelfCheckSummary'];
 export type SelfCheckTask = components['schemas']['SelfCheckTask'];
+export type SelfServiceOffer = components['schemas']['SelfServiceOffer'];
 export type SendableItem = components['schemas']['SendableItem'];
 export type SendReportRequest = components['schemas']['SendReportRequest'];
 export type SendRequest = components['schemas']['SendRequest'];
@@ -66793,6 +70220,8 @@ export type SharePartner = components['schemas']['SharePartner'];
 export type ShareScope = components['schemas']['ShareScope'];
 export type ShareSetting = components['schemas']['ShareSetting'];
 export type SidebarCounts = components['schemas']['SidebarCounts'];
+export type SignatureConfig = components['schemas']['SignatureConfig'];
+export type SignatureRole = components['schemas']['SignatureRole'];
 export type SignInClaimRequest = components['schemas']['SignInClaimRequest'];
 export type SignInFinishRequest = components['schemas']['SignInFinishRequest'];
 export type SigningSecretRequest = components['schemas']['SigningSecretRequest'];
@@ -66894,9 +70323,13 @@ export type TemplateDetail = components['schemas']['TemplateDetail'];
 export type TemplateDetailResponse = components['schemas']['TemplateDetailResponse'];
 export type TemplateFieldRequest = components['schemas']['TemplateFieldRequest'];
 export type TemplateGroupEntry = components['schemas']['TemplateGroupEntry'];
+export type TemplatePage = components['schemas']['TemplatePage'];
 export type TemplateRequest = components['schemas']['TemplateRequest'];
 export type TemplateRestrictions = components['schemas']['TemplateRestrictions'];
 export type TemplateSection = components['schemas']['TemplateSection'];
+export type TemplateSort = components['schemas']['TemplateSort'];
+export type TemplateUseRequest = components['schemas']['TemplateUseRequest'];
+export type TemplateUseResponse = components['schemas']['TemplateUseResponse'];
 export type TestProtocol = components['schemas']['TestProtocol'];
 export type TestProtocolItem = components['schemas']['TestProtocolItem'];
 export type TestProtocolRun = components['schemas']['TestProtocolRun'];
@@ -66907,6 +70340,7 @@ export type TestResult = components['schemas']['TestResult'];
 export type TestStatus = components['schemas']['TestStatus'];
 export type TestTileResult = components['schemas']['TestTileResult'];
 export type Text = components['schemas']['Text'];
+export type TextAlign = components['schemas']['TextAlign'];
 export type TextAnswer = components['schemas']['TextAnswer'];
 export type TextConfig = components['schemas']['TextConfig'];
 export type TextDetail = components['schemas']['TextDetail'];
@@ -67019,6 +70453,8 @@ export type WebAuthnLoginFinishRequest = components['schemas']['WebAuthnLoginFin
 export type WebAuthnRegisterFinishRequest = components['schemas']['WebAuthnRegisterFinishRequest'];
 export type WebAuthnRegisterFinishResponse = components['schemas']['WebAuthnRegisterFinishResponse'];
 export type WebAuthnStepUpFinishRequest = components['schemas']['WebAuthnStepUpFinishRequest'];
+export type WebFontFormat = components['schemas']['WebFontFormat'];
+export type WebFontView = components['schemas']['WebFontView'];
 export type WebhookUrl = components['schemas']['WebhookUrl'];
 export type WebhookUrlResponse = components['schemas']['WebhookUrlResponse'];
 export type WeblinkRequest = components['schemas']['WeblinkRequest'];
@@ -67164,6 +70600,7 @@ export const CellContentType = {
     POLL_EMBED: "POLL_EMBED",
     QUIZ_TEASER: "QUIZ_TEASER",
     QUOTE: "QUOTE",
+    SIGNATURE: "SIGNATURE",
     SPACER: "SPACER",
     STATS_COUNTER: "STATS_COUNTER",
     TABS: "TABS",
@@ -67242,6 +70679,19 @@ export const CountUnit = {
     YEARS: "YEARS",
 } as const;
 
+export const DateFormatProblem = {
+    CLOCK: "CLOCK",
+    EMPTY: "EMPTY",
+    NO_TOKEN: "NO_TOKEN",
+    TOO_LONG: "TOO_LONG",
+    UNKNOWN: "UNKNOWN",
+} as const;
+
+export const DateKind = {
+    DATE: "DATE",
+    DATE_TIME: "DATE_TIME",
+} as const;
+
 export const DeviceRequestPurpose = {
     ENROL_PASSKEY: "ENROL_PASSKEY",
     SIGN_IN: "SIGN_IN",
@@ -67274,6 +70724,16 @@ export const DiscoveryVisibility = {
     INSTANCE: "INSTANCE",
     NONE: "NONE",
     PUBLIC: "PUBLIC",
+} as const;
+
+export const DocumentLanguage = {
+    DE: "DE",
+    EN: "EN",
+} as const;
+
+export const DocumentTemplateKind = {
+    LETTER: "LETTER",
+    PDF: "PDF",
 } as const;
 
 export const EmailChangeResult = {
@@ -67343,6 +70803,7 @@ export const FieldType = {
     CHOICE: "CHOICE",
     DATE: "DATE",
     EXPIRY_DATE: "EXPIRY_DATE",
+    GENDER: "GENDER",
     LANE_ASSIGNEE: "LANE_ASSIGNEE",
     LOCATION: "LOCATION",
     LONG_TEXT: "LONG_TEXT",
@@ -67370,6 +70831,32 @@ export const FilterTableType = {
     MEMBERS: "MEMBERS",
     NEWS: "NEWS",
     QUIZ: "QUIZ",
+} as const;
+
+export const FontOrigin = {
+    ASSOCIATION: "ASSOCIATION",
+    BUILT_IN: "BUILT_IN",
+    INSTANCE: "INSTANCE",
+    STATION: "STATION",
+} as const;
+
+export const FontOutline = {
+    CFF: "CFF",
+    TRUETYPE: "TRUETYPE",
+} as const;
+
+export const FontStyle = {
+    BOLD: "BOLD",
+    BOLD_ITALIC: "BOLD_ITALIC",
+    ITALIC: "ITALIC",
+    REGULAR: "REGULAR",
+} as const;
+
+export const FormFieldKind = {
+    CHECK: "CHECK",
+    OTHER: "OTHER",
+    SIGNATURE: "SIGNATURE",
+    TEXT: "TEXT",
 } as const;
 
 export const FormPurpose = {
@@ -67408,6 +70895,11 @@ export const GeocodingProvider = {
     LOCATIONIQ: "LOCATIONIQ",
     NOMINATIM: "NOMINATIM",
     NONE: "NONE",
+} as const;
+
+export const GuardianCondition = {
+    NO_SECOND_GUARDIAN: "NO_SECOND_GUARDIAN",
+    SECOND_GUARDIAN: "SECOND_GUARDIAN",
 } as const;
 
 export const IdentityType = {
@@ -67458,6 +70950,12 @@ export const ItemOwner = {
     CLUSTER: "CLUSTER",
     PARTNER_STATION: "PARTNER_STATION",
     STATION: "STATION",
+} as const;
+
+export const JobMemberStatus = {
+    FAILED: "FAILED",
+    FILED: "FILED",
+    WAITING: "WAITING",
 } as const;
 
 export const KbAccessLevel = {
@@ -67519,6 +71017,11 @@ export const LendingStatus = {
     LENT: "LENT",
     REQUESTED: "REQUESTED",
     RETURNED: "RETURNED",
+} as const;
+
+export const LetterPart = {
+    BODY: "BODY",
+    LETTERHEAD: "LETTERHEAD",
 } as const;
 
 export const LinkType = {
@@ -67798,10 +71301,28 @@ export const PairRequestStatus = {
     PENDING: "PENDING",
 } as const;
 
+export const PdfFieldKind = {
+    CHECK: "CHECK",
+    SIGNATURE: "SIGNATURE",
+    TEXT: "TEXT",
+} as const;
+
 export const PeerSource = {
     BOOTSTRAP: "BOOTSTRAP",
     GOSSIP: "GOSSIP",
     MANUAL: "MANUAL",
+} as const;
+
+export const PlaceholderCategory = {
+    APPOINTMENT: "APPOINTMENT",
+    ASSOCIATION: "ASSOCIATION",
+    DOCUMENT: "DOCUMENT",
+    GUARDIAN1: "GUARDIAN1",
+    GUARDIAN2: "GUARDIAN2",
+    ISSUER: "ISSUER",
+    MEMBER: "MEMBER",
+    PRONOUNS: "PRONOUNS",
+    STATION: "STATION",
 } as const;
 
 export const PolicyScope = {
@@ -67833,6 +71354,13 @@ export const ProfileFieldScope = {
 export const ProfileFieldTarget = {
     GROUP: "GROUP",
     ROLE: "ROLE",
+} as const;
+
+export const PronounRole = {
+    DATIVE: "DATIVE",
+    OBJECT: "OBJECT",
+    POSSESSIVE: "POSSESSIVE",
+    SUBJECT: "SUBJECT",
 } as const;
 
 export const PublicFormState = {
@@ -67882,12 +71410,19 @@ export const RegistrationStatus = {
     WITHDRAWN: "WITHDRAWN",
 } as const;
 
+export const RequirementStatus = {
+    GENERATED: "GENERATED",
+    NOT_GENERATED: "NOT_GENERATED",
+} as const;
+
 export const RestrictionMode = {
     AND: "AND",
     OR: "OR",
 } as const;
 
 export const RestrictionType = {
+    DOCUMENT_TEMPLATE: "DOCUMENT_TEMPLATE",
+    DOCUMENT_TEMPLATE_STATION_USE: "DOCUMENT_TEMPLATE_STATION_USE",
     EVENT: "EVENT",
     EVENT_TEMPLATE: "EVENT_TEMPLATE",
     EVENT_TEMPLATE_VIEW: "EVENT_TEMPLATE_VIEW",
@@ -67986,6 +71521,15 @@ export const ShareScope = {
     SPECIFIC: "SPECIFIC",
 } as const;
 
+export const SignatureRole = {
+    ANY_GUARDIAN: "ANY_GUARDIAN",
+    EACH_GUARDIAN: "EACH_GUARDIAN",
+    GUARDIAN_1: "GUARDIAN_1",
+    GUARDIAN_2: "GUARDIAN_2",
+    ISSUER: "ISSUER",
+    PARTICIPANT: "PARTICIPANT",
+} as const;
+
 export const SmtpEncryption = {
     IMPLICIT_TLS: "IMPLICIT_TLS",
     NONE: "NONE",
@@ -68026,6 +71570,7 @@ export const StationPermission = {
     DOCUMENT_MANAGER: "DOCUMENT_MANAGER",
     DOCUMENT_READ: "DOCUMENT_READ",
     DOCUMENT_READ_MEMBER: "DOCUMENT_READ_MEMBER",
+    DOCUMENT_TEMPLATE_EDIT: "DOCUMENT_TEMPLATE_EDIT",
     EVENTS_FEDERATE: "EVENTS_FEDERATE",
     EVENT_EDIT: "EVENT_EDIT",
     EVENT_INTERNAL: "EVENT_INTERNAL",
@@ -68176,12 +71721,18 @@ export const StorageBackendType = {
 } as const;
 
 export const StorageCategory = {
+    ASSOCIATION_DOCUMENT_TEMPLATES: "ASSOCIATION_DOCUMENT_TEMPLATES",
+    ASSOCIATION_FONTS: "ASSOCIATION_FONTS",
     BOARD_ATTACHMENTS: "BOARD_ATTACHMENTS",
     DEMO_AVATAR: "DEMO_AVATAR",
     DISCOVERY_KEY: "DISCOVERY_KEY",
     DOCUMENT: "DOCUMENT",
+    DOCUMENT_TEMPLATES: "DOCUMENT_TEMPLATES",
+    FONTS: "FONTS",
+    IMAGE_ASSOCIATION_DOCUMENT_TEMPLATE_PICTURE: "IMAGE_ASSOCIATION_DOCUMENT_TEMPLATE_PICTURE",
     IMAGE_AVATAR: "IMAGE_AVATAR",
     IMAGE_DISCOVERY_LOGO: "IMAGE_DISCOVERY_LOGO",
+    IMAGE_DOCUMENT_TEMPLATE_PICTURE: "IMAGE_DOCUMENT_TEMPLATE_PICTURE",
     IMAGE_KB_FILE_PICTURE: "IMAGE_KB_FILE_PICTURE",
     IMAGE_KB_ICON: "IMAGE_KB_ICON",
     IMAGE_KB_IMAGE: "IMAGE_KB_IMAGE",
@@ -68189,6 +71740,7 @@ export const StorageCategory = {
     IMAGE_LOST_AND_FOUND: "IMAGE_LOST_AND_FOUND",
     IMAGE_QUIZ_QUESTION: "IMAGE_QUIZ_QUESTION",
     IMAGE_STATION_LOGO: "IMAGE_STATION_LOGO",
+    INSTANCE_FONTS: "INSTANCE_FONTS",
     INSTANCE_MEDIA_FILES: "INSTANCE_MEDIA_FILES",
     KB_FILES: "KB_FILES",
     MAP_TILE_CACHE: "MAP_TILE_CACHE",
@@ -68229,10 +71781,23 @@ export const TaskOutcome = {
     SUCCEEDED: "SUCCEEDED",
 } as const;
 
+export const TemplateSort = {
+    CREATED: "CREATED",
+    LAST_USED: "LAST_USED",
+    NAME: "NAME",
+    UPDATED: "UPDATED",
+} as const;
+
 export const TestStatus = {
     ACTIVE: "ACTIVE",
     CLOSED: "CLOSED",
     DRAFT: "DRAFT",
+} as const;
+
+export const TextAlign = {
+    CENTER: "CENTER",
+    LEFT: "LEFT",
+    RIGHT: "RIGHT",
 } as const;
 
 export const ThemeFeel = {
@@ -68315,4 +71880,11 @@ export const WaitingListEntryStatus = {
     TESTING: "TESTING",
     WAITING: "WAITING",
     WITHDRAWN: "WITHDRAWN",
+} as const;
+
+export const WebFontFormat = {
+    CFF: "CFF",
+    TRUETYPE: "TRUETYPE",
+    WOFF: "WOFF",
+    WOFF2: "WOFF2",
 } as const;

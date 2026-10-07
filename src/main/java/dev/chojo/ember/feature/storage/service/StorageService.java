@@ -247,8 +247,11 @@ public class StorageService {
     private void guardReadOnlyForTransfer(StorageScope scope) {
         var stations = stationRepository;
         if (stations == null) return;
-        if (!(scope instanceof StorageScope.Station station)) return;
-        if (stations.isReadOnlyForTransfer(station.stationId())) {
+        int stationId;
+        if (scope instanceof StorageScope.Station station) stationId = station.stationId();
+        else if (scope instanceof StorageScope.Association association) stationId = association.homeStationId();
+        else return;
+        if (stations.isReadOnlyForTransfer(stationId)) {
             throw StorageRefusal.STATION_READ_ONLY_FOR_FILE_WRITE.raise();
         }
     }

@@ -12,7 +12,7 @@ import type {MemberOption} from '@/components/input/select/memberOption'
 import QuestionBoundsEditor from './QuestionBoundsEditor.vue'
 import QuestionDefaultEditor from './QuestionDefaultEditor.vue'
 import MemberConstraintEditor from './MemberConstraintEditor.vue'
-import {holdsValue, memberConstraintOf} from '@/api/fieldTypes'
+import {holdsValue, isChoiceType, memberConstraintOf} from '@/api/fieldTypes'
 import {FieldType, type MemberGroup, type UserTag} from '@/api/generated/schema'
 import type {QuestionSetting, QuestionSettingsModel} from './questionSettings'
 
@@ -44,7 +44,7 @@ function offered(setting: QuestionSetting): boolean {
   return props.offers.includes(setting)
 }
 
-const showsOptions = computed(() => offered('options') && props.fieldType === FieldType.CHOICE)
+const showsOptions = computed(() => offered('options') && isChoiceType(props.fieldType))
 const showsMembers = computed(() => offered('members') && memberConstraintOf(props.fieldType) !== null)
 const showsBounds = computed(() =>
     (offered('bounds') || offered('step')) && props.fieldType === FieldType.NUMBER)

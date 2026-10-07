@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import EditorCell from './EditorCell.vue'
@@ -15,11 +16,14 @@ import {publicContentContext} from '@/util/contentContext'
 import type {CellEditData} from './EditorCell.vue'
 import {CellContentType, type ContentRow as RowData} from '@/api/generated/schema'
 import {usePageClipboard} from '@/composables/usePageClipboard'
+import {useBlockEditorOptions} from '@/composables/useBlockEditorOptions'
 
 export interface RowEditData {
     id: number
     sortOrder: number
     cells: CellEditData[]
+    /** Whether a line is drawn between the columns, which only a letter's editor offers. */
+    columnLines?: boolean
 }
 
 const row = defineModel<RowEditData>('row', {required: true})
@@ -42,6 +46,15 @@ const emit = defineEmits<{
 
 const {t} = useI18n()
 const {copyRow, cutRow, pasteCell, hasClipboard, clipboardType} = usePageClipboard()
+const options = useBlockEditorOptions()
+
+const canAddColumn = computed(() => row.value.cells.length < options.value.maxColumns)
+
+const columnLines = computed(() => options.value.columnLines ? !!row.value.columnLines : undefined)
+
+function toggleLines() {
+    row.value = {...row.value, columnLines: !row.value.columnLines}
+}
 
 function updateCells(cells: CellEditData[]) {
     row.value = {...row.value, cells}
@@ -84,7 +97,7 @@ function deleteCell(index: number) {
 }
 
 function insertColumn(index: number) {
-    if (row.value.cells.length >= 4) return
+    if (!canAddColumn.value) return
     const count = row.value.cells.length + 1
     const widthPercent = 100 / count
     const newCell: CellEditData = {
@@ -147,7 +160,7 @@ function onCut() {
 
 function onPasteCell() {
     const data = pasteCell() as CellEditData | null
-    if (!data) return
+    if (!data || !canAddColumn.value) return
     const cells = [...row.value.cells]
     const newCell: CellEditData = {
         ...data,
@@ -178,6 +191,8 @@ function onPasteCell() {
             :is-first="isFirst"
             :is-last="isLast"
             :can-paste-cell="hasClipboard && clipboardType === 'cell'"
+            :column-lines="columnLines"
+            @toggle-lines="toggleLines"
             @copy="onCopy"
             @cut="onCut"
             @delete="$emit('delete')"
@@ -203,21 +218,22 @@ function onPasteCell() {
                     v-if="ci < row.cells.length - 1"
                     :left-percent="cell.widthPercent"
                     :right-percent="row.cells[ci + 1]?.widthPercent ?? 0"
-                    :can-add-column="row.cells.length < 4"
+                    :can-add-column="canAddColumn"
+                    :lined="!!columnLines"
                     @resize="onResize(ci, $event)"
                     @swap="swapCells(ci)"
                     @add-column="insertColumn(ci + 1)"
                 />
             </template>
             <EditorFloatButton
-                v-if="row.cells.length < 4"
+                v-if="canAddColumn"
                 :icon="['fas', 'plus']"
                 :label="t('stationPages.editor.addColumn')"
                 class="absolute -left-2 top-1/2 -translate-y-1/2 z-10"
                 @click="insertColumn(0)"
             />
             <EditorFloatButton
-                v-if="row.cells.length < 4"
+                v-if="canAddColumn"
                 :icon="['fas', 'plus']"
                 :label="t('stationPages.editor.addColumn')"
                 class="absolute -right-2 top-1/2 -translate-y-1/2 z-10"

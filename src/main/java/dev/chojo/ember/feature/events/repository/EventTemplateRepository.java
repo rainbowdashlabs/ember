@@ -209,6 +209,23 @@ public class EventTemplateRepository {
                 .rows();
     }
 
+    /**
+     * Hands a template's documents to bring to an appointment made from it, in the template's order.
+     *
+     * @return how many were handed over
+     */
+    public int copyDocumentRequirements(int templateId, int eventId) {
+        return query("""
+                INSERT INTO event_document_requirement(event_id, template_id, position)
+                SELECT :event_id, template_id, position
+                FROM event_document_requirement
+                WHERE event_template_id = :template_id
+                ON CONFLICT DO NOTHING;""")
+                .single(call().bind("template_id", templateId).bind("event_id", eventId))
+                .insert()
+                .rows();
+    }
+
     public List<Integer> findReminderDays(int templateId) {
         return query("""
                 SELECT days_before

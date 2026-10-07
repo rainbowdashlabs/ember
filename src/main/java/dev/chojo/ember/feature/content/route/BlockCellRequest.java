@@ -8,7 +8,10 @@ package dev.chojo.ember.feature.content.route;
 import dev.chojo.ember.api.refusal.BodyRefusal;
 import dev.chojo.ember.feature.content.entity.CellConfig;
 import dev.chojo.ember.feature.content.entity.CellContentType;
+import dev.chojo.ember.feature.content.entity.GuardianCondition;
 import dev.chojo.ember.feature.content.service.ContentBlockService;
+import dev.chojo.ember.feature.restriction.RestrictionAudience;
+import org.jspecify.annotations.Nullable;
 import tools.jackson.databind.JsonNode;
 
 /**
@@ -21,9 +24,23 @@ import tools.jackson.databind.JsonNode;
  * @param config       the block's settings as an object. Which record they are follows from the
  *                     content type beside them, so they are bound once that is known rather than
  *                     while the request is read.
+ * @param restriction       who the block is shown to, or null for everybody. Only a letter keeps it.
+ * @param guardianCondition which guardians the member must have for the block to be printed, or null
+ *                          for no such condition. Only a letter keeps it.
  */
 public record BlockCellRequest(
-        int sortOrder, Double widthPercent, String contentType, String content, JsonNode config) {
+        int sortOrder,
+        Double widthPercent,
+        String contentType,
+        String content,
+        JsonNode config,
+        @Nullable RestrictionAudience restriction,
+        @Nullable GuardianCondition guardianCondition) {
+
+    /** A block shown to everybody, as a page, a news entry or an article sends it. */
+    public BlockCellRequest(int sortOrder, Double widthPercent, String contentType, String content, JsonNode config) {
+        this(sortOrder, widthPercent, contentType, content, config, null, null);
+    }
 
     /**
      * The block as the block service takes it.
@@ -40,7 +57,9 @@ public record BlockCellRequest(
                 widthPercent != null ? widthPercent : 100.0,
                 type,
                 content != null ? content : "",
-                boundConfig(type));
+                boundConfig(type),
+                restriction,
+                guardianCondition);
     }
 
     private CellConfig boundConfig(CellContentType type) {

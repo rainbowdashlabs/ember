@@ -19,10 +19,15 @@ import type { MemberListConfig } from './useMemberListConfig'
 
 /**
  * Everything above the member table: saved filters, who to show, the search, the columns, and
- * the export.
+ * the export. The members chosen for an export can be handed to a run that generates documents, where
+ * the screen offers one.
  */
 const props = defineProps<{
   config: MemberListConfig
+}>()
+
+const emit = defineEmits<{
+  generateDocuments: [memberIds: number[]]
 }>()
 
 const { t } = useI18n()
@@ -94,6 +99,11 @@ function submitSaveFilter() {
                        data-testid="members-export-continue" @click="exporting.openExportModal">
           {{ t('membersList.export.continue') }}
         </PrimaryButton>
+        <SecondaryButton v-if="c.canGenerateDocuments.value" :full-width="isMobile" class="col-span-2 sm:col-span-1"
+                         :icon="['fas', 'file-circle-plus']" :disabled="exporting.selectedIds.value.size === 0"
+                         data-testid="members-generate-documents" @click="emit('generateDocuments', [...exporting.selectedIds.value])">
+          {{ t('membersList.generateDocuments') }}
+        </SecondaryButton>
       </template>
     </div>
   </div>

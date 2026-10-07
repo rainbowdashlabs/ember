@@ -24,6 +24,7 @@ services:
       DB_PASSWORD: ember
       DB_DATABASE: ember
       DB_SCHEMA: ember_schema
+      DEFAULT_FONT_DOWNLOAD: "true"
     volumes:
       - ./config:/app/config
       - ./data:/app/data

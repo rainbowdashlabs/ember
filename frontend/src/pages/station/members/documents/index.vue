@@ -4,14 +4,17 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import DocumentsView from '~/views/stationview/members/DocumentsView.vue'
-
+/**
+ * The document store moved out of the members into a menu of its own. This keeps the address it used
+ * to live at working, because bookmarks and older mails still point here.
+ */
 definePageMeta({
   layout: 'station',
-  name: 'member-documents',
+  name: 'member-documents-legacy',
+  redirect: '/station/documents/store',
 })
 </script>
 
 <template>
-  <DocumentsView />
+  <div/>
 </template>

@@ -93,6 +93,11 @@ public enum ClusterPermission implements RouteRole {
     CLUSTER_EVENT_MANAGER(CLUSTER_EVENT_EDIT),
 
     /**
+     * The association's document templates and the fonts they print with.
+     */
+    CLUSTER_DOCUMENT_TEMPLATE_EDIT,
+
+    /**
      * Everything about how the cluster governs itself and its stations.
      */
     CLUSTER_MANAGER(
@@ -114,6 +119,7 @@ public enum ClusterPermission implements RouteRole {
             CLUSTER_KNOWLEDGE_MANAGER,
             CLUSTER_NEWS_MANAGER,
             CLUSTER_EVENT_MANAGER,
+            CLUSTER_DOCUMENT_TEMPLATE_EDIT,
             LOGIN);
 
     private final ClusterPermission[] children;
@@ -181,7 +187,8 @@ public enum ClusterPermission implements RouteRole {
      * screens that edit them are a station's, and the matching cluster rights must arrive there as station
      * rights. Nothing reaches members or settings: running the cluster is not running a station. The gear
      * manager gets the full inventory right, since nobody else is on this station to protect from its owner.
-     * The cluster's federation right is what shares its content out to its stations.
+     * The cluster's federation right is what shares its content out to its stations. The right to write
+     * the cluster's document templates reaches the station's media library, where their pictures are kept.
      *
      * @param held every cluster permission the member holds, already expanded
      * @return what they may do at the station the cluster owns
@@ -221,6 +228,8 @@ public enum ClusterPermission implements RouteRole {
             }
             if (held.contains(CLUSTER_INVENTORY_MOVEMENTS)) granted.add(StationPermission.INVENTORY_MOVEMENTS);
         }
+
+        if (held.contains(CLUSTER_DOCUMENT_TEMPLATE_EDIT)) granted.add(StationPermission.DOCUMENT_TEMPLATE_EDIT);
 
         if (held.contains(CLUSTER_FEDERATION)) {
             granted.add(StationPermission.KNOWLEDGE_FEDERATE);

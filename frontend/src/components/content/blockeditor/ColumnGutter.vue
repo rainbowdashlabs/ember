@@ -14,8 +14,11 @@ const props = withDefaults(defineProps<{
     leftPercent: number
     rightPercent: number
     canAddColumn?: boolean
+    /** Whether the row draws a line in this gap, shown behind the handles. */
+    lined?: boolean
 }>(), {
     canAddColumn: true,
+    lined: false,
 })
 
 const emit = defineEmits<{
@@ -35,6 +38,7 @@ const {dragging, onMouseDown: onResizeStart} = useColumnResize(
 
 <template>
     <div class="relative flex flex-col items-center justify-center self-stretch gap-1.5 px-1 z-10">
+        <div v-if="lined" class="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-(--text-muted)" data-testid="column-line"/>
         <IconButton
             :icon="['fas', 'grip-vertical']"
             :label="t('stationPages.editor.resizeColumn')"

@@ -21,8 +21,17 @@ import {useMediaBulkActions} from './mediaview/useMediaBulkActions'
 import {PAGE_SIZE_OPTIONS, useMediaPaging} from './mediaview/useMediaPaging'
 import type {StationFile} from '@/api/generated/schema'
 
+/**
+ * The media library of the station the screen acts for: the reader's own, or the home station of the
+ * association whose pictures it is, which names its own title.
+ */
+const props = defineProps<{
+  title?: string
+  subtitle?: string
+}>()
+
 const {t} = useI18n()
-const {sessionInfo} = useSession()
+const {sessionInfo, actingStation} = useSession()
 
 const search = ref('')
 const activeFolder = ref<number | null>(null)
@@ -32,7 +41,7 @@ const previewFile = ref<StationFile | null>(null)
 const {entries, folders, tags, loading, load, reloadFolders, reloadTags} = useMediaLibrary()
 const {folderTree, visibleFolders, breadcrumbs} = useMediaFolderTree(folders, activeFolder)
 
-const stationUid = computed(() => sessionInfo.value?.stationId ?? '')
+const stationUid = computed(() => actingStation() ?? sessionInfo.value?.stationId ?? '')
 
 const filtered = computed(() => {
     const q = search.value.trim().toLowerCase()
@@ -109,7 +118,7 @@ onMounted(load)
 </script>
 
 <template>
-    <ViewContent :title="t('pages.station-media.title')" :subtitle="t('pages.station-media.subtitle')">
+    <ViewContent :title="props.title ?? t('pages.station-media.title')" :subtitle="props.subtitle ?? t('pages.station-media.subtitle')">
         <FilesView
             v-model:search="search"
             v-model:active-folder="activeFolder"

@@ -596,7 +596,11 @@ public enum EventRefusal implements Refusal {
     REGISTRATION_HELD_BY_A_FIELD_ON_REFUSAL(154, HttpStatus.BAD_REQUEST, Sentences.REGISTRATION_HELD_BY_A_FIELD),
 
     /** A member saying they will not come while a question of the appointment holds their place. */
-    REGISTRATION_HELD_BY_A_FIELD_ON_DECLINE(155, HttpStatus.BAD_REQUEST, Sentences.REGISTRATION_HELD_BY_A_FIELD);
+    REGISTRATION_HELD_BY_A_FIELD_ON_DECLINE(155, HttpStatus.BAD_REQUEST, Sentences.REGISTRATION_HELD_BY_A_FIELD),
+
+    /** The documents to bring asked for without the date of the appointment they are for. */
+    EVENT_DOCUMENTS_DATE_MISSING(
+            156, HttpStatus.BAD_REQUEST, "The documents to bring need the date of the appointment as a day");
 
     private final Definition definition;
 

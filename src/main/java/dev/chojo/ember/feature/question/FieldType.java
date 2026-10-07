@@ -38,6 +38,11 @@ public enum FieldType {
     BOOLEAN,
     /** One of a written-down set of answers. */
     CHOICE,
+    /**
+     * A choice saying how a member is written about, one per station: each answer carries the pronouns
+     * a document uses for the member, or none for their first name.
+     */
+    GENDER,
     /** A web address. */
     URL,
     /** One member. */
@@ -87,7 +92,7 @@ public enum FieldType {
             case DATE, BIRTH_DATE, EXPIRY_DATE -> Optional.of(QuestionKind.DATE);
             case TIME -> Optional.of(QuestionKind.TIME);
             case BOOLEAN -> Optional.of(QuestionKind.BOOLEAN);
-            case CHOICE -> Optional.of(QuestionKind.CHOICE);
+            case CHOICE, GENDER -> Optional.of(QuestionKind.CHOICE);
             case URL -> Optional.of(QuestionKind.URL);
             case MEMBER, MEMBER_OF_GROUP, MEMBER_OF_TYPE, MEMBER_OF_TAG, LANE_ASSIGNEE ->
                 Optional.of(QuestionKind.MEMBER);

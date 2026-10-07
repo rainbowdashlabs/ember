@@ -40,6 +40,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   linkManager: [id: number]
   removeManager: [id: number]
+  reorderManagers: [fromIndex: number, toIndex: number]
   createManager: [data: { firstName: string; lastName: string; email: string; sendSetupMail: boolean }]
   linkManaged: [id: number]
   removeManaged: [id: number]
@@ -86,12 +87,14 @@ const nothingToShow = computed(() => !props.showGuardians && !props.showManaged)
         :fields="fields"
         :readonly="!canEdit"
         allow-create
+        orderable
         row-testid="guardian-row"
         :display-name="memberDisplayName"
         :fields-for="getManagerFields"
         :field-value="getManagerFieldValue"
         @link="emit('linkManager', $event)"
         @remove="emit('removeManager', $event)"
+        @reorder="(from, to) => emit('reorderManagers', from, to)"
         @create="emit('createManager', $event)"
         @edit="openMember"
     />
