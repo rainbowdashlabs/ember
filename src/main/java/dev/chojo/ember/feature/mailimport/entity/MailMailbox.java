@@ -65,7 +65,7 @@ public record MailMailbox(
                 row.getString("name"),
                 row.getString("host"),
                 row.getInt("port"),
-                MailSecurity.valueOf(row.getString("security")),
+                row.getEnum("security", MailSecurity.class),
                 row.getString("username"),
                 new EncryptedBlob(row.getBytes("password_iv"), row.getBytes("password_ciphertext")),
                 row.getString("folder"),

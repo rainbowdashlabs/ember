@@ -53,7 +53,7 @@ public record AssignedClusterProfileField(ClusterProfileField field, ClusterProf
                         row.getInt("id"),
                         row.getInt("cluster_id"),
                         row.getString("name"),
-                        FieldType.valueOf(row.getString("field_type")),
+                        row.getEnum("field_type", FieldType.class),
                         ProfileFieldConfig.parse(row.getString("config")),
                         row.getBoolean("required"),
                         row.getBoolean("readonly"),

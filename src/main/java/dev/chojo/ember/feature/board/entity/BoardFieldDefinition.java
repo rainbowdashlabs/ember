@@ -44,7 +44,7 @@ public record BoardFieldDefinition(
     /** Creates a row mapping for database result set conversion. */
     public static RowMapping<BoardFieldDefinition> map() {
         return row -> {
-            var type = FieldType.valueOf(row.getString("field_type"));
+            var type = row.getEnum("field_type", FieldType.class);
             return new BoardFieldDefinition(
                     row.getInt("id"),
                     row.getInt("board_id"),
