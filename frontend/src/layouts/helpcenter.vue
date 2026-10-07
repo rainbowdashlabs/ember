@@ -7,7 +7,9 @@
 import HelpCenterStationView from '~/views/HelpCenterStationView.vue'
 import {usePageTitle} from '~/composables/usePageTitle'
 import {loadHelpcenterMessages} from '~/composables/useHelpcenterMessages'
+import {hideMemberCards} from '~/composables/useMemberCards'
 
+hideMemberCards()
 await loadHelpcenterMessages()
 usePageTitle()
 </script>

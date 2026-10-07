@@ -2110,6 +2110,8 @@ volumes:
             historyText: 'Im Verlauf-Tab siehst du alle früheren Änderungen.',
             badgeText: 'Die rote Zahl neben „Änderungen" in der Seitenleiste zeigt an, wie viele unbestätigte Änderungen es gibt.',
             tip: 'Bestätige Änderungen zeitnah, damit die Daten immer aktuell sind.',
+            namesTitle: 'Gewünschte Namen',
+            namesText: 'Ändert ein Mitglied seinen eigenen Namen, gilt der neue Name erst, wenn du ihn bestätigst. Solche Wünsche stehen oben unter „Gewünschte Namen". Mit Bestätigen bekommt das Mitglied den neuen Namen. Mit Ablehnen bleibt der alte Name, und du kannst eine Begründung dazuschreiben. Das Mitglied bekommt in beiden Fällen eine Benachrichtigung. Gehört das Mitglied zu mehreren Wachen, reicht die Entscheidung einer Wache.',
         },
         membersFormer: {
             title: 'Ehemalige Mitglieder',
@@ -5515,6 +5517,8 @@ volumes:
             whatIsText: 'Hier verwaltest du alle Mitglieder deiner Wache - vom Anlegen und Einladen neuer Mitglieder über die Pflege ihrer Profile bis hin zur Organisation in Gruppen und Tags. Du kannst Mitglieder auch importieren oder als ehemalig markieren.',
             pagesTitle: 'Was findest du hier?',
             pagesText: 'Mitglieder anlegen, importieren, die Mitgliederliste durchsuchen, Detailprofile ansehen und bearbeiten, Gruppen und Tags verwalten, Profiländerungen prüfen und ehemalige Mitglieder einsehen.',
+            cardTitle: 'Kurzprofil',
+            cardText: 'Überall, wo ein Mitglied mit Bild und Namen steht, steckt ein Kurzprofil dahinter. Bleib mit der Maus kurz auf dem Namen oder dem Bild, oder tippe am Handy auf das Bild. Dann siehst du die Erziehungsberechtigten, die verwalteten Mitglieder, die Tags und die Gruppen. Das klappt auch bei Erwähnungen in Kommentaren.',
             overviewTip: 'Mitglieder werden per E-Mail eingeladen. Sie können ihr Profil selbst vervollständigen.',
         },
         inventoryModuleOverview: {

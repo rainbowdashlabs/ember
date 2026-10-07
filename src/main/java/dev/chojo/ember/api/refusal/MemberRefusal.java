@@ -768,14 +768,23 @@ public enum MemberRefusal implements Refusal {
     ONE_TIME_PASSWORD_EXPIRED(
             207, HttpStatus.UNAUTHORIZED, "Your one-time password has expired. Ask your administration for a new one"),
 
+    /** A decision on a name request that is no longer open, or belongs to nobody at this station. */
+    NAME_CHANGE_NOT_OPEN(208, HttpStatus.NOT_FOUND, "This name request is not open, it may have been decided already"),
+
+    /** Taking back a name request when none is waiting. */
+    NAME_CHANGE_NONE_WAITING(209, HttpStatus.NOT_FOUND, "No name change of yours is waiting"),
+
+    /** A reason for denying a name request longer than a notification can carry. */
+    NAME_CHANGE_REASON_TOO_LONG(210, HttpStatus.BAD_REQUEST, "The reason is too long"),
+
     /** A second gender field at a station that already asks for one, its own or its association's, named after it. */
-    PROFILE_GENDER_ALREADY_ASKED(208, HttpStatus.BAD_REQUEST, Sentences.GENDER_ALREADY_ASKED),
+    PROFILE_GENDER_ALREADY_ASKED(211, HttpStatus.BAD_REQUEST, Sentences.GENDER_ALREADY_ASKED),
 
     /** A field other than a choice field turned into a gender field. */
-    PROFILE_GENDER_NOT_FROM_CHOICE(209, HttpStatus.BAD_REQUEST, Sentences.GENDER_NOT_FROM_CHOICE),
+    PROFILE_GENDER_NOT_FROM_CHOICE(212, HttpStatus.BAD_REQUEST, Sentences.GENDER_NOT_FROM_CHOICE),
 
     /** A pronoun of a gender field longer than a pronoun may be. */
-    PROFILE_PRONOUN_TOO_LONG(210, HttpStatus.BAD_REQUEST, Sentences.PRONOUN_TOO_LONG);
+    PROFILE_PRONOUN_TOO_LONG(213, HttpStatus.BAD_REQUEST, Sentences.PRONOUN_TOO_LONG);
 
     private final Definition definition;
 

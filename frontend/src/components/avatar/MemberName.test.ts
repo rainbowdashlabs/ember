@@ -45,7 +45,7 @@ describe('MemberName', () => {
         const column = detail.element.parentElement
         expect(detail.text()).toBe('anna@example.com')
         expect(column?.querySelector('[data-testid="member-name"]')).not.toBeNull()
-        expect(column?.parentElement?.firstElementChild?.tagName.toLowerCase()).toBe('user-avatar-stub')
+        expect(column?.parentElement?.firstElementChild?.querySelector('user-avatar-stub')).not.toBeNull()
     })
 
     it('draws no detail line without a detail', () => {

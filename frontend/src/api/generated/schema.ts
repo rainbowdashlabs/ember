@@ -608,6 +608,69 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/account/name-change-request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The name the caller asked for and that still waits */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OwnNameChangeResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        /** Take back the name the caller asked for */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/account/passkeys": {
         parameters: {
             query?: never;
@@ -40006,6 +40069,145 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/name-change-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the open name requests of the station's members */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["NameChangeView"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/name-change-requests/{id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve a name request; the account takes the name */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/name-change-requests/{id}/deny": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Deny a name request, with an optional reason the member is shown */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["DenyNameChangeRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/news": {
         parameters: {
             query?: never;
@@ -53236,6 +53438,53 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/station-members/by-uid/{uid}/card": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get the short profile card of a member of the caller's station */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    uid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MemberCard"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/station-members/completions": {
         parameters: {
             query?: never;
@@ -59641,6 +59890,9 @@ export interface components {
         DeniedModulesResponse: {
             deniedModules: string[];
         };
+        DenyNameChangeRequest: {
+            reason?: string | null;
+        };
         DenyRequest: {
             reason?: string;
         };
@@ -63072,6 +63324,19 @@ export interface components {
             memberId: number;
             reason: string | null;
         };
+        MemberCard: {
+            children: components["schemas"]["MemberIdentity"][];
+            former: boolean;
+            groups: components["schemas"]["MemberCardLabel"][];
+            identity: components["schemas"]["MemberIdentity"];
+            name: string;
+            parents: components["schemas"]["MemberIdentity"][];
+            tags: components["schemas"]["MemberCardLabel"][];
+        };
+        MemberCardLabel: {
+            color: string | null;
+            name: string;
+        };
         MemberCheckState: {
             assigned: components["schemas"]["InventoryItem"][];
             lastCheck: components["schemas"]["InventoryCheck"] | null;
@@ -63641,6 +63906,14 @@ export interface components {
             /** Format: int32 */
             requiredQuantity: number;
         };
+        NameChangeView: {
+            currentName: string;
+            /** Format: int32 */
+            id: number;
+            member: components["schemas"]["MemberIdentity"];
+            requestedAt: components["schemas"]["Instant"];
+            requestedName: string;
+        };
         NeedCoverage: {
             /** Format: int32 */
             borrowed: number;
@@ -63907,7 +64180,7 @@ export interface components {
             feed: boolean;
         };
         /** @enum {string} */
-        NotificationType: "NEW_NEWS" | "NEWS_COMMENT" | "COMMENT_MENTION" | "EVENT_REGISTRATION_STATUS" | "MOVEMENT_ADVANCED" | "MOVEMENT_RAISED" | "MOVEMENT_DECLINED" | "MOVEMENT_CANCELLED" | "NEW_EVENT" | "NEW_EVENTS_BATCH" | "MEMBER_ADDED_TO_GROUP" | "PROFILE_FIELD_CHANGED" | "PROCUREMENT_REQUESTED" | "PROCUREMENT_FULFILLED" | "NEW_FORM" | "LOST_AND_FOUND_NEW" | "LOST_AND_FOUND_CLAIMED" | "WAITLIST_NEW_ENTRY" | "LENDING_NEW_REQUEST" | "LENDING_STATUS_CHANGE" | "LENDING_NEW_MESSAGE" | "BOARD_TICKET_UPDATE" | "REGISTRATION_DEADLINE_EXPIRED" | "EVENT_CANCELLED" | "EVENT_REMINDER" | "REGISTRATION_CLOSING" | "REGISTRATION_ANSWER_MISSING" | "EVENT_DATE_DROPPED" | "EVENT_MOVED" | "EVENT_DATE_RESTORED" | "PROCEDURE_ASSIGNED" | "PROCEDURE_RESOLVED" | "PROCEDURE_REOPENED" | "PROCEDURE_ITEM_CHECKED" | "SELF_CHECK_ASSIGNED" | "SELF_CHECK_SUBMITTED" | "SELF_CHECK_ROW_REFUSED" | "WAITLIST_PUBLIC_REGISTRATION" | "WAITLIST_INVITATION_ANSWERED" | "STORAGE_WARNING" | "MAILBOX_SUSPENDED" | "MAIL_IMPORT_UNBOUND" | "CLUSTER_APPLICATION_SUBMITTED" | "CLUSTER_APPLICATION_APPROVED" | "CLUSTER_APPLICATION_DENIED" | "CLUSTER_APPLICATION_WITHDRAWN" | "CLUSTER_STATION_RELEASED" | "CLUSTER_MODULE_DENIED" | "CLUSTER_ITEM_ISSUED" | "CLUSTER_ITEM_LOST" | "CLUSTER_QUOTA_CHANGED" | "CLUSTER_MEMBER_ROLE_CHANGED" | "CLUSTER_FIELD_VALUE_CHANGED" | "EXPIRY_REMINDER" | "FEDERATION_REQUEST_RECEIVED" | "FEDERATION_REQUEST_ACCEPTED" | "FEDERATION_REQUEST_DECLINED";
+        NotificationType: "NEW_NEWS" | "NEWS_COMMENT" | "COMMENT_MENTION" | "EVENT_REGISTRATION_STATUS" | "MOVEMENT_ADVANCED" | "MOVEMENT_RAISED" | "MOVEMENT_DECLINED" | "MOVEMENT_CANCELLED" | "NEW_EVENT" | "NEW_EVENTS_BATCH" | "MEMBER_ADDED_TO_GROUP" | "PROFILE_FIELD_CHANGED" | "PROCUREMENT_REQUESTED" | "PROCUREMENT_FULFILLED" | "NEW_FORM" | "LOST_AND_FOUND_NEW" | "LOST_AND_FOUND_CLAIMED" | "WAITLIST_NEW_ENTRY" | "LENDING_NEW_REQUEST" | "LENDING_STATUS_CHANGE" | "LENDING_NEW_MESSAGE" | "BOARD_TICKET_UPDATE" | "REGISTRATION_DEADLINE_EXPIRED" | "EVENT_CANCELLED" | "EVENT_REMINDER" | "REGISTRATION_CLOSING" | "REGISTRATION_ANSWER_MISSING" | "EVENT_DATE_DROPPED" | "EVENT_MOVED" | "EVENT_DATE_RESTORED" | "PROCEDURE_ASSIGNED" | "PROCEDURE_RESOLVED" | "PROCEDURE_REOPENED" | "PROCEDURE_ITEM_CHECKED" | "SELF_CHECK_ASSIGNED" | "SELF_CHECK_SUBMITTED" | "SELF_CHECK_ROW_REFUSED" | "WAITLIST_PUBLIC_REGISTRATION" | "WAITLIST_INVITATION_ANSWERED" | "STORAGE_WARNING" | "MAILBOX_SUSPENDED" | "MAIL_IMPORT_UNBOUND" | "CLUSTER_APPLICATION_SUBMITTED" | "CLUSTER_APPLICATION_APPROVED" | "CLUSTER_APPLICATION_DENIED" | "CLUSTER_APPLICATION_WITHDRAWN" | "CLUSTER_STATION_RELEASED" | "CLUSTER_MODULE_DENIED" | "CLUSTER_ITEM_ISSUED" | "CLUSTER_ITEM_LOST" | "CLUSTER_QUOTA_CHANGED" | "CLUSTER_MEMBER_ROLE_CHANGED" | "CLUSTER_FIELD_VALUE_CHANGED" | "EXPIRY_REMINDER" | "FEDERATION_REQUEST_RECEIVED" | "FEDERATION_REQUEST_ACCEPTED" | "FEDERATION_REQUEST_DECLINED" | "NAME_CHANGE_REQUESTED" | "NAME_CHANGE_APPROVED" | "NAME_CHANGE_DENIED";
         NumberConfig: {
             /**
              * @description discriminator enum property added by openapi-typescript
@@ -63997,6 +64270,14 @@ export interface components {
         };
         OwnerAboveResponse: {
             name: string | null;
+        };
+        OwnNameChange: {
+            firstName: string;
+            lastName: string;
+            requestedAt: components["schemas"]["Instant"];
+        };
+        OwnNameChangeResponse: {
+            pending: components["schemas"]["OwnNameChange"] | null;
         };
         PagedChangesResponse: {
             changes: components["schemas"]["EnrichedProfileFieldChange"][];
@@ -67971,6 +68252,7 @@ export interface components {
         UpdateAccountResponse: {
             emailChange: components["schemas"]["EmailChangeResult"] | null;
             message: string;
+            nameWaits: boolean;
         };
         UpdateBoardRequest: {
             description?: string;
@@ -68784,6 +69066,7 @@ export type DemoLoginRequest = components['schemas']['DemoLoginRequest'];
 export type DemoStationGroup = components['schemas']['DemoStationGroup'];
 export type DemoStatusResponse = components['schemas']['DemoStatusResponse'];
 export type DeniedModulesResponse = components['schemas']['DeniedModulesResponse'];
+export type DenyNameChangeRequest = components['schemas']['DenyNameChangeRequest'];
 export type DenyRequest = components['schemas']['DenyRequest'];
 export type DependencyEntry = components['schemas']['DependencyEntry'];
 export type DependencyRequest = components['schemas']['DependencyRequest'];
@@ -69248,6 +69531,8 @@ export type MediaFolderRequest = components['schemas']['MediaFolderRequest'];
 export type MediaPruneResult = components['schemas']['MediaPruneResult'];
 export type MediaTagRequest = components['schemas']['MediaTagRequest'];
 export type MemberAbsence = components['schemas']['MemberAbsence'];
+export type MemberCard = components['schemas']['MemberCard'];
+export type MemberCardLabel = components['schemas']['MemberCardLabel'];
 export type MemberCheckState = components['schemas']['MemberCheckState'];
 export type MemberCompletion = components['schemas']['MemberCompletion'];
 export type MemberDocumentResponse = components['schemas']['MemberDocumentResponse'];
@@ -69323,6 +69608,7 @@ export type MyAbsenceRequest = components['schemas']['MyAbsenceRequest'];
 export type MyInventoryItem = components['schemas']['MyInventoryItem'];
 export type MyQuizAttempt = components['schemas']['MyQuizAttempt'];
 export type MyRequirement = components['schemas']['MyRequirement'];
+export type NameChangeView = components['schemas']['NameChangeView'];
 export type NeedCoverage = components['schemas']['NeedCoverage'];
 export type NeedRequest = components['schemas']['NeedRequest'];
 export type NeedUpdate = components['schemas']['NeedUpdate'];
@@ -69379,6 +69665,8 @@ export type OutgoingPairRequestResponse = components['schemas']['OutgoingPairReq
 export type OutputShape = components['schemas']['OutputShape'];
 export type OverviewResponse = components['schemas']['OverviewResponse'];
 export type OwnerAboveResponse = components['schemas']['OwnerAboveResponse'];
+export type OwnNameChange = components['schemas']['OwnNameChange'];
+export type OwnNameChangeResponse = components['schemas']['OwnNameChangeResponse'];
 export type PagedChangesResponse = components['schemas']['PagedChangesResponse'];
 export type PageDetailResponse = components['schemas']['PageDetailResponse'];
 export type PageLeaderboardEntry = components['schemas']['PageLeaderboardEntry'];
@@ -70741,6 +71029,9 @@ export const NotificationType = {
     MOVEMENT_CANCELLED: "MOVEMENT_CANCELLED",
     MOVEMENT_DECLINED: "MOVEMENT_DECLINED",
     MOVEMENT_RAISED: "MOVEMENT_RAISED",
+    NAME_CHANGE_APPROVED: "NAME_CHANGE_APPROVED",
+    NAME_CHANGE_DENIED: "NAME_CHANGE_DENIED",
+    NAME_CHANGE_REQUESTED: "NAME_CHANGE_REQUESTED",
     NEWS_COMMENT: "NEWS_COMMENT",
     NEW_EVENT: "NEW_EVENT",
     NEW_EVENTS_BATCH: "NEW_EVENTS_BATCH",

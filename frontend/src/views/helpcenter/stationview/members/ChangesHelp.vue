@@ -57,6 +57,10 @@ const tabs = [
       </div>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.membersChanges.namesTitle')">
+      <p>{{ t('helpCenter.membersChanges.namesText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.membersChanges.historyTitle')">
       <p>{{ t('helpCenter.membersChanges.historyText') }}</p>
     </HelpSection>

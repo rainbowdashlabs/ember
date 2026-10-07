@@ -49,6 +49,7 @@ public class RegisterNameReadersTest {
             "dev.chojo.ember.feature.members.entity.NameParts",
             "dev.chojo.ember.feature.members.route.MemberRoutes",
             "dev.chojo.ember.feature.members.route.StationMemberInviteRoutes",
+            "dev.chojo.ember.feature.members.service.MemberAccountService",
             "dev.chojo.ember.feature.members.service.MemberImportService",
             "dev.chojo.ember.feature.members.service.MemberNameResolver",
             "dev.chojo.ember.feature.members.service.StationMemberInviteService",

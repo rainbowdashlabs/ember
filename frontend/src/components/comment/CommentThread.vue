@@ -13,6 +13,8 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import MemberName from '@/components/avatar/MemberName.vue'
+import CommentMention from '@/components/comment/CommentMention.vue'
+import type {PersonIdentity} from '@/util/personIdentity'
 import MutedText from '@/components/typography/MutedText.vue'
 import {useSession} from '@/composables/useSession'
 import {formatDateTime as formatDate} from '@/util/format'
@@ -114,7 +116,9 @@ function childrenOf(commentId: number): CommentResponse[] {
   return props.comments.filter(c => c.parentId === commentId)
 }
 
-type MentionPart = { type: 'text'; value: string } | { type: 'mention'; name: string; bulk?: boolean }
+type MentionPart =
+  | { type: 'text'; value: string }
+  | { type: 'mention'; name: string; bulk?: boolean; identity?: PersonIdentity }
 
 /** A mention of many at once, written type:name:id, e.g. {@code GROUP:Vorstand:5}. */
 const BULK_MENTION = /^(GROUP|EVENT|REGISTERED|DECLINED):([^:]+):\d+$/
@@ -135,15 +139,17 @@ function resolveMentions(text: string): MentionPart[] {
     if (bulkName) {
       parts.push({type: 'mention', name: bulkName, bulk: true})
     } else if (slashIdx >= 0 && colonIdx > slashIdx) {
+      const stationUid = inner.substring(0, slashIdx)
       const memberUid = inner.substring(slashIdx + 1, colonIdx)
       const fallback = inner.substring(colonIdx + 1)
       const member = props.members.find(m => m.memberUid === memberUid)
-      parts.push({type: 'mention', name: member?.name?.trim() || fallback})
+      const name = member?.name?.trim() || fallback
+      parts.push({type: 'mention', name, identity: member ?? {stationUid, memberUid, name}})
     } else if (colonIdx >= 0) {
       const id = parseInt(inner.substring(0, colonIdx))
       const fallback = inner.substring(colonIdx + 1)
       const member = props.members.find(m => m.id === id)
-      parts.push({type: 'mention', name: member?.name?.trim() || fallback})
+      parts.push({type: 'mention', name: member?.name?.trim() || fallback, identity: member})
     } else {
       parts.push({type: 'mention', name: inner})
     }
@@ -229,7 +235,7 @@ const maxDepth = 6
           <MutedText size="xs">{{ formatDate(comment.createdAt) }}</MutedText>
           <MutedText v-if="comment.updatedAt" size="xs">({{ t('comments.edited') }})</MutedText>
         </div>
-        <p class="text-sm whitespace-pre-wrap"><template v-for="(part, i) in resolveMentions(comment.content)" :key="i"><span v-if="part.type === 'mention'" class="font-semibold" :class="part.bulk ? 'text-secondary' : 'text-primary'">@{{ part.name }}</span><template v-else>{{ part.value }}</template></template></p>
+        <p class="text-sm whitespace-pre-wrap"><template v-for="(part, i) in resolveMentions(comment.content)" :key="i"><CommentMention v-if="part.type === 'mention'" :name="part.name" :identity="part.identity" :bulk="part.bulk"/><template v-else>{{ part.value }}</template></template></p>
         <div class="flex items-center gap-1">
           <SecondaryButton v-if="depth < maxDepth" compact @click="startReply(comment.id)">
             {{ t('comments.reply') }}

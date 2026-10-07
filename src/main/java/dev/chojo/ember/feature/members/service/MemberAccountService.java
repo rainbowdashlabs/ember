@@ -38,6 +38,7 @@ public class MemberAccountService {
     private final AccountEmailService accountEmailService;
     private final StepUpGuard stepUpGuard;
     private final MemberNameResolver nameResolver;
+    private final NameChangeService nameChanges;
 
     @Inject
     public MemberAccountService(
@@ -47,7 +48,8 @@ public class MemberAccountService {
             LoginNameService loginNameService,
             AccountEmailService accountEmailService,
             StepUpGuard stepUpGuard,
-            MemberNameResolver nameResolver) {
+            MemberNameResolver nameResolver,
+            NameChangeService nameChanges) {
         this.accountRepository = accountRepository;
         this.memberRepository = memberRepository;
         this.authService = authService;
@@ -55,6 +57,7 @@ public class MemberAccountService {
         this.accountEmailService = accountEmailService;
         this.stepUpGuard = stepUpGuard;
         this.nameResolver = nameResolver;
+        this.nameChanges = nameChanges;
     }
 
     /**
@@ -127,6 +130,10 @@ public class MemberAccountService {
      * whose address cannot be corrected by the confirmation that would be sent to it. Anybody else
      * needs the right to edit members and the account has to belong to a member of their station.
      *
+     * <p>A member changing their own name may have to wait for a member manager, as
+     * {@link NameChangeService} decides; the account then keeps its name and the new one waits as a
+     * request, while the sign-in name and the address are handled as always.
+     *
      * <p>The name is written with the address the account already has, so that the two ways of
      * changing an address are the only things that ever move it. Somebody putting their own
      * address right confirms it from both ends, which is what stops a stolen session walking off
@@ -150,27 +157,37 @@ public class MemberAccountService {
         }
         var existing =
                 accountRepository.findById(accountId).orElseThrow(MemberRefusal.ACCOUNT_NOT_HERE_ON_CHANGE::raise);
-        if (!accountRepository.update(accountId, existing.email(), request.firstName(), request.lastName())) {
+        boolean nameWaits =
+                !actsForSomebodyElse && changesName(existing, request) && nameChanges.needsApproval(session);
+        String firstName = nameWaits ? existing.firstName() : request.firstName();
+        String lastName = nameWaits ? existing.lastName() : request.lastName();
+        if (!accountRepository.update(accountId, existing.email(), firstName, lastName)) {
             throw MemberRefusal.MEMBER_NOT_HERE_ON_CHANGE.raise();
         }
         nameResolver.forgetAccount(accountId);
+        if (nameWaits) nameChanges.request(existing, request.firstName(), request.lastName());
         if (request.username() != null) {
             accountRepository.updateUsername(accountId, loginNameService.validatedFor(existing, request.username()));
         }
         if (!changesAddress(existing, request.email())) {
-            return new UpdateAccountResponse("Account updated", null);
+            return new UpdateAccountResponse("Account updated", null, nameWaits);
         }
         if (actsForSomebodyElse) {
             requireNotAboveActor(existing, session);
             stepUpGuard.require(session, StepUpCategory.ACCOUNT_SECURITY);
             accountEmailService.setEmailFor(session.accountId(), accountId, request.email());
-            return new UpdateAccountResponse("Account updated", AuthService.EmailChangeResult.COMMITTED);
+            return new UpdateAccountResponse("Account updated", AuthService.EmailChangeResult.COMMITTED, nameWaits);
         }
         var outcome = authService.requestEmailChange(accountId, request.email());
         if (outcome == AuthService.EmailChangeResult.DUPLICATE) {
             throw MemberRefusal.ACCOUNT_ADDRESS_TAKEN.raise();
         }
-        return new UpdateAccountResponse("Account updated", outcome);
+        return new UpdateAccountResponse("Account updated", outcome, nameWaits);
+    }
+
+    private static boolean changesName(Account existing, UpdateAccountRequest request) {
+        return !existing.firstName().equals(request.firstName())
+                || !existing.lastName().equals(request.lastName());
     }
 
     private static boolean changesAddress(Account existing, String email) {
@@ -189,6 +206,9 @@ public class MemberAccountService {
      * @param emailChange what became of an address given in the same call: {@code null} when the
      *                    address was left alone, COMMITTED when it is already the account's, and
      *                    WAITING when it becomes so once a link in the reader's mail is clicked
+     * @param nameWaits   whether the new name waits for a member manager instead of having been
+     *                    written, in which case the account still carries its old name
      */
-    public record UpdateAccountResponse(String message, AuthService.@Nullable EmailChangeResult emailChange) {}
+    public record UpdateAccountResponse(
+            String message, AuthService.@Nullable EmailChangeResult emailChange, boolean nameWaits) {}
 }

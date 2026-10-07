@@ -15,6 +15,7 @@ import AccountDetailsSection from './accountavatarview/AccountDetailsSection.vue
 import NicknameSection from '@/components/member/NicknameSection.vue'
 import { members } from '@/api'
 import { useSession } from '@/composables/useSession'
+import type {OwnNameChange} from '@/api/generated/schema'
 
 const { t } = useI18n()
 const { sessionInfo, loaded, load } = useSession()
@@ -41,6 +42,12 @@ const displayName = computed(() => (editFirstName.value + ' ' + editLastName.val
 const emailChangePending = ref(false)
 
 /**
+ * The new name the reader asked for. A member who changes their own name may have to wait for the
+ * member management, and until then the form shows the name they still carry.
+ */
+const pendingName = ref<OwnNameChange | null>(null)
+
+/**
  * Stores the account details, then reads them back.
  *
  * <p>The read is answered for separately: details that were stored and a page that then failed to
@@ -63,6 +70,26 @@ async function saveAccount() {
     throw e
   }
   await reloadAfterSave()
+  await loadPendingName()
+}
+
+/** Reads the name the reader asked for and that still waits, so the page says so after any visit. */
+async function loadPendingName() {
+  try {
+    pendingName.value = await members.getOwnNameChange()
+  } catch (e) {
+    failure.value = describeFailure(e, t)
+  }
+}
+
+async function withdrawName() {
+  failure.value = null
+  try {
+    await members.withdrawOwnNameChange()
+  } catch (e) {
+    failure.value = describeFailure(e, t)
+  }
+  await loadPendingName()
 }
 
 async function saveNickname() {
@@ -103,6 +130,7 @@ watch(loaded, (ready) => { if (ready) applyAccount() }, { immediate: true })
 onMounted(() => {
   if (!loaded.value) load()
   else applyAccount()
+  void loadPendingName()
 })
 </script>
 
@@ -126,7 +154,9 @@ onMounted(() => {
             v-model:username="editUsername"
             data-onboarding="account.email"
             :email-change-pending="emailChangePending"
+            :pending-name="pendingName"
             :action="saveAccount"
+            :withdraw-name="withdrawName"
         />
 
         <NicknameSection
