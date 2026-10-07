@@ -111,7 +111,7 @@ class SigningKeyRewrapTest extends RepositoryTestBase {
     }
 
     private StationSigningKeys keysUnder(SigningKeyWrap wrap) {
-        return new StationSigningKeys(repository, certificates, wrap, stationRepo, INSTALLATION);
+        return new StationSigningKeys(repository, certificates, wrap, stationRepo, "https://" + INSTALLATION);
     }
 
     private static void assertUnchanged(Map<String, byte[]> before, Map<String, byte[]> after) {

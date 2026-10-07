@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.signing.service;
 
 import eu.europa.esig.dss.diagnostic.SignatureWrapper;
 import eu.europa.esig.dss.jaxb.object.Message;
+import eu.europa.esig.dss.model.DSSDocument;
 import eu.europa.esig.dss.model.InMemoryDocument;
 import eu.europa.esig.dss.model.x509.CertificateToken;
 import eu.europa.esig.dss.pades.validation.PDFDocumentValidator;
@@ -14,6 +15,7 @@ import eu.europa.esig.dss.pdf.pdfbox.PdfBoxDefaultObjectFactory;
 import eu.europa.esig.dss.spi.policy.SignaturePolicyProvider;
 import eu.europa.esig.dss.spi.validation.CommonCertificateVerifier;
 import eu.europa.esig.dss.spi.x509.CommonTrustedCertificateSource;
+import eu.europa.esig.dss.spi.x509.revocation.crl.ExternalResourcesCRLSource;
 import eu.europa.esig.dss.validation.reports.Reports;
 import org.apache.pdfbox.pdfwriter.compress.CompressParameters;
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -21,10 +23,15 @@ import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
+import org.bouncycastle.asn1.x509.CRLDistPoint;
+import org.bouncycastle.asn1.x509.Extension;
+import org.bouncycastle.asn1.x509.GeneralNames;
+import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.security.cert.X509Certificate;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -58,15 +65,21 @@ final class SealedPdfs {
     /**
      * Validates a sealed document with DSS, offline, trusting one certificate.
      *
-     * @param sealed      the sealed document
-     * @param trustAnchor the only certificate the validation trusts
+     * @param sealed          the sealed document
+     * @param trustAnchor     the only certificate the validation trusts
+     * @param revocationLists DER encoded revocation lists the validation may consult, none for a
+     *                        validation without revocation data
      * @return the validation reports
      */
-    static Reports validate(byte[] sealed, X509Certificate trustAnchor) {
+    static Reports validate(byte[] sealed, X509Certificate trustAnchor, byte[]... revocationLists) {
         var trusted = new CommonTrustedCertificateSource();
         trusted.addCertificate(new CertificateToken(trustAnchor));
         var verifier = new CommonCertificateVerifier(true);
         verifier.setTrustedCertSources(trusted);
+        if (revocationLists.length > 0) {
+            verifier.setCrlSource(new ExternalResourcesCRLSource(
+                    Arrays.stream(revocationLists).map(InMemoryDocument::new).toArray(DSSDocument[]::new)));
+        }
 
         var validator = new PDFDocumentValidator(new InMemoryDocument(sealed));
         validator.setPdfObjFactory(new PdfBoxDefaultObjectFactory());
@@ -81,6 +94,19 @@ final class SealedPdfs {
         return report.getSignatureIdList().stream()
                 .flatMap(id -> report.getAdESValidationErrors(id).stream())
                 .map(Message::getValue)
+                .toList();
+    }
+
+    /** @return the URIs a certificate names as its CRL distribution points, in order */
+    static List<String> distributionPointsOf(X509Certificate certificate) throws IOException {
+        var extension = certificate.getExtensionValue(Extension.cRLDistributionPoints.getId());
+        if (extension == null) return List.of();
+        var points = CRLDistPoint.getInstance(JcaX509ExtensionUtils.parseExtensionValue(extension));
+        return Arrays.stream(points.getDistributionPoints())
+                .flatMap(point -> Arrays.stream(
+                        GeneralNames.getInstance(point.getDistributionPoint().getName())
+                                .getNames()))
+                .map(name -> name.getName().toString())
                 .toList();
     }
 

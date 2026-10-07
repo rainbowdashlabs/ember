@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:bc471b3ad8d5d528c341ab410c4b221a1452dbe8b66ee54e4159ce1c5d0d890c",
-  "generatedAt": "2026-10-07T21:02:08Z",
+  "schemaHash": "sha256:a099df10c724afd6aecf7eb921edcd60beda245b31939a78b7f453bd6592e3ac",
+  "generatedAt": "2026-10-07T21:16:21Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -22634,7 +22634,7 @@
     "signing_ca": {
       "feature": "signing",
       "scope": "INSTANCE",
-      "tableHash": "sha256:9455496fe52cfa77302c4b25d93f31f27c01a46e68c57f527c28fb69f97049b3",
+      "tableHash": "sha256:1a34bc67e27106b26c28ec12e1629dc295c67ff1cc3a7d9dc1523caa02cb8159",
       "columns": [
         {
           "name": "id",
@@ -22684,6 +22684,20 @@
           "nullable": true,
           "verified": true,
           "description": "When a newer authority took over issuing station certificates; null while this one is the active authority."
+        },
+        {
+          "name": "crl_number",
+          "type": "int8",
+          "nullable": false,
+          "verified": true,
+          "description": "Number of the newest revocation list this authority issued, counting up from 1 with every list; 0 before the first."
+        },
+        {
+          "name": "crl",
+          "type": "bytea",
+          "nullable": true,
+          "verified": true,
+          "description": "The newest revocation list this authority issued, DER encoded, kept so it is not signed anew for every reader. Public. Emptied when one of its station keys is revoked, so the next reader gets a list that names it."
         }
       ],
       "foreignKeys": [],
@@ -24576,7 +24590,7 @@
     "station_signing_key": {
       "feature": "signing",
       "scope": "STATION",
-      "tableHash": "sha256:f389f1734825cd57432b24520e78372062910c6cefd575787c5046356c4c6987",
+      "tableHash": "sha256:bbeca14ef2acb5f9ad2feeca60d2a30c3c13a1be405cce79d44bbc67c49f435b",
       "columns": [
         {
           "name": "id",
@@ -24640,6 +24654,20 @@
           "nullable": true,
           "verified": true,
           "description": "When the key stopped being used for new seals; null while it is the station's active key."
+        },
+        {
+          "name": "revoked_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When the key was revoked, the date its authority's revocation lists give for it; null while it is not revoked. A revoked key is always retired."
+        },
+        {
+          "name": "revocation_reason",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "Why the key was revoked, as its authority's revocation lists state it: KEY_COMPROMISE when the private key leaked, SUPERSEDED when it was replaced, CESSATION_OF_OPERATION when the station stopped sealing with it. Null while it is not revoked."
         }
       ],
       "foreignKeys": [

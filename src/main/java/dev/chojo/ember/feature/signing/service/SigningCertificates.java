@@ -9,7 +9,12 @@ import jakarta.inject.Singleton;
 import org.bouncycastle.asn1.x500.X500NameBuilder;
 import org.bouncycastle.asn1.x500.style.BCStyle;
 import org.bouncycastle.asn1.x509.BasicConstraints;
+import org.bouncycastle.asn1.x509.CRLDistPoint;
+import org.bouncycastle.asn1.x509.DistributionPoint;
+import org.bouncycastle.asn1.x509.DistributionPointName;
 import org.bouncycastle.asn1.x509.Extension;
+import org.bouncycastle.asn1.x509.GeneralName;
+import org.bouncycastle.asn1.x509.GeneralNames;
 import org.bouncycastle.asn1.x509.KeyUsage;
 import org.bouncycastle.cert.CertIOException;
 import org.bouncycastle.cert.X509v3CertificateBuilder;
@@ -19,12 +24,16 @@ import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 
+import java.io.ByteArrayInputStream;
 import java.math.BigInteger;
+import java.net.URI;
 import java.security.GeneralSecurityException;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.PrivateKey;
 import java.security.SecureRandom;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.time.Duration;
 import java.time.Instant;
@@ -57,7 +66,9 @@ import java.util.UUID;
  * only {@code digitalSignature} and {@code nonRepudiation}, the usages PAdES validators expect of a
  * seal; it carries no extended key usage, since Acrobat refuses one that lacks its own document signing
  * purposes. Its subject names the station (common name, plus the station's id as {@code UID}, which
- * survives a rename) and the installation (organisation). Serial numbers are 159 random bits with the
+ * survives a rename) and the installation (organisation). It names the address of its authority's
+ * revocation list as its CRL distribution point ({@link RevocationListAddress}), so a reader that
+ * fetches revocation data knows where to look. Serial numbers are 159 random bits with the
  * top one set, positive and unique by chance as RFC 5280 recommends.
  */
 @Singleton
@@ -119,9 +130,10 @@ public class SigningCertificates {
      * @param stationName  the station's name
      * @param stationUid   the station's id, which stays when the station is renamed
      * @param authority    the authority's key and certificate
+     * @param revocations  where the authority publishes its revocation list
      * @return the station's key and certificate
      */
-    public Issued station(String installation, String stationName, UUID stationUid, Issued authority) {
+    public Issued station(String installation, String stationName, UUID stationUid, Issued authority, URI revocations) {
         var keys = newKeyPair();
         var subject = new X500NameBuilder(BCStyle.INSTANCE)
                 .addRDN(BCStyle.CN, bounded(stationName))
@@ -152,7 +164,8 @@ public class SigningCertificates {
                     .addExtension(
                             Extension.authorityKeyIdentifier,
                             false,
-                            extensions.createAuthorityKeyIdentifier(issuerCertificate));
+                            extensions.createAuthorityKeyIdentifier(issuerCertificate))
+                    .addExtension(Extension.cRLDistributionPoints, false, distributionPoint(revocations));
             return new Issued(keys.getPrivate(), sign(builder, authority.privateKey()));
         } catch (GeneralSecurityException | CertIOException e) {
             throw new IllegalStateException("The station's signing certificate could not be issued", e);
@@ -176,6 +189,25 @@ public class SigningCertificates {
      */
     public static String serialOf(X509Certificate certificate) {
         return certificate.getSerialNumber().toString(16);
+    }
+
+    /**
+     * @param der a certificate, DER encoded, as it is stored
+     * @return the certificate
+     */
+    public static X509Certificate certificateOf(byte[] der) {
+        try {
+            return (X509Certificate)
+                    CertificateFactory.getInstance("X.509").generateCertificate(new ByteArrayInputStream(der));
+        } catch (CertificateException e) {
+            throw new IllegalStateException("A stored signing certificate cannot be read", e);
+        }
+    }
+
+    private static CRLDistPoint distributionPoint(URI revocations) {
+        var name = new GeneralNames(new GeneralName(GeneralName.uniformResourceIdentifier, revocations.toString()));
+        return new CRLDistPoint(
+                new DistributionPoint[] {new DistributionPoint(new DistributionPointName(name), null, null)});
     }
 
     private static X509Certificate sign(X509v3CertificateBuilder builder, PrivateKey issuerKey)

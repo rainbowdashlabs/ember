@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.signing.service;
 
 import dev.chojo.ember.conf.file.elements.Storage;
+import dev.chojo.ember.feature.signing.entity.StoredSigningKey;
 import dev.chojo.ember.feature.storage.credential.CredentialCipher;
 import dev.chojo.ember.feature.storage.credential.CredentialCipherException;
 import dev.chojo.ember.feature.storage.credential.EncryptedBlob;
@@ -91,6 +92,18 @@ public class SigningKeyWrap {
         } finally {
             Arrays.fill(plaintext, (byte) 0);
         }
+    }
+
+    /**
+     * Unwraps a stored key and reads its certificate, ready to sign with.
+     *
+     * @param stored the key as it is stored
+     * @return its private key and certificate
+     * @throws SigningKeyWrapException as {@link #unwrap(byte[])} does
+     */
+    public SigningCertificates.Issued open(StoredSigningKey stored) {
+        return new SigningCertificates.Issued(
+                unwrap(stored.wrappedPrivateKey()), SigningCertificates.certificateOf(stored.certificate()));
     }
 
     /**

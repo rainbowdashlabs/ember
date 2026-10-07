@@ -16,12 +16,8 @@ import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
-import java.io.ByteArrayInputStream;
 import java.net.URI;
 import java.security.cert.CertificateEncodingException;
-import java.security.cert.CertificateException;
-import java.security.cert.CertificateFactory;
-import java.security.cert.X509Certificate;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -49,11 +45,14 @@ import java.util.Optional;
  * database, may both generate a key, but only one is stored: at most one authority and one key per
  * station is active, an insert that meets an active row stores nothing, and a replacement retires the
  * old row only while it is still active, in the same transaction that stores the new one. A caller
- * that loses finds the old row retired, stores nothing, and reads back what the winner stored, so all
- * of them seal with the same key and the losing one is discarded unseen.
+ * that loses finds the old row retired, its insert meets the winner's key and stores nothing, and it
+ * reads back what the winner stored, so all of them seal with the same key and the losing one is
+ * discarded unseen. A key revoked in the meantime ({@link StationKeyRevocations}) is retired with no
+ * successor, so the caller's insert is the one that stays.
  *
  * <p>The installation is named by the host of the configured base address, which is what readers know
- * it by.
+ * it by, and a station certificate names its authority's revocation list below that address. Revoking
+ * a key is {@link StationKeyRevocations}' part.
  */
 @Singleton
 public class StationSigningKeys {
@@ -70,9 +69,10 @@ public class StationSigningKeys {
     private final SigningCertificates certificates;
     private final SigningKeyWrap wrap;
     private final StationRepository stations;
+    private final String baseUrl;
     private final String installation;
 
-    /** Names the installation by the host of the configured base address. */
+    /** Takes the installation's name and its revocation list addresses from the configured base address. */
     @Inject
     public StationSigningKeys(
             SigningKeyRepository keys,
@@ -80,7 +80,7 @@ public class StationSigningKeys {
             SigningKeyWrap wrap,
             StationRepository stations,
             Api api) {
-        this(keys, certificates, wrap, stations, installationOf(api.baseUrl()));
+        this(keys, certificates, wrap, stations, api.baseUrl());
     }
 
     /**
@@ -88,19 +88,21 @@ public class StationSigningKeys {
      * @param certificates creates the key material
      * @param wrap         wraps private keys for storage
      * @param stations     the stations, for the name in a station certificate
-     * @param installation the installation's name in the certificates
+     * @param baseUrl      the installation's public base address, whose host names it in the
+     *                     certificates and below which its revocation lists are published
      */
     public StationSigningKeys(
             SigningKeyRepository keys,
             SigningCertificates certificates,
             SigningKeyWrap wrap,
             StationRepository stations,
-            String installation) {
+            String baseUrl) {
         this.keys = keys;
         this.certificates = certificates;
         this.wrap = wrap;
         this.stations = stations;
-        this.installation = installation;
+        this.baseUrl = baseUrl;
+        this.installation = installationOf(baseUrl);
     }
 
     /**
@@ -142,20 +144,21 @@ public class StationSigningKeys {
         return new SealingKey(
                 wrap.unwrap(stored.key().wrappedPrivateKey()),
                 List.of(
-                        certificateOf(stored.key().certificate()),
-                        certificateOf(authority.key().certificate())));
+                        SigningCertificates.certificateOf(stored.key().certificate()),
+                        SigningCertificates.certificateOf(authority.key().certificate())));
     }
 
     private StoredStationKey issue(int stationId, Optional<StoredStationKey> replaced) {
         var station = stations.findById(stationId)
                 .orElseThrow(() -> new IllegalArgumentException("No station with id " + stationId));
         var authority = activeAuthority();
-        var issued = certificates.station(installation, station.name(), station.uid(), authority.issued());
+        var revocations = RevocationListAddress.of(
+                baseUrl, SigningCertificates.serialOf(authority.issued().certificate()));
+        var issued = certificates.station(installation, station.name(), station.uid(), authority.issued(), revocations);
         var fresh = stored(issued);
         Transactions.run(() -> {
-            if (replaced.isEmpty() || keys.retire(replaced.get().id())) {
-                keys.storeActive(stationId, authority.id(), fresh);
-            }
+            replaced.ifPresent(old -> keys.retire(old.id()));
+            keys.storeActive(stationId, authority.id(), fresh);
         });
         return keys.findActive(stationId)
                 .orElseThrow(() -> new IllegalStateException("The station's signing key was not stored"));
@@ -165,11 +168,7 @@ public class StationSigningKeys {
         var active = keys.findActiveAuthority();
         var current =
                 active.filter(StationSigningKeys::coversAFullStationTerm).orElseGet(() -> replaceAuthority(active));
-        return new Authority(
-                current.id(),
-                new SigningCertificates.Issued(
-                        wrap.unwrap(current.key().wrappedPrivateKey()),
-                        certificateOf(current.key().certificate())));
+        return new Authority(current.id(), wrap.open(current.key()));
     }
 
     private static boolean coversAFullStationTerm(StoredAuthority authority) {
@@ -195,15 +194,6 @@ public class StationSigningKeys {
                     certificate.getNotAfter().toInstant());
         } catch (CertificateEncodingException e) {
             throw new IllegalStateException("A signing certificate could not be encoded", e);
-        }
-    }
-
-    private static X509Certificate certificateOf(byte[] der) {
-        try {
-            return (X509Certificate)
-                    CertificateFactory.getInstance("X.509").generateCertificate(new ByteArrayInputStream(der));
-        } catch (CertificateException e) {
-            throw new IllegalStateException("A stored signing certificate cannot be read", e);
         }
     }
 

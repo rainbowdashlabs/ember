@@ -22,22 +22,18 @@ import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPublicKey;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Supplier;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 import static dev.chojo.ember.feature.signing.service.SealedPdfs.indexOf;
 import static dev.chojo.ember.feature.signing.service.SealedPdfs.referencedDataIntact;
+import static dev.chojo.ember.feature.signing.service.SigningFixtures.concurrently;
+import static dev.chojo.ember.feature.signing.service.SigningFixtures.count;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -60,7 +56,7 @@ class StationSigningKeysTest extends RepositoryTestBase {
 
     private final SigningKeyRepository repository = new SigningKeyRepository();
     private final StationSigningKeys signingKeys = new StationSigningKeys(
-            repository, new SigningCertificates(), new SigningKeyWrap(SECRET), stationRepo, INSTALLATION);
+            repository, new SigningCertificates(), new SigningKeyWrap(SECRET), stationRepo, "https://" + INSTALLATION);
 
     @BeforeEach
     void startWithoutAuthority() {
@@ -144,6 +140,17 @@ class StationSigningKeysTest extends RepositoryTestBase {
         assertTrue(subject.contains("O=" + INSTALLATION), subject);
         assertTrue(subject.contains(station.uid().toString()), subject);
         assertTrue(authority.getSubjectX500Principal().getName().contains("O=" + INSTALLATION));
+    }
+
+    @Test
+    void theStationCertificateNamesItsAuthoritysRevocationList() throws Exception {
+        var key = signingKeys.forStation(
+                stationRepo.create("Distribution point station").id());
+
+        assertEquals(
+                List.of("https://" + INSTALLATION + "/api/v1/public/signing/ca/"
+                        + SigningCertificates.serialOf(key.authority()) + ".crl"),
+                SealedPdfs.distributionPointsOf(key.certificate()));
     }
 
     @Test
@@ -368,10 +375,6 @@ class StationSigningKeysTest extends RepositoryTestBase {
                 .orElseThrow();
     }
 
-    private static int count(String sql) {
-        return query(sql).single(call()).map(row -> row.getInt("n")).first().orElseThrow();
-    }
-
     private static void assertValidatesAsBefore(byte[] sealed, SealingKey key) {
         var reports = SealedPdfs.validate(sealed, key.authority());
         var signature = reports.getDiagnosticData().getSignatures().getFirst();
@@ -393,32 +396,5 @@ class StationSigningKeysTest extends RepositoryTestBase {
         query("UPDATE station_signing_key SET valid_until = :valid_until WHERE retired_at IS NULL;")
                 .single(call().bind("valid_until", Instant.now().plus(left), INSTANT_TIMESTAMP))
                 .update();
-    }
-
-    private static List<SealingKey> concurrently(int callers, Supplier<SealingKey> call) throws Exception {
-        var start = new CountDownLatch(1);
-        var results = new ArrayList<CompletableFuture<SealingKey>>();
-        try (var executor = Executors.newFixedThreadPool(callers)) {
-            for (int i = 0; i < callers; i++) {
-                results.add(CompletableFuture.supplyAsync(
-                        () -> {
-                            awaitQuietly(start);
-                            return call.get();
-                        },
-                        executor));
-            }
-            start.countDown();
-            CompletableFuture.allOf(results.toArray(CompletableFuture[]::new)).get(2, TimeUnit.MINUTES);
-        }
-        return results.stream().map(CompletableFuture::join).toList();
-    }
-
-    private static void awaitQuietly(CountDownLatch latch) {
-        try {
-            latch.await();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new IllegalStateException(e);
-        }
     }
 }

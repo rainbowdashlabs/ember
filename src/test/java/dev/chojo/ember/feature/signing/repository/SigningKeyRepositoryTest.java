@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.signing.repository;
 
+import dev.chojo.ember.feature.signing.entity.RevocationReason;
+import dev.chojo.ember.feature.signing.entity.RevokedKey;
 import dev.chojo.ember.feature.signing.entity.StoredSigningKey;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import dev.chojo.ember.util.sql.Transactions;
@@ -14,6 +16,8 @@ import org.junit.jupiter.api.Test;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
@@ -21,6 +25,7 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -172,6 +177,82 @@ class SigningKeyRepositoryTest extends RepositoryTestBase {
                         .map(row -> row.getInt("n"))
                         .first()
                         .orElseThrow());
+    }
+
+    @Test
+    void aKeyIsRevokedOnceRetiredWithItAndListedForItsAuthority() {
+        var station = stationRepo.create("Revoked signing station");
+        int authorityId = authorityId();
+        var retired = key("retired");
+        repository.storeActive(station.id(), authorityId, retired);
+        repository.retire(repository.findActive(station.id()).orElseThrow().id());
+        var active = key("active");
+        repository.storeActive(station.id(), authorityId, active);
+
+        assertEquals(
+                Optional.of(authorityId),
+                repository.revoke(station.id(), active.serialNumber(), RevocationReason.KEY_COMPROMISE));
+        assertEquals(
+                Optional.empty(), repository.revoke(station.id(), active.serialNumber(), RevocationReason.SUPERSEDED));
+        assertTrue(repository.findActive(station.id()).isEmpty(), "an active key is retired with it");
+        assertEquals(
+                Optional.of(authorityId),
+                repository.revoke(station.id(), retired.serialNumber(), RevocationReason.SUPERSEDED));
+        assertEquals(Optional.empty(), repository.revoke(station.id(), "ffff", RevocationReason.SUPERSEDED));
+
+        var revoked = repository.revokedBy(authorityId);
+        assertEquals(
+                List.of(active.serialNumber(), retired.serialNumber()),
+                revoked.stream().map(RevokedKey::serialNumber).toList());
+        assertEquals(
+                List.of(RevocationReason.KEY_COMPROMISE, RevocationReason.SUPERSEDED),
+                revoked.stream().map(RevokedKey::reason).toList());
+        assertFalse(revoked.getFirst().revokedAt().isAfter(revoked.getLast().revokedAt()));
+        assertEquals(List.of(), repository.revokedBy(Integer.MAX_VALUE));
+    }
+
+    @Test
+    void holdsOnlyTheStationsOwnKeys() {
+        var station = stationRepo.create("Holding station");
+        var other = stationRepo.create("Other holding station");
+        var held = key("held");
+        repository.storeActive(station.id(), authorityId(), held);
+
+        assertTrue(repository.holds(station.id(), held.serialNumber()));
+        assertFalse(repository.holds(other.id(), held.serialNumber()));
+        assertFalse(repository.holds(station.id(), "ffff"));
+    }
+
+    @Test
+    void anAuthorityIsFoundByItsSerial() {
+        var authority = key("serial authority");
+        repository.storeAuthority(authority);
+
+        assertEquals(
+                repository.findActiveAuthority().orElseThrow().id(),
+                repository
+                        .findAuthorityBySerial(authority.serialNumber())
+                        .orElseThrow()
+                        .id());
+        assertTrue(repository.findAuthorityBySerial("ffff").isEmpty());
+    }
+
+    @Test
+    void theRevocationListIsStoredNumberedAndForgotten() {
+        int authorityId = authorityId();
+        assertTrue(repository.findRevocationList(authorityId).isEmpty());
+
+        Transactions.run(() -> assertEquals(0L, repository.lockRevocationListNumber(authorityId)));
+        repository.storeRevocationList(authorityId, 1, bytes("list one"));
+
+        assertArrayEquals(
+                bytes("list one"), repository.findRevocationList(authorityId).orElseThrow());
+        Transactions.run(() -> assertEquals(1L, repository.lockRevocationListNumber(authorityId)));
+
+        repository.forgetRevocationList(authorityId);
+        assertTrue(repository.findRevocationList(authorityId).isEmpty());
+        Transactions.run(() -> assertEquals(1L, repository.lockRevocationListNumber(authorityId), "number kept"));
+        assertThrows(IllegalArgumentException.class, () -> repository.lockRevocationListNumber(Integer.MAX_VALUE));
     }
 
     private static byte[] bytes(String text) {

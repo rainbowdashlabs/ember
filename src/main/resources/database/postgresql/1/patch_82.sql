@@ -6,7 +6,9 @@ CREATE TABLE IF NOT EXISTS ember_schema.signing_ca
     wrapped_private_key BYTEA       NOT NULL,
     valid_until         TIMESTAMPTZ NOT NULL,
     created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
-    retired_at          TIMESTAMPTZ
+    retired_at          TIMESTAMPTZ,
+    crl_number          BIGINT      NOT NULL DEFAULT 0,
+    crl                 BYTEA
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS signing_ca_active_idx
@@ -29,6 +31,10 @@ COMMENT ON COLUMN ember_schema.signing_ca.created_at
     IS 'When the authority was created.';
 COMMENT ON COLUMN ember_schema.signing_ca.retired_at
     IS 'When a newer authority took over issuing station certificates; null while this one is the active authority.';
+COMMENT ON COLUMN ember_schema.signing_ca.crl_number
+    IS 'Number of the newest revocation list this authority issued, counting up from 1 with every list; 0 before the first.';
+COMMENT ON COLUMN ember_schema.signing_ca.crl
+    IS 'The newest revocation list this authority issued, DER encoded, kept so it is not signed anew for every reader. Public. Emptied when one of its station keys is revoked, so the next reader gets a list that names it.';
 
 CREATE TABLE IF NOT EXISTS ember_schema.station_signing_key
 (
@@ -40,7 +46,11 @@ CREATE TABLE IF NOT EXISTS ember_schema.station_signing_key
     wrapped_private_key BYTEA       NOT NULL,
     valid_until         TIMESTAMPTZ NOT NULL,
     created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
-    retired_at          TIMESTAMPTZ
+    retired_at          TIMESTAMPTZ,
+    revoked_at          TIMESTAMPTZ,
+    revocation_reason   TEXT CHECK (revocation_reason IN ('KEY_COMPROMISE', 'SUPERSEDED', 'CESSATION_OF_OPERATION')),
+    CONSTRAINT station_signing_key_revocation_check CHECK ((revoked_at IS NULL) = (revocation_reason IS NULL)),
+    CONSTRAINT station_signing_key_revoked_retired_check CHECK (revoked_at IS NULL OR retired_at IS NOT NULL)
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS station_signing_key_active_idx
@@ -70,3 +80,7 @@ COMMENT ON COLUMN ember_schema.station_signing_key.created_at
     IS 'When the key was created.';
 COMMENT ON COLUMN ember_schema.station_signing_key.retired_at
     IS 'When the key stopped being used for new seals; null while it is the station''s active key.';
+COMMENT ON COLUMN ember_schema.station_signing_key.revoked_at
+    IS 'When the key was revoked, the date its authority''s revocation lists give for it; null while it is not revoked. A revoked key is always retired.';
+COMMENT ON COLUMN ember_schema.station_signing_key.revocation_reason
+    IS 'Why the key was revoked, as its authority''s revocation lists state it: KEY_COMPROMISE when the private key leaked, SUPERSEDED when it was replaced, CESSATION_OF_OPERATION when the station stopped sealing with it. Null while it is not revoked.';

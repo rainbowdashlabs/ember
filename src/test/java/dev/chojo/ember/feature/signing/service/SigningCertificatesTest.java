@@ -16,6 +16,7 @@ import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigInteger;
+import java.net.URI;
 import java.security.KeyPairGenerator;
 import java.security.cert.X509Certificate;
 import java.time.Duration;
@@ -25,6 +26,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -33,13 +35,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * outlasting its authority.
  */
 class SigningCertificatesTest {
+    private static final URI REVOCATIONS = URI.create("https://ember.example.org/api/v1/public/signing/ca/1.crl");
+
     private final SigningCertificates certificates = new SigningCertificates();
 
     @Test
     void aStationCertificateNeverOutlastsItsAuthority() throws Exception {
         var authority = shortLivedAuthority(Duration.ofDays(30));
 
-        var station = certificates.station("ember.example.org", "Station", UUID.randomUUID(), authority);
+        var station = certificates.station("ember.example.org", "Station", UUID.randomUUID(), authority, REVOCATIONS);
 
         assertEquals(
                 authority.certificate().getNotAfter(), station.certificate().getNotAfter());
@@ -51,7 +55,7 @@ class SigningCertificatesTest {
         var authority = shortLivedAuthority(Duration.ofDays(365));
         var name = "Freiwillige Feuerwehr ".repeat(5) + "🚒";
 
-        var station = certificates.station("ember.example.org", name, UUID.randomUUID(), authority);
+        var station = certificates.station("ember.example.org", name, UUID.randomUUID(), authority, REVOCATIONS);
 
         var commonName = commonNameOf(station.certificate());
         assertEquals(64, commonName.codePointCount(0, commonName.length()));
@@ -62,8 +66,8 @@ class SigningCertificatesTest {
     void serialNumbersAreRandomPositiveAndTwentyBytesLong() throws Exception {
         var authority = shortLivedAuthority(Duration.ofDays(365));
 
-        var one = certificates.station("ember.example.org", "One", UUID.randomUUID(), authority);
-        var other = certificates.station("ember.example.org", "Other", UUID.randomUUID(), authority);
+        var one = certificates.station("ember.example.org", "One", UUID.randomUUID(), authority, REVOCATIONS);
+        var other = certificates.station("ember.example.org", "Other", UUID.randomUUID(), authority, REVOCATIONS);
 
         for (var certificate : List.of(one.certificate(), other.certificate())) {
             assertEquals(1, certificate.getSerialNumber().signum());
@@ -72,6 +76,28 @@ class SigningCertificatesTest {
         }
         assertNotEquals(one.certificate().getSerialNumber(), other.certificate().getSerialNumber());
         assertEquals(one.certificate().getSerialNumber().toString(16), SigningCertificates.serialOf(one.certificate()));
+    }
+
+    @Test
+    void aStationCertificateNamesWhereItsAuthorityPublishesRevocations() throws Exception {
+        var authority = shortLivedAuthority(Duration.ofDays(365));
+
+        var station = certificates.station("ember.example.org", "Station", UUID.randomUUID(), authority, REVOCATIONS);
+
+        assertEquals(List.of(REVOCATIONS.toString()), SealedPdfs.distributionPointsOf(station.certificate()));
+        assertFalse(station.certificate().getCriticalExtensionOIDs().contains("2.5.29.31"), "not critical");
+        assertEquals(List.of(), SealedPdfs.distributionPointsOf(authority.certificate()));
+    }
+
+    @Test
+    void theRevocationListAddressLiesBelowTheBaseAddressAndNamesTheAuthority() {
+        assertEquals(
+                URI.create("https://ember.example.org/api/v1/public/signing/ca/1a2b.crl"),
+                RevocationListAddress.of("https://ember.example.org", "1a2b"));
+        assertEquals(
+                URI.create("https://ember.example.org/app/api/v1/public/signing/ca/ff.crl"),
+                RevocationListAddress.of("https://ember.example.org/app/", "ff"));
+        assertEquals("/public/signing/ca/{serial}.crl", RevocationListAddress.ROUTE);
     }
 
     private static String commonNameOf(X509Certificate certificate) {
