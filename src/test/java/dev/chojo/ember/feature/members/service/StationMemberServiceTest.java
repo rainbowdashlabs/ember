@@ -133,20 +133,48 @@ class StationMemberServiceTest extends RepositoryTestBase {
     @Test
     @Order(21)
     void setManagers() {
-        var result = service.setManagers(member2.id(), List.of(member1.id()));
+        var result = service.setManagers(member2.id(), List.of(member1.id()), null);
         assertTrue(result.stream().anyMatch(m -> m.id() == member1.id()));
 
-        var cleared = service.setManagers(member2.id(), List.of());
+        var cleared = service.setManagers(member2.id(), List.of(), null);
         assertTrue(cleared.isEmpty());
     }
 
     @Test
     @Order(22)
     void setManagersIdempotent() {
-        service.setManagers(member2.id(), List.of(member1.id()));
-        var result = service.setManagers(member2.id(), List.of(member1.id()));
+        service.setManagers(member2.id(), List.of(member1.id()), null);
+        var result = service.setManagers(member2.id(), List.of(member1.id()), null);
         assertEquals(1, result.size());
-        service.setManagers(member2.id(), List.of());
+        service.setManagers(member2.id(), List.of(), null);
+    }
+
+    /**
+     * The order the guardians are given in is the order they keep, so the member page decides who
+     * is the first guardian, and a new guardian joins behind the ones already there.
+     */
+    @Test
+    @Order(22)
+    void guardiansKeepTheOrderTheyAreGivenIn() {
+        var account = accountRepo.create("svc-order@test.com", "Order", "Guardian");
+        var second = service.create(station.id(), account.id());
+        service.setManagers(member2.id(), List.of(member1.id()), member1.id());
+        stationMemberRepo.addManager(second.id(), member2.id());
+
+        assertEquals(
+                List.of(member1.id(), second.id()),
+                service.findManagers(member2.id()).stream()
+                        .map(StationMember::id)
+                        .toList());
+        assertEquals(
+                List.of(second.id(), member1.id()),
+                service.setManagers(member2.id(), List.of(second.id(), member1.id()), member1.id()).stream()
+                        .map(StationMember::id)
+                        .toList());
+
+        service.setManagers(member2.id(), List.of(), null);
+        stationMemberRepo.delete(second.id());
+        accountRepo.delete(account.id());
     }
 
     @Test
@@ -227,20 +255,20 @@ class StationMemberServiceTest extends RepositoryTestBase {
     @Test
     @Order(27)
     void setManaged() {
-        var result = service.setManaged(member1.id(), List.of(member2.id()));
+        var result = service.setManaged(member1.id(), List.of(member2.id()), null);
         assertTrue(result.stream().anyMatch(m -> m.id() == member2.id()));
 
-        var cleared = service.setManaged(member1.id(), List.of());
+        var cleared = service.setManaged(member1.id(), List.of(), null);
         assertTrue(cleared.isEmpty());
     }
 
     @Test
     @Order(28)
     void setManagedIdempotent() {
-        service.setManaged(member1.id(), List.of(member2.id()));
-        var result = service.setManaged(member1.id(), List.of(member2.id()));
+        service.setManaged(member1.id(), List.of(member2.id()), null);
+        var result = service.setManaged(member1.id(), List.of(member2.id()), null);
         assertEquals(1, result.size());
-        service.setManaged(member1.id(), List.of());
+        service.setManaged(member1.id(), List.of(), null);
     }
 
     @Test
@@ -351,8 +379,8 @@ class StationMemberServiceTest extends RepositoryTestBase {
     @Order(29)
     void setManagedRejectsNonManageableUserType() {
         stationMemberRepo.setUserType(member2.id(), StationUserType.TEAM);
-        var refused =
-                assertThrows(RefusalResponse.class, () -> service.setManaged(member1.id(), List.of(member2.id())));
+        var refused = assertThrows(
+                RefusalResponse.class, () -> service.setManaged(member1.id(), List.of(member2.id()), null));
         assertEquals(MemberRefusal.MEMBER_TYPE_TAKES_NO_GUARDIANS, refused.refusal());
         stationMemberRepo.setUserType(member2.id(), StationUserType.MEMBER);
     }

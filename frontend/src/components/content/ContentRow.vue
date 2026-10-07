@@ -26,7 +26,8 @@ defineProps<{
                  flexShrink: 0,
                  flexBasis: `${cell.widthPercent ?? 100}%`,
              }"
-             class="max-sm:!grow max-sm:!basis-full p-2 min-w-0">
+             class="row-cell max-sm:!grow max-sm:!basis-full p-2 min-w-0"
+             :class="row.columnLines && ci > 0 ? 'sm:border-l sm:border-(--border)' : ''">
             <ContentCell :cell="cell" :context="context"/>
         </div>
     </div>

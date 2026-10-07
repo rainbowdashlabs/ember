@@ -10,7 +10,7 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
-import MutedIconButton from '@/components/button/MutedIconButton.vue'
+import EditorCursorPanel from './EditorCursorPanel.vue'
 
 defineProps<{
   position: { top: number; left: number }
@@ -30,18 +30,7 @@ const urlId = useId()
 </script>
 
 <template>
-  <div
-    class="absolute z-30 w-80 rounded-lg shadow-lg border border-[var(--border)] bg-[var(--bg)] p-3 space-y-2"
-    :style="{ top: position.top + 'px', left: position.left + 'px' }"
-  >
-    <div class="flex items-center justify-between">
-      <div class="flex items-center gap-2">
-        <font-awesome-icon :icon="['fas', 'image']" class="text-[var(--color-primary)] w-3.5 h-3.5" />
-        <span class="text-sm font-medium">{{ t('markdownEditor.insertImage') }}</span>
-      </div>
-      <MutedIconButton :icon="['fas', 'xmark']" :label="t('common.close')" hover="text" @click="$emit('cancel')"/>
-    </div>
-
+  <EditorCursorPanel :position="position" :icon="['fas', 'image']" :title="t('markdownEditor.insertImage')" @cancel="$emit('cancel')">
     <div>
       <label :for="altId" class="block text-xs text-[var(--text-muted)] mb-0.5">{{ t('markdownEditor.altText') }}</label>
       <TextInput :id="altId" v-model="imageAlt" :placeholder="t('markdownEditor.altTextPlaceholder')" class="!text-sm" />
@@ -61,5 +50,5 @@ const urlId = useId()
       </SecondaryButton>
       <SecondaryButton compact @click="$emit('cancel')">{{ t('common.cancel') }}</SecondaryButton>
     </ButtonRow>
-  </div>
+  </EditorCursorPanel>
 </template>

@@ -11,8 +11,6 @@ import org.jspecify.annotations.Nullable;
 import java.util.List;
 import java.util.Objects;
 
-import static dev.chojo.ember.feature.restriction.RestrictionMode.OR;
-
 /**
  * A complete set of restrictions for an entity, including the mode (AND/OR).
  * Provides {@link #matches} to check if a member satisfies the restrictions.
@@ -20,9 +18,8 @@ import static dev.chojo.ember.feature.restriction.RestrictionMode.OR;
 public record RestrictionSet(List<Restriction> restrictions, RestrictionMode mode) {
 
     /**
-     * Checks whether a member with the given identifiers satisfies these restrictions. Per-user
-     * restrictions are always OR-connected: a direct member match grants access immediately, and
-     * when no other restriction type is present a missing member match denies it.
+     * Checks whether a member with the given identifiers satisfies these restrictions, by the rule of
+     * {@link RestrictionAudience#matches}.
      *
      * @param memberUserType the member's user type, or null where the member has none
      * @param memberGroupIds the member's group IDs
@@ -35,46 +32,7 @@ public record RestrictionSet(List<Restriction> restrictions, RestrictionMode mod
             List<Integer> memberGroupIds,
             List<Integer> memberTagIds,
             int memberId) {
-        if (restrictions.isEmpty()) return true;
-
-        boolean hasMemberRestrictions = restrictions.stream().anyMatch(r -> r.memberId() != null);
-        if (hasMemberRestrictions) {
-            boolean memberMatch = restrictions.stream()
-                    .anyMatch(r -> Integer.valueOf(memberId).equals(r.memberId()));
-            if (memberMatch) return true;
-            boolean hasOtherRestrictions = restrictions.stream()
-                    .anyMatch(r -> r.userType() != null || r.groupId() != null || r.tagId() != null);
-            if (!hasOtherRestrictions) return false;
-        }
-
-        var userTypeRestrictions = restrictions.stream()
-                .map(Restriction::userType)
-                .filter(Objects::nonNull)
-                .toList();
-        var groupRestrictions = restrictions.stream()
-                .map(Restriction::groupId)
-                .filter(Objects::nonNull)
-                .toList();
-        var tagRestrictions = restrictions.stream()
-                .map(Restriction::tagId)
-                .filter(Objects::nonNull)
-                .toList();
-
-        if (mode == OR) {
-            if (userTypeRestrictions.contains(memberUserType)) return true;
-            for (int gId : groupRestrictions) {
-                if (memberGroupIds.contains(gId)) return true;
-            }
-            for (int tId : tagRestrictions) {
-                if (memberTagIds.contains(tId)) return true;
-            }
-            return false;
-        } else {
-            if (!userTypeRestrictions.isEmpty() && !userTypeRestrictions.contains(memberUserType)) return false;
-            if (!groupRestrictions.isEmpty() && groupRestrictions.stream().noneMatch(memberGroupIds::contains))
-                return false;
-            return tagRestrictions.isEmpty() || tagRestrictions.stream().anyMatch(memberTagIds::contains);
-        }
+        return RestrictionAudience.of(this).matches(memberUserType, memberGroupIds, memberTagIds, memberId);
     }
 
     public boolean hasRestrictions() {

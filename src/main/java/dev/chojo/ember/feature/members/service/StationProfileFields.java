@@ -34,6 +34,7 @@ import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 import tools.jackson.databind.JsonNode;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -52,7 +53,10 @@ public class StationProfileFields implements ProfileFieldOwner {
             MemberRefusal.PROFILE_FIELD_DETAILS_MISSING_ON_CREATE,
             MemberRefusal.PROFILE_FIELD_TYPE_NOT_OFFERED,
             MemberRefusal.PROFILE_DEFAULT_NOT_ACCEPTED,
-            MemberRefusal.EXPIRY_SETTINGS_OUT_OF_RANGE);
+            MemberRefusal.EXPIRY_SETTINGS_OUT_OF_RANGE,
+            MemberRefusal.PROFILE_GENDER_ALREADY_ASKED,
+            MemberRefusal.PROFILE_GENDER_NOT_FROM_CHOICE,
+            MemberRefusal.PROFILE_PRONOUN_TOO_LONG);
 
     private final ProfileFieldRepository fieldRepository;
     private final MemberGroupRepository groupRepository;
@@ -142,6 +146,11 @@ public class StationProfileFields implements ProfileFieldOwner {
     @Override
     public List<ProfileFieldValue> answersOf(int memberId) {
         return fieldRepository.findValues(memberId);
+    }
+
+    @Override
+    public List<ProfileFieldValue> answersOf(Collection<Integer> memberIds) {
+        return fieldRepository.findValuesOf(memberIds);
     }
 
     @Override

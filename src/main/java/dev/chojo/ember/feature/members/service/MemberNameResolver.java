@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.members.service;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import dev.chojo.ember.api.MemberIdentity;
+import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
@@ -22,11 +23,15 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
+import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.function.IntPredicate;
 
 @Singleton
 public class MemberNameResolver {
@@ -110,6 +115,16 @@ public class MemberNameResolver {
     }
 
     /**
+     * The halves of a member's name, for a document that prints the official first name and surname
+     * apart. Everything that wants a whole name asks for it by its form instead.
+     *
+     * @return the halves, unknown where the member is not known
+     */
+    public NameParts parts(int memberId) {
+        return partsOf(memberId);
+    }
+
+    /**
      * The halves a member's name is written from, read once and kept.
      *
      * <p>What is cached is the parts rather than a finished name, because the same member is
@@ -128,13 +143,49 @@ public class MemberNameResolver {
         if (memberOpt.isEmpty()) return NameParts.unknown();
         var member = memberOpt.get();
         Integer accountId = member.accountId();
-        if (accountId != null) {
-            var account = accountRepository.findById(accountId).orElse(null);
-            if (account != null) {
-                return NameParts.of(account.firstName(), account.lastName(), nicknameAt(member));
-            }
+        var account =
+                accountId == null ? null : accountRepository.findById(accountId).orElse(null);
+        return partsOf(member, account, this::nicknamesEnabled);
+    }
+
+    /**
+     * The names that say who somebody is and what they are called, for a whole list at once: the
+     * members not read yet are read in one go rather than one by one.
+     *
+     * @param memberIds the members
+     * @return the name of every member, by member, null for one that is not known
+     */
+    public Map<Integer, String> identified(Collection<Integer> memberIds) {
+        var unread = memberIds.stream()
+                .distinct()
+                .filter(id -> partsCache.getIfPresent(id) == null)
+                .toList();
+        if (!unread.isEmpty()) readAll(unread);
+        var names = new HashMap<Integer, String>();
+        memberIds.forEach(id -> names.put(id, identified(id)));
+        return names;
+    }
+
+    private void readAll(List<Integer> memberIds) {
+        var members = memberService.findByIds(memberIds);
+        var accountIds = members.stream()
+                .map(StationMember::accountId)
+                .filter(Objects::nonNull)
+                .toList();
+        var accounts = new HashMap<Integer, Account>();
+        accountRepository.findByIds(accountIds).forEach(account -> accounts.put(account.id(), account));
+        var nicknames = new HashMap<Integer, Boolean>();
+        IntPredicate nicknamesEnabled = stationId -> nicknames.computeIfAbsent(stationId, this::nicknamesEnabled);
+        for (var member : members) {
+            Integer accountId = member.accountId();
+            var parts = partsOf(member, accountId == null ? null : accounts.get(accountId), nicknamesEnabled);
+            if (parts.known()) partsCache.put(member.id(), parts);
         }
-        return NameParts.frozen(member.displayName());
+    }
+
+    private static NameParts partsOf(StationMember member, @Nullable Account account, IntPredicate nicknamesEnabled) {
+        if (account == null) return NameParts.frozen(member.displayName());
+        return NameParts.of(account.firstName(), account.lastName(), nicknameAt(member, nicknamesEnabled));
     }
 
     /**
@@ -143,15 +194,17 @@ public class MemberNameResolver {
      * <p>A station that has switched them off keeps every nickname and reads none, so turning the
      * setting back on gives everybody their name back rather than asking them to type it again.
      */
-    private @Nullable String nicknameAt(StationMember member) {
+    private static @Nullable String nicknameAt(StationMember member, IntPredicate nicknamesEnabled) {
         String nickname = member.nickname();
         if (nickname == null || nickname.isBlank()) return null;
+        return nicknamesEnabled.test(member.stationId()) ? nickname : null;
+    }
+
+    private boolean nicknamesEnabled(int stationId) {
         return stationRepository
-                        .findById(member.stationId())
-                        .map(Station::nicknamesEnabled)
-                        .orElse(false)
-                ? nickname
-                : null;
+                .findById(stationId)
+                .map(Station::nicknamesEnabled)
+                .orElse(false);
     }
 
     /**

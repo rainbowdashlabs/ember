@@ -18,9 +18,10 @@ const T = FieldType
  */
 export const OfferedFieldTypes = {
     PROFILE: [
-        T.TEXT, T.NUMBER, T.DATE, T.BIRTH_DATE, T.EXPIRY_DATE, T.BOOLEAN, T.CHOICE, T.AGE, T.SECTION, T.SPACER,
+        T.TEXT, T.NUMBER, T.DATE, T.BIRTH_DATE, T.EXPIRY_DATE, T.BOOLEAN, T.CHOICE, T.GENDER, T.AGE, T.SECTION,
+        T.SPACER,
     ],
-    ASSOCIATION: [T.TEXT, T.NUMBER, T.DATE, T.EXPIRY_DATE, T.BOOLEAN, T.CHOICE, T.AGE, T.SECTION],
+    ASSOCIATION: [T.TEXT, T.NUMBER, T.DATE, T.EXPIRY_DATE, T.BOOLEAN, T.CHOICE, T.GENDER, T.AGE, T.SECTION],
     INVENTORY: [T.DATE, T.CHOICE, T.TEXT, T.NUMBER, T.BOOLEAN],
     BOARD: [T.TEXT, T.NUMBER, T.BOOLEAN, T.CHOICE, T.DATE, T.LANE_ASSIGNEE],
     APPOINTMENT: [
@@ -51,6 +52,16 @@ const NAMES_SEVERAL: readonly FieldType[] = [
 const HOLDS_NOTHING: readonly FieldType[] = [T.AGE, T.SECTION, T.SPACER]
 
 const DATES: readonly FieldType[] = [T.DATE, T.BIRTH_DATE, T.EXPIRY_DATE]
+
+const CHOICES: readonly FieldType[] = [T.CHOICE, T.GENDER]
+
+/**
+ * Whether a field of this type is answered from its written-down options: a choice, and a gender, which
+ * is a choice whose answers also carry pronouns.
+ */
+export function isChoiceType(type: string | null | undefined): boolean {
+    return CHOICES.includes(type as FieldType)
+}
 
 /** Whether a field of this type names members, one or several. */
 export function namesMembers(type: string | null | undefined): boolean {

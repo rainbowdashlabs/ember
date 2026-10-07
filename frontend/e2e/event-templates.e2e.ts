@@ -103,7 +103,7 @@ test.describe('Event templates', () => {
         await expect(preview).toBeVisible()
 
         await page.getByTestId('field-width').first().selectOption('half')
-        await expect(preview.getByTestId('preview-box').first()).toHaveClass(/sm:col-span-3/)
+        await expect(preview.locator('[data-preview-index]').first()).toHaveClass(/sm:col-span-3/)
 
         await Promise.all([
             page.waitForResponse(response =>

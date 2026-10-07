@@ -51,7 +51,8 @@ public enum CellContentType {
     QUIZ_TEASER(CellConfig.QuizTeaserConfig.class),
     FORMS_CTA(CellConfig.FormsCtaConfig.class),
     CODE_BLOCK(CellConfig.CodeBlockConfig.class),
-    NESTED_ROWS(CellConfig.NestedRowsConfig.class);
+    NESTED_ROWS(CellConfig.NestedRowsConfig.class),
+    SIGNATURE(CellConfig.SignatureConfig.class);
 
     /**
      * The blocks a page may have and an article may not.
@@ -73,6 +74,9 @@ public enum CellContentType {
             UPCOMING_EVENTS,
             PAST_EVENT_RECAP);
 
+    /** The blocks only a printed letter has, which mean nothing on a screen. */
+    private static final Set<CellContentType> LETTER_ONLY = EnumSet.of(SIGNATURE);
+
     private final Class<? extends CellConfig> configClass;
     private final CellConfig emptyConfig;
 
@@ -93,6 +97,13 @@ public enum CellContentType {
      * Whether a news entry or a knowledge-base article may be built with this block.
      */
     public boolean availableInArticles() {
-        return !PAGE_ONLY.contains(this);
+        return !PAGE_ONLY.contains(this) && !LETTER_ONLY.contains(this);
+    }
+
+    /**
+     * Whether only a letter may be built with this block.
+     */
+    public boolean lettersOnly() {
+        return LETTER_ONLY.contains(this);
     }
 }

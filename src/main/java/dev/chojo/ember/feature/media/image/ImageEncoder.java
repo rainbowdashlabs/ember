@@ -17,14 +17,15 @@ import java.io.IOException;
  * Writes a decoded picture in one of the stored formats.
  *
  * <p>PNG and JPEG go through Thumbnailator, JPEG at quality 0.85. WebP goes through the {@code cwebp}
- * binary at quality 78, because no Java image writer for it is on the classpath; where the host has no
+ * binary at quality 88, high enough that the small text of a drawn page stays sharp, because no Java
+ * image writer for it is on the classpath; where the host has no
  * {@code cwebp}, WebP is not written at all and {@link #writes} says so. A GIF is never written: a GIF
  * is kept as it came, since writing one again keeps only its first frame.
  */
 @Singleton
 public class ImageEncoder {
     private static final double JPEG_QUALITY = 0.85;
-    private static final int WEBP_QUALITY = 78;
+    private static final int WEBP_QUALITY = 88;
 
     /**
      * Whether pictures can be written in a format on this host.

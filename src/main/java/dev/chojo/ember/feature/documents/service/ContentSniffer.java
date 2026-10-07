@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.documents.service;
 
+import dev.chojo.ember.util.ByteSignature;
 import org.jspecify.annotations.Nullable;
 
 import java.util.List;
@@ -45,9 +46,9 @@ public final class ContentSniffer {
      */
     public static @Nullable String sniff(byte[] data) {
         if (data == null) return null;
-        if (startsWith(data, PDF_MAGIC)) return PDF;
-        if (startsWith(data, PNG_MAGIC)) return PNG;
-        if (startsWith(data, JPEG_MAGIC)) return JPEG;
+        if (ByteSignature.startsWith(data, PDF_MAGIC)) return PDF;
+        if (ByteSignature.startsWith(data, PNG_MAGIC)) return PNG;
+        if (ByteSignature.startsWith(data, JPEG_MAGIC)) return JPEG;
         return null;
     }
 
@@ -90,13 +91,5 @@ public final class ContentSniffer {
     public static boolean claimsAKnownKind(@Nullable String fileName, @Nullable String declaredType) {
         if (declaredType != null && SUPPORTED_TYPES.contains(declaredType.toLowerCase(Locale.ROOT))) return true;
         return SUPPORTED_TYPES.stream().anyMatch(type -> !nameAgrees(fileName, type));
-    }
-
-    private static boolean startsWith(byte[] data, byte[] magic) {
-        if (data.length < magic.length) return false;
-        for (int i = 0; i < magic.length; i++) {
-            if (data[i] != magic[i]) return false;
-        }
-        return true;
     }
 }

@@ -81,7 +81,7 @@ const notesLabel = computed(() => {
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
       <div class="flex items-center gap-2 min-w-0">
         <MemberEntryStatusIcon :status="entry?.status"/>
-        <MemberName :identity="member.identity" class="font-medium text-sm truncate"/>
+        <MemberName :identity="member.identity" class="font-medium text-sm"/>
       </div>
       <MemberEntryActions
           v-if="entry && !readonly"

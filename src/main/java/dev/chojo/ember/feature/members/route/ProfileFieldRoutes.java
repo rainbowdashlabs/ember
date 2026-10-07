@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.members.entity.ProfileFieldAssignment;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.ProfileWriter;
+import dev.chojo.ember.feature.members.entity.PronounLanguage;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.members.service.ProfileFieldService;
@@ -113,6 +114,7 @@ public class ProfileFieldRoutes implements Routes {
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/profile-fields", this::list, StationPermission.USER);
+        routes.get(prefix + "/pronoun-presets", this::pronounPresets, StationPermission.LOGIN);
         routes.post(prefix + "/profile-fields", this::create, StationPermission.MEMBER_FIELDS);
         routes.put(prefix + "/profile-fields/order", this::reorder, StationPermission.MEMBER_FIELDS);
         routes.get(prefix + "/profile-fields/assignments", this::listAssignments, StationPermission.USER);
@@ -137,6 +139,17 @@ public class ProfileFieldRoutes implements Routes {
     private void list(Context ctx) {
         StationSession session = StationSession.from(ctx);
         ctx.json(profileFieldService.findByStation(session.stationId()));
+    }
+
+    @OpenApi(
+            path = "/api/v1/pronoun-presets",
+            methods = HttpMethod.GET,
+            summary = "The languages a gender field gives pronouns in, with the roles each tells apart and the two"
+                    + " predefined answers",
+            tags = {"Profile Fields"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = PronounLanguage[].class)))
+    private void pronounPresets(Context ctx) {
+        ctx.json(PronounLanguage.all());
     }
 
     @OpenApi(

@@ -25,6 +25,7 @@ public final class FieldTypes {
             FieldType.DATE,
             FieldType.BOOLEAN,
             FieldType.CHOICE,
+            FieldType.GENDER,
             FieldType.AGE,
             FieldType.BIRTH_DATE,
             FieldType.EXPIRY_DATE,
@@ -33,7 +34,8 @@ public final class FieldTypes {
 
     /**
      * An association's questions to the members at its stations. The date of birth is left out: each
-     * station declares its own, and a second one would collide with it.
+     * station declares its own, and a second one would collide with it. A gender is offered: it is one
+     * per station, the association's or the station's own, whichever comes first.
      */
     public static final Set<FieldType> ASSOCIATION = of(
             FieldType.TEXT,
@@ -41,6 +43,7 @@ public final class FieldTypes {
             FieldType.DATE,
             FieldType.BOOLEAN,
             FieldType.CHOICE,
+            FieldType.GENDER,
             FieldType.AGE,
             FieldType.EXPIRY_DATE,
             FieldType.SECTION,

@@ -65,6 +65,7 @@ const {
   loadDetails: loadManagerDetails,
   linkManager,
   removeManager,
+  reorderManagers,
   createManager,
 } = useMemberManagers(memberId, allMembers, fieldsForUserType, failure)
 
@@ -241,6 +242,7 @@ const detailModalsProps = computed(() => ({
         @reload-changes="loadChanges"
         @link-manager="linkManager"
         @remove-manager="removeManager"
+        @reorder-managers="reorderManagers"
         @create-manager="createManager"
         @link-managed="linkManaged"
         @remove-managed="removeManaged"

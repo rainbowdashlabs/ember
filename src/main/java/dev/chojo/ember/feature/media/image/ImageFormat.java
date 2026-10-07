@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.media.image;
 
+import dev.chojo.ember.util.ByteSignature;
+
 import java.util.Arrays;
 import java.util.Locale;
 import java.util.Optional;
@@ -23,11 +25,11 @@ public enum ImageFormat {
     GIF("image/gif", "gif"),
     WEBP("image/webp", "webp");
 
-    private static final int[] PNG_SIGNATURE = {0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A};
-    private static final int[] JPEG_SIGNATURE = {0xFF, 0xD8, 0xFF};
-    private static final int[] RIFF = {0x52, 0x49, 0x46, 0x46};
-    private static final int[] WEBP_TAG = {0x57, 0x45, 0x42, 0x50};
-    private static final int[] GIF_PREFIX = {0x47, 0x49, 0x46, 0x38};
+    private static final byte[] PNG_SIGNATURE = {(byte) 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A};
+    private static final byte[] JPEG_SIGNATURE = {(byte) 0xFF, (byte) 0xD8, (byte) 0xFF};
+    private static final byte[] RIFF = {0x52, 0x49, 0x46, 0x46};
+    private static final byte[] WEBP_TAG = {0x57, 0x45, 0x42, 0x50};
+    private static final byte[] GIF_PREFIX = {0x47, 0x49, 0x46, 0x38};
     private static final int WEBP_TAG_OFFSET = 8;
 
     private final String mimeType;
@@ -46,10 +48,12 @@ public enum ImageFormat {
      */
     public static Optional<ImageFormat> sniff(byte[] data) {
         if (data == null || data.length < 4) return Optional.empty();
-        if (startsWith(data, PNG_SIGNATURE, 0)) return Optional.of(PNG);
-        if (startsWith(data, JPEG_SIGNATURE, 0)) return Optional.of(JPEG);
-        if (startsWith(data, RIFF, 0) && startsWith(data, WEBP_TAG, WEBP_TAG_OFFSET)) return Optional.of(WEBP);
-        if (startsWith(data, GIF_PREFIX, 0)
+        if (ByteSignature.startsWith(data, PNG_SIGNATURE)) return Optional.of(PNG);
+        if (ByteSignature.startsWith(data, JPEG_SIGNATURE)) return Optional.of(JPEG);
+        if (ByteSignature.startsWith(data, RIFF) && ByteSignature.matchesAt(data, WEBP_TAG_OFFSET, WEBP_TAG)) {
+            return Optional.of(WEBP);
+        }
+        if (ByteSignature.startsWith(data, GIF_PREFIX)
                 && data.length >= 6
                 && (data[4] == '7' || data[4] == '9')
                 && data[5] == 'a') {
@@ -91,13 +95,5 @@ public enum ImageFormat {
     /** The extension a file in this format is stored under, without its dot. */
     public String extension() {
         return extension;
-    }
-
-    private static boolean startsWith(byte[] data, int[] signature, int offset) {
-        if (data.length < offset + signature.length) return false;
-        for (int i = 0; i < signature.length; i++) {
-            if ((data[offset + i] & 0xff) != signature[i]) return false;
-        }
-        return true;
     }
 }

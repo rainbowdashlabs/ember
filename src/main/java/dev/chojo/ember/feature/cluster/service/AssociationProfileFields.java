@@ -31,6 +31,7 @@ import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 import tools.jackson.databind.JsonNode;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -50,7 +51,10 @@ public class AssociationProfileFields implements ProfileFieldOwner {
             ClusterRefusal.CLUSTER_PROFILE_FIELD_NEEDS_A_NAME,
             ClusterRefusal.CLUSTER_PROFILE_FIELD_TYPE_NOT_OFFERED,
             ClusterRefusal.CLUSTER_PROFILE_DEFAULT_NOT_ACCEPTED,
-            ClusterRefusal.CLUSTER_EXPIRY_SETTINGS_OUT_OF_RANGE);
+            ClusterRefusal.CLUSTER_EXPIRY_SETTINGS_OUT_OF_RANGE,
+            ClusterRefusal.CLUSTER_PROFILE_GENDER_ALREADY_ASKED,
+            ClusterRefusal.CLUSTER_PROFILE_GENDER_NOT_FROM_CHOICE,
+            ClusterRefusal.CLUSTER_PROFILE_PRONOUN_TOO_LONG);
 
     private final ClusterProfileFieldRepository fieldRepository;
     private final StationRepository stationRepository;
@@ -122,6 +126,11 @@ public class AssociationProfileFields implements ProfileFieldOwner {
     @Override
     public List<ProfileFieldValue> answersOf(int memberId) {
         return fieldRepository.findValues(memberId);
+    }
+
+    @Override
+    public List<ProfileFieldValue> answersOf(Collection<Integer> memberIds) {
+        return fieldRepository.findValuesOf(memberIds);
     }
 
     @Override

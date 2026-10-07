@@ -284,6 +284,10 @@ final class Sentences {
     static final String PARTNER_STATION_NOT_HERE = "That partner station is not here any more";
     static final String MAILBOX_NOT_HERE = "That mailbox is not here any more";
     static final String MAILBOX_RULE_NOT_HERE = "That mailbox rule is not here any more";
+    static final String GENDER_ALREADY_ASKED =
+            "A station has one gender field, and there already is one, so nothing was saved";
+    static final String GENDER_NOT_FROM_CHOICE = "Only a choice field can become a gender field, so nothing was saved";
+    static final String PRONOUN_TOO_LONG = "A pronoun is longer than a pronoun can be, so nothing was saved";
 
     private Sentences() {}
 }

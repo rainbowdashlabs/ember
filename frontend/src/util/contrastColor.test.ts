@@ -10,10 +10,38 @@ import {
     contrastingTextColor,
     contrastRatio,
     contrastTextColor,
+    cssColorHex,
     ensureContrast,
+    hexCode,
     parseCssColor,
     parseHexColor,
 } from './contrastColor'
+
+describe('hex codes', () => {
+    it.each([
+        ['#1a2b3c', '#1a2b3c'],
+        ['#1A2B3C', '#1a2b3c'],
+        ['1a2b3c', '#1a2b3c'],
+        ['#abc', '#aabbcc'],
+        ['  #ABC ', '#aabbcc'],
+    ])('reads %s as %s', (typed, color) => {
+        expect(hexCode(typed)).toBe(color)
+    })
+
+    it.each(['', '#', '#12', '#1234', '#12345', '#1234567', '#ggg', 'red', 'rgb(1, 2, 3)', '#abc;color:red'])(
+        'refuses %s', typed => {
+            expect(hexCode(typed)).toBeNull()
+        })
+
+    it('reads a colour the browser hands back as rgb or oklab as its hex code', () => {
+        expect(cssColorHex('rgb(26, 43, 60)')).toBe('#1a2b3c')
+        expect(cssColorHex('rgba(255, 0, 0, 0.5)')).toBe('#ff0000')
+        expect(cssColorHex('#ABC')).toBe('#aabbcc')
+        expect(cssColorHex('oklab(1 0 0)')).toBe('#ffffff')
+        expect(cssColorHex('red')).toBeNull()
+        expect(cssColorHex(null)).toBeNull()
+    })
+})
 
 describe('parseCssColor', () => {
     it('reads the rgb a browser reports for a plain colour', () => {

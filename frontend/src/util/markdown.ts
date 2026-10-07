@@ -6,6 +6,7 @@
 import DOMPurify from 'isomorphic-dompurify'
 import {marked} from 'marked'
 import {enhancePageMarkdownImages} from '@/util/pageMarkdownImages'
+import {escapeHtml} from '@/util/html'
 
 /**
  * The one way markdown becomes HTML in this application.
@@ -26,7 +27,7 @@ export function renderMarkdown(markdown: string | null | undefined): string {
     try {
         return DOMPurify.sanitize(marked.parse(markdown, {async: false}))
     } catch {
-        return escape(markdown)
+        return escapeHtml(markdown)
     }
 }
 
@@ -68,14 +69,4 @@ function plainText(markdown: string): string {
 export function renderPageMarkdown(markdown: string | null | undefined): string {
     const html = renderMarkdown(markdown)
     return html ? enhancePageMarkdownImages(html) : html
-}
-
-/** Text a browser shows verbatim, for a rendering that failed. */
-function escape(text: string): string {
-    return text
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#39;')
 }

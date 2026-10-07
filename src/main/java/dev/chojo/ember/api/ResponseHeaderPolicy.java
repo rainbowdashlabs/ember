@@ -26,6 +26,20 @@ import jakarta.inject.Singleton;
 public class ResponseHeaderPolicy {
     private static final String API_PREFIX = ApiServer.API_PREFIX;
 
+    /**
+     * How long a browser keeps a picture of sample text in a font: a week. The pickers ask for it with
+     * the version of the font's files in the address, so a changed font is asked for anew.
+     */
+    private static final int FONT_SAMPLE_MAX_AGE_SECONDS = 7 * 24 * 60 * 60;
+
+    /**
+     * How long a browser keeps a font file the template editor asked for without naming the version of
+     * the files: five minutes, enough for the editor to open again without asking anew. The editor names
+     * the version in the address, and a file asked for by its version never changes, so that one is kept
+     * for a year.
+     */
+    private static final int FONT_FILE_MAX_AGE_SECONDS = 5 * 60;
+
     private final Demo demoConfig;
     private final StationRepository stationRepository;
 
@@ -86,8 +100,11 @@ public class ResponseHeaderPolicy {
      * thing a deployment changes, and held for an hour it made every deployment look as though it had
      * not happened, while its tag still makes asking again a {@code 304} on all the days nothing
      * changed; a waiting-list entry behind its own link is nobody's to keep, so it is stored nowhere;
-     * everything else under {@code /public/} is publicly cacheable; only then are non-public binary
-     * resources given a short private cache. Error responses receive no caching headers, and the
+     * everything else under {@code /public/} is publicly cacheable; a picture of sample text in a font is
+     * kept privately for a week, a font file for the template editor for a year where the address names
+     * the version of the files and for five minutes where it does not, both per station and association
+     * they were asked for; only then are non-public
+     * binary resources given a short private cache. Error responses receive no caching headers, and the
      * binary-resource match is segment-precise so an authenticated path that merely contains
      * {@code image}/{@code logo} as a substring (e.g. the logout endpoint) is not mis-tagged as
      * cacheable.
@@ -127,6 +144,22 @@ public class ResponseHeaderPolicy {
         if (path.startsWith(API_PREFIX + "/public/")) {
             ctx.header("Cache-Control", "public, max-age=3600");
             addETag(ctx);
+            return;
+        }
+
+        if (path.endsWith("/document-fonts/sample")) {
+            ctx.header("Cache-Control", "private, max-age=" + FONT_SAMPLE_MAX_AGE_SECONDS);
+            ctx.header("Vary", "X-Station-Id, X-Cluster-Id");
+            return;
+        }
+
+        if (path.endsWith("/document-fonts/file")) {
+            ctx.header(
+                    "Cache-Control",
+                    ctx.queryParam("v") == null
+                            ? "private, max-age=" + FONT_FILE_MAX_AGE_SECONDS
+                            : "private, max-age=31536000, immutable");
+            ctx.header("Vary", "X-Station-Id, X-Cluster-Id");
             return;
         }
 

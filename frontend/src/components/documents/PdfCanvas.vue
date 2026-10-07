@@ -5,7 +5,8 @@
  */
 <script lang="ts" setup>
 import {nextTick, onUnmounted, ref, watch} from 'vue'
-import type {PDFDocumentLoadingTask, PDFDocumentProxy, RenderTask} from 'pdfjs-dist'
+import {useDebounceFn, useResizeObserver} from '@vueuse/core'
+import type {PageViewport, PDFDocumentLoadingTask, PDFDocumentProxy, RenderTask} from 'pdfjs-dist'
 
 /**
  * A page of a PDF, drawn onto a canvas.
@@ -23,6 +24,16 @@ import type {PDFDocumentLoadingTask, PDFDocumentProxy, RenderTask} from 'pdfjs-d
  * before. The worker is asked for by its address only, from inside that same late import, because
  * an address written where the bundler can follow it from the start makes every page of the app
  * load the worker ahead of time, whether it ever shows a PDF or not.
+ *
+ * <p>Every page drawn is announced with the viewport it was drawn through, after the canvas holds it.
+ * The viewport is what maps the page's own coordinates (points, crop box and rotation included) onto
+ * the canvas, which is all a caller needs to lay something over the page in the right place. The
+ * canvas is drawn at one canvas pixel per CSS pixel, so its numbers are CSS pixels as they stand.
+ *
+ * <p>The page fills the room it is given, so it is drawn again when that room changes, a resized
+ * window included. Without that it kept the size of the first draw and left white space beside it,
+ * or ran past the room. The redraw waits until the room has stopped changing for a moment, since a
+ * window dragged wider changes it many times a second and every draw renders the whole page.
  */
 const props = defineProps<{
   /** The document's bytes. Nothing is drawn until they arrive. */
@@ -33,11 +44,14 @@ const props = defineProps<{
   scale?: number
 }>()
 
-const emit = defineEmits<{loaded: [pageCount: number]; failed: [error: unknown]}>()
+const emit = defineEmits<{loaded: [pageCount: number]; failed: [error: unknown]; drawn: [viewport: PageViewport]}>()
+
+const REDRAW_DELAY_MS = 150
 
 const canvas = ref<HTMLCanvasElement | null>(null)
 
 let pdfDoc: PDFDocumentProxy | null = null
+let drawnInto: {width: number; height: number} | null = null
 let loadingTask: PDFDocumentLoadingTask | null = null
 let renderTask: RenderTask | null = null
 let generation = 0
@@ -143,6 +157,7 @@ async function draw(mine: number) {
 
     const unscaled = page.getViewport({scale: 1})
     const room = available()
+    drawnInto = room
     const fit = Math.min(room.width / unscaled.width, room.height / unscaled.height)
     const viewport = page.getViewport({scale: fit * (props.scale ?? 1)})
 
@@ -153,6 +168,7 @@ async function draw(mine: number) {
     renderTask = task
     try {
         await task.promise
+        if (!overtaken(mine, ticket)) emit('drawn', viewport)
     } catch {
         void 0
     } finally {
@@ -160,8 +176,16 @@ async function draw(mine: number) {
     }
 }
 
+/** Draws the page again where the room it fills has changed since it was last drawn. */
+const fitToRoom = useDebounceFn(() => {
+    const room = available()
+    if (drawnInto && Math.abs(room.width - drawnInto.width) < 1 && Math.abs(room.height - drawnInto.height) < 1) return
+    void draw(generation)
+}, REDRAW_DELAY_MS)
+
 watch(() => props.source, load, {immediate: true})
 watch([() => props.page, () => props.scale], () => draw(generation))
+useResizeObserver(() => canvas.value?.parentElement ?? null, () => void fitToRoom())
 onUnmounted(() => {
     generation++
     releaseDocument()

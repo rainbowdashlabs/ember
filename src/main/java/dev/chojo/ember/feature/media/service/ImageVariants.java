@@ -63,7 +63,6 @@ public class ImageVariants {
     private static final Logger log = LoggerFactory.getLogger(ImageVariants.class);
     private static final String PDF = "application/pdf";
     private static final String SVG = "image/svg+xml";
-    private static final int PDF_RENDER_DPI = 96;
 
     private final StorageService storage;
     private final Storage config;
@@ -363,7 +362,7 @@ public class ImageVariants {
      */
     private static @Nullable BufferedImage librarySource(String mimeType, byte[] data, String key) {
         try {
-            if (isDocument(mimeType)) return FilePicture.firstPage(data, PDF_RENDER_DPI);
+            if (isDocument(mimeType)) return FilePicture.firstPage(data, FilePicture.PAGE_DPI);
             if (ImageFormat.ofMimeType(mimeType).filter(ImageFormat.GIF::equals).isPresent()) return null;
             if (!PixelBudget.fits(data)) {
                 log.warn("Skipped the sizes of a library picture above the pixel budget key={}", key);

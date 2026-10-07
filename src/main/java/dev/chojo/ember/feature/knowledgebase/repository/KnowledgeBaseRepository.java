@@ -428,6 +428,33 @@ public class KnowledgeBaseRepository {
     }
 
     /**
+     * Every wiki file of every station whose picture is a drawn page: those stored as PDF, and those
+     * stored without a type, which may turn out to be one.
+     */
+    public List<PagedFile> findPagedFiles() {
+        return query("""
+                SELECT id, station_id, mime_type
+                FROM kb_file
+                WHERE deleted_at IS NULL
+                  AND (mime_type IS NULL
+                    OR lower(mime_type) IN ('application/pdf', 'application/octet-stream', 'binary/octet-stream'))
+                ORDER BY id;""")
+                .single()
+                .map(row -> new PagedFile(row.getInt("station_id"), row.getInt("id"), row.getString("mime_type")))
+                .all();
+    }
+
+    /**
+     * A wiki file whose picture is drawn from its first page.
+     *
+     * @param stationId the station that keeps it
+     * @param fileId    the file
+     * @param mimeType  the type it was stored under, or null where none was given
+     */
+    public record PagedFile(
+            int stationId, int fileId, @Nullable String mimeType) {}
+
+    /**
      * The files of a station that were changed most recently.
      *
      * @param stationId the station to list for

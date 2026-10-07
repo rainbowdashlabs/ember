@@ -9,7 +9,7 @@ import {useI18n} from 'vue-i18n'
 import TabBar from '@/components/navigation/TabBar.vue'
 import FieldsPanel from './FieldsPanel.vue'
 import AudiencesPanel from './AudiencesPanel.vue'
-import FieldsPreview from './FieldsPreview.vue'
+import FieldLayoutPreview from '@/components/profilefields/FieldLayoutPreview.vue'
 import type {AskedField} from './askedField'
 import type {FieldTemplate} from './fieldTemplates'
 import type {EditableField} from '@/api/profileFields'
@@ -81,8 +81,10 @@ const audienceCount = computed(() => c.allAssignments.value.reduce<Record<number
 
     <TabBar v-model="c.previewRole.value" :tabs="tabs"/>
 
-    <FieldsPreview
+    <FieldLayoutPreview
         :fields="c.previewFields.value"
+        :hint="t('membersConfig.previewHint')"
+        :empty-text="t('membersConfig.orderEmpty')"
         @reorder="(from: number, to: number) => c.onReorder(c.previewRole.value, from, to)"
         @resize="(field: AskedField, width: string) => c.setPreviewWidth(field, width)"/>
   </div>

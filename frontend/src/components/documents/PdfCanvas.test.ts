@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 /** @vitest-environment happy-dom */
-import {beforeEach, describe, expect, it, vi} from 'vitest'
+import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 import {flushPromises, mount} from '@vue/test-utils'
 import {GlobalWorkerOptions} from 'pdfjs-dist'
 import PdfCanvas from './PdfCanvas.vue'
@@ -100,6 +100,20 @@ describe('PdfCanvas', () => {
         expect(getPage).toHaveBeenCalledWith(4)
     })
 
+    /** Whoever lays something over the page needs the viewport the page was drawn through. */
+    it('announces the viewport of every page it has drawn', async () => {
+        opens(3)
+
+        const canvas = mount(PdfCanvas, {props: {source: new Blob(['pdf']), page: 2}})
+        await flushPromises()
+        await canvas.setProps({page: 3})
+        await flushPromises()
+
+        const drawn = canvas.emitted('drawn') ?? []
+        expect(drawn).toHaveLength(2)
+        expect(drawn[0]?.[0]).toMatchObject({width: expect.any(Number), height: expect.any(Number)})
+    })
+
     it('stays inside the document when asked for a page beyond it', async () => {
         opens(2)
 
@@ -170,6 +184,66 @@ describe('PdfCanvas', () => {
         await flushPromises()
 
         expect(events).toEqual(['render:1', 'cancel', 'settled', 'render:2'])
+    })
+
+    describe('when the room around it changes', () => {
+        let resized: (() => void) | null = null
+
+        beforeEach(() => {
+            resized = null
+            vi.useFakeTimers()
+            vi.stubGlobal('ResizeObserver', class {
+                constructor(callback: () => void) {
+                    resized = callback
+                }
+
+                observe() {}
+
+                disconnect() {}
+            })
+        })
+
+        afterEach(() => {
+            vi.useRealTimers()
+            vi.unstubAllGlobals()
+        })
+
+        async function mountedAt(width: number) {
+            window.innerWidth = width
+            opens(1)
+            const canvas = mount(PdfCanvas, {props: {source: new Blob(['pdf'])}, attachTo: document.body})
+            await vi.runAllTimersAsync()
+            await flushPromises()
+            return canvas
+        }
+
+        /** A window dragged wider left the page at its first size, with white space beside it. */
+        it('draws the page again to fill the new room once it stops changing', async () => {
+            const canvas = await mountedAt(800)
+            const first = canvas.emitted('drawn')?.[0]?.[0] as {width: number}
+
+            window.innerWidth = 300
+            resized?.()
+            resized?.()
+            await vi.advanceTimersByTimeAsync(150)
+            await flushPromises()
+
+            const drawn = canvas.emitted('drawn') ?? []
+            expect(drawn).toHaveLength(2)
+            expect((drawn[1]?.[0] as {width: number}).width).toBeLessThan(first.width)
+            canvas.unmount()
+        })
+
+        it('leaves the page alone where the room stayed the same', async () => {
+            const canvas = await mountedAt(800)
+
+            resized?.()
+            await vi.advanceTimersByTimeAsync(150)
+            await flushPromises()
+
+            expect(canvas.emitted('drawn')).toHaveLength(1)
+            canvas.unmount()
+        })
     })
 })
 

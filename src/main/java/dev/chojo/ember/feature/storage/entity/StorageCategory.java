@@ -48,6 +48,45 @@ public enum StorageCategory {
             false,
             Optional.empty()),
     /**
+     * The PDFs a station's PDF templates fill in, every uploaded version kept as it arrived. Measured
+     * against the same room as the member documents they become.
+     */
+    DOCUMENT_TEMPLATES(
+            "document-templates",
+            StorageScope.Kind.STATION,
+            true,
+            QuotaMode.ENFORCED,
+            List.of("application/pdf"),
+            false,
+            Optional.empty()),
+    /**
+     * The PDFs an association's PDF templates fill in, kept and counted in its home station.
+     */
+    ASSOCIATION_DOCUMENT_TEMPLATES(
+            "document-templates",
+            StorageScope.Kind.ASSOCIATION,
+            true,
+            QuotaMode.ENFORCED,
+            List.of("application/pdf"),
+            false,
+            Optional.empty()),
+    /**
+     * The fonts a station uploaded for its documents. Measured against the same room as the documents
+     * they print.
+     */
+    FONTS("fonts", StorageScope.Kind.STATION, true, QuotaMode.ENFORCED, MimeLists.FONTS, false, Optional.empty()),
+    /**
+     * The fonts an association uploaded for its own documents and those of its stations, kept and
+     * counted in its home station.
+     */
+    ASSOCIATION_FONTS(
+            "fonts", StorageScope.Kind.ASSOCIATION, true, QuotaMode.ENFORCED, MimeLists.FONTS, false, Optional.empty()),
+    /**
+     * The fonts the instance offers every station. Untracked, like the instance's media library.
+     */
+    INSTANCE_FONTS(
+            "fonts", StorageScope.Kind.INSTANCE, true, QuotaMode.UNTRACKED, MimeLists.FONTS, false, Optional.empty()),
+    /**
      * Evidence attached to one movement, kept by the station that raised it and read by the owner it went to.
      */
     MOVEMENT_DOCUMENTS(
@@ -130,6 +169,31 @@ public enum StorageCategory {
     IMAGE_KB_FILE_PICTURE(
             "images/kb-file-pictures",
             StorageScope.Kind.STATION,
+            true,
+            QuotaMode.UNTRACKED,
+            MimeLists.IMAGES,
+            false,
+            Optional.empty()),
+    /**
+     * The picture of a station's document template: its first page drawn without a member, kept per
+     * version. Derived from the template and made again whenever it is missing, so it is not charged
+     * to the station.
+     */
+    IMAGE_DOCUMENT_TEMPLATE_PICTURE(
+            "images/document-template-pictures",
+            StorageScope.Kind.STATION,
+            true,
+            QuotaMode.UNTRACKED,
+            MimeLists.IMAGES,
+            false,
+            Optional.empty()),
+    /**
+     * The picture of an association's document template, the same as a station's, kept with the
+     * association.
+     */
+    IMAGE_ASSOCIATION_DOCUMENT_TEMPLATE_PICTURE(
+            "images/document-template-pictures",
+            StorageScope.Kind.ASSOCIATION,
             true,
             QuotaMode.UNTRACKED,
             MimeLists.IMAGES,
@@ -279,5 +343,6 @@ public enum StorageCategory {
     private static final class MimeLists {
         private static final List<String> ANY = List.of("*/*");
         private static final List<String> IMAGES = List.of("image/png", "image/jpeg", "image/webp", "image/gif");
+        private static final List<String> FONTS = List.of("font/ttf", "font/otf", "font/woff2", "font/woff");
     }
 }

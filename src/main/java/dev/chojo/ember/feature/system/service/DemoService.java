@@ -19,19 +19,13 @@ import dev.chojo.ember.lifecycle.Schedule;
 import dev.chojo.ember.lifecycle.ScheduledTask;
 import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.lifecycle.TaskSource;
-import dev.chojo.ember.util.Sha256;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.HexFormat;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeMap;
@@ -50,18 +44,8 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 @Singleton
 public class DemoService implements TaskSource {
     private static final Logger log = LoggerFactory.getLogger(DemoService.class);
-    /**
-     * Location of the schema-fingerprint sentinel used to decide whether the demo seeder can
-     * skip re-running. Suffixed with the {@code DB_HOST} env var so two backends running off
-     * the same source tree (e.g. the {@code transfer} compose profile, which bind-mounts the
-     * project root into both containers) keep separate fingerprints instead of racing on a
-     * single shared file. {@code DB_HOST} is preferred over {@code HOSTNAME} because the
-     * container hostname defaults to a random per-run docker container id and would orphan a
-     * fresh sentinel on every {@code compose up}; the configured database host is stable
-     * across restarts and unique per stack by construction.
-     */
-    private static final Path SCHEMA_HASH_FILE = resolveSchemaHashFile();
 
+    private final SchemaFingerprint fingerprint = SchemaFingerprint.ofThisDatabase();
     private final Demo demoConfig;
     private final Database databaseConfig;
     private final DataSource dataSource;
@@ -96,31 +80,19 @@ public class DemoService implements TaskSource {
         this.backendResolver = backendResolver;
     }
 
-    private static Path resolveSchemaHashFile() {
-        String key = System.getenv("DB_HOST");
-        if (key == null || key.isBlank()) {
-            return Path.of(".demo-schema-hash");
-        }
-        return Path.of(".demo-schema-hash." + sanitizeForFilename(key));
-    }
-
-    private static String sanitizeForFilename(String value) {
-        return value.replaceAll("[^A-Za-z0-9._-]", "_");
-    }
-
     public boolean isEnabled() {
         return demoConfig.enabled() || demoConfig.dev();
     }
 
     public void initialize() {
         if (demoConfig.dev()) {
-            if (schemaUnchanged()) {
+            if (!fingerprint.changed()) {
                 log.info("Dev mode: schema unchanged, skipping seed.");
                 return;
             }
             log.info("Dev mode: schema changed, re-seeding database...");
             if (!seedQuietly()) return;
-            writeSchemaHash();
+            fingerprint.record();
             return;
         }
         if (!demoConfig.enabled()) return;
@@ -213,43 +185,6 @@ public class DemoService implements TaskSource {
         } catch (Exception e) {
             log.error("Demo: Failed to seed database", e);
             return false;
-        }
-    }
-
-    private boolean schemaUnchanged() {
-        try {
-            if (!Files.exists(SCHEMA_HASH_FILE)) return false;
-            var stored = Files.readString(SCHEMA_HASH_FILE).strip();
-            return stored.equals(computeSchemaHash());
-        } catch (Exception e) {
-            log.warn("Could not read schema hash, will re-seed", e);
-            return false;
-        }
-    }
-
-    private void writeSchemaHash() {
-        try {
-            Files.writeString(SCHEMA_HASH_FILE, computeSchemaHash());
-        } catch (Exception e) {
-            log.warn("Could not write schema hash file", e);
-        }
-    }
-
-    private String computeSchemaHash() {
-        try {
-            var digest = Sha256.digest();
-            try (InputStream is = getClass().getResourceAsStream("/database/version")) {
-                if (is != null) digest.update(is.readAllBytes());
-            }
-            for (int i = 1; ; i++) {
-                try (InputStream is = getClass().getResourceAsStream("/database/postgresql/1/patch_" + i + ".sql")) {
-                    if (is == null) break;
-                    digest.update(is.readAllBytes());
-                }
-            }
-            return HexFormat.of().formatHex(digest.digest());
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to compute schema hash", e);
         }
     }
 

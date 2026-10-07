@@ -46,7 +46,7 @@ final class NotificationPages {
             Map.entry("members-changes", "/station/members/changes"),
             Map.entry("account-avatar", "/account/avatar"),
             Map.entry("members-list", "/station/members/list"),
-            Map.entry("member-documents", "/station/members/documents"),
+            Map.entry("documents-store", "/station/documents/store"),
             Map.entry("waiting-lists", "/station/members/waiting-lists"),
             Map.entry("profile", "/station/profile"),
             Map.entry("profile-managed", "/station/profile/managed"),

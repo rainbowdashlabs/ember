@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {computed, type WritableComputedRef} from 'vue'
-import type {RestrictionSelection} from '@/api/types'
+import {StationUserTypeLabels, type RestrictionSelection} from '@/api/types'
 import {userTypesOf} from '@/util/stationUserTypes'
 
 /**
@@ -67,4 +67,34 @@ export function toRestrictionSelection(
             if (memberIds) memberIds.value = value.memberIds
         },
     })
+}
+
+/** Something a restriction names by id, as the screen has it loaded. */
+interface NamedChoice {
+    id: number
+    name: string
+}
+
+/** What the user types, groups and tags of a restriction are called, each kind on its own. */
+export interface RestrictionLabels {
+    userTypes: string[]
+    groups: string[]
+    tags: string[]
+}
+
+/**
+ * Names the user types, groups and tags of a restriction. A group or tag the screen has not loaded is
+ * named by its number.
+ */
+export function restrictionLabels(
+    restriction: Pick<RestrictionSelection, 'userTypes' | 'groupIds' | 'tagIds'>,
+    groups: readonly NamedChoice[],
+    tags: readonly NamedChoice[],
+): RestrictionLabels {
+    const nameOf = (choices: readonly NamedChoice[], id: number) => choices.find(choice => choice.id === id)?.name ?? `#${id}`
+    return {
+        userTypes: restriction.userTypes.map(type => StationUserTypeLabels[type]),
+        groups: restriction.groupIds.map(id => nameOf(groups, id)),
+        tags: restriction.tagIds.map(id => nameOf(tags, id)),
+    }
 }

@@ -98,11 +98,22 @@ public class StorageBackendResolver {
             return factory.localBackend();
         }
         var stationPlacements = placements;
-        if (scope instanceof StorageScope.Station station && stationPlacements != null) {
+        var station = placedStation(scope);
+        if (station != null && stationPlacements != null) {
             Optional<StorageBackend> override = stationBackend(stationPlacements, station.stationId());
             if (override.isPresent()) return override.get();
         }
         return factory.instanceDefault();
+    }
+
+    /** The station whose placement decides where a scope's bytes go: the station, or an association's home. */
+    private static StorageScope.@Nullable Station placedStation(StorageScope scope) {
+        return switch (scope) {
+            case StorageScope.Station station -> station;
+            case StorageScope.Association association -> association.home();
+            case StorageScope.Instance ignored -> null;
+            case StorageScope.Account ignored -> null;
+        };
     }
 
     public StorageBackend instanceDefault() {

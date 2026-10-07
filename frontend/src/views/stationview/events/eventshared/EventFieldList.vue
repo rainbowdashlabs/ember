@@ -14,7 +14,7 @@ import EventQuestionEditor from './EventQuestionEditor.vue'
 import AttendanceFieldPicker from './AttendanceFieldPicker.vue'
 import DragList from '@/components/input/DragList.vue'
 import FieldLayoutPreview from '@/components/profilefields/FieldLayoutPreview.vue'
-import {configOf} from '@/components/profilefields/fieldLayout'
+import type {FieldWidthName, PreviewField} from '@/components/profilefields/fieldLayout'
 import {moveWithin} from '@/util/reorder'
 import type {
   AttendanceTemplateField,
@@ -112,6 +112,22 @@ function updateField(index: number, field: EventFieldEntry) {
 function moveField(fromIndex: number, toIndex: number) {
   fields.value = moveWithin(fields.value, fromIndex, toIndex)
 }
+
+/** The questions as the preview of the form draws them, in the order they are asked. */
+const previewFields = computed<PreviewField[]>(() => fields.value.map(field => ({
+  name: field.name ?? '',
+  fieldType: field.fieldType ?? undefined,
+  required: field.config?.required ?? false,
+  width: field.config?.width ?? null,
+})))
+
+/** Takes the width a question was dragged to in the preview into its settings. */
+function resizeField(shown: PreviewField, width: FieldWidthName) {
+  const index = previewFields.value.indexOf(shown)
+  const field = fields.value[index]
+  if (!field) return
+  updateField(index, {...field, config: {...(field.config ?? emptySettings()), width}})
+}
 </script>
 
 <template>
@@ -166,5 +182,5 @@ function moveField(fromIndex: number, toIndex: number) {
     </DragList>
   </div>
 
-  <FieldLayoutPreview :fields="fields.map(field => ({name: field.name, width: configOf(field.config).width}))"/>
+  <FieldLayoutPreview :fields="previewFields" :hint="t('events.fieldsPreviewHint')" @reorder="moveField" @resize="resizeField"/>
 </template>

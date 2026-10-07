@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.ProfileField;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
+import dev.chojo.ember.feature.members.entity.PronounPreset;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.entity.UserTag;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
@@ -33,7 +34,9 @@ import tools.jackson.databind.node.StringNode;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 
 /**
  * Seeds demo member data: groups, profile fields, users, former members, profile field changes,
@@ -44,6 +47,21 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
     private static final Logger log = LoggerFactory.getLogger(DemoMemberSeeder.class);
     private static final String NO_JUGENDFLAMME = "Keine";
     private static final String[] JUGENDFLAMME_LEVELS = {"Jugendflamme 1", "Jugendflamme 2", "Jugendflamme 3"};
+
+    /** The girls among the children of the demo families; every other child is a boy. */
+    private static final Set<String> GIRLS = Set.of(
+            "Lena",
+            "Mia",
+            "Laura",
+            "Sophie",
+            "Emma",
+            "Marie",
+            "Nina",
+            "Sandra",
+            "Lea",
+            "Hannah",
+            "Katharina",
+            "Melanie");
 
     private final AccountRepository accountRepository;
     private final StationMemberRepository stationMemberRepository;
@@ -177,15 +195,13 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
                 ProfileFieldScope.MEMBER,
                 0,
                 true);
+        String genderConfig = ProfileFieldConfig.parse("""
+                {"overview":true,"options":["männlich","weiblich","divers"]}""")
+                .withPronouns(Map.of(
+                        "männlich", PronounPreset.MALE.byLanguage(), "weiblich", PronounPreset.FEMALE.byLanguage()))
+                .toJson();
         var fieldGeschlecht = askOf(
-                stationId,
-                "Geschlecht",
-                FieldType.CHOICE,
-                "{\"overview\":true,\"options\":[\"männlich\",\"weiblich\",\"divers\"]}",
-                false,
-                ProfileFieldScope.MEMBER,
-                1,
-                true);
+                stationId, "Geschlecht", FieldType.GENDER, genderConfig, false, ProfileFieldScope.MEMBER, 1, true);
 
         var fieldGeburtstag = askOf(
                 stationId,
@@ -364,8 +380,7 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
             }
             firstAnfaenger = false;
 
-            profileFieldRepository.setValue(
-                    m.id(), fieldGeschlecht.id(), text(rng.nextBoolean() ? "männlich" : "weiblich"));
+            profileFieldRepository.setValue(m.id(), fieldGeschlecht.id(), text(genderOf(u.firstName())));
 
             var jugendflamme = JugendflammeReached.NONE;
             if (rng.nextInt(3) == 0) {
@@ -393,8 +408,7 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
                             .minusDays(rng.nextInt(365))
                             .toString()));
 
-            profileFieldRepository.setValue(
-                    m.id(), fieldGeschlecht.id(), text(rng.nextBoolean() ? "männlich" : "weiblich"));
+            profileFieldRepository.setValue(m.id(), fieldGeschlecht.id(), text(genderOf(u.firstName())));
 
             var jugendflamme =
                     JugendflammeReached.NONE.reached(1, LocalDate.now().minusMonths(rng.nextInt(24) + 6));
@@ -684,6 +698,14 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
                 stationId, name, type, ProfileFieldConfig.parse(config), required, readonly, null);
         profileFieldRepository.assignToRole(field.id(), role, position, null, null, null);
         return field;
+    }
+
+    /**
+     * The answer to the gender question a child of the demo plausibly gives, read from the first name, so
+     * a generated document writes "sie" for Lena and "er" for Tim.
+     */
+    static String genderOf(String firstName) {
+        return GIRLS.contains(firstName) ? "weiblich" : "männlich";
     }
 
     /**

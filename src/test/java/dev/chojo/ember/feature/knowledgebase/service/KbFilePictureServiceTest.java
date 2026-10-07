@@ -6,10 +6,15 @@
 package dev.chojo.ember.feature.knowledgebase.service;
 
 import dev.chojo.ember.conf.file.elements.Storage;
+import dev.chojo.ember.feature.knowledgebase.repository.KnowledgeBaseRepository;
+import dev.chojo.ember.feature.knowledgebase.repository.KnowledgeBaseRepository.PagedFile;
+import dev.chojo.ember.feature.media.image.ImageProfile;
 import dev.chojo.ember.feature.media.service.ImageVariants;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
+import dev.chojo.ember.feature.storage.entity.StorageCategory;
+import dev.chojo.ember.feature.storage.entity.StorageScope;
 import dev.chojo.ember.feature.storage.service.StorageService;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
@@ -24,6 +29,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.UUID;
 
 import javax.imageio.ImageIO;
@@ -44,6 +50,8 @@ class KbFilePictureServiceTest {
 
     private KbFileStorageService files;
     private KbFilePictureService pictures;
+    private ImageVariants images;
+    private KnowledgeBaseRepository wiki;
 
     @BeforeEach
     void setup() {
@@ -53,7 +61,9 @@ class KbFilePictureServiceTest {
         var backend = new LocalStorageBackend(tempDir);
         var storage = new StorageService(new StorageBackendResolver(backend), backend);
         files = Mockito.spy(new KbFileStorageService(storage, stationRepo, backend, new TextCompressionPolicy(config)));
-        pictures = new KbFilePictureService(new ImageVariants(storage), files, stationRepo);
+        wiki = Mockito.mock(KnowledgeBaseRepository.class);
+        images = new ImageVariants(storage);
+        pictures = new KbFilePictureService(images, files, stationRepo, wiki);
     }
 
     private static byte[] photo() throws IOException {
@@ -150,6 +160,30 @@ class KbFilePictureServiceTest {
 
         assertTrue(
                 pictures.read(STATION_ID, 10, "application/octet-stream", 256).isEmpty());
+    }
+
+    /** A page drawn coarsely before is drawn again finely, and a file gone from storage is passed over. */
+    @Test
+    void pagesDrawnBeforeAreDrawnAgainAtTheFinerResolution() throws IOException {
+        files.store(STATION_ID, 11, onePagePdf(), "application/pdf");
+        var coarse = new ByteArrayOutputStream();
+        ImageIO.write(new BufferedImage(100, 130, BufferedImage.TYPE_INT_RGB), "png", coarse);
+        images.store(
+                ImageProfile.CONTENT,
+                new StorageScope.Station(STATION_ID, STATION_UID),
+                StorageCategory.IMAGE_KB_FILE_PICTURE,
+                KbFilePictureService.key(11),
+                coarse.toByteArray(),
+                0);
+        Mockito.when(wiki.findPagedFiles())
+                .thenReturn(List.of(
+                        new PagedFile(STATION_ID, 11, "application/pdf"),
+                        new PagedFile(STATION_ID, 12, "application/pdf")));
+
+        assertEquals(1, pictures.redrawPages());
+
+        var redrawn = pictures.read(STATION_ID, 11, "application/pdf", 0).orElseThrow();
+        assertTrue(widthOf(redrawn.data()) > 1200);
     }
 
     @Test

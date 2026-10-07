@@ -261,6 +261,29 @@ a:not(:has(button)):not(.row-link):hover {
     overflow-wrap: break-word;
 }
 
+/*
+ * A placeholder of a letter, as a pill tinted with the theme's primary colour over the page and edged in
+ * that colour drawn towards the text, darker in the light theme and lighter in the dark one, so it stands
+ * out from the words around it in either theme. The text keeps the theme's own colour, which the tint
+ * is mixed light or dark enough to carry.
+ */
+.markdown-content .placeholder-chip {
+    display: inline-block;
+    padding: 0 0.45em;
+    margin: 0 0.1em;
+    border-radius: 9999px;
+    font-size: 0.85em;
+    color: var(--text);
+    background: color-mix(in srgb, var(--color-primary) 35%, var(--bg));
+    border: 1px solid color-mix(in srgb, var(--color-primary) 70%, var(--text));
+    white-space: nowrap;
+}
+
+.markdown-content .placeholder-chip.ProseMirror-selectednode {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 1px;
+}
+
 .markdown-content h1 {
     font-size: 1.75rem;
     font-weight: 700;
@@ -287,6 +310,20 @@ a:not(:has(button)):not(.row-link):hover {
 .markdown-content p {
     margin-top: 0.75rem;
     margin-bottom: 0.75rem;
+}
+
+/**
+ * Text in a cell of a row starts and ends flush with the cell, so it lines up with a picture beside it.
+ * The spacing between its paragraphs, and every text outside a row, stays as it is.
+ */
+.row-cell > .markdown-content > :first-child,
+.row-cell > .markdown-content > [data-align]:first-child > :first-child {
+    margin-top: 0;
+}
+
+.row-cell > .markdown-content > :last-child,
+.row-cell > .markdown-content > [data-align]:last-child > :last-child {
+    margin-bottom: 0;
 }
 
 .markdown-content ul,
@@ -386,6 +423,7 @@ a:not(:has(button)):not(.row-link):hover {
     padding: 0.125rem 0.375rem;
     border-radius: 0.25rem;
     font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+    white-space: pre-wrap;
 }
 
 .markdown-content pre {
@@ -403,6 +441,18 @@ a:not(:has(button)):not(.row-link):hover {
     padding: 0;
     font-size: 0.875em;
     color: var(--text);
+}
+
+:is(.markdown-content, .prose) [data-align="center"] {
+    text-align: center;
+}
+
+:is(.markdown-content, .prose) [data-align="right"] {
+    text-align: right;
+}
+
+:is(.markdown-content, .prose) [data-align="justify"] {
+    text-align: justify;
 }
 
 .markdown-content mark {

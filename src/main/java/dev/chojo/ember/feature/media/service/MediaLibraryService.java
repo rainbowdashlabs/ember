@@ -188,6 +188,28 @@ public class MediaLibraryService {
     }
 
     /**
+     * Draws the first page of every PDF in every library again, with its sizes, for pages drawn before
+     * they were drawn as finely as they are now. The original stays as it is; a file that cannot be read
+     * is logged and skipped.
+     *
+     * @return how many files were read and drawn again
+     */
+    public int redrawPages() {
+        int redrawn = 0;
+        for (var file : fileRepository.findPdfs()) {
+            var content = original(file.stationId(), file.contentHash());
+            if (content.isEmpty()) {
+                log.warn("Media file {} could not be read back to draw its page again", file.id());
+                continue;
+            }
+            var at = storage.locate(file.stationId(), file.contentHash());
+            images.addSizes(at.scope(), at.category(), at.key(), content.get().data(), file.mimeType());
+            redrawn++;
+        }
+        return redrawn;
+    }
+
+    /**
      * Reads a file by station and content hash, which is how the delivery routes address it.
      */
     public Optional<MediaContent> read(@Nullable Integer stationId, String contentHash) {

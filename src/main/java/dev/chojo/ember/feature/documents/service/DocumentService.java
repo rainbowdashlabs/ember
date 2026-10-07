@@ -48,9 +48,6 @@ public class DocumentService {
     /** The bytes as they were uploaded. */
     private static final Variant CONTENT = new Variant("content");
 
-    /** How wide the picture of a page is rendered before it is scaled down for the tiles. */
-    private static final int THUMBNAIL_DPI = 72;
-
     private final DocumentRepository repository;
     private final StorageService storage;
     private final ImageVariants images;
@@ -248,6 +245,28 @@ public class DocumentService {
         return rebuilt;
     }
 
+    /**
+     * Draws the picture of every PDF document again, for pictures drawn before the page was drawn as
+     * finely as it is now. A document that cannot be read is logged and skipped.
+     *
+     * @return how many documents were read and drawn again
+     */
+    public int redrawPages() {
+        int redrawn = 0;
+        for (var document : repository.findPdfs()) {
+            var data = read(document);
+            if (data.isEmpty()) {
+                log.warn("Document {} could not be read back to draw its picture again", document.id());
+                continue;
+            }
+            if (storeThumbnail(scope(document.stationId()), document.id(), document.mimeType(), data.get())) {
+                repository.markThumbnail(document.id());
+                redrawn++;
+            }
+        }
+        return redrawn;
+    }
+
     /** The language a station writes in, which is what its documents are stemmed by. */
     public String searchConfigOf(int stationId) {
         return stationRepository
@@ -306,7 +325,7 @@ public class DocumentService {
      */
     private boolean storeThumbnail(StorageScope.Station scope, int documentId, String mimeType, byte[] data) {
         try {
-            var picture = FilePicture.of(mimeType, data, THUMBNAIL_DPI);
+            var picture = FilePicture.of(mimeType, data);
             if (picture.isEmpty()) return false;
             images.store(
                     ImageProfile.CONTENT,
@@ -330,7 +349,8 @@ public class DocumentService {
         return documentId + "/file";
     }
 
-    private static String thumbnailKey(int documentId) {
+    /** The key a document's picture is kept under, beside the document itself. */
+    static String thumbnailKey(int documentId) {
         return documentId + "/thumb";
     }
 

@@ -166,6 +166,16 @@ import dev.chojo.ember.feature.form.handler.FormPublishedHandler;
 import dev.chojo.ember.feature.form.route.FormRoutes;
 import dev.chojo.ember.feature.form.route.PublicFormRoutes;
 import dev.chojo.ember.feature.form.service.FormFeedDetails;
+import dev.chojo.ember.feature.generator.route.AppointmentDocumentRoutes;
+import dev.chojo.ember.feature.generator.route.AssociationDocumentTemplateRoutes;
+import dev.chojo.ember.feature.generator.route.DocumentFontRoutes;
+import dev.chojo.ember.feature.generator.route.DocumentGenerationRoutes;
+import dev.chojo.ember.feature.generator.route.DocumentTemplateRoutes;
+import dev.chojo.ember.feature.generator.route.GenerationJobRoutes;
+import dev.chojo.ember.feature.generator.route.GenerationLogRoutes;
+import dev.chojo.ember.feature.generator.route.TemplatePictureRoutes;
+import dev.chojo.ember.feature.generator.service.GenerationJobRunner;
+import dev.chojo.ember.feature.generator.service.font.DefaultFont;
 import dev.chojo.ember.feature.insights.route.StationInsightsRoutes;
 import dev.chojo.ember.feature.insights.service.PageHitRecorder;
 import dev.chojo.ember.feature.inventory.handler.ClusterItemIssuedHandler;
@@ -327,6 +337,7 @@ import dev.chojo.ember.feature.system.service.DemoAvatarSeeder;
 import dev.chojo.ember.feature.system.service.DemoBoardSeeder;
 import dev.chojo.ember.feature.system.service.DemoChecklistSeeder;
 import dev.chojo.ember.feature.system.service.DemoClusterSeeder;
+import dev.chojo.ember.feature.system.service.DemoDocumentTemplateSeeder;
 import dev.chojo.ember.feature.system.service.DemoEquipmentSeeder;
 import dev.chojo.ember.feature.system.service.DemoEventSeeder;
 import dev.chojo.ember.feature.system.service.DemoFederationSeeder;
@@ -355,6 +366,7 @@ import dev.chojo.ember.feature.system.service.DemoTwoFactorSeeder;
 import dev.chojo.ember.feature.system.service.DemoVideoSeeder;
 import dev.chojo.ember.feature.system.service.DemoWaitingListSeeder;
 import dev.chojo.ember.feature.system.service.ProblemReportSweeper;
+import dev.chojo.ember.feature.system.service.SchemaFingerprint;
 import dev.chojo.ember.feature.system.service.UpdateCheckService;
 import dev.chojo.ember.feature.traffic.route.AdminTrafficRoutes;
 import dev.chojo.ember.feature.traffic.route.StationTrafficRoutes;
@@ -379,6 +391,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.sql.SQLException;
 import java.time.Duration;
 import java.time.Instant;
@@ -431,6 +444,14 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(ProfileFieldRoutes.class);
         routesBinder.addBinding().to(MemberTableRoutes.class);
         routesBinder.addBinding().to(DocumentRoutes.class);
+        routesBinder.addBinding().to(DocumentTemplateRoutes.class);
+        routesBinder.addBinding().to(TemplatePictureRoutes.class);
+        routesBinder.addBinding().to(DocumentGenerationRoutes.class);
+        routesBinder.addBinding().to(DocumentFontRoutes.class);
+        routesBinder.addBinding().to(GenerationJobRoutes.class);
+        routesBinder.addBinding().to(GenerationLogRoutes.class);
+        routesBinder.addBinding().to(AppointmentDocumentRoutes.class);
+        routesBinder.addBinding().to(AssociationDocumentTemplateRoutes.class);
         routesBinder.addBinding().to(MailImportRoutes.class);
         routesBinder.addBinding().to(AdminMonitoringCountRoutes.class);
         bind(MailFilingService.MemberNaming.class).to(StationMemberNaming.class);
@@ -612,6 +633,7 @@ public class EmberModule extends AbstractModule {
         demoSeederBinder.addBinding().to(DemoFederationSeeder.class);
         demoSeederBinder.addBinding().to(DemoSettingsSeeder.class);
         demoSeederBinder.addBinding().to(DemoChecklistSeeder.class);
+        demoSeederBinder.addBinding().to(DemoDocumentTemplateSeeder.class);
         demoSeederBinder.addBinding().to(DemoBoardSeeder.class);
         demoSeederBinder.addBinding().to(DemoPageSeeder.class);
         demoSeederBinder.addBinding().to(DemoLendingSeeder.class);
@@ -747,6 +769,7 @@ public class EmberModule extends AbstractModule {
         taskSources.addBinding().to(KbTrashPurger.class);
         taskSources.addBinding().to(TransferTimeoutWatchdog.class);
         taskSources.addBinding().to(FeedMetricsService.class);
+        taskSources.addBinding().to(GenerationJobRunner.class);
 
         Multibinder<ShutdownFlush> flushes = Multibinder.newSetBinder(binder(), ShutdownFlush.class);
         flushes.addBinding().to(PageHitRecorder.class);
@@ -866,6 +889,12 @@ public class EmberModule extends AbstractModule {
 
     @Provides
     @Singleton
+    DefaultFont defaultFont(File config) {
+        return DefaultFont.readFrom(Path.of(config.documents().defaultFontDir()));
+    }
+
+    @Provides
+    @Singleton
     Updates updates(File config) {
         return config.updates();
     }
@@ -946,6 +975,8 @@ public class EmberModule extends AbstractModule {
      *
      * <p>The migration is skipped only in full demo mode, which drops and migrates the schema on every
      * start anyway; everywhere else it must run before services whose constructors already query it.
+     * In dev mode a schema built from other migrations is dropped first ({@link SchemaFingerprint}), so a
+     * database a branch with more patches left ahead does not stop the start.
      * Before 1.60 merges duplicate profile fields, their answers and definitions are copied to the data
      * volume, not to a table, because a table would travel with a station export. The configuration is
      * thread-scoped so that services grouping writes with {@code Transactions.run} reach their
@@ -956,6 +987,7 @@ public class EmberModule extends AbstractModule {
     QueryConfiguration queryConfiguration(DataSource dataSource, Database database, Demo demo)
             throws SQLException, IOException {
         if (!demo.enabled()) {
+            if (demo.dev()) SchemaFingerprint.ofThisDatabase().dropSchemaIfChanged(dataSource, database.schema());
             SqlUpdater.builder(dataSource, PostgreSql.get())
                     .setReplacements(new QueryReplacement("ember_schema", database.schema()))
                     .setSchemas(database.schema())

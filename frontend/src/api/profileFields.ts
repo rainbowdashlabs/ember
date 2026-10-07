@@ -15,6 +15,7 @@ import {
     type ProfileFieldAssignment,
     type ProfileFieldConfig,
     type ProfileFieldRequest,
+    type PronounLanguage,
     type SetValuesRequest,
 } from './generated/schema'
 
@@ -120,6 +121,12 @@ export const deleteField = fields.remove
  */
 export async function reorderFields(role: ProfileFieldScope, fieldIds: number[]): Promise<void> {
     await client.put('/profile-fields/order', {role, fieldIds})
+}
+
+/** The languages a gender field gives pronouns in, the roles each tells apart and the two predefined answers. */
+export async function pronounLanguages(): Promise<PronounLanguage[]> {
+    const res = await client.get<PronounLanguage[]>('/pronoun-presets')
+    return res.data
 }
 
 /** Every assignment of this station's fields, which is what each audience's form is built from. */

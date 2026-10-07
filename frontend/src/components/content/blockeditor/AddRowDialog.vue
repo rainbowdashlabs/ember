@@ -9,6 +9,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import BaseButton from '@/components/button/BaseButton.vue'
 import Modal from '@/components/feedback/Modal.vue'
+import {useBlockEditorOptions} from '@/composables/useBlockEditorOptions'
 
 const open = defineModel<boolean>({required: true})
 
@@ -17,6 +18,7 @@ const emit = defineEmits<{
 }>()
 
 const {t} = useI18n()
+const options = useBlockEditorOptions()
 </script>
 
 <template>
@@ -24,10 +26,11 @@ const {t} = useI18n()
     <div class="space-y-4">
       <SubHeader>{{ t('stationPages.editor.addRowTitle') }}</SubHeader>
       <p class="text-sm text-(--text-muted)">{{ t('stationPages.editor.addRowHint') }}</p>
-      <div class="grid grid-cols-4 gap-2">
+      <div class="grid gap-2" :style="{gridTemplateColumns: `repeat(${options.maxColumns}, minmax(0, 1fr))`}">
         <BaseButton
-            v-for="n in 4" :key="n"
+            v-for="n in options.maxColumns" :key="n"
             class="flex-col gap-2 !p-3 border border-[var(--border)] hover:border-primary hover:bg-primary/5"
+            :data-testid="`add-row-columns-${n}`"
             @click="emit('select', n)"
         >
           <span class="inline-flex gap-1 h-8 w-full">

@@ -15,8 +15,29 @@
 ---
 --- Captions: the exporter marks the line under a picture as `<figcaption>`, which becomes a call
 --- to the template's `caption` function so it prints set apart from the text around it.
+---
+--- Fonts: a letter sets words in a family of their own as `<span data-font="Family">`. With the
+--- `font-spans` variable set, the pair becomes a call to the template's `font` function, which picks
+--- the family when the letter is printed. Without it the tag is dropped and the words are kept, since
+--- no other template defines that function.
+---
+--- Sizes: the editor stores words in a size of their own as `<span style="font-size: 14px">`, in whole
+--- pixels from 6 to 96. The pair becomes `text(size: ...)` in points, a pixel being three quarters of
+--- one; a size beyond the bounds is held to them, and a size in anything but whole pixels drops the tag
+--- and keeps the words. A span that sets a colour as well prints in both.
+---
+--- Alignment: the editor stores a centred, right-aligned or justified paragraph or heading wrapped in
+--- `<div data-align="...">`, a blank line on either side, so the markdown reader still reads what is
+--- inside and leaves the two tags as blocks of HTML around it. A pair of them becomes `align(center)`,
+--- `align(right)` or a block that justifies its paragraphs, around the converted blocks between.
+--- Paired the same way as the inline tags, an unpaired one is dropped.
+---
+--- Spaces: the editor stores every space of a run but the last as a non-breaking space. Each one
+--- becomes Typst's `~` here rather than in the writer, because older Pandoc versions pass the
+--- character through as it is, and Typst then folds it into the space beside it.
 
 local PIXEL = 0.75
+local FONT_SPANS = PANDOC_WRITER_OPTIONS.variables["font-spans"] ~= nil
 
 local function is_printable(src)
   return src ~= nil and src:match("^img%-%d+%.%a+$") ~= nil
@@ -45,6 +66,23 @@ local function typst_string(text)
   return '"' .. text:gsub("\\", "\\\\"):gsub('"', '\\"') .. '"'
 end
 
+local function unescape(text)
+  return (text:gsub("&quot;", '"'):gsub("&lt;", "<"):gsub("&gt;", ">"):gsub("&amp;", "&"))
+end
+
+local function font_family(tag)
+  local family = FONT_SPANS and attribute(tag, "data%-font")
+  return family and unescape(family):match("^%s*(.-)%s*$")
+end
+
+local SMALLEST_SIZE, LARGEST_SIZE = 6, 96
+
+local function text_size(tag)
+  local size = tonumber((css(attribute(tag, "style"), "font%-size") or ""):match("^(%d+)px$"))
+  if not size then return nil end
+  return string.format("%gpt", math.min(math.max(size, SMALLEST_SIZE), LARGEST_SIZE) * PIXEL)
+end
+
 local function opener(name, tag)
   if name == "u" then return "#underline[" end
   if name == "mark" then
@@ -52,15 +90,32 @@ local function opener(name, tag)
     return fill and ("#highlight(fill: " .. fill .. ")[") or "#highlight["
   end
   if name == "span" then
+    local family = font_family(tag)
+    if family then return "#font(" .. typst_string(family) .. ")[" end
+    local settings = {}
+    local size = text_size(tag)
+    if size then table.insert(settings, "size: " .. size) end
     local fill = typst_color(css(attribute(tag, "style"), "color"))
-    return fill and ("#text(fill: " .. fill .. ")[") or nil
+    if fill then table.insert(settings, "fill: " .. fill) end
+    return #settings > 0 and ("#text(" .. table.concat(settings, ", ") .. ")[") or nil
   end
   return nil
 end
 
+local ALIGNMENTS = {
+  center = "#align(center)[",
+  right = "#align(right)[",
+  justify = "#[#set par(justify: true)\n",
+}
+
+local function block_opener(name, tag)
+  if name ~= "div" then return nil end
+  return ALIGNMENTS[attribute(tag, "data%-align") or ""]
+end
+
 local function html_tag(el)
-  if el.t ~= "RawInline" or el.format ~= "html" then return nil end
-  local closing, name = el.text:match("^<(/?)(%a+)")
+  if (el.t ~= "RawInline" and el.t ~= "RawBlock") or el.format ~= "html" then return nil end
+  local closing, name = el.text:match("^%s*<(/?)(%a+)")
   if not name then return nil end
   return name:lower(), closing == "/"
 end
@@ -80,11 +135,11 @@ local function picture_inline(tag)
   return pandoc.Emph(pandoc.Inlines(alt))
 end
 
-local function pair_tags(inlines)
+local function pair_tags(elements)
   local open, pairs = {}, {}
-  for i, el in ipairs(inlines) do
+  for i, el in ipairs(elements) do
     local name, closing = html_tag(el)
-    if name and name ~= "img" then
+    if name then
       if not closing then
         table.insert(open, {name = name, index = i})
       else
@@ -128,27 +183,62 @@ local function highlight_markers(inlines)
   return result
 end
 
-function Inlines(inlines)
-  local pairs = pair_tags(inlines)
+local function typst_inline(text) return pandoc.RawInline("typst", text) end
+
+local function typst_block(text) return pandoc.RawBlock("typst", text) end
+
+local NBSP = "\u{a0}"
+
+local function with_nonbreaking_spaces(text)
+  local result, from = pandoc.Inlines{}, 1
+  local at = text:find(NBSP, from, true)
+  while at do
+    if at > from then result:insert(pandoc.Str(text:sub(from, at - 1))) end
+    result:insert(typst_inline("~"))
+    from = at + #NBSP
+    at = text:find(NBSP, from, true)
+  end
+  if from <= #text then result:insert(pandoc.Str(text:sub(from))) end
+  return result
+end
+
+function Str(el)
+  if el.text:find(NBSP, 1, true) then return with_nonbreaking_spaces(el.text) end
+end
+
+local function translate_pairs(elements, result, open_with, typst)
+  local pairs = pair_tags(elements)
   local closers = {}
-  local result = pandoc.Inlines{}
-  for i, el in ipairs(inlines) do
+  for i, el in ipairs(elements) do
     local name, closing = html_tag(el)
-    if name == "img" then
-      result:insert(picture_inline(el.text))
-    elseif name and closing then
-      if closers[i] then result:insert(pandoc.RawInline("typst", "]")) end
+    if name and closing then
+      if closers[i] then result:insert(typst("]")) end
     elseif name then
-      local start = pairs[i] and opener(name, el.text)
+      local start = pairs[i] and open_with(name, el.text)
       if start then
-        result:insert(pandoc.RawInline("typst", start))
+        result:insert(typst(start))
         closers[pairs[i]] = true
       end
     else
       result:insert(el)
     end
   end
-  return highlight_markers(result)
+  return result
+end
+
+local function with_pictures(inlines)
+  return inlines:map(function(el)
+    if html_tag(el) == "img" then return picture_inline(el.text) end
+    return el
+  end)
+end
+
+function Inlines(inlines)
+  return highlight_markers(translate_pairs(with_pictures(inlines), pandoc.Inlines{}, opener, typst_inline))
+end
+
+function Blocks(blocks)
+  return translate_pairs(blocks, pandoc.Blocks{}, block_opener, typst_block)
 end
 
 function Image(el)

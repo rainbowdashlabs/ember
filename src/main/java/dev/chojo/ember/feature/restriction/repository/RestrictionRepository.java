@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.restriction.repository;
 
+import de.chojo.sadu.mapper.wrapper.Row;
 import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.restriction.Restriction;
@@ -15,6 +16,8 @@ import dev.chojo.ember.feature.restriction.RestrictionSql;
 import dev.chojo.ember.feature.restriction.RestrictionType;
 import jakarta.inject.Singleton;
 
+import java.sql.SQLException;
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -113,12 +116,36 @@ public class RestrictionRepository {
                 WHERE sm.station_id = :station_id
                   AND sm.former = FALSE;""")
                 .single(call().bind("station_id", stationId))
-                .map(row -> new RestrictionMember(
-                        row.getInt("id"),
-                        row.getEnum("user_type", StationUserType.class),
-                        List.of((Integer[]) row.getArray("group_ids").getArray()),
-                        List.of((Integer[]) row.getArray("tag_ids").getArray())))
+                .map(RestrictionRepository::identityOf)
                 .all();
+    }
+
+    /**
+     * What a restriction can name of several members, former ones included, in one read.
+     *
+     * @param memberIds the members
+     * @return one identity per member that exists
+     */
+    public List<RestrictionMember> findMembers(Collection<Integer> memberIds) {
+        if (memberIds.isEmpty()) return List.of();
+        return query("""
+                SELECT sm.id,
+                       sm.user_type,
+                       ARRAY(SELECT mge.group_id FROM member_group_entry mge WHERE mge.member_id = sm.id) AS group_ids,
+                       ARRAY(SELECT ute.tag_id FROM user_tag_entry ute WHERE ute.member_id = sm.id) AS tag_ids
+                FROM station_member sm
+                WHERE sm.id = ANY(:member_ids);""")
+                .single(call().bind("member_ids", List.copyOf(memberIds), PostgreSqlTypes.INTEGER))
+                .map(RestrictionRepository::identityOf)
+                .all();
+    }
+
+    private static RestrictionMember identityOf(Row row) throws SQLException {
+        return new RestrictionMember(
+                row.getInt("id"),
+                row.getEnum("user_type", StationUserType.class),
+                List.of((Integer[]) row.getArray("group_ids").getArray()),
+                List.of((Integer[]) row.getArray("tag_ids").getArray()));
     }
 
     /**

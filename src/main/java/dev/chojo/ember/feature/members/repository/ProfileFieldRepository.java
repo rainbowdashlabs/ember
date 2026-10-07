@@ -421,6 +421,23 @@ public class ProfileFieldRepository {
     }
 
     /**
+     * Every profile field value of several members, in one read.
+     *
+     * @param memberIds the members
+     * @return one entry per member and answered field
+     */
+    public List<ProfileFieldValue> findValuesOf(Collection<Integer> memberIds) {
+        if (memberIds.isEmpty()) return List.of();
+        return query("""
+                SELECT member_id, field_id, value
+                FROM profile_field_value
+                WHERE member_id = ANY(:member_ids);""")
+                .single(call().bind("member_ids", List.copyOf(memberIds), PostgreSqlTypes.INTEGER))
+                .map(ProfileFieldValue.map())
+                .all();
+    }
+
+    /**
      * Whether a member has answered everything their profile asks of them, judged as
      * {@link ProfileCompletenessSql} says.
      *

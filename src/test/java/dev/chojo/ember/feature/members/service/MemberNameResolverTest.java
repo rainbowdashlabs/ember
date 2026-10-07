@@ -22,6 +22,7 @@ import dev.chojo.ember.feature.station.repository.StationRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -72,6 +73,39 @@ class MemberNameResolverTest {
         when(accountRepository.findById(10)).thenReturn(Optional.of(account));
 
         assertEquals("Max Meier", resolver.called(1));
+    }
+
+    /** A list of names is read in one go, and a name read so is not read again for one member. */
+    @Test
+    void identified_readsAListAtOnce() {
+        var withAccount =
+                new StationMember(4, 1, UUID.randomUUID(), 30, false, null, null, StationUserType.MEMBER, null, "Maxi");
+        var frozen =
+                new StationMember(5, 1, UUID.randomUUID(), null, false, null, "Ehemalig", StationUserType.MEMBER, null);
+        var account = new Account(
+                30,
+                UUID.randomUUID(),
+                "list@test.com",
+                null,
+                "Max",
+                "Meier",
+                true,
+                InstanceUserType.USER,
+                "Max Meier",
+                null,
+                null);
+        when(memberService.findByIds(anyList())).thenReturn(List.of(withAccount, frozen));
+        when(accountRepository.findByIds(anyCollection())).thenReturn(List.of(account));
+        when(stationRepository.findById(1)).thenReturn(Optional.of(station(true)));
+
+        var names = resolver.identified(List.of(4, 5, 99));
+
+        assertEquals("Max \"Maxi\" Meier", names.get(4));
+        assertEquals("Ehemalig", names.get(5));
+        assertNull(names.get(99));
+        assertEquals("Max \"Maxi\" Meier", resolver.identified(4));
+        verify(memberService, never()).findById(4);
+        verify(stationRepository, times(1)).findById(1);
     }
 
     @Test

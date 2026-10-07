@@ -12,23 +12,37 @@ import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.content.entity.CellConfig;
 import dev.chojo.ember.feature.content.entity.CellContentType;
+import dev.chojo.ember.feature.media.image.VariantFile;
+import dev.chojo.ember.feature.media.image.VariantLayout;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
+import dev.chojo.ember.feature.storage.entity.Variant;
 import dev.chojo.ember.feature.storage.service.StorageQuotaService;
 import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import dev.chojo.ember.util.OversizedPictures;
+import dev.chojo.ember.util.WebpEncoder;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.Set;
+
+import javax.imageio.ImageIO;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class MediaLibraryServiceTest extends RepositoryTestBase {
     private static MediaLibraryService media;
+    private static StorageService storageService;
+    private static MediaStorageService mediaStorage;
     private static Station station;
     private static Account account;
     private static Account otherAccount;
@@ -40,13 +54,13 @@ class MediaLibraryServiceTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         var backend = localStorage();
-        var storageService = new StorageService(new StorageBackendResolver(backend), backend);
+        storageService = new StorageService(new StorageBackendResolver(backend), backend);
         var storageConfig = new Storage();
-        var storage = new MediaStorageService(storageService, stationRepo, backend);
+        mediaStorage = new MediaStorageService(storageService, stationRepo, backend);
         media = new MediaLibraryService(
                 mediaFileRepo,
                 mediaMetaRepo,
-                storage,
+                mediaStorage,
                 new ImageVariants(storageService),
                 new MediaReferenceRegistry(contentContainerRepo),
                 new StorageQuotaService(storageUsageRepo, storageConfig, new DomainEventBus(Set.of())));
@@ -220,6 +234,40 @@ class MediaLibraryServiceTest extends RepositoryTestBase {
             assertTrue(media.readById(-1).isEmpty());
         } finally {
             media.deleteFile(file.id());
+        }
+    }
+
+    /** A PDF whose page pictures are gone or coarse gets them drawn again from its original. */
+    @Test
+    void aPdfsPageIsDrawnAgainFromItsOriginal() throws Exception {
+        Assumptions.assumeTrue(WebpEncoder.isAvailable(), "cwebp not available");
+        var file = media.upload(station.id(), null, null, "blatt.pdf", "application/pdf", onePagePdf());
+        try {
+            var at = mediaStorage.locate(station.id(), file.contentHash());
+            for (String key : storageService.listKeys(at.scope(), at.category(), at.key())) {
+                var stored = VariantFile.of(key);
+                if (VariantLayout.LIBRARY_PAGE.isOriginal(stored)
+                        || stored.fileName().startsWith("page1-")) {
+                    storageService.delete(at.scope(), at.category(), at.key(), new Variant(stored.fileName()));
+                }
+            }
+            assertTrue(media.readPicture(station.id(), file.contentHash(), null).isEmpty());
+
+            assertTrue(media.redrawPages() >= 1);
+
+            var page = media.readPicture(station.id(), file.contentHash(), null).orElseThrow();
+            assertTrue(ImageIO.read(new ByteArrayInputStream(page.data())).getWidth() > 1200);
+        } finally {
+            media.deleteFile(file.id());
+        }
+    }
+
+    private static byte[] onePagePdf() throws IOException {
+        try (var pdf = new PDDocument()) {
+            pdf.addPage(new PDPage());
+            var out = new ByteArrayOutputStream();
+            pdf.save(out);
+            return out.toByteArray();
         }
     }
 

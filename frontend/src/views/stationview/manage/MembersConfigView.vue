@@ -35,7 +35,7 @@ const port: FieldsPort = {
 
 const config = useFieldsConfig(port)
 const {
-  birthDateField, dateFields, showFieldModal, editingField, loading, failure,
+  birthDateField, genderField, dateFields, showFieldModal, editingField, loading, failure,
   saveField, showDeleteModal, deleteTarget, confirmDelete,
 } = config
 </script>
@@ -54,6 +54,7 @@ const {
       <ProfileFieldModal
           v-model="showFieldModal"
           :birth-date-field="birthDateField"
+          :gender-field="genderField"
           :date-fields="dateFields"
           :field="editingField"
           @save="saveField"

@@ -26,6 +26,7 @@ import dev.chojo.ember.feature.station.service.TransferTimeoutWatchdog;
 import dev.chojo.ember.feature.system.service.ChangelogAnnouncer;
 import dev.chojo.ember.feature.system.service.DataInitializer;
 import dev.chojo.ember.feature.system.service.DemoService;
+import dev.chojo.ember.feature.system.service.PagePictureRedrawService;
 import dev.chojo.ember.feature.system.service.SearchIndexRebuildService;
 import dev.chojo.ember.feature.system.service.UpdateCheckService;
 import dev.chojo.ember.lifecycle.Lifecycle;
@@ -121,6 +122,8 @@ public class Bootstrapper {
         scheduler.start(tasks);
         scheduler.background(
                 "search-index-rebuild", injector.getInstance(SearchIndexRebuildService.class)::rebuildInBackground);
+        scheduler.background(
+                "page-picture-redraw", injector.getInstance(PagePictureRedrawService.class)::redrawInBackground);
         injector.getInstance(CloudflareRangesService.class).refreshAsync();
     }
 }

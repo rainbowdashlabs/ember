@@ -10,13 +10,16 @@ FROM eclipse-temurin:25-alpine
 
 ENV DOCKER=true
 
-RUN apk add --no-cache typst pandoc libreoffice-impress font-liberation libwebp-tools qpdf
+RUN apk add --no-cache typst pandoc libreoffice-impress font-liberation libwebp-tools qpdf curl unzip
 
 WORKDIR /app
 
 COPY build/install/ember/ .
 COPY templates templates
+COPY --chmod=755 docker/default-font.sh /usr/local/bin/default-font
 
 RUN mkdir -p config data
 
-ENTRYPOINT ["./bin/ember"]
+ENV DOCUMENTS_DEFAULTFONTDIR=/app/data/default-font
+
+ENTRYPOINT ["default-font", "./bin/ember"]

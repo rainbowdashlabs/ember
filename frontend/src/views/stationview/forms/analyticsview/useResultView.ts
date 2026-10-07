@@ -19,7 +19,7 @@ import type {GroupSeries} from './groupedChart'
 import {decodeView, encodeView, NO_VALUE_GROUP, toQuery} from './resultQuery'
 
 /** The kinds of profile field results can be filtered and grouped by. */
-const GROUPABLE_FIELD_TYPES: string[] = [FieldType.CHOICE, FieldType.BOOLEAN, FieldType.NUMBER]
+const GROUPABLE_FIELD_TYPES: string[] = [FieldType.CHOICE, FieldType.GENDER, FieldType.BOOLEAN, FieldType.NUMBER]
 
 /**
  * The filtered and grouped view of a form's results.

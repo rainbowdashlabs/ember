@@ -59,6 +59,7 @@ public class ProfileFieldService {
     private final AccountRepository accountRepository;
     private final MemberGroupRepository memberGroupRepository;
     private final ProfileFieldCore core;
+    private final GenderFields genders;
 
     @Inject
     public ProfileFieldService(
@@ -67,13 +68,15 @@ public class ProfileFieldService {
             StationMemberRepository stationMemberRepository,
             AccountRepository accountRepository,
             MemberGroupRepository memberGroupRepository,
-            ProfileFieldCore core) {
+            ProfileFieldCore core,
+            GenderFields genders) {
         this.profileFieldRepository = profileFieldRepository;
         this.changeRepository = changeRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.accountRepository = accountRepository;
         this.memberGroupRepository = memberGroupRepository;
         this.core = core;
+        this.genders = genders;
     }
 
     public List<ProfileField> findByStation(int stationId) {
@@ -177,13 +180,15 @@ public class ProfileFieldService {
      * @param stationId     the station asking
      * @param name          what it is called, which a spacer may leave empty to be numbered
      * @param fieldType     what kind of answer it takes
-     * @param config        its settings
+     * @param config        its settings, a gender field's pronouns kept as
+     *                      {@link ProfileFieldConfig#withPronounsOfItsAnswers()} prunes them
      * @param required      whether an answer is expected
      * @param readonly      whether only the member management writes the answer
      * @param width         how much of a row it takes, null for the whole row
      * @param keepOnArchive whether its answers stay when a member leaves
      * @return the question
-     * @throws RefusalResponse the checks of {@link ProfileFieldCore#checkedName}, or
+     * @throws RefusalResponse the checks of {@link ProfileFieldCore#checkedName} and
+     *                         {@link GenderFields#requireAllowed}, or
      *                         {@link MemberRefusal#PROFILE_BIRTH_DATE_ALREADY_ASKED}
      */
     public ProfileField create(
@@ -195,10 +200,12 @@ public class ProfileFieldService {
             boolean readonly,
             @Nullable String width,
             boolean keepOnArchive) {
-        String chosen = core.checkedName(new Owner.Station(stationId), new FieldDraft(name, fieldType, config, false));
+        var stored = config.withPronounsOfItsAnswers();
+        String chosen = core.checkedName(new Owner.Station(stationId), new FieldDraft(name, fieldType, stored, false));
         requireSingleBirthDate(stationId, fieldType, 0);
+        genders.requireAllowed(new Owner.Station(stationId), new FieldDraft(chosen, fieldType, stored, false), null, 0);
         var field = profileFieldRepository.create(
-                stationId, chosen, fieldType, config, required, readonly, width, keepOnArchive);
+                stationId, chosen, fieldType, stored, required, readonly, width, keepOnArchive);
         log.info(
                 "Profile field created: id={}, station={}, name='{}', type={}",
                 field.id(),
@@ -239,9 +246,15 @@ public class ProfileFieldService {
             return Optional.empty();
         }
         int stationId = existing.get().stationId();
-        String chosen = core.checkedName(new Owner.Station(stationId), new FieldDraft(name, fieldType, config, false));
+        var stored = config.withPronounsOfItsAnswers();
+        String chosen = core.checkedName(new Owner.Station(stationId), new FieldDraft(name, fieldType, stored, false));
         requireSingleBirthDate(stationId, fieldType, id);
-        if (profileFieldRepository.update(id, chosen, fieldType, config, required, readonly, width, keepOnArchive)) {
+        genders.requireAllowed(
+                new Owner.Station(stationId),
+                new FieldDraft(chosen, fieldType, stored, false),
+                existing.get().fieldType(),
+                id);
+        if (profileFieldRepository.update(id, chosen, fieldType, stored, required, readonly, width, keepOnArchive)) {
             log.info("Profile field updated: id={}, name='{}', type={}", id, chosen, fieldType);
             return profileFieldRepository.findById(id);
         }

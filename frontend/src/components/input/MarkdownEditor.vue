@@ -5,7 +5,7 @@
  */
 <script setup lang="ts">
 import { computed, ref, onBeforeUnmount, watch, nextTick, onMounted } from 'vue'
-import {EditorContent, useEditor} from '@tiptap/vue-3'
+import {EditorContent, useEditor, type Content} from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
 import Underline from '@tiptap/extension-underline'
 import Link from '@tiptap/extension-link'
@@ -20,9 +20,16 @@ import { Color } from '@tiptap/extension-color'
 import { TextStyle } from '@tiptap/extension-text-style'
 import { renderMarkdown } from '@/util/markdown'
 import { useSession } from '@/composables/useSession'
+import { useEditorFontAreaAttrs, useInjectedEditorFonts } from '@/composables/useEditorFonts'
 import MediaBrowseModal from '@/components/media/MediaBrowseModal.vue'
 import { createMarkdownTurndown } from './markdowneditor/markdownTurndown'
+import { type EditorContentAccess, htmlWithStoredSpaces, keepInlineCodeSpaces, showTypedSpaces } from './markdowneditor/spaceRuns'
 import { ResizableImage } from './markdowneditor/resizableImage'
+import type { EditorTokens } from './markdowneditor/editorTokens'
+import { extendTurndownWithTextFont, TextFont } from './markdowneditor/textFont'
+import { BlockAlign } from './markdowneditor/blockAlign'
+import { TextSize } from './markdowneditor/textSize'
+import type { FontFamilyOption } from '@/api/generated/schema'
 import { isYoutubeUrl, videoEmbedUrl } from '@/util/youtube'
 import EditorToolbar from './markdowneditor/EditorToolbar.vue'
 import EditorTableBar from './markdowneditor/EditorTableBar.vue'
@@ -41,12 +48,29 @@ const props = defineProps<{
    * and its pictures cannot come out of one of them.
    */
   mediaScope?: string
+  /**
+   * Tokens the stored markdown carries that this editor shows as nodes of their own, such as the
+   * placeholders of a document template. Read once, when the editor is made.
+   */
+  tokens?: EditorTokens
+  /**
+   * The font families selected words can be set in, such as those a document template reaches. The
+   * menu offers a font only where they are given. Read once, when the editor is made. Inside the
+   * template editor the text and the words show in the families they print in, from the fonts it loads.
+   */
+  fonts?: readonly FontFamilyOption[]
 }>()
+
+const editorFonts = useInjectedEditorFonts()
+const fontArea = useEditorFontAreaAttrs()
+const areaAttrs = computed(() => fontArea?.value ?? {})
 
 const { sessionInfo } = useSession()
 const stationUid = computed(() => props.mediaScope ?? sessionInfo.value?.stationId ?? '')
 
 const turndown = createMarkdownTurndown()
+props.tokens?.extendTurndown(turndown)
+if (props.fonts) extendTurndownWithTextFont(turndown)
 
 const isUpdatingFromProp = ref(false)
 const isInTable = ref(false)
@@ -68,6 +92,15 @@ const showVideoDialog = ref(false)
 const videoDialogPos = ref({ top: 0, left: 0 })
 
 /**
+ * Whether the editor leaves a key press to the page rather than taking it: escape, which the editor
+ * would otherwise mark as handled although it does nothing with it. A dialog around the editor then
+ * closes on escape. A panel of the editor that is open takes the escape first and closes alone.
+ */
+function leavesEscapeToPage(event: KeyboardEvent): boolean {
+  return event.key === 'Escape'
+}
+
+/**
  * The editor and the extensions it runs with.
  *
  * <p>The starter kit's own link and underline are switched off because both are registered below
@@ -85,7 +118,9 @@ const editor = useEditor({
     TableRow, TableHeader, TableCell,
     Highlight.configure({ multicolor: true }),
     Youtube.configure({ inline: false }),
-    ResizableImage, TextStyle, Color,
+    ResizableImage, TextStyle, Color, TextSize, BlockAlign,
+    ...(props.tokens?.extensions ?? []),
+    ...(props.fonts ? [TextFont.configure({ shown: family => editorFonts?.shown(family) ?? false })] : []),
   ],
   content: '',
   editorProps: {
@@ -100,15 +135,21 @@ const editor = useEditor({
         if (t.tagName === 'A' || t.closest('a')) { event.preventDefault(); return true }
         return false
       },
+      keydown: (_view, event) => leavesEscapeToPage(event),
     },
   },
   onSelectionUpdate: ({ editor: ed }) => { updateState(ed) },
   onTransaction: ({ editor: ed }) => { updateState(ed) },
   onUpdate: ({ editor: ed }) => {
     if (isUpdatingFromProp.value) return
-    modelValue.value = turndown.turndown(ed.getHTML())
+    modelValue.value = markdownOf(ed)
   },
 })
+
+/** What the editor holds, as the markdown that is stored, with several spaces in a row kept. */
+function markdownOf(ed: EditorContentAccess): string {
+  return turndown.turndown(htmlWithStoredSpaces(ed))
+}
 
 function updateState(ed: { isActive: (n: string, a?: Record<string, unknown>) => boolean; getAttributes: (n: string) => Record<string, unknown> }) {
   isInTable.value = ed.isActive('table')
@@ -119,9 +160,10 @@ function updateState(ed: { isActive: (n: string, a?: Record<string, unknown>) =>
 async function setEditorContent(md: string) {
   if (!editor.value) return
   isUpdatingFromProp.value = true
-  let html = renderMarkdown(md)
-  html = html.replace(/<p>(<img [^>]*>)<\/p>/g, '$1')
+  let html = renderMarkdown(props.tokens ? props.tokens.prepare(md) : md)
+  html = keepInlineCodeSpaces(html.replace(/<p>(<img [^>]*>)<\/p>/g, '$1'))
   editor.value.commands.setContent(html, { emitUpdate: false })
+  showTypedSpaces(editor.value)
   await nextTick()
   isUpdatingFromProp.value = false
 }
@@ -130,11 +172,21 @@ onMounted(async () => { await nextTick(); if (modelValue.value) await setEditorC
 
 watch(modelValue, async (md, oldMd) => {
   if (!editor.value || md === oldMd) return
-  const cur = turndown.turndown(editor.value.getHTML())
+  const cur = markdownOf(editor.value)
   if (cur !== md) await setEditorContent(md)
 })
 
 onBeforeUnmount(() => { editor.value?.destroy() })
+
+/**
+ * Puts content in at the cursor, for a screen that offers things to insert beside the toolbar, such
+ * as the placeholder picker of a document template.
+ */
+function insert(content: Content) {
+  editor.value?.chain().focus().insertContent(content).run()
+}
+
+defineExpose({ insert })
 
 function cursorPos() {
   if (!editor.value) return { top: 0, left: 0 }
@@ -142,7 +194,7 @@ function cursorPos() {
   const coords = editor.value.view.coordsAtPos(from)
   const rect = editorContainer.value?.getBoundingClientRect()
   if (!rect) return { top: 0, left: 0 }
-  return { top: coords.bottom - rect.top + 4, left: Math.max(0, Math.min(coords.left - rect.left, rect.width - 320)) }
+  return { top: coords.bottom - rect.top, left: coords.left - rect.left }
 }
 
 function openLinkDialog() {
@@ -224,9 +276,11 @@ function applyVideo(url: string) {
 </script>
 
 <template>
-  <div ref="editorContainer" class="markdown-editor rounded-lg border border-[var(--border)] bg-[var(--bg)] relative">
+  <div ref="editorContainer" class="markdown-editor rounded-lg border border-[var(--border)] bg-[var(--bg)] relative"
+       v-bind="areaAttrs">
     <EditorToolbar
       :editor="editor"
+      :fonts="fonts"
       @open-link="openLinkDialog"
       @open-image="openImageDialog"
       @open-video="openVideoDialog"
@@ -294,4 +348,5 @@ function applyVideo(url: string) {
 .markdown-editor-content .tiptap pre code { background: none; border: none; padding: 0; font-size: 0.875em; color: var(--text); font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace; }
 .markdown-editor-content .tiptap code { background: var(--bg-accent); border: 1px solid var(--border); border-radius: 0.25rem; padding: 0.1em 0.3em; font-size: 0.875em; font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace; }
 .markdown-editor-content .tiptap hr { border: none; border-top: 2px solid color-mix(in srgb, var(--text) 25%, transparent); margin: 1.5em 0; }
+.markdown-editor-content .tiptap .text-font { text-decoration: underline dotted var(--color-primary); text-underline-offset: 3px; cursor: help; }
 </style>

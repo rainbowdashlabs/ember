@@ -11,10 +11,14 @@ import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.documents.entity.DocumentFilter;
 import dev.chojo.ember.feature.documents.entity.Uploader;
+import dev.chojo.ember.feature.media.image.ImageProfile;
+import dev.chojo.ember.feature.media.service.ImageVariants;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
+import dev.chojo.ember.feature.storage.entity.StorageCategory;
+import dev.chojo.ember.feature.storage.entity.StorageScope;
 import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -28,6 +32,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.io.TempDir;
 
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -36,6 +42,8 @@ import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
+
+import javax.imageio.ImageIO;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -51,6 +59,7 @@ class DocumentServiceTest extends RepositoryTestBase {
     static Path storageRoot;
 
     private static DocumentService service;
+    private static StorageService storage;
     private static Station station;
     private static Account account;
     private static int memberId;
@@ -58,7 +67,7 @@ class DocumentServiceTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         var backend = new LocalStorageBackend(storageRoot);
-        var storage = new StorageService(new StorageBackendResolver(backend), backend);
+        storage = new StorageService(new StorageBackendResolver(backend), backend);
         service = newDocumentService(storage);
         station = stationRepo.create("Document Service Station");
         account = accountRepo.create("doc-service@test.com", "Doc", "Service");
@@ -162,6 +171,38 @@ class DocumentServiceTest extends RepositoryTestBase {
 
         assertTrue(document.hasThumbnail(), "a picture was made of it");
         assertTrue(service.thumbnail(document, 128, DocumentDoor.STATION).isPresent(), "and it can be read back");
+    }
+
+    /** A page drawn coarsely before is drawn again at the resolution pages are drawn at now. */
+    @Test
+    @Order(12)
+    void aPdfDrawnCoarselyBeforeIsDrawnAgain() throws IOException {
+        var document = service.store(
+                station.id(),
+                List.of(memberId),
+                "Altes Bild",
+                "alt.pdf",
+                "application/pdf",
+                onePagePdf(),
+                false,
+                false,
+                Uploader.member(memberId),
+                List.of());
+        var coarse = new ByteArrayOutputStream();
+        ImageIO.write(new BufferedImage(100, 130, BufferedImage.TYPE_INT_RGB), "png", coarse);
+        new ImageVariants(storage)
+                .store(
+                        ImageProfile.CONTENT,
+                        new StorageScope.Station(station.id(), stationRepo.requireUid(station.id())),
+                        StorageCategory.MEMBER_DOCUMENTS,
+                        DocumentService.thumbnailKey(document.id()),
+                        coarse.toByteArray(),
+                        0);
+
+        assertTrue(service.redrawPages() >= 1);
+
+        var picture = service.thumbnail(document, 0, DocumentDoor.STATION).orElseThrow();
+        assertTrue(ImageIO.read(new ByteArrayInputStream(picture.data())).getWidth() > 1200);
     }
 
     /** Nothing can be read out of arbitrary bytes, and the store carries them all the same. */

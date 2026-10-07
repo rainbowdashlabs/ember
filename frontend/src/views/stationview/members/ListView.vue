@@ -20,6 +20,7 @@ import { useAsyncAction } from '@/composables/useAsyncAction'
 import { useSession } from '@/composables/useSession'
 import { useMemberListConfig, type MemberListPort } from './listview/useMemberListConfig'
 import { stationMembers } from '@/api'
+import BulkGenerateModal from '@/components/documents/bulk/BulkGenerateModal.vue'
 
 const { t } = useI18n()
 const { hasPermission, canEditMemberAccounts } = useSession()
@@ -30,6 +31,7 @@ const port: MemberListPort = {
   routes: {detail: 'members-detail', edit: 'members-edit'},
   canExport: computed(() => hasPermission(StationPermission.MEMBER_EXPORT)),
   canEdit: computed(() => canEditMemberAccounts()),
+  canGenerateDocuments: computed(() => hasPermission(StationPermission.DOCUMENT_EDIT_MEMBER)),
   exportFileName: 'mitglieder',
   tableId: 'members',
 }
@@ -55,6 +57,15 @@ function openResendSetup(member: RosterMember) {
   resendTarget.value = member
   clearResendError()
 }
+
+/** The members chosen in the list, handed to a run that generates a document for each. */
+const documentMembers = ref<number[] | null>(null)
+const generatingDocuments = computed({
+  get: () => documentMembers.value !== null,
+  set: (open: boolean) => {
+    if (!open) documentMembers.value = null
+  },
+})
 </script>
 
 <template>
@@ -62,7 +73,8 @@ function openResendSetup(member: RosterMember) {
       :title="t('pages.members-list.title')"
       :subtitle="t('pages.members-list.subtitle')"
   >
-    <MemberListPanel :config="config" @resend-setup="openResendSetup"/>
+    <MemberListPanel :config="config" @resend-setup="openResendSetup" @generate-documents="(ids) => documentMembers = ids"/>
+    <BulkGenerateModal v-if="documentMembers" v-model="generatingDocuments" :member-ids="documentMembers"/>
 
     <Modal v-if="resendTarget" model-value @update:model-value="(v) => { if (!v) resendTarget = null }">
       <div class="space-y-4">

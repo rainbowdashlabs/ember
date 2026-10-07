@@ -24,9 +24,11 @@ const KNOWN_MISSING_HELP = new Set([])
  * Articles that answer for two screens on purpose.
  *
  * An association's knowledge base, news list and calendar are a station's, edited with the station's own
- * screens, so the article that explains them is mounted once under each panel rather than copied.
+ * screens, so the article that explains them is mounted once under each panel rather than copied. The
+ * association writes its document templates with the station's template editor too.
  */
 const KNOWN_SHARED_HELP_COMPONENTS = new Set([
+    'helpcenter/stationview/documents/TemplateEditorHelp.vue',
     'helpcenter/stationview/events/EventDetailHelp.vue',
     'helpcenter/stationview/events/EventDetailDateHelp.vue',
     'helpcenter/stationview/events/EventEditHelp.vue',

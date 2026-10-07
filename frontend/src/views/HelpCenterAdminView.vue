@@ -91,6 +91,10 @@ watch(
                      to="/helpcenter/admin/settings/legal" @navigate="close">
           {{ t('sidebar.legal') }}
         </SidebarLink>
+        <SidebarLink :icon="['fas', 'font']" name="help-admin-document-fonts"
+                     to="/helpcenter/admin/settings/fonts" @navigate="close">
+          {{ t('sidebar.documentFonts') }}
+        </SidebarLink>
       </SidebarGroup>
 
       <SidebarGroup :icon="['fas', 'users']" :label="t('sidebar.accounts')"

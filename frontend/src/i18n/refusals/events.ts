@@ -190,4 +190,5 @@ export default {
     'E-153': REGISTRATION_HELD_BY_A_FIELD,
     'E-154': REGISTRATION_HELD_BY_A_FIELD,
     'E-155': REGISTRATION_HELD_BY_A_FIELD,
+    'E-156': 'Für die mitzubringenden Dokumente fehlt der Tag des Termins',
 }
