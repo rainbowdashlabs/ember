@@ -174,6 +174,7 @@ import dev.chojo.ember.feature.members.service.MemberIdentityFactory;
 import dev.chojo.ember.feature.members.service.MemberLookupService;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.MemberPermissionResolver;
+import dev.chojo.ember.feature.members.service.PrivateTags;
 import dev.chojo.ember.feature.members.service.ProfileFieldCore;
 import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import dev.chojo.ember.feature.members.service.StationMemberEligibility;
@@ -363,6 +364,7 @@ public abstract class RepositoryTestBase {
     protected static ProfileFieldChangeRepository profileFieldChangeRepo;
     protected static UserSettingsRepository userSettingsRepo;
     protected static UserTagRepository userTagRepo;
+    protected static PrivateTags privateTags;
     protected static NewsRepository newsRepo;
     protected static NotificationRepository notificationRepo;
     protected static NotificationSettingsRepository notificationSettingsRepo;
@@ -690,6 +692,7 @@ public abstract class RepositoryTestBase {
                 new DomainEventBus(Set.of()));
         userSettingsRepo = new UserSettingsRepository();
         userTagRepo = new UserTagRepository();
+        privateTags = new PrivateTags(userTagRepo);
         newsRepo = new NewsRepository();
         notificationRepo = new NotificationRepository();
         notificationSettingsRepo = new NotificationSettingsRepository();
@@ -712,8 +715,9 @@ public abstract class RepositoryTestBase {
                 stationMemberRepo,
                 memberGroupRepo,
                 userTagRepo,
-                new KbAccessService(knowledgeBaseRepo, memberGroupRepo, userTagRepo),
-                memberPermissionResolver);
+                new KbAccessService(knowledgeBaseRepo, memberGroupRepo, userTagRepo, privateTags),
+                memberPermissionResolver,
+                privateTags);
         applicationSettingRepo = new ApplicationSettingRepository();
         problemReportRepo = new ProblemReportRepository();
         boardRepo = new BoardRepository();
@@ -983,7 +987,11 @@ public abstract class RepositoryTestBase {
     private static TicketCommentTarget ticketCommentTarget() {
         var memberService = newStationMemberService(null, null);
         var boards = new BoardService(
-                boardRepo, memberService, newMemberGroupService(), new UserTagService(userTagRepo, memberGroupRepo));
+                boardRepo,
+                memberService,
+                newMemberGroupService(),
+                new UserTagService(userTagRepo, memberGroupRepo),
+                privateTags);
         var tickets = new BoardTicketService(
                 boardTicketRepo,
                 boardRepo,

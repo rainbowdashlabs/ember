@@ -129,7 +129,7 @@ const {loading, failure, reload} = useAsyncLoader(async () => {
       quiz.listAttempts(testId.value),
       stationMembers.listMembers(),
       memberGroups.listGroups(),
-      userTags.listTags(),
+      userTags.listChoosableTags(),
       quiz.getRestrictions(testId.value),
     ])
     attempts.value = attemptList

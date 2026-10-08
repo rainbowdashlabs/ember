@@ -72,7 +72,7 @@ const {loading, failure, reload: loadData} = useAsyncLoader(async () => {
     protocol.listProtocols(),
     stationMembers.listMembers(),
     memberGroups.listGroups(),
-    userTags.listTags(),
+    userTags.listChoosableTags(),
   ])
   runs.value = r
   protocols.value = Array.isArray(p) ? p : (p.protocols ?? [])

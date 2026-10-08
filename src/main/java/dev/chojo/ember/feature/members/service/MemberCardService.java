@@ -52,20 +52,22 @@ public class MemberCardService {
     /**
      * The card of a member of the reader's station.
      *
-     * @param stationId  the reader's station
-     * @param stationUid the same station's uid, which the identities on the card carry
-     * @param memberUid  the member looked at
+     * @param stationId       the reader's station
+     * @param stationUid      the same station's uid, which the identities on the card carry
+     * @param memberUid       the member looked at
+     * @param privateTagsSeen whether the reader may view members, which is what puts private tags on
+     *                        the card
      * @return the card, or empty where the uid names nobody at this station
      */
-    public Optional<MemberCard> find(int stationId, UUID stationUid, UUID memberUid) {
+    public Optional<MemberCard> find(int stationId, UUID stationUid, UUID memberUid, boolean privateTagsSeen) {
         return memberService
                 .resolveId(stationId, memberUid)
                 .flatMap(memberService::findById)
                 .filter(member -> member.stationId() == stationId)
-                .map(member -> cardOf(stationUid, member));
+                .map(member -> cardOf(stationUid, member, privateTagsSeen));
     }
 
-    private MemberCard cardOf(UUID stationUid, StationMember member) {
+    private MemberCard cardOf(UUID stationUid, StationMember member, boolean privateTagsSeen) {
         var identity = identityOf(stationUid, member);
         var name = Objects.requireNonNullElse(nameResolver.identified(member.id()), member.displayName());
         if (member.former()) {
@@ -77,7 +79,7 @@ public class MemberCardService {
                 false,
                 identitiesOf(stationUid, memberService.findManagers(member.id())),
                 identitiesOf(stationUid, memberService.findManaged(member.id())),
-                tagsOf(member.id()),
+                tagsOf(member.id(), privateTagsSeen),
                 groupsOf(member.id()));
     }
 
@@ -89,11 +91,13 @@ public class MemberCardService {
         return members.stream().map(member -> identityOf(stationUid, member)).toList();
     }
 
-    private List<MemberCardLabel> tagsOf(int memberId) {
-        return tagService.findTagsForMember(memberId).stream()
-                .sorted(Comparator.comparingInt(UserTag::position).reversed())
-                .map(tag -> new MemberCardLabel(tag.name(), tag.color()))
-                .toList();
+    private List<MemberCardLabel> tagsOf(int memberId, boolean privateTagsSeen) {
+        var tags = tagService.findTagsForMember(memberId);
+        return (privateTagsSeen ? tags : PrivateTags.withoutPrivate(tags))
+                .stream()
+                        .sorted(Comparator.comparingInt(UserTag::position).reversed())
+                        .map(tag -> new MemberCardLabel(tag.name(), tag.color()))
+                        .toList();
     }
 
     private List<MemberCardLabel> groupsOf(int memberId) {

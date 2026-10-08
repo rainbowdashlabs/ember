@@ -21,6 +21,7 @@ Stations turn their own templates and those of their association into documents 
 - **Fonts for documents.** Liberation Sans, Serif and Mono come with every installation, letters also print in Libertinus Serif, New Computer Modern and DejaVu Sans Mono, and the instance, an association and a station upload their own fonts, one TrueType or OpenType file per style whose licence allows embedding, optionally with a web version for the template editor. Every font choice shows each font with its origin and a line of sample text, the template editor shows the text of a letter and single words in the fonts they print in, and a station's own font takes the place of one of the same name from further up.
 - **A short profile behind every name.** Resting the pointer on a member's name or picture, or tapping the picture on a phone, opens a small card with their picture, guardians, managed members, tags and groups. Mentions in comments open the same card.
 - **A new name waits for approval.** When members change their own name, it only takes effect once someone allowed to confirm member changes approves it under Members → Changes. A declined name can carry a reason, which the member sees in the notification.
+- **Tags only the member management sees.** A tag can be private: only people allowed to view members see it, and the tagged member does not. A private tag labels members but cannot choose an audience, a restriction or who has access to something.
 
 ### Improvements
 
@@ -48,6 +49,7 @@ Stations turn their own templates and those of their association into documents 
 - **Text beside a picture started lower.** In a row of blocks on pages and in the page editor, text next to a picture began a little below the top of the picture. It now starts level with it.
 - **The member list in visibility filters was cut off.** Where a visibility or access restriction offers a choice of members, the list opened only as wide as its button, so the search and the names could not be read. It now opens wide enough for the names and stays inside the window.
 - **Pictures of PDFs were blurry.** The small pictures of PDFs in the media library, among member documents and among event attachments were so coarse that their text could not be read. They are now drawn finer and shown at the size of their tile.
+- **New tags lost their colour and badge.** A tag created with a colour or as a badge was saved without them until it was edited. Both are now kept from the start.
 
 ## v26.21.5
 

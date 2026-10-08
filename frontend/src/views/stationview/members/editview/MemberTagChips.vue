@@ -9,7 +9,7 @@ import {useI18n} from 'vue-i18n'
 import SelectionToggleButton from '@/components/button/SelectionToggleButton.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import {userTags} from '@/api'
-import type {UserTag} from '@/api/generated/schema'
+import {TagVisibility, type UserTag} from '@/api/generated/schema'
 import {describeFailure, type Failure} from '@/util/failure'
 
 /**
@@ -60,6 +60,8 @@ async function toggle(tagId: number) {
         :selected="tagIds.has(tag.id)"
         @toggle="toggle(tag.id)"
     >
+      <font-awesome-icon v-if="tag.visibility === TagVisibility.PRIVATE" :icon="['fas', 'lock']"
+                         :title="t('userTags.visibilities.PRIVATE.label')" class="text-xs"/>
       {{ tag.name }}
     </SelectionToggleButton>
     <MutedText v-if="tags.length === 0">{{ t('memberEdit.noTags') }}</MutedText>

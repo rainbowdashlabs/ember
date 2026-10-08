@@ -5,7 +5,10 @@
  */
 package dev.chojo.ember.feature.members.service;
 
+import dev.chojo.ember.api.refusal.MemberRefusal;
+import dev.chojo.ember.api.refusal.RefusalDetail;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.members.entity.TagVisibility;
 import dev.chojo.ember.feature.members.entity.UserTag;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
@@ -36,8 +39,17 @@ public class UserTagService {
     }
 
     public UserTag create(int stationId, String name) {
-        var tag = tagRepository.create(stationId, name);
-        log.info("User tag created: id={}, station={}, name='{}'", tag.id(), stationId, name);
+        return create(stationId, name, null, TagVisibility.PLAIN);
+    }
+
+    /**
+     * Creates a tag with its colour and visibility, so a tag meant to be private is never briefly
+     * visible to everybody.
+     */
+    public UserTag create(int stationId, String name, @Nullable String color, TagVisibility visibility) {
+        var tag = tagRepository.create(stationId, name, color, visibility);
+        log.info(
+                "User tag created: id={}, station={}, name='{}', visibility={}", tag.id(), stationId, name, visibility);
         return tag;
     }
 
@@ -49,10 +61,20 @@ public class UserTagService {
         return tagRepository.findByStation(stationId);
     }
 
-    public boolean update(int id, String name, @Nullable String color, boolean visible, int position) {
-        boolean updated = tagRepository.update(id, name, color, visible, position);
+    /**
+     * Changes a tag. Making a tag private is refused while audiences, restrictions or access rules
+     * still choose people by it, so nothing that relies on it changes silently.
+     */
+    public boolean update(int id, String name, @Nullable String color, TagVisibility visibility, int position) {
+        if (visibility.restricted()) {
+            long uses = tagRepository.countSelectingUses(id);
+            if (uses > 0) {
+                throw MemberRefusal.TAG_PRIVATE_STILL_CHOOSES.raise(RefusalDetail.count(uses));
+            }
+        }
+        boolean updated = tagRepository.update(id, name, color, visibility, position);
         if (updated) {
-            log.info("User tag updated: id={}, name='{}', visible={}", id, name, visible);
+            log.info("User tag updated: id={}, name='{}', visibility={}", id, name, visibility);
         } else {
             log.warn("User tag update affected no rows: id={}", id);
         }
@@ -82,8 +104,15 @@ public class UserTagService {
         log.info("User tag members set: tag={}, count={}", tagId, memberIds.size());
     }
 
+    /**
+     * Turns a tag into a group with the same members. A private tag is refused, because a group is
+     * seen by everybody.
+     */
     public void convertToGroup(int tagId) {
         var tag = tagRepository.findById(tagId).orElseThrow();
+        if (tag.visibility().restricted()) {
+            throw MemberRefusal.TAG_PRIVATE_NOT_A_GROUP.raise();
+        }
         var members = tagRepository.findMembers(tagId);
         var group = groupRepository.create(tag.stationId(), tag.name());
         for (var member : members) {

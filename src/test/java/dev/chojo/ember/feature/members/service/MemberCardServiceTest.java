@@ -7,9 +7,11 @@ package dev.chojo.ember.feature.members.service;
 
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.feature.members.entity.MemberCard;
 import dev.chojo.ember.feature.members.entity.MemberCard.MemberCardLabel;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.members.entity.TagVisibility;
 import dev.chojo.ember.feature.members.entity.UserTag;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -51,6 +53,16 @@ class MemberCardServiceTest {
                 LocalDate.of(2020, 1, 1));
     }
 
+    /**
+     * The card a reader at the station sees.
+     *
+     * @param memberUid      the member looked at
+     * @param mayViewMembers whether the reader holds the right to view members
+     */
+    private Optional<MemberCard> cardFor(UUID memberUid, boolean mayViewMembers) {
+        return cards.find(STATION_ID, STATION_UID, memberUid, mayViewMembers);
+    }
+
     @BeforeEach
     void setup() {
         memberService = mock(StationMemberService.class);
@@ -71,14 +83,14 @@ class MemberCardServiceTest {
         when(memberService.findManaged(20)).thenReturn(List.of(member(22, STATION_ID, false)));
         when(tagService.findTagsForMember(20))
                 .thenReturn(List.of(
-                        new UserTag(1, STATION_ID, "Driver", null, false, 1),
-                        new UserTag(2, STATION_ID, "Medic", "#ff0000", true, 5)));
+                        new UserTag(1, STATION_ID, "Driver", null, TagVisibility.PLAIN, 1),
+                        new UserTag(2, STATION_ID, "Medic", "#ff0000", TagVisibility.BADGE, 5)));
         when(groupService.findGroupsForMember(20))
                 .thenReturn(List.of(
                         new MemberGroup(1, STATION_ID, "Youth", "#00ff00", 2, null, List.of()),
                         new MemberGroup(2, STATION_ID, "Board", null, 9, null, List.of())));
 
-        var card = cards.find(STATION_ID, STATION_UID, MEMBER_UID).orElseThrow();
+        var card = cardFor(MEMBER_UID, false).orElseThrow();
 
         assertEquals(new MemberIdentity(STATION_UID, MEMBER_UID), card.identity());
         assertEquals("Maximilian \"Max\" Hoffmann", card.name());
@@ -103,7 +115,7 @@ class MemberCardServiceTest {
         when(memberService.findById(20)).thenReturn(Optional.of(member(20, STATION_ID, true)));
         when(nameResolver.identified(20)).thenReturn("Frozen Name 20");
 
-        var card = cards.find(STATION_ID, STATION_UID, MEMBER_UID).orElseThrow();
+        var card = cardFor(MEMBER_UID, false).orElseThrow();
 
         assertTrue(card.former());
         assertEquals("Frozen Name 20", card.name());
@@ -117,20 +129,45 @@ class MemberCardServiceTest {
     void aMemberWithoutAResolvedNameIsCalledByTheNameStoredWithThem() {
         when(memberService.findById(20)).thenReturn(Optional.of(member(20, STATION_ID, true)));
 
-        assertEquals(
-                "Frozen Name 20",
-                cards.find(STATION_ID, STATION_UID, MEMBER_UID).orElseThrow().name());
+        assertEquals("Frozen Name 20", cardFor(MEMBER_UID, false).orElseThrow().name());
     }
 
     @Test
     void aUidNamingNobodyHereHasNoCard() {
-        assertTrue(cards.find(STATION_ID, STATION_UID, UUID.randomUUID()).isEmpty());
+        assertTrue(cardFor(UUID.randomUUID(), false).isEmpty());
     }
 
     @Test
     void aMemberOfAnotherStationHasNoCardHere() {
         when(memberService.findById(20)).thenReturn(Optional.of(member(20, 99, false)));
 
-        assertTrue(cards.find(STATION_ID, STATION_UID, MEMBER_UID).isEmpty());
+        assertTrue(cardFor(MEMBER_UID, false).isEmpty());
+    }
+
+    @Test
+    void aPrivateTagIsOnTheCardForAReaderAllowedToViewMembers() {
+        tagMemberPrivately();
+
+        assertEquals(
+                List.of(new MemberCardLabel("Medic", "#ff0000"), new MemberCardLabel("Watched", null)),
+                cardFor(MEMBER_UID, true).orElseThrow().tags());
+    }
+
+    @Test
+    void aPrivateTagIsNotOnTheCardForAReaderNotAllowedToViewMembers() {
+        tagMemberPrivately();
+
+        assertEquals(
+                List.of(new MemberCardLabel("Medic", "#ff0000")),
+                cardFor(MEMBER_UID, false).orElseThrow().tags());
+    }
+
+    /** Gives the member one tag everybody sees and one private tag below it. */
+    private void tagMemberPrivately() {
+        when(memberService.findById(20)).thenReturn(Optional.of(member(20, STATION_ID, false)));
+        when(tagService.findTagsForMember(20))
+                .thenReturn(List.of(
+                        new UserTag(1, STATION_ID, "Watched", null, TagVisibility.PRIVATE, 1),
+                        new UserTag(2, STATION_ID, "Medic", "#ff0000", TagVisibility.BADGE, 5)));
     }
 }

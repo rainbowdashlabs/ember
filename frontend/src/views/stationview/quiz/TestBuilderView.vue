@@ -140,7 +140,7 @@ const { loading, failure } = useAsyncLoader(async () => {
   const [catalogRes, groups, tags] = await Promise.all([
     quiz.listCatalogs(),
     memberGroups.listGroups(),
-    userTags.listTags(),
+    userTags.listChoosableTags(),
   ])
   catalogs.value = Array.isArray(catalogRes) ? catalogRes as unknown as QuizCatalog[] : (catalogRes.catalogs ?? [])
   allGroups.value = groups

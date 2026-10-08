@@ -42,7 +42,7 @@ class ChecklistServiceTest extends RepositoryTestBase {
     @BeforeAll
     static void setupService() {
         service = new ChecklistService(
-                checklistRepo, stationMemberRepo, memberGroupRepo, userTagRepo, eventRegistrationRepo);
+                checklistRepo, stationMemberRepo, memberGroupRepo, userTagRepo, eventRegistrationRepo, privateTags);
         station = stationRepo.create("Service Station");
         Account account = accountRepo.create("svc@test.com", "Svc", "Member");
         managerMember = stationMemberRepo.create(station.id(), account.id());

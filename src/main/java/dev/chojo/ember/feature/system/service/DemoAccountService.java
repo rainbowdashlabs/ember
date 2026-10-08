@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.members.entity.UserTag;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
+import dev.chojo.ember.feature.members.service.PrivateTags;
 import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -107,7 +108,7 @@ public class DemoAccountService {
         List<String> groups = memberGroupRepository.findGroupsForMember(member.id()).stream()
                 .map(MemberGroup::name)
                 .toList();
-        List<String> tags = userTagRepository.findTagsForMember(member.id()).stream()
+        List<String> tags = PrivateTags.withoutPrivate(userTagRepository.findTagsForMember(member.id())).stream()
                 .map(UserTag::name)
                 .toList();
         return new DemoAccount(

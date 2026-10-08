@@ -19,7 +19,7 @@ export interface AudienceLists {
 export async function audienceLists(): Promise<AudienceLists> {
     const [groups, tags] = await Promise.all([
         memberGroups.listGroups().catch(() => []),
-        userTags.listTags().catch(() => []),
+        userTags.listChoosableTags().catch(() => []),
     ])
     return {groups, tags}
 }

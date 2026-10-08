@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.form.service.FormResultQuery.ResultGrouping;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.ProfileField;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
+import dev.chojo.ember.feature.members.entity.TagVisibility;
 import dev.chojo.ember.feature.members.entity.UserTag;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
@@ -58,7 +59,8 @@ class FormResultGroupingTest {
                         new MemberGroup(ACTIVE, STATION, "Aktive", null, 2, null, List.of()),
                         new MemberGroup(OFFICERS, STATION, "Vorstand", null, 1, null, List.of())));
         var tags = mock(UserTagRepository.class);
-        when(tags.findByStation(STATION)).thenReturn(List.of(new UserTag(DRIVER, STATION, "Fahrer", null, true, 1)));
+        when(tags.findByStation(STATION))
+                .thenReturn(List.of(new UserTag(DRIVER, STATION, "Fahrer", null, TagVisibility.BADGE, 1)));
         var fields = mock(ProfileFieldRepository.class);
         when(fields.findByStation(STATION))
                 .thenReturn(List.of(

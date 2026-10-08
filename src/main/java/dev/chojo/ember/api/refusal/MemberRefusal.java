@@ -784,7 +784,23 @@ public enum MemberRefusal implements Refusal {
     PROFILE_GENDER_NOT_FROM_CHOICE(212, HttpStatus.BAD_REQUEST, Sentences.GENDER_NOT_FROM_CHOICE),
 
     /** A pronoun of a gender field longer than a pronoun may be. */
-    PROFILE_PRONOUN_TOO_LONG(213, HttpStatus.BAD_REQUEST, Sentences.PRONOUN_TOO_LONG);
+    PROFILE_PRONOUN_TOO_LONG(213, HttpStatus.BAD_REQUEST, Sentences.PRONOUN_TOO_LONG),
+
+    /**
+     * A private tag named to choose people: an audience, a restriction, an access rule or a list of
+     * members to take in. Whoever is chosen by it would show who carries it.
+     */
+    TAG_PRIVATE_CHOOSES_NOBODY(
+            214, HttpStatus.BAD_REQUEST, "A private tag cannot be used to choose people, only to label them"),
+
+    /** A tag made private while audiences, restrictions or access rules still choose people by it, counted. */
+    TAG_PRIVATE_STILL_CHOOSES(
+            215,
+            HttpStatus.CONFLICT,
+            "This tag still chooses people for audiences or access rules, so it cannot be made private yet"),
+
+    /** A private tag to be turned into a group, which everybody can see. */
+    TAG_PRIVATE_NOT_A_GROUP(216, HttpStatus.CONFLICT, "A private tag cannot be turned into a group");
 
     private final Definition definition;
 

@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.members.service;
 
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.members.entity.TagVisibility;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -90,7 +91,7 @@ class UserTagServiceTest extends RepositoryTestBase {
     @Test
     @Order(20)
     void update() {
-        assertTrue(service.update(tagId, "Rettungsschwimmer", null, false, 0));
+        assertTrue(service.update(tagId, "Rettungsschwimmer", null, TagVisibility.PLAIN, 0));
         var tag = service.findById(tagId).orElseThrow();
         assertEquals("Rettungsschwimmer", tag.name());
     }

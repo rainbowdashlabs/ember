@@ -45,11 +45,11 @@ public class StationMemberRepository {
 
     private static final String PRIMARY_TAG_NAME_SUBQUERY = """
             (SELECT ut.name FROM user_tag_entry ute JOIN user_tag ut ON ut.id = ute.tag_id
-             WHERE ute.member_id = sm.id AND ut.visible = TRUE
+             WHERE ute.member_id = sm.id AND ut.visibility = 'BADGE'
              ORDER BY ut.position DESC LIMIT 1)""";
     private static final String PRIMARY_TAG_COLOR_SUBQUERY = """
             (SELECT ut.color FROM user_tag_entry ute JOIN user_tag ut ON ut.id = ute.tag_id
-             WHERE ute.member_id = sm.id AND ut.visible = TRUE
+             WHERE ute.member_id = sm.id AND ut.visibility = 'BADGE'
              ORDER BY ut.position DESC LIMIT 1)""";
     private static final String PRIMARY_GROUP_COLOR_SUBQUERY = """
             (SELECT mg.color FROM member_group_entry mge JOIN member_group mg ON mg.id = mge.group_id
@@ -268,7 +268,7 @@ public class StationMemberRepository {
                        END AS mail_reaches,
                        coalesce((SELECT json_agg(sp.name) FROM station_member_permission smp JOIN station_permission sp ON sp.id = smp.permission_id WHERE smp.member_id = sm.id), '[]'::JSON)::TEXT AS roles,
                        coalesce((SELECT json_agg(json_build_object('id', mg.id, 'name', mg.name)) FROM member_group_entry mge JOIN member_group mg ON mg.id = mge.group_id WHERE mge.member_id = sm.id), '[]'::JSON)::TEXT AS groups,
-                       coalesce((SELECT json_agg(json_build_object('id', ut.id, 'name', ut.name)) FROM user_tag_entry ute JOIN user_tag ut ON ut.id = ute.tag_id WHERE ute.member_id = sm.id), '[]'::JSON)::TEXT AS tags,
+                       coalesce((SELECT json_agg(json_build_object('id', ut.id, 'name', ut.name, 'visibility', ut.visibility)) FROM user_tag_entry ute JOIN user_tag ut ON ut.id = ute.tag_id WHERE ute.member_id = sm.id), '[]'::JSON)::TEXT AS tags,
                        coalesce((SELECT json_object_agg(pfv.field_id, pfv.value) FROM profile_field_value pfv WHERE pfv.member_id = sm.id), '{}'::JSON)::TEXT AS profile_values,
                        NOT %s AS profile_complete
                 FROM station_member sm
@@ -503,7 +503,8 @@ public class StationMemberRepository {
     }
 
     /**
-     * Active members carrying the given tag, ordered alphabetically.
+     * Active members carrying the given tag, ordered alphabetically. A private tag lists nobody,
+     * because the list is shown on pages anybody may read.
      */
     public List<PickerMember> findOfficersByTag(int stationId, int tagId) {
         return query("""
@@ -511,9 +512,11 @@ public class StationMemberRepository {
                 FROM station_member sm
                 LEFT JOIN account a ON sm.account_id = a.id
                 JOIN user_tag_entry ute ON ute.member_id = sm.id
+                JOIN user_tag ut ON ut.id = ute.tag_id
                 WHERE sm.station_id = :station_id
                   AND sm.former = FALSE
                   AND ute.tag_id = :tag_id
+                  AND ut.visibility <> 'PRIVATE'
                 ORDER BY display_name;""", PICKER_MEMBER_COLUMNS)
                 .single(call().bind("station_id", stationId).bind("tag_id", tagId))
                 .map(PickerMember.map())

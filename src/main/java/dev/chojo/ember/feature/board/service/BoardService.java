@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.entity.UserTag;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
+import dev.chojo.ember.feature.members.service.PrivateTags;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.members.service.UserTagService;
 import jakarta.inject.Inject;
@@ -41,17 +42,20 @@ public class BoardService {
     private final StationMemberService memberService;
     private final MemberGroupService groupService;
     private final UserTagService tagService;
+    private final PrivateTags privateTags;
 
     @Inject
     public BoardService(
             BoardRepository repository,
             StationMemberService memberService,
             MemberGroupService groupService,
-            UserTagService tagService) {
+            UserTagService tagService,
+            PrivateTags privateTags) {
         this.repository = repository;
         this.memberService = memberService;
         this.groupService = groupService;
         this.tagService = tagService;
+        this.privateTags = privateTags;
     }
 
     public List<Board> findByStation(int stationId) {
@@ -318,6 +322,7 @@ public class BoardService {
 
     public void setViewAccess(
             int boardId, List<StationUserType> userTypes, List<Integer> groupIds, List<Integer> tagIds) {
+        privateTags.requireChoosable(tagIds);
         repository.setViewAccess(boardId, userTypes, groupIds, tagIds);
         log.info(
                 "Updated view access for board {} ({} user types, {} groups, {} tags)",
@@ -329,6 +334,7 @@ public class BoardService {
 
     public void setEditAccess(
             int boardId, List<StationUserType> userTypes, List<Integer> groupIds, List<Integer> tagIds) {
+        privateTags.requireChoosable(tagIds);
         repository.setEditAccess(boardId, userTypes, groupIds, tagIds);
         log.info(
                 "Updated edit access for board {} ({} user types, {} groups, {} tags)",

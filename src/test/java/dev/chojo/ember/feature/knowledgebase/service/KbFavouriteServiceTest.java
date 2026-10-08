@@ -65,7 +65,7 @@ class KbFavouriteServiceTest extends RepositoryTestBase {
         var search = new KbSearchService(knowledgeBaseRepo, stationRepo);
         var content = new KbContentService(
                 knowledgeBaseRepo, contentBlocks(), noCellDescriptions(), stationRepo, fileStorage, search);
-        access = new KbAccessService(knowledgeBaseRepo, memberGroupRepo, userTagRepo);
+        access = new KbAccessService(knowledgeBaseRepo, memberGroupRepo, userTagRepo, privateTags);
         knowledgeBase = new KnowledgeBaseService(
                 knowledgeBaseRepo,
                 fileStorage,

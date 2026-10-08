@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.board.entity.FederationBoardBookmark;
 import dev.chojo.ember.feature.board.entity.FederationBoardShare;
 import dev.chojo.ember.feature.board.entity.FederationBoardShareTarget;
 import dev.chojo.ember.feature.board.repository.FederatedBoardRepository;
+import dev.chojo.ember.feature.members.service.PrivateTags;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -31,10 +32,12 @@ public class FederatedBoardService {
     private static final Logger log = LoggerFactory.getLogger(FederatedBoardService.class);
 
     private final FederatedBoardRepository repository;
+    private final PrivateTags privateTags;
 
     @Inject
-    public FederatedBoardService(FederatedBoardRepository repository) {
+    public FederatedBoardService(FederatedBoardRepository repository, PrivateTags privateTags) {
         this.repository = repository;
+        this.privateTags = privateTags;
     }
 
     public void shareBoard(int boardId, List<PartnerShareConfig> partnerConfigs) {
@@ -160,6 +163,7 @@ public class FederatedBoardService {
     }
 
     public void setLocalViewOverride(int partnerId, UUID remoteBoardUid, AccessData access) {
+        privateTags.requireChoosable(access.tagIds());
         repository.setLocalViewOverride(partnerId, remoteBoardUid, access);
         log.info(
                 "Updated local view override for partner {} (remote board {}) to {}",
@@ -169,6 +173,7 @@ public class FederatedBoardService {
     }
 
     public void setLocalEditOverride(int partnerId, UUID remoteBoardUid, AccessData access) {
+        privateTags.requireChoosable(access.tagIds());
         repository.setLocalEditOverride(partnerId, remoteBoardUid, access);
         log.info(
                 "Updated local edit override for partner {} (remote board {}) to {}",

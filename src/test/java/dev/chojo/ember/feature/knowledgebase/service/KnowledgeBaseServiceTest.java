@@ -57,7 +57,7 @@ class KnowledgeBaseServiceTest extends RepositoryTestBase {
         var searchService = new KbSearchService(knowledgeBaseRepo, stationRepo);
         var contentService = new KbContentService(
                 knowledgeBaseRepo, contentBlocks(), noCellDescriptions(), stationRepo, fileStorage, searchService);
-        accessService = new KbAccessService(knowledgeBaseRepo, memberGroupRepo, userTagRepo);
+        accessService = new KbAccessService(knowledgeBaseRepo, memberGroupRepo, userTagRepo, privateTags);
         service = new KnowledgeBaseService(
                 knowledgeBaseRepo,
                 fileStorage,

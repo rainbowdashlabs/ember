@@ -80,7 +80,7 @@ class KbMoveServiceTest extends RepositoryTestBase {
         var searchService = new KbSearchService(knowledgeBaseRepo, stationRepo);
         var contentService = new KbContentService(
                 knowledgeBaseRepo, contentBlocks(), noCellDescriptions(), stationRepo, fileStorage, searchService);
-        accessService = new KbAccessService(knowledgeBaseRepo, memberGroupRepo, userTagRepo);
+        accessService = new KbAccessService(knowledgeBaseRepo, memberGroupRepo, userTagRepo, privateTags);
         var kbService = new KnowledgeBaseService(
                 knowledgeBaseRepo,
                 fileStorage,

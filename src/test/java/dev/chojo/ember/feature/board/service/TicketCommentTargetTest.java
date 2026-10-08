@@ -62,7 +62,11 @@ class TicketCommentTargetTest extends RepositoryTestBase {
 
         var memberService = newStationMemberService(null, null);
         var boards = new BoardService(
-                boardRepo, memberService, newMemberGroupService(), new UserTagService(userTagRepo, memberGroupRepo));
+                boardRepo,
+                memberService,
+                newMemberGroupService(),
+                new UserTagService(userTagRepo, memberGroupRepo),
+                privateTags);
         tickets = new BoardTicketService(
                 boardTicketRepo,
                 boardRepo,

@@ -616,3 +616,12 @@ COMMENT ON COLUMN ember_schema.document_generation_job_member.refusal_code IS
 COMMENT ON COLUMN ember_schema.document_generation_job_member.refusal_detail IS
     'What the refusal was about, such as the names of the missing values. NULL where it named nothing.';
 COMMENT ON COLUMN ember_schema.document_generation_job_member.done_at IS 'When the member was done. NULL while waiting.';
+
+ALTER TABLE ember_schema.user_tag
+    ADD COLUMN IF NOT EXISTS visibility TEXT NOT NULL DEFAULT 'PLAIN'
+        CHECK (visibility IN ('BADGE', 'PLAIN', 'PRIVATE'));
+UPDATE ember_schema.user_tag SET visibility = 'BADGE' WHERE visible;
+ALTER TABLE ember_schema.user_tag DROP COLUMN IF EXISTS visible;
+
+COMMENT ON COLUMN ember_schema.user_tag.visibility IS
+    'Who sees the tag. BADGE shows it as a badge behind member names, PLAIN shows it on the member only, PRIVATE shows it only to readers allowed to view members, never to the tagged member, and keeps it out of every audience and restriction.';

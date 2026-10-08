@@ -102,7 +102,8 @@ class BulkGenerationServiceTest extends GeneratorTestBase {
                 restrictionService,
                 memberNameResolver,
                 wiring.documents(),
-                wiring.issuers());
+                wiring.issuers(),
+                privateTags);
     }
 
     /**

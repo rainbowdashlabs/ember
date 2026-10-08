@@ -5,6 +5,7 @@
  */
 import {
     FormQuestionType,
+    TagVisibility,
     type FormAnalytics,
     type FormQuestionInfo,
     type FormResponseEntry,
@@ -70,7 +71,7 @@ export function sampleGroups(t: Translate): MemberGroup[] {
 
 /** The tags the filter bar offers. */
 export function sampleTags(t: Translate): UserTag[] {
-    return [{id: 1, stationId: STATION, name: t('helpCenter.formsAnalytics.dummyTag'), color: null, visible: true, position: 0}]
+    return [{id: 1, stationId: STATION, name: t('helpCenter.formsAnalytics.dummyTag'), color: null, visibility: TagVisibility.BADGE, position: 0}]
 }
 
 /** The choice question compared across the youth group and the active members. */

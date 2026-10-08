@@ -3,13 +3,14 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {
-    AccountInfo,
-    MemberGroup,
-    MemberIdentity,
-    MemberWithName,
-    SessionInfo,
-    UserTag,
+import {
+    TagVisibility,
+    type AccountInfo,
+    type MemberGroup,
+    type MemberIdentity,
+    type MemberWithName,
+    type SessionInfo,
+    type UserTag,
 } from '@/api/generated/schema'
 
 /**
@@ -145,7 +146,7 @@ export function createTag(overrides: Partial<UserTag> = {}): UserTag {
         stationId: 'test-station',
         name: `Tag ${id}`,
         color: null,
-        visible: true,
+        visibility: TagVisibility.BADGE,
         position: id,
         ...overrides,
     }

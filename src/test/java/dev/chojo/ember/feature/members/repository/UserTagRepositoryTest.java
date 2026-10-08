@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.members.repository;
 
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.members.entity.TagVisibility;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -66,7 +67,7 @@ class UserTagRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(4)
     void update() {
-        assertTrue(userTagRepo.update(tagId, "Fortgeschritten", null, false, 0));
+        assertTrue(userTagRepo.update(tagId, "Fortgeschritten", null, TagVisibility.PLAIN, 0));
         assertEquals(
                 "Fortgeschritten", userTagRepo.findById(tagId).orElseThrow().name());
     }
@@ -74,7 +75,7 @@ class UserTagRepositoryTest extends RepositoryTestBase {
     @Test
     @Order(5)
     void updateNonExistent() {
-        assertFalse(userTagRepo.update(99999, "Nope", null, false, 0));
+        assertFalse(userTagRepo.update(99999, "Nope", null, TagVisibility.PLAIN, 0));
     }
 
     @Test

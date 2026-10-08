@@ -105,13 +105,13 @@ class KnowledgeBaseFederationServiceTest extends RepositoryTestBase {
                 knowledgeBaseRepo,
                 fileStorage,
                 contentService,
-                new KbAccessService(knowledgeBaseRepo, memberGroupRepo, userTagRepo),
+                new KbAccessService(knowledgeBaseRepo, memberGroupRepo, userTagRepo, privateTags),
                 new KbPresentationService(knowledgeBaseRepo, fileStorage, contentService, new TaskScheduler()),
                 new KbLinkMetadataService(new OutboundHttp(new RemoteUrlValidator(new Federation(), new Demo()))),
                 new PresentationCompressor(storageConfig),
                 new PdfCompressor(storageConfig),
                 new ClusterAutoShareService(new ClusterRepository(), new FederationRepository()));
-        accessService = new KbAccessService(knowledgeBaseRepo, memberGroupRepo, userTagRepo);
+        accessService = new KbAccessService(knowledgeBaseRepo, memberGroupRepo, userTagRepo, privateTags);
         transport = new FederationTestTransport(httpClient, federationRepo, stationRepo);
         service = new KnowledgeBaseFederationService(
                 kbService,
