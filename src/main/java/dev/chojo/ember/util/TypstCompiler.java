@@ -33,6 +33,17 @@ public final class TypstCompiler {
         return compileSource(source, Map.of(), resources, "document.pdf", List.of(), Map.of(), List.of());
     }
 
+    /**
+     * Compiles a document given as source into the given kind of PDF.
+     *
+     * @param source the document
+     * @param output the kind of PDF
+     * @return the PDF
+     */
+    public static byte[] compile(String source, Output output) throws IOException, InterruptedException {
+        return compileSource(source, Map.of(), Map.of(), "document.pdf", options(output), Map.of(), List.of());
+    }
+
     public static byte[] compileTemplate(Map<String, Object> data, String templateName, @Nullable StationLogo logo)
             throws IOException, InterruptedException {
         return compileTemplate(data, templateName, logo, Map.of());
@@ -248,8 +259,11 @@ public final class TypstCompiler {
 
     private static byte[] runTypst(Path workDir, Path inputFile, Path outputFile, Output output, List<Path> fontPath)
             throws IOException, InterruptedException {
-        var options = output == Output.PDF_A_3B ? List.of("--pdf-standard", "a-3b") : List.<String>of();
-        return runTypst(workDir, inputFile, outputFile, options, fontPath);
+        return runTypst(workDir, inputFile, outputFile, options(output), fontPath);
+    }
+
+    private static List<String> options(Output output) {
+        return output == Output.PDF_A_3B ? List.of("--pdf-standard", "a-3b") : List.of();
     }
 
     private static byte[] runTypst(
