@@ -185,7 +185,10 @@
     "FEDERATION_REQUEST_DECLINED": "Federation with {stationName} declined",
     "NAME_CHANGE_REQUESTED": "Name change: {memberName}",
     "NAME_CHANGE_APPROVED": "New name approved",
-    "NAME_CHANGE_DENIED": "New name declined"
+    "NAME_CHANGE_DENIED": "New name declined",
+    "SIGNATURE_REQUESTED": "Signature requested: {documentTitle} - {memberName}",
+    "SIGNATURE_REMINDER": "Signature still missing: {documentTitle} - {memberName}",
+    "DOCUMENT_SIGNED": "Signed: {documentTitle} - {signerName}"
   },
   "digest": {
     "subject.one": "{stationName}: 1 new notification",
@@ -251,7 +254,10 @@
     "FEDERATION_REQUEST_DECLINED": "Federation",
     "NAME_CHANGE_REQUESTED": "Name Change",
     "NAME_CHANGE_APPROVED": "Name Change",
-    "NAME_CHANGE_DENIED": "Name Change"
+    "NAME_CHANGE_DENIED": "Name Change",
+    "SIGNATURE_REQUESTED": "Signature",
+    "SIGNATURE_REMINDER": "Signature",
+    "DOCUMENT_SIGNED": "Signature"
   },
   "message": {
     "notification.newNews": "{title} - by {author}",
@@ -328,6 +334,10 @@
     "notification.nameChangeRequested": "{memberName} asked to be named {requestedName}",
     "notification.nameChangeApproved": "Your new name {newName} was approved",
     "notification.nameChangeDenied": "Your new name {requestedName} was declined",
-    "notification.nameChangeDenied.WITH_REASON": "Your new name {requestedName} was declined: {reason}"
+    "notification.nameChangeDenied.WITH_REASON": "Your new name {requestedName} was declined: {reason}",
+    "notification.signatureRequested": "{documentTitle} for {memberName} is waiting for a signature",
+    "notification.signatureReminder": "{documentTitle} for {memberName} is still waiting for a signature",
+    "notification.documentSigned": "{signerName} signed {documentTitle}",
+    "notification.documentSigned.FOR_MEMBER": "{signerName} signed {documentTitle} for {memberName}"
   }
 }

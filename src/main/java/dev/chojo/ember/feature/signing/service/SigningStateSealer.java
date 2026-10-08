@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.documents.repository.DocumentRepository;
 import dev.chojo.ember.feature.documents.service.DocumentService;
 import dev.chojo.ember.feature.documents.service.SealedDocumentService;
 import dev.chojo.ember.feature.signing.entity.RecordTimeBasis;
+import dev.chojo.ember.feature.signing.entity.RequestedSignature;
 import dev.chojo.ember.feature.signing.entity.SealLevel;
 import dev.chojo.ember.feature.signing.entity.SealedDocument;
 import dev.chojo.ember.feature.signing.entity.SealingKey;
@@ -45,11 +46,16 @@ import java.util.Optional;
  * service answered, and sealed without asking the services a second time.
  *
  * <p>Sealing runs after the act is recorded and outside its transaction, since it may wait for the
- * timestamp services, and it is safe to run again at any time. A version is filed only while some act on
- * the request is carried by no version yet, and only when the fields still stand as they did when it was
- * assembled; otherwise it is dropped, and the newer state is sealed by whoever changed it or by the next
- * run. The acts a version carries for the first time keep its SHA-256. An act whose sealing failed is
- * sealed with the next act on the request or by {@link SigningStateSweeper}.
+ * timestamp services, and it is safe to run again at any time. A version is filed only on a request somebody
+ * signed electronically, since only that has a sealed document, and only while some act on it, or some field
+ * confirmed on paper, waived or withdrawn since, is shown by no version yet; and only when the fields still
+ * stand as they did when it was assembled. Otherwise it is dropped, and the newer state is sealed by whoever
+ * changed it or by the next run. The acts and settled fields a version shows for the first time keep its
+ * SHA-256. An act whose sealing failed is sealed with the next act on the request or by
+ * {@link SigningStateSweeper}, which also seals the fields a manager settled.
+ *
+ * <p>Filing a version queues the signer's own copy of each act it carries for the first time
+ * ({@link SignedCopies}), in the same transaction.
  */
 @Singleton
 public class SigningStateSealer {
@@ -63,6 +69,7 @@ public class SigningStateSealer {
     private final StationSigningKeys keys;
     private final SigningStateAssembler assembler;
     private final PdfSealer sealer;
+    private final SignedCopies copies;
 
     @Inject
     public SigningStateSealer(
@@ -73,7 +80,8 @@ public class SigningStateSealer {
             SealedDocumentService sealedDocuments,
             StationSigningKeys keys,
             SigningStateAssembler assembler,
-            PdfSealer sealer) {
+            PdfSealer sealer,
+            SignedCopies copies) {
         this.requests = requests;
         this.evidence = evidence;
         this.documents = documents;
@@ -82,10 +90,12 @@ public class SigningStateSealer {
         this.keys = keys;
         this.assembler = assembler;
         this.sealer = sealer;
+        this.copies = copies;
     }
 
     /**
-     * Seals the state a request stands at into its document, when an act on it is not sealed yet.
+     * Seals the state a request stands at into its document, when an act or a settled field on it is not
+     * shown by a sealed version yet.
      *
      * @param requestId the request
      * @return whether a version was filed
@@ -103,13 +113,13 @@ public class SigningStateSealer {
      * The request as it stands, with its document and the content to seal, read together while the request
      * is held, so fields and evidence agree.
      *
-     * @return the state, or empty when the request is gone or every act on it is sealed
+     * @return the state, or empty when the request is gone or has nothing a version does not show yet
      */
     Optional<UnsealedState> unsealedState(int requestId) {
         var view = Transactions.call(() -> requests.lockRequest(requestId)
                 .map(request -> new SignatureRequestView(
                         request, requests.fieldsOf(requestId), evidence.evidenceOf(requestId))));
-        if (view.isEmpty() || allSealed(view.get().evidence())) return Optional.empty();
+        if (view.isEmpty() || !needsSeal(view.get().fields(), view.get().evidence())) return Optional.empty();
         var request = view.get().request();
         Integer documentId = request.documentId();
         if (documentId == null) {
@@ -147,18 +157,23 @@ public class SigningStateSealer {
         var request = state.view().request();
         return Transactions.call(() -> {
             if (requests.lockRequest(request.id()).isEmpty()) return false;
-            if (!requests.fieldsOf(request.id()).equals(state.view().fields())) {
+            var fields = requests.fieldsOf(request.id());
+            if (!fields.equals(state.view().fields())) {
                 log.info(
                         "Signing request {} changed while its state was sealed; the newer state is sealed instead",
                         request.uid());
                 return false;
             }
-            if (allSealed(evidence.evidenceOf(request.id()))) return false;
+            if (!needsSeal(fields, evidence.evidenceOf(request.id()))) return false;
             sealedDocuments.fileVersion(state.document(), sealed);
-            int carried = evidence.markSealed(request.id(), Sha256.hex(sealed.pdf()));
+            String sha256 = Sha256.hex(sealed.pdf());
+            var carried = evidence.markSealed(request.id(), sha256);
+            int shown = requests.markSettledSealed(request.id(), sha256);
+            copies.queue(state.view(), state.document(), sealed.pdf(), sha256, carried);
             log.info(
-                    "Sealed {} new acts of signing request {} into document {} ({})",
-                    carried,
+                    "Sealed {} new acts and {} newly settled fields of signing request {} into document {} ({})",
+                    carried.size(),
+                    shown,
                     request.uid(),
                     state.document().id(),
                     sealed.level());
@@ -166,8 +181,14 @@ public class SigningStateSealer {
         });
     }
 
-    private static boolean allSealed(List<StoredEvidence> acts) {
-        return acts.stream().map(StoredEvidence::sealedSha256).allMatch(Objects::nonNull);
+    /**
+     * Whether a state is worth a new version: somebody signed the request electronically, which is what
+     * gives it a sealed document at all, and an act or a settled field is shown by no version yet.
+     */
+    private static boolean needsSeal(List<RequestedSignature> fields, List<StoredEvidence> acts) {
+        if (acts.isEmpty()) return false;
+        return acts.stream().map(StoredEvidence::sealedSha256).anyMatch(Objects::isNull)
+                || fields.stream().anyMatch(RequestedSignature::awaitsSeal);
     }
 
     /**

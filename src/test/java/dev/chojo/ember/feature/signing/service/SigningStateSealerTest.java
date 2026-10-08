@@ -22,6 +22,7 @@ import dev.chojo.ember.feature.generator.repository.DocumentGenerationRepository
 import dev.chojo.ember.feature.generator.repository.DocumentTemplateRepository;
 import dev.chojo.ember.feature.generator.service.pdf.PdfFiles;
 import dev.chojo.ember.feature.generator.service.pdf.SignatureFields;
+import dev.chojo.ember.feature.mail.repository.EmailQueueRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
@@ -70,6 +71,9 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 
+import static de.chojo.sadu.queries.api.call.Call.call;
+import static de.chojo.sadu.queries.api.query.Query.query;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -115,6 +119,7 @@ class SigningStateSealerTest extends RepositoryTestBase {
     private static SealedDocumentService sealedDocuments;
     private static SignatureRequestService requests;
     private static SignatureFieldService fields;
+    private static SignedCopies copies;
     private static StationSigningKeys stationKeys;
     private static Station station;
     private static StationMember manager;
@@ -141,9 +146,17 @@ class SigningStateSealerTest extends RepositoryTestBase {
                 memberNameResolver,
                 guardianPolicy,
                 new SignerResolver(stationMemberRepo, memberNameResolver, memberPermissionResolver),
-                guards);
+                guards,
+                mock(SignatureNotices.class));
         fields = new SignatureFieldService(
-                requestRepo, evidenceRepo, requests, guards, guardianPolicy, memberNameResolver);
+                requestRepo,
+                evidenceRepo,
+                requests,
+                guards,
+                guardianPolicy,
+                memberNameResolver,
+                mock(SignatureNotices.class));
+        copies = TestNotices.copies(emailQueueRepo, stationRepo, stationMemberRepo, accountRepo);
         stationKeys = new StationSigningKeys(keyRepo, new SigningCertificates(), wrap, stationRepo, BASE_URL);
         loginPermission = stationMemberRepo
                 .findPermissionByName(StationPermission.LOGIN)
@@ -313,7 +326,8 @@ class SigningStateSealerTest extends RepositoryTestBase {
                 sealedDocuments,
                 brokenKeys,
                 assembler(SealedPdfs.noTimestamps()),
-                pdfSealer(SealedPdfs.noTimestamps()));
+                pdfSealer(SealedPdfs.noTimestamps()),
+                copies);
 
         assertThrows(SigningKeyWrapException.class, () -> broken.sealLatest(request.id()));
         new SigningStateSweeper(evidenceRepo, broken).sweep(Instant.now().plus(Duration.ofHours(1)));
@@ -326,6 +340,112 @@ class SigningStateSealerTest extends RepositoryTestBase {
 
         sweeper.sweep(Instant.now().plus(SigningStateSweeper.GRACE).plusSeconds(60));
         assertEquals(versions.current(documentOf(request).id()).orElseThrow().sha256(), sealedHashOf(evidence));
+    }
+
+    @Test
+    void eachSignerGetsTheirOwnCopyWithTheHashOfTheVersionThatFirstCarriesTheirSignature() throws IOException {
+        var first = member("Ida", "Kopie");
+        var request = ask(first, "participant", "issuer");
+        var sealer = sealer(SealedPdfs.noTimestamps());
+        sign(request, first, "participant");
+        sealer.sealLatest(request.id());
+        String firstHash =
+                versions.current(documentOf(request).id()).orElseThrow().sha256();
+
+        var copy = copyTo(first);
+        assertEquals("Kopie mit Unterschrift: Einverstaendnis", copy.subject());
+        assertTrue(copy.body().contains(firstHash));
+        assertTrue(copy.body().contains("Ida Kopie"));
+        assertTrue(copy.body().contains(TestNotices.BASE_URL + "/verify"));
+        assertTrue(copy.body().contains(TestNotices.BASE_URL + "/station/documents?station=" + station.uid()));
+        assertTrue(copy.body().contains("weil die Wache diese Art Dokument nicht per E-Mail verschickt"));
+        assertEquals(List.of(), emailQueueRepo.attachmentsOf(copy.id()));
+
+        sign(request, manager, "issuer");
+        sealer.sealLatest(request.id());
+
+        assertEquals(1, copiesTo(first), "a later version sends the first signer nothing more");
+        var issuerCopy = copyTo(manager);
+        String secondHash =
+                versions.current(documentOf(request).id()).orElseThrow().sha256();
+        assertTrue(issuerCopy.body().contains(secondHash));
+        assertFalse(issuerCopy.body().contains(firstHash));
+        assertTrue(issuerCopy
+                .body()
+                .contains(
+                        TestNotices.BASE_URL + "/station/members/detail/" + first.id() + "?station=" + station.uid()));
+    }
+
+    @Test
+    void aTemplateThatAllowsItSendsTheSealedPdfWithTheCopy() throws IOException {
+        query("UPDATE document_template SET signed_copy_attached = TRUE WHERE id = :id;")
+                .single(call().bind("id", template))
+                .update();
+        try {
+            var signer = member("Ola", "Anhang");
+            var request = ask(signer);
+            assertTrue(request.copyAttached());
+            sign(request, signer, "participant");
+
+            sealer(SealedPdfs.noTimestamps()).sealLatest(request.id());
+
+            var copy = copyTo(signer);
+            assertTrue(copy.body().contains("Die versiegelte Datei hängt an."));
+            var attachments = emailQueueRepo.attachmentsOf(copy.id());
+            assertEquals(1, attachments.size());
+            assertEquals("e.pdf", attachments.getFirst().fileName());
+            assertEquals("application/pdf", attachments.getFirst().contentType());
+            assertArrayEquals(
+                    documents.read(documentOf(request)).orElseThrow(),
+                    attachments.getFirst().content());
+        } finally {
+            query("UPDATE document_template SET signed_copy_attached = FALSE WHERE id = :id;")
+                    .single(call().bind("id", template))
+                    .update();
+        }
+    }
+
+    @Test
+    void aFieldSettledByAManagerIsSealedByTheSweepWhereSomebodySignedElectronically() throws IOException {
+        var signer = member("Paula", "Papier");
+        var request = ask(signer, "participant", "issuer");
+        var sealer = sealer(SealedPdfs.noTimestamps());
+        sign(request, signer, "participant");
+        sealer.sealLatest(request.id());
+        fields.confirmOnPaper(managing(), request.uid(), "issuer");
+        var sweeper = new SigningStateSweeper(evidenceRepo, sealer);
+
+        var document = documentOf(request);
+        String first = versions.current(document.id()).orElseThrow().sha256();
+        sweeper.sweep(Instant.now());
+        assertEquals(1, versions.versionsOf(document.id()).size(), "a settlement is left alone for a while");
+
+        sweeper.sweep(Instant.now().plus(SigningStateSweeper.GRACE).plusSeconds(60));
+
+        var current = versions.current(document.id()).orElseThrow();
+        assertEquals(2, current.version());
+        try (var pdf = Loader.loadPDF(documents.read(document).orElseThrow())) {
+            String text = new PDFTextStripper().getText(pdf).replaceAll("\\s+", " ");
+            assertTrue(text.contains("Auf Papier unterschrieben"), text);
+        }
+        var settled = requestRepo.fieldsOf(request.id());
+        assertEquals(first, settled.getFirst().sealedSha256(), "the signature was shown by the first version");
+        assertEquals(current.sha256(), settled.getLast().sealedSha256(), "the paper confirmation by the second");
+        assertEquals(1, copiesTo(signer), "a paper confirmation sends no copy");
+        assertFalse(sealer.sealLatest(request.id()), "nothing new to seal");
+    }
+
+    @Test
+    void aRequestNobodySignedElectronicallyGetsNoSealedVersion() throws IOException {
+        var signer = member("Willi", "Verzicht");
+        var request = ask(signer);
+        fields.waive(managing(), request.uid(), "participant");
+
+        var sweeper = new SigningStateSweeper(evidenceRepo, sealer(SealedPdfs.noTimestamps()));
+        sweeper.sweep(Instant.now().plus(Duration.ofHours(1)));
+
+        assertFalse(documentOf(request).sealed());
+        assertFalse(sealer(SealedPdfs.noTimestamps()).sealLatest(request.id()));
     }
 
     @Test
@@ -352,7 +472,8 @@ class SigningStateSealerTest extends RepositoryTestBase {
                 sealedDocuments,
                 stationKeys,
                 assembler(timestamps),
-                pdfSealer);
+                pdfSealer,
+                copies);
     }
 
     private static PdfSealer pdfSealer(TimestampServices timestamps) {
@@ -526,5 +647,21 @@ class SigningStateSealerTest extends RepositoryTestBase {
 
     private static String email() {
         return "signing-state-" + NAMES.incrementAndGet() + "-" + System.nanoTime() + "@test.com";
+    }
+
+    private static String emailOf(StationMember member) {
+        return accountRepo.findById(member.accountId()).orElseThrow().email();
+    }
+
+    private static EmailQueueRepository.QueuedEmail copyTo(StationMember member) {
+        return emailQueueRepo.findLatestFor(emailOf(member), null, null).orElseThrow();
+    }
+
+    private static int copiesTo(StationMember member) {
+        return query("SELECT count(*) AS count FROM email_queue WHERE recipient = :recipient;")
+                .single(call().bind("recipient", emailOf(member)))
+                .map(row -> row.getInt("count"))
+                .first()
+                .orElse(0);
     }
 }

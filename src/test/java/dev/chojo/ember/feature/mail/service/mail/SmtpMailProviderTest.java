@@ -7,7 +7,10 @@ package dev.chojo.ember.feature.mail.service.mail;
 
 import com.icegreen.greenmail.util.GreenMail;
 import com.icegreen.greenmail.util.ServerSetup;
+import dev.chojo.ember.feature.mail.entity.MailAttachment;
 import dev.chojo.ember.feature.mail.entity.SmtpEncryption;
+import jakarta.mail.Part;
+import jakarta.mail.internet.MimeMultipart;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -15,9 +18,14 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * The session an SMTP relay is reached with: it gives up on a relay that stops answering, it never
@@ -105,5 +113,28 @@ class SmtpMailProviderTest {
 
         assertEquals(MailProvider.SendResult.SENT, result);
         assertEquals(1, plainRelay.getReceivedMessages().length);
+    }
+
+    @Test
+    void aFileGoesAlongBelowTheText() throws Exception {
+        byte[] pdf = "%PDF-1.7 sealed".getBytes(StandardCharsets.US_ASCII);
+        var result = toPlainRelay(SmtpEncryption.NONE)
+                .send(
+                        "reader@relay.test",
+                        "Copy",
+                        "<p>body</p>",
+                        "2",
+                        List.of(new MailAttachment("copy.pdf", MailAttachment.PDF, pdf)));
+
+        assertEquals(MailProvider.SendResult.SENT, result);
+        var received = plainRelay.getReceivedMessages()[0];
+        var parts = (MimeMultipart) received.getContent();
+        assertEquals(2, parts.getCount());
+        assertTrue(parts.getBodyPart(0).isMimeType("text/html"));
+        var file = parts.getBodyPart(1);
+        assertEquals(Part.ATTACHMENT, file.getDisposition());
+        assertEquals("copy.pdf", file.getFileName());
+        assertTrue(file.isMimeType("application/pdf"));
+        assertArrayEquals(pdf, file.getInputStream().readAllBytes());
     }
 }

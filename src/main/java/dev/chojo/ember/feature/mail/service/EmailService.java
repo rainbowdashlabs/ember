@@ -8,7 +8,10 @@ package dev.chojo.ember.feature.mail.service;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.Mailing;
+import dev.chojo.ember.feature.mail.entity.MailAttachment;
 import dev.chojo.ember.feature.mail.entity.MailChainEntry;
+import dev.chojo.ember.feature.mail.entity.SignatureInvitation;
+import dev.chojo.ember.feature.mail.entity.SignedCopy;
 import dev.chojo.ember.feature.mail.entity.SmtpEncryption;
 import dev.chojo.ember.feature.mail.entity.WaitlistInvitationDetails;
 import dev.chojo.ember.feature.mail.repository.EmailQueueRepository;
@@ -804,6 +807,83 @@ public class EmailService implements TaskSource {
                 loadTemplate("waitlist-verify.html", locale, vars));
     }
 
+    /**
+     * Asks somebody to sign a document, or the member whose mail they read for, through the instance-wide
+     * relay: a signature a station asks for is something to act on, not news that can wait for a digest.
+     *
+     * @param email      where the mail goes
+     * @param name       the person it is about, for the greeting
+     * @param guardian   whether it is read by somebody who looks after that person
+     * @param invitation the document and where it is signed
+     * @param locale     the language to write in
+     */
+    public void sendSignatureRequest(
+            String email, String name, boolean guardian, SignatureInvitation invitation, String locale) {
+        sendSignatureInvitation("signature-requested", email, name, guardian, invitation, locale);
+    }
+
+    /**
+     * Reminds somebody of a signature a document still waits for, the same way as the request.
+     *
+     * @param email      where the mail goes
+     * @param name       the person it is about, for the greeting
+     * @param guardian   whether it is read by somebody who looks after that person
+     * @param invitation the document and where it is signed
+     * @param locale     the language to write in
+     */
+    public void sendSignatureReminder(
+            String email, String name, boolean guardian, SignatureInvitation invitation, String locale) {
+        sendSignatureInvitation("signature-reminder", email, name, guardian, invitation, locale);
+    }
+
+    /**
+     * Sends a signer their own copy of what they signed through the instance-wide relay, with the PDF
+     * attached where the copy carries it.
+     *
+     * @param email    where the mail goes
+     * @param name     the person it is about, for the greeting
+     * @param guardian whether it is read by somebody who looks after that person
+     * @param copy     what was signed and sealed
+     * @param locale   the language to write in
+     */
+    public void sendSignedCopy(String email, String name, boolean guardian, SignedCopy copy, String locale) {
+        var vars = baseVars(name, null);
+        vars.put("guardian", guardian ? "yes" : "");
+        vars.put("stationName", copy.stationName());
+        vars.put("documentTitle", copy.documentTitle());
+        vars.put("memberName", copy.memberName());
+        vars.put("signerName", copy.signerName());
+        vars.put("signedAt", copy.signedAt());
+        vars.put("sealedSha256", copy.sealedSha256());
+        vars.put("url", copy.documentUrl());
+        vars.put("verifyUrl", copy.verifyUrl());
+        var attachment = copy.attachment();
+        vars.put("attached", attachment == null ? "" : "yes");
+        vars.put("tooLarge", attachment == null && copy.tooLarge() ? "yes" : "");
+        String subject = subject("signed-copy", locale, Map.of("documentTitle", copy.documentTitle()));
+        String body = loadTemplate("signed-copy.html", locale, vars);
+        enqueueGlobal(email, subject, body, attachment == null ? List.of() : List.of(attachment));
+    }
+
+    private void sendSignatureInvitation(
+            String template,
+            String email,
+            String name,
+            boolean guardian,
+            SignatureInvitation invitation,
+            String locale) {
+        var vars = baseVars(name, null);
+        vars.put("guardian", guardian ? "yes" : "");
+        vars.put("stationName", invitation.stationName());
+        vars.put("documentTitle", invitation.documentTitle());
+        vars.put("memberName", invitation.memberName());
+        vars.put("url", invitation.url());
+        enqueueGlobal(
+                email,
+                subject(template, locale, Map.of("documentTitle", invitation.documentTitle())),
+                loadTemplate(template + ".html", locale, vars));
+    }
+
     public String loadTemplate(String name, String locale, Map<String, String> variables) {
         return templateRenderer.render(name, locale, variables);
     }
@@ -843,6 +923,11 @@ public class EmailService implements TaskSource {
      * the per-station daily/monthly send caps do not apply.
      */
     private void enqueueGlobal(String to, String subject, String htmlBody) {
+        enqueueGlobal(to, subject, htmlBody, List.of());
+    }
+
+    /** The same, for a mail that carries files, which are queued with it. */
+    private void enqueueGlobal(String to, String subject, String htmlBody, List<MailAttachment> attachments) {
         if (demoConfig.enabled()) {
             log.info("Demo mode: Suppressed email to={} subject={}", to, subject);
             return;
@@ -853,7 +938,11 @@ public class EmailService implements TaskSource {
                     to,
                     subject);
         }
-        queueRepository.enqueue(to, subject, htmlBody, null);
+        if (attachments.isEmpty()) {
+            queueRepository.enqueue(to, subject, htmlBody, null);
+        } else {
+            queueRepository.enqueueWithAttachments(to, subject, htmlBody, attachments);
+        }
         log.debug("Email queued to={} subject={}", to, subject);
     }
 
@@ -984,8 +1073,12 @@ public class EmailService implements TaskSource {
                 }
 
                 queueRepository.renewClaim(email.id());
-                var result =
-                        provider.send(email.recipient(), email.subject(), email.body(), String.valueOf(email.id()));
+                var result = provider.send(
+                        email.recipient(),
+                        email.subject(),
+                        email.body(),
+                        String.valueOf(email.id()),
+                        queueRepository.attachmentsOf(email.id()));
                 switch (result) {
                     case SENT -> {
                         queueRepository.markSent(email.id());

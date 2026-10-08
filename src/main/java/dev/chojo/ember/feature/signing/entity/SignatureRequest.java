@@ -33,6 +33,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.UUID_STRING
  * @param createdAt       when the signatures were asked for
  * @param createdBy       who asked for them, or null
  * @param closedAt        when it stopped waiting, or null while it is open
+ * @param copyAttached    whether the copy each signer gets by mail carries the sealed PDF
  */
 public record SignatureRequest(
         int id,
@@ -49,12 +50,13 @@ public record SignatureRequest(
         @Nullable Instant retainUntil,
         Instant createdAt,
         @Nullable Integer createdBy,
-        @Nullable Instant closedAt) {
+        @Nullable Instant closedAt,
+        boolean copyAttached) {
 
     /** The columns {@link #map()} reads, in a form a query can splice in. */
     public static final String COLUMNS = """
             id, uid, station_id, generation_id, document_id, member_id, member_name, content_sha256, state,
-            superseded_by, retention_months, retain_until, created_at, created_by, closed_at""";
+            superseded_by, retention_months, retain_until, created_at, created_by, closed_at, copy_attached""";
 
     /** Maps a row of the signing requests. */
     public static RowMapping<SignatureRequest> map() {
@@ -73,7 +75,8 @@ public record SignatureRequest(
                 row.get("retain_until", INSTANT_TIMESTAMP),
                 row.get("created_at", INSTANT_TIMESTAMP),
                 row.getObject("created_by", Integer.class),
-                row.get("closed_at", INSTANT_TIMESTAMP));
+                row.get("closed_at", INSTANT_TIMESTAMP),
+                row.getBoolean("copy_attached"));
     }
 
     /** @return whether a field of it may still be signed or settled */

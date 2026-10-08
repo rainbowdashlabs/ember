@@ -1,0 +1,12 @@
+{% extends '_layout.html' %}
+{% block body %}
+      <h2>Hello {{ name }},</h2>
+      <p>{{ signerName }} signed the document <strong>{{ documentTitle }}</strong> ({{ memberName }}) on {{ signedAt }}, and <strong>{{ stationName }}</strong> sealed the version carrying that signature. This message is your own copy of it.</p>
+      <p>SHA-256 of the sealed version:</p>
+      <p><code style="word-break:break-all">{{ sealedSha256 }}</code></p>
+      <p>The value is the fingerprint of exactly this file. A file with the same value is unchanged, and the verification page checks the seal of any copy. Further signatures make new versions, and this one stays valid. Keeping this message is worthwhile.</p>
+      {% if attached %}<p>The sealed file is attached.</p>{% elseif tooLarge %}<p>The file is too large for an email and is not attached. It is in Ember among the documents.</p>{% else %}<p>The file is not attached, because the station does not send this kind of document by email. It is in Ember among the documents.</p>{% endif %}
+      {% if guardian %}<p>This message comes to you because you look after {{ name }}.</p>{% endif %}
+      <div class="btn-wrap"><a class="btn" href="{{ url }}">Open the document</a></div>
+      <p>Verification page: <a href="{{ verifyUrl }}">{{ verifyUrl }}</a></p>
+{% endblock %}

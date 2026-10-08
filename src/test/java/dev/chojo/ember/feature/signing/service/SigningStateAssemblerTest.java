@@ -337,7 +337,8 @@ class SigningStateAssemblerTest extends RepositoryTestBase {
                 null,
                 SIGNED_AT.minusSeconds(3600),
                 null,
-                null);
+                null,
+                false);
         var fields = List.of(
                 field(
                         11,
@@ -389,7 +390,20 @@ class SigningStateAssemblerTest extends RepositoryTestBase {
             String settledByName) {
         Instant settledAt = state == FieldState.OPEN ? null : SIGNED_AT;
         return new RequestedSignature(
-                id, 1, name, role, 7, null, signerName, capacity, statement, state, settledAt, null, settledByName);
+                id,
+                1,
+                name,
+                role,
+                7,
+                null,
+                signerName,
+                capacity,
+                statement,
+                state,
+                settledAt,
+                null,
+                settledByName,
+                null);
     }
 
     private static StoredEvidence guardianEvidence() {

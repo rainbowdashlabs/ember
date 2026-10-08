@@ -20,6 +20,8 @@ import java.time.Clock;
 import java.util.Base64;
 import java.util.List;
 
+import static org.mockito.Mockito.mock;
+
 /**
  * Sealing for tests outside this package: a timestamp service on loopback, a sealer that stamps through
  * it, a sealer of signing states, and the small document the sealing tests seal. Nothing here reaches the
@@ -89,7 +91,8 @@ public final class TestSealing implements AutoCloseable {
                 new SealedDocumentService(documents, new SealedVersionRepository(), documentService),
                 new StationSigningKeys(keys, new SigningCertificates(), wrap, stations, STATE_BASE_URL),
                 new SigningStateAssembler(stations, timestamps, STATE_BASE_URL, Clock.systemUTC()),
-                new PdfSealer(timestamps, new StationKeyRevocations(keys, new RevocationLists(), wrap)));
+                new PdfSealer(timestamps, new StationKeyRevocations(keys, new RevocationLists(), wrap)),
+                mock(SignedCopies.class));
     }
 
     /** @return an uncompressed one-page PDF, the one the sealing tests seal */

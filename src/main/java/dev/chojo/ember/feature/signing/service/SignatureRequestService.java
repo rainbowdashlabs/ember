@@ -16,9 +16,11 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
+import dev.chojo.ember.feature.signing.entity.FieldState;
 import dev.chojo.ember.feature.signing.entity.OpenSignature;
 import dev.chojo.ember.feature.signing.entity.PendingSignature;
 import dev.chojo.ember.feature.signing.entity.RequestState;
+import dev.chojo.ember.feature.signing.entity.RequestedSignature;
 import dev.chojo.ember.feature.signing.entity.SignatureRequest;
 import dev.chojo.ember.feature.signing.entity.SignatureRequestView;
 import dev.chojo.ember.feature.signing.entity.Signer;
@@ -44,6 +46,9 @@ import java.util.UUID;
  * each resolved to who must sign it ({@link SignerResolver}). A document is never edited once signatures
  * are asked for; a correction is a new generated document with a new request that supersedes the old one,
  * whose signatures and evidence stay.
+ *
+ * <p>Everybody a new request asks is told so ({@link SignatureNotices}), and the requests for fields that
+ * were withdrawn are taken back.
  */
 @Singleton
 public class SignatureRequestService {
@@ -59,6 +64,7 @@ public class SignatureRequestService {
     private final GuardianPolicy guardianPolicy;
     private final SignerResolver signers;
     private final SigningGuards guards;
+    private final SignatureNotices notices;
 
     @Inject
     public SignatureRequestService(
@@ -71,7 +77,8 @@ public class SignatureRequestService {
             MemberNameResolver names,
             GuardianPolicy guardianPolicy,
             SignerResolver signers,
-            SigningGuards guards) {
+            SigningGuards guards,
+            SignatureNotices notices) {
         this.requests = requests;
         this.evidence = evidence;
         this.generations = generations;
@@ -82,6 +89,7 @@ public class SignatureRequestService {
         this.guardianPolicy = guardianPolicy;
         this.signers = signers;
         this.guards = guards;
+        this.notices = notices;
     }
 
     /**
@@ -94,7 +102,9 @@ public class SignatureRequestService {
      */
     public SignatureRequest request(StationSession session, int generationId, SigningStatements statements) {
         var generation = generationAt(session, generationId);
-        return Transactions.call(() -> create(session, generation, statements));
+        var created = Transactions.call(() -> create(session, generation, statements));
+        notices.asked(created, requests.fieldsOf(created.id()));
+        return created;
     }
 
     /**
@@ -130,6 +140,8 @@ public class SignatureRequestService {
             return replacement;
         });
         log.info("Signing request {} superseded by {} at station {}", old.uid(), created.uid(), session.stationId());
+        notices.settled(withdrawnFieldsOf(old.id()));
+        notices.asked(created, requests.fieldsOf(created.id()));
         return created;
     }
 
@@ -152,7 +164,15 @@ public class SignatureRequestService {
             requests.withdrawOpen(request.id(), by, names.official(by));
             requests.closeIfSettled(request.id());
         });
+        notices.settled(withdrawnFieldsOf(request.id()));
         return requests.findById(request.id()).orElse(request);
+    }
+
+    private List<Integer> withdrawnFieldsOf(int requestId) {
+        return requests.fieldsOf(requestId).stream()
+                .filter(field -> field.state() == FieldState.WITHDRAWN)
+                .map(RequestedSignature::id)
+                .toList();
     }
 
     /**

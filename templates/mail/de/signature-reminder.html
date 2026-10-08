@@ -1,0 +1,8 @@
+{% extends '_layout.html' %}
+{% block body %}
+      <h2>Hallo {{ name }},</h2>
+      <p>Das Dokument <strong>{{ documentTitle }}</strong> ({{ memberName }}) von <strong>{{ stationName }}</strong> wartet noch auf eine Unterschrift.</p>
+      <p>Es wird in Ember gelesen und dort mit dem eigenen Konto unterschrieben. Wer es auf Papier unterschrieben hat, gibt es der Wache, die es dann als unterschrieben einträgt.</p>
+      {% if guardian %}<p>Diese Nachricht geht an dich, weil du dich um {{ name }} kümmerst.</p>{% endif %}
+      <div class="btn-wrap"><a class="btn" href="{{ url }}">Dokument lesen und unterschreiben</a></div>
+{% endblock %}

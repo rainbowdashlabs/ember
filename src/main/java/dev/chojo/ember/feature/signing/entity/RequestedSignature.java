@@ -29,6 +29,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param settledAt     when it stopped being open, or null while it is open
  * @param settledBy     who settled it, or null
  * @param settledByName their official name when they settled it, or null
+ * @param sealedSha256  SHA-256 of the first sealed version that shows it settled, or null while none does
  */
 public record RequestedSignature(
         int id,
@@ -43,12 +44,13 @@ public record RequestedSignature(
         FieldState state,
         @Nullable Instant settledAt,
         @Nullable Integer settledBy,
-        @Nullable String settledByName) {
+        @Nullable String settledByName,
+        @Nullable String sealedSha256) {
 
     /** The columns {@link #map()} reads, in a form a query can splice in. */
     public static final String COLUMNS = """
             id, request_id, field_name, role, member_id, signer_id, signer_name, capacity, statement, state,
-            settled_at, settled_by, settled_by_name""";
+            settled_at, settled_by, settled_by_name, sealed_sha256""";
 
     /** Maps a row of the signature fields of requests. */
     public static RowMapping<RequestedSignature> map() {
@@ -65,7 +67,13 @@ public record RequestedSignature(
                 row.getEnum("state", FieldState.class),
                 row.get("settled_at", INSTANT_TIMESTAMP),
                 row.getObject("settled_by", Integer.class),
-                row.getString("settled_by_name"));
+                row.getString("settled_by_name"),
+                row.getString("sealed_sha256"));
+    }
+
+    /** @return whether the field is settled and no sealed version shows it so yet */
+    public boolean awaitsSeal() {
+        return state != FieldState.OPEN && sealedSha256 == null;
     }
 
     /**

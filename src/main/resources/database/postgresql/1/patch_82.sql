@@ -668,3 +668,55 @@ COMMENT ON COLUMN ember_schema.signing_evidence.credential_key_stamp_kind IS
     'How the key got its timestamp, as the credential recorded it: AT_REGISTRATION, AFTER_REGISTRATION (by the daily retry) or AT_FIRST_SIGNING (during the first signing act that reached a timestamp service, possibly this one). NULL where the key was not stamped.';
 COMMENT ON CONSTRAINT signing_evidence_key_stamp ON ember_schema.signing_evidence IS
     'A key timestamp is recorded whole or not at all, and only for a passkey or security key.';
+
+ALTER TABLE ember_schema.document_template
+    ADD COLUMN signed_copy_attached BOOLEAN NOT NULL DEFAULT FALSE;
+
+COMMENT ON COLUMN ember_schema.document_template.signed_copy_attached IS
+    'Whether the copy a signer gets by mail after signing a document of this template carries the sealed PDF. Off by default, since consent forms may hold health data and mail is no place for it; the mail always carries the SHA-256 of the sealed version and a link to it.';
+
+ALTER TABLE ember_schema.signing_request
+    ADD COLUMN copy_attached BOOLEAN NOT NULL DEFAULT FALSE;
+
+COMMENT ON COLUMN ember_schema.signing_request.copy_attached IS
+    'Whether the copy each signer gets by mail carries the sealed PDF, copied from the template when the request was made.';
+
+ALTER TABLE ember_schema.signing_request_field
+    ADD COLUMN reminded_at    TIMESTAMPTZ NULL,
+    ADD COLUMN reminders_sent INTEGER     NOT NULL DEFAULT 0 CHECK (reminders_sent >= 0),
+    ADD COLUMN sealed_sha256  TEXT        NULL CHECK (sealed_sha256 ~ '^[0-9a-f]{64}$'),
+    ADD CONSTRAINT signing_request_field_sealed CHECK (state <> 'OPEN' OR sealed_sha256 IS NULL);
+
+CREATE INDEX IF NOT EXISTS signing_request_field_unsealed_idx
+    ON ember_schema.signing_request_field (settled_at)
+    WHERE state <> 'OPEN' AND sealed_sha256 IS NULL;
+
+COMMENT ON COLUMN ember_schema.signing_request_field.reminded_at IS
+    'When the people asked to sign the field were last reminded of it. NULL before the first reminder.';
+COMMENT ON COLUMN ember_schema.signing_request_field.reminders_sent IS
+    'How many reminders went out for the field. A field is reminded of a week after it was asked for and every week after that, three times at most.';
+COMMENT ON COLUMN ember_schema.signing_request_field.sealed_sha256 IS
+    'SHA-256 of the first sealed version of the document that shows the field settled, lower-case hexadecimal. NULL while the field is open, and until a sealed version shows it settled; a sweep seals such a state where somebody signed the request electronically, since only then does the document carry a seal.';
+COMMENT ON CONSTRAINT signing_request_field_sealed ON ember_schema.signing_request_field IS
+    'Only a settled field can be shown settled by a sealed version.';
+COMMENT ON INDEX ember_schema.signing_request_field_unsealed_idx IS
+    'Finds the fields settled since the last sealed version of their document, which the sweep seals, the one waiting longest first.';
+
+CREATE TABLE IF NOT EXISTS ember_schema.email_queue_attachment
+(
+    id           SERIAL PRIMARY KEY,
+    email_id     INTEGER NOT NULL REFERENCES ember_schema.email_queue (id) ON DELETE CASCADE,
+    file_name    TEXT    NOT NULL,
+    content_type TEXT    NOT NULL,
+    content      BYTEA   NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS email_queue_attachment_email_idx ON ember_schema.email_queue_attachment (email_id);
+
+COMMENT ON TABLE ember_schema.email_queue_attachment IS
+    'Files a queued email carries, such as the sealed PDF a signer gets as their own copy. Deleted as soon as the email was handed to a provider or failed for good, so a file never stays here longer than its email waits.';
+COMMENT ON COLUMN ember_schema.email_queue_attachment.id IS 'Primary key.';
+COMMENT ON COLUMN ember_schema.email_queue_attachment.email_id IS 'The queued email the file belongs to.';
+COMMENT ON COLUMN ember_schema.email_queue_attachment.file_name IS 'The name the file carries in the email.';
+COMMENT ON COLUMN ember_schema.email_queue_attachment.content_type IS 'The media type of the file, such as application/pdf.';
+COMMENT ON COLUMN ember_schema.email_queue_attachment.content IS 'The file itself.';

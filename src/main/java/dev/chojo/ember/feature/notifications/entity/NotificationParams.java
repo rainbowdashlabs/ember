@@ -358,4 +358,33 @@ public sealed interface NotificationParams {
             return reason == null ? null : "WITH_REASON";
         }
     }
+
+    /**
+     * A document waits for a signature, asked for the first time or as a reminder. It goes to everybody who
+     * may give that signature, the member and the guardians alike, so it names the member rather than
+     * addressing anybody.
+     *
+     * @param documentTitle the document's title
+     * @param memberName    the official name of the member the document is about
+     */
+    record SignatureRequested(String documentTitle, String memberName) implements NotificationParams {}
+
+    /**
+     * A field of a document was signed, told to whoever asked for the signatures. The text names the member
+     * the document is about only where somebody else signed, since "Lea signed it for Lea" says nothing.
+     *
+     * @param documentTitle the document's title
+     * @param signerName    the official name of whoever signed
+     * @param memberName    the official name of the member the document is about, or null where they signed
+     *                      it themselves
+     */
+    record DocumentSigned(
+            String documentTitle,
+            String signerName,
+            @Nullable String memberName) implements NotificationParams {
+        @Override
+        public @Nullable String variant() {
+            return memberName == null ? null : "FOR_MEMBER";
+        }
+    }
 }

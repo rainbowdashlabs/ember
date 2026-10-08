@@ -1141,6 +1141,11 @@ volumes:
             forOthers: 'Für andere unterschreiben',
             forOthersGuardian: 'Als Erziehungsberechtigter unterschreibst du in deinem eigenen Feld für das Mitglied in deiner Obhut.',
             forOthersThrough: 'Hat ein Kind kein eigenes Konto, unterschreibt es sein eigenes Feld über dein Konto: Es liest und setzt den Haken auf deinem Gerät, danach bestätigst du mit deinem Nachweis.',
+            mail: 'Erinnerungen und deine Kopie',
+            mailReminder: 'Bittet die Wache um deine Unterschrift, bekommst du eine Benachrichtigung und eine E-Mail. Fehlt die Unterschrift nach einer Woche noch, '
+                + 'erinnert Ember dich, und danach jede Woche, höchstens dreimal.',
+            mailCopy: 'Sobald die Fassung mit deiner Unterschrift versiegelt ist, bekommst du eine E-Mail als eigene Kopie. Sie nennt den SHA-256 genau dieser Datei, '
+                + 'ihren Fingerabdruck: Eine Datei mit demselben Wert ist unverändert. Das PDF hängt nur an, wenn die Vorlage es erlaubt, sonst liegt es in Ember bei deinen Dokumenten.',
             access: 'Mit Tastatur und Screenreader',
             accessText: 'Jeder Schritt hat eine eigene Überschrift und ist mit der Tastatur erreichbar. Die Vorschau des Dokuments ist ein Bild, '
                 + 'deshalb gibt es daneben Speichern und Öffnen im PDF-Betrachter, wo ein Screenreader den Text vorlesen kann. '

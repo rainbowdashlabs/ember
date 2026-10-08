@@ -27,8 +27,13 @@ import dev.chojo.ember.feature.generator.service.pdf.PdfFiles;
 import dev.chojo.ember.feature.generator.service.pdf.SignatureFields;
 import dev.chojo.ember.feature.knowledgebase.service.KbFileStorageService;
 import dev.chojo.ember.feature.legal.service.GdprExportService;
+import dev.chojo.ember.feature.mail.repository.EmailQueueRepository;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
+import dev.chojo.ember.feature.notifications.entity.Notification;
+import dev.chojo.ember.feature.notifications.entity.NotificationParams;
+import dev.chojo.ember.feature.notifications.entity.NotificationType;
+import dev.chojo.ember.feature.notifications.entity.Recipient;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.signing.entity.CompletedSigning;
 import dev.chojo.ember.feature.signing.entity.FieldRole;
@@ -61,6 +66,7 @@ import dev.chojo.ember.lifecycle.Schedule;
 import dev.chojo.ember.owner.Owner;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import dev.chojo.ember.util.Sha256;
+import dev.chojo.ember.util.sql.SqlSupport;
 import dev.chojo.ember.util.sql.Transactions;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
@@ -80,17 +86,20 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
@@ -128,6 +137,7 @@ class SignatureRequestServiceTest extends RepositoryTestBase {
     private static SealedDocumentService sealedDocuments;
     private static SignatureRequestService requests;
     private static SignatureFieldService fields;
+    private static SignatureNotices notices;
     private static Station station;
     private static StationMember manager;
     private static int legalTemplate;
@@ -145,6 +155,8 @@ class SignatureRequestServiceTest extends RepositoryTestBase {
                 new DocumentAccessService(memberDocumentRepo, documents, guardianPolicy),
                 memberDocumentRepo,
                 guardianPolicy);
+        notices = TestNotices.notices(
+                newNotifier(), emailQueueRepo, stationRepo, stationMemberRepo, accountRepo, memberDocumentRepo);
         requests = new SignatureRequestService(
                 requestRepo,
                 evidenceRepo,
@@ -155,9 +167,10 @@ class SignatureRequestServiceTest extends RepositoryTestBase {
                 memberNameResolver,
                 guardianPolicy,
                 new SignerResolver(stationMemberRepo, memberNameResolver, memberPermissionResolver),
-                guards);
+                guards,
+                notices);
         fields = new SignatureFieldService(
-                requestRepo, evidenceRepo, requests, guards, guardianPolicy, memberNameResolver);
+                requestRepo, evidenceRepo, requests, guards, guardianPolicy, memberNameResolver, notices);
         loginPermission = stationMemberRepo
                 .findPermissionByName(StationPermission.LOGIN)
                 .orElseThrow()
@@ -453,7 +466,8 @@ class SignatureRequestServiceTest extends RepositoryTestBase {
                 null,
                 Instant.now(),
                 null,
-                null);
+                null,
+                false);
         assertRefused(
                 DocumentRefusal.SIGNING_REQUEST_NOT_FOUND,
                 () -> fields.record(at(guardian), signed(unknown, "guardian1", asGuardian, STATEMENTS.guardian())));
@@ -1152,6 +1166,232 @@ class SignatureRequestServiceTest extends RepositoryTestBase {
                     signature.signer());
         }
         return signers;
+    }
+
+    @Test
+    void aRequestAsksEverySignerInTheAppAndOnceByMailPerAddress() throws IOException {
+        var child = member("Nele", "Nachricht", false);
+        var guardian = member("Gina", "Nachricht", true);
+        guard(guardian, child);
+        var generation = generated(child, legalTemplate, manager.id(), "participant", "guardian1", "issuer");
+
+        var request = requests.request(managing(), generation.id(), STATEMENTS);
+
+        var participant = fieldId(request, "participant");
+        var guardianField = fieldId(request, "guardian1");
+        assertEquals(
+                Set.of(participant, guardianField),
+                askedFields(guardian, NotificationType.SIGNATURE_REQUESTED, request),
+                "the child's field through the account and the guardian's own");
+        assertEquals(Set.of(participant), askedFields(child, NotificationType.SIGNATURE_REQUESTED, request));
+        assertEquals(
+                Set.of(fieldId(request, "issuer")),
+                askedFields(manager, NotificationType.SIGNATURE_REQUESTED, request));
+        var params = (NotificationParams.SignatureRequested) unread(guardian, NotificationType.SIGNATURE_REQUESTED)
+                .getFirst()
+                .data()
+                .params();
+        assertEquals(new NotificationParams.SignatureRequested("Einverstaendnis", "Nele Nachricht"), params);
+
+        assertEquals(1, mailsTo(guardian, "Bitte unterschreiben: Einverstaendnis"), "one mail per address");
+        assertEquals(
+                0,
+                mailsTo(child, "Bitte unterschreiben: Einverstaendnis"),
+                "a child without login signs through a guardian");
+        var mail = latestMailTo(guardian);
+        assertTrue(mail.body()
+                .contains(TestNotices.BASE_URL + "/station/signing/" + participant + "?station=" + station.uid()));
+        assertTrue(mail.body().contains("Nele Nachricht"));
+        assertTrue(mail.body().contains("Signing Request Station"));
+        assertTrue(latestMailTo(manager).body().contains("/station/signing/" + fieldId(request, "issuer") + "?"));
+    }
+
+    @Test
+    void aSignatureTakesBackItsRequestAndTellsWhoAskedForIt() throws IOException {
+        var child = member("Sara", "Signiert", false);
+        var guardian = member("Sven", "Signiert", true);
+        guard(guardian, child);
+        var request = requests.request(
+                managing(),
+                generated(child, legalTemplate, null, "participant", "guardian1")
+                        .id(),
+                STATEMENTS);
+
+        fields.record(
+                at(guardian),
+                signed(request, "guardian1", Signer.guardian(account(guardian), child.id()), STATEMENTS.guardian()));
+
+        assertEquals(
+                Set.of(fieldId(request, "participant")),
+                askedFields(guardian, NotificationType.SIGNATURE_REQUESTED, request));
+        assertEquals(
+                List.of(new NotificationParams.DocumentSigned("Einverstaendnis", "Konto Inhaber", "Sara Signiert")),
+                signedNotices(child));
+
+        fields.record(
+                at(guardian),
+                signed(
+                        request,
+                        "participant",
+                        Signer.memberThroughAccount(account(guardian), child.id()),
+                        STATEMENTS.own()));
+
+        assertEquals(Set.of(), askedFields(guardian, NotificationType.SIGNATURE_REQUESTED, request));
+        assertEquals(Set.of(), askedFields(child, NotificationType.SIGNATURE_REQUESTED, request));
+        assertEquals(
+                List.of(
+                        new NotificationParams.DocumentSigned("Einverstaendnis", "Mitglied Name", null),
+                        new NotificationParams.DocumentSigned("Einverstaendnis", "Konto Inhaber", "Sara Signiert")),
+                signedNotices(child),
+                "the member signing their own field is not named twice");
+    }
+
+    @Test
+    void settlingOrWithdrawingTakesTheRequestsBack() throws IOException {
+        var signer = member("Theo", "Zurueck", true);
+        var request = requests.request(
+                managing(),
+                generated(signer, plainTemplate, manager.id(), "participant", "issuer")
+                        .id(),
+                STATEMENTS);
+
+        fields.confirmOnPaper(managing(), request.uid(), "participant");
+        assertEquals(Set.of(), askedFields(signer, NotificationType.SIGNATURE_REQUESTED, request));
+        assertEquals(
+                Set.of(fieldId(request, "issuer")),
+                askedFields(manager, NotificationType.SIGNATURE_REQUESTED, request));
+
+        requests.withdraw(managing(), request.uid());
+        assertEquals(Set.of(), askedFields(manager, NotificationType.SIGNATURE_REQUESTED, request));
+    }
+
+    @Test
+    void aCorrectionAsksAgainForTheNewDocumentAndTakesBackTheOld() throws IOException {
+        var signer = member("Clara", "Korrektur", true);
+        var old = requests.request(
+                managing(),
+                generated(signer, plainTemplate, null, "participant").id(),
+                STATEMENTS);
+
+        var corrected = requests.rectify(
+                managing(),
+                old.uid(),
+                generated(signer, plainTemplate, null, "participant").id(),
+                STATEMENTS);
+
+        assertEquals(Set.of(), askedFields(signer, NotificationType.SIGNATURE_REQUESTED, old));
+        assertEquals(
+                Set.of(fieldId(corrected, "participant")),
+                askedFields(signer, NotificationType.SIGNATURE_REQUESTED, corrected));
+        assertEquals(2, mailsTo(signer, "Bitte unterschreiben: Einverstaendnis"));
+    }
+
+    @Test
+    void anOpenFieldIsRemindedOfWeeklyThreeTimesAtMostAndASettledOneNever() throws IOException {
+        var signer = member("Rosa", "Erinnerung", true);
+        var settled = member("Rolf", "Erinnerung", true);
+        var request = requests.request(
+                managing(),
+                generated(signer, plainTemplate, null, "participant").id(),
+                STATEMENTS);
+        var other = requests.request(
+                managing(),
+                generated(settled, plainTemplate, null, "participant").id(),
+                STATEMENTS);
+        fields.waive(managing(), other.uid(), "participant");
+        var reminders = new SignatureReminders(requestRepo, notices);
+        var asked = request.createdAt();
+        String subject = "Erinnerung: Einverstaendnis wartet auf eine Unterschrift";
+
+        reminders.sweep(asked.plus(Duration.ofDays(6)));
+        assertEquals(0, remindersSent(request));
+
+        reminders.sweep(asked.plus(Duration.ofDays(7)).plusSeconds(60));
+        assertEquals(1, remindersSent(request));
+        assertEquals(1, mailsTo(signer, subject));
+        assertEquals(
+                Set.of(fieldId(request, "participant")),
+                askedFields(signer, NotificationType.SIGNATURE_REMINDER, request));
+        assertTrue(latestMailTo(signer).body().contains("wartet noch auf eine Unterschrift"));
+
+        reminders.sweep(asked.plus(Duration.ofDays(8)));
+        assertEquals(1, remindersSent(request), "not again within the week");
+
+        reminders.sweep(asked.plus(Duration.ofDays(15)));
+        reminders.sweep(asked.plus(Duration.ofDays(23)));
+        reminders.sweep(asked.plus(Duration.ofDays(31)));
+        assertEquals(3, remindersSent(request));
+        assertEquals(3, mailsTo(signer, subject));
+        assertEquals(1, unread(signer, NotificationType.SIGNATURE_REMINDER).size(), "one unread reminder at a time");
+
+        assertEquals(0, remindersSent(other));
+        assertEquals(0, mailsTo(settled, subject));
+    }
+
+    @Test
+    void remindersRunHourlyAndSwallowTheirFailures() {
+        var task = new SignatureReminders(requestRepo, notices).scheduledTasks().getFirst();
+
+        assertEquals("signature-reminders", task.name());
+        assertEquals(Schedule.fixedDelay(Duration.ofMinutes(20), Duration.ofHours(1)), task.schedule());
+        task.work().run();
+        new SignatureReminders(null, notices).sweep();
+    }
+
+    private static int fieldId(SignatureRequest request, String fieldName) {
+        return requestRepo.fieldsOf(request.id()).stream()
+                .filter(field -> field.fieldName().equals(fieldName))
+                .findFirst()
+                .orElseThrow()
+                .id();
+    }
+
+    private static List<Notification> unread(StationMember member, NotificationType type) {
+        return notificationRepo.findUnacknowledged(Recipient.stationMember(member.id())).stream()
+                .filter(notification -> notification.type() == type)
+                .toList();
+    }
+
+    /** The fields of one request a member's unread notifications of a type lead to. */
+    private static Set<Integer> askedFields(StationMember member, NotificationType type, SignatureRequest request) {
+        var ofRequest = requestRepo.fieldsOf(request.id()).stream()
+                .map(RequestedSignature::id)
+                .collect(Collectors.toSet());
+        return unread(member, type).stream()
+                .map(notification -> Objects.requireNonNull(notification.data().link()))
+                .map(link -> ((Number) link.routeParams().get("fieldId")).intValue())
+                .filter(ofRequest::contains)
+                .collect(Collectors.toSet());
+    }
+
+    /** What the manager was told about the documents of one member, newest first. */
+    private static List<NotificationParams> signedNotices(StationMember member) {
+        return unread(manager, NotificationType.DOCUMENT_SIGNED).stream()
+                .filter(notification -> {
+                    var link = Objects.requireNonNull(notification.data().link());
+                    return ((Number) link.routeParams().get("id")).intValue() == member.id();
+                })
+                .sorted(Comparator.comparing(Notification::id).reversed())
+                .map(notification -> notification.data().params())
+                .toList();
+    }
+
+    private static String emailOf(StationMember member) {
+        return accountRepo.findById(account(member)).orElseThrow().email();
+    }
+
+    private static int mailsTo(StationMember member, String subject) {
+        return SqlSupport.count(
+                "SELECT count(*) FROM email_queue WHERE recipient = :recipient AND subject = :subject;",
+                call().bind("recipient", emailOf(member)).bind("subject", subject));
+    }
+
+    private static EmailQueueRepository.QueuedEmail latestMailTo(StationMember member) {
+        return emailQueueRepo.findLatestFor(emailOf(member), null, null).orElseThrow();
+    }
+
+    private static int remindersSent(SignatureRequest request) {
+        return count("SELECT reminders_sent AS count FROM signing_request_field WHERE request_id = :id;", request.id());
     }
 
     private static DocumentGeneration sealedGeneration(StationMember member, List<Integer> memberIds)

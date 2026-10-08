@@ -49,4 +49,13 @@ describe('notificationMessageKey', () => {
         expect(notificationMessageKey('NAME_CHANGE_DENIED', 'notification.nameChangeDenied', {requestedName: 'Mia Neu'}))
             .toBe('notification.nameChangeDenied')
     })
+
+    it('names the member of a signed document only where somebody else signed it', () => {
+        expect(notificationMessageKey('DOCUMENT_SIGNED', 'notification.documentSigned',
+            {documentTitle: 'Einverständnis', signerName: 'Eva Muster', memberName: 'Mia Muster'}))
+            .toBe('notification.documentSignedForMember')
+        expect(notificationMessageKey('DOCUMENT_SIGNED', 'notification.documentSigned',
+            {documentTitle: 'Einverständnis', signerName: 'Mia Muster'}))
+            .toBe('notification.documentSigned')
+    })
 })

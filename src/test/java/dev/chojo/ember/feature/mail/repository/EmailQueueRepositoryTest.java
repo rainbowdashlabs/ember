@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.mail.repository;
 
+import dev.chojo.ember.feature.mail.entity.MailAttachment;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -395,5 +396,44 @@ class EmailQueueRepositoryTest extends RepositoryTestBase {
                 .orElseThrow();
 
         assertEquals(sentAt, emailQueueRepo.findLastSentAt().orElseThrow());
+    }
+
+    @Test
+    @Order(26)
+    void aMailKeepsItsFilesUntilItIsSentOrFailed() {
+        drain();
+        byte[] first = {1, 2, 3};
+        byte[] second = {4, 5};
+        emailQueueRepo.enqueueWithAttachments(
+                "files@example.com",
+                "Files",
+                "Body",
+                List.of(
+                        new MailAttachment("a.pdf", MailAttachment.PDF, first),
+                        new MailAttachment("b.txt", "text/plain", second)));
+        emailQueueRepo.enqueueWithAttachments(
+                "failing@example.com",
+                "Files",
+                "Body",
+                List.of(new MailAttachment("c.pdf", MailAttachment.PDF, first)));
+        int sent = queuedId("files@example.com");
+        int failed = queuedId("failing@example.com");
+
+        var files = emailQueueRepo.attachmentsOf(sent);
+        assertEquals(
+                List.of("a.pdf", "b.txt"),
+                files.stream().map(MailAttachment::fileName).toList());
+        assertEquals("text/plain", files.getLast().contentType());
+        assertArrayEquals(first, files.getFirst().content());
+        emailQueueRepo.enqueue("plain@example.com", "Plain", "Body");
+        assertEquals(List.of(), emailQueueRepo.attachmentsOf(queuedId("plain@example.com")));
+
+        emailQueueRepo.markSent(sent);
+        emailQueueRepo.markFailed(failed);
+
+        assertEquals(List.of(), emailQueueRepo.attachmentsOf(sent));
+        assertEquals(List.of(), emailQueueRepo.attachmentsOf(failed));
+        assertEquals("SENT", statusOf("files@example.com"));
+        assertEquals("FAILED", statusOf("failing@example.com"));
     }
 }

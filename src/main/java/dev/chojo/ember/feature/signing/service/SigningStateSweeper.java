@@ -20,14 +20,16 @@ import java.time.Instant;
 import java.util.List;
 
 /**
- * Seals the signing acts whose own sealing failed after they were recorded, such as when the store or the
- * station's key could not be reached.
+ * Seals the states no sealed version shows yet: signing acts whose own sealing failed after they were
+ * recorded, such as when the store or the station's key could not be reached, and fields a manager confirmed
+ * on paper, waived or withdrawn on a request somebody signed electronically.
  *
- * <p>An act is sealed right after it is recorded ({@link SigningStateSealer}); this sweep only picks up the
- * requests with an act no sealed version carries yet, recorded more than {@link #GRACE} ago so an act whose
- * own sealing is still running is left to it, and seals the state each of them stands at now. A request that
- * fails again is logged and tried on the next run. A request whose document is gone has nothing to be sealed
- * into and is left out.
+ * <p>An act is sealed right after it is recorded ({@link SigningStateSealer}); a field a manager settles is
+ * left to this sweep, so a manager working through a list does not wait for the timestamp services at every
+ * field. The sweep picks up the requests with such an act or field from more than {@link #GRACE} ago, so an
+ * act whose own sealing is still running is left to it, and seals the state each of them stands at now. A
+ * request that fails again is logged and tried on the next run. A request whose document is gone has nothing
+ * to be sealed into and is left out.
  */
 @Singleton
 public class SigningStateSweeper implements TaskSource {
@@ -63,21 +65,21 @@ public class SigningStateSweeper implements TaskSource {
     void sweep() {
         try {
             int sealed = sweep(clock.instant());
-            if (sealed > 0) log.info("Sealed {} signing requests whose acts were not sealed yet", sealed);
+            if (sealed > 0) log.info("Sealed the newest state of {} signing requests", sealed);
         } catch (Exception e) {
-            log.warn("Sealing signing acts that were not sealed yet failed", e);
+            log.warn("Sealing the newest state of signing requests failed", e);
         }
     }
 
     /**
-     * Seals the requests with acts no sealed version carries yet.
+     * Seals the requests with acts or settled fields no sealed version shows yet.
      *
-     * @param now the time the grace of a fresh act is measured against
+     * @param now the time the grace of a fresh change is measured against
      * @return how many requests got a sealed version
      */
     int sweep(Instant now) {
         int sealed = 0;
-        for (int requestId : evidence.requestsWithUnsealedActs(now.minus(GRACE), MAX_PER_RUN)) {
+        for (int requestId : evidence.requestsToSeal(now.minus(GRACE), MAX_PER_RUN)) {
             try {
                 if (sealer.sealLatest(requestId)) sealed++;
             } catch (RuntimeException e) {

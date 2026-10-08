@@ -81,6 +81,11 @@ const exampleOffer = computed<SigningStartResponse>(() => ({
       <p>{{ t('helpCenter.signing.forOthersThrough') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.signing.mail')">
+      <p>{{ t('helpCenter.signing.mailReminder') }}</p>
+      <p>{{ t('helpCenter.signing.mailCopy') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.signing.access')">
       <p>{{ t('helpCenter.signing.accessText') }}</p>
     </HelpSection>

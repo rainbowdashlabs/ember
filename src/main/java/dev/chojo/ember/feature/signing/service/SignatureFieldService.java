@@ -27,6 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.HexFormat;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -42,6 +43,10 @@ import java.util.UUID;
  * or through the account of a guardian; a guardian field is signed by the guardian at that place, a field
  * for any guardian by any of them, the issuer's by the issuer. Where somebody acts as or through a guardian,
  * the guardian link as it stands is copied into the evidence, since it is the evidence of guardianship.
+ *
+ * <p>Once a field is settled, the unread requests and reminders for it are taken back, and a signature is
+ * told to whoever asked for it ({@link SignatureNotices}). A field a manager settles is sealed into the
+ * document by {@link SigningStateSweeper}.
  */
 @Singleton
 public class SignatureFieldService {
@@ -53,6 +58,7 @@ public class SignatureFieldService {
     private final SigningGuards guards;
     private final GuardianPolicy guardianPolicy;
     private final MemberNameResolver names;
+    private final SignatureNotices notices;
 
     @Inject
     public SignatureFieldService(
@@ -61,13 +67,15 @@ public class SignatureFieldService {
             SignatureRequestService requestService,
             SigningGuards guards,
             GuardianPolicy guardianPolicy,
-            MemberNameResolver names) {
+            MemberNameResolver names,
+            SignatureNotices notices) {
         this.requests = requests;
         this.evidence = evidence;
         this.requestService = requestService;
         this.guards = guards;
         this.guardianPolicy = guardianPolicy;
         this.names = names;
+        this.notices = notices;
     }
 
     /**
@@ -108,6 +116,8 @@ public class SignatureFieldService {
                 request.uid(),
                 session.member().id(),
                 signed.evidence().proof());
+        notices.settled(List.of(stored.fieldId()));
+        notices.signed(request, stored);
         return stored;
     }
 
@@ -151,15 +161,17 @@ public class SignatureFieldService {
         var request = requestService.requestAt(session, requestUid);
         guards.requireMayManage(session, request.documentId());
         int me = session.member().id();
-        return Transactions.call(() -> {
+        var settled = Transactions.call(() -> {
             var field = openField(request, fieldName);
             requests.settle(field.id(), state, me, names.official(me));
             requests.closeIfSettled(request.id());
             return requests.fieldsOf(request.id()).stream()
-                    .filter(settled -> settled.id() == field.id())
+                    .filter(candidate -> candidate.id() == field.id())
                     .findFirst()
                     .orElse(field);
         });
+        notices.settled(List.of(settled.id()));
+        return settled;
     }
 
     /** Holds the field and its request, and refuses a field that no longer waits for a signature. */

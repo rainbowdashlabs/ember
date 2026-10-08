@@ -9,8 +9,9 @@ import {expiryReminderKey} from './expiry'
  * The message key one notification is worded by.
  *
  * <p>Most types have one sentence and it is the key they arrive with. A few say different things
- * depending on what they carry: an expiry reminder counts days or members, and a date an appointment
- * moved off names the next date only where one is left. Every list of notifications asks here, so
+ * depending on what they carry: an expiry reminder counts days or members, a date an appointment
+ * moved off names the next date only where one is left, and a signed document names its member only
+ * where somebody else signed it. Every list of notifications asks here, so
  * a type that gains a second sentence gains it everywhere at once.
  *
  * @param type      the notification's type
@@ -22,6 +23,7 @@ export function notificationMessageKey(type: string, localeKey: string, params: 
     if (type === 'EVENT_DATE_DROPPED' && !params.nextDate) return 'notification.eventDateDroppedLast'
     if (type === 'EVENT_CANCELLED') return eventCancelledKey(localeKey, params)
     if (type === 'NAME_CHANGE_DENIED' && params.reason) return 'notification.nameChangeDeniedWithReason'
+    if (type === 'DOCUMENT_SIGNED' && params.memberName) return 'notification.documentSignedForMember'
     return localeKey
 }
 

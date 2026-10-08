@@ -56,6 +56,7 @@ import dev.chojo.ember.feature.signing.repository.SignatureRequestRepository;
 import dev.chojo.ember.feature.signing.repository.SigningEvidenceRepository;
 import dev.chojo.ember.feature.signing.service.InEmberSignatureProvider;
 import dev.chojo.ember.feature.signing.service.SignatureFieldService;
+import dev.chojo.ember.feature.signing.service.SignatureNotices;
 import dev.chojo.ember.feature.signing.service.SignatureRequestService;
 import dev.chojo.ember.feature.signing.service.SignerNames;
 import dev.chojo.ember.feature.signing.service.SignerResolver;
@@ -203,9 +204,16 @@ class SigningRoutesTest extends RepositoryTestBase {
                 memberNameResolver,
                 guardianPolicy,
                 new SignerResolver(stationMemberRepo, memberNameResolver, memberPermissionResolver),
-                guards);
+                guards,
+                mock(SignatureNotices.class));
         var fields = new SignatureFieldService(
-                requestRepo, evidenceRepo, requests, guards, guardianPolicy, memberNameResolver);
+                requestRepo,
+                evidenceRepo,
+                requests,
+                guards,
+                guardianPolicy,
+                memberNameResolver,
+                mock(SignatureNotices.class));
 
         var settings = new WebAuthnSettings();
         RelyingParties parties = relyingParties(settings);

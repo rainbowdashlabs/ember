@@ -235,4 +235,34 @@ public final class NotificationLinks {
     public static NotificationLink ownAccountProfile() {
         return new NotificationLink("account-avatar", Map.of());
     }
+
+    /**
+     * The signing screen of one signature field, which a request and its reminders open and which their
+     * withdrawal names once the field is settled.
+     *
+     * @param fieldId the signature field
+     * @return the link its notifications carry
+     */
+    public static NotificationLink signingField(int fieldId) {
+        return new NotificationLink("station-signing", Map.of("fieldId", fieldId));
+    }
+
+    /**
+     * The reader's own documents, followed by those of every member in their care.
+     *
+     * @return the link a signed copy leads to
+     */
+    public static NotificationLink ownDocuments() {
+        return new NotificationLink("documents-own", Map.of());
+    }
+
+    /**
+     * The page of one member, whose documents are among its tabs.
+     *
+     * @param memberId the member
+     * @return the link a notice about that member's document carries
+     */
+    public static NotificationLink member(int memberId) {
+        return new NotificationLink("members-detail", Map.of("id", memberId));
+    }
 }

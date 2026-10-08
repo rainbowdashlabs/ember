@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.signing.repository;
 
 import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
+import dev.chojo.ember.feature.signing.entity.DueReminder;
 import dev.chojo.ember.feature.signing.entity.FieldState;
 import dev.chojo.ember.feature.signing.entity.GuardianLink;
 import dev.chojo.ember.feature.signing.entity.PendingSignature;
@@ -15,6 +16,7 @@ import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -43,9 +45,11 @@ public class SignatureRequestRepository {
         var created = SqlSupport.insertReturning(
                 """
                         INSERT INTO signing_request(station_id, generation_id, document_id, member_id, member_name,
-                                                    content_sha256, retention_months, created_by)
+                                                    content_sha256, retention_months, copy_attached, created_by)
                         VALUES (:station_id, :generation_id, :document_id, :member_id, :member_name, :content_hash,
                                 (SELECT signature_retention_months FROM document_template WHERE id = :template_id),
+                                coalesce((SELECT signed_copy_attached FROM document_template WHERE id = :template_id),
+                                         FALSE),
                                 :created_by)
                         RETURNING %s;""",
                 call().bind("station_id", request.stationId())
@@ -220,6 +224,80 @@ public class SignatureRequestRepository {
                           AND r.state = 'OPEN'
                           AND NOT EXISTS (SELECT 1 FROM signing_request_field f
                                           WHERE f.request_id = r.id AND f.state = 'OPEN');""").single(call().bind("id", requestId)).update().changed();
+    }
+
+    /**
+     * Records the sealed version that first shows the fields of a request settled since the version before.
+     *
+     * @param requestId the request
+     * @param sha256    SHA-256 of the sealed version, lower-case hexadecimal
+     * @return how many fields it shows settled for the first time
+     */
+    public int markSettledSealed(int requestId, String sha256) {
+        return query("""
+                        UPDATE signing_request_field
+                        SET sealed_sha256 = :sealed_hash
+                        WHERE request_id = :request_id
+                          AND state <> 'OPEN'
+                          AND sealed_sha256 IS NULL;""")
+                .single(call().bind("request_id", requestId).bind("sealed_hash", sha256))
+                .update()
+                .rows();
+    }
+
+    /**
+     * The open fields due for a reminder: of an open request whose document is still there, asked for at
+     * least one interval ago and not reminded of within the last interval, with fewer reminders sent than
+     * the limit.
+     *
+     * @param now          the time to measure against
+     * @param interval     how long a field waits before its first reminder and between two
+     * @param maxReminders how many reminders a field gets at most
+     * @param limit        how many fields to read at most
+     * @return the fields with their station, the one waiting longest first
+     */
+    public List<DueReminder> dueForReminder(Instant now, Duration interval, int maxReminders, int limit) {
+        return query("""
+                        SELECT %s, r.uid AS request_uid, r.document_id, r.member_name AS request_member_name,
+                               d.title AS document_title, r.station_id AS request_station_id,
+                               f.reminders_sent AS field_reminders_sent
+                        FROM signing_request_field f
+                                 JOIN signing_request r ON r.id = f.request_id
+                                 JOIN member_document d ON d.id = r.document_id
+                        WHERE r.state = 'OPEN'
+                          AND f.state = 'OPEN'
+                          AND f.reminders_sent < :max_reminders
+                          AND coalesce(f.reminded_at, r.created_at) <= :due_before
+                        ORDER BY coalesce(f.reminded_at, r.created_at), f.id
+                        LIMIT :limit;""", SqlSupport.alias("f", RequestedSignature.COLUMNS))
+                .single(call().bind("max_reminders", maxReminders)
+                        .bind("due_before", now.minus(interval), INSTANT_TIMESTAMP)
+                        .bind("limit", limit))
+                .map(DueReminder.map())
+                .all();
+    }
+
+    /**
+     * Counts a reminder for a field, unless a reminder for it was counted since it was read.
+     *
+     * @param fieldId       the field
+     * @param remindersRead how many reminders it had when it was read
+     * @param now           when the reminder goes out
+     * @return whether this reminder was counted, so it is to be sent
+     */
+    public boolean markReminded(int fieldId, int remindersRead, Instant now) {
+        return query("""
+                        UPDATE signing_request_field
+                        SET reminded_at    = :now,
+                            reminders_sent = reminders_sent + 1
+                        WHERE id = :id
+                          AND state = 'OPEN'
+                          AND reminders_sent = :reminders_read;""")
+                .single(call().bind("id", fieldId)
+                        .bind("reminders_read", remindersRead)
+                        .bind("now", now, INSTANT_TIMESTAMP))
+                .update()
+                .changed();
     }
 
     /**

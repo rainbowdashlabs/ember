@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:ea0c09f100344e2177dc5a4cc31aab93a6b1757aafeaa75606599550c154e5bb",
-  "generatedAt": "2026-10-08T14:53:28Z",
+  "schemaHash": "sha256:80008e845bb109460c3c7cf62dc7ffe9d29feb397fd49ce8d51cc4d531d8dad3",
+  "generatedAt": "2026-10-08T15:35:31Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -6900,7 +6900,7 @@
       "description": "Every person whose data went into a generated document: the member it is about and the guardians it names."
     },
     "document_template": {
-      "tableHash": "sha256:b414f6acce802a5f4fc748bd7bf70bf83cc0171c15756af265445183dd77c10e",
+      "tableHash": "sha256:7cb914189280a6f1be4d5788e0669a9ac151ef4fcb44ae89b548138b4ce7398f",
       "columns": [
         {
           "name": "id",
@@ -7076,6 +7076,13 @@
           "nullable": true,
           "verified": true,
           "description": "How many months the signatures asked for on a document of this template, their evidence and the signed document are kept after the member it is about has left or was deleted, as evidence for legal claims. NULL keeps them while the member is a member and for 12 months after the member was archived; deleting the member ends that at once. A legal template starts at 48 months: claims fall due within the three years of the regular limitation period, which runs from the end of the year they arose in."
+        },
+        {
+          "name": "signed_copy_attached",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether the copy a signer gets by mail after signing a document of this template carries the sealed PDF. Off by default, since consent forms may hold health data and mail is no place for it; the mail always carries the SHA-256 of the sealed version and a link to it."
         }
       ],
       "foreignKeys": [
@@ -8011,6 +8018,69 @@
         "reason": "Email queue/counters, ephemeral"
       },
       "description": "Outgoing email queue processed by the email worker."
+    },
+    "email_queue_attachment": {
+      "feature": "mail",
+      "scope": "INSTANCE",
+      "tableHash": "sha256:7fe7b6326e465d82b261b3d7dfa2b1f8483bbe60c4d385841f6d2f0bfb1a5f50",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Primary key."
+        },
+        {
+          "name": "email_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The queued email the file belongs to."
+        },
+        {
+          "name": "file_name",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The name the file carries in the email."
+        },
+        {
+          "name": "content_type",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The media type of the file, such as application/pdf."
+        },
+        {
+          "name": "content",
+          "type": "bytea",
+          "nullable": false,
+          "verified": true,
+          "description": "The file itself."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "email_id",
+          "refTable": "email_queue",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "Files of queued emails, instance-scoped and gone once their email is sent or failed"
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Files of queued emails, held only until their email is sent or failed; the sealed document itself is in the member documents export"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Files of queued emails, deleted once their email is sent or failed, and with the email by cascade"
+      },
+      "description": "Files a queued email carries, such as the sealed PDF a signer gets as their own copy. Deleted as soon as the email was handed to a provider or failed for good, so a file never stays here longer than its email waits."
     },
     "entity_note": {
       "feature": "members",
@@ -23299,7 +23369,7 @@
     "signing_request": {
       "feature": "signing",
       "scope": "STATION",
-      "tableHash": "sha256:ca7940460aeeed1b43c7dd99b92a25bf27ccffdfafe215409cd90914b5f12559",
+      "tableHash": "sha256:a14b2ae42294ba54d0f1123c28ac9646bb4d7bca541d22a50651007af4ef18a4",
       "columns": [
         {
           "name": "id",
@@ -23405,6 +23475,13 @@
           "nullable": true,
           "verified": true,
           "description": "When the request stopped waiting: completed, withdrawn or superseded. NULL while it is open."
+        },
+        {
+          "name": "copy_attached",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether the copy each signer gets by mail carries the sealed PDF, copied from the template when the request was made."
         }
       ],
       "foreignKeys": [
@@ -23483,7 +23560,7 @@
     "signing_request_field": {
       "feature": "signing",
       "scope": "STATION",
-      "tableHash": "sha256:d7caa5aa1e61b6d3148f20f1e7997e814d8a1747015a1d5f0019f93fe16033db",
+      "tableHash": "sha256:4f3cec793a5fb40554f285ba4718e8888aae08c37165496a9416a4e88196eb36",
       "columns": [
         {
           "name": "id",
@@ -23575,6 +23652,27 @@
           "nullable": true,
           "verified": true,
           "description": "The official name of the member who settled the field, as it was then, kept once they are gone. NULL while it is open and where nobody settled it."
+        },
+        {
+          "name": "reminded_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When the people asked to sign the field were last reminded of it. NULL before the first reminder."
+        },
+        {
+          "name": "reminders_sent",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "How many reminders went out for the field. A field is reminded of a week after it was asked for and every week after that, three times at most."
+        },
+        {
+          "name": "sealed_sha256",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "SHA-256 of the first sealed version of the document that shows the field settled, lower-case hexadecimal. NULL while the field is open, and until a sealed version shows it settled; a sweep seals such a state where somebody signed the request electronically, since only then does the document carry a seal."
         }
       ],
       "foreignKeys": [

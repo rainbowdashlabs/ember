@@ -7,7 +7,10 @@ package dev.chojo.ember.feature.mail.repository;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import dev.chojo.ember.feature.mail.entity.EmailQueueStatus;
+import dev.chojo.ember.feature.mail.entity.MailAttachment;
 import dev.chojo.ember.feature.mail.entity.MailDeliveryStatus;
+import dev.chojo.ember.util.sql.SqlSupport;
+import dev.chojo.ember.util.sql.Transactions;
 import dev.chojo.ember.util.sql.WhereBuilder;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -77,6 +80,54 @@ public class EmailQueueRepository {
                         .bind("body", body)
                         .bind("station_id", stationId))
                 .insert();
+    }
+
+    /**
+     * Enqueues an email without a station association together with the files it carries, all or
+     * nothing.
+     *
+     * @param recipient   the recipient email address
+     * @param subject     the email subject
+     * @param body        the HTML email body
+     * @param attachments the files it carries, in the order the mail lists them
+     */
+    public void enqueueWithAttachments(
+            String recipient, String subject, String body, List<MailAttachment> attachments) {
+        Transactions.run(() -> {
+            int emailId = SqlSupport.insertReturning(
+                    """
+                            INSERT INTO email_queue(recipient, subject, body)
+                            VALUES (:recipient, :subject, :body)
+                            RETURNING id;""",
+                    call().bind("recipient", recipient).bind("subject", subject).bind("body", body),
+                    row -> row.getInt("id"));
+            for (var attachment : attachments) {
+                query("""
+                        INSERT INTO email_queue_attachment(email_id, file_name, content_type, content)
+                        VALUES (:email_id, :file_name, :content_type, :content);""")
+                        .single(call().bind("email_id", emailId)
+                                .bind("file_name", attachment.fileName())
+                                .bind("content_type", attachment.contentType())
+                                .bind("content", attachment.content()))
+                        .insert();
+            }
+        });
+    }
+
+    /**
+     * @param emailId the queued email
+     * @return the files it carries, in the order they were queued
+     */
+    public List<MailAttachment> attachmentsOf(int emailId) {
+        return query("""
+                        SELECT file_name, content_type, content
+                        FROM email_queue_attachment
+                        WHERE email_id = :email_id
+                        ORDER BY id;""")
+                .single(call().bind("email_id", emailId))
+                .map(row -> new MailAttachment(
+                        row.getString("file_name"), row.getString("content_type"), row.getBytes("content")))
+                .all();
     }
 
     /**
@@ -198,14 +249,14 @@ public class EmailQueueRepository {
     }
 
     /**
-     * Marks an email as successfully sent.
+     * Marks an email as successfully sent and lets go of the files it carried.
      *
      * @param id the queued email ID
      */
     public void markSent(int id) {
-        query("UPDATE email_queue SET status = 'SENT', sent_at = now() WHERE id = :id;")
-                .single(call().bind("id", id))
-                .update();
+        query("""
+                WITH sent AS (UPDATE email_queue SET status = 'SENT', sent_at = now() WHERE id = :id RETURNING id)
+                DELETE FROM email_queue_attachment WHERE email_id IN (SELECT id FROM sent);""").single(call().bind("id", id)).update();
     }
 
     /**
@@ -251,14 +302,15 @@ public class EmailQueueRepository {
     }
 
     /**
-     * Marks an email as failed to send.
+     * Marks an email as failed to send and lets go of the files it carried, since a failed mail is
+     * never sent again.
      *
      * @param id the queued email ID
      */
     public void markFailed(int id) {
-        query("UPDATE email_queue SET status = 'FAILED' WHERE id = :id;")
-                .single(call().bind("id", id))
-                .update();
+        query("""
+                WITH failed AS (UPDATE email_queue SET status = 'FAILED' WHERE id = :id RETURNING id)
+                DELETE FROM email_queue_attachment WHERE email_id IN (SELECT id FROM failed);""").single(call().bind("id", id)).update();
     }
 
     /**
