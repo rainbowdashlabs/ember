@@ -12,9 +12,11 @@ import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.entity.TokenType;
-import dev.chojo.ember.feature.account.service.AccountInviteService;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.account.service.SetupMail;
+import dev.chojo.ember.feature.accountlink.entity.LinkOrigin;
+import dev.chojo.ember.feature.accountlink.repository.AccountLinkRepository;
+import dev.chojo.ember.feature.accountlink.service.TestAccountLinks;
 import dev.chojo.ember.feature.members.entity.MailReaches;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService.GuardianRequest;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService.InviteRequest;
@@ -47,8 +49,8 @@ class StationMemberInviteServiceTest extends RepositoryTestBase {
     @BeforeEach
     void freshFixture() {
         authService = mock(AuthService.class);
-        service = new StationMemberInviteService(
-                stationMemberRepo, newGroupMemberships(), new AccountInviteService(accountRepo, authService));
+        service = TestAccountLinks.inviteService(
+                accountRepo, stationRepo, stationMemberRepo, newGroupMemberships(), authService);
         station = stationRepo.create("Invite Station " + System.nanoTime());
     }
 
@@ -58,7 +60,7 @@ class StationMemberInviteServiceTest extends RepositoryTestBase {
 
     private StationMemberInviteService.ProvisionedMember provision(
             int stationId, String email, String firstName, String lastName, StationUserType userType, Integer groupId) {
-        return service.provision(stationId, email, firstName, lastName, userType, groupId, SetupMail.SEND_NOW);
+        return service.provision(stationId, email, firstName, lastName, userType, groupId, SetupMail.SEND_NOW, null);
     }
 
     private StationMemberInviteService.BatchResult createBatch(int stationId, List<InviteRequest> requests) {
@@ -199,29 +201,91 @@ class StationMemberInviteServiceTest extends RepositoryTestBase {
         assertTrue(accountRepo.findByEmail(email).isEmpty());
     }
 
+    /**
+     * Inviting the address of an account that exists does not attach it: the member is made without
+     * the account, the owner is asked, and nothing about the account changes until they accept.
+     */
     @Test
-    void provision_attaches_existing_account_without_touching_it() {
+    void an_existing_address_makes_a_member_that_waits_for_its_owner() {
         String email = uniqueEmail("bob");
         Account existing = accountRepo.create(email, "Bob", "Berry", true);
         accountRepo.createCredential(existing.id(), "hash");
+        int groupId = memberGroupRepo.create(station.id(), "Waiting group").id();
+        var inviter = stationMemberRepo.create(
+                station.id(),
+                accountRepo.create(uniqueEmail("inviter"), "In", "Viter").id());
 
-        var result = provision(station.id(), email, "Other", "Name", StationUserType.MEMBER, null);
+        var result = service.provision(
+                station.id(), email, "Other", "Name", StationUserType.TEAM, groupId, SetupMail.SEND_NOW, inviter.id());
 
+        assertTrue(result.linkPending());
+        assertNull(result.accountId());
         assertFalse(result.accountCreated());
         assertTrue(result.membershipCreated());
+        var member = stationMemberRepo.findById(result.memberId()).orElseThrow();
+        assertNull(member.accountId(), "the station does not reach the account before its owner agrees");
+        assertEquals("Other Name", member.displayName());
+        assertEquals(StationUserType.TEAM, member.userType());
+        assertEquals(1, memberGroupRepo.findMembers(groupId).size());
+        assertTrue(stationMemberRepo
+                .findByStationAndAccount(station.id(), existing.id())
+                .isEmpty());
+        var request =
+                new AccountLinkRepository().findUnansweredForMember(member.id()).orElseThrow();
+        assertEquals(existing.id(), request.accountId());
+        assertEquals(LinkOrigin.INVITE, request.origin());
+        assertEquals(inviter.id(), request.createdBy());
         Account reloaded = accountRepo.findById(existing.id()).orElseThrow();
         assertEquals("Bob", reloaded.firstName());
         verify(authService, never()).sendPasswordSetup(anyInt());
     }
 
+    /**
+     * An account still waiting to be claimed is somebody's address all the same, so it is asked about
+     * like any other and sent no setup mail by the station that typed it.
+     */
     @Test
-    void provision_resends_setup_mail_for_unclaimed_existing_account() {
+    void an_unclaimed_existing_account_is_asked_rather_than_sent_a_setup_mail() {
         String email = uniqueEmail("carol");
-        Account existing = accountRepo.create(email, "Carol", "Cherry", true);
+        accountRepo.create(email, "Carol", "Cherry", true);
 
-        provision(station.id(), email, "Carol", "Cherry", StationUserType.MEMBER, null);
+        var result = provision(station.id(), email, "Carol", "Cherry", StationUserType.MEMBER, null);
 
-        verify(authService).sendPasswordSetup(existing.id());
+        assertTrue(result.linkPending());
+        verify(authService, never()).sendPasswordSetup(anyInt());
+    }
+
+    @Test
+    void the_instance_administration_naming_a_manager_attaches_the_existing_account() {
+        String email = uniqueEmail("named-manager");
+        Account existing = accountRepo.create(email, "Mia", "Manager", true);
+
+        var result = service.provisionAttached(
+                station.id(), email, "", "", StationUserType.MANAGER, null, SetupMail.SEND_NOW);
+
+        assertFalse(result.linkPending());
+        assertEquals(existing.id(), result.accountId());
+    }
+
+    @Test
+    void a_new_member_entered_elsewhere_follows_the_same_rule() {
+        String known = uniqueEmail("known-guardian");
+        Account existing = accountRepo.create(known, "Kai", "Known", true);
+
+        var waiting = service.newMember(station.id(), known, "Kai", "Known", SetupMail.SEND_NOW, null);
+        var fresh = service.newMember(
+                station.id(), uniqueEmail("fresh-guardian"), "Fay", "Fresh", SetupMail.SEND_NOW, null);
+        var addressless = service.newMember(station.id(), " ", "Ari", "Addressless", SetupMail.SEND_NOW, null);
+
+        assertNull(waiting.accountId());
+        assertEquals(
+                existing.id(),
+                new AccountLinkRepository()
+                        .findUnansweredForMember(waiting.id())
+                        .orElseThrow()
+                        .accountId());
+        assertTrue(fresh.accountId() != null);
+        assertTrue(addressless.accountId() != null);
     }
 
     @Test
@@ -253,8 +317,8 @@ class StationMemberInviteServiceTest extends RepositoryTestBase {
     void provision_holds_the_setup_mail_back_when_it_was_not_asked_for() {
         String email = uniqueEmail("later");
 
-        var result =
-                service.provision(station.id(), email, "Lena", "Later", StationUserType.MEMBER, null, SetupMail.LATER);
+        var result = service.provision(
+                station.id(), email, "Lena", "Later", StationUserType.MEMBER, null, SetupMail.LATER, null);
 
         assertTrue(result.accountCreated());
         Account account = accountRepo.findByEmail(email).orElseThrow();
@@ -266,7 +330,7 @@ class StationMemberInviteServiceTest extends RepositoryTestBase {
     void a_member_entered_without_a_mail_can_still_be_sent_one_afterwards() {
         String email = uniqueEmail("afterwards");
         var result = service.provision(
-                station.id(), email, "Nina", "Nachher", StationUserType.MEMBER, null, SetupMail.LATER);
+                station.id(), email, "Nina", "Nachher", StationUserType.MEMBER, null, SetupMail.LATER, null);
         Account account = accountRepo.findById(result.accountId()).orElseThrow();
 
         assertNull(account.setupCompletedAt());
@@ -376,7 +440,7 @@ class StationMemberInviteServiceTest extends RepositoryTestBase {
     }
 
     @Test
-    void batch_guardian_with_existing_account_is_linked_without_new_account() {
+    void batch_guardian_with_existing_account_waits_for_its_owner_and_already_looks_after_the_member() {
         String guardianEmail = uniqueEmail("known-parent");
         Account existing = accountRepo.create(guardianEmail, "Known", "Parent", true);
         accountRepo.createCredential(existing.id(), "hash");
@@ -394,7 +458,14 @@ class StationMemberInviteServiceTest extends RepositoryTestBase {
         assertTrue(result.failed().isEmpty());
         var parent = result.provisioned().get(1);
         assertFalse(parent.accountCreated());
-        assertEquals(existing.id(), parent.accountId());
+        assertTrue(parent.linkPending());
+        assertNull(parent.accountId());
+        assertEquals(
+                existing.id(),
+                new AccountLinkRepository()
+                        .findUnansweredForMember(parent.memberId())
+                        .orElseThrow()
+                        .accountId());
         assertTrue(stationMemberRepo.findManagers(result.provisioned().get(0).memberId()).stream()
                 .anyMatch(m -> m.id() == parent.memberId()));
     }

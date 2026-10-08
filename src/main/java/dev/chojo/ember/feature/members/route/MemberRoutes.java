@@ -235,7 +235,7 @@ public class MemberRoutes implements Routes {
             methods = HttpMethod.POST,
             summary = "Invite a new user to a station",
             description =
-                    "Provisions a pre-verified account and station membership immediately and sends a password setup email. An email that already belongs to an account attaches that account to the station instead. Leaving the email out creates a member with no address of their own, who is reached through their guardians.",
+                    "Provisions a pre-verified account and station membership immediately and sends a password setup email. An email that already belongs to an account creates the member without it and asks the account's owner to link it; the member waits until they accept. Leaving the email out creates a member with no address of their own, who is reached through their guardians.",
             tags = {"Members"},
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = InviteRequest.class)),
             responses = {
@@ -258,13 +258,16 @@ public class MemberRoutes implements Routes {
                     request.lastName(),
                     StationUserType.MEMBER,
                     null,
-                    SetupMail.of(request.sendSetupMail()));
+                    SetupMail.of(request.sendSetupMail()),
+                    session.member().id());
             ctx.status(HttpStatus.CREATED)
                     .json(new MemberInviteResponse(
+                            provisioned.memberId(),
                             provisioned.accountId(),
                             provisioned.email(),
                             provisioned.firstName(),
-                            provisioned.lastName()));
+                            provisioned.lastName(),
+                            provisioned.linkPending()));
         } catch (ProvisionException ignored) {
             throw MemberRefusal.MEMBER_NOT_PROVISIONED.raise();
         }
@@ -310,11 +313,22 @@ public class MemberRoutes implements Routes {
     public record ResetPasswordRequest(Integer accountId, Boolean forceChange) {}
 
     /**
-     * The account an invitation provisioned.
+     * The member an invitation provisioned.
      *
-     * @param email its address, or null for a member reached through their guardians
+     * @param memberId    the member at the station
+     * @param id          its account, or null while the member waits for the owner of an existing
+     *                    account to link it
+     * @param email       its address, or null for a member reached through their guardians
+     * @param linkPending whether the address belongs to an existing account whose owner was asked to
+     *                    link it, which the member waits for
      */
-    public record MemberInviteResponse(int id, @Nullable String email, String firstName, String lastName) {}
+    public record MemberInviteResponse(
+            int memberId,
+            @Nullable Integer id,
+            @Nullable String email,
+            String firstName,
+            String lastName,
+            boolean linkPending) {}
 
     public record AccountActionRequest(Integer accountId) {}
 

@@ -14,6 +14,7 @@ import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.service.AccountInviteService;
 import dev.chojo.ember.feature.account.service.AuthService;
+import dev.chojo.ember.feature.accountlink.service.TestAccountLinks;
 import dev.chojo.ember.feature.documents.service.DocumentCatalogService;
 import dev.chojo.ember.feature.documents.service.DocumentService;
 import dev.chojo.ember.feature.members.entity.FieldOrigin;
@@ -64,7 +65,8 @@ class ClusterMemberManagementServiceTest extends RepositoryTestBase {
                 new StationMemberInviteService(
                         stationMemberRepo,
                         newGroupMemberships(),
-                        new AccountInviteService(accountRepo, mock(AuthService.class))),
+                        new AccountInviteService(accountRepo, mock(AuthService.class)),
+                        TestAccountLinks.service(accountRepo, stationRepo, stationMemberRepo)),
                 new UserTypeChangeService(stationMemberRepo, newGroupMemberships()),
                 memberDocumentRepo,
                 documentService(),

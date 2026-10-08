@@ -64901,8 +64901,11 @@ export interface components {
             email: string | null;
             firstName: string;
             /** Format: int32 */
-            id: number;
+            id: number | null;
             lastName: string;
+            linkPending: boolean;
+            /** Format: int32 */
+            memberId: number;
         };
         MemberListConfig: {
             memberDescriptions?: {
@@ -65443,8 +65446,9 @@ export interface components {
         };
         NewMemberResponse: {
             /** Format: int32 */
-            accountId: number;
+            accountId: number | null;
             email: string | null;
+            linkPending: boolean;
             /** Format: int32 */
             memberId: number;
         };
@@ -66579,10 +66583,11 @@ export interface components {
         ProvisionedMemberResponse: {
             accountCreated: boolean;
             /** Format: int32 */
-            accountId: number;
+            accountId: number | null;
             email: string | null;
             firstName: string;
             lastName: string;
+            linkPending: boolean;
             /** Format: int32 */
             memberId: number;
             membershipCreated: boolean;

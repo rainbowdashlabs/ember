@@ -7,10 +7,14 @@ package dev.chojo.ember.feature.accountlink.service;
 
 import dev.chojo.ember.auth.TokenHasher;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.account.service.AccountInviteService;
+import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.accountlink.repository.AccountLinkRepository;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.mail.service.MailLocaleService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.members.service.GroupMembershipService;
+import dev.chojo.ember.feature.members.service.StationMemberInviteService;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.transfer.ImportedAccountLinks;
 import dev.chojo.ember.feature.system.repository.ApplicationSettingRepository;
@@ -40,6 +44,20 @@ public final class TestAccountLinks {
                 mock(EmailService.class),
                 new MailLocaleService(accounts, new ApplicationSettingRepository()),
                 TokenHasher.forTesting(PEPPER));
+    }
+
+    /**
+     * @return the station's invitations over the real tables, asking through a link service that mails
+     * nothing
+     */
+    public static StationMemberInviteService inviteService(
+            AccountRepository accounts,
+            StationRepository stations,
+            StationMemberRepository members,
+            GroupMembershipService groups,
+            AuthService auth) {
+        return new StationMemberInviteService(
+                members, groups, new AccountInviteService(accounts, auth), service(accounts, stations, members));
     }
 
     /**

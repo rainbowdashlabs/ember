@@ -61733,8 +61733,12 @@
       "MemberInviteResponse" : {
         "type" : "object",
         "properties" : {
-          "id" : {
+          "memberId" : {
             "type" : "integer",
+            "format" : "int32"
+          },
+          "id" : {
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "email" : {
@@ -61745,9 +61749,12 @@
           },
           "lastName" : {
             "type" : "string"
+          },
+          "linkPending" : {
+            "type" : "boolean"
           }
         },
-        "required" : [ "id", "email", "firstName", "lastName" ]
+        "required" : [ "memberId", "id", "email", "firstName", "lastName", "linkPending" ]
       },
       "MemberListConfig" : {
         "type" : "object",
@@ -63327,14 +63334,17 @@
             "format" : "int32"
           },
           "accountId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "email" : {
             "type" : [ "string", "null" ]
+          },
+          "linkPending" : {
+            "type" : "boolean"
           }
         },
-        "required" : [ "memberId", "accountId", "email" ]
+        "required" : [ "memberId", "accountId", "email", "linkPending" ]
       },
       "NewsAttachment" : {
         "type" : "object",
@@ -66694,7 +66704,7 @@
             "format" : "int32"
           },
           "accountId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
           },
           "email" : {
@@ -66714,9 +66724,12 @@
           },
           "membershipCreated" : {
             "type" : "boolean"
+          },
+          "linkPending" : {
+            "type" : "boolean"
           }
         },
-        "required" : [ "memberId", "accountId", "email", "firstName", "lastName", "userType", "accountCreated", "membershipCreated" ]
+        "required" : [ "memberId", "accountId", "email", "firstName", "lastName", "userType", "accountCreated", "membershipCreated", "linkPending" ]
       },
       "PruneRequest" : {
         "type" : "object",

@@ -22,6 +22,7 @@ import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.GroupMembershipService;
+import dev.chojo.ember.feature.members.service.StationMemberInviteService;
 import dev.chojo.ember.feature.members.service.UserTypeChangeService;
 import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
@@ -85,7 +86,7 @@ public class WaitingListService implements TaskSource {
     private final AccountRepository accountRepository;
     private final EmailService emailService;
     private final Notifier notifier;
-    private final AccountInviteService accountInviteService;
+    private final StationMemberInviteService inviteService;
     private final WaitlistInvitationMessage invitationMessage;
     private final DomainEventBus eventBus;
     private final DocumentService documentService;
@@ -100,7 +101,7 @@ public class WaitingListService implements TaskSource {
             AccountRepository accountRepository,
             EmailService emailService,
             Notifier notifier,
-            AccountInviteService accountInviteService,
+            StationMemberInviteService inviteService,
             WaitlistInvitationMessage invitationMessage,
             DomainEventBus eventBus,
             DocumentService documentService) {
@@ -112,7 +113,7 @@ public class WaitingListService implements TaskSource {
         this.accountRepository = accountRepository;
         this.emailService = emailService;
         this.notifier = notifier;
-        this.accountInviteService = accountInviteService;
+        this.inviteService = inviteService;
         this.invitationMessage = invitationMessage;
         this.eventBus = eventBus;
         this.documentService = documentService;
@@ -1252,7 +1253,8 @@ public class WaitingListService implements TaskSource {
      *
      * <p>On a list that writes to nobody the account is made without its setup mail. The account
      * stands either way, and the link that claims it is minted by hand from the member list, at a
-     * moment somebody is there to pass it on.
+     * moment somebody is there to pass it on. A guardian whose address already belongs to an account
+     * here is asked to link it instead, since anybody filling in the list may type any address.
      */
     private void createGuardianAccounts(WaitingListEntry entry, int memberId, WaitingList list) {
         int stationId = list.stationId();
@@ -1282,20 +1284,15 @@ public class WaitingListService implements TaskSource {
                 continue;
             }
 
-            AccountInviteService.Invited invited;
+            StationMember member;
             try {
-                invited = address.isBlank()
-                        ? accountInviteService.createWithoutAddress(
-                                stationId, guardian.firstname(), guardian.lastname())
-                        : accountInviteService.resolveOrCreate(
-                                stationId, address, guardian.firstname(), guardian.lastname(), setupMail);
+                member = inviteService.newMember(
+                        stationId, address, guardian.firstname(), guardian.lastname(), setupMail, null);
             } catch (AccountInviteService.EmailInUseException e) {
                 log.warn("Guardian of member {} was not taken on: {} is somebody else's", memberId, address);
                 continue;
             }
 
-            var member =
-                    stationMemberRepository.create(stationId, invited.account().id());
             stationMemberRepository.setUserType(member.id(), StationUserType.GUARDIAN);
             loginRole.ifPresent(role -> stationMemberRepository.grantPermission(member.id(), role.id()));
             guardianRole.ifPresent(role -> stationMemberRepository.grantPermission(member.id(), role.id()));

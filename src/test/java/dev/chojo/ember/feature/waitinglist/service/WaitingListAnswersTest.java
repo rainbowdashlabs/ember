@@ -7,8 +7,8 @@ package dev.chojo.ember.feature.waitinglist.service;
 
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
-import dev.chojo.ember.feature.account.service.AccountInviteService;
 import dev.chojo.ember.feature.account.service.AuthService;
+import dev.chojo.ember.feature.accountlink.service.TestAccountLinks;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.members.service.UserTypeChangeService;
 import dev.chojo.ember.feature.notifications.service.Notifier;
@@ -66,7 +66,8 @@ class WaitingListAnswersTest extends RepositoryTestBase {
                 accountRepo,
                 emailService,
                 mock(Notifier.class),
-                new AccountInviteService(accountRepo, mock(AuthService.class)),
+                TestAccountLinks.inviteService(
+                        accountRepo, stationRepo, stationMemberRepo, newGroupMemberships(), mock(AuthService.class)),
                 new WaitlistInvitationMessage(eventRepo, eventFieldRepo, emailService),
                 new DomainEventBus(Set.of()),
                 newDocumentService());

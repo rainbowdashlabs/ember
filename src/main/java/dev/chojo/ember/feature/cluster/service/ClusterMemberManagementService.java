@@ -104,8 +104,8 @@ public class ClusterMemberManagementService {
      *
      * <p>The station is named first and is part of the request rather than of the session, because a member
      * belongs to a station and the cluster is standing in for one. Everything after that is what the
-     * station's own screen does, through the same service: an account is provisioned or an existing one is
-     * attached, and the membership is made at the named station.
+     * station's own screen does, through the same service: an account is provisioned, or the owner of an
+     * existing one is asked to link it, and the membership is made at the named station.
      *
      * <p>Somebody who is not meant to sign in gets an address nobody can receive mail at, which is how the
      * station's own screen records a member without a login and what the rest of the system reads as one.
@@ -129,7 +129,7 @@ public class ClusterMemberManagementService {
         String address = email != null && !email.isBlank() ? email.trim() : null;
 
         var provisioned = inviteService.provision(
-                station.id(), address, firstName.trim(), lastName.trim(), userType, null, SetupMail.SEND_NOW);
+                station.id(), address, firstName.trim(), lastName.trim(), userType, null, SetupMail.SEND_NOW, null);
         log.info("Cluster {} took on member {} at station {}", clusterId, provisioned.memberId(), station.id());
         return provisioned;
     }

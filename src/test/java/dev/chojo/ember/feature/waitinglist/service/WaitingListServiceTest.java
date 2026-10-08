@@ -12,8 +12,8 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.api.refusal.WaitingListRefusal;
 import dev.chojo.ember.event.DomainEventBus;
-import dev.chojo.ember.feature.account.service.AccountInviteService;
 import dev.chojo.ember.feature.account.service.AuthService;
+import dev.chojo.ember.feature.accountlink.service.TestAccountLinks;
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
 import dev.chojo.ember.feature.documents.entity.Uploader;
 import dev.chojo.ember.feature.events.entity.StationEvent;
@@ -103,7 +103,8 @@ class WaitingListServiceTest extends RepositoryTestBase {
                 accountRepo,
                 emailService,
                 notificationService,
-                new AccountInviteService(accountRepo, authService),
+                TestAccountLinks.inviteService(
+                        accountRepo, stationRepo, stationMemberRepo, newGroupMemberships(), authService),
                 new WaitlistInvitationMessage(eventRepo, eventFieldRepo, emailService),
                 new DomainEventBus(Set.of()),
                 newDocumentService());

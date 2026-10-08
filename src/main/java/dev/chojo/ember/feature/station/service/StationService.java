@@ -558,7 +558,7 @@ public class StationService {
                 .findPermissionByName(StationPermission.STATION_ADMINISTRATOR)
                 .orElseThrow(() -> new IllegalStateException("manager role not found"));
 
-        var provisioned = inviteService.provision(
+        var provisioned = inviteService.provisionAttached(
                 stationId, managerEmail, "", "", StationUserType.MANAGER, null, SetupMail.SEND_NOW);
         int memberId = provisioned.memberId();
 
