@@ -177,6 +177,14 @@ class EmailQueueRepositoryTest extends RepositoryTestBase {
         assertEquals(1, emailQueueRepo.stationViaInstanceDailyCount(today, station.id(), null), "across all of them");
         assertEquals(0, emailQueueRepo.stationViaInstanceDailyCount(today, station.id(), 0), "another provider");
         assertEquals(1, emailQueueRepo.ownProviderDailyCount(today, station.id(), 0), "only the mail its own carried");
+        var use = emailQueueRepo.stationPoolUse(today).stream()
+                .filter(entry -> entry.stationUid().equals(station.uid()))
+                .toList();
+        assertEquals(1, use.size(), "the station used one instance provider");
+        assertEquals(1, use.getFirst().instancePosition());
+        assertEquals(station.uid(), use.getFirst().stationUid());
+        assertEquals("Email Station", use.getFirst().name());
+        assertEquals(1, use.getFirst().sentToday());
     }
 
     /**

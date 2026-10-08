@@ -5818,6 +5818,51 @@ export default {
         testOk: 'Der {position}. Anbieter hat die Mail an {recipient} angenommen.',
         testFailed: 'Der {position}. Anbieter hat abgelehnt: {error}',
     },
+    instanceMail: {
+        grant: {
+            title: 'Mailanbieter der Instanz',
+            hint: 'Mit dieser Freigabe verschickt die Wache ihre Mails auch über die Anbieter der '
+                + 'Instanz, nach ihren eigenen. Die Mails kommen von der Adresse der Instanz, mit dem '
+                + 'Namen der Wache als Absender.',
+            toggle: 'Anbieter der Instanz freigeben',
+            dailyLimit: 'Tageslimit der Wache',
+            dailyLimitHint: 'So viele Mails darf die Wache am Tag über die Instanz verschicken. Leer '
+                + 'heißt kein eigenes Limit, der Anteil aller Wachen gilt trotzdem.',
+            noLimit: 'Kein eigenes Limit',
+            sentToday: 'Heute über die Instanz verschickt: {count}',
+        },
+        stations: {
+            title: 'Wachen mit den Anbietern der Instanz',
+            hint: 'Hier werden mehrere Wachen auf einmal freigegeben oder ihnen die Freigabe entzogen. '
+                + 'Eine einzelne Wache lässt sich auch auf ihrer Seite unter Wachen einstellen.',
+            colName: 'Wache',
+            colGranted: 'Freigabe',
+            colDailyLimit: 'Tageslimit',
+            colSentToday: 'Heute verschickt',
+            granted: 'Freigegeben',
+            notGranted: 'Nicht freigegeben',
+            select: '{name} auswählen',
+            noLimit: 'Kein eigenes Limit',
+            none: 'Es gibt noch keine Wachen.',
+            dailyLimit: 'Tageslimit je Wache',
+            dailyLimitHint: 'Gilt für jede ausgewählte Wache, die freigegeben wird. Leer heißt kein '
+                + 'eigenes Limit.',
+            grant: '{count} freigeben',
+            withdraw: '{count} entziehen',
+        },
+        pool: {
+            overview: 'Alle freigegebenen Wachen zusammen dürfen {share} % vom Tageslimit jedes '
+                + 'Anbieters nutzen. Freigegeben sind {count} Wache(n).',
+            noLimitWarning: 'Ohne Tageslimit hält ein Anbieter nichts für die Mails der Instanz frei: '
+                + '{providers}. Trage dort ein Tageslimit ein, damit der Anteil der Wachen greift.',
+            sentOfLimit: 'Wachen heute: {sent} von {limit}',
+            sentNoLimit: 'Wachen heute: {sent}, ohne Anteil, weil der Anbieter kein Tageslimit hat',
+            stations: 'Davon: {stations}',
+            station: '{name} {count}',
+            instanceBadge: 'Instanz',
+            sentByStation: '{sent} Mails dieser Wache heute',
+        },
+    },
     adminSettings: {
         title: 'Einstellungen',
         stationRegistration: 'Wachenregistrierung',
@@ -5862,6 +5907,10 @@ export default {
             instanceTitle: 'Einstellungen der Instanz',
             digestInterval: 'Benachrichtigungsintervall (Minuten)',
             digestIntervalHint: 'Mindestabstand in Minuten zwischen zwei Sammelmails an dieselbe Wache. 0 schaltet die Sammelmail ab. Gilt erst nach einem Neustart.',
+            stationShare: 'Anteil der Wachen (Prozent)',
+            stationShareHint: 'So viel vom Tageslimit jedes Anbieters dürfen alle freigegebenen Wachen '
+                + 'zusammen nutzen. Der Rest bleibt für die Mails der Instanz frei. Bei einem Anbieter '
+                + 'ohne Tageslimit gilt nur das Limit der einzelnen Wache.',
             clear: 'Alle Anbieter entfernen',
             clearConfirm: 'Die Anbieterliste der Instanz wird vollständig geleert. Bis ein neuer '
                 + 'Anbieter eingetragen ist, bleibt jede Mail liegen. Fortfahren?',

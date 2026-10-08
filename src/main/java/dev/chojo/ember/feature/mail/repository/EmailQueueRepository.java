@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.mail.repository;
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import dev.chojo.ember.feature.mail.entity.EmailQueueStatus;
 import dev.chojo.ember.feature.mail.entity.MailDeliveryStatus;
+import dev.chojo.ember.feature.mail.entity.StationPoolUse;
 import dev.chojo.ember.util.sql.WhereBuilder;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -23,6 +24,7 @@ import java.util.Optional;
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
+import static de.chojo.sadu.queries.converter.StandardValueConverter.UUID_STRING;
 import static dev.chojo.ember.util.sql.SqlSupport.count;
 
 /**
@@ -336,6 +338,36 @@ public class EmailQueueRepository {
                         .bind("day_end", day.plusDays(1))
                         .bind("station_id", stationId)
                         .bind("position", instancePosition));
+    }
+
+    /**
+     * Which stations the instance's providers sent mail for on the given day, and how much, per
+     * provider.
+     *
+     * @param day the day to count
+     */
+    public List<StationPoolUse> stationPoolUse(LocalDate day) {
+        return query("""
+                        SELECT
+                            q.instance_position, s.uid, s.name, count(*) AS sent
+                        FROM
+                            email_queue q
+                            JOIN station s ON s.id = q.station_id
+                        WHERE
+                            q.sent_at >= :day_start
+                            AND q.sent_at < :day_end
+                            AND q.instance_position IS NOT NULL
+                        GROUP BY
+                            q.instance_position, s.uid, s.name
+                        ORDER BY
+                            q.instance_position, sent DESC, s.name;""")
+                .single(call().bind("day_start", day).bind("day_end", day.plusDays(1)))
+                .map(row -> new StationPoolUse(
+                        row.getInt("instance_position"),
+                        row.get("uid", UUID_STRING),
+                        row.getString("name"),
+                        row.getInt("sent")))
+                .all();
     }
 
     /**

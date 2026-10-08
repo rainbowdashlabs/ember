@@ -6,8 +6,11 @@
 package dev.chojo.ember.feature.mail.service;
 
 import dev.chojo.ember.feature.mail.entity.EmailQueueStatus;
+import dev.chojo.ember.feature.mail.entity.MailChainEntry;
 import dev.chojo.ember.feature.mail.entity.MailDeliveryStatus;
+import dev.chojo.ember.feature.mail.entity.StationPoolUse;
 import dev.chojo.ember.feature.mail.repository.EmailQueueRepository;
+import dev.chojo.ember.feature.mail.repository.InstanceMailGrantRepository;
 import dev.chojo.ember.feature.mail.repository.MailProviderBlockRepository;
 import dev.chojo.ember.feature.station.entity.MailProviderType;
 import jakarta.inject.Inject;
@@ -15,6 +18,7 @@ import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -39,17 +43,20 @@ public class MailDashboardService {
     private final MailChainService chainService;
     private final MailProviderBlockRepository blockRepository;
     private final MailAllowance allowance;
+    private final InstanceMailGrantRepository grantRepository;
 
     @Inject
     public MailDashboardService(
             EmailQueueRepository queueRepository,
             MailChainService chainService,
             MailProviderBlockRepository blockRepository,
-            MailAllowance allowance) {
+            MailAllowance allowance,
+            InstanceMailGrantRepository grantRepository) {
         this.queueRepository = queueRepository;
         this.chainService = chainService;
         this.blockRepository = blockRepository;
         this.allowance = allowance;
+        this.grantRepository = grantRepository;
     }
 
     /**
@@ -65,6 +72,11 @@ public class MailDashboardService {
      * @param waiting        how many mails sit at this provider right now, which is what says who
      *                       carries the next one
      * @param exhausted      whether its allowance is spent, so the next one is carrying the post
+     * @param viaInstance    whether this is one of the instance's providers at the end of a
+     *                       station's list, whose sent count is then the station's own mail only
+     * @param pool           how the stations' share of it stands, for every provider of the
+     *                       instance's list and for the instance's providers in a station's list;
+     *                       null for a station's own provider
      */
     public record ProviderStanding(
             int position,
@@ -74,12 +86,34 @@ public class MailDashboardService {
             int dailySendLimit,
             int sentToday,
             int waiting,
-            boolean exhausted) {}
+            boolean exhausted,
+            boolean viaInstance,
+            @Nullable PoolStanding pool) {}
+
+    /**
+     * How the stations' share of one of the instance's providers stands today.
+     *
+     * @param limit     what all stations together may send through it today, or null where the
+     *                  provider has no daily limit to take a share of and only each station's own
+     *                  limit applies
+     * @param sentToday what all stations together sent through it today
+     * @param stations  which stations sent through it today and how much; on the instance's
+     *                  overview only, since a station has no business knowing about the others
+     */
+    public record PoolStanding(@Nullable Integer limit, int sentToday, List<StationPoolUse> stations) {}
+
+    /**
+     * How the instance lends its providers to stations, on the instance's overview.
+     *
+     * @param sharePercent    the percentage of each provider's daily limit that stations may use
+     *                        together
+     * @param grantedStations how many stations may send through the instance's providers
+     */
+    public record PoolOverview(int sharePercent, int grantedStations) {}
 
     /**
      * One mail as the overview shows it.
-     */
-    /**
+     *
      * @param reachable whether anything in the list could still carry this one. False on a waiting
      *                  mail means it is not merely queued but stuck: every provider is either
      *                  refused by the receiving domain or out of allowance.
@@ -111,6 +145,8 @@ public class MailDashboardService {
      *                        and put back rather than only counted
      * @param recent          the most recent mails, newest first
      * @param blocks          which provider a receiving domain refuses outright
+     * @param pool            how the instance lends its providers to stations, on the instance's
+     *                        overview only
      */
     public record MailDashboard(
             int pending,
@@ -122,7 +158,8 @@ public class MailDashboardService {
             List<ProviderStanding> providers,
             List<MailRecord> stuckMails,
             List<MailRecord> recent,
-            List<MailProviderBlockRepository.ProviderBlock> blocks) {}
+            List<MailProviderBlockRepository.ProviderBlock> blocks,
+            @Nullable PoolOverview pool) {}
 
     /**
      * Whether any provider could still carry a mail to this address, judged from the standings
@@ -144,6 +181,7 @@ public class MailDashboardService {
         var summary = queueRepository.summary(stationId);
         var chain = stationId == null ? chainService.forInstance() : chainService.forStation(stationId);
         var waiting = queueRepository.pendingByProvider(stationId);
+        var stationUse = stationId == null ? stationUseByProvider() : Map.<Integer, List<StationPoolUse>>of();
 
         List<ProviderStanding> standings = new ArrayList<>();
         for (var entry : chain) {
@@ -155,7 +193,9 @@ public class MailDashboardService {
                     entry.dailySendLimit(),
                     allowance.sentToday(stationId, entry),
                     waiting.getOrDefault(entry.position(), 0),
-                    !allowance.hasRoomToday(stationId, entry)));
+                    !allowance.hasRoomToday(stationId, entry),
+                    stationId != null && entry.isInstanceProvider(),
+                    poolOf(entry, stationUse)));
         }
 
         var blocks = blockRepository.list(stationId);
@@ -179,7 +219,34 @@ public class MailDashboardService {
                 standings,
                 stuckMails,
                 recent,
-                blocks);
+                blocks,
+                stationId == null ? new PoolOverview(allowance.sharePercent(), grantRepository.countGranted()) : null);
+    }
+
+    /**
+     * How the stations' share of a provider stands, or null for a station's own provider.
+     *
+     * @param stationUse what each station sent through each of the instance's providers today, empty
+     *                   on a station's overview
+     */
+    private @Nullable PoolStanding poolOf(MailChainEntry entry, Map<Integer, List<StationPoolUse>> stationUse) {
+        Integer instancePosition = entry.instancePosition();
+        if (instancePosition == null) return null;
+        var limit = allowance.stationPool(entry.dailySendLimit());
+        return new PoolStanding(
+                limit.isPresent() ? limit.getAsInt() : null,
+                allowance.stationShareSentToday(instancePosition),
+                stationUse.getOrDefault(instancePosition, List.of()));
+    }
+
+    private Map<Integer, List<StationPoolUse>> stationUseByProvider() {
+        Map<Integer, List<StationPoolUse>> byProvider = new HashMap<>();
+        for (var use : queueRepository.stationPoolUse(LocalDate.now())) {
+            byProvider
+                    .computeIfAbsent(use.instancePosition(), key -> new ArrayList<>())
+                    .add(use);
+        }
+        return byProvider;
     }
 
     private static List<MailRecord> records(

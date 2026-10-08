@@ -64,7 +64,14 @@ public class MailAllowance {
      * @param dailySendLimit the provider's daily limit, zero for none
      */
     public OptionalInt stationPool(int dailySendLimit) {
-        return stationPool(dailySendLimit, mailing.stationShare());
+        return stationPool(dailySendLimit, sharePercent());
+    }
+
+    /**
+     * The percentage of each instance provider's daily limit that stations may use together.
+     */
+    public int sharePercent() {
+        return mailing.stationShare();
     }
 
     /**

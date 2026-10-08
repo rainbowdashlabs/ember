@@ -13,6 +13,7 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {describeFailure} from '@/util/failure'
 import Spinner from '@/components/feedback/Spinner.vue'
 import StationForm from './adminstationeditview/StationForm.vue'
+import InstanceMailGrantPanel from './adminstationeditview/InstanceMailGrantPanel.vue'
 import type {ManagerDetail} from '@/api/generated/schema'
 import {stations} from '@/api'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
@@ -106,6 +107,8 @@ function goBack() {
         @start-transfer="startTransfer"
         @cancel-transfer="cancelTransfer"
       />
+
+      <InstanceMailGrantPanel v-if="!loading && stationId" :station-uid="stationId"/>
     </div>
   </ViewContent>
 </template>

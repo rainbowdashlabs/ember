@@ -10,6 +10,7 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import InstanceMailPanel from './adminmailingview/InstanceMailPanel.vue'
+import StationGrantsPanel from './adminmailingview/StationGrantsPanel.vue'
 import ClearProvidersModal from '@/components/mail/ClearProvidersModal.vue'
 import MailWebhookPanel from '@/components/mail/MailWebhookPanel.vue'
 import MailProviderFreeTiers from '@/components/mail/MailProviderFreeTiers.vue'
@@ -41,7 +42,7 @@ function mailingFailed(e: unknown): string {
 }
 
 const {config: mailingConfig, loading, failure: configFailure, runWith, reload} = useConfigPanel<MailingConfigResponse>({
-  initial: {notificationDigestIntervalMinutes: 60},
+  initial: {notificationDigestIntervalMinutes: 60, stationShare: 50},
   fetch: () => adminSettings.getMailingConfig(),
   formatError: mailingFailed,
 })
@@ -155,6 +156,8 @@ const {running: clearing, failure: clearFailure, run: clearMailingConfig} = useA
             @clear="showClearModal = true"
             @test-mail="sendTestMail"
         />
+
+        <StationGrantsPanel/>
 
         <MailProviderFreeTiers/>
       </template>
