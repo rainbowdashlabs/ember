@@ -19,12 +19,17 @@ import dev.chojo.ember.conf.file.elements.WebAuthnSettings;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.service.AccountEmailService;
 import dev.chojo.ember.feature.account.service.AuthService;
+import dev.chojo.ember.feature.attendance.service.AttendanceTemplateGuards;
 import dev.chojo.ember.feature.content.entity.CellConfig;
 import dev.chojo.ember.feature.content.entity.ContentCell;
 import dev.chojo.ember.feature.documents.service.DocumentAccessService;
 import dev.chojo.ember.feature.events.entity.AppointmentField;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
+import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
+import dev.chojo.ember.feature.events.service.EventRegistrationFieldService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
+import dev.chojo.ember.feature.events.service.EventTemplateService;
 import dev.chojo.ember.feature.generator.entity.LetterContent;
 import dev.chojo.ember.feature.generator.entity.SignatureRole;
 import dev.chojo.ember.feature.generator.entity.TemplateSigning;
@@ -79,7 +84,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.time.Clock;
-import java.time.DayOfWeek;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Objects;
@@ -88,7 +93,6 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -97,9 +101,10 @@ import static org.mockito.Mockito.when;
 /**
  * The citizens' festival of the demo and its photo consent, seeded through the real services: the consent
  * saves through the checks a manager's template passes and carries its statements, retention and copy
- * setting, the festival lies a few weeks ahead and asks for the consent, and the participants' requests stand
- * at every step, from signed and sealed through confirmed on paper to open, with a guardian asked for each
- * young member. Seeding twice leaves one of each.
+ * setting, it hangs on the festival the event seeder already made a week ahead, which stays open for
+ * registration, and the participants' requests stand at every step, from signed and sealed through confirmed
+ * on paper to open, with a guardian asked for each young member. Nobody is registered twice, a young member
+ * with a guardian is left to register, and seeding twice leaves one of each.
  */
 class DemoPhotoConsentSeederTest extends RepositoryTestBase {
     private static final SignatureRequestRepository requestRepo = new SignatureRequestRepository();
@@ -126,10 +131,29 @@ class DemoPhotoConsentSeederTest extends RepositoryTestBase {
                         userTagRepo,
                         stationRepo)
                 .seed(run);
-        wiring = GeneratorTestBase.wire(run.primaryStation().station());
         clock = new DemoClock(Clock.systemUTC());
+        eventSeeder().seed(run);
+        wiring = GeneratorTestBase.wire(run.primaryStation().station());
         seeder = seeder();
         seeder.seed(run);
+    }
+
+    private static DemoEventSeeder eventSeeder() {
+        var events = newEventServices(new DomainEventBus(Set.of()));
+        return new DemoEventSeeder(
+                eventCategoryRepo,
+                eventRegistrationRepo,
+                eventFieldRepo,
+                attendanceRepo,
+                events.crud(),
+                new EventTemplateService(
+                        new EventTemplateRepository(),
+                        attendanceRepo,
+                        memberEligibility,
+                        new AttendanceTemplateGuards(attendanceRepo)),
+                events.restriction(),
+                new EventRegistrationFieldService(new EventRegistrationFieldRepository(), memberEligibility),
+                clock);
     }
 
     private static DemoPhotoConsentSeeder seeder() {
@@ -210,9 +234,6 @@ class DemoPhotoConsentSeederTest extends RepositoryTestBase {
                 RequirementSignatures.NONE);
         return new DemoPhotoConsentSeeder(
                 wiring.templates(),
-                newEventServices(new DomainEventBus(Set.of())).crud(),
-                eventCategoryRepo,
-                eventFieldRepo,
                 eventRegistrationRepo,
                 requirements,
                 appointments,
@@ -220,8 +241,7 @@ class DemoPhotoConsentSeederTest extends RepositoryTestBase {
                 fields,
                 acts,
                 stationMemberRepo,
-                new DemoSessions(accountRepo, stationMemberRepo, memberPermissionResolver),
-                clock);
+                new DemoSessions(accountRepo, stationMemberRepo, memberPermissionResolver));
     }
 
     private static AuthService authService() {
@@ -251,12 +271,23 @@ class DemoPhotoConsentSeederTest extends RepositoryTestBase {
     }
 
     @Test
-    void onlyTheStationRunningTheFestivalHasTheConsent() {
+    void onlyTheFirstStationsFestivalAsksForTheConsent() {
         assertEquals(1, consents(run.primaryStation()).size());
         for (var station : run.stations().subList(1, run.stations().size())) {
             assertTrue(consents(station).isEmpty(), station.profile().name());
-            assertTrue(festivals(station).isEmpty(), station.profile().name());
+            var festival = station.events().buergerfest().event();
+            assertTrue(
+                    requirementRepo.forEvent(festival.id()).isEmpty(),
+                    station.profile().name());
         }
+    }
+
+    @Test
+    void theConsentHangsOnTheFestivalTheEventsAlreadyHave() {
+        var station = run.primaryStation();
+
+        assertEquals(1, festivals(station).size(), "no second festival is created");
+        assertEquals(station.events().buergerfest().event().id(), festival().id());
     }
 
     @Test
@@ -267,6 +298,39 @@ class DemoPhotoConsentSeederTest extends RepositoryTestBase {
         assertEquals(1, consents(station).size());
         assertEquals(1, festivals(station).size());
         assertEquals(5, requestsOf(festival()).size());
+    }
+
+    @Test
+    void eachParticipantHoldsOneRegistrationOnTheFestivalDay() {
+        var registrations = eventRegistrationRepo.findByEventAndDate(festival().id(), festivalDay());
+        var participants = seeder.participants(members());
+
+        for (var participant : participants) {
+            assertEquals(
+                    1,
+                    registrations.stream()
+                            .filter(registration -> registration.memberId() == participant.memberId())
+                            .count(),
+                    "member " + participant.memberId());
+        }
+        assertEquals(
+                registrations.size(),
+                registrations.stream()
+                        .map(registration -> registration.memberId())
+                        .distinct()
+                        .count());
+    }
+
+    @Test
+    void aYoungMemberWithAGuardianIsLeftToRegister() {
+        var ben = DemoPhotoConsentSeeder.unregistered(members());
+
+        assertFalse(stationMemberRepo.findManagers(ben.id()).isEmpty(), "he has a guardian");
+        assertFalse(eventRegistrationRepo
+                .findRegisteredMemberIds(festival().id(), festivalDay())
+                .contains(ben.id()));
+        assertFalse(
+                seeder.participants(members()).stream().anyMatch(participant -> participant.memberId() == ben.id()));
     }
 
     @Test
@@ -299,19 +363,18 @@ class DemoPhotoConsentSeederTest extends RepositoryTestBase {
     }
 
     @Test
-    void theFestivalLiesAFewWeeksAheadAndAsksForTheConsent() {
+    void theFestivalLiesAWeekAheadStaysOpenAndAsksForTheConsent() {
         var festival = festival();
         LocalDate today = clock.of(run.primaryStation().station()).today();
         LocalDate day = festivalDay();
 
-        assertTrue(
-                day.isAfter(today.plusWeeks(DemoPhotoConsentSeeder.WEEKS_AHEAD).minusDays(1)), day.toString());
-        assertTrue(day.isBefore(today.plusWeeks(DemoPhotoConsentSeeder.WEEKS_AHEAD + 1)), day.toString());
-        assertEquals(DayOfWeek.SATURDAY, day.getDayOfWeek());
+        assertEquals(today.plusWeeks(1), day);
         assertTrue(festival.requiresRegistration());
-        assertNotNull(festival.description());
+        assertTrue(
+                Objects.requireNonNull(festival.registrationDeadline()).isAfter(Instant.now()),
+                "registration is still open");
         assertEquals(
-                DemoPhotoConsentSeeder.PLACE,
+                DemoEventSeeder.BUERGERFEST_PLACE,
                 AppointmentField.firstLocation(eventFieldRepo.findByEventOn(festival.id(), day)));
         assertEquals(
                 List.of(consentId()),
@@ -391,8 +454,8 @@ class DemoPhotoConsentSeederTest extends RepositoryTestBase {
         var mia = members().fortgeschritten().getFirst();
         var text = wiring.textOf(Objects.requireNonNull(requestFor(mia).documentId()));
 
-        assertTrue(text.contains(DemoPhotoConsentSeeder.FESTIVAL), text);
-        assertTrue(text.contains(DemoPhotoConsentSeeder.PLACE), text);
+        assertTrue(text.contains(DemoEventSeeder.BUERGERFEST), text);
+        assertTrue(text.contains(DemoEventSeeder.BUERGERFEST_PLACE), text);
         assertTrue(text.contains(memberNameResolver.official(mia.id())), text);
         assertTrue(text.contains(memberNameResolver.official(guardianOf(mia).id())), text);
         assertTrue(text.contains("jederzeit mit Wirkung für die Zukunft widerrufen"), text);
@@ -431,7 +494,7 @@ class DemoPhotoConsentSeederTest extends RepositoryTestBase {
 
     private static List<StationEvent> festivals(DemoStationContext station) {
         return eventRepo.findByStation(station.stationId()).stream()
-                .filter(event -> DemoPhotoConsentSeeder.FESTIVAL.equals(event.name()))
+                .filter(event -> DemoEventSeeder.BUERGERFEST.equals(event.name()))
                 .toList();
     }
 
@@ -440,8 +503,7 @@ class DemoPhotoConsentSeederTest extends RepositoryTestBase {
     }
 
     private static LocalDate festivalDay() {
-        return DemoPhotoConsentSeeder.festivalDay(
-                clock.of(run.primaryStation().station()).today());
+        return run.primaryStation().events().buergerfest().day();
     }
 
     private static List<SignatureRequest> requestsOf(StationEvent festival) {

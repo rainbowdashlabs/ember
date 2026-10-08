@@ -25,8 +25,8 @@ import static dev.chojo.ember.feature.system.service.DemoLetterBlocks.text;
 import static dev.chojo.ember.feature.system.service.DemoLetterBlocks.userType;
 
 /**
- * The photo consent the demo's citizens' festival asks every participant to bring: a letter in German that
- * names the appointment, its day, time and place, says which photos and videos are taken there and where
+ * The photo consent the demo's citizens' festival, the {@value DemoEventSeeder#BUERGERFEST}, asks every
+ * participant to bring: a letter in German that names the appointment, its day, time and place, says which photos and videos are taken there and where
  * they are published, and that consenting is voluntary and can be withdrawn at any time for the future.
  *
  * <p>The participant signs it, and so does every guardian of a young member, whose lines and the sentence
@@ -45,17 +45,20 @@ final class DemoPhotoConsentTemplate {
     /** How long signed consents are kept after the member has left: two years. */
     static final int RETENTION_MONTHS = 24;
 
+    /** How the consent names the festival it is for. */
+    private static final String AT_FESTIVAL = "bei der Veranstaltung „" + DemoEventSeeder.BUERGERFEST + "“";
+
     /** What the participant declares. */
-    static final String PARTICIPANT_STATEMENT = "Ich willige in Foto- und Videoaufnahmen beim Bürgerfest ein.";
+    static final String PARTICIPANT_STATEMENT = "Ich willige in Foto- und Videoaufnahmen " + AT_FESTIVAL + " ein.";
 
     /** What each guardian declares. */
-    static final String GUARDIAN_STATEMENT =
-            "Als erziehungsberechtigte Person willige ich in Foto- und Videoaufnahmen meines Kindes beim Bürgerfest ein.";
+    static final String GUARDIAN_STATEMENT = "Als erziehungsberechtigte Person willige ich in Foto- und Videoaufnahmen "
+            + "meines Kindes " + AT_FESTIVAL + " ein.";
 
     /** What the youth warden declares on taking the consent in. */
     static final String ISSUER_STATEMENT = "Ich nehme die Einwilligung für die Jugendfeuerwehr entgegen.";
 
-    private static final String TITLE = "**Einwilligung in Foto- und Videoaufnahmen beim Bürgerfest**";
+    private static final String TITLE = "**Einwilligung in Foto- und Videoaufnahmen " + AT_FESTIVAL + "**";
 
     private static final String APPOINTMENT = """
             Veranstaltung: {{event.name}}\\
@@ -65,8 +68,9 @@ final class DemoPhotoConsentTemplate {
             Teilnehmende Person: {{member.fullName}}""";
 
     private static final String RECORDINGS = """
-            Beim Bürgerfest zeigt die {{station.name}} eine Löschvorführung, betreut die Spritzwand für \
-            Kinder und informiert an ihrem Stand. Dabei entstehen Fotos und kurze Videos von den \
+            Bei der Veranstaltung „{{event.name}}“ am {{event.start|long}} auf dem {{event.location}} zeigt \
+            die {{station.name}} eine Löschvorführung, betreut die Spritzwand für Kinder und informiert an \
+            ihrem Stand. Dabei entstehen Fotos und kurze Videos von den \
             Vorführungen, vom Stand und als Gruppenbilder der Jugendfeuerwehr. Aufgenommen werden sie von \
             den Betreuerinnen und Betreuern der Jugendfeuerwehr und von der örtlichen Presse.""";
 
@@ -76,7 +80,7 @@ final class DemoPhotoConsentTemplate {
             vollständigen Namen genannt.""";
 
     private static final String VOLUNTARY = """
-            Die Einwilligung ist freiwillig. Wer sie nicht erteilt, nimmt trotzdem am Bürgerfest teil. Die \
+            Die Einwilligung ist freiwillig. Wer sie nicht erteilt, nimmt trotzdem an der Veranstaltung teil. Die \
             Jugendfeuerwehr achtet dann darauf, dass die Person auf veröffentlichten Aufnahmen nicht zu \
             erkennen ist.""";
 

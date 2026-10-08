@@ -6,20 +6,13 @@
 package dev.chojo.ember.feature.system.service;
 
 import dev.chojo.ember.api.StationSession;
-import dev.chojo.ember.feature.events.entity.EventCategory;
-import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
-import dev.chojo.ember.feature.events.entity.StationEvent;
-import dev.chojo.ember.feature.events.repository.EventCategoryRepository;
-import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
-import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.generator.service.AppointmentDocumentService;
 import dev.chojo.ember.feature.generator.service.DocumentTemplateService;
 import dev.chojo.ember.feature.generator.service.EventRequirementService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
-import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.signing.entity.FieldRole;
 import dev.chojo.ember.feature.signing.entity.RequestedSignature;
 import dev.chojo.ember.feature.signing.entity.SignatureImageSource;
@@ -35,25 +28,24 @@ import dev.chojo.ember.feature.twofactor.entity.StepUpProof;
 import dev.chojo.ember.owner.Owner;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.time.DayOfWeek;
-import java.time.LocalDate;
-import java.time.temporal.TemporalAdjusters;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
 
 /**
- * The citizens' festival of the demo's first station, a few weeks ahead, and the photo consent it asks every
- * participant to bring, which members and guardians sign online.
+ * The photo consent the citizens' festival of the demo's first station asks every participant to bring, which
+ * members and guardians sign online.
  *
- * <p>The festival takes registrations, and five people are registered for it: four young members, each with
- * a guardian, and one carer. Each of them fetched their copy of the consent from the appointment, the
- * guardians for their children, and the station's administrator asked for the signatures on each. From there
- * the copies stand at every step a station sees:
+ * <p>The festival is the appointment {@link DemoEventSeeder} seeds a week ahead and keeps open for
+ * registration, which is why this seeder runs in a later band. The consent is attached to it as a document to
+ * bring, and five people are registered for it with a copy each: four young members, each with a guardian,
+ * and one carer. Whoever the festival already holds a place for keeps that registration, and the others are
+ * registered as accepted. Each of them fetched their copy of the consent from the appointment, the guardians
+ * for their children, and the station's administrator asked for the signatures on each. From there the
+ * copies stand at every step a station sees:
  *
  * <ul>
  *   <li>Lena Berger's is signed by everybody: by Lena, by her guardian Hans Berger and by the youth warden
@@ -62,6 +54,9 @@ import java.util.function.Predicate;
  *   <li>Lukas Frank's came back on paper, and the administrator confirmed each signature on it;</li>
  *   <li>Mia Berger's and that of the carer Thomas Müller wait for everybody.</li>
  * </ul>
+ *
+ * <p>Ben Frank, a young member whose guardian is Petra Frank, is left unregistered, so registering him shows
+ * the consent waiting to be signed.
  *
  * <p>Everything goes through the services a person's request reaches, in the session of whoever would do it
  * ({@link DemoSessions}): the template is saved as a manager saves one, the copies are fetched from the
@@ -73,21 +68,6 @@ import java.util.function.Predicate;
 @Singleton
 public class DemoPhotoConsentSeeder implements DemoSeeder {
     private static final Logger log = LoggerFactory.getLogger(DemoPhotoConsentSeeder.class);
-
-    /** What the appointment is called. */
-    static final String FESTIVAL = "Bürgerfest";
-
-    /** Where it takes place, which the consent prints. */
-    static final String PLACE = "Marktplatz Musterstadt";
-
-    /** How many weeks ahead of the station's today the festival is held, on the Saturday from then on. */
-    static final int WEEKS_AHEAD = 4;
-
-    private static final String DESCRIPTION = """
-            Die Jugendfeuerwehr ist mit Löschvorführung, Spritzwand für Kinder und Infostand beim Bürgerfest \
-            dabei. Wer mitmacht, bringt die unterschriebene Fotoerlaubnis mit oder unterschreibt sie online.""";
-
-    private static final String CATEGORY = "Öffentlichkeitsarbeit";
 
     private static final SigningCircumstances DEMO_BROWSER = new SigningCircumstances(null, "Ember demo");
 
@@ -125,9 +105,6 @@ public class DemoPhotoConsentSeeder implements DemoSeeder {
     record Participant(int memberId, int fetchedBy, Progress progress) {}
 
     private final DocumentTemplateService templates;
-    private final EventCrudService events;
-    private final EventCategoryRepository categories;
-    private final EventFieldRepository fields;
     private final EventRegistrationRepository registrations;
     private final EventRequirementService requirements;
     private final AppointmentDocumentService appointments;
@@ -136,14 +113,10 @@ public class DemoPhotoConsentSeeder implements DemoSeeder {
     private final SigningActService acts;
     private final StationMemberRepository stationMembers;
     private final DemoSessions sessions;
-    private final DemoClock clock;
 
     @Inject
     public DemoPhotoConsentSeeder(
             DocumentTemplateService templates,
-            EventCrudService events,
-            EventCategoryRepository categories,
-            EventFieldRepository fields,
             EventRegistrationRepository registrations,
             EventRequirementService requirements,
             AppointmentDocumentService appointments,
@@ -151,12 +124,8 @@ public class DemoPhotoConsentSeeder implements DemoSeeder {
             SignatureFieldService signatureFields,
             SigningActService acts,
             StationMemberRepository stationMembers,
-            DemoSessions sessions,
-            DemoClock clock) {
+            DemoSessions sessions) {
         this.templates = templates;
-        this.events = events;
-        this.categories = categories;
-        this.fields = fields;
         this.registrations = registrations;
         this.requirements = requirements;
         this.appointments = appointments;
@@ -165,7 +134,6 @@ public class DemoPhotoConsentSeeder implements DemoSeeder {
         this.acts = acts;
         this.stationMembers = stationMembers;
         this.sessions = sessions;
-        this.clock = clock;
     }
 
     @Override
@@ -186,30 +154,25 @@ public class DemoPhotoConsentSeeder implements DemoSeeder {
         int consent = templates
                 .create(owner, DemoPhotoConsentTemplate.request(warden.id()), author)
                 .id();
-        LocalDate day = festivalDay(clock.of(station.station()).today());
-        var festival = festival(station, day);
-        requirements.setForEvent(owner, festival.id(), List.of(consent));
+        var festival = station.events().buergerfest();
+        requirements.setForEvent(owner, festival.event().id(), List.of(consent));
         var manager = sessions.of(station.station(), station.adminMember().id());
         for (var participant : participants(station.members())) {
-            registrations.create(festival.id(), participant.memberId(), day, RegistrationStatus.ACCEPTED, null);
+            register(festival, participant.memberId());
             var copy = appointments.generate(
                     sessions.of(station.station(), participant.fetchedBy()),
-                    festival,
-                    day,
+                    festival.event(),
+                    festival.day(),
                     consent,
                     participant.memberId());
             var request = signatures.request(manager, copy.generationId());
             settle(station.station(), manager, request, participant.progress());
         }
-        log.info("Demo: Created the {} on {} with its photo consent at station {}", FESTIVAL, day, station.stationId());
-    }
-
-    /**
-     * @param today the station's today
-     * @return the day of the festival: the first Saturday {@link #WEEKS_AHEAD} weeks from today on
-     */
-    static LocalDate festivalDay(LocalDate today) {
-        return today.plusWeeks(WEEKS_AHEAD).with(TemporalAdjusters.nextOrSame(DayOfWeek.SATURDAY));
+        log.info(
+                "Demo: Attached the photo consent to {} on {} at station {}",
+                festival.event().name(),
+                festival.day(),
+                station.stationId());
     }
 
     /**
@@ -228,51 +191,26 @@ public class DemoPhotoConsentSeeder implements DemoSeeder {
                 new Participant(carer.id(), carer.id(), Progress.OPEN));
     }
 
+    /**
+     * The young member left unregistered for the festival, so registering them shows the consent to sign.
+     *
+     * @param members the members the member band seeded at the station
+     * @return the member
+     */
+    static StationMember unregistered(DemoMemberSeeder.SeedResult members) {
+        return members.fortgeschritten().get(1);
+    }
+
     private Participant child(StationMember child, Progress progress) {
         int guardian = stationMembers.findManagers(child.id()).getFirst().id();
         return new Participant(child.id(), guardian, progress);
     }
 
-    private StationEvent festival(DemoStationContext station, LocalDate day) {
-        var days = clock.of(station.station());
-        var festival = events.create(
-                station.stationId(),
-                FESTIVAL,
-                DESCRIPTION,
-                StationEvent.EventType.ONE_TIME,
-                null,
-                days.at(day, 11, 0),
-                days.at(day, 18, 0),
-                null,
-                true,
-                days.at(day.minusWeeks(1), 23, 59),
-                false,
-                category(station.stationId()),
-                null,
-                null,
-                null,
-                null);
-        fields.create(
-                festival.id(), "Ort", FieldType.LOCATION, EventQuestionSettings.empty(), PLACE, 0, true, null, true);
-        fields.create(
-                festival.id(),
-                "Treffpunkt",
-                FieldType.TEXT,
-                EventQuestionSettings.empty(),
-                "Feuerwehrgerätehaus 10:00",
-                1,
-                true,
-                null,
-                true);
-        return festival;
-    }
-
-    private @Nullable Integer category(int stationId) {
-        return categories.findByStation(stationId).stream()
-                .filter(category -> CATEGORY.equals(category.name()))
-                .map(EventCategory::id)
-                .findFirst()
-                .orElse(null);
+    /** Holds a place at the festival for the member, keeping a registration the festival already has. */
+    private void register(DemoEventSeeder.Appointment festival, int memberId) {
+        int eventId = festival.event().id();
+        if (registrations.findRegisteredMemberIds(eventId, festival.day()).contains(memberId)) return;
+        registrations.create(eventId, memberId, festival.day(), RegistrationStatus.ACCEPTED, null);
     }
 
     /** Brings one participant's request as far as their consent has come. */
