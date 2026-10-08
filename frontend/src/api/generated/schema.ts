@@ -53364,6 +53364,136 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/signing/generations/{generationId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Who a generated document would ask to sign, or the request already made for it */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    generationId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SignatureAskResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/signing/generations/{generationId}/request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ask for the signatures a generated document's fields call for */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    generationId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SignatureAskResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/signing/open": {
         parameters: {
             query?: never;
@@ -59308,6 +59438,22 @@ export interface components {
             /** Format: int32 */
             pieces: number;
         };
+        AskedFieldResponse: {
+            capacity: components["schemas"]["SignerCapacity"];
+            fieldName: string;
+            role: components["schemas"]["FieldRole"];
+            signerName: string | null;
+            state: components["schemas"]["FieldState"] | null;
+            statement: string;
+        };
+        AskedRequestResponse: {
+            copyAttached: boolean;
+            /** Format: int32 */
+            retentionMonths: number | null;
+            state: components["schemas"]["RequestState"];
+            /** Format: uuid */
+            uid: string;
+        };
         AssigneeRequest: {
             memberIds?: number[];
         };
@@ -61521,6 +61667,7 @@ export interface components {
             name?: string | null;
             page?: components["schemas"]["LetterPage"] | null;
             selfService?: boolean;
+            signing?: components["schemas"]["TemplateSigning"] | null;
             tags?: string[] | null;
             titlePattern?: string | null;
         };
@@ -61550,6 +61697,7 @@ export interface components {
             page: components["schemas"]["LetterPage"];
             pdf: components["schemas"]["PdfOriginal"] | null;
             selfService: boolean;
+            signing: components["schemas"]["TemplateSigning"];
             tags: string[];
             titlePattern: string;
             updatedAt: components["schemas"]["Instant"];
@@ -65871,6 +66019,7 @@ export interface components {
             printText: boolean;
             rect: components["schemas"]["FieldRect"];
             role: components["schemas"]["SignatureRole"] | null;
+            statement: string | null;
             text: string | null;
             withoutLine: boolean;
             wrap: boolean;
@@ -68403,8 +68552,13 @@ export interface components {
             /** Format: int32 */
             waitingListEntries: number;
         };
+        SignatureAskResponse: {
+            fields: components["schemas"]["AskedFieldResponse"][];
+            request: components["schemas"]["AskedRequestResponse"] | null;
+        };
         SignatureConfig: {
             signer?: components["schemas"]["SignatureRole"];
+            statement?: string;
         };
         SignatureConsentRequest: {
             consented?: boolean;
@@ -69289,6 +69443,11 @@ export interface components {
             content: string;
             displayName: string;
             optional: boolean;
+        };
+        TemplateSigning: {
+            copyAttached: boolean;
+            /** Format: int32 */
+            retentionMonths: number | null;
         };
         /** @enum {string} */
         TemplateSort: "LAST_USED" | "NAME" | "CREATED" | "UPDATED";
@@ -70323,6 +70482,8 @@ export type ArtAssignRequest = components['schemas']['ArtAssignRequest'];
 export type ArtMergeRequest = components['schemas']['ArtMergeRequest'];
 export type ArtRequest = components['schemas']['ArtRequest'];
 export type ArtStock = components['schemas']['ArtStock'];
+export type AskedFieldResponse = components['schemas']['AskedFieldResponse'];
+export type AskedRequestResponse = components['schemas']['AskedRequestResponse'];
 export type AssigneeRequest = components['schemas']['AssigneeRequest'];
 export type AssignItemRequest = components['schemas']['AssignItemRequest'];
 export type AssignItemsRequest = components['schemas']['AssignItemsRequest'];
@@ -71580,6 +71741,7 @@ export type SharePartner = components['schemas']['SharePartner'];
 export type ShareScope = components['schemas']['ShareScope'];
 export type ShareSetting = components['schemas']['ShareSetting'];
 export type SidebarCounts = components['schemas']['SidebarCounts'];
+export type SignatureAskResponse = components['schemas']['SignatureAskResponse'];
 export type SignatureConfig = components['schemas']['SignatureConfig'];
 export type SignatureConsentRequest = components['schemas']['SignatureConsentRequest'];
 export type SignatureImageSource = components['schemas']['SignatureImageSource'];
@@ -71704,6 +71866,7 @@ export type TemplatePage = components['schemas']['TemplatePage'];
 export type TemplateRequest = components['schemas']['TemplateRequest'];
 export type TemplateRestrictions = components['schemas']['TemplateRestrictions'];
 export type TemplateSection = components['schemas']['TemplateSection'];
+export type TemplateSigning = components['schemas']['TemplateSigning'];
 export type TemplateSort = components['schemas']['TemplateSort'];
 export type TemplateUseRequest = components['schemas']['TemplateUseRequest'];
 export type TemplateUseResponse = components['schemas']['TemplateUseResponse'];

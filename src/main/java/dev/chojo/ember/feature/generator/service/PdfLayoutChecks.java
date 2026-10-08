@@ -108,8 +108,9 @@ final class PdfLayoutChecks {
     }
 
     /**
-     * A signature field as it is kept: its signer, whether it draws its line, and its text, which may be
-     * empty and is kept even while it does not print, so switching the printing on brings it back.
+     * A signature field as it is kept: its signer, whether it draws its line, its text, which may be
+     * empty and is kept even while it does not print, so switching the printing on brings it back, and what
+     * its signer confirms, empty for the default statement.
      */
     private static PdfField signature(PdfField field, FieldRect rect, int maxText) {
         var role = field.role();
@@ -127,7 +128,8 @@ final class PdfLayoutChecks {
                 null,
                 FontStyle.REGULAR,
                 field.withoutLine(),
-                field.printText());
+                field.printText(),
+                SignatureStatementChecks.checked(field.statement()));
     }
 
     private static void requireFits(String text, int maxText) {

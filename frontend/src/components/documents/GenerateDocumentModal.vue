@@ -19,6 +19,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import GeneratedPreview from './GeneratedPreview.vue'
 import TemplateChoice from './TemplateChoice.vue'
 import IssuerOverride from './IssuerOverride.vue'
+import SignatureAskStep from './SignatureAskStep.vue'
 import {fromCompletion} from '@/components/input/select/memberOption'
 import {documentTemplates, stationMembers} from '@/api'
 import type {DocumentTemplateSummary, IssuerChoice, PreviewIssuer, PreviewResponse} from '@/api/generated/schema'
@@ -40,6 +41,9 @@ import {showToast} from '@/util/toast'
  *
  * <p>Where the document names its issuer, the template's issuer is shown and another current member of
  * the station can be picked for this one document; the preview follows the choice.
+ *
+ * <p>A filed document with fields to sign leads on to asking for the signatures, which may be skipped and
+ * done later from the list of generated documents; one without closes the dialog.
  */
 const open = defineModel<boolean>({required: true})
 
@@ -82,12 +86,22 @@ const drawing = useAsyncAction(async (id: number, member: number) => {
   if (issuer.value === null) templateIssuer.value = preview.value.issuer ?? null
 })
 
+const filedGeneration = ref<number | null>(null)
+
 const filing = useAsyncAction(async () => {
   if (templateId.value === null || memberId.value === null) return
   const filed = await documentTemplates.generateForMember(templateId.value, memberId.value, issuer.value)
   showToast(t('documentTemplates.generated'), 'success')
   emit('filed', filed.documentId)
+  filedGeneration.value = filed.generationId
+})
+
+function finish() {
   open.value = false
+}
+
+watch(open, isOpen => {
+  if (!isOpen) filedGeneration.value = null
 })
 
 watch([templateId, memberId], ([id, member]) => {
@@ -104,7 +118,8 @@ watchDebounced(issuer, () => {
 
 <template>
   <Modal v-model="open" size="2xl">
-    <div class="space-y-4" data-testid="generate-document-modal">
+    <SignatureAskStep v-if="filedGeneration !== null" :generation-id="filedGeneration" skip-when-none @done="finish"/>
+    <div v-else class="space-y-4" data-testid="generate-document-modal">
       <SubHeader>{{ t('documentTemplates.generateTitle') }}</SubHeader>
       <FailureAlert :failure="loader.failure.value ?? drawing.failure.value ?? filing.failure.value"/>
       <TemplateChoice v-model="chosen" :fixed="NOT_FOR_APPOINTMENTS"/>

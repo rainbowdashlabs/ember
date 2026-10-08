@@ -9,6 +9,7 @@ import {
     type DocumentTemplateRequest,
     type DocumentTemplateResponse,
     type LetterPage,
+    type TemplateSigning,
 } from '@/api/generated/schema'
 import type {RestrictionSelection} from '@/api/types'
 import type {RowEditData} from '@/components/content/blockeditor/EditorRow.vue'
@@ -19,7 +20,17 @@ import {toBlockRequests, toEditRows} from '@/util/blockSwitch'
 type SavedOnly = 'id' | 'version' | 'updatedAt' | 'archivedAt' | 'pdf'
 
 /** The fields the editor holds in a shape of its own rather than as the server sends them. */
-type EditorShaped = 'audience' | 'language' | 'issuerFunction' | 'header' | 'footer' | 'body'
+type EditorShaped = 'audience' | 'language' | 'issuerFunction' | 'header' | 'footer' | 'body' | 'signing'
+
+/**
+ * How many months a new legal template keeps its signed documents after the member has gone, as the
+ * server starts it: four years, which cover the regular limitation period of a claim from the member's
+ * last year.
+ */
+export const LEGAL_RETENTION_MONTHS = 48
+
+/** The longest a template keeps signed documents after the member has gone, as the server allows it. */
+export const MAX_RETENTION_MONTHS = 240
 
 /**
  * A template as the editor holds it while it is written. A letter uses its header, footer and body
@@ -35,6 +46,16 @@ export type TemplateDraft = Omit<DocumentTemplateResponse, SavedOnly | EditorSha
     header: RowEditData[]
     footer: RowEditData[]
     body: RowEditData[]
+    /** How signed documents are kept and sent, or null for what a new template starts with until it is changed. */
+    signing: TemplateSigning | null
+}
+
+/**
+ * @param draft the template in the editor
+ * @returns how its signed documents are kept and sent: as set, or as a new template of its kind starts
+ */
+export function signingOf(draft: TemplateDraft): TemplateSigning {
+    return draft.signing ?? {retentionMonths: draft.legal ? LEGAL_RETENTION_MONTHS : null, copyAttached: false}
 }
 
 /** The page a new template starts with: A4 with the letterhead and footer near the paper's edges, 10 point text. */
@@ -73,6 +94,7 @@ export function emptyDraft(kind: DocumentTemplateKind = DocumentTemplateKind.LET
         page: {...DEFAULT_PAGE},
         fields: [],
         formBindings: [],
+        signing: null,
     }
 }
 
@@ -91,6 +113,7 @@ export function draftOf(template: DocumentTemplateResponse): TemplateDraft {
         page: {...template.page},
         fields: template.fields.map(field => ({...field, rect: {...field.rect}})),
         formBindings: template.formBindings.map(binding => ({...binding})),
+        signing: {...template.signing},
     }
 }
 

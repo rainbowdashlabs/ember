@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.generator.entity.FormBinding;
 import dev.chojo.ember.feature.generator.entity.LetterPage;
 import dev.chojo.ember.feature.generator.entity.PdfField;
 import dev.chojo.ember.feature.generator.entity.SignatureRole;
+import dev.chojo.ember.feature.generator.entity.TemplateSigning;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import org.jspecify.annotations.Nullable;
 import tools.jackson.databind.node.JsonNodeFactory;
@@ -48,6 +49,7 @@ public final class TemplateRequestBuilder {
     private @Nullable LetterPage page;
     private @Nullable List<PdfField> fields;
     private @Nullable List<FormBinding> formBindings;
+    private @Nullable TemplateSigning signing;
 
     private TemplateRequestBuilder(@Nullable String name) {
         this.name = name;
@@ -141,6 +143,14 @@ public final class TemplateRequestBuilder {
         var config = JsonNodeFactory.instance.objectNode();
         if (signer != null) config.put("signer", signer.name());
         return new BlockCellRequest(0, 100.0, CellContentType.SIGNATURE.name(), below, config, audience, null);
+    }
+
+    /** A signature line for the signer, with the text under it and what the signer confirms. */
+    static BlockCellRequest stated(SignatureRole signer, String below, String statement) {
+        var config = JsonNodeFactory.instance.objectNode();
+        config.put("signer", signer.name());
+        config.put("statement", statement);
+        return new BlockCellRequest(0, 100.0, CellContentType.SIGNATURE.name(), below, config, null, null);
     }
 
     /** A line across the column with a label. */
@@ -254,6 +264,11 @@ public final class TemplateRequestBuilder {
         return this;
     }
 
+    TemplateRequestBuilder signing(TemplateSigning signing) {
+        this.signing = signing;
+        return this;
+    }
+
     public DocumentTemplateRequest build() {
         return new DocumentTemplateRequest(
                 kind,
@@ -276,6 +291,7 @@ public final class TemplateRequestBuilder {
                 body,
                 page,
                 fields,
-                formBindings);
+                formBindings,
+                signing);
     }
 }

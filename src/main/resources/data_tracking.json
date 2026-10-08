@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:13ce9c56f873526c8a747156f709edd0dc4560203100078326ef6d9571a9a9ed",
-  "generatedAt": "2026-10-08T16:27:08Z",
+  "schemaHash": "sha256:880d6470d6cc32700bb607ea789812c9eb34ced75eded94b45fa4eaa1a878673",
+  "generatedAt": "2026-10-08T17:01:22Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -7239,7 +7239,7 @@
       "description": "A template turned into a PDF for one member at a time, kept by a station (station_id) or by an association for all its stations (cluster_id). Never deleted, only archived, so every generated document keeps pointing at the template it came from."
     },
     "document_template_field": {
-      "tableHash": "sha256:dce280d592810f68da3e301d3fdd0ff253c8e8c51078854b3f5e2cf38776089d",
+      "tableHash": "sha256:6785d6c15e32bc27b2df3512b867195d45b453aff892871db9a4f948fd41f1ae",
       "columns": [
         {
           "name": "id",
@@ -7366,6 +7366,13 @@
           "nullable": false,
           "verified": true,
           "description": "For SIGNATURE: true where its text is printed under the line; otherwise the text shows in the template editor only. FALSE for every other kind."
+        },
+        {
+          "name": "statement",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "For SIGNATURE: what the signer of this field confirms, shown on the signing screen and bound into the signature. Copied into each signature request when it is made, so a later change of the template never changes what a signer was asked. NULL for the default statement of the field's role in the template's language, and for every other kind."
         }
       ],
       "foreignKeys": [

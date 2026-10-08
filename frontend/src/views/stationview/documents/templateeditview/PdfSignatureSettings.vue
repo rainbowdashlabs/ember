@@ -9,6 +9,7 @@ import LabelledField from '@/components/input/LabelledField.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import ToggleSetting from '@/components/input/toggle/ToggleSetting.vue'
 import SignerSelect from '@/components/documents/SignerSelect.vue'
+import SignatureStatementInput from '@/components/documents/SignatureStatementInput.vue'
 import type {PdfField, Placeholder} from '@/api/generated/schema'
 import PlaceholderPopover from './placeholderpicker/PlaceholderPopover.vue'
 import FieldTextLayout from './FieldTextLayout.vue'
@@ -16,7 +17,8 @@ import {withPlaceholder} from './placeholderText'
 import type {PlaceholderChoice} from './placeholderpicker/placeholderKey'
 
 /**
- * What a signature field on a PDF does: who signs, whether a line is drawn to sign on, and its text.
+ * What a signature field on a PDF does: who signs, whether a line is drawn to sign on, its text, and what
+ * its signer confirms.
  *
  * <p>The line is left out where the PDF already has one. The text names the field in the editor and,
  * where asked to, prints under the line with its placeholders filled in, in the size and alignment set
@@ -54,5 +56,7 @@ function append(choice: PlaceholderChoice) {
                    :hint="t('documentTemplates.signaturePrintTextHint')" data-testid="pdf-signature-print-text"
                    @update:model-value="printText => field = {...field, printText}"/>
     <FieldTextLayout v-if="field.printText" v-model="field"/>
+    <SignatureStatementInput :model-value="field.statement" :role="field.role"
+                             @update:model-value="statement => field = {...field, statement: statement?.trim() ? statement : null}"/>
   </div>
 </template>

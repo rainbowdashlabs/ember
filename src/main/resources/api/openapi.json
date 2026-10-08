@@ -40587,6 +40587,120 @@
         }
       }
     },
+    "/api/v1/signing/generations/{generationId}" : {
+      "get" : {
+        "summary" : "Who a generated document would ask to sign, or the request already made for it",
+        "tags" : [ "Signing" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SignatureAskResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "generationId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/signing/generations/{generationId}/request" : {
+      "post" : {
+        "summary" : "Ask for the signatures a generated document's fields call for",
+        "tags" : [ "Signing" ],
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SignatureAskResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "generationId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
     "/api/v1/signing/open" : {
       "get" : {
         "summary" : "The signature fields waiting for the reader, and for the members in their care",
@@ -45907,6 +46021,54 @@
           }
         },
         "required" : [ "artId", "name", "pieces", "free" ]
+      },
+      "AskedFieldResponse" : {
+        "type" : "object",
+        "properties" : {
+          "fieldName" : {
+            "type" : "string"
+          },
+          "role" : {
+            "$ref" : "#/components/schemas/FieldRole"
+          },
+          "signerName" : {
+            "type" : [ "string", "null" ]
+          },
+          "capacity" : {
+            "$ref" : "#/components/schemas/SignerCapacity"
+          },
+          "statement" : {
+            "type" : "string"
+          },
+          "state" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/FieldState"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "fieldName", "role", "signerName", "capacity", "statement", "state" ]
+      },
+      "AskedRequestResponse" : {
+        "type" : "object",
+        "properties" : {
+          "uid" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "state" : {
+            "$ref" : "#/components/schemas/RequestState"
+          },
+          "retentionMonths" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "copyAttached" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "uid", "state", "retentionMonths", "copyAttached" ]
       },
       "AssignItemRequest" : {
         "type" : "object",
@@ -52395,6 +52557,13 @@
             "items" : {
               "$ref" : "#/components/schemas/FormBinding"
             }
+          },
+          "signing" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/TemplateSigning"
+            }, {
+              "type" : "null"
+            } ]
           }
         }
       },
@@ -52508,9 +52677,12 @@
             }, {
               "type" : "null"
             } ]
+          },
+          "signing" : {
+            "$ref" : "#/components/schemas/TemplateSigning"
           }
         },
-        "required" : [ "id", "name", "kind", "titlePattern", "fileNamePattern", "tags", "hidden", "keepOnArchive", "legal", "forAppointments", "selfService", "cooldownDays", "audience", "language", "issuerId", "issuerFunction", "header", "footer", "body", "page", "pdf", "fields", "formBindings", "version", "updatedAt", "archivedAt" ]
+        "required" : [ "id", "name", "kind", "titlePattern", "fileNamePattern", "tags", "hidden", "keepOnArchive", "legal", "forAppointments", "selfService", "cooldownDays", "audience", "language", "issuerId", "issuerFunction", "header", "footer", "body", "page", "pdf", "fields", "formBindings", "version", "updatedAt", "archivedAt", "signing" ]
       },
       "DocumentTemplateSummary" : {
         "type" : "object",
@@ -64878,9 +65050,12 @@
           },
           "printText" : {
             "type" : "boolean"
+          },
+          "statement" : {
+            "type" : [ "string", "null" ]
           }
         },
-        "required" : [ "kind", "rect", "text", "fontSize", "align", "wrap", "role", "fontFamily", "fontStyle", "withoutLine", "printText" ]
+        "required" : [ "kind", "rect", "text", "fontSize", "align", "wrap", "role", "fontFamily", "fontStyle", "withoutLine", "printText", "statement" ]
       },
       "PdfFieldKind" : {
         "type" : "string",
@@ -72466,11 +72641,33 @@
           }
         }
       },
+      "SignatureAskResponse" : {
+        "type" : "object",
+        "properties" : {
+          "request" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/AskedRequestResponse"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "fields" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/AskedFieldResponse"
+            }
+          }
+        },
+        "required" : [ "request", "fields" ]
+      },
       "SignatureConfig" : {
         "type" : "object",
         "properties" : {
           "signer" : {
             "$ref" : "#/components/schemas/SignatureRole"
+          },
+          "statement" : {
+            "type" : "string"
           }
         }
       },
@@ -74955,6 +75152,19 @@
           }
         },
         "required" : [ "displayName", "content", "optional" ]
+      },
+      "TemplateSigning" : {
+        "type" : "object",
+        "properties" : {
+          "retentionMonths" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "copyAttached" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "retentionMonths", "copyAttached" ]
       },
       "TemplateSort" : {
         "type" : "string",

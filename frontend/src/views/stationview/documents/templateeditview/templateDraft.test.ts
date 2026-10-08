@@ -13,7 +13,7 @@ import {
     StationUserType,
     type DocumentTemplateResponse,
 } from '@/api/generated/schema'
-import {DEFAULT_PAGE, draftOf, emptyDraft, requestOf} from './templateDraft'
+import {DEFAULT_PAGE, LEGAL_RETENTION_MONTHS, draftOf, emptyDraft, requestOf, signingOf} from './templateDraft'
 
 const trialOnly = {userTypes: [StationUserType.TRIAL], groupIds: [], tagIds: [], memberIds: [], mode: 'AND' as const}
 
@@ -54,6 +54,7 @@ const saved: DocumentTemplateResponse = {
     version: 2,
     updatedAt: '2026-10-02T10:00:00Z',
     archivedAt: null,
+    signing: {retentionMonths: 120, copyAttached: true},
 }
 
 describe('template drafts', () => {
@@ -65,6 +66,22 @@ describe('template drafts', () => {
         expect(draft.page).toEqual(DEFAULT_PAGE)
         expect(draft.language).toBeNull()
         expect(draft.body).toEqual([])
+    })
+
+    it('leave how signed documents are kept to the server until it is set, as a template of its kind starts', () => {
+        const draft = emptyDraft()
+
+        expect(draft.signing).toBeNull()
+        expect(requestOf(draft).signing).toBeNull()
+        expect(signingOf(draft)).toEqual({retentionMonths: null, copyAttached: false})
+        expect(signingOf({...draft, legal: true})).toEqual({retentionMonths: LEGAL_RETENTION_MONTHS, copyAttached: false})
+    })
+
+    it('keep how a saved template keeps and sends its signed documents', () => {
+        const draft = draftOf(saved)
+
+        expect(signingOf(draft)).toEqual({retentionMonths: 120, copyAttached: true})
+        expect(requestOf(draft).signing).toEqual({retentionMonths: 120, copyAttached: true})
     })
 
     it('send what was read back unchanged, a block\'s visibility and a row\'s lines included', () => {

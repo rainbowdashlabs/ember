@@ -37,7 +37,8 @@ import java.util.stream.Stream;
  * A row holds at most three columns, at any depth. A picture is the station logo or an image of the
  * station's media library, and the texts of the header and the footer are short.
  *
- * <p>A signature line stands in the body only, names its signer and has a short text under it. Two
+ * <p>A signature line stands in the body only, names its signer, has a short text under it and may say
+ * what its signer confirms, at most {@link SignatureStatementChecks#MAX_STATEMENT} characters. Two
  * lines may name the same signer as alternatives, for members of different audiences; what is refused
  * here is only a pair that every member with some number of guardians would get together. Whether a
  * pair meets in the document of one particular member is checked when it is generated for them.
@@ -155,6 +156,7 @@ public class LetterChecks {
         if (cell.content().length() > MAX_SIGNATURE_TEXT) {
             throw DocumentRefusal.DOCUMENT_TEMPLATE_TEXT_TOO_LONG.raise(RefusalDetail.count(MAX_SIGNATURE_TEXT));
         }
+        SignatureStatementChecks.checked(signature.statement());
     }
 
     private void requirePicture(int stationId, String content) {

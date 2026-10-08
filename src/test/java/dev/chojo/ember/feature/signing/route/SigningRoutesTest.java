@@ -213,7 +213,8 @@ class SigningRoutesTest extends RepositoryTestBase {
                 guardianPolicy,
                 new SignerResolver(stationMemberRepo, memberNameResolver, memberPermissionResolver),
                 guards,
-                mock(SignatureNotices.class));
+                mock(SignatureNotices.class),
+                (template, member, name) -> STATEMENTS);
         var fields = new SignatureFieldService(
                 requestRepo,
                 evidenceRepo,
@@ -1018,7 +1019,7 @@ class SigningRoutesTest extends RepositoryTestBase {
         var names =
                 Stream.of(roles).flatMap(role -> role.fieldNames(1).stream()).toArray(String[]::new);
         var generation = generated(member, names);
-        return requests.request(managing(), generation.id(), STATEMENTS);
+        return requests.request(managing(), generation.id());
     }
 
     private static int fieldOf(SignatureRequest request) {

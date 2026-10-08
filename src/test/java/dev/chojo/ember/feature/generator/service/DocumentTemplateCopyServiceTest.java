@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.generator.entity.FormBinding;
 import dev.chojo.ember.feature.generator.entity.LetterPage;
 import dev.chojo.ember.feature.generator.entity.PdfField;
 import dev.chojo.ember.feature.generator.entity.PdfFieldKind;
+import dev.chojo.ember.feature.generator.entity.TemplateSigning;
 import dev.chojo.ember.feature.generator.entity.TextAlign;
 import dev.chojo.ember.feature.generator.repository.DocumentFontRepository;
 import dev.chojo.ember.feature.generator.repository.DocumentGenerationRepository;
@@ -232,6 +233,7 @@ class DocumentTemplateCopyServiceTest extends RepositoryTestBase {
                 .header(rowsOf("Kopfzeile"))
                 .footer(rowsOf("Fußzeile"))
                 .body(rowsOf("Hiermit wird bescheinigt", "{{member.fullName}}"))
+                .signing(new TemplateSigning(60, true))
                 .build();
         var source = templates.create(north, request, author);
         source = templates.update(north, source.id(), request, author);
@@ -260,6 +262,7 @@ class DocumentTemplateCopyServiceTest extends RepositoryTestBase {
         assertEquals(source.footer(), copy.footer());
         assertEquals(source.body(), copy.body());
         assertEquals(source.page(), copy.page());
+        assertEquals(new TemplateSigning(60, true), copy.signing());
         assertTrue(copied.fontsOutOfReach().isEmpty());
         assertEquals(0, copied.picturesOutOfReach());
         assertEquals("Bescheinigung", templates.detail(north, source.id()).name());

@@ -147,7 +147,8 @@ class SigningStateSealerTest extends RepositoryTestBase {
                 guardianPolicy,
                 new SignerResolver(stationMemberRepo, memberNameResolver, memberPermissionResolver),
                 guards,
-                mock(SignatureNotices.class));
+                mock(SignatureNotices.class),
+                (template, member, name) -> STATEMENTS);
         fields = new SignatureFieldService(
                 requestRepo,
                 evidenceRepo,
@@ -572,7 +573,7 @@ class SigningStateSealerTest extends RepositoryTestBase {
                         false,
                         true),
                 List.of());
-        return requests.request(managing(), generation.id(), STATEMENTS);
+        return requests.request(managing(), generation.id());
     }
 
     private static StoredEvidence sign(SignatureRequest request, StationMember signer, String fieldName) {

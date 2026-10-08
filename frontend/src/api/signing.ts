@@ -6,6 +6,7 @@
 import type {
     OpenSignatureResponse,
     SealVerification,
+    SignatureAskResponse,
     SignatureImageSource,
     SignatureSettingsResponse,
     SignerEntryDraft,
@@ -81,6 +82,28 @@ export async function verifySeals(file: File): Promise<SealVerification> {
  */
 export async function getSigningField(fieldId: number): Promise<OpenSignatureResponse> {
     const res = await client.get<OpenSignatureResponse>(`/signing/fields/${fieldId}`)
+    return res.data
+}
+
+/**
+ * Who a generated document would ask to sign each of its fields and what they confirm, or the request
+ * already made for it with how its fields stand. Looking asks nobody.
+ *
+ * @param generationId the document's entry in the generation log
+ */
+export async function getSignatureAsk(generationId: number): Promise<SignatureAskResponse> {
+    const res = await client.get<SignatureAskResponse>(`/signing/generations/${generationId}`)
+    return res.data
+}
+
+/**
+ * Asks for the signatures a generated document's fields call for. Everybody asked is told, in the app
+ * and by mail.
+ *
+ * @param generationId the document's entry in the generation log
+ */
+export async function requestSignatures(generationId: number): Promise<SignatureAskResponse> {
+    const res = await client.post<SignatureAskResponse>(`/signing/generations/${generationId}/request`)
     return res.data
 }
 

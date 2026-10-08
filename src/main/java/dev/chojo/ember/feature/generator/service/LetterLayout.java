@@ -158,6 +158,31 @@ final class LetterLayout {
         return List.copyOf(layout.signatureFields);
     }
 
+    /**
+     * What the signer of each signature field of a member's letter confirms, where its line says so.
+     *
+     * @param letter the letter
+     * @param view   what of the letter the member sees
+     * @return the statement by the name of the field, without the fields that keep the default statement
+     */
+    static Map<String, String> signatureStatements(LetterContent letter, MemberView view) {
+        var statements = new LinkedHashMap<String, String>();
+        new LetterLayout(view, new Blocks() {
+                    @Override
+                    public Map<String, Object> signature(int index, ContentCell cell, List<String> fields) {
+                        String statement = cell.config() instanceof CellConfig.SignatureConfig signature
+                                ? signature.statement()
+                                : null;
+                        if (statement != null && !statement.isBlank()) {
+                            fields.forEach(field -> statements.putIfAbsent(field, statement.strip()));
+                        }
+                        return Map.of();
+                    }
+                })
+                .letter(letter);
+        return statements;
+    }
+
     private List<Map<String, Object>> rows(List<ContentRow> rows, boolean visible) {
         var out = new ArrayList<Map<String, Object>>();
         for (var row : rows) {

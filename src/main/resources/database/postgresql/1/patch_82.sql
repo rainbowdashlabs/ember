@@ -895,3 +895,9 @@ ALTER TABLE ember_schema.signing_evidence
 
 COMMENT ON COLUMN ember_schema.signing_evidence.mark_image IS
     'The signature picture drawn into the signed field, a transparent PNG as the signer gave it at the act: their saved picture or one drawn on the spot. Every sealed version of the document draws it from here, so a later change of the saved picture never changes an earlier signature. NULL for acts recorded before signature pictures, whose field shows the name and date only.';
+
+ALTER TABLE ember_schema.document_template_field
+    ADD COLUMN statement TEXT NULL CHECK (statement IS NULL OR (kind = 'SIGNATURE' AND length(statement) <= 500));
+
+COMMENT ON COLUMN ember_schema.document_template_field.statement IS
+    'For SIGNATURE: what the signer of this field confirms, shown on the signing screen and bound into the signature. Copied into each signature request when it is made, so a later change of the template never changes what a signer was asked. NULL for the default statement of the field''s role in the template''s language, and for every other kind.';

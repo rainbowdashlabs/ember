@@ -108,6 +108,25 @@ public class SignatureRequestRepository {
                           AND state IN ('OPEN', 'COMPLETE');""", call().bind("generation_id", generationId));
     }
 
+    /**
+     * The request of a generated document that is open or complete, the newest where a correction left
+     * more than one.
+     *
+     * @param generationId the generation log entry
+     * @return the request, or empty where none is
+     */
+    public Optional<SignatureRequest> findLiveFor(int generationId) {
+        return query("""
+                        SELECT %s FROM signing_request
+                        WHERE generation_id = :generation_id
+                          AND state IN ('OPEN', 'COMPLETE')
+                        ORDER BY id DESC
+                        LIMIT 1;""", SignatureRequest.COLUMNS)
+                .single(call().bind("generation_id", generationId))
+                .map(SignatureRequest.map())
+                .first();
+    }
+
     /** @return the fields of a request, in the order they were asked for */
     public List<RequestedSignature> fieldsOf(int requestId) {
         return query("""

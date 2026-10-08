@@ -2023,6 +2023,18 @@ volumes:
             signatureTwiceText: 'Jede Person unterschreibt in einem Dokument höchstens einmal. Zwei Zeilen für '
                 + 'dieselbe Person sind nur als Alternativen möglich, deren Sichtbarkeit sich nie überschneidet. '
                 + 'Trifft beides doch auf ein Mitglied zu, erstellt Ember das Dokument für dieses Mitglied nicht.',
+            signatureStatementText: 'Jede Zeile und jedes Unterschriftsfeld kann eine eigene Erklärung haben, etwa '
+                + '„Ich bin einverstanden, dass mein Kind am Zeltlager teilnimmt." Sie steht beim Unterschreiben über '
+                + 'der Bestätigung und wird mit unterschrieben. Ohne eigene Erklärung gilt die übliche in der Sprache '
+                + 'der Vorlage: Erziehungsberechtigte erklären dabei mit Namen des Mitglieds, dass sie '
+                + 'erziehungsberechtigt sind.',
+            signatureRequestText: 'Erstellen allein bittet niemanden um eine Unterschrift. Nach dem Erstellen zeigt '
+                + 'Ember, wer welches Feld unterschreiben soll, und fordert die Unterschriften auf Knopfdruck an. '
+                + 'Das geht auch später mit einem Klick auf das Dokument in der Liste der erstellten Dokumente.',
+            signatureKeepText: 'Unter „Unterschriften" im Reiter Allgemein legst du fest, wie lange unterschriebene '
+                + 'Dokumente nach dem Austritt aufbewahrt werden und ob die Kopie per E-Mail das PDF enthält. Eine '
+                + 'Anforderung übernimmt diese Einstellungen und die Erklärungen, wenn sie gestellt wird. Spätere '
+                + 'Änderungen der Vorlage gelten nur für neue Anforderungen.',
             pdfTitle: 'PDF und Felder',
             pdfText: 'Eine PDF-Vorlage füllt ein hochgeladenes Formular aus. Speichere die Vorlage, lade das PDF hoch '
                 + 'und setze Felder auf seine Seiten: ein Textfeld schreibt Text mit Platzhaltern, ein Ankreuzfeld setzt '

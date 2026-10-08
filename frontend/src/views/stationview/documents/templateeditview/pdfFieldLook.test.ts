@@ -21,6 +21,7 @@ function field(overrides: Partial<PdfField> = {}): PdfField {
         role: null,
         withoutLine: false,
         printText: false,
+        statement: null,
         ...overrides,
     }
 }

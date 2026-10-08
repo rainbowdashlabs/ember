@@ -56,6 +56,7 @@ export function newField(
         fontStyle: FontStyle.REGULAR,
         withoutLine: false,
         printText: false,
+        statement: null,
     }
 }
 

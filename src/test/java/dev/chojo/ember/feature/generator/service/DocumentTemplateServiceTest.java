@@ -16,11 +16,13 @@ import dev.chojo.ember.feature.content.entity.ContentRow;
 import dev.chojo.ember.feature.content.entity.GuardianCondition;
 import dev.chojo.ember.feature.content.route.BlockCellRequest;
 import dev.chojo.ember.feature.generator.entity.DocumentLanguage;
+import dev.chojo.ember.feature.generator.entity.DocumentTemplate;
 import dev.chojo.ember.feature.generator.entity.LetterContent;
 import dev.chojo.ember.feature.generator.entity.LetterPage;
 import dev.chojo.ember.feature.generator.entity.LetterPart;
 import dev.chojo.ember.feature.generator.entity.Placeholder;
 import dev.chojo.ember.feature.generator.entity.SignatureRole;
+import dev.chojo.ember.feature.generator.entity.TemplateSigning;
 import dev.chojo.ember.feature.generator.repository.DocumentTemplateRepository;
 import dev.chojo.ember.feature.generator.repository.PdfTemplateRepository;
 import dev.chojo.ember.feature.generator.repository.TemplateStationUseRepository;
@@ -53,6 +55,7 @@ import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.r
 import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.rowsOf;
 import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.signature;
 import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.spacer;
+import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.stated;
 import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.text;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -411,6 +414,94 @@ class DocumentTemplateServiceTest extends RepositoryTestBase {
                         authorId));
         assertTrue(service.catalogue(owner).placeholders().stream()
                 .noneMatch(placeholder -> placeholder.key().startsWith("signature.")));
+    }
+
+    /** A signature line keeps what its signer confirms, and a statement longer than one is refused. */
+    @Test
+    void aSignatureLineKeepsWhatItsSignerConfirms() {
+        var stated = service.create(
+                owner,
+                letter("Erklärt")
+                        .body(List.of(row(stated(SignatureRole.PARTICIPANT, "", "Ich nehme teil."))))
+                        .build(),
+                authorId);
+
+        assertEquals(
+                new CellConfig.SignatureConfig(SignatureRole.PARTICIPANT, "Ich nehme teil."),
+                stated.body().getFirst().cells().getFirst().config());
+        refused(
+                DocumentRefusal.DOCUMENT_TEMPLATE_STATEMENT_TOO_LONG,
+                () -> service.create(
+                        owner,
+                        letter("Zu lang erklärt")
+                                .body(List.of(row(stated(
+                                        SignatureRole.PARTICIPANT,
+                                        "",
+                                        "x".repeat(SignatureStatementChecks.MAX_STATEMENT + 1)))))
+                                .build(),
+                        authorId));
+    }
+
+    /**
+     * A new legal template keeps signed documents for four years after the member has gone, any other only
+     * while the member stays, and neither attaches the PDF to a signer's copy. What the editor sends is
+     * kept, a change that leaves it out keeps what the template had, and a period outside 0 to 240 months
+     * is refused.
+     */
+    @Test
+    void signedDocumentsAreKeptAndSentAsTheTemplateSays() {
+        var legal = service.create(owner, letter("Aufbewahrt").legal().build(), authorId);
+        var plain = service.create(owner, letter("Nicht aufbewahrt").build(), authorId);
+
+        assertEquals(new TemplateSigning(DocumentTemplate.LEGAL_SIGNATURE_RETENTION_MONTHS, false), legal.signing());
+        assertEquals(new TemplateSigning(null, false), plain.signing());
+
+        var changed = service.update(
+                owner,
+                legal.id(),
+                letter("Aufbewahrt")
+                        .legal()
+                        .signing(new TemplateSigning(120, true))
+                        .build(),
+                authorId);
+        assertEquals(new TemplateSigning(120, true), changed.signing());
+        assertEquals(
+                new TemplateSigning(120, true),
+                service.update(owner, legal.id(), letter("Aufbewahrt").legal().build(), authorId)
+                        .signing(),
+                "a request without the setting keeps it");
+        assertEquals(
+                new TemplateSigning(null, false),
+                service.update(
+                                owner,
+                                legal.id(),
+                                letter("Aufbewahrt")
+                                        .legal()
+                                        .signing(new TemplateSigning(null, false))
+                                        .build(),
+                                authorId)
+                        .signing());
+        for (int months : new int[] {-1, TemplateSigning.MAX_RETENTION_MONTHS + 1}) {
+            refused(
+                    DocumentRefusal.DOCUMENT_TEMPLATE_RETENTION_OUT_OF_RANGE,
+                    () -> service.update(
+                            owner,
+                            plain.id(),
+                            letter("Nicht aufbewahrt")
+                                    .signing(new TemplateSigning(months, false))
+                                    .build(),
+                            authorId));
+        }
+        assertEquals(
+                new TemplateSigning(TemplateSigning.MAX_RETENTION_MONTHS, false),
+                service.update(
+                                owner,
+                                plain.id(),
+                                letter("Nicht aufbewahrt")
+                                        .signing(new TemplateSigning(TemplateSigning.MAX_RETENTION_MONTHS, false))
+                                        .build(),
+                                authorId)
+                        .signing());
     }
 
     /**

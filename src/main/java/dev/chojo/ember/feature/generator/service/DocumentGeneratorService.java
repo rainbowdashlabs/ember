@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.generator.entity.DocumentIssuer;
 import dev.chojo.ember.feature.generator.entity.DocumentLanguage;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplate;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplateDraft;
+import dev.chojo.ember.feature.generator.entity.FieldStatements;
 import dev.chojo.ember.feature.generator.entity.GenerationContext;
 import dev.chojo.ember.feature.generator.entity.LetterContent;
 import dev.chojo.ember.feature.generator.entity.MemberView;
@@ -234,6 +235,28 @@ public class DocumentGeneratorService {
             };
         }
 
+        /**
+         * @param view what of a letter the member sees
+         * @return what the signer of each signature field of the member's document confirms, by the name of
+         *         the field, for the fields whose line or box says so
+         */
+        public Map<String, String> signatureStatements(MemberView view) {
+            return switch (content) {
+                case LetterContent letter -> LetterLayout.signatureStatements(letter, view);
+                case PdfContent pdf -> {
+                    var statements = new LinkedHashMap<String, String>();
+                    for (var field : pdf.layout().fields()) {
+                        var role = field.role();
+                        String statement = field.statement();
+                        if (role == null || statement == null || statement.isBlank()) continue;
+                        role.fieldNames(view.guardians())
+                                .forEach(name -> statements.putIfAbsent(name, statement.strip()));
+                    }
+                    yield statements;
+                }
+            };
+        }
+
         /** @return the uploaded PDF the document is filled from, or null for a letter */
         public @Nullable Integer pdfOriginalId() {
             if (!(content instanceof PdfContent pdf)) return null;
@@ -341,6 +364,22 @@ public class DocumentGeneratorService {
      */
     public Prepared prepare(DocumentTemplate template, int memberId, GenerationContext context) {
         return prepare(sourceOf(template), memberId, context);
+    }
+
+    /**
+     * What the signers of a member's document from a template confirm, as the template says now. The lines
+     * and boxes are matched to the member as a document drawn now would be: the blocks they see and the
+     * guardians they have.
+     *
+     * @param templateId the template the document came from
+     * @param memberId   the member the document is about
+     * @return the statements, all of them the defaults of their signers in German where the template is gone
+     */
+    public FieldStatements fieldStatements(int templateId, int memberId) {
+        var template = templates.find(templateId).orElse(null);
+        if (template == null) return FieldStatements.defaults(DocumentLanguage.DE);
+        var view = batch(List.of(memberId)).viewOf(memberId);
+        return new FieldStatements(template.language(), sourceOf(template).signatureStatements(view));
     }
 
     /**
@@ -470,10 +509,7 @@ public class DocumentGeneratorService {
          */
         public Prepared prepare(Source source, int memberId, GenerationContext context) {
             int stationId = values.stationOf(memberId).orElseThrow(MemberRefusal.MEMBER_NOT_HERE::raise);
-            var member = audienceOf(memberId);
-            Predicate<RestrictionAudience> audience =
-                    member == null ? restriction -> false : restriction -> restriction.includes(member);
-            var view = MemberView.of(audience, values.guardians(memberId));
+            var view = viewOf(memberId);
             if (source.content() instanceof LetterContent letter) {
                 LetterLayout.requireSignersOnce(letter, view, DocumentRefusal.DOCUMENT_SIGNER_TWICE_FOR_MEMBER);
             }
@@ -512,6 +548,17 @@ public class DocumentGeneratorService {
                     prepared.missing(),
                     rendered.unprintable(),
                     prepared.issuer().preview());
+        }
+
+        /**
+         * @param memberId a member of this batch
+         * @return which blocks of a letter the member sees and how many guardians sign for them
+         */
+        public MemberView viewOf(int memberId) {
+            var member = audienceOf(memberId);
+            Predicate<RestrictionAudience> audience =
+                    member == null ? restriction -> false : restriction -> restriction.includes(member);
+            return MemberView.of(audience, values.guardians(memberId));
         }
 
         private @Nullable RestrictionMember audienceOf(int memberId) {

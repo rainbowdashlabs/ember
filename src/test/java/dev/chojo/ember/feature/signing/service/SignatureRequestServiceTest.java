@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.documents.service.SealedDocumentService.SealedFil
 import dev.chojo.ember.feature.generator.entity.DocumentGeneration;
 import dev.chojo.ember.feature.generator.entity.DocumentLanguage;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplateDraft;
+import dev.chojo.ember.feature.generator.entity.FieldStatements;
 import dev.chojo.ember.feature.generator.entity.LetterContent;
 import dev.chojo.ember.feature.generator.entity.SignatureRole;
 import dev.chojo.ember.feature.generator.repository.DocumentGenerationRepository;
@@ -42,6 +43,8 @@ import dev.chojo.ember.feature.signing.entity.OpenSignature;
 import dev.chojo.ember.feature.signing.entity.RequestState;
 import dev.chojo.ember.feature.signing.entity.RequestedSignature;
 import dev.chojo.ember.feature.signing.entity.SealedDocument;
+import dev.chojo.ember.feature.signing.entity.SignatureAsk;
+import dev.chojo.ember.feature.signing.entity.SignatureFieldName;
 import dev.chojo.ember.feature.signing.entity.SignatureLevel;
 import dev.chojo.ember.feature.signing.entity.SignatureRequest;
 import dev.chojo.ember.feature.signing.entity.Signer;
@@ -138,6 +141,7 @@ class SignatureRequestServiceTest extends RepositoryTestBase {
     private static SignatureRequestService requests;
     private static SignatureFieldService fields;
     private static SignatureNotices notices;
+    private static SigningGuards guards;
     private static Station station;
     private static StationMember manager;
     private static int legalTemplate;
@@ -151,24 +155,13 @@ class SignatureRequestServiceTest extends RepositoryTestBase {
         documents = newDocumentService(storage);
         sealedDocuments = new SealedDocumentService(memberDocumentRepo, new SealedVersionRepository(), documents);
         var guardianPolicy = new GuardianPolicy(stationMemberRepo);
-        var guards = new SigningGuards(
+        guards = new SigningGuards(
                 new DocumentAccessService(memberDocumentRepo, documents, guardianPolicy),
                 memberDocumentRepo,
                 guardianPolicy);
         notices = TestNotices.notices(
                 newNotifier(), emailQueueRepo, stationRepo, stationMemberRepo, accountRepo, memberDocumentRepo);
-        requests = new SignatureRequestService(
-                requestRepo,
-                evidenceRepo,
-                generations,
-                memberDocumentRepo,
-                documents,
-                stationMemberRepo,
-                memberNameResolver,
-                guardianPolicy,
-                new SignerResolver(stationMemberRepo, memberNameResolver, memberPermissionResolver),
-                guards,
-                notices);
+        requests = requestService((template, member, name) -> STATEMENTS);
         fields = new SignatureFieldService(
                 requestRepo, evidenceRepo, requests, guards, guardianPolicy, memberNameResolver, notices);
         loginPermission = stationMemberRepo
@@ -181,6 +174,24 @@ class SignatureRequestServiceTest extends RepositoryTestBase {
         plainTemplate = template(station.id(), "Urkunde", false);
     }
 
+    /** The service with everything real but what each field's template words for it. */
+    private static SignatureRequestService requestService(DocumentStatements statements) {
+        var guardianPolicy = new GuardianPolicy(stationMemberRepo);
+        return new SignatureRequestService(
+                requestRepo,
+                evidenceRepo,
+                generations,
+                memberDocumentRepo,
+                documents,
+                stationMemberRepo,
+                memberNameResolver,
+                guardianPolicy,
+                new SignerResolver(stationMemberRepo, memberNameResolver, memberPermissionResolver),
+                guards,
+                notices,
+                statements);
+    }
+
     @AfterAll
     static void cleanup() {
         stationRepo.delete(station.id());
@@ -190,6 +201,78 @@ class SignatureRequestServiceTest extends RepositoryTestBase {
     void aLegalTemplateKeepsSignaturesFourYearsAndAnyOtherOnlyWhileTheMemberStays() {
         assertEquals(48, retentionOf(legalTemplate));
         assertNull(retentionOf(plainTemplate));
+    }
+
+    /**
+     * Asking first shows who would sign each field and what they confirm, and asks nobody. A field the
+     * template words confirms that wording, every other one the default of its signer in the document's
+     * language, the guardian's naming the member. Once asked, the same look shows the request and its open
+     * fields; a document without a field to sign shows none.
+     */
+    @Test
+    void askingShowsWhoSignsWhatBeforeAnybodyIsAskedAndTheRequestAfter() throws IOException {
+        var child = member("Wim", "Wortlaut", false);
+        var guardian = member("Gabi", "Wortlaut", true);
+        guard(guardian, child);
+        var generation = generated(child, legalTemplate, null, "participant", "guardian1");
+        var worded = requestService((template, member, name) -> SigningStatements.of(
+                new FieldStatements(DocumentLanguage.EN, Map.of("participant", "I take part.")), name));
+
+        var before = worded.requireOwnedAsk(managing(), generation.id());
+
+        assertNull(before.request());
+        assertTrue(before.fields().stream().allMatch(field -> field.state() == null));
+        assertEquals(
+                List.of("participant", "guardian1"),
+                before.fields().stream().map(field -> field.field().fieldName()).toList());
+        assertEquals("I take part.", before.fields().get(0).field().statement());
+        assertEquals(
+                "I hold parental responsibility for " + memberNameResolver.official(child.id())
+                        + " and agree to the content of this document in that capacity.",
+                before.fields().get(1).field().statement());
+        assertEquals(
+                memberNameResolver.official(guardian.id()),
+                before.fields().get(1).field().signerName());
+        assertTrue(requestRepo.findLiveFor(generation.id()).isEmpty(), "looking asks nobody");
+
+        var after = worded.requireOwnedThenRequest(managing(), generation.id());
+
+        var request = Objects.requireNonNull(after.request());
+        assertEquals(RequestState.OPEN, request.state());
+        assertEquals(
+                before.fields().stream().map(SignatureAsk.AskedField::field).toList(),
+                after.fields().stream().map(SignatureAsk.AskedField::field).toList());
+        assertTrue(after.fields().stream().allMatch(field -> field.state() == FieldState.OPEN));
+        assertEquals(
+                request, worded.requireOwnedAsk(managing(), generation.id()).request());
+        assertEquals(
+                "I take part.", requestRepo.fieldsOf(request.id()).getFirst().statement(), "the request keeps it");
+        assertRefused(DocumentRefusal.SIGNING_ALREADY_REQUESTED, () -> worded.request(managing(), generation.id()));
+        assertTrue(worded.requireOwnedAsk(
+                        managing(), generated(child, legalTemplate, null).id())
+                .fields()
+                .isEmpty());
+    }
+
+    /** The default statements in German: the member agrees, a guardian declares custody of them by name. */
+    @Test
+    void theDefaultStatementsAreWordedInTheDocumentsLanguage() {
+        var german = SigningStatements.of(FieldStatements.defaults(DocumentLanguage.DE), "Kim Kind");
+
+        assertEquals(
+                "Ich habe dieses Dokument gelesen und stimme seinem Inhalt zu.",
+                german.of(new SignatureFieldName("participant", FieldRole.PARTICIPANT, 0)));
+        assertEquals(
+                "Ich bin für Kim Kind erziehungsberechtigt und stimme dem Inhalt dieses Dokuments in dieser"
+                        + " Eigenschaft zu.",
+                german.of(new SignatureFieldName("anyGuardian", FieldRole.ANY_GUARDIAN, 0)));
+        assertEquals(
+                "Ich stelle dieses Dokument für die Wache aus.",
+                german.of(new SignatureFieldName("issuer", FieldRole.ISSUER, 0)));
+        assertEquals(
+                "I issue this document on behalf of the station.",
+                SigningStatements.of(FieldStatements.defaults(DocumentLanguage.EN), "Kim Kind")
+                        .of(new SignatureFieldName("issuer", FieldRole.ISSUER, 0)));
     }
 
     @Test
@@ -206,7 +289,7 @@ class SignatureRequestServiceTest extends RepositoryTestBase {
                 .toArray(String[]::new);
         var generation = generated(child, legalTemplate, null, names);
 
-        var request = requests.request(managing(), generation.id(), STATEMENTS);
+        var request = requests.request(managing(), generation.id());
 
         assertEquals(RequestState.OPEN, request.state());
         assertEquals(generation.fileSha256(), request.contentSha256());
@@ -248,7 +331,7 @@ class SignatureRequestServiceTest extends RepositoryTestBase {
                 legalTemplate,
                 null,
                 SignatureRole.ANY_GUARDIAN.fieldNames(2).toArray(String[]::new));
-        var request = requests.request(managing(), generation.id(), STATEMENTS);
+        var request = requests.request(managing(), generation.id());
 
         var field = requestRepo.fieldsOf(request.id()).getFirst();
         assertEquals(FieldRole.ANY_GUARDIAN, field.role());
@@ -280,7 +363,7 @@ class SignatureRequestServiceTest extends RepositoryTestBase {
                         SignatureRole.GUARDIAN_2.fieldNames(1).stream())
                 .toArray(String[]::new);
         var request = requests.request(
-                managing(), generated(child, legalTemplate, null, names).id(), STATEMENTS);
+                managing(), generated(child, legalTemplate, null, names).id());
 
         assertEquals(
                 List.of("guardian1"),
@@ -290,7 +373,7 @@ class SignatureRequestServiceTest extends RepositoryTestBase {
 
         var orphan = member("Pia", "Waise", true);
         var empty = requests.request(
-                managing(), generated(orphan, legalTemplate, null, "guardian1").id(), STATEMENTS);
+                managing(), generated(orphan, legalTemplate, null, "guardian1").id());
         var nobody = requestRepo.fieldsOf(empty.id()).getFirst();
         assertNull(nobody.signerId());
         assertNull(nobody.signerName());
@@ -303,7 +386,7 @@ class SignatureRequestServiceTest extends RepositoryTestBase {
         var guardian = member("Hans", "Vater", true);
         guard(guardian, child);
         var request = requests.request(
-                managing(), generated(child, legalTemplate, null, "participant").id(), STATEMENTS);
+                managing(), generated(child, legalTemplate, null, "participant").id());
 
         var stored = fields.record(
                 at(guardian),
@@ -335,7 +418,7 @@ class SignatureRequestServiceTest extends RepositoryTestBase {
     void aMemberWithALoginSignsTheirOwnFieldAndTheEvidenceIsKeptFaithfully() throws IOException {
         var adult = member("Eva", "Selbst", true);
         var request = requests.request(
-                managing(), generated(adult, legalTemplate, null, "participant").id(), STATEMENTS);
+                managing(), generated(adult, legalTemplate, null, "participant").id());
         assertEquals(
                 SignerCapacity.ACCOUNT_HOLDER,
                 requestRepo.fieldsOf(request.id()).getFirst().capacity());
@@ -405,8 +488,7 @@ class SignatureRequestServiceTest extends RepositoryTestBase {
         var request = requests.request(
                 managing(),
                 generated(child, legalTemplate, null, "participant", "guardian1")
-                        .id(),
-                STATEMENTS);
+                        .id());
         var asGuardian = Signer.guardian(account(guardian), child.id());
 
         assertRefused(
@@ -489,7 +571,7 @@ class SignatureRequestServiceTest extends RepositoryTestBase {
         var guardian = member("Vera", "Vormund", true);
         guard(guardian, child);
         var request = requests.request(
-                managing(), generated(child, legalTemplate, null, "guardian1").id(), STATEMENTS);
+                managing(), generated(child, legalTemplate, null, "guardian1").id());
         stationMemberRepo.removeManager(guardian.id(), child.id());
 
         assertRefused(
@@ -513,8 +595,7 @@ class SignatureRequestServiceTest extends RepositoryTestBase {
         var request = requests.request(
                 managing(),
                 generated(child, legalTemplate, null, "participant", "guardian1", "guardian2")
-                        .id(),
-                STATEMENTS);
+                        .id());
 
         assertRefused(
                 DocumentRefusal.DOCUMENT_NOT_YOURS_TO_CHANGE,
@@ -548,7 +629,7 @@ class SignatureRequestServiceTest extends RepositoryTestBase {
     void withdrawingARequestWithNothingSignedLeavesItWithdrawn() throws IOException {
         var adult = member("Wim", "Weg", true);
         var request = requests.request(
-                managing(), generated(adult, legalTemplate, null, "participant").id(), STATEMENTS);
+                managing(), generated(adult, legalTemplate, null, "participant").id());
 
         assertRefused(DocumentRefusal.DOCUMENT_NOT_YOURS_TO_CHANGE, () -> requests.withdraw(at(adult), request.uid()));
         var withdrawn = requests.withdraw(managing(), request.uid());
@@ -563,8 +644,7 @@ class SignatureRequestServiceTest extends RepositoryTestBase {
                 () -> requests.rectify(
                         managing(),
                         request.uid(),
-                        generated(adult, legalTemplate, null, "participant").id(),
-                        STATEMENTS));
+                        generated(adult, legalTemplate, null, "participant").id()));
     }
 
     /**
@@ -576,7 +656,7 @@ class SignatureRequestServiceTest extends RepositoryTestBase {
     void withdrawingARequestTakesTheRequestBeforeItsFields() throws Exception {
         var adult = member("Wim", "Zurueck", true);
         var request = requests.request(
-                managing(), generated(adult, legalTemplate, null, "participant").id(), STATEMENTS);
+                managing(), generated(adult, legalTemplate, null, "participant").id());
 
         var withdrawn = whileTheRequestIsHeld(request, () -> requests.withdraw(managing(), request.uid()));
 
@@ -588,11 +668,10 @@ class SignatureRequestServiceTest extends RepositoryTestBase {
     void correctingARequestTakesTheRequestBeforeItsFields() throws Exception {
         var adult = member("Kai", "Korrektur", true);
         var request = requests.request(
-                managing(), generated(adult, legalTemplate, null, "participant").id(), STATEMENTS);
+                managing(), generated(adult, legalTemplate, null, "participant").id());
         int corrected = generated(adult, legalTemplate, null, "participant").id();
 
-        var replacement = whileTheRequestIsHeld(
-                request, () -> requests.rectify(managing(), request.uid(), corrected, STATEMENTS));
+        var replacement = whileTheRequestIsHeld(request, () -> requests.rectify(managing(), request.uid(), corrected));
 
         assertEquals(
                 RequestState.SUPERSEDED,
@@ -647,14 +726,13 @@ class SignatureRequestServiceTest extends RepositoryTestBase {
         var old = requests.request(
                 managing(),
                 generated(child, legalTemplate, null, "participant", "guardian1")
-                        .id(),
-                STATEMENTS);
+                        .id());
         fields.record(
                 at(guardian),
                 signed(old, "guardian1", Signer.guardian(account(guardian), child.id()), STATEMENTS.guardian()));
         var corrected = generated(child, legalTemplate, null, "participant", "guardian1");
 
-        var replacement = requests.rectify(managing(), old.uid(), corrected.id(), STATEMENTS);
+        var replacement = requests.rectify(managing(), old.uid(), corrected.id());
 
         var superseded = requestRepo.findById(old.id()).orElseThrow();
         assertEquals(RequestState.SUPERSEDED, superseded.state());
@@ -673,16 +751,14 @@ class SignatureRequestServiceTest extends RepositoryTestBase {
                 () -> requests.rectify(
                         managing(),
                         old.uid(),
-                        generated(child, legalTemplate, null, "participant").id(),
-                        STATEMENTS));
+                        generated(child, legalTemplate, null, "participant").id()));
         var stranger = member("Xaver", "Anders", true);
         assertRefused(
                 DocumentRefusal.SIGNING_CORRECTION_OTHER_MEMBER,
                 () -> requests.rectify(
                         managing(),
                         replacement.uid(),
-                        generated(stranger, legalTemplate, null, "participant").id(),
-                        STATEMENTS));
+                        generated(stranger, legalTemplate, null, "participant").id()));
     }
 
     @Test
@@ -696,14 +772,12 @@ class SignatureRequestServiceTest extends RepositoryTestBase {
         var forChild = requests.request(
                 managing(),
                 generated(child, legalTemplate, null, "participant", "guardian1", "anyGuardian")
-                        .id(),
-                STATEMENTS);
+                        .id());
         var forTeen = requests.request(
-                managing(), generated(teen, legalTemplate, null, "participant").id(), STATEMENTS);
+                managing(), generated(teen, legalTemplate, null, "participant").id());
         var forGuardian = requests.request(
                 managing(),
-                generated(guardian, legalTemplate, null, "participant").id(),
-                STATEMENTS);
+                generated(guardian, legalTemplate, null, "participant").id());
 
         var guardians = signersByField(requests.openFor(at(guardian)));
 
@@ -735,8 +809,7 @@ class SignatureRequestServiceTest extends RepositoryTestBase {
         var request = requests.request(
                 managing(),
                 generated(adult, legalTemplate, issuer.id(), "issuer", "unknownField")
-                        .id(),
-                STATEMENTS);
+                        .id());
 
         var asked = requestRepo.fieldsOf(request.id());
         assertEquals(1, asked.size(), "a field the generator never writes is no requirement");
@@ -759,33 +832,24 @@ class SignatureRequestServiceTest extends RepositoryTestBase {
     void askingForSignaturesIsRefusedWhereTheDocumentCannotCarryThem() throws IOException {
         var adult = member("Lea", "Fehler", true);
         var generation = generated(adult, legalTemplate, null, "participant");
-        requests.request(managing(), generation.id(), STATEMENTS);
+        requests.request(managing(), generation.id());
 
-        assertRefused(
-                DocumentRefusal.SIGNING_ALREADY_REQUESTED,
-                () -> requests.request(managing(), generation.id(), STATEMENTS));
-        assertRefused(DocumentRefusal.SIGNING_GENERATION_NOT_FOUND, () -> requests.request(managing(), -1, STATEMENTS));
+        assertRefused(DocumentRefusal.SIGNING_ALREADY_REQUESTED, () -> requests.request(managing(), generation.id()));
+        assertRefused(DocumentRefusal.SIGNING_GENERATION_NOT_FOUND, () -> requests.request(managing(), -1));
         assertRefused(
                 DocumentRefusal.SIGNING_NO_FIELDS,
                 () -> requests.request(
-                        managing(), generated(adult, legalTemplate, null).id(), STATEMENTS));
+                        managing(), generated(adult, legalTemplate, null).id()));
         var unsigned = generated(adult, legalTemplate, null, "participant");
-        assertRefused(
-                DocumentRefusal.DOCUMENT_NOT_YOURS_TO_CHANGE,
-                () -> requests.request(at(adult), unsigned.id(), STATEMENTS));
+        assertRefused(DocumentRefusal.DOCUMENT_NOT_YOURS_TO_CHANGE, () -> requests.request(at(adult), unsigned.id()));
         var changed = log(adult, legalTemplate, null, unsigned.documentId(), "00".repeat(32));
-        assertRefused(
-                DocumentRefusal.SIGNING_DOCUMENT_CHANGED, () -> requests.request(managing(), changed.id(), STATEMENTS));
+        assertRefused(DocumentRefusal.SIGNING_DOCUMENT_CHANGED, () -> requests.request(managing(), changed.id()));
         var unfiled = log(adult, legalTemplate, null, null, unsigned.fileSha256());
-        assertRefused(
-                DocumentRefusal.SIGNING_DOCUMENT_NOT_FILED,
-                () -> requests.request(managing(), unfiled.id(), STATEMENTS));
+        assertRefused(DocumentRefusal.SIGNING_DOCUMENT_NOT_FILED, () -> requests.request(managing(), unfiled.id()));
         var former = member("Fred", "Ehemalig", true);
         var formerGeneration = generated(former, legalTemplate, null, "participant");
         stationMemberRepo.setFormer(former.id(), true);
-        assertRefused(
-                DocumentRefusal.SIGNING_MEMBER_GONE,
-                () -> requests.request(managing(), formerGeneration.id(), STATEMENTS));
+        assertRefused(DocumentRefusal.SIGNING_MEMBER_GONE, () -> requests.request(managing(), formerGeneration.id()));
         var elsewhere = stationRepo.create("Signing Elsewhere Station");
         try {
             var foreignManager = stationSession(
@@ -795,7 +859,7 @@ class SignatureRequestServiceTest extends RepositoryTestBase {
                     StationPermission.DOCUMENT_EDIT_MEMBER);
             assertRefused(
                     DocumentRefusal.SIGNING_GENERATION_NOT_FOUND,
-                    () -> requests.request(foreignManager, unsigned.id(), STATEMENTS));
+                    () -> requests.request(foreignManager, unsigned.id()));
         } finally {
             stationRepo.delete(elsewhere.id());
         }
@@ -808,7 +872,7 @@ class SignatureRequestServiceTest extends RepositoryTestBase {
         var stranger = member("Sven", "Fremd", true);
         guard(guardian, child);
         var request = requests.request(
-                managing(), generated(child, legalTemplate, null, "guardian1").id(), STATEMENTS);
+                managing(), generated(child, legalTemplate, null, "guardian1").id());
         fields.record(
                 at(guardian),
                 signed(request, "guardian1", Signer.guardian(account(guardian), child.id()), STATEMENTS.guardian()));
@@ -831,7 +895,7 @@ class SignatureRequestServiceTest extends RepositoryTestBase {
         var stranger = member("Sina", "Fremd", true);
         guard(guardian, child);
         var generation = generated(child, legalTemplate, null, "guardian1");
-        var request = requests.request(managing(), generation.id(), STATEMENTS);
+        var request = requests.request(managing(), generation.id());
         documents.delete(memberDocumentRepo.findById(generation.documentId()).orElseThrow());
 
         assertNull(requestRepo.findById(request.id()).orElseThrow().documentId());
@@ -857,8 +921,7 @@ class SignatureRequestServiceTest extends RepositoryTestBase {
         var request = requests.request(
                 managing(),
                 generated(child, legalTemplate, null, "participant", "guardian1")
-                        .id(),
-                STATEMENTS);
+                        .id());
         fields.record(
                 at(guardian),
                 signed(request, "guardian1", Signer.guardian(account(guardian), child.id()), STATEMENTS.guardian()));
@@ -893,7 +956,7 @@ class SignatureRequestServiceTest extends RepositoryTestBase {
         var guardian = member("Olli", "Geraet", true);
         guard(guardian, child);
         var request = requests.request(
-                managing(), generated(child, legalTemplate, null, "guardian1").id(), STATEMENTS);
+                managing(), generated(child, legalTemplate, null, "guardian1").id());
         var act = act(request, "guardian1", Signer.guardian(account(guardian), child.id()), STATEMENTS.guardian());
         fields.record(at(guardian), new CompletedSigning(SignatureLevel.SIMPLE, passkey(act)));
         var export = new GdprExportService(
@@ -959,14 +1022,12 @@ class SignatureRequestServiceTest extends RepositoryTestBase {
         var plain = member("Pit", "Schlicht", true);
         var kept = requests.request(
                 managing(),
-                generated(archived, legalTemplate, null, "participant").id(),
-                STATEMENTS);
+                generated(archived, legalTemplate, null, "participant").id());
         var gone = requests.request(
                 managing(),
-                generated(deleted, legalTemplate, null, "participant").id(),
-                STATEMENTS);
+                generated(deleted, legalTemplate, null, "participant").id());
         var brief = requests.request(
-                managing(), generated(plain, plainTemplate, null, "participant").id(), STATEMENTS);
+                managing(), generated(plain, plainTemplate, null, "participant").id());
         fields.record(
                 at(deleted), signed(gone, "participant", Signer.accountHolder(account(deleted)), STATEMENTS.own()));
         Instant then = Instant.now().minus(Duration.ofDays(6 * 365)).truncatedTo(ChronoUnit.SECONDS);
@@ -1031,9 +1092,9 @@ class SignatureRequestServiceTest extends RepositoryTestBase {
         var recentSealed = sealedGeneration(recent, List.of(recent.id()), plainTemplate);
         var longAgoSealed = sealedGeneration(longAgo, List.of(longAgo.id()), plainTemplate);
         var deletedSealed = sealedGeneration(deletedLater, List.of(deletedLater.id()), plainTemplate);
-        var kept = requests.request(managing(), recentSealed.id(), STATEMENTS);
-        var over = requests.request(managing(), longAgoSealed.id(), STATEMENTS);
-        var gone = requests.request(managing(), deletedSealed.id(), STATEMENTS);
+        var kept = requests.request(managing(), recentSealed.id());
+        var over = requests.request(managing(), longAgoSealed.id());
+        var gone = requests.request(managing(), deletedSealed.id());
         for (var member : List.of(recent, longAgo, deletedLater)) stationMemberRepo.setFormer(member.id(), true);
         query("UPDATE station_member SET former_at = now() - INTERVAL '13 months' WHERE id = :id;")
                 .single(call().bind("id", longAgo.id()))
@@ -1067,7 +1128,7 @@ class SignatureRequestServiceTest extends RepositoryTestBase {
         var leaving = member("Lea", "Geht", true);
         var staying = member("Bea", "Bleibt", true);
         var shared = sealedGeneration(leaving, List.of(leaving.id(), staying.id()));
-        var request = requests.request(managing(), shared.id(), STATEMENTS);
+        var request = requests.request(managing(), shared.id());
         documents.memberLeaves(leaving.id(), DocumentService.Leaving.DELETED);
         stationMemberRepo.delete(leaving.id());
         new SignatureRetentionSweeper(requestRepo, memberDocumentRepo, sealedDocuments)
@@ -1087,8 +1148,8 @@ class SignatureRequestServiceTest extends RepositoryTestBase {
         var staying = member("Stefan", "Bleibt", true);
         var sealed = sealedGeneration(leaving, List.of(leaving.id()));
         var shared = sealedGeneration(leaving, List.of(leaving.id(), staying.id()));
-        var request = requests.request(managing(), sealed.id(), STATEMENTS);
-        var sharedRequest = requests.request(managing(), shared.id(), STATEMENTS);
+        var request = requests.request(managing(), sealed.id());
+        var sharedRequest = requests.request(managing(), shared.id());
         int documentId = sealed.documentId();
         var sha256 = sealed.fileSha256();
         assertGuarded("DELETE FROM member_document WHERE id = " + documentId);
@@ -1139,8 +1200,7 @@ class SignatureRequestServiceTest extends RepositoryTestBase {
         var request = requests.request(
                 leavingManager,
                 generated(child, template(leaving.id(), "Fahrt", true), null, "participant", "guardian1")
-                        .id(),
-                STATEMENTS);
+                        .id());
         fields.record(
                 at(guardian),
                 signed(request, "guardian1", Signer.guardian(account(guardian), child.id()), STATEMENTS.guardian()));
@@ -1177,7 +1237,7 @@ class SignatureRequestServiceTest extends RepositoryTestBase {
         guard(guardian, child);
         var generation = generated(child, legalTemplate, manager.id(), "participant", "guardian1", "issuer");
 
-        var request = requests.request(managing(), generation.id(), STATEMENTS);
+        var request = requests.request(managing(), generation.id());
 
         var participant = fieldId(request, "participant");
         var guardianField = fieldId(request, "guardian1");
@@ -1216,8 +1276,7 @@ class SignatureRequestServiceTest extends RepositoryTestBase {
         var request = requests.request(
                 managing(),
                 generated(child, legalTemplate, null, "participant", "guardian1")
-                        .id(),
-                STATEMENTS);
+                        .id());
 
         fields.record(
                 at(guardian),
@@ -1254,8 +1313,7 @@ class SignatureRequestServiceTest extends RepositoryTestBase {
         var request = requests.request(
                 managing(),
                 generated(signer, plainTemplate, manager.id(), "participant", "issuer")
-                        .id(),
-                STATEMENTS);
+                        .id());
 
         fields.confirmOnPaper(managing(), request.uid(), "participant");
         assertEquals(Set.of(), askedFields(signer, NotificationType.SIGNATURE_REQUESTED, request));
@@ -1272,14 +1330,12 @@ class SignatureRequestServiceTest extends RepositoryTestBase {
         var signer = member("Clara", "Korrektur", true);
         var old = requests.request(
                 managing(),
-                generated(signer, plainTemplate, null, "participant").id(),
-                STATEMENTS);
+                generated(signer, plainTemplate, null, "participant").id());
 
         var corrected = requests.rectify(
                 managing(),
                 old.uid(),
-                generated(signer, plainTemplate, null, "participant").id(),
-                STATEMENTS);
+                generated(signer, plainTemplate, null, "participant").id());
 
         assertEquals(Set.of(), askedFields(signer, NotificationType.SIGNATURE_REQUESTED, old));
         assertEquals(
@@ -1294,12 +1350,10 @@ class SignatureRequestServiceTest extends RepositoryTestBase {
         var settled = member("Rolf", "Erinnerung", true);
         var request = requests.request(
                 managing(),
-                generated(signer, plainTemplate, null, "participant").id(),
-                STATEMENTS);
+                generated(signer, plainTemplate, null, "participant").id());
         var other = requests.request(
                 managing(),
-                generated(settled, plainTemplate, null, "participant").id(),
-                STATEMENTS);
+                generated(settled, plainTemplate, null, "participant").id());
         fields.waive(managing(), other.uid(), "participant");
         var reminders = new SignatureReminders(requestRepo, notices);
         var asked = request.createdAt();

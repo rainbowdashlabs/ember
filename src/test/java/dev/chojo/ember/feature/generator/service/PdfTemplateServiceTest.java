@@ -14,6 +14,7 @@ import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.documents.service.DocumentDoor;
 import dev.chojo.ember.feature.documents.service.DocumentService;
+import dev.chojo.ember.feature.generator.entity.DocumentLanguage;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplateKind;
 import dev.chojo.ember.feature.generator.entity.FieldRect;
 import dev.chojo.ember.feature.generator.entity.FontStyle;
@@ -57,12 +58,14 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -79,6 +82,7 @@ class PdfTemplateServiceTest extends RepositoryTestBase {
     private static DocumentTemplateService templates;
     private static PdfTemplateService pdfs;
     private static DocumentGenerationService generation;
+    private static DocumentGeneratorService generator;
     private static SelfServiceDocumentService selfService;
     private static DocumentGenerationRepository log;
     private static DocumentService documents;
@@ -123,7 +127,7 @@ class PdfTemplateServiceTest extends RepositoryTestBase {
                 templateRepository, pdfTemplates, uses, checks, restrictionService, catalogue, newOwnerStores());
         pdfs = new PdfTemplateService(
                 templates, templateRepository, pdfTemplates, newDocumentIntake(), storage, newOwnerStores());
-        var generator = new DocumentGeneratorService(
+        generator = new DocumentGeneratorService(
                 templates,
                 newPlaceholderResolver(clock),
                 catalogue,
@@ -402,6 +406,59 @@ class PdfTemplateServiceTest extends RepositoryTestBase {
                         true,
                         true)),
                 saved.fields());
+    }
+
+    /**
+     * A signature field keeps what its signer confirms, trimmed, and an empty one leaves the default. Every
+     * field a box asks for, here the one of the guardian a member without guardians still gets, confirms
+     * it; a statement longer than one is refused.
+     */
+    @Test
+    void aSignatureFieldKeepsWhatItsSignerConfirms() throws IOException {
+        var template = uploaded("Erklärung", TestPdfs.plain(1));
+        var guardians = stated(new FieldRect(1, 100, 100, 150, 40), SignatureRole.EACH_GUARDIAN, "  Ich bin dafür. ");
+        var participant = stated(new FieldRect(1, 100, 200, 150, 40), SignatureRole.PARTICIPANT, "   ");
+
+        var saved = withFields(template, request("Erklärung", null, List.of(guardians, participant), List.of(), false));
+
+        assertEquals("Ich bin dafür.", saved.fields().get(0).statement());
+        assertNull(saved.fields().get(1).statement());
+        var statements = generator.fieldStatements(template.id(), lena.id());
+        assertEquals(DocumentLanguage.DE, statements.language());
+        assertEquals(Map.of("guardian1", "Ich bin dafür."), statements.byField());
+        refused(
+                DocumentRefusal.DOCUMENT_TEMPLATE_STATEMENT_TOO_LONG,
+                () -> withFields(
+                        template,
+                        request(
+                                "Erklärung",
+                                null,
+                                List.of(stated(
+                                        new FieldRect(1, 100, 100, 150, 40),
+                                        SignatureRole.PARTICIPANT,
+                                        "x".repeat(SignatureStatementChecks.MAX_STATEMENT + 1))),
+                                List.of(),
+                                false)));
+        assertEquals(
+                Map.of(),
+                generator.fieldStatements(Integer.MAX_VALUE, lena.id()).byField(),
+                "a template that is gone leaves every field to its default");
+    }
+
+    private static PdfField stated(FieldRect rect, SignatureRole role, String statement) {
+        return new PdfField(
+                PdfFieldKind.SIGNATURE,
+                rect,
+                null,
+                0,
+                TextAlign.LEFT,
+                false,
+                role,
+                null,
+                FontStyle.REGULAR,
+                false,
+                false,
+                statement);
     }
 
     /** A new version of the PDF keeps the fields; documents filled before keep naming the old one. */

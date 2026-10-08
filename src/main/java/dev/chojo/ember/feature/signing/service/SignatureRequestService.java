@@ -21,10 +21,10 @@ import dev.chojo.ember.feature.signing.entity.OpenSignature;
 import dev.chojo.ember.feature.signing.entity.PendingSignature;
 import dev.chojo.ember.feature.signing.entity.RequestState;
 import dev.chojo.ember.feature.signing.entity.RequestedSignature;
+import dev.chojo.ember.feature.signing.entity.SignatureAsk;
 import dev.chojo.ember.feature.signing.entity.SignatureRequest;
 import dev.chojo.ember.feature.signing.entity.SignatureRequestView;
 import dev.chojo.ember.feature.signing.entity.Signer;
-import dev.chojo.ember.feature.signing.entity.SigningStatements;
 import dev.chojo.ember.feature.signing.repository.SignatureRequestRepository;
 import dev.chojo.ember.feature.signing.repository.SigningEvidenceRepository;
 import dev.chojo.ember.util.Sha256;
@@ -47,6 +47,12 @@ import java.util.UUID;
  * are asked for; a correction is a new generated document with a new request that supersedes the old one,
  * whose signatures and evidence stay.
  *
+ * <p>Signatures are asked for on purpose, never by generating alone: a manager looks at who would be asked
+ * ({@link #requireOwnedAsk}) and then asks ({@link #request}), right after generating or later from the list of
+ * generated documents. What each field confirms comes from the template ({@link DocumentStatements}) and is
+ * copied into the request with the template's retention period and whether a signer's copy carries the
+ * PDF. A later change of the template leaves a request as it was made; only a new document asks anew.
+ *
  * <p>Everybody a new request asks is told so ({@link SignatureNotices}), and the requests for fields that
  * were withdrawn are taken back.
  */
@@ -65,6 +71,7 @@ public class SignatureRequestService {
     private final SignerResolver signers;
     private final SigningGuards guards;
     private final SignatureNotices notices;
+    private final DocumentStatements statements;
 
     @Inject
     public SignatureRequestService(
@@ -78,7 +85,8 @@ public class SignatureRequestService {
             GuardianPolicy guardianPolicy,
             SignerResolver signers,
             SigningGuards guards,
-            SignatureNotices notices) {
+            SignatureNotices notices,
+            DocumentStatements statements) {
         this.requests = requests;
         this.evidence = evidence;
         this.generations = generations;
@@ -90,21 +98,55 @@ public class SignatureRequestService {
         this.signers = signers;
         this.guards = guards;
         this.notices = notices;
+        this.statements = statements;
     }
 
     /**
-     * Asks for the signatures a generated document's signature fields call for.
+     * What asking for the signatures of a generated document would ask, before anybody is asked: each field
+     * with who signs it and what they confirm. Where signatures were already asked for, the request and
+     * its fields as they stand.
+     *
+     * @param session      who would ask, who has to be allowed to change the document
+     * @param generationId the generation log entry of the document
+     * @return the fields, none where the document carries no field left to sign
+     */
+    public SignatureAsk requireOwnedAsk(StationSession session, int generationId) {
+        var generation = generationAt(session, generationId);
+        var live = requests.findLiveFor(generation.id()).orElse(null);
+        if (live != null) {
+            guards.requireMayManage(session, live.documentId());
+            return SignatureAsk.asked(live, requests.fieldsOf(live.id()));
+        }
+        return SignatureAsk.notYet(plan(session, generation).fields());
+    }
+
+    /**
+     * Asks for the signatures a generated document's signature fields call for. Each field confirms the
+     * statement its template words for it, else the default of its signer, copied into the request as it
+     * stands now.
      *
      * @param session      who asks, who has to be allowed to change the document
      * @param generationId the generation log entry of the document
-     * @param statements   what each kind of signer confirms
      * @return the request
      */
-    public SignatureRequest request(StationSession session, int generationId, SigningStatements statements) {
+    public SignatureRequest request(StationSession session, int generationId) {
         var generation = generationAt(session, generationId);
-        var created = Transactions.call(() -> create(session, generation, statements));
+        var created = Transactions.call(() -> create(session, generation));
         notices.asked(created, requests.fieldsOf(created.id()));
         return created;
+    }
+
+    /**
+     * Asks for the signatures a generated document's fields call for, as {@link #request} does, and answers
+     * the request with its fields as {@link #requireOwnedAsk} would. The document has to be the station's.
+     *
+     * @param session      who asks, who has to be allowed to change the document
+     * @param generationId the generation log entry of the document
+     * @return the request and its fields
+     */
+    public SignatureAsk requireOwnedThenRequest(StationSession session, int generationId) {
+        var created = request(session, generationId);
+        return SignatureAsk.asked(created, requests.fieldsOf(created.id()));
     }
 
     /**
@@ -114,11 +156,9 @@ public class SignatureRequestService {
      * @param session      who corrects, who has to be allowed to change both documents
      * @param requestUid   the request to replace
      * @param generationId the generation log entry of the corrected document
-     * @param statements   what each kind of signer confirms
      * @return the request for the corrected document
      */
-    public SignatureRequest rectify(
-            StationSession session, UUID requestUid, int generationId, SigningStatements statements) {
+    public SignatureRequest rectify(StationSession session, UUID requestUid, int generationId) {
         var old = requestAt(session, requestUid);
         guards.requireMayManage(session, old.documentId());
         if (old.state() == RequestState.SUPERSEDED || old.state() == RequestState.WITHDRAWN) {
@@ -134,7 +174,7 @@ public class SignatureRequestService {
             if (held.state() == RequestState.SUPERSEDED || held.state() == RequestState.WITHDRAWN) {
                 throw DocumentRefusal.SIGNING_REQUEST_ENDED.raise();
             }
-            var replacement = create(session, generation, statements);
+            var replacement = create(session, generation);
             requests.withdrawOpen(old.id(), by, names.official(by));
             requests.supersede(old.id(), replacement.id());
             return replacement;
@@ -227,8 +267,43 @@ public class SignatureRequestService {
                 .orElseThrow(DocumentRefusal.SIGNING_REQUEST_NOT_FOUND::raise);
     }
 
-    private SignatureRequest create(
-            StationSession session, DocumentGeneration generation, SigningStatements statements) {
+    private SignatureRequest create(StationSession session, DocumentGeneration generation) {
+        var plan = plan(session, generation);
+        if (requests.liveFor(generation.id())) throw DocumentRefusal.SIGNING_ALREADY_REQUESTED.raise();
+        if (plan.fields().isEmpty()) throw DocumentRefusal.SIGNING_NO_FIELDS.raise();
+        var created = requests.create(
+                new SignatureRequest.Draft(
+                        generation.stationId(),
+                        generation.id(),
+                        generation.templateId(),
+                        plan.documentId(),
+                        plan.memberId(),
+                        plan.memberName(),
+                        plan.sha256(),
+                        session.member().id()),
+                plan.fields());
+        log.info(
+                "Asked for {} signatures on document {} at station {} ({})",
+                plan.fields().size(),
+                plan.documentId(),
+                generation.stationId(),
+                created.uid());
+        return created;
+    }
+
+    /**
+     * Who a generated document asks to sign, and what each confirms, read from the file as it was filed.
+     *
+     * @param documentId the member document the file was filed as
+     * @param memberId   the member it is about
+     * @param memberName their official name
+     * @param sha256     the SHA-256 of the file, the generation log's
+     * @param fields     the fields to ask for, in the order the file carries them
+     */
+    private record Plan(
+            int documentId, int memberId, String memberName, String sha256, List<RequestedSignature.Draft> fields) {}
+
+    private Plan plan(StationSession session, DocumentGeneration generation) {
         var member = memberOf(generation);
         Integer documentId = generation.documentId();
         var document =
@@ -238,27 +313,10 @@ public class SignatureRequestService {
         byte[] content = documentService.read(document).orElseThrow(DocumentRefusal.SIGNING_DOCUMENT_NOT_FILED::raise);
         String sha256 = Sha256.hex(content);
         if (!sha256.equals(generation.fileSha256())) throw DocumentRefusal.SIGNING_DOCUMENT_CHANGED.raise();
-        if (requests.liveFor(generation.id())) throw DocumentRefusal.SIGNING_ALREADY_REQUESTED.raise();
-        var fields = signers.resolve(member, generation.issuerId(), SignatureFields.unsigned(content), statements);
-        if (fields.isEmpty()) throw DocumentRefusal.SIGNING_NO_FIELDS.raise();
-        var created = requests.create(
-                new SignatureRequest.Draft(
-                        generation.stationId(),
-                        generation.id(),
-                        generation.templateId(),
-                        document.id(),
-                        member.id(),
-                        names.official(member.id()),
-                        sha256,
-                        session.member().id()),
-                fields);
-        log.info(
-                "Asked for {} signatures on document {} at station {} ({})",
-                fields.size(),
-                document.id(),
-                generation.stationId(),
-                created.uid());
-        return created;
+        String memberName = names.official(member.id());
+        var worded = statements.of(generation.templateId(), member.id(), memberName);
+        var fields = signers.resolve(member, generation.issuerId(), SignatureFields.unsigned(content), worded);
+        return new Plan(document.id(), member.id(), memberName, sha256, fields);
     }
 
     private DocumentGeneration generationAt(StationSession session, int generationId) {

@@ -69,7 +69,7 @@ public class SignerResolver {
             List<StationMember> guardians,
             @Nullable Integer issuerId,
             SigningStatements statements) {
-        String statement = statements.of(field.role());
+        String statement = statements.of(field);
         return switch (field.role()) {
             case PARTICIPANT ->
                 new RequestedSignature.Draft(

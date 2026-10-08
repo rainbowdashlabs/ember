@@ -29,6 +29,8 @@ import org.jspecify.annotations.Nullable;
  * @param fontStyle   the style of that family; regular where left out
  * @param withoutLine for a signature field: whether no line is drawn to sign on
  * @param printText   for a signature field: whether its text prints under the line
+ * @param statement   for a signature field: what its signer confirms, or null for the default statement of
+ *                    its signer in the template's language
  */
 public record PdfField(
         PdfFieldKind kind,
@@ -41,12 +43,29 @@ public record PdfField(
         @Nullable String fontFamily,
         @Nullable FontStyle fontStyle,
         boolean withoutLine,
-        boolean printText) {
+        boolean printText,
+        @Nullable String statement) {
 
     /** The columns {@link #map()} reads, in a form a query can splice in. */
     public static final String COLUMNS = """
             kind, page, x, y, width, height, text, font_size, align, wrap, role, font_family, font_style, \
-            without_line, print_text""";
+            without_line, print_text, statement""";
+
+    /** A field as it was before a signature field could name what its signer confirms. */
+    public PdfField(
+            PdfFieldKind kind,
+            FieldRect rect,
+            @Nullable String text,
+            double fontSize,
+            TextAlign align,
+            boolean wrap,
+            @Nullable SignatureRole role,
+            @Nullable String fontFamily,
+            @Nullable FontStyle fontStyle,
+            boolean withoutLine,
+            boolean printText) {
+        this(kind, rect, text, fontSize, align, wrap, role, fontFamily, fontStyle, withoutLine, printText, null);
+    }
 
     /** A field as it was before a signature field could leave out its line or print its text. */
     public PdfField(
@@ -91,6 +110,7 @@ public record PdfField(
                 row.getString("font_family"),
                 row.getEnum("font_style", FontStyle.class),
                 row.getBoolean("without_line"),
-                row.getBoolean("print_text"));
+                row.getBoolean("print_text"),
+                row.getString("statement"));
     }
 }

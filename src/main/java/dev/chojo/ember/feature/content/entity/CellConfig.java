@@ -606,10 +606,19 @@ public sealed interface CellConfig {
      * A line to sign on in a letter, with an empty signature field on it for whoever signs. The short
      * text printed below the line, with placeholders, lives in cell.content.
      *
-     * @param signer who signs on the line; a block without one is refused when the letter is saved
+     * @param signer    who signs on the line; a block without one is refused when the letter is saved
+     * @param statement what the signer confirms when they sign the line, or null for the default statement
+     *                  of the signer in the letter's language
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record SignatureConfig(@Nullable SignatureRole signer) implements CellConfig {}
+    record SignatureConfig(
+            @Nullable SignatureRole signer, @Nullable String statement) implements CellConfig {
+
+        /** @param signer who signs on the line, confirming the default statement */
+        public SignatureConfig(@Nullable SignatureRole signer) {
+            this(signer, null);
+        }
+    }
 
     /**
      * Cell that contains nested rows. The rows are stored opaquely as JSON nodes so the existing

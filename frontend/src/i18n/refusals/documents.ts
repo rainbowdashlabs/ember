@@ -165,4 +165,6 @@ export default {
     'D-180': 'Auf dem Bild ist keine Unterschrift zu erkennen',
     'D-181': 'Es fehlt, ob die Unterschrift gezeichnet, getippt oder hochgeladen wurde',
     'D-182': 'Es ist keine Unterschrift gespeichert, zeichne eine zum Unterschreiben',
+    'D-183': 'Eine Erklärung zum Unterschreiben darf höchstens 500 Zeichen lang sein',
+    'D-184': 'Unterschriebene Dokumente lassen sich 0 bis 240 Monate nach dem Austritt aufbewahren',
 }

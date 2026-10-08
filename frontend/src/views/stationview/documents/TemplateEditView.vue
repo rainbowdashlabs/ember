@@ -19,6 +19,7 @@ import IssuerPanel from './templateeditview/IssuerPanel.vue'
 import LetterPanel from './templateeditview/LetterPanel.vue'
 import PdfPanel from './templateeditview/PdfPanel.vue'
 import SelfServicePanel from './templateeditview/SelfServicePanel.vue'
+import SigningPanel from './templateeditview/SigningPanel.vue'
 import PreviewPanel from './templateeditview/PreviewPanel.vue'
 import EditorActions from './templateeditview/EditorActions.vue'
 import type {TemplateScreens} from './templateScreens'
@@ -27,7 +28,8 @@ import {useTemplateDuplication} from './useTemplateDuplication'
 /**
  * Writes one template of a station or an association. A letter has its header, body and footer,
  * written as blocks; a PDF template has its uploaded PDF with the fields placed on it. Both have what
- * they are called, their language and how their documents are filed, self service, and a look at the
+ * they are called, their language and how their documents are filed, how signed documents are kept
+ * and sent, self service, and a look at the
  * result: for any member of a station, and with its placeholders shown by name for an association,
  * which has no members of its own.
  *
@@ -114,6 +116,7 @@ async function upload(file: File) {
       <template v-if="tab === 'general'">
         <GeneralPanel v-model="draft" :document-tags="editor.documentTags.value" :placeholders="editor.placeholders.value"/>
         <IssuerPanel v-model="draft" :members="editor.members.value" :chooses-issuer="screens.hasMembers"/>
+        <SigningPanel v-model="draft"/>
       </template>
       <LetterPanel v-if="tab === 'letter'" v-model="draft" :catalogue="editor.letterCatalogue.value"
                    :default-family="editor.defaultFamily.value" :source="screens.source"/>

@@ -583,7 +583,14 @@ public enum DocumentRefusal implements Refusal {
             181, HttpStatus.BAD_REQUEST, "Say whether the signature was drawn, typed or uploaded"),
 
     /** A signing act confirmed without a signature picture, where none is saved to use. */
-    SIGNING_MARK_MISSING(182, HttpStatus.BAD_REQUEST, "Draw a signature to sign with, since none is saved");
+    SIGNING_MARK_MISSING(182, HttpStatus.BAD_REQUEST, "Draw a signature to sign with, since none is saved"),
+
+    /** What the signer of a signature field confirms, written longer than a statement may be. */
+    DOCUMENT_TEMPLATE_STATEMENT_TOO_LONG(183, HttpStatus.BAD_REQUEST, "A signature statement is too long"),
+
+    /** A retention period for signed documents outside the months a template may keep them. */
+    DOCUMENT_TEMPLATE_RETENTION_OUT_OF_RANGE(
+            184, HttpStatus.BAD_REQUEST, "Signed documents are kept for 0 to 240 months after the member left");
 
     private final Definition definition;
 
