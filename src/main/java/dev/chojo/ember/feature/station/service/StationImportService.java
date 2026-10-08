@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.federation.service.FederationPartnerTransferFixup
 import dev.chojo.ember.feature.federation.service.OutboundHttp;
 import dev.chojo.ember.feature.federation.service.RemoteUrlValidator;
 import dev.chojo.ember.feature.federation.service.StationKeyTransfer;
+import dev.chojo.ember.feature.knowledgebase.service.KbIconService;
 import dev.chojo.ember.feature.quiz.service.StationAiKeyTransfer;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -390,8 +391,24 @@ public class StationImportService {
             if (payload == null) continue;
             total += importTable(context, table, payload);
         }
+        relinkFolderIcons(context.stationId());
         assignDefaultOwnerIfNeeded(context.stationId());
         return total;
+    }
+
+    /**
+     * Points the icon of every imported wiki folder that has one at the folder's new id. The folder
+     * row brings the icon's key along, but that key still names the id the folder had at the source,
+     * while the icon file itself moves to the new id.
+     */
+    private void relinkFolderIcons(int stationId) {
+        query("""
+                UPDATE kb_folder
+                   SET icon_url = :prefix || id
+                 WHERE station_id = :station_id
+                   AND icon_url IS NOT NULL;""")
+                .single(call().bind("prefix", KbIconService.KEY_PREFIX).bind("station_id", stationId))
+                .update();
     }
 
     /**
@@ -435,6 +452,7 @@ public class StationImportService {
                 fetchAndImportPaginated(context, table, client);
                 p.completePhase();
             }
+            relinkFolderIcons(stationId);
             copyFiles(context, client, p);
             federationFixup.rewriteAfterImport(stationId, p.sourceUrl());
             federationFixup.announceNewHostToRemotePartners(stationId, api.baseUrl());
@@ -478,6 +496,7 @@ public class StationImportService {
         StorageScope.Station scope = new StorageScope.Station(stationId, targetStation.uid());
         for (StorageCategory category : TransferFileImporter.transferrableStationCategories()) {
             p.startPhase("files_" + category.name().toLowerCase());
+            // TODO a taken-over remote backend keeps its files under the source's row ids, not the new ones
             if (!installedRemote) {
                 fileImporter.copyCategory(client, scope, category, context.idMap(), p);
             }

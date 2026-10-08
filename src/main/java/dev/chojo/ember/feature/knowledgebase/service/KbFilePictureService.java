@@ -42,6 +42,9 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Singleton
 public class KbFilePictureService {
+    /** What the key of a file's picture starts with, before the file's id. */
+    public static final String KEY_PREFIX = "file-";
+
     private static final Logger log = LoggerFactory.getLogger(KbFilePictureService.class);
     private static final StorageCategory CATEGORY = StorageCategory.IMAGE_KB_FILE_PICTURE;
     private static final String PDF_TYPE = "application/pdf";
@@ -161,7 +164,7 @@ public class KbFilePictureService {
      * picture with it, wherever that deletion happens.
      */
     public static String key(int fileId) {
-        return "file-" + fileId;
+        return KEY_PREFIX + fileId;
     }
 
     private static String memo(int stationId, int fileId) {

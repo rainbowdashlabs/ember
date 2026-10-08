@@ -6336,7 +6336,10 @@
       ],
       "stationTransfer": {
         "status": "TRACKED",
-        "rationale": "A station's own fonts (station_id) and their files go with it. Fonts of an association or of the instance stay where they are; a template naming one prints in the default font until a font of that name is reachable again."
+        "ignoredColumns": [
+          "uploaded_by"
+        ],
+        "rationale": "A station's own fonts (station_id) and their files go with it. Who uploaded one stays behind: accounts travel without their ids, so the reference could not be resolved and would cost the font. Fonts of an association or of the instance stay where they are; a template naming one prints in the default font until a font of that name is reachable again."
       },
       "gdprExport": {
         "status": "TRACKED",
@@ -16650,7 +16653,6 @@
         "status": "TRACKED",
         "ignoredColumns": [
           "station_id",
-          "icon_url",
           "created_by",
           "created_at",
           "updated_at",

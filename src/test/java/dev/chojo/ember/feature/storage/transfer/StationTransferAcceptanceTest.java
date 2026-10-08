@@ -6,10 +6,16 @@
 package dev.chojo.ember.feature.storage.transfer;
 
 import dev.chojo.ember.api.ApiJsonMapper;
+import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.Routes;
+import dev.chojo.ember.api.TestUploads;
 import dev.chojo.ember.conf.file.elements.Api;
+import dev.chojo.ember.conf.file.elements.Storage;
+import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.service.AvatarService;
+import dev.chojo.ember.feature.board.entity.TicketPriority;
+import dev.chojo.ember.feature.board.service.BoardAttachmentService;
 import dev.chojo.ember.feature.documents.entity.Document;
 import dev.chojo.ember.feature.documents.entity.DocumentTag;
 import dev.chojo.ember.feature.documents.entity.SealedVersion;
@@ -19,15 +25,28 @@ import dev.chojo.ember.feature.documents.service.DocumentDoor;
 import dev.chojo.ember.feature.documents.service.DocumentService;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationPartnerTransferFixupService;
+import dev.chojo.ember.feature.generator.entity.FontStyle;
+import dev.chojo.ember.feature.generator.repository.DocumentFontRepository;
+import dev.chojo.ember.feature.generator.service.font.DocumentFontService;
+import dev.chojo.ember.feature.generator.service.font.FontLibrary;
+import dev.chojo.ember.feature.generator.service.font.TestFonts;
+import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
+import dev.chojo.ember.feature.knowledgebase.service.KbFilePictureService;
+import dev.chojo.ember.feature.knowledgebase.service.KbFileStorageService;
+import dev.chojo.ember.feature.knowledgebase.service.KbIconService;
+import dev.chojo.ember.feature.knowledgebase.service.TextCompressionPolicy;
 import dev.chojo.ember.feature.media.entity.MediaContent;
 import dev.chojo.ember.feature.media.image.ImageProfile;
 import dev.chojo.ember.feature.media.service.ImageVariants;
 import dev.chojo.ember.feature.media.service.MediaStorageService;
 import dev.chojo.ember.feature.members.route.TransferRoutes;
 import dev.chojo.ember.feature.quiz.entity.AiVendor;
+import dev.chojo.ember.feature.quiz.entity.CatalogMetadata;
+import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
 import dev.chojo.ember.feature.quiz.repository.AccountAiCredentialRepository;
 import dev.chojo.ember.feature.quiz.repository.AiProviderRepository;
 import dev.chojo.ember.feature.quiz.service.AiCredentialService;
+import dev.chojo.ember.feature.quiz.service.QuizQuestionImageService;
 import dev.chojo.ember.feature.signing.entity.SealLevel;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.service.StationExportService;
@@ -50,9 +69,11 @@ import dev.chojo.ember.feature.storage.entity.StorageScope;
 import dev.chojo.ember.feature.storage.entity.Variant;
 import dev.chojo.ember.feature.storage.repository.StationStorageConfigRepository;
 import dev.chojo.ember.feature.storage.service.StationTransferFileService;
+import dev.chojo.ember.feature.storage.service.StorageQuotaService;
 import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.feature.storage.service.TransferBackendDescriptorService;
 import dev.chojo.ember.lifecycle.TaskScheduler;
+import dev.chojo.ember.owner.Owner;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import dev.chojo.ember.util.Sha256;
 import dev.chojo.ember.util.TestRemoteUrlValidator;
@@ -81,8 +102,10 @@ import java.time.Duration;
 import java.util.Base64;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import javax.imageio.ImageIO;
@@ -91,6 +114,7 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -115,6 +139,14 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
     private static DocumentService documents;
     private static StationStorageConfigRepository configRepo;
     private static CredentialCipher credentialCipher;
+    private static KbFileStorageService wikiFiles;
+    private static KbFilePictureService wikiPictures;
+    private static KbIconService folderIcons;
+    private static DocumentFontRepository fontRepo;
+    private static FontLibrary fontLibrary;
+    private static DocumentFontService fonts;
+    private static BoardAttachmentService boardAttachments;
+    private static QuizQuestionImageService quizPictures;
 
     private static StationExportService exportService;
     private static StationImportService importService;
@@ -131,14 +163,14 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
         images = new ImageVariants(storageService);
         avatarService = new AvatarService(images);
         mediaStorageService = new MediaStorageService(storageService, stationRepo, sharedBackend);
+        setupFileOwners(sharedBackend);
 
         configRepo = new StationStorageConfigRepository();
         credentialCipher = new CredentialCipher(Base64.getEncoder().encodeToString(new byte[32]));
         var backendImporter = new TransferBackendImporter(configRepo, credentialCipher, resolver);
         var descriptorService = new TransferBackendDescriptorService(configRepo, credentialCipher);
 
-        exportService = new StationExportService(
-                stationRepo, TestStationKeys.transfer(), TestStationKeys.aiKeyTransfer(), new Api());
+        exportService = new SeparateDatabaseExport();
         var fileImporter = new TransferFileImporter(storageService, avatarService, images, mediaStorageService);
         documents = newDocumentService(storageService);
         var stationImporter = new StationTableImporter(stationRepo);
@@ -185,6 +217,27 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
         });
         server.start(0);
         baseUrl = "http://localhost:" + server.port();
+    }
+
+    /**
+     * The services that keep files named by the id of a row, over the harness's storage, so a test can
+     * file through them at the source and read back through them at the destination.
+     */
+    private static void setupFileOwners(LocalStorageBackend backend) {
+        wikiFiles = new KbFileStorageService(
+                storageService, stationRepo, backend, new TextCompressionPolicy(new Storage()));
+        wikiPictures = new KbFilePictureService(images, wikiFiles, stationRepo, knowledgeBaseRepo);
+        folderIcons = new KbIconService(images, stationRepo);
+        boardAttachments = new BoardAttachmentService(storageService, stationRepo, backend);
+        quizPictures = new QuizQuestionImageService(images, stationRepo);
+
+        fontRepo = new DocumentFontRepository();
+        fontLibrary = newFontLibrary(storageService);
+        fonts = new DocumentFontService(
+                fontRepo,
+                fontLibrary,
+                storageService,
+                new StorageQuotaService(storageUsageRepo, new Storage(), new DomainEventBus(Set.of())));
     }
 
     @AfterAll
@@ -475,6 +528,130 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
         assertArrayEquals(secondSeal, documents.read(arrived.get("Abschrift")).orElseThrow());
     }
 
+    /**
+     * Wiki folders and files, fonts, board tickets and quiz questions get new ids on the destination, and the files named by those ids follow them there: each is read back through the
+     * service that keeps it. A wiki file's picture arrives with the file rather than being drawn again,
+     * and a folder's icon keeps its marker, now naming the folder's new id.
+     */
+    @Test
+    void filesNamedByRowsKeepTheirFilesUnderTheirNewIds() throws Exception {
+        Station source = stationRepo.create("Source ROW FILES");
+        Account account = accountRepo.create("row-files@xfer.test", "Rhea", "Rows", true);
+        var member = stationMemberRepo.create(source.id(), account.id());
+        var owner = new Owner.Station(source.id());
+        byte[] png = pngBytes(64, 48);
+        byte[] report = "Einsatzbericht".getBytes(StandardCharsets.UTF_8);
+
+        var folder = knowledgeBaseRepo.createFolder(source.id(), null, "Handbuch", "", member.id());
+        folderIcons.store(source.id(), folder.id(), png, "image/png", 5 * 1024 * 1024);
+        knowledgeBaseRepo.updateFolder(folder.id(), folder.name(), "", folderIcons.key(folder.id()), 0);
+        var wikiFile = knowledgeBaseRepo.createFile(
+                source.id(), folder.id(), "Lageplan", "", KbFileType.IMAGE, "image/png", png.length, null, member.id());
+        wikiFiles.store(source.id(), wikiFile.id(), png, "image/png");
+        wikiPictures.make(source.id(), wikiFile.id(), "image/png", png);
+
+        fonts.upload(
+                owner,
+                TestUploads.of("schrift.ttf", "font/ttf", TestFonts.lisu()),
+                "Wachschrift",
+                FontStyle.REGULAR,
+                true,
+                account.id());
+
+        var board = boardRepo.create(source.id(), "Einsatzboard", "", "EIN");
+        var lane = boardRepo.createLane(board.id(), "Offen", null, 0);
+        var creator = new MemberIdentity(source.uid(), member.uid());
+        var ticket = boardTicketRepo.createTicket(
+                board.id(), lane.id(), 1, "Bericht", null, null, TicketPriority.MEDIUM, null, 0, creator);
+        String attachment = boardAttachments.newFilename("bericht.txt");
+        boardTicketRepo.createAttachment(ticket.id(), attachment, "bericht.txt", "text/plain", report.length, creator);
+        boardAttachments.store(source.id(), ticket.id(), attachment, report, "text/plain");
+
+        var catalog = quizCatalogRepo.create(source.id(), "Grundlagen", "", false, CatalogMetadata.none());
+        var question = quizCatalogRepo.createQuestion(
+                catalog.id(),
+                null,
+                QuizQuestionType.TRUE_FALSE,
+                "Ist das ein Hydrant?",
+                "",
+                "uploaded",
+                1.0,
+                false,
+                "{\"correctAnswer\":true}",
+                0);
+        quizPictures.store(source.id(), question.id(), png, "image/png", 5 * 1024 * 1024);
+
+        byte[] icon =
+                folderIcons.read(source.id(), folder.id(), 0).orElseThrow().data();
+        byte[] picture = wikiPictures
+                .read(source.id(), wikiFile.id(), "image/png", 0)
+                .orElseThrow()
+                .data();
+        byte[] quizPicture =
+                quizPictures.read(source.id(), question.id(), 0).orElseThrow().data();
+
+        String token = rawToken(exportService.createTransferToken(source.id()));
+        var importResult = importService.startRemoteImport(baseUrl, token);
+        waitForImport(importResult.stationId());
+
+        int destinationId = importResult.stationId();
+        var destination = stationRepo.findById(destinationId).orElseThrow();
+        var destinationOwner = new Owner.Station(destinationId);
+
+        var arrivedFolder = knowledgeBaseRepo.findAllFolders(destinationId).getFirst();
+        assertNotEquals(folder.id(), arrivedFolder.id(), "the folder got a new id on the destination");
+        assertEquals(folderIcons.key(arrivedFolder.id()), arrivedFolder.iconUrl());
+        assertArrayEquals(
+                icon,
+                folderIcons
+                        .read(destinationId, arrivedFolder.id(), 0)
+                        .orElseThrow()
+                        .data());
+
+        var arrivedFile = knowledgeBaseRepo.findAllFiles(destinationId).getFirst();
+        assertNotEquals(wikiFile.id(), arrivedFile.id(), "the wiki file got a new id on the destination");
+        assertArrayEquals(
+                png,
+                wikiFiles.read(destinationId, arrivedFile.id()).orElseThrow().data());
+        assertTrue(
+                images.exists(
+                        ImageProfile.CONTENT,
+                        new StorageScope.Station(destinationId, destination.uid()),
+                        StorageCategory.IMAGE_KB_FILE_PICTURE,
+                        KbFilePictureService.key(arrivedFile.id())),
+                "the picture came along with the file");
+        assertArrayEquals(
+                picture,
+                wikiPictures
+                        .read(destinationId, arrivedFile.id(), "image/png", 0)
+                        .orElseThrow()
+                        .data());
+
+        var arrivedFont = fontRepo.findOwned(destinationOwner).getFirst();
+        assertArrayEquals(TestFonts.lisu(), fontLibrary.read(arrivedFont).orElseThrow());
+
+        var arrivedBoard = boardRepo.findByStation(destinationId).getFirst();
+        var arrivedTicket = boardTicketRepo.findByBoard(arrivedBoard.id()).getFirst();
+        assertNotEquals(ticket.id(), arrivedTicket.id(), "the ticket got a new id on the destination");
+        var arrivedAttachment =
+                boardTicketRepo.findAttachments(arrivedTicket.id()).getFirst();
+        try (var stream = boardAttachments
+                .read(destinationId, arrivedTicket.id(), arrivedAttachment.filename())
+                .orElseThrow()) {
+            assertArrayEquals(report, stream.body().readAllBytes());
+        }
+
+        var arrivedCatalog = quizCatalogRepo.findByStation(destinationId).getFirst();
+        var arrivedQuestion = quizCatalogRepo.findQuestions(arrivedCatalog.id()).getFirst();
+        assertNotEquals(question.id(), arrivedQuestion.id(), "the question got a new id on the destination");
+        assertArrayEquals(
+                quizPicture,
+                quizPictures
+                        .read(destinationId, arrivedQuestion.id(), 0)
+                        .orElseThrow()
+                        .data());
+    }
+
     private static Document storeDocument(
             DocumentService documents,
             Station station,
@@ -567,6 +744,32 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
         var out = new ByteArrayOutputStream();
         ImageIO.write(image, "png", out);
         return out.toByteArray();
+    }
+
+    /**
+     * The source's export as another instance would send it. Source and destination share one test
+     * database here, so a row's public id, unique across the database, would collide with the source's
+     * own row and the row would not arrive; each exported row gets a fresh one instead, as it would not
+     * collide on a database of its own.
+     */
+    private static final class SeparateDatabaseExport extends StationExportService {
+        SeparateDatabaseExport() {
+            super(stationRepo, TestStationKeys.transfer(), TestStationKeys.aiKeyTransfer(), new Api());
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public Map<String, Object> exportTable(int stationId, String tableName, int offset, int limit) {
+            var page = super.exportTable(stationId, tableName, offset, limit);
+            if (page.get(tableName) instanceof List<?> rows) {
+                for (Object row : rows) {
+                    if (row instanceof Map<?, ?> columns && columns.containsKey("public_uid")) {
+                        ((Map<String, Object>) columns).put("public_uid", UUID.randomUUID());
+                    }
+                }
+            }
+            return page;
+        }
     }
 
     @SuppressWarnings("BusyWait")
