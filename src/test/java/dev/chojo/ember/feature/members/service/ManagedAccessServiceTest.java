@@ -378,12 +378,27 @@ class ManagedAccessServiceTest extends RepositoryTestBase {
                     "child-1@managed.local",
                     accountRepo.findById(childAccount.id()).orElseThrow().email());
             verify(authService, never()).setPasswordFor(any(), any());
-            assertEquals(
-                    "lena.shared",
-                    service.setUsername(guardian.id(), child.id(), "lena.shared")
-                            .username());
+            var username = assertThrows(
+                    RefusalResponse.class, () -> service.setUsername(guardian.id(), child.id(), "lena.shared"));
+            assertEquals(MemberRefusal.ACCOUNT_SHARED_WITH_ANOTHER_STATION, username.refusal());
+            assertNull(accountRepo.findById(childAccount.id()).orElseThrow().username());
+            assertFalse(service.setLogin(guardian.id(), child.id(), false).loginEnabled());
         } finally {
             stationRepo.delete(elsewhere.id());
+        }
+    }
+
+    @Test
+    void aChildWhoseOwnerHasNotConfirmedTheAccountKeepsItsSignInName() {
+        accountRepo.markUnconfirmed(childAccount.id());
+        try {
+            var refused = assertThrows(
+                    RefusalResponse.class, () -> service.setUsername(guardian.id(), child.id(), "lena.waiting"));
+
+            assertEquals(MemberRefusal.ACCOUNT_NOT_CONFIRMED_YET, refused.refusal());
+            assertNull(accountRepo.findById(childAccount.id()).orElseThrow().username());
+        } finally {
+            accountRepo.confirm(childAccount.id());
         }
     }
 

@@ -836,7 +836,7 @@ public enum MemberRefusal implements Refusal {
     ACCOUNT_NOT_CONFIRMED_YET(
             225,
             HttpStatus.FORBIDDEN,
-            "The person has not confirmed that account yet, so its address and how it signs in stay as they are until they set it up through the link sent to them");
+            "The person has not confirmed that account yet, so its address and how it signs in stay as they are until they set it up themselves");
 
     private final Definition definition;
 

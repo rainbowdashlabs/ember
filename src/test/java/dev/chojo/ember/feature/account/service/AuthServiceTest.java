@@ -280,31 +280,66 @@ class AuthServiceTest extends RepositoryTestBase {
 
     /**
      * An account a station import created waits for its owner. The setup and reset links went to its
-     * address, so setting a password through one confirms it; the forced change that follows signing
-     * in with an imported password proves nothing about the address and leaves it waiting.
+     * address, so setting a password through one confirms it; where the installation sends mail, the
+     * forced change that follows signing in with an imported password proves nothing about the
+     * address and leaves it waiting.
      */
     @Test
     @Order(17)
     void aLinkToTheAddressConfirmsAnImportedAccountAndAForcedChangeDoesNot() {
+        when(emailService.isGlobalMailConfigured()).thenReturn(true);
         var imported = accountRepo.create("imported-confirm@test.com", "IC", "User");
-        accountRepo.markUnconfirmed(imported.id());
-        accountRepo.createToken(
-                imported.id(),
-                "forced-change-token",
-                TokenType.FORCE_PASSWORD_CHANGE,
-                Instant.now().plusSeconds(600));
-        assertEquals(AuthService.SetPasswordOutcome.OK, service.setPassword("forced-change-token", "ForcedChange123!"));
-        assertTrue(accountRepo.isUnconfirmed(imported.id()));
+        try {
+            accountRepo.markUnconfirmed(imported.id());
+            accountRepo.createToken(
+                    imported.id(),
+                    "forced-change-token",
+                    TokenType.FORCE_PASSWORD_CHANGE,
+                    Instant.now().plusSeconds(600));
+            assertEquals(
+                    AuthService.SetPasswordOutcome.OK, service.setPassword("forced-change-token", "ForcedChange123!"));
+            assertTrue(accountRepo.isUnconfirmed(imported.id()));
 
-        accountRepo.createToken(
-                imported.id(),
-                "confirming-reset-token",
-                TokenType.RESET_PASSWORD,
-                Instant.now().plusSeconds(600));
-        assertEquals(
-                AuthService.SetPasswordOutcome.OK, service.setPassword("confirming-reset-token", "ConfirmedPass123!"));
-        assertFalse(accountRepo.isUnconfirmed(imported.id()));
-        accountRepo.delete(imported.id());
+            accountRepo.createToken(
+                    imported.id(),
+                    "confirming-reset-token",
+                    TokenType.RESET_PASSWORD,
+                    Instant.now().plusSeconds(600));
+            assertEquals(
+                    AuthService.SetPasswordOutcome.OK,
+                    service.setPassword("confirming-reset-token", "ConfirmedPass123!"));
+            assertFalse(accountRepo.isUnconfirmed(imported.id()));
+        } finally {
+            when(emailService.isGlobalMailConfigured()).thenReturn(false);
+            accountRepo.delete(imported.id());
+        }
+    }
+
+    /**
+     * Without a mail provider no link can reach the owner of an imported account, so signing in with
+     * the imported password and replacing it in the forced change confirms the account.
+     */
+    @Test
+    @Order(17)
+    void withoutMailTheForcedChangeAfterTheFirstSignInConfirmsAnImportedAccount() {
+        when(emailService.isGlobalMailConfigured()).thenReturn(false);
+        var imported = accountRepo.create("imported-no-mail@test.com", "NM", "User");
+        try {
+            accountRepo.markUnconfirmed(imported.id());
+            accountRepo.createToken(
+                    imported.id(),
+                    "forced-change-no-mail-token",
+                    TokenType.FORCE_PASSWORD_CHANGE,
+                    Instant.now().plusSeconds(600));
+
+            assertEquals(
+                    AuthService.SetPasswordOutcome.OK,
+                    service.setPassword("forced-change-no-mail-token", "NoMailChange123!"));
+
+            assertFalse(accountRepo.isUnconfirmed(imported.id()));
+        } finally {
+            accountRepo.delete(imported.id());
+        }
     }
 
     @Test

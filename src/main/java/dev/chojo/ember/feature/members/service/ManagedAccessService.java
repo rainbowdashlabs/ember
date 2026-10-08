@@ -114,7 +114,9 @@ public class ManagedAccessService {
      * <p>This is what makes a login possible for a child with no address of their own: the name is
      * what they type, and everything Ember would write to them goes to their guardians instead.
      * Clearing it is refused while it is the only way in and signing in is switched on, because that
-     * would lock the member out without saying so.
+     * would lock the member out without saying so. The name is a way into the account, so like the
+     * address it is the guardian's only where {@link AccountReach} finds the account this station's
+     * alone and confirmed by its owner.
      *
      * @param guardianMemberId the member acting as guardian
      * @param memberId         the member in their care

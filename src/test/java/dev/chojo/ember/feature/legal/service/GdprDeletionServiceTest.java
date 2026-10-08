@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.legal.service;
 
+import dev.chojo.ember.api.auth.ClusterUserType;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
@@ -113,6 +114,33 @@ class GdprDeletionServiceTest extends RepositoryTestBase {
 
         assertTrue(accountRepo.findById(acc2.id()).isEmpty());
         assertTrue(stationMemberRepo.findById(member2.id()).isEmpty());
+    }
+
+    @Test
+    @Order(21)
+    void deletingTheLastMembershipTakesTheAccountAlong() {
+        var alone = accountRepo.create("gdpr-alone@test.com", "Only", "Here");
+        var aloneMember = stationMemberRepo.create(station.id(), alone.id());
+
+        service.anonymizeMember(aloneMember.id());
+
+        assertTrue(accountRepo.findById(alone.id()).isEmpty());
+    }
+
+    /** An association still needs the account of somebody who holds a role in it, so only the member goes. */
+    @Test
+    @Order(22)
+    void deletingTheLastMembershipKeepsAnAccountWithAnAssociationRole() {
+        var held = accountRepo.create("gdpr-association@test.com", "Still", "Needed");
+        var heldMember = stationMemberRepo.create(station.id(), held.id());
+        var association = clusterRepo.create("GdprAssociation " + System.nanoTime(), null, station.id());
+        clusterRepo.addMember(association.id(), held.id(), ClusterUserType.CLUSTER_USER);
+
+        service.anonymizeMember(heldMember.id());
+
+        assertTrue(stationMemberRepo.findById(heldMember.id()).isEmpty(), "the member is gone");
+        assertTrue(accountRepo.findById(held.id()).isPresent(), "the account stays");
+        assertTrue(clusterRepo.findMember(association.id(), held.id()).isPresent(), "and so does its role");
     }
 
     @Test

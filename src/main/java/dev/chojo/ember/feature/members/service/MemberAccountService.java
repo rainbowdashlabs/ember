@@ -26,6 +26,8 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
+import java.util.Objects;
+
 /**
  * The accounts behind the members of a station, as whoever manages the members acts on them:
  * correcting a name or an address, and the checks that decide whose account may be acted on at
@@ -147,8 +149,8 @@ public class MemberAccountService {
      * address right confirms it from both ends, which is what stops a stolen session walking off
      * with the account. Moving somebody else's address aims every later mail at whoever chose it,
      * so it takes a fresh proof, never reaches upwards, and is committed at once. A station may move
-     * it only where the account is the station's alone, as {@link AccountReach} decides, and that is
-     * checked before anything is written.
+     * it, or change the sign-in name, only where the account is the station's alone and confirmed by
+     * its owner, as {@link AccountReach} decides, and that is checked before anything is written.
      *
      * @param session   who is asking
      * @param stationId the station they ask from, or null when none is chosen
@@ -172,6 +174,9 @@ public class MemberAccountService {
                 accountRepository.findById(accountId).orElseThrow(MemberRefusal.ACCOUNT_NOT_HERE_ON_CHANGE::raise);
         if (actsForTheStation && stationId != null && changesAddress(existing, request.email())) {
             accountReach.require(stationId, accountId, AccountAction.EMAIL_CHANGE);
+        }
+        if (actsForTheStation && stationId != null && changesUsername(existing, request.username())) {
+            accountReach.require(stationId, accountId, AccountAction.USERNAME_CHANGE);
         }
         boolean nameWaits =
                 !actsForSomebodyElse && changesName(existing, request) && nameChanges.needsApproval(session);
@@ -208,6 +213,12 @@ public class MemberAccountService {
 
     private static boolean changesAddress(Account existing, String email) {
         return email != null && !email.isBlank() && !email.equalsIgnoreCase(existing.email());
+    }
+
+    private static boolean changesUsername(Account existing, @Nullable String username) {
+        if (username == null) return false;
+        String typed = username.isBlank() ? null : username.trim();
+        return !Objects.equals(typed, existing.username());
     }
 
     /**

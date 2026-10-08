@@ -360,7 +360,7 @@ export default {
                 stationTitle: 'Was sieht die Wache?',
                 stationText: 'Beim Mitglied steht, ob die Anfrage wartet, abgelehnt wurde oder abgelaufen ist. Solange sie wartet, fehlen dort alle Aktionen für das Konto.',
                 sharedTitle: 'Konten, die mehreren gehören',
-                sharedText: 'Gehört dein Konto mehreren Wachen oder einem Verband, darf keine Wache deine Adresse oder deine Anmeldung ändern. Das machst nur du selbst. Hat ein Umzug ein Konto für dich angelegt, gilt das auch, bis du es über den Link in deiner Mail eingerichtet hast.',
+                sharedText: 'Gehört dein Konto mehreren Wachen oder einem Verband, darf keine Wache deine Adresse oder deine Anmeldung ändern. Das machst nur du selbst. Hat ein Umzug ein Konto für dich angelegt, gilt das auch, bis du es über den Link in deiner Mail eingerichtet hast. Versendet deine Installation keine Mails, reicht es, dich mit dem mitgebrachten Passwort anzumelden und es durch ein neues zu ersetzen.',
                 tip: 'Kennst du die Wache nicht, lehne die Anfrage ab. Niemand bekommt dadurch Zugriff auf dein Konto.',
             },
             seals: {

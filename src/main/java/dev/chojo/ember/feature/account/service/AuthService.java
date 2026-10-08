@@ -280,9 +280,9 @@ public class AuthService {
      * switching it off recoverable. On a passwordless instance no path may mint a password: the
      * refusal keys on the mode, so a legacy member still rotates the password they hold, while an
      * account that never had one is onboarded again instead. The token type that triggered the
-     * rotation is logged so operators can correlate the flow without an audit table. A setup or reset
-     * link went to the account's address, so following it confirms an account a station import
-     * created; the forced change after signing in proves nothing about the address and does not.
+     * rotation is logged so operators can correlate the flow without an audit table. Setting the
+     * password may also confirm an account a station import created, as {@link #confirmsOwnership}
+     * decides.
      *
      * @param token    the password setup or reset token
      * @param password the new plaintext password
@@ -340,12 +340,30 @@ public class AuthService {
         }
 
         invalidateAfterPasswordRotation(accountToken.accountId(), null);
-        if (type != TokenType.FORCE_PASSWORD_CHANGE && accountRepository.confirm(accountToken.accountId())) {
-            log.info("Account {} confirmed by its owner through a {} link", accountToken.accountId(), type);
+        if (confirmsOwnership(type) && accountRepository.confirm(accountToken.accountId())) {
+            log.info("Account {} confirmed by its owner through a {} step", accountToken.accountId(), type);
         }
         notifyPasswordChanged(account.get());
         log.info("Password set via {} for account {}", type, accountToken.accountId());
         return SetPasswordOutcome.OK;
+    }
+
+    /**
+     * Whether setting a password through this kind of token confirms an account a station import
+     * created.
+     *
+     * <p>A setup or reset link went to the account's address, so following it is the owner's answer.
+     * The forced change after signing in with an imported password proves nothing about the address,
+     * so where the installation can send mail it leaves the account waiting for that link. Where it
+     * cannot, no link can ever reach the owner, and signing in with the password they brought along
+     * and replacing it is the most the owner can show; the same mail check decides whether a link
+     * request goes out by mail.
+     *
+     * @param type the token the password was set with
+     * @return true where setting the password confirms the account
+     */
+    private boolean confirmsOwnership(TokenType type) {
+        return type != TokenType.FORCE_PASSWORD_CHANGE || !emailService.isGlobalMailConfigured();
     }
 
     /**

@@ -17,6 +17,8 @@ package dev.chojo.ember.feature.account.entity;
 public enum AccountAction {
     /** A member manager moving the account's address. */
     EMAIL_CHANGE(true),
+    /** A member manager changing the name the account signs in with. */
+    USERNAME_CHANGE(true),
     /** A station administrator clearing the account's second factor. */
     SECOND_FACTOR_RESET(true),
     /** A member manager disabling the passkeys and sending a fresh setup link. */
@@ -31,6 +33,8 @@ public enum AccountAction {
     GUARDIAN_EMAIL(true),
     /** A guardian setting the password of a member in their care. */
     GUARDIAN_PASSWORD(true),
+    /** A guardian setting the name a member in their care signs in with. */
+    GUARDIAN_USERNAME(true),
     /** A guardian handing out a passkey code for a member in their care. */
     GUARDIAN_PASSKEY_CODE(true),
     /** A member manager granting sign-in, or sending the setup mail of an account not set up yet. */
@@ -41,8 +45,6 @@ public enum AccountAction {
     NAME_CHANGE_APPROVAL(false),
     /** A member manager deleting the member, which takes an account along that has no other membership. */
     MEMBER_DELETE(false),
-    /** A guardian setting the name a member in their care signs in with. */
-    GUARDIAN_USERNAME(false),
     /** A guardian switching sign-in on or off for a member in their care. */
     GUARDIAN_LOGIN(false);
 

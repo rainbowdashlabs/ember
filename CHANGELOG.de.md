@@ -51,7 +51,7 @@ Wachen erstellen aus eigenen Vorlagen und denen ihres Verbands Dokumente für ih
 - **Ein Import bleibt bei der importierten Wache.** In manchen Fällen konnte ein Import einer Wache von einer anderen Installation Leihanfragen und Nachrichten an andere Wachen dieser Installation hängen oder ein Mitglied allein über den Namen mit dem Konto einer anderen Person verbinden. Ein Import erreicht jetzt nur die importierte Wache und ihre Partner.
 - **Importierte Passwörter gelten nur für neue Konten.** Ein Import einer Wache konnte einem Konto dieser Installation ohne Passwort eines setzen, wenn er dessen E-Mail-Adresse nannte. Passwörter aus einem Import erhalten jetzt nur die Konten, die dieser Import anlegt.
 - **Bestehende Konten kommen nur mit Zustimmung zu einer Wache.** Eine Einladung oder ein Import mit der E-Mail-Adresse eines bestehenden Kontos hängte dieses Konto an die Wache, ohne die Person zu fragen, der es gehört. Das Mitglied bleibt jetzt ohne Konto, bis die Person der Anfrage zustimmt.
-- **Geteilte Konten behalten Adresse und Anmeldung.** Eine Wache oder eine erziehungsberechtigte Person konnte E-Mail-Adresse, Passwort, zweiten Faktor oder Passkeys eines Kontos ändern, das auch zu einer anderen Wache oder einem Verband gehört. Das ändert jetzt nur die Person selbst, und ein Konto, das ein Import einer Wache angelegt hat, bleibt genauso geschützt, bis die Person es über den zugeschickten Link einrichtet.
+- **Geteilte Konten behalten Adresse und Anmeldung.** Eine Wache oder eine erziehungsberechtigte Person konnte E-Mail-Adresse, Anmeldenamen, Passwort, zweiten Faktor oder Passkeys eines Kontos ändern, das auch zu einer anderen Wache oder einem Verband gehört. Das ändert jetzt nur die Person selbst, und ein Konto, das ein Import einer Wache angelegt hat, bleibt genauso geschützt, bis die Person es über den zugeschickten Link einrichtet oder sich auf einer Installation ohne E-Mail anmeldet und das importierte Passwort ersetzt.
 
 ### Änderungen
 
@@ -73,6 +73,7 @@ Wachen erstellen aus eigenen Vorlagen und denen ihres Verbands Dokumente für ih
 - **Umgezogene Wachen auf eigenem Speicher zeigten falsche Dateien.** Lagen die Dateien einer Wache auf ihrem eigenen S3-, SMB- oder SFTP-Speicher, zeigten sie nach dem Umzug auf eine andere Installation mitunter den Inhalt eines anderen Eintrags oder gar keinen. Jetzt wird jede Datei innerhalb dieses Speichers dorthin kopiert, wo die umgezogene Wache sie sucht.
 - **Ein fehlgeschlagener Import löschte die Wache, in die er lief.** Schlug der Import von Daten einer anderen Wache in eine bestehende Wache fehl, wurde die bestehende Wache mit allem gelöscht, was sie enthielt. Jetzt bleibt die Wache mit allem bestehen, was sie enthielt.
 - **Beim Umzug einer Wache fehlten Einträge oder kamen doppelt an.** In manchen Fällen ließ der Umzug einer Wache mit vielen Einträgen einige davon aus und brachte andere zweimal. Jetzt kommt jeder Eintrag genau einmal an.
+- **Das Löschen eines Mitglieds konnte ein noch genutztes Konto löschen.** Wurde ein Mitglied gelöscht, das zu keiner anderen Wache gehörte, konnte auch sein Konto gelöscht werden, obwohl es noch eine Rolle in einem Verband hatte. Jetzt wird nur das Mitglied entfernt, und das Konto behält seine Rolle im Verband.
 
 ## v26.21.0
 

@@ -178,6 +178,69 @@ class MemberAccountServiceTest {
     }
 
     @Test
+    void changingTheSignInNameOfASharedAccountIsRefusedBeforeAnythingIsWritten() {
+        targetIsAtTheStation();
+        when(accounts.findById(TARGET)).thenReturn(Optional.of(target("tom@test.com", InstanceUserType.USER)));
+        doThrow(MemberRefusal.ACCOUNT_HELD_BY_AN_ASSOCIATION.raise())
+                .when(reach)
+                .require(STATION_ID, TARGET, AccountAction.USERNAME_CHANGE);
+
+        assertEquals(
+                MemberRefusal.ACCOUNT_HELD_BY_AN_ASSOCIATION,
+                refusalOf(() -> update(manager(), TARGET, new UpdateAccountRequest("tom@test.com", "tom", "A", "B"))));
+        verify(accounts, never()).update(anyInt(), any(), any(), any());
+        verify(accounts, never()).updateUsername(anyInt(), any());
+    }
+
+    @Test
+    void changingTheSignInNameOfAnUnconfirmedAccountIsRefused() {
+        targetIsAtTheStation();
+        when(accounts.findById(TARGET)).thenReturn(Optional.of(target("tom@test.com", InstanceUserType.USER)));
+        doThrow(MemberRefusal.ACCOUNT_NOT_CONFIRMED_YET.raise())
+                .when(reach)
+                .require(STATION_ID, TARGET, AccountAction.USERNAME_CHANGE);
+
+        assertEquals(
+                MemberRefusal.ACCOUNT_NOT_CONFIRMED_YET,
+                refusalOf(() -> update(manager(), TARGET, new UpdateAccountRequest(null, "tom", "A", "B"))));
+        verify(accounts, never()).updateUsername(anyInt(), any());
+    }
+
+    @Test
+    void anUnchangedSignInNameIsNotAChangeToTheAccount() {
+        targetIsAtTheStation();
+        var existing = new Account(
+                TARGET, null, "tom@test.com", "tom", "Tom", "Target", true, InstanceUserType.USER, "Tom", null, null);
+        when(accounts.findById(TARGET)).thenReturn(Optional.of(existing));
+
+        update(manager(), TARGET, new UpdateAccountRequest("tom@test.com", " tom ", "A", "B"));
+
+        verify(reach, never()).require(STATION_ID, TARGET, AccountAction.USERNAME_CHANGE);
+    }
+
+    @Test
+    void ownSignInNameIsNoStationMatter() {
+        var self = TestSessions.member(STATION_ID);
+        when(accounts.findById(self.accountId()))
+                .thenReturn(Optional.of(new Account(
+                        self.accountId(),
+                        null,
+                        "self@test.com",
+                        null,
+                        "A",
+                        "B",
+                        true,
+                        InstanceUserType.USER,
+                        "A B",
+                        null,
+                        null)));
+
+        update(self, self.accountId(), new UpdateAccountRequest(null, "selfname", "A", "B"));
+
+        verify(reach, never()).require(anyInt(), anyInt(), eq(AccountAction.USERNAME_CHANGE));
+    }
+
+    @Test
     void renamingAnAccountIsDecidedAsAnActionInsideTheStation() {
         targetIsAtTheStation();
         when(accounts.findById(TARGET)).thenReturn(Optional.of(target("tom@test.com", InstanceUserType.USER)));

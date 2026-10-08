@@ -110,7 +110,8 @@ public class GdprDeletionService {
     /**
      * Anonymises a station member by running the engine for both the integer-id identity
      * ({@code MEMBER_ID}) and the UUID identity ({@code MEMBER_UID}). The avatar file is removed
-     * from disk as a non-DB side effect, and the account goes too when this was its only membership.
+     * from disk as a non-DB side effect, and the account goes too when this was its only membership
+     * and it holds no role in an association, since the association still needs it.
      *
      * <p>The member's documents are released first, by the rule {@link DocumentService#memberLeaves} holds
      * for a deleted member: what was not kept goes, and what was kept for the record keeps their name.
@@ -135,13 +136,15 @@ public class GdprDeletionService {
             uidReport.log(log);
         }
 
-        if (accountId != null) {
-            var remaining = stationMemberRepository.findAllByAccountId(accountId);
-            if (remaining.isEmpty()) {
-                log.info("GDPR: account {} has no remaining members, deleting account", accountId);
-                deleteAccountData(accountId);
-            }
+        if (member != null && accountId != null && isOrphaned(accountId, member.stationId())) {
+            log.info("GDPR: account {} has no remaining members or association roles, deleting account", accountId);
+            deleteAccountData(accountId);
         }
+    }
+
+    private boolean isOrphaned(int accountId, int stationId) {
+        return stationMemberRepository.findAllByAccountId(accountId).isEmpty()
+                && !accountRepository.findTies(accountId, stationId).association();
     }
 
     /**

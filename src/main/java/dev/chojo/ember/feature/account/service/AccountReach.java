@@ -23,8 +23,8 @@ import org.slf4j.LoggerFactory;
  * this station alone and has confirmed the account:
  * <ul>
  *   <li>an account a station import created waits for its owner to sign in through the link sent to
- *       its address, so a bundle cannot plant an account under somebody else's address and then reset
- *       it;</li>
+ *       its address, or on an installation without mail to replace the imported password, so a bundle
+ *       cannot plant an account under somebody else's address and then reset it;</li>
  *   <li>an account that also belongs to another station, current or former, or holds a role in an
  *       association, is the person's to manage themselves.</li>
  * </ul>
