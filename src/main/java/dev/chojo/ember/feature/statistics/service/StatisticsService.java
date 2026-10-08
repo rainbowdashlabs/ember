@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.statistics.service;
 
+import dev.chojo.ember.feature.signing.service.SigningKeyRecovery;
 import dev.chojo.ember.feature.statistics.entity.AdminOverview;
 import dev.chojo.ember.feature.statistics.entity.AdminStatistics;
 import dev.chojo.ember.feature.statistics.entity.StationStatistics;
@@ -18,10 +19,12 @@ import jakarta.inject.Singleton;
 @Singleton
 public class StatisticsService {
     private final StatisticsRepository statistics;
+    private final SigningKeyRecovery signingKeys;
 
     @Inject
-    public StatisticsService(StatisticsRepository statistics) {
+    public StatisticsService(StatisticsRepository statistics, SigningKeyRecovery signingKeys) {
         this.statistics = statistics;
+        this.signingKeys = signingKeys;
     }
 
     /**
@@ -36,9 +39,10 @@ public class StatisticsService {
     }
 
     /**
-     * What needs an administrator's attention across the instance.
+     * What needs an administrator's attention across the instance: the counts the database holds, and the
+     * signing keys that no longer open under the at-rest secret.
      */
     public AdminOverview overview() {
-        return statistics.adminOverview();
+        return statistics.adminOverview().withSigningKeysLocked(signingKeys.lockedCount());
     }
 }

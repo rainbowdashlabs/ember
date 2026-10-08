@@ -44,6 +44,11 @@ import java.util.Optional;
  * <p><b>Clock.</b> The revocation date and a list's {@code thisUpdate} both come from this service's
  * clock, never from the database's, so a list never names a revocation dated after the list itself.
  *
+ * <p><b>Given-up authorities.</b> An authority an administrator gave up because its key no longer opens
+ * ({@link SigningKeyRecovery}) can sign no list. Its readers get the last list it signed, as it was, with
+ * the {@code nextUpdate} it carries telling them it is no newer; should its key open again, it signs
+ * fresh lists as before. None of its keys can be revoked any more, since no list could name them.
+ *
  * <p>Revoking an authority itself is not possible: its certificate is the anchor readers pin, so there
  * is nobody above it to sign a list naming it. Replacing a compromised authority means a new anchor for
  * every reader.
@@ -94,6 +99,7 @@ public class StationKeyRevocations {
      * @param reason       why it is revoked
      * @return true when this call revoked the key, false when it was revoked already
      * @throws IllegalArgumentException when the station holds no key with that serial number
+     * @throws IllegalStateException    when the key's authority was given up
      */
     public boolean revoke(int stationId, String serialNumber, RevocationReason reason) {
         var serial = serialOrRefuse(serialNumber);
@@ -109,6 +115,7 @@ public class StationKeyRevocations {
      * @param reason       why it is revoked
      * @return true when this call revoked the key, false when it was revoked already
      * @throws IllegalArgumentException when no deleted station held a key with that serial number
+     * @throws IllegalStateException    when the key's authority was given up
      */
     public boolean revokeKeyOfDeletedStation(String serialNumber, RevocationReason reason) {
         var serial = serialOrRefuse(serialNumber);
@@ -120,6 +127,10 @@ public class StationKeyRevocations {
     private boolean revokeIssuedBy(int authority, String serial, RevocationReason reason) {
         return Transactions.call(() -> {
             keys.lockRevocationListNumber(authority);
+            if (keys.authorityAbandoned(authority)) {
+                throw new IllegalStateException("The key " + serial + " cannot be revoked: its authority was given up"
+                        + " because its key no longer opens, so no revocation list can name it any more");
+            }
             boolean revoked = keys.revoke(authority, serial, reason, now());
             if (revoked) keys.forgetRevocationList(authority);
             return revoked;
@@ -127,11 +138,13 @@ public class StationKeyRevocations {
     }
 
     /**
-     * The current revocation list of an authority, active or retired.
+     * The current revocation list of an authority, active or retired; for one that was given up, the last
+     * list it signed.
      *
      * @param authoritySerial the authority certificate's serial number in hexadecimal
      * @return the list, DER encoded, or empty when no authority has that serial number
-     * @throws SigningKeyWrapException when the authority's key does not open under the at-rest secret
+     * @throws SigningKeyWrapException when the authority's key does not open under the at-rest secret and
+     *                                 it was not given up, or was given up without a list kept
      */
     public Optional<byte[]> revocationList(String authoritySerial) {
         return SigningCertificates.serialNumber(authoritySerial)
@@ -140,10 +153,13 @@ public class StationKeyRevocations {
     }
 
     private byte[] currentList(StoredAuthority authority) {
-        return keys.findRevocationList(authority.id())
-                .filter(this::fresh)
-                .orElseGet(() -> Transactions.call(() -> reissue(authority)))
-                .list();
+        var stored = keys.findRevocationList(authority.id()).filter(this::fresh);
+        if (stored.isPresent()) return stored.get().list();
+        try {
+            return Transactions.call(() -> reissue(authority)).list();
+        } catch (SigningKeyWrapException e) {
+            return keys.lastListOfAbandoned(authority.id()).orElseThrow(() -> e).list();
+        }
     }
 
     private StoredRevocationList reissue(StoredAuthority authority) {

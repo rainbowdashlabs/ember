@@ -554,7 +554,16 @@ public enum DocumentRefusal implements Refusal {
     DOCUMENT_SCAN_REASON_MISSING(173, HttpStatus.BAD_REQUEST, "Say briefly why the scan is turned down"),
 
     /** A reason for turning a scan down that is longer than the participant is shown. */
-    DOCUMENT_SCAN_REASON_TOO_LONG(174, HttpStatus.BAD_REQUEST, "The reason may be at most 300 characters long");
+    DOCUMENT_SCAN_REASON_TOO_LONG(174, HttpStatus.BAD_REQUEST, "The reason may be at most 300 characters long"),
+
+    /** A recovery of the signing keys while every key in use still opens, so there is nothing to give up. */
+    SIGNING_KEYS_ALL_OPEN(175, HttpStatus.CONFLICT, "Every signing key still opens, so nothing is given up"),
+
+    /** A recovery confirmed for other keys than the ones that no longer open now. */
+    SIGNING_KEYS_CHANGED(
+            176,
+            HttpStatus.CONFLICT,
+            "The signing keys that no longer open have changed since the page was loaded, nothing was given up");
 
     private final Definition definition;
 

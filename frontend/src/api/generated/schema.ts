@@ -5921,6 +5921,89 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/signing/keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Which signing keys no longer open under the at-rest secret, and the earlier recoveries */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SigningKeyStatus"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/signing/keys/recover": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Give up the signing keys that no longer open, so the next seal issues new ones */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["SigningKeyRecoveryRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SigningKeyRecoveryEntry"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/station-applications": {
         parameters: {
             query?: never;
@@ -58767,6 +58850,8 @@ export interface components {
             recentApplications: components["schemas"]["RecentApplication"][];
             recentProblemReports: components["schemas"]["RecentProblemReport"][];
             /** Format: int32 */
+            signingKeysLocked: number;
+            /** Format: int32 */
             stationApplicationsPending: number;
             /** Format: int32 */
             stationsSetupPending: number;
@@ -63953,6 +64038,14 @@ export interface components {
             longitude: number | null;
             postalCode: string | null;
         };
+        LockedSigningKey: {
+            active: boolean;
+            kind: components["schemas"]["SigningKeyKind"];
+            serialNumber: string;
+            sha256Fingerprint: string;
+            stationName: string | null;
+            validUntil: components["schemas"]["Instant"];
+        };
         LogEntry: {
             /** Format: int64 */
             id: number;
@@ -68176,6 +68269,25 @@ export interface components {
             settledAt: components["schemas"]["Instant"] | null;
             state: components["schemas"]["FieldState"];
         };
+        /** @enum {string} */
+        SigningKeyKind: "AUTHORITY" | "STATION_KEY";
+        SigningKeyRecoveryEntry: {
+            authoritySerials: string[];
+            /** Format: int32 */
+            id: number;
+            recoveredAt: components["schemas"]["Instant"];
+            recoveredBy: string | null;
+            stationKeySerials: string[];
+        };
+        SigningKeyRecoveryRequest: {
+            serialNumbers?: string[];
+        };
+        SigningKeyStatus: {
+            locked: components["schemas"]["LockedSigningKey"][];
+            /** Format: int32 */
+            openKeys: number;
+            recoveries: components["schemas"]["SigningKeyRecoveryEntry"][];
+        };
         SigningSecretRequest: {
             secret?: string;
         };
@@ -70691,6 +70803,7 @@ export type LocalUpdateChecklistItemRequest = components['schemas']['LocalUpdate
 export type LocalUpdateTicketRequest = components['schemas']['LocalUpdateTicketRequest'];
 export type LocationUpdate = components['schemas']['LocationUpdate'];
 export type LocationView = components['schemas']['LocationView'];
+export type LockedSigningKey = components['schemas']['LockedSigningKey'];
 export type LogEntry = components['schemas']['LogEntry'];
 export type LogEntryResponse = components['schemas']['LogEntryResponse'];
 export type LogFacet = components['schemas']['LogFacet'];
@@ -71274,6 +71387,10 @@ export type SignInFinishRequest = components['schemas']['SignInFinishRequest'];
 export type SigningAuthorityInfo = components['schemas']['SigningAuthorityInfo'];
 export type SigningCompleteRequest = components['schemas']['SigningCompleteRequest'];
 export type SigningCompleteResponse = components['schemas']['SigningCompleteResponse'];
+export type SigningKeyKind = components['schemas']['SigningKeyKind'];
+export type SigningKeyRecoveryEntry = components['schemas']['SigningKeyRecoveryEntry'];
+export type SigningKeyRecoveryRequest = components['schemas']['SigningKeyRecoveryRequest'];
+export type SigningKeyStatus = components['schemas']['SigningKeyStatus'];
 export type SigningSecretRequest = components['schemas']['SigningSecretRequest'];
 export type SigningStartRequest = components['schemas']['SigningStartRequest'];
 export type SigningStartResponse = components['schemas']['SigningStartResponse'];
@@ -72648,6 +72765,11 @@ export const SignerCapacity = {
     ACCOUNT_HOLDER: "ACCOUNT_HOLDER",
     GUARDIAN: "GUARDIAN",
     MEMBER_THROUGH_ACCOUNT: "MEMBER_THROUGH_ACCOUNT",
+} as const;
+
+export const SigningKeyKind = {
+    AUTHORITY: "AUTHORITY",
+    STATION_KEY: "STATION_KEY",
 } as const;
 
 export const SmtpEncryption = {

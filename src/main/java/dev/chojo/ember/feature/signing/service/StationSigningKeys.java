@@ -50,6 +50,11 @@ import java.util.Optional;
  * discarded unseen. A key revoked in the meantime ({@link StationKeyRevocations}) is retired with no
  * successor, so the caller's insert is the one that stays.
  *
+ * <p><b>Keys that do not open.</b> A stored key that does not open under the at-rest secret is never
+ * replaced here: the call fails and the key stays as it is, since a misconfigured secret must not lead to
+ * a new authority. Only an administrator gives such keys up ({@link SigningKeyRecovery}); they are retired
+ * then, and the next call issues new ones as on the first seal.
+ *
  * <p>The installation is named by the host of the configured base address, which is what readers know
  * it by, and a station certificate names its authority's revocation list below that address. Revoking
  * a key is {@link StationKeyRevocations}' part.

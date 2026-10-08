@@ -26,6 +26,7 @@ const cards = computed<AttentionCardSpec[]>(() => [
   {key: 'federationPending', icon: ['fas', 'handshake'], label: t('adminOverview.cards.federationPending'), count: props.overview.federationPartnersPending, warnAt: 1},
   {key: 'discoveryUnreachable', icon: ['fas', 'satellite-dish'], label: t('adminOverview.cards.discoveryUnreachable'), count: props.overview.discoveryPeersUnreachable, warnAt: 1, routeName: 'admin-discovery'},
   {key: 'problemReports', icon: ['fas', 'triangle-exclamation'], label: t('adminOverview.cards.problemReports'), count: props.overview.problemReportsOpen, warnAt: 1, critAt: 10, routeName: 'admin-problem-reports'},
+  {key: 'signingKeysLocked', icon: ['fas', 'file-signature'], label: t('adminOverview.cards.signingKeysLocked'), count: props.overview.signingKeysLocked, critAt: 1, routeName: 'admin-security-signing-keys'},
 ])
 </script>
 

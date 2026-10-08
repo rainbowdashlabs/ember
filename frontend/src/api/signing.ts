@@ -9,6 +9,8 @@ import type {
     SignerEntryDraft,
     SigningCompleteRequest,
     SigningCompleteResponse,
+    SigningKeyRecoveryEntry,
+    SigningKeyStatus,
     SigningStartResponse,
 } from '@/api/generated/schema'
 import client from './client'
@@ -72,5 +74,22 @@ export async function completeSigning(
     confirmation: SigningCompleteRequest,
 ): Promise<SigningCompleteResponse> {
     const res = await client.post<SigningCompleteResponse>(`/signing/fields/${fieldId}/complete`, confirmation)
+    return res.data
+}
+
+/** Which of the installation's signing keys no longer open under the at-rest secret, for its administrators. */
+export async function getSigningKeyStatus(): Promise<SigningKeyStatus> {
+    const res = await client.get<SigningKeyStatus>('/admin/signing/keys')
+    return res.data
+}
+
+/**
+ * Gives up the signing keys that no longer open, so the next seal of each station issues new ones.
+ * Asks for a fresh second factor, and runs only while the keys that do not open are exactly these.
+ *
+ * @param serialNumbers the serial numbers of the keys shown as no longer opening
+ */
+export async function recoverSigningKeys(serialNumbers: string[]): Promise<SigningKeyRecoveryEntry> {
+    const res = await client.post<SigningKeyRecoveryEntry>('/admin/signing/keys/recover', {serialNumbers})
     return res.data
 }

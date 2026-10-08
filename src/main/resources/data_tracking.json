@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:2e0b6d266ce8876a67319a5ccb20442f802d9ce401fca6cf007d4021fe77e137",
-  "generatedAt": "2026-10-08T15:58:55Z",
+  "schemaHash": "sha256:3f71da56bd9744bbf10595a9fd3cfef590002808994e5d445aeee1fa06522507",
+  "generatedAt": "2026-10-08T16:05:07Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -23110,7 +23110,7 @@
     "signing_ca": {
       "feature": "signing",
       "scope": "INSTANCE",
-      "tableHash": "sha256:f5695d9962a92d153c5797aefccde4adbca23cd5eb27c0bc0c27a2974865462d",
+      "tableHash": "sha256:f415e399d2a3bf041742df657a402effe2cb7889785d9e1d3db6585f048a4582",
       "columns": [
         {
           "name": "id",
@@ -23181,6 +23181,13 @@
           "nullable": true,
           "verified": true,
           "description": "When the stored revocation list was issued, the thisUpdate it carries, kept so its age is known without reading the list. Null exactly when no list is stored."
+        },
+        {
+          "name": "abandoned_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When an instance administrator gave the authority up because its private key no longer opened under the at-rest encryption key, for example after the key file was lost. Null while it is in use. A given-up authority is retired; its certificate stays published, and its last revocation list is served as it was, since nothing can sign a newer one."
         }
       ],
       "foreignKeys": [],
@@ -23546,6 +23553,69 @@
         ]
       },
       "description": "The record of one signing act on one signature field, kept faithfully with everything a reader needs to check it again without Ember: who confirmed with which proof, for whom, what they read and confirmed, when and from where, and for a passkey or security key the whole answer and the public key it verifies under. Names and the guardian link are copied as they were, since the account, the member and the link may all be gone when somebody reads it."
+    },
+    "signing_key_recovery": {
+      "feature": "signing",
+      "scope": "INSTANCE",
+      "tableHash": "sha256:c7348070d69a2c9b51e6bd97a91e525252f5090d391fc8b7210dbf71b072690f",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Primary key."
+        },
+        {
+          "name": "recovered_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the keys were given up."
+        },
+        {
+          "name": "account_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The instance administrator who gave them up. Set to null when that account is deleted, so the row stays as proof of what was done."
+        },
+        {
+          "name": "authority_serials",
+          "type": "_text",
+          "nullable": false,
+          "verified": true,
+          "description": "Certificate serial numbers of the authorities given up, lower-case hexadecimal. Empty when every authority still opened."
+        },
+        {
+          "name": "station_key_serials",
+          "type": "_text",
+          "nullable": false,
+          "verified": true,
+          "description": "Certificate serial numbers of the station keys given up, lower-case hexadecimal. Empty when every station key still opened."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "account_id",
+          "refTable": "account",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        }
+      ],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "Instance-wide audit trail of the installation's own keys; not part of a station's portable state."
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Operational audit; no personal data beyond the administrator's account reference, which is set to null when the account is deleted."
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Append-only retention as proof of what was done. Attribution thins out through SET NULL when the account is deleted."
+      },
+      "description": "Audit trail of the signing keys an instance administrator gave up because they no longer opened under the at-rest encryption key. One row per recovery; nothing is ever given up without one. Kept for as long as the installation runs."
     },
     "signing_request": {
       "feature": "signing",
@@ -25809,7 +25879,7 @@
     "station_signing_key": {
       "feature": "signing",
       "scope": "STATION",
-      "tableHash": "sha256:e728fd439b41e4b84f29f50263b4f05c9db72516406c594a31dc7eb7c81441f3",
+      "tableHash": "sha256:d2fc2c67f2cc44bdae4fa20ea6d9eebc494d4a197cbfeecf3e1291328722ce45",
       "columns": [
         {
           "name": "id",
@@ -25887,6 +25957,13 @@
           "nullable": true,
           "verified": true,
           "description": "Why the key was revoked, as its authority's revocation lists state it: KEY_COMPROMISE when the private key leaked, SUPERSEDED when it was replaced, CESSATION_OF_OPERATION when the station stopped sealing with it. Null while it is not revoked."
+        },
+        {
+          "name": "abandoned_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When an instance administrator gave the key up because its private key no longer opened under the at-rest encryption key, for example after the key file was lost. Null while it is in use. A given-up key is retired, so the station's next seal gets a new key; its certificate stays published, and a revoked one stays on its authority's revocation lists."
         }
       ],
       "foreignKeys": [

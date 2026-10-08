@@ -43,6 +43,7 @@ export const HELP_PAGES: HelpPage[] = [
     {route: 'help-admin-mailing', path: '/helpcenter/admin/settings/mailing', i18nPrefix: ['helpCenter.adminMailing', 'helpCenter.mailConfig']},
     {route: 'help-admin-security', path: '/helpcenter/admin/settings/security', i18nPrefix: 'helpCenter.adminSecurity'},
     {route: 'help-admin-security-hibp', path: '/helpcenter/admin/settings/security/hibp', i18nPrefix: 'helpCenter.adminSecurityHibp'},
+    {route: 'help-admin-security-signing-keys', path: '/helpcenter/admin/settings/security/signing-keys', i18nPrefix: 'helpCenter.adminSecuritySigningKeys'},
     {route: 'help-admin-security-tokens', path: '/helpcenter/admin/settings/security/tokens', i18nPrefix: 'helpCenter.adminSecurityTokens'},
     {route: 'help-admin-security-two-factor', path: '/helpcenter/admin/settings/security/two-factor', i18nPrefix: 'helpCenter.adminSecurityTwoFactor'},
     {route: 'help-admin-stations', path: '/helpcenter/admin/stations', i18nPrefix: 'helpCenter.adminStations'},

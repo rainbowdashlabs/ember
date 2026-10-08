@@ -4071,6 +4071,54 @@
         }
       }
     },
+    "/api/v1/admin/signing/keys" : {
+      "get" : {
+        "summary" : "Which signing keys no longer open under the at-rest secret, and the earlier recoveries",
+        "tags" : [ "Signing" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SigningKeyStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/signing/keys/recover" : {
+      "post" : {
+        "summary" : "Give up the signing keys that no longer open, so the next seal issues new ones",
+        "tags" : [ "Signing" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SigningKeyRecoveryEntry"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict"
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SigningKeyRecoveryRequest"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/admin/station-applications" : {
       "get" : {
         "summary" : "List all station applications",
@@ -44966,6 +45014,10 @@
             "type" : "integer",
             "format" : "int32"
           },
+          "signingKeysLocked" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
           "recentApplications" : {
             "type" : "array",
             "items" : {
@@ -44979,7 +45031,7 @@
             }
           }
         },
-        "required" : [ "emailFailed", "emailPending", "emailStuckSending", "stationApplicationsPending", "stationsSetupPending", "accountsUnverified", "federationPartnersPending", "discoveryPeersUnreachable", "problemReportsOpen", "recentApplications", "recentProblemReports" ]
+        "required" : [ "emailFailed", "emailPending", "emailStuckSending", "stationApplicationsPending", "stationsSetupPending", "accountsUnverified", "federationPartnersPending", "discoveryPeersUnreachable", "problemReportsOpen", "signingKeysLocked", "recentApplications", "recentProblemReports" ]
       },
       "AdminStationUsage" : {
         "type" : "object",
@@ -59869,6 +59921,30 @@
         },
         "required" : [ "addressLine", "postalCode", "city", "country", "latitude", "longitude" ]
       },
+      "LockedSigningKey" : {
+        "type" : "object",
+        "properties" : {
+          "kind" : {
+            "$ref" : "#/components/schemas/SigningKeyKind"
+          },
+          "serialNumber" : {
+            "type" : "string"
+          },
+          "sha256Fingerprint" : {
+            "type" : "string"
+          },
+          "active" : {
+            "type" : "boolean"
+          },
+          "stationName" : {
+            "type" : [ "string", "null" ]
+          },
+          "validUntil" : {
+            "$ref" : "#/components/schemas/Instant"
+          }
+        },
+        "required" : [ "kind", "serialNumber", "sha256Fingerprint", "active", "stationName", "validUntil" ]
+      },
       "LogEntry" : {
         "type" : "object",
         "properties" : {
@@ -72399,6 +72475,71 @@
           }
         },
         "required" : [ "fieldId", "fieldName", "state", "settledAt", "requestUid", "requestState", "proof", "bound" ]
+      },
+      "SigningKeyKind" : {
+        "type" : "string",
+        "enum" : [ "AUTHORITY", "STATION_KEY" ]
+      },
+      "SigningKeyRecoveryEntry" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "recoveredAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "recoveredBy" : {
+            "type" : [ "string", "null" ]
+          },
+          "authoritySerials" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "stationKeySerials" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        },
+        "required" : [ "id", "recoveredAt", "recoveredBy", "authoritySerials", "stationKeySerials" ]
+      },
+      "SigningKeyRecoveryRequest" : {
+        "type" : "object",
+        "properties" : {
+          "serialNumbers" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        }
+      },
+      "SigningKeyStatus" : {
+        "type" : "object",
+        "properties" : {
+          "locked" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/LockedSigningKey"
+            }
+          },
+          "openKeys" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "recoveries" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/SigningKeyRecoveryEntry"
+            }
+          }
+        },
+        "required" : [ "locked", "openKeys", "recoveries" ]
       },
       "SigningSecretRequest" : {
         "type" : "object",

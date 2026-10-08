@@ -22,6 +22,8 @@ import java.util.List;
  * @param federationPartnersPending  pairings with other stations waiting for an answer
  * @param discoveryPeersUnreachable  known instances that did not answer and are not blocked
  * @param problemReportsOpen         problem reports nobody has acknowledged
+ * @param signingKeysLocked          signing keys in use that no longer open under the at-rest secret, so
+ *                                   no station can seal until an administrator gives them up
  * @param recentApplications         the five newest applications waiting for a decision
  * @param recentProblemReports       the five newest unacknowledged problem reports
  */
@@ -35,8 +37,29 @@ public record AdminOverview(
         int federationPartnersPending,
         int discoveryPeersUnreachable,
         int problemReportsOpen,
+        int signingKeysLocked,
         List<RecentApplication> recentApplications,
         List<RecentProblemReport> recentProblemReports) {
+
+    /**
+     * @param count how many signing keys no longer open, which the database cannot count
+     * @return this overview with that count
+     */
+    public AdminOverview withSigningKeysLocked(int count) {
+        return new AdminOverview(
+                emailFailed,
+                emailPending,
+                emailStuckSending,
+                stationApplicationsPending,
+                stationsSetupPending,
+                accountsUnverified,
+                federationPartnersPending,
+                discoveryPeersUnreachable,
+                problemReportsOpen,
+                count,
+                recentApplications,
+                recentProblemReports);
+    }
 
     /**
      * An application for a new station.

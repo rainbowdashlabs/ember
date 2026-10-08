@@ -157,4 +157,6 @@ export default {
     'D-172': 'Das unterschriebene Exemplar dieses Dokuments ist bereits bestätigt, der Scan wurde nicht übernommen',
     'D-173': 'Gib kurz an, warum der Scan abgelehnt wird',
     'D-174': 'Der Grund darf höchstens 300 Zeichen lang sein',
+    'D-175': 'Alle Siegel-Schlüssel lassen sich noch öffnen, es wurde nichts aufgegeben',
+    'D-176': 'Seit dem Laden der Seite haben sich die Schlüssel geändert, die sich nicht öffnen lassen. Es wurde nichts aufgegeben, lade die Seite neu',
 }

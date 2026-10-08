@@ -47,6 +47,7 @@ const totalAttention = computed(() => {
       + overview.value.federationPartnersPending
       + overview.value.discoveryPeersUnreachable
       + overview.value.problemReportsOpen
+      + overview.value.signingKeysLocked
 })
 </script>
 

@@ -86,6 +86,10 @@ watch(
                        to="/helpcenter/admin/settings/security/two-factor" @navigate="close">
             {{ t('sidebar.securityTwoFactor') }}
           </SidebarLink>
+          <SidebarLink :icon="['fas', 'file-signature']" name="help-admin-security-signing-keys"
+                       to="/helpcenter/admin/settings/security/signing-keys" @navigate="close">
+            {{ t('sidebar.securitySigningKeys') }}
+          </SidebarLink>
         </SidebarGroup>
         <SidebarLink :icon="['fas', 'scale-balanced']" name="help-admin-legal"
                      to="/helpcenter/admin/settings/legal" @navigate="close">

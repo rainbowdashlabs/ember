@@ -785,3 +785,47 @@ COMMENT ON CONSTRAINT event_document_submission_reason ON ember_schema.event_doc
     'A scan carries a reason exactly when it was turned down.';
 COMMENT ON INDEX ember_schema.uq_event_document_submission_standing IS
     'At most one scan per participant, document and date waits or is confirmed; turned-down ones are kept beside it.';
+
+ALTER TABLE ember_schema.signing_ca
+    ADD COLUMN abandoned_at TIMESTAMPTZ NULL,
+    ADD CONSTRAINT signing_ca_abandoned_retired_check CHECK (abandoned_at IS NULL OR retired_at IS NOT NULL);
+
+COMMENT ON COLUMN ember_schema.signing_ca.abandoned_at IS
+    'When an instance administrator gave the authority up because its private key no longer opened under the at-rest encryption key, for example after the key file was lost. Null while it is in use. A given-up authority is retired; its certificate stays published, and its last revocation list is served as it was, since nothing can sign a newer one.';
+COMMENT ON CONSTRAINT signing_ca_abandoned_retired_check ON ember_schema.signing_ca IS
+    'A given-up authority is retired.';
+
+ALTER TABLE ember_schema.station_signing_key
+    ADD COLUMN abandoned_at TIMESTAMPTZ NULL,
+    ADD CONSTRAINT station_signing_key_abandoned_retired_check CHECK (abandoned_at IS NULL OR retired_at IS NOT NULL);
+
+COMMENT ON COLUMN ember_schema.station_signing_key.abandoned_at IS
+    'When an instance administrator gave the key up because its private key no longer opened under the at-rest encryption key, for example after the key file was lost. Null while it is in use. A given-up key is retired, so the station''s next seal gets a new key; its certificate stays published, and a revoked one stays on its authority''s revocation lists.';
+COMMENT ON CONSTRAINT station_signing_key_abandoned_retired_check ON ember_schema.station_signing_key IS
+    'A given-up key is retired.';
+
+CREATE TABLE IF NOT EXISTS ember_schema.signing_key_recovery
+(
+    id                  SERIAL PRIMARY KEY,
+    recovered_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+    account_id          INT         REFERENCES ember_schema.account (id) ON DELETE SET NULL,
+    authority_serials   TEXT[]      NOT NULL,
+    station_key_serials TEXT[]      NOT NULL,
+    CONSTRAINT signing_key_recovery_not_empty_check
+        CHECK (cardinality(authority_serials) + cardinality(station_key_serials) > 0)
+);
+
+COMMENT ON TABLE ember_schema.signing_key_recovery IS
+    'Audit trail of the signing keys an instance administrator gave up because they no longer opened under the at-rest encryption key. One row per recovery; nothing is ever given up without one. Kept for as long as the installation runs.';
+COMMENT ON COLUMN ember_schema.signing_key_recovery.id IS
+    'Primary key.';
+COMMENT ON COLUMN ember_schema.signing_key_recovery.recovered_at IS
+    'When the keys were given up.';
+COMMENT ON COLUMN ember_schema.signing_key_recovery.account_id IS
+    'The instance administrator who gave them up. Set to null when that account is deleted, so the row stays as proof of what was done.';
+COMMENT ON COLUMN ember_schema.signing_key_recovery.authority_serials IS
+    'Certificate serial numbers of the authorities given up, lower-case hexadecimal. Empty when every authority still opened.';
+COMMENT ON COLUMN ember_schema.signing_key_recovery.station_key_serials IS
+    'Certificate serial numbers of the station keys given up, lower-case hexadecimal. Empty when every station key still opened.';
+COMMENT ON CONSTRAINT signing_key_recovery_not_empty_check ON ember_schema.signing_key_recovery IS
+    'A recovery gives up at least one key.';

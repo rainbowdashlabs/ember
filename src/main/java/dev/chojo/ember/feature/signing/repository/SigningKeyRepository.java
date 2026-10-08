@@ -5,9 +5,13 @@
  */
 package dev.chojo.ember.feature.signing.repository;
 
+import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import de.chojo.sadu.queries.api.call.Call;
+import dev.chojo.ember.feature.signing.entity.KeyInUse;
 import dev.chojo.ember.feature.signing.entity.RevocationReason;
 import dev.chojo.ember.feature.signing.entity.RevokedKey;
+import dev.chojo.ember.feature.signing.entity.SigningKeyKind;
+import dev.chojo.ember.feature.signing.entity.SigningKeyRecoveryEntry;
 import dev.chojo.ember.feature.signing.entity.StoredAuthority;
 import dev.chojo.ember.feature.signing.entity.StoredAuthorityCertificate;
 import dev.chojo.ember.feature.signing.entity.StoredRevocationList;
@@ -19,6 +23,7 @@ import jakarta.inject.Singleton;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
@@ -47,12 +52,22 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * serial number. The database retires such a key and destroys its private key in the same step, so
  * {@link StoredSigningKey#wrappedPrivateKey()} is null exactly for those; nothing needs it, since
  * revoking and listing use the authority's key.
+ *
+ * <p>A key whose private key no longer opens under the at-rest secret can be given up by an
+ * administrator: it is retired and marked, keeps its row and certificate, and counts as in use no more.
+ * Every recovery that gives keys up is recorded with who did it.
  */
 @Singleton
 public class SigningKeyRepository {
     private static final String KEY_COLUMNS = "serial_number, certificate, wrapped_private_key, valid_until";
     private static final String AUTHORITY_COLUMNS = "id, " + KEY_COLUMNS;
     private static final String STATION_KEY_COLUMNS = "id, signing_ca_id, " + KEY_COLUMNS;
+    private static final String RECOVERY_COLUMNS = """
+            r.id,
+            r.recovered_at,
+            a.first_name || ' ' || a.last_name AS recovered_by,
+            r.authority_serials,
+            r.station_key_serials""";
 
     /** @return the authority that issues new station certificates, once one has been created */
     public Optional<StoredAuthority> findActiveAuthority() {
@@ -154,21 +169,24 @@ public class SigningKeyRepository {
     }
 
     /**
-     * Every authority, active and retired, locked until the surrounding transaction ends so its
-     * wrapped key cannot change underneath. Only meaningful inside a transaction.
+     * Every authority that was not given up, active and retired, locked until the surrounding
+     * transaction ends so its wrapped key cannot change underneath. Only meaningful inside a
+     * transaction.
      *
      * @return the authorities, oldest first
      */
     public List<StoredAuthority> lockAuthorities() {
-        return query("SELECT %s FROM signing_ca ORDER BY id FOR NO KEY UPDATE;", AUTHORITY_COLUMNS)
+        return query(
+                        "SELECT %s FROM signing_ca WHERE abandoned_at IS NULL ORDER BY id FOR NO KEY UPDATE;",
+                        AUTHORITY_COLUMNS)
                 .single(call())
                 .map(StoredAuthority.map())
                 .all();
     }
 
     /**
-     * Every station key that still has its private key, active and retired, locked like
-     * {@link #lockAuthorities()}. The keys of deleted stations have none and are left out.
+     * Every station key that still has its private key and was not given up, active and retired, locked
+     * like {@link #lockAuthorities()}. The keys of deleted stations have none and are left out.
      *
      * @return the station keys, oldest first
      */
@@ -179,6 +197,7 @@ public class SigningKeyRepository {
                         FROM
                             station_signing_key
                         WHERE wrapped_private_key IS NOT NULL
+                          AND abandoned_at IS NULL
                         ORDER BY id
                         FOR NO KEY UPDATE;""", STATION_KEY_COLUMNS)
                 .single(call())
@@ -423,6 +442,186 @@ public class SigningKeyRepository {
                 .single(call().bind("station_id", stationId).bind("serial_number", serialNumber))
                 .map(row -> row.getBytes("certificate"))
                 .first();
+    }
+
+    /**
+     * Every key in use: the authorities and the station keys that were not given up and still hold
+     * their private key, active and retired.
+     *
+     * @return the authorities oldest first, then the station keys oldest first
+     */
+    public List<KeyInUse> keysInUse() {
+        return keysInUse("", "");
+    }
+
+    /**
+     * The same keys as {@link #keysInUse()}, locked until the surrounding transaction ends in the lock
+     * order: the authority rows first, the station key rows after them. Only meaningful inside a
+     * transaction.
+     *
+     * @return the authorities oldest first, then the station keys oldest first
+     */
+    public List<KeyInUse> lockKeysInUse() {
+        return keysInUse("FOR NO KEY UPDATE", "FOR NO KEY UPDATE OF k");
+    }
+
+    private static List<KeyInUse> keysInUse(String authorityLock, String stationKeyLock) {
+        var authorities = query("""
+                        SELECT
+                            %s,
+                            retired_at IS NULL AS active,
+                            NULL::TEXT         AS station_name
+                        FROM
+                            signing_ca
+                        WHERE abandoned_at IS NULL
+                        ORDER BY id
+                        %s;""", AUTHORITY_COLUMNS, authorityLock)
+                .single(call())
+                .map(KeyInUse.map(SigningKeyKind.AUTHORITY))
+                .all();
+        var stationKeys = query("""
+                        SELECT
+                            k.id,
+                            k.signing_ca_id,
+                            k.serial_number,
+                            k.certificate,
+                            k.wrapped_private_key,
+                            k.valid_until,
+                            k.retired_at IS NULL AS active,
+                            s.name               AS station_name
+                        FROM
+                            station_signing_key k
+                            LEFT JOIN station s ON s.id = k.station_id
+                        WHERE k.abandoned_at IS NULL
+                          AND k.wrapped_private_key IS NOT NULL
+                        ORDER BY k.id
+                        %s;""", stationKeyLock)
+                .single(call())
+                .map(KeyInUse.map(SigningKeyKind.STATION_KEY))
+                .all();
+        return Stream.concat(authorities.stream(), stationKeys.stream()).toList();
+    }
+
+    /**
+     * Gives an authority up and retires it, unless it was given up already.
+     *
+     * @param id the authority's id
+     * @return true when this call gave it up
+     */
+    public boolean abandonAuthority(int id) {
+        return query("""
+                        UPDATE signing_ca
+                        SET abandoned_at = now(),
+                            retired_at   = coalesce(retired_at, now())
+                        WHERE id = :id
+                          AND abandoned_at IS NULL;""").single(call().bind("id", id)).update().changed();
+    }
+
+    /**
+     * Gives a station key up and retires it, unless it was given up already.
+     *
+     * @param id the key's id
+     * @return true when this call gave it up
+     */
+    public boolean abandonStationKey(int id) {
+        return query("""
+                        UPDATE station_signing_key
+                        SET abandoned_at = now(),
+                            retired_at   = coalesce(retired_at, now())
+                        WHERE id = :id
+                          AND abandoned_at IS NULL;""").single(call().bind("id", id)).update().changed();
+    }
+
+    /**
+     * Retires every active station key whose authority was given up, so the station's next seal gets a
+     * key from an authority that can still revoke it. The keys themselves stay as they are.
+     *
+     * @return how many keys were retired
+     */
+    public int retireKeysOfAbandonedAuthorities() {
+        return query("""
+                        UPDATE station_signing_key k
+                        SET retired_at = now()
+                        FROM signing_ca ca
+                        WHERE ca.id = k.signing_ca_id
+                          AND ca.abandoned_at IS NOT NULL
+                          AND k.retired_at IS NULL;""").single(call()).update().rows();
+    }
+
+    /**
+     * @param authorityId the authority
+     * @return whether it was given up
+     */
+    public boolean authorityAbandoned(int authorityId) {
+        return query("SELECT abandoned_at IS NOT NULL AS abandoned FROM signing_ca WHERE id = :id;")
+                .single(call().bind("id", authorityId))
+                .map(row -> row.getBoolean("abandoned"))
+                .first()
+                .orElse(false);
+    }
+
+    /**
+     * The last revocation list an authority issued before it was given up, however old.
+     *
+     * @param authorityId the authority
+     * @return that list, or empty when the authority is in use or kept no list
+     */
+    public Optional<StoredRevocationList> lastListOfAbandoned(int authorityId) {
+        return query("""
+                        SELECT crl, crl_issued_at
+                        FROM signing_ca
+                        WHERE id = :id
+                          AND abandoned_at IS NOT NULL
+                          AND crl IS NOT NULL;""")
+                .single(call().bind("id", authorityId))
+                .map(StoredRevocationList.map())
+                .first();
+    }
+
+    /**
+     * Records that an administrator gave keys up.
+     *
+     * @param accountId         the administrator
+     * @param authoritySerials  serial numbers of the authorities given up
+     * @param stationKeySerials serial numbers of the station keys given up
+     * @return the recorded recovery
+     */
+    public SigningKeyRecoveryEntry recordRecovery(
+            int accountId, List<String> authoritySerials, List<String> stationKeySerials) {
+        return query("""
+                        WITH recovery AS (
+                            INSERT INTO signing_key_recovery (account_id, authority_serials, station_key_serials)
+                            VALUES (:account_id, :authority_serials, :station_key_serials)
+                            RETURNING id, recovered_at, account_id, authority_serials, station_key_serials)
+                        SELECT
+                            %s
+                        FROM
+                            recovery r
+                            LEFT JOIN account a ON a.id = r.account_id;""", RECOVERY_COLUMNS)
+                .single(call().bind("account_id", accountId)
+                        .bind("authority_serials", authoritySerials, PostgreSqlTypes.TEXT)
+                        .bind("station_key_serials", stationKeySerials, PostgreSqlTypes.TEXT))
+                .map(SigningKeyRecoveryEntry.map())
+                .first()
+                .orElseThrow(() -> new IllegalStateException("The recovery was not recorded"));
+    }
+
+    /**
+     * @param limit how many at most
+     * @return the recoveries, newest first
+     */
+    public List<SigningKeyRecoveryEntry> recoveries(int limit) {
+        return query("""
+                        SELECT
+                            %s
+                        FROM
+                            signing_key_recovery r
+                            LEFT JOIN account a ON a.id = r.account_id
+                        ORDER BY r.recovered_at DESC, r.id DESC
+                        LIMIT :limit;""", RECOVERY_COLUMNS)
+                .single(call().bind("limit", limit))
+                .map(SigningKeyRecoveryEntry.map())
+                .all();
     }
 
     private static Call bindKey(StoredSigningKey key) {
