@@ -324,6 +324,22 @@ class AuthServiceTest extends RepositoryTestBase {
     }
 
     /**
+     * A phone capitalises the first letter of the address field; the reset still reaches the mailbox.
+     */
+    @Test
+    @Order(18)
+    void aResetAskedWithACapitalisedAddressIsMailed() {
+        var capitalised = accountRepo.create("capital-reset@test.com", "Cap", "Ital");
+        accountRepo.createCredential(capitalised.id(), new PasswordHasher().hash("DasAlteKennwort123!"));
+
+        service.requestPasswordReset("Capital-Reset@Test.com");
+
+        verify(emailService)
+                .sendPasswordResetEmail(eq("capital-reset@test.com"), anyString(), anyString(), anyString());
+        accountRepo.delete(capitalised.id());
+    }
+
+    /**
      * An invitation waits for the evening somebody next reads their mail, a reset does not. The two
      * links are therefore given their own lifetimes, and the setup one is the long one.
      */
