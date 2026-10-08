@@ -608,6 +608,192 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/account/link-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The link requests waiting for the signed-in account */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LinkPrompt"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/link-requests/{uid}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Link the signed-in account to the member a station asked about */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    uid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MessageResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/link-requests/{uid}/decline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Refuse a station's request to link the signed-in account */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    uid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MessageResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/link-requests/by-token/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The link request a mailed link opens */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    token: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LinkPrompt"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/account/name-change-request": {
         parameters: {
             query?: never;
@@ -38305,6 +38491,154 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/member-links": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Where the latest link request of every member of the station stands */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MemberLink"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/member-links/{memberId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Where the latest link request of one member stands */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    memberId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MemberLinkResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/member-links/{memberId}/send-again": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send a member's link request again */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    memberId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LinkState"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Too Many Requests */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/member-table": {
         parameters: {
             query?: never;
@@ -64253,11 +64587,33 @@ export interface components {
             linkUrl?: string;
             name?: string;
         };
+        /** @enum {string} */
+        LinkOrigin: "IMPORT" | "INVITE";
+        LinkPrompt: {
+            createdAt: components["schemas"]["Instant"];
+            expiresAt: components["schemas"]["Instant"];
+            invitedBy: string | null;
+            memberName: string;
+            origin: components["schemas"]["LinkOrigin"];
+            stationName: string;
+            /** Format: uuid */
+            uid: string;
+        };
         LinkRequest: {
             /** Format: int32 */
             linkedTicketId?: number;
             linkType?: components["schemas"]["LinkType"];
         };
+        LinkState: {
+            answeredAt: components["schemas"]["Instant"] | null;
+            expiresAt: components["schemas"]["Instant"];
+            origin: components["schemas"]["LinkOrigin"];
+            sendAgainFrom: components["schemas"]["Instant"] | null;
+            sentAt: components["schemas"]["Instant"];
+            status: components["schemas"]["LinkStatus"];
+        };
+        /** @enum {string} */
+        LinkStatus: "WAITING" | "ACCEPTED" | "DECLINED" | "EXPIRED";
         /** @enum {string} */
         LinkType: "RELATES_TO" | "BLOCKS" | "BLOCKED_BY" | "CAUSES" | "CAUSED_BY";
         ListKeysResponse: {
@@ -64906,6 +65262,14 @@ export interface components {
             linkPending: boolean;
             /** Format: int32 */
             memberId: number;
+        };
+        MemberLink: {
+            link: components["schemas"]["LinkState"];
+            /** Format: int32 */
+            memberId: number;
+        };
+        MemberLinkResponse: {
+            link: components["schemas"]["LinkState"] | null;
         };
         MemberListConfig: {
             memberDescriptions?: {
@@ -65640,7 +66004,7 @@ export interface components {
             feed: boolean;
         };
         /** @enum {string} */
-        NotificationType: "NEW_NEWS" | "NEWS_COMMENT" | "COMMENT_MENTION" | "EVENT_REGISTRATION_STATUS" | "MOVEMENT_ADVANCED" | "MOVEMENT_RAISED" | "MOVEMENT_DECLINED" | "MOVEMENT_CANCELLED" | "NEW_EVENT" | "NEW_EVENTS_BATCH" | "MEMBER_ADDED_TO_GROUP" | "PROFILE_FIELD_CHANGED" | "PROCUREMENT_REQUESTED" | "PROCUREMENT_FULFILLED" | "NEW_FORM" | "LOST_AND_FOUND_NEW" | "LOST_AND_FOUND_CLAIMED" | "WAITLIST_NEW_ENTRY" | "LENDING_NEW_REQUEST" | "LENDING_STATUS_CHANGE" | "LENDING_NEW_MESSAGE" | "BOARD_TICKET_UPDATE" | "REGISTRATION_DEADLINE_EXPIRED" | "EVENT_CANCELLED" | "EVENT_REMINDER" | "REGISTRATION_CLOSING" | "REGISTRATION_ANSWER_MISSING" | "EVENT_DATE_DROPPED" | "EVENT_MOVED" | "EVENT_DATE_RESTORED" | "PROCEDURE_ASSIGNED" | "PROCEDURE_RESOLVED" | "PROCEDURE_REOPENED" | "PROCEDURE_ITEM_CHECKED" | "SELF_CHECK_ASSIGNED" | "SELF_CHECK_SUBMITTED" | "SELF_CHECK_ROW_REFUSED" | "WAITLIST_PUBLIC_REGISTRATION" | "WAITLIST_INVITATION_ANSWERED" | "STORAGE_WARNING" | "MAILBOX_SUSPENDED" | "MAIL_IMPORT_UNBOUND" | "CLUSTER_APPLICATION_SUBMITTED" | "CLUSTER_APPLICATION_APPROVED" | "CLUSTER_APPLICATION_DENIED" | "CLUSTER_APPLICATION_WITHDRAWN" | "CLUSTER_STATION_RELEASED" | "CLUSTER_MODULE_DENIED" | "CLUSTER_ITEM_ISSUED" | "CLUSTER_ITEM_LOST" | "CLUSTER_QUOTA_CHANGED" | "CLUSTER_MEMBER_ROLE_CHANGED" | "CLUSTER_FIELD_VALUE_CHANGED" | "EXPIRY_REMINDER" | "FEDERATION_REQUEST_RECEIVED" | "FEDERATION_REQUEST_ACCEPTED" | "FEDERATION_REQUEST_DECLINED" | "NAME_CHANGE_REQUESTED" | "NAME_CHANGE_APPROVED" | "NAME_CHANGE_DENIED" | "SIGNATURE_REQUESTED" | "SIGNATURE_REMINDER" | "DOCUMENT_SIGNED" | "DOCUMENT_SCAN_REJECTED";
+        NotificationType: "NEW_NEWS" | "NEWS_COMMENT" | "COMMENT_MENTION" | "EVENT_REGISTRATION_STATUS" | "MOVEMENT_ADVANCED" | "MOVEMENT_RAISED" | "MOVEMENT_DECLINED" | "MOVEMENT_CANCELLED" | "NEW_EVENT" | "NEW_EVENTS_BATCH" | "MEMBER_ADDED_TO_GROUP" | "PROFILE_FIELD_CHANGED" | "PROCUREMENT_REQUESTED" | "PROCUREMENT_FULFILLED" | "NEW_FORM" | "LOST_AND_FOUND_NEW" | "LOST_AND_FOUND_CLAIMED" | "WAITLIST_NEW_ENTRY" | "LENDING_NEW_REQUEST" | "LENDING_STATUS_CHANGE" | "LENDING_NEW_MESSAGE" | "BOARD_TICKET_UPDATE" | "REGISTRATION_DEADLINE_EXPIRED" | "EVENT_CANCELLED" | "EVENT_REMINDER" | "REGISTRATION_CLOSING" | "REGISTRATION_ANSWER_MISSING" | "EVENT_DATE_DROPPED" | "EVENT_MOVED" | "EVENT_DATE_RESTORED" | "PROCEDURE_ASSIGNED" | "PROCEDURE_RESOLVED" | "PROCEDURE_REOPENED" | "PROCEDURE_ITEM_CHECKED" | "SELF_CHECK_ASSIGNED" | "SELF_CHECK_SUBMITTED" | "SELF_CHECK_ROW_REFUSED" | "WAITLIST_PUBLIC_REGISTRATION" | "WAITLIST_INVITATION_ANSWERED" | "STORAGE_WARNING" | "MAILBOX_SUSPENDED" | "MAIL_IMPORT_UNBOUND" | "CLUSTER_APPLICATION_SUBMITTED" | "CLUSTER_APPLICATION_APPROVED" | "CLUSTER_APPLICATION_DENIED" | "CLUSTER_APPLICATION_WITHDRAWN" | "CLUSTER_STATION_RELEASED" | "CLUSTER_MODULE_DENIED" | "CLUSTER_ITEM_ISSUED" | "CLUSTER_ITEM_LOST" | "CLUSTER_QUOTA_CHANGED" | "CLUSTER_MEMBER_ROLE_CHANGED" | "CLUSTER_FIELD_VALUE_CHANGED" | "EXPIRY_REMINDER" | "FEDERATION_REQUEST_RECEIVED" | "FEDERATION_REQUEST_ACCEPTED" | "FEDERATION_REQUEST_DECLINED" | "NAME_CHANGE_REQUESTED" | "NAME_CHANGE_APPROVED" | "NAME_CHANGE_DENIED" | "SIGNATURE_REQUESTED" | "SIGNATURE_REMINDER" | "DOCUMENT_SIGNED" | "DOCUMENT_SCAN_REJECTED" | "ACCOUNT_LINK_ACCEPTED";
         NumberConfig: {
             /**
              * @description discriminator enum property added by openapi-typescript
@@ -69891,7 +70255,7 @@ export interface components {
             trustedDeviceMaxDays: number;
         };
         /** @enum {string} */
-        TwoFactorEvent: "ENROLLED" | "REMOVED" | "LOGIN_VERIFIED" | "STEPUP_VERIFIED" | "BACKUP_CODE_USED" | "BACKUP_CODE_REGENERATED" | "ADMIN_RESET" | "TRUSTED_DEVICE_ADDED" | "TRUSTED_DEVICE_REVOKED" | "POLICY_CHANGED" | "PASSKEY_SIGN_IN" | "PASSKEY_ENROLLED_VIA_DEVICE_CODE" | "PASSKEY_CODE_ISSUED" | "PASSWORD_LOGIN_DISABLED" | "PASSWORD_LOGIN_ENABLED" | "PASSWORD_RETIRED" | "STEPUP_FAILED" | "SIGNED_IN_VIA_DEVICE_CODE" | "STEPUP_VIA_DEVICE_CODE" | "DEVICE_REQUEST_APPROVED" | "ONE_TIME_PASSWORD_ISSUED";
+        TwoFactorEvent: "ENROLLED" | "REMOVED" | "LOGIN_VERIFIED" | "STEPUP_VERIFIED" | "BACKUP_CODE_USED" | "BACKUP_CODE_REGENERATED" | "ADMIN_RESET" | "TRUSTED_DEVICE_ADDED" | "TRUSTED_DEVICE_REVOKED" | "POLICY_CHANGED" | "PASSKEY_SIGN_IN" | "PASSKEY_ENROLLED_VIA_DEVICE_CODE" | "PASSKEY_CODE_ISSUED" | "PASSWORD_LOGIN_DISABLED" | "PASSWORD_LOGIN_ENABLED" | "PASSWORD_RETIRED" | "STEPUP_FAILED" | "SIGNED_IN_VIA_DEVICE_CODE" | "STEPUP_VIA_DEVICE_CODE" | "DEVICE_REQUEST_APPROVED" | "ONE_TIME_PASSWORD_ISSUED" | "ACCOUNT_LINK_ACCEPTED";
         /** @enum {string} */
         TwoFactorKind: "TOTP" | "WEBAUTHN" | "BACKUP_CODES";
         TwoFactorPolicyEntry: {
@@ -71157,7 +71521,11 @@ export type Likert = components['schemas']['Likert'];
 export type LikertAnswer = components['schemas']['LikertAnswer'];
 export type LineCheck = components['schemas']['LineCheck'];
 export type LinkFileRequest = components['schemas']['LinkFileRequest'];
+export type LinkOrigin = components['schemas']['LinkOrigin'];
+export type LinkPrompt = components['schemas']['LinkPrompt'];
 export type LinkRequest = components['schemas']['LinkRequest'];
+export type LinkState = components['schemas']['LinkState'];
+export type LinkStatus = components['schemas']['LinkStatus'];
 export type LinkType = components['schemas']['LinkType'];
 export type ListKeysResponse = components['schemas']['ListKeysResponse'];
 export type Local = components['schemas']['Local'];
@@ -71250,6 +71618,8 @@ export type MemberGroupsRequest = components['schemas']['MemberGroupsRequest'];
 export type MemberIdentity = components['schemas']['MemberIdentity'];
 export type MemberInfo = components['schemas']['MemberInfo'];
 export type MemberInviteResponse = components['schemas']['MemberInviteResponse'];
+export type MemberLink = components['schemas']['MemberLink'];
+export type MemberLinkResponse = components['schemas']['MemberLinkResponse'];
 export type MemberListConfig = components['schemas']['MemberListConfig'];
 export type MemberListSortBy = components['schemas']['MemberListSortBy'];
 export type MemberNotes = components['schemas']['MemberNotes'];
@@ -72594,6 +72964,18 @@ export const LetterPart = {
     LETTERHEAD: "LETTERHEAD",
 } as const;
 
+export const LinkOrigin = {
+    IMPORT: "IMPORT",
+    INVITE: "INVITE",
+} as const;
+
+export const LinkStatus = {
+    ACCEPTED: "ACCEPTED",
+    DECLINED: "DECLINED",
+    EXPIRED: "EXPIRED",
+    WAITING: "WAITING",
+} as const;
+
 export const LinkType = {
     BLOCKED_BY: "BLOCKED_BY",
     BLOCKS: "BLOCKS",
@@ -72752,6 +73134,7 @@ export const NoteEntityType = {
 } as const;
 
 export const NotificationType = {
+    ACCOUNT_LINK_ACCEPTED: "ACCOUNT_LINK_ACCEPTED",
     BOARD_TICKET_UPDATE: "BOARD_TICKET_UPDATE",
     CLUSTER_APPLICATION_APPROVED: "CLUSTER_APPLICATION_APPROVED",
     CLUSTER_APPLICATION_DENIED: "CLUSTER_APPLICATION_DENIED",
@@ -73470,6 +73853,7 @@ export const TrialOutcome = {
 } as const;
 
 export const TwoFactorEvent = {
+    ACCOUNT_LINK_ACCEPTED: "ACCOUNT_LINK_ACCEPTED",
     ADMIN_RESET: "ADMIN_RESET",
     BACKUP_CODE_REGENERATED: "BACKUP_CODE_REGENERATED",
     BACKUP_CODE_USED: "BACKUP_CODE_USED",

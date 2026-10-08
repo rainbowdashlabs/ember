@@ -1,7 +1,7 @@
 {
   "version": 1,
   "schemaHash": "sha256:66de91c152aabe4f28f427c69942cbcec53d0a27317c4501ddba620a6e49f7d3",
-  "generatedAt": "2026-10-08T20:18:27Z",
+  "generatedAt": "2026-10-08T20:42:48Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -907,14 +907,14 @@
           "type": "text",
           "nullable": true,
           "verified": true,
-          "description": "SHA-256 of the token in the link mailed to the account, lower-case hexadecimal. The link only opens the request for a session of that account and never answers it. NULL where no mail could be sent, and once the request is answered."
+          "description": "HMAC-SHA-256 of the token in the link mailed to the account, keyed with the installation's token pepper. The link only opens the request for a session of that account and never answers it. NULL where no mail could be sent, and once the request is answered."
         },
         {
           "name": "expires_at",
           "type": "timestamptz",
           "nullable": false,
           "verified": true,
-          "description": "Until when the person may answer: thirty days after the request was last sent. A daily sweep marks it EXPIRED afterwards."
+          "description": "Until when the person may answer: thirty days after the request was last sent. An hourly sweep marks it EXPIRED afterwards."
         },
         {
           "name": "answered_at",

@@ -189,7 +189,8 @@
     "SIGNATURE_REQUESTED": "Signature requested: {documentTitle} - {memberName}",
     "SIGNATURE_REMINDER": "Signature still missing: {documentTitle} - {memberName}",
     "DOCUMENT_SIGNED": "Signed: {documentTitle} - {signerName}",
-    "DOCUMENT_SCAN_REJECTED": "Scan declined: {documentName} - {memberName}"
+    "DOCUMENT_SCAN_REJECTED": "Scan declined: {documentName} - {memberName}",
+    "ACCOUNT_LINK_ACCEPTED": "Account linked: {memberName}"
   },
   "digest": {
     "subject.one": "{stationName}: 1 new notification",
@@ -259,7 +260,8 @@
     "SIGNATURE_REQUESTED": "Signature",
     "SIGNATURE_REMINDER": "Signature",
     "DOCUMENT_SIGNED": "Signature",
-    "DOCUMENT_SCAN_REJECTED": "Documents to Bring"
+    "DOCUMENT_SCAN_REJECTED": "Documents to Bring",
+    "ACCOUNT_LINK_ACCEPTED": "Account"
   },
   "message": {
     "notification.newNews": "{title} - by {author}",
@@ -341,6 +343,7 @@
     "notification.signatureReminder": "{documentTitle} for {memberName} is still waiting for a signature",
     "notification.documentSigned": "{signerName} signed {documentTitle}",
     "notification.documentSigned.FOR_MEMBER": "{signerName} signed {documentTitle} for {memberName}",
-    "notification.documentScanRejected": "The scan of {documentName} for {memberName} for {eventName} on {eventDate} was declined: {reason}"
+    "notification.documentScanRejected": "The scan of {documentName} for {memberName} for {eventName} on {eventDate} was declined: {reason}",
+    "notification.accountLinkAccepted": "{memberName} linked their own account to the member"
   }
 }

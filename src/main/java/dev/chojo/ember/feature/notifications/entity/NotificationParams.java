@@ -339,6 +339,13 @@ public sealed interface NotificationParams {
     record NameChangeRequested(String memberName, String requestedName) implements NotificationParams {}
 
     /**
+     * The person behind a member accepted the station's request and linked their account to the member.
+     *
+     * @param memberName the name the station knows the member by
+     */
+    record AccountLinkAccepted(String memberName) implements NotificationParams {}
+
+    /**
      * The name a member asked for was approved and is theirs now.
      *
      * @param newName the name the account carries from now on

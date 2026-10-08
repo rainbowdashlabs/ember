@@ -87,7 +87,8 @@ public enum NotificationType {
     SIGNATURE_REQUESTED(NotificationParams.SignatureRequested.class, "notification.signatureRequested"),
     SIGNATURE_REMINDER(NotificationParams.SignatureRequested.class, "notification.signatureReminder"),
     DOCUMENT_SIGNED(NotificationParams.DocumentSigned.class, "notification.documentSigned"),
-    DOCUMENT_SCAN_REJECTED(NotificationParams.DocumentScanRejected.class, "notification.documentScanRejected");
+    DOCUMENT_SCAN_REJECTED(NotificationParams.DocumentScanRejected.class, "notification.documentScanRejected"),
+    ACCOUNT_LINK_ACCEPTED(NotificationParams.AccountLinkAccepted.class, "notification.accountLinkAccepted");
 
     private final Class<? extends NotificationParams> paramsType;
     private final String localeKey;

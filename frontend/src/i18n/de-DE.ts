@@ -5464,6 +5464,7 @@ export default {
                     STEPUP_VIA_DEVICE_CODE: 'Über anderes Gerät bestätigt',
                     DEVICE_REQUEST_APPROVED: 'Geräteanfrage freigegeben',
                     ONE_TIME_PASSWORD_ISSUED: 'Einmalpasswort erstellt',
+                    ACCOUNT_LINK_ACCEPTED: 'Konto mit einem Mitglied einer Wache verknüpft',
                 },
                 factors: {
                     TOTP: 'Authenticator-App',
@@ -7105,6 +7106,7 @@ export default {
         documentSigned: '{signerName} hat {documentTitle} unterschrieben',
         documentSignedForMember: '{signerName} hat {documentTitle} für {memberName} unterschrieben',
         documentScanRejected: 'Der Scan von {documentName} für {memberName} zu {eventName} am {eventDate} wurde abgelehnt: {reason}',
+        accountLinkAccepted: '{memberName} hat das eigene Konto mit dem Mitglied verknüpft',
         lendingStatusChange: 'Leihanfrage von {stationName}: {status}',
         lendingNewMessage: 'Neue Nachricht von {senderName} ({stationName})',
         boardTicketUpdate: '{ticketKey} auf „{boardName}": {changeDescription}',
@@ -7216,6 +7218,7 @@ export default {
             SIGNATURE_REMINDER: 'Unterschrift fehlt noch',
             DOCUMENT_SIGNED: 'Unterschrieben',
             DOCUMENT_SCAN_REJECTED: 'Scan abgelehnt',
+            ACCOUNT_LINK_ACCEPTED: 'Konto verknüpft',
         },
     },
     toast: {

@@ -1041,9 +1041,9 @@ COMMENT ON COLUMN ember_schema.account_link_request.created_by IS
 COMMENT ON COLUMN ember_schema.account_link_request.sent_at IS
     'When the request was last sent, first or again. Sending again is refused for a day after it.';
 COMMENT ON COLUMN ember_schema.account_link_request.token_hash IS
-    'SHA-256 of the token in the link mailed to the account, lower-case hexadecimal. The link only opens the request for a session of that account and never answers it. NULL where no mail could be sent, and once the request is answered.';
+    'HMAC-SHA-256 of the token in the link mailed to the account, keyed with the installation''s token pepper. The link only opens the request for a session of that account and never answers it. NULL where no mail could be sent, and once the request is answered.';
 COMMENT ON COLUMN ember_schema.account_link_request.expires_at IS
-    'Until when the person may answer: thirty days after the request was last sent. A daily sweep marks it EXPIRED afterwards.';
+    'Until when the person may answer: thirty days after the request was last sent. An hourly sweep marks it EXPIRED afterwards.';
 COMMENT ON COLUMN ember_schema.account_link_request.answered_at IS
     'When the request was answered or expired. NULL while it waits.';
 COMMENT ON COLUMN ember_schema.account_link_request.answer IS

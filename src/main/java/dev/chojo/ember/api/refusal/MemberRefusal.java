@@ -784,7 +784,37 @@ public enum MemberRefusal implements Refusal {
     ACCOUNT_HELD_BY_AN_ASSOCIATION(
             215,
             HttpStatus.FORBIDDEN,
-            "That account holds a role in an association, so only the person can change its address or how it signs in");
+            "That account holds a role in an association, so only the person can change its address or how it signs in"),
+
+    /**
+     * A link request answered or opened that is not waiting for this account: unknown, someone else's,
+     * answered or expired. Every one of those lines answers with this one constant on purpose, so a
+     * token or uid probed by somebody else says nothing about whether it exists.
+     */
+    LINK_REQUEST_NOT_OPEN(
+            216, HttpStatus.NOT_FOUND, "This link request is not open, it may have been answered or expired"),
+
+    /** A link request accepted by an account that already is a member of the station that asks. */
+    LINK_ACCOUNT_ALREADY_AT_STATION(
+            217,
+            HttpStatus.CONFLICT,
+            "Your account already belongs to a member of that station, so it was not linked a second time"),
+
+    /** The link state asked for, or the link sent again, for a member that is not at the caller's station. */
+    LINK_MEMBER_NOT_HERE(218, HttpStatus.NOT_FOUND, Sentences.MEMBER_NOT_HERE),
+
+    /** A link sent again for a member that waits for no link. */
+    LINK_NOTHING_TO_SEND_AGAIN(219, HttpStatus.NOT_FOUND, "This member waits for no link that could be sent again"),
+
+    /** A link sent again that the person declined. */
+    LINK_DECLINED_NOT_SENT_AGAIN(
+            220,
+            HttpStatus.CONFLICT,
+            "The person declined the link, so it was not sent again. Invite another address instead"),
+
+    /** A link sent again less than a day after it was last sent. */
+    LINK_SENT_TOO_RECENTLY(
+            221, HttpStatus.TOO_MANY_REQUESTS, "The link was sent less than a day ago, so it was not sent again");
 
     private final Definition definition;
 

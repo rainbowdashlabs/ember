@@ -189,7 +189,8 @@
     "SIGNATURE_REQUESTED": "Unterschrift erbeten: {documentTitle} - {memberName}",
     "SIGNATURE_REMINDER": "Unterschrift fehlt noch: {documentTitle} - {memberName}",
     "DOCUMENT_SIGNED": "Unterschrieben: {documentTitle} - {signerName}",
-    "DOCUMENT_SCAN_REJECTED": "Scan abgelehnt: {documentName} - {memberName}"
+    "DOCUMENT_SCAN_REJECTED": "Scan abgelehnt: {documentName} - {memberName}",
+    "ACCOUNT_LINK_ACCEPTED": "Konto verknüpft: {memberName}"
   },
   "digest": {
     "subject.one": "{stationName}: 1 neue Benachrichtigung",
@@ -259,7 +260,8 @@
     "SIGNATURE_REQUESTED": "Unterschrift",
     "SIGNATURE_REMINDER": "Unterschrift",
     "DOCUMENT_SIGNED": "Unterschrift",
-    "DOCUMENT_SCAN_REJECTED": "Mitzubringende Dokumente"
+    "DOCUMENT_SCAN_REJECTED": "Mitzubringende Dokumente",
+    "ACCOUNT_LINK_ACCEPTED": "Konto"
   },
   "message": {
     "notification.newNews": "{title} - von {author}",
@@ -341,6 +343,7 @@
     "notification.signatureReminder": "{documentTitle} für {memberName} wartet noch auf eine Unterschrift",
     "notification.documentSigned": "{signerName} hat {documentTitle} unterschrieben",
     "notification.documentSigned.FOR_MEMBER": "{signerName} hat {documentTitle} für {memberName} unterschrieben",
-    "notification.documentScanRejected": "Der Scan von {documentName} für {memberName} zu {eventName} am {eventDate} wurde abgelehnt: {reason}"
+    "notification.documentScanRejected": "Der Scan von {documentName} für {memberName} zu {eventName} am {eventDate} wurde abgelehnt: {reason}",
+    "notification.accountLinkAccepted": "{memberName} hat das eigene Konto mit dem Mitglied verknüpft"
   }
 }

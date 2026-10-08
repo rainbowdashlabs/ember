@@ -265,4 +265,10 @@ export default {
     'M-213': PRONOUN_TOO_LONG,
     'M-214': 'Dieses Konto gehört auch zu einer anderen Wache, Adresse und Anmeldung kann nur die Person selbst ändern',
     'M-215': 'Dieses Konto hat eine Rolle in einem Verband, Adresse und Anmeldung kann nur die Person selbst ändern',
+    'M-216': 'Diese Anfrage ist nicht mehr offen, vielleicht wurde sie schon beantwortet oder ist abgelaufen',
+    'M-217': 'Dein Konto gehört schon zu einem Mitglied dieser Wache und wurde nicht ein zweites Mal verknüpft',
+    'M-218': MEMBER_NOT_HERE,
+    'M-219': 'Für dieses Mitglied wartet keine Anfrage, die erneut gesendet werden könnte',
+    'M-220': 'Die Person hat die Verknüpfung abgelehnt, die Anfrage wurde nicht erneut gesendet. Lade stattdessen eine andere Adresse ein',
+    'M-221': 'Die Anfrage wurde vor weniger als einem Tag gesendet und wurde nicht erneut gesendet',
 }

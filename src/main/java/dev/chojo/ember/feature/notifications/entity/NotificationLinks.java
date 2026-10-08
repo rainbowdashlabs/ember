@@ -144,6 +144,16 @@ public final class NotificationLinks {
     }
 
     /**
+     * The member's own page in the member management.
+     *
+     * @param memberId the member
+     * @return the link a notification about the member carries
+     */
+    public static NotificationLink member(int memberId) {
+        return new NotificationLink("members-detail", Map.of("id", memberId));
+    }
+
+    /**
      * The link to one form. Its number travels as text, which is what the stored notifications say.
      *
      * @param formId the form
@@ -254,15 +264,5 @@ public final class NotificationLinks {
      */
     public static NotificationLink ownDocuments() {
         return new NotificationLink("documents-own", Map.of());
-    }
-
-    /**
-     * The page of one member, whose documents are among its tabs.
-     *
-     * @param memberId the member
-     * @return the link a notice about that member's document carries
-     */
-    public static NotificationLink member(int memberId) {
-        return new NotificationLink("members-detail", Map.of("id", memberId));
     }
 }

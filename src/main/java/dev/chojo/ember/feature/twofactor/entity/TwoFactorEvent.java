@@ -42,5 +42,10 @@ public enum TwoFactorEvent {
      * An administrator issued the account a one-time password. The row names the station whose
      * administration did it, and no station where an instance administrator did.
      */
-    ONE_TIME_PASSWORD_ISSUED
+    ONE_TIME_PASSWORD_ISSUED,
+    /**
+     * The account's owner accepted a station's request to link the account to one of its members. The
+     * row names that station; the owner acted, so it names no actor.
+     */
+    ACCOUNT_LINK_ACCEPTED
 }

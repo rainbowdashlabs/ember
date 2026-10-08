@@ -11,6 +11,7 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.auth.StepUpGuard;
 import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
+import dev.chojo.ember.auth.TokenHasher;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.entity.AccountAction;
 import dev.chojo.ember.feature.account.service.AccountEmailService;
@@ -18,8 +19,12 @@ import dev.chojo.ember.feature.account.service.AccountReach;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.account.service.LoginNameService;
 import dev.chojo.ember.feature.account.service.SetupMail;
+import dev.chojo.ember.feature.accountlink.repository.AccountLinkRepository;
+import dev.chojo.ember.feature.accountlink.service.LinkAnswerService;
 import dev.chojo.ember.feature.accountlink.service.TestAccountLinks;
 import dev.chojo.ember.feature.members.service.MemberAccountService.UpdateAccountRequest;
+import dev.chojo.ember.feature.notifications.service.Notifier;
+import dev.chojo.ember.feature.twofactor.service.TwoFactorAuditService;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -103,5 +108,47 @@ class InvitedAddressTakeoverTest extends RepositoryTestBase {
         assertEquals(
                 victim.email(), accountRepo.findById(victim.id()).orElseThrow().email());
         verify(emails, never()).setEmailFor(anyInt(), anyInt(), anyString());
+    }
+
+    /**
+     * Once the person accepts, the station reaches the account, but an account that also belongs to the
+     * person's own station is still not this station's to move.
+     */
+    @Test
+    void anAcceptedLinkToAnAccountOfAnotherStationStillKeepsItsAddress() {
+        var home = stationRepo.create("Takeover home " + System.nanoTime());
+        stationMemberRepo.create(home.id(), victim.id());
+        var invited = invites.provision(
+                manager.stationId(),
+                victim.email(),
+                "Vera",
+                "Victim",
+                StationUserType.MEMBER,
+                null,
+                SetupMail.SEND_NOW,
+                manager.member().id());
+        var answers = new LinkAnswerService(
+                new AccountLinkRepository(),
+                stationMemberRepo,
+                mock(MemberNameResolver.class),
+                new TwoFactorAuditService(twoFactorRepo),
+                mock(Notifier.class),
+                TokenHasher.forTesting(TestAccountLinks.PEPPER));
+        var request = new AccountLinkRepository()
+                .findUnansweredForMember(invited.memberId())
+                .orElseThrow();
+
+        answers.accept(victim.id(), request.uid(), null, null);
+
+        var moved = assertThrows(
+                RefusalResponse.class,
+                () -> accounts.update(
+                        manager.user(),
+                        manager.stationId(),
+                        victim.id(),
+                        new UpdateAccountRequest("attacker@evil.test", null, "Vera", "Victim")));
+        assertEquals(MemberRefusal.ACCOUNT_SHARED_WITH_ANOTHER_STATION, moved.refusal());
+        assertEquals(
+                victim.email(), accountRepo.findById(victim.id()).orElseThrow().email());
     }
 }

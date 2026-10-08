@@ -49,6 +49,9 @@ import dev.chojo.ember.feature.account.route.AuthRoutes;
 import dev.chojo.ember.feature.account.route.AvatarRoutes;
 import dev.chojo.ember.feature.account.route.SessionRoutes;
 import dev.chojo.ember.feature.account.service.AuthCleanupSweeper;
+import dev.chojo.ember.feature.accountlink.route.AccountLinkRoutes;
+import dev.chojo.ember.feature.accountlink.route.MemberLinkRoutes;
+import dev.chojo.ember.feature.accountlink.service.AccountLinkSweeper;
 import dev.chojo.ember.feature.attendance.handler.EventAnswerRecordedHandler;
 import dev.chojo.ember.feature.attendance.route.AttendanceRoutes;
 import dev.chojo.ember.feature.beacon.route.BeaconAdminRoutes;
@@ -451,6 +454,8 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(AuthRoutes.class);
         routesBinder.addBinding().to(MemberRoutes.class);
         routesBinder.addBinding().to(NameChangeRoutes.class);
+        routesBinder.addBinding().to(AccountLinkRoutes.class);
+        routesBinder.addBinding().to(MemberLinkRoutes.class);
         routesBinder.addBinding().to(SessionRoutes.class);
         routesBinder.addBinding().to(AccountSessionRoutes.class);
         routesBinder.addBinding().to(AvatarRoutes.class);
@@ -809,6 +814,7 @@ public class EmberModule extends AbstractModule {
         taskSources.addBinding().to(SignatureReminders.class);
         taskSources.addBinding().to(PartnerAuthorities.class);
         taskSources.addBinding().to(CredentialKeyStamps.class);
+        taskSources.addBinding().to(AccountLinkSweeper.class);
 
         Multibinder<ShutdownFlush> flushes = Multibinder.newSetBinder(binder(), ShutdownFlush.class);
         flushes.addBinding().to(PageHitRecorder.class);

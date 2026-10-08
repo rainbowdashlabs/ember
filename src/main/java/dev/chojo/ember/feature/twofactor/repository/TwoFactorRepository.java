@@ -648,6 +648,23 @@ public class TwoFactorRepository {
                 .insert();
     }
 
+    /**
+     * Records something the account's owner did that concerns one station, such as linking the account
+     * to a member there.
+     */
+    public void auditAtStation(
+            int accountId, TwoFactorEvent event, int stationId, @Nullable String userAgent, @Nullable String country) {
+        query("""
+                INSERT INTO account_2fa_audit (account_id, event, station_id, user_agent, country)
+                VALUES (:account_id, CAST(:event AS two_factor_event), :station_id, :user_agent, :country);""")
+                .single(call().bind("account_id", accountId)
+                        .bind("event", event.name())
+                        .bind("station_id", stationId)
+                        .bind("user_agent", userAgent)
+                        .bind("country", country))
+                .insert();
+    }
+
     public List<TwoFactorAuditEntry> findRecentAudit(int limit, int offset) {
         return query(
                         "SELECT %s FROM account_2fa_audit ORDER BY created_at DESC LIMIT :limit OFFSET :offset;",

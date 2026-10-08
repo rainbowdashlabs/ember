@@ -376,6 +376,147 @@
         }
       }
     },
+    "/api/v1/account/link-requests" : {
+      "get" : {
+        "summary" : "The link requests waiting for the signed-in account",
+        "tags" : [ "Account links" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/LinkPrompt"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/account/link-requests/by-token/{token}" : {
+      "get" : {
+        "summary" : "The link request a mailed link opens",
+        "tags" : [ "Account links" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LinkPrompt"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "token",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ]
+      }
+    },
+    "/api/v1/account/link-requests/{uid}/accept" : {
+      "post" : {
+        "summary" : "Link the signed-in account to the member a station asked about",
+        "tags" : [ "Account links" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "uid",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ]
+      }
+    },
+    "/api/v1/account/link-requests/{uid}/decline" : {
+      "post" : {
+        "summary" : "Refuse a station's request to link the signed-in account",
+        "tags" : [ "Account links" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "uid",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ]
+      }
+    },
     "/api/v1/account/name-change-request" : {
       "get" : {
         "summary" : "The name the caller asked for and that still waits",
@@ -30170,6 +30311,121 @@
         }
       }
     },
+    "/api/v1/member-links" : {
+      "get" : {
+        "summary" : "Where the latest link request of every member of the station stands",
+        "tags" : [ "Account links" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/MemberLink"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/member-links/{memberId}" : {
+      "get" : {
+        "summary" : "Where the latest link request of one member stands",
+        "tags" : [ "Account links" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MemberLinkResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "memberId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/member-links/{memberId}/send-again" : {
+      "post" : {
+        "summary" : "Send a member's link request again",
+        "tags" : [ "Account links" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LinkState"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "429" : {
+            "description" : "Too Many Requests",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "memberId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
     "/api/v1/member-table" : {
       "post" : {
         "summary" : "Draw a member table of chosen people and columns",
@@ -59904,6 +60160,38 @@
           }
         }
       },
+      "LinkOrigin" : {
+        "type" : "string",
+        "enum" : [ "IMPORT", "INVITE" ]
+      },
+      "LinkPrompt" : {
+        "type" : "object",
+        "properties" : {
+          "uid" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "stationName" : {
+            "type" : "string"
+          },
+          "memberName" : {
+            "type" : "string"
+          },
+          "origin" : {
+            "$ref" : "#/components/schemas/LinkOrigin"
+          },
+          "invitedBy" : {
+            "type" : [ "string", "null" ]
+          },
+          "createdAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "expiresAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          }
+        },
+        "required" : [ "uid", "stationName", "memberName", "origin", "invitedBy", "createdAt", "expiresAt" ]
+      },
       "LinkRequest" : {
         "type" : "object",
         "properties" : {
@@ -59915,6 +60203,42 @@
             "$ref" : "#/components/schemas/LinkType"
           }
         }
+      },
+      "LinkState" : {
+        "type" : "object",
+        "properties" : {
+          "status" : {
+            "$ref" : "#/components/schemas/LinkStatus"
+          },
+          "origin" : {
+            "$ref" : "#/components/schemas/LinkOrigin"
+          },
+          "sentAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "expiresAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "answeredAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "sendAgainFrom" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "status", "origin", "sentAt", "expiresAt", "answeredAt", "sendAgainFrom" ]
+      },
+      "LinkStatus" : {
+        "type" : "string",
+        "enum" : [ "WAITING", "ACCEPTED", "DECLINED", "EXPIRED" ]
       },
       "LinkType" : {
         "type" : "string",
@@ -61755,6 +62079,32 @@
           }
         },
         "required" : [ "memberId", "id", "email", "firstName", "lastName", "linkPending" ]
+      },
+      "MemberLink" : {
+        "type" : "object",
+        "properties" : {
+          "memberId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "link" : {
+            "$ref" : "#/components/schemas/LinkState"
+          }
+        },
+        "required" : [ "memberId", "link" ]
+      },
+      "MemberLinkResponse" : {
+        "type" : "object",
+        "properties" : {
+          "link" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/LinkState"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "link" ]
       },
       "MemberListConfig" : {
         "type" : "object",
@@ -63933,7 +64283,7 @@
       },
       "NotificationType" : {
         "type" : "string",
-        "enum" : [ "NEW_NEWS", "NEWS_COMMENT", "COMMENT_MENTION", "EVENT_REGISTRATION_STATUS", "MOVEMENT_ADVANCED", "MOVEMENT_RAISED", "MOVEMENT_DECLINED", "MOVEMENT_CANCELLED", "NEW_EVENT", "NEW_EVENTS_BATCH", "MEMBER_ADDED_TO_GROUP", "PROFILE_FIELD_CHANGED", "PROCUREMENT_REQUESTED", "PROCUREMENT_FULFILLED", "NEW_FORM", "LOST_AND_FOUND_NEW", "LOST_AND_FOUND_CLAIMED", "WAITLIST_NEW_ENTRY", "LENDING_NEW_REQUEST", "LENDING_STATUS_CHANGE", "LENDING_NEW_MESSAGE", "BOARD_TICKET_UPDATE", "REGISTRATION_DEADLINE_EXPIRED", "EVENT_CANCELLED", "EVENT_REMINDER", "REGISTRATION_CLOSING", "REGISTRATION_ANSWER_MISSING", "EVENT_DATE_DROPPED", "EVENT_MOVED", "EVENT_DATE_RESTORED", "PROCEDURE_ASSIGNED", "PROCEDURE_RESOLVED", "PROCEDURE_REOPENED", "PROCEDURE_ITEM_CHECKED", "SELF_CHECK_ASSIGNED", "SELF_CHECK_SUBMITTED", "SELF_CHECK_ROW_REFUSED", "WAITLIST_PUBLIC_REGISTRATION", "WAITLIST_INVITATION_ANSWERED", "STORAGE_WARNING", "MAILBOX_SUSPENDED", "MAIL_IMPORT_UNBOUND", "CLUSTER_APPLICATION_SUBMITTED", "CLUSTER_APPLICATION_APPROVED", "CLUSTER_APPLICATION_DENIED", "CLUSTER_APPLICATION_WITHDRAWN", "CLUSTER_STATION_RELEASED", "CLUSTER_MODULE_DENIED", "CLUSTER_ITEM_ISSUED", "CLUSTER_ITEM_LOST", "CLUSTER_QUOTA_CHANGED", "CLUSTER_MEMBER_ROLE_CHANGED", "CLUSTER_FIELD_VALUE_CHANGED", "EXPIRY_REMINDER", "FEDERATION_REQUEST_RECEIVED", "FEDERATION_REQUEST_ACCEPTED", "FEDERATION_REQUEST_DECLINED", "NAME_CHANGE_REQUESTED", "NAME_CHANGE_APPROVED", "NAME_CHANGE_DENIED", "SIGNATURE_REQUESTED", "SIGNATURE_REMINDER", "DOCUMENT_SIGNED", "DOCUMENT_SCAN_REJECTED" ]
+        "enum" : [ "NEW_NEWS", "NEWS_COMMENT", "COMMENT_MENTION", "EVENT_REGISTRATION_STATUS", "MOVEMENT_ADVANCED", "MOVEMENT_RAISED", "MOVEMENT_DECLINED", "MOVEMENT_CANCELLED", "NEW_EVENT", "NEW_EVENTS_BATCH", "MEMBER_ADDED_TO_GROUP", "PROFILE_FIELD_CHANGED", "PROCUREMENT_REQUESTED", "PROCUREMENT_FULFILLED", "NEW_FORM", "LOST_AND_FOUND_NEW", "LOST_AND_FOUND_CLAIMED", "WAITLIST_NEW_ENTRY", "LENDING_NEW_REQUEST", "LENDING_STATUS_CHANGE", "LENDING_NEW_MESSAGE", "BOARD_TICKET_UPDATE", "REGISTRATION_DEADLINE_EXPIRED", "EVENT_CANCELLED", "EVENT_REMINDER", "REGISTRATION_CLOSING", "REGISTRATION_ANSWER_MISSING", "EVENT_DATE_DROPPED", "EVENT_MOVED", "EVENT_DATE_RESTORED", "PROCEDURE_ASSIGNED", "PROCEDURE_RESOLVED", "PROCEDURE_REOPENED", "PROCEDURE_ITEM_CHECKED", "SELF_CHECK_ASSIGNED", "SELF_CHECK_SUBMITTED", "SELF_CHECK_ROW_REFUSED", "WAITLIST_PUBLIC_REGISTRATION", "WAITLIST_INVITATION_ANSWERED", "STORAGE_WARNING", "MAILBOX_SUSPENDED", "MAIL_IMPORT_UNBOUND", "CLUSTER_APPLICATION_SUBMITTED", "CLUSTER_APPLICATION_APPROVED", "CLUSTER_APPLICATION_DENIED", "CLUSTER_APPLICATION_WITHDRAWN", "CLUSTER_STATION_RELEASED", "CLUSTER_MODULE_DENIED", "CLUSTER_ITEM_ISSUED", "CLUSTER_ITEM_LOST", "CLUSTER_QUOTA_CHANGED", "CLUSTER_MEMBER_ROLE_CHANGED", "CLUSTER_FIELD_VALUE_CHANGED", "EXPIRY_REMINDER", "FEDERATION_REQUEST_RECEIVED", "FEDERATION_REQUEST_ACCEPTED", "FEDERATION_REQUEST_DECLINED", "NAME_CHANGE_REQUESTED", "NAME_CHANGE_APPROVED", "NAME_CHANGE_DENIED", "SIGNATURE_REQUESTED", "SIGNATURE_REMINDER", "DOCUMENT_SIGNED", "DOCUMENT_SCAN_REJECTED", "ACCOUNT_LINK_ACCEPTED" ]
       },
       "NumberConfig" : {
         "type" : "object",
@@ -76321,7 +76671,7 @@
       },
       "TwoFactorEvent" : {
         "type" : "string",
-        "enum" : [ "ENROLLED", "REMOVED", "LOGIN_VERIFIED", "STEPUP_VERIFIED", "BACKUP_CODE_USED", "BACKUP_CODE_REGENERATED", "ADMIN_RESET", "TRUSTED_DEVICE_ADDED", "TRUSTED_DEVICE_REVOKED", "POLICY_CHANGED", "PASSKEY_SIGN_IN", "PASSKEY_ENROLLED_VIA_DEVICE_CODE", "PASSKEY_CODE_ISSUED", "PASSWORD_LOGIN_DISABLED", "PASSWORD_LOGIN_ENABLED", "PASSWORD_RETIRED", "STEPUP_FAILED", "SIGNED_IN_VIA_DEVICE_CODE", "STEPUP_VIA_DEVICE_CODE", "DEVICE_REQUEST_APPROVED", "ONE_TIME_PASSWORD_ISSUED" ]
+        "enum" : [ "ENROLLED", "REMOVED", "LOGIN_VERIFIED", "STEPUP_VERIFIED", "BACKUP_CODE_USED", "BACKUP_CODE_REGENERATED", "ADMIN_RESET", "TRUSTED_DEVICE_ADDED", "TRUSTED_DEVICE_REVOKED", "POLICY_CHANGED", "PASSKEY_SIGN_IN", "PASSKEY_ENROLLED_VIA_DEVICE_CODE", "PASSKEY_CODE_ISSUED", "PASSWORD_LOGIN_DISABLED", "PASSWORD_LOGIN_ENABLED", "PASSWORD_RETIRED", "STEPUP_FAILED", "SIGNED_IN_VIA_DEVICE_CODE", "STEPUP_VIA_DEVICE_CODE", "DEVICE_REQUEST_APPROVED", "ONE_TIME_PASSWORD_ISSUED", "ACCOUNT_LINK_ACCEPTED" ]
       },
       "TwoFactorKind" : {
         "type" : "string",
