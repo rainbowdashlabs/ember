@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.signing.service;
 
 import dev.chojo.ember.conf.file.elements.Signing;
+import dev.chojo.ember.feature.signing.entity.ObtainedTimestamp;
 import eu.europa.esig.dss.enumerations.DigestAlgorithm;
 import eu.europa.esig.dss.model.TimestampBinary;
 import eu.europa.esig.dss.model.x509.revocation.crl.CRL;
@@ -24,16 +25,23 @@ import jakarta.inject.Singleton;
 import org.apache.hc.client5.http.impl.DefaultHttpRequestRetryStrategy;
 import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
 import org.apache.hc.core5.util.TimeValue;
+import org.bouncycastle.cms.CMSException;
+import org.bouncycastle.cms.CMSSignedData;
+import org.bouncycastle.tsp.TSPException;
+import org.bouncycastle.tsp.TimeStampToken;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.io.Serial;
 import java.io.Serializable;
 import java.security.cert.X509Certificate;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -41,7 +49,7 @@ import java.util.Optional;
  * the public revocation data of their certificates.
  *
  * <p>This is the one place the signing feature reaches the network. A service receives the hash DSS
- * asks to have stamped, never the document. Each service gets {@link #TIMEOUT} to connect and again
+ * asks to have stamped, or the hash of a credential's public key ({@link #stamp}), never the document. Each service gets {@link #TIMEOUT} to connect and again
  * to answer, with no retry; a service that fails is logged once and the next one is asked. After the
  * timestamp, the revocation lists and status responders (OCSP) its certificates name are asked at the
  * public addresses in those certificates, which receive at most a certificate's serial number.
@@ -105,6 +113,43 @@ public class TimestampServices {
      */
     Optional<Round> round() {
         return services.isEmpty() ? Optional.empty() : Optional.of(new Round(services, timeout, budget));
+    }
+
+    /** @return whether any service is there to ask, false when timestamps are off or no service is listed */
+    public boolean enabled() {
+        return !services.isEmpty();
+    }
+
+    /**
+     * Has a SHA-256 hash stamped by the first service that answers with a timestamp chaining to its pinned
+     * root, all within one {@link #BUDGET}. Only the hash leaves the installation.
+     *
+     * @param sha256 the hash to stamp
+     * @return the timestamp, or empty when timestamps are off or no service gave one
+     */
+    public Optional<ObtainedTimestamp> stamp(byte[] sha256) {
+        var round = round();
+        if (round.isEmpty()) return Optional.empty();
+        try {
+            byte[] token = round.get()
+                    .getTimeStampResponse(DigestAlgorithm.SHA256, sha256)
+                    .getBytes();
+            String service = Objects.requireNonNull(round.get().answeredBy(), "a service answered");
+            return Optional.of(new ObtainedTimestamp(token, timeOf(token), service));
+        } catch (RuntimeException e) {
+            return Optional.empty();
+        }
+    }
+
+    private static Instant timeOf(byte[] token) {
+        try {
+            return new TimeStampToken(new CMSSignedData(token))
+                    .getTimeStampInfo()
+                    .getGenTime()
+                    .toInstant();
+        } catch (CMSException | TSPException | IOException e) {
+            throw new UntrustedTimestampException("The timestamp states no readable time: " + e.getMessage(), e);
+        }
     }
 
     private static List<Service> pinned(Signing config) {

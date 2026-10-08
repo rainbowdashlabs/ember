@@ -66,6 +66,7 @@ import dev.chojo.ember.feature.signing.service.SigningAssertions;
 import dev.chojo.ember.feature.signing.service.SigningGuards;
 import dev.chojo.ember.feature.signing.service.SigningStarts;
 import dev.chojo.ember.feature.signing.service.StationSigningKeys;
+import dev.chojo.ember.feature.signing.service.TestKeyStamps;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
@@ -196,8 +197,9 @@ class SigningRoutesTest extends RepositoryTestBase {
         RelyingParties parties = relyingParties(settings);
         var challenges = new WebAuthnChallengeRepository(TokenHasher.forTesting("signing-route-pepper"));
         var audit = new TwoFactorAuditService(twoFactorRepo);
-        securityKeys = new WebAuthnService(parties, twoFactorRepo, audit, challenges, settings);
-        passkeys = new PasskeyService(parties, twoFactorRepo, audit, challenges, settings);
+        var keyStamps = TestKeyStamps.off(twoFactorRepo);
+        securityKeys = new WebAuthnService(parties, twoFactorRepo, audit, challenges, settings, keyStamps);
+        passkeys = new PasskeyService(parties, twoFactorRepo, audit, challenges, settings, keyStamps);
         var totp = mock(TotpService.class);
         when(totp.isDevCode(RIGHT_CODE)).thenReturn(true);
         var twoFactor = new TwoFactorService(
@@ -216,7 +218,7 @@ class SigningRoutesTest extends RepositoryTestBase {
                 fields,
                 memberDocumentRepo,
                 documents,
-                new InEmberSignatureProvider(twoFactor, assertions, names, sealingKeys(), sealer()),
+                new InEmberSignatureProvider(twoFactor, assertions, names, sealingKeys(), sealer(), keyStamps),
                 new SigningStarts(challenges),
                 assertions,
                 names,

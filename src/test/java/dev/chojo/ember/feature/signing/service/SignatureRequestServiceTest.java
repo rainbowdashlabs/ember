@@ -54,6 +54,8 @@ import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageScope;
 import dev.chojo.ember.feature.storage.entity.Variant;
 import dev.chojo.ember.feature.storage.service.StorageService;
+import dev.chojo.ember.feature.twofactor.entity.CredentialKeyStamp;
+import dev.chojo.ember.feature.twofactor.entity.KeyStampKind;
 import dev.chojo.ember.feature.twofactor.entity.StepUpProof;
 import dev.chojo.ember.lifecycle.Schedule;
 import dev.chojo.ember.owner.Owner;
@@ -331,7 +333,12 @@ class SignatureRequestServiceTest extends RepositoryTestBase {
                 bytes(37, 5),
                 bytes(70, 6),
                 true,
-                42);
+                42,
+                new CredentialKeyStamp(
+                        bytes(90, 7),
+                        Instant.parse("2026-10-01T08:00:00Z"),
+                        "http://tsa.test",
+                        KeyStampKind.AT_FIRST_SIGNING));
 
         var stored = fields.record(
                 at(adult),
@@ -352,6 +359,11 @@ class SignatureRequestServiceTest extends RepositoryTestBase {
         assertArrayEquals(evidence.signature(), read.signature());
         assertTrue(read.userVerified());
         assertEquals(42, read.signatureCount());
+        var stamp = Objects.requireNonNull(read.credentialKeyStamp());
+        assertArrayEquals(bytes(90, 7), stamp.token());
+        assertEquals(Instant.parse("2026-10-01T08:00:00Z"), stamp.stampedAt());
+        assertEquals("http://tsa.test", stamp.service());
+        assertEquals(KeyStampKind.AT_FIRST_SIGNING, stamp.kind());
         var readAct = read.act();
         assertEquals(request.uid(), readAct.requestUid());
         assertEquals(act.signer(), readAct.signer());

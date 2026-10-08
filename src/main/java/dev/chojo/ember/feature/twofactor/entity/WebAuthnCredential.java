@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.twofactor.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.UUID;
@@ -27,6 +28,7 @@ import java.util.UUID;
  * @param discoverable      what the {@code credProps} extension reported at creation, or
  *                          {@code null} when the authenticator did not say
  * @param userVerified      whether user verification was performed at creation
+ * @param keyStamp          the timestamp over the public key, or {@code null} while it has none
  */
 public record WebAuthnCredential(
         int factorId,
@@ -40,7 +42,8 @@ public record WebAuthnCredential(
         boolean signIn,
         boolean secondFactor,
         Boolean discoverable,
-        boolean userVerified) {
+        boolean userVerified,
+        @Nullable CredentialKeyStamp keyStamp) {
 
     public static RowMapping<WebAuthnCredential> map() {
         return row -> new WebAuthnCredential(
@@ -55,6 +58,7 @@ public record WebAuthnCredential(
                 row.getBoolean("sign_in"),
                 row.getBoolean("second_factor"),
                 row.getObject("discoverable", Boolean.class),
-                row.getBoolean("user_verified"));
+                row.getBoolean("user_verified"),
+                CredentialKeyStamp.read(row, ""));
     }
 }

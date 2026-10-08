@@ -612,3 +612,45 @@ WHERE ri.label = '';
 
 COMMENT ON COLUMN ember_schema.federation_lending_request_item.label
     IS 'What the line asks for, in words, as it was named when it was asked for: the kind of thing, the piece or the inventory it names, and on the copy of a request to a station on another installation, what the lending station called it. Kept when the gear it names is gone or on another installation, so the line still says what it was. Empty only where nothing named it.';
+
+ALTER TABLE ember_schema.account_2fa_webauthn
+    ADD COLUMN key_stamp_token   BYTEA       NULL,
+    ADD COLUMN key_stamped_at    TIMESTAMPTZ NULL,
+    ADD COLUMN key_stamp_service TEXT        NULL,
+    ADD COLUMN key_stamp_kind    TEXT        NULL
+        CHECK (key_stamp_kind IN ('AT_REGISTRATION', 'AFTER_REGISTRATION', 'AT_FIRST_SIGNING')),
+    ADD CONSTRAINT account_2fa_webauthn_key_stamp
+        CHECK (num_nonnulls(key_stamp_token, key_stamped_at, key_stamp_service, key_stamp_kind) IN (0, 4));
+
+COMMENT ON COLUMN ember_schema.account_2fa_webauthn.key_stamp_token IS
+    'RFC 3161 timestamp token over the SHA-256 of public_key_cose, DER encoded, proving the key existed at key_stamped_at. NULL until a timestamp service gave one; the first token stays.';
+COMMENT ON COLUMN ember_schema.account_2fa_webauthn.key_stamped_at IS
+    'The time key_stamp_token states. NULL while the key has no timestamp.';
+COMMENT ON COLUMN ember_schema.account_2fa_webauthn.key_stamp_service IS
+    'The address of the timestamp service that gave key_stamp_token. NULL while the key has no timestamp.';
+COMMENT ON COLUMN ember_schema.account_2fa_webauthn.key_stamp_kind IS
+    'How the key got its timestamp: AT_REGISTRATION right after the credential was registered, AFTER_REGISTRATION by the daily retry for a credential no timestamp service stamped then or registered before key timestamps, AT_FIRST_SIGNING during the first signing act that reached a timestamp service. Only AT_REGISTRATION fixes the key as the one registered. NULL while the key has no timestamp.';
+COMMENT ON CONSTRAINT account_2fa_webauthn_key_stamp ON ember_schema.account_2fa_webauthn IS
+    'A key timestamp is recorded whole or not at all.';
+
+ALTER TABLE ember_schema.signing_evidence
+    ADD COLUMN credential_key_stamp_token   BYTEA       NULL,
+    ADD COLUMN credential_key_stamped_at    TIMESTAMPTZ NULL,
+    ADD COLUMN credential_key_stamp_service TEXT        NULL,
+    ADD COLUMN credential_key_stamp_kind    TEXT        NULL
+        CHECK (credential_key_stamp_kind IN ('AT_REGISTRATION', 'AFTER_REGISTRATION', 'AT_FIRST_SIGNING')),
+    ADD CONSTRAINT signing_evidence_key_stamp
+        CHECK (num_nonnulls(credential_key_stamp_token, credential_key_stamped_at, credential_key_stamp_service,
+                            credential_key_stamp_kind) IN (0, 4)
+            AND (bound OR credential_key_stamp_token IS NULL));
+
+COMMENT ON COLUMN ember_schema.signing_evidence.credential_key_stamp_token IS
+    'For a passkey or security key: the RFC 3161 timestamp token over the SHA-256 of credential_public_key as the credential held it at the act, DER encoded. NULL for every other proof, and for a key that had no timestamp and got none at the act (not stamped).';
+COMMENT ON COLUMN ember_schema.signing_evidence.credential_key_stamped_at IS
+    'The time credential_key_stamp_token states. NULL where the key was not stamped.';
+COMMENT ON COLUMN ember_schema.signing_evidence.credential_key_stamp_service IS
+    'The address of the timestamp service that gave credential_key_stamp_token. NULL where the key was not stamped.';
+COMMENT ON COLUMN ember_schema.signing_evidence.credential_key_stamp_kind IS
+    'How the key got its timestamp, as the credential recorded it: AT_REGISTRATION, AFTER_REGISTRATION (by the daily retry) or AT_FIRST_SIGNING (during the first signing act that reached a timestamp service, possibly this one). NULL where the key was not stamped.';
+COMMENT ON CONSTRAINT signing_evidence_key_stamp ON ember_schema.signing_evidence IS
+    'A key timestamp is recorded whole or not at all, and only for a passkey or security key.';

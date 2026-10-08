@@ -156,7 +156,7 @@ public class SigningAssertions {
         return new VerifiedSigningAssertion(
                 credential.signIn() ? StepUpProof.PASSKEY : StepUpProof.SECURITY_KEY,
                 relyingParty().getIdentity().getId(),
-                credential.publicKeyCose(),
+                credential,
                 result.isUserVerified(),
                 result.getSignatureCount());
     }
@@ -258,14 +258,15 @@ public class SigningAssertions {
      * @param proof          {@link StepUpProof#PASSKEY} for a sign-in passkey, {@link StepUpProof#SECURITY_KEY}
      *                       for a second-factor key
      * @param relyingPartyId the relying party id the credential is bound to
-     * @param publicKeyCose  the credential's public key on file, COSE encoded
+     * @param credential     the credential on file that answered, with its public key and its key stamp
+     *                       as they were read for this answer
      * @param userVerified   whether the authenticator verified its user
      * @param signatureCount the authenticator's signature counter at this answer
      */
     public record VerifiedSigningAssertion(
             StepUpProof proof,
             String relyingPartyId,
-            byte[] publicKeyCose,
+            WebAuthnCredential credential,
             boolean userVerified,
             long signatureCount) {}
 }

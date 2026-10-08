@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.mail.service.MailLocaleService;
 import dev.chojo.ember.feature.mail.service.MailRecipientService;
 import dev.chojo.ember.feature.passkey.repository.PasskeyRepository;
+import dev.chojo.ember.feature.signing.service.TestKeyStamps;
 import dev.chojo.ember.feature.system.repository.ApplicationSettingRepository;
 import dev.chojo.ember.feature.twofactor.repository.WebAuthnChallengeRepository;
 import dev.chojo.ember.feature.twofactor.service.SecondFactorCredentialStore;
@@ -60,7 +61,12 @@ class PasskeyEnrollmentServiceTest extends RepositoryTestBase {
                 settings, api, store, new SecondFactorCredentialStore(twoFactorRepo, store));
         var challengeRepo = new WebAuthnChallengeRepository(TokenHasher.forTesting("repository-test-pepper"));
         var passkeyService = new PasskeyService(
-                parties, twoFactorRepo, new TwoFactorAuditService(twoFactorRepo), challengeRepo, settings);
+                parties,
+                twoFactorRepo,
+                new TwoFactorAuditService(twoFactorRepo),
+                challengeRepo,
+                settings,
+                TestKeyStamps.off(twoFactorRepo));
         when(totpService.generateQrPng(anyString(), anyInt())).thenReturn(new byte[] {1, 2, 3});
         service = new PasskeyEnrollmentService(
                 accountRepo,

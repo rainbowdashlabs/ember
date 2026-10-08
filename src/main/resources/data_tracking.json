@@ -521,7 +521,7 @@
       "description": "Trusted-device cookies allowing 2FA bypass within a time window."
     },
     "account_2fa_webauthn": {
-      "tableHash": "sha256:eec27e9b26e3d0890e129c1f2db25dd30d3313ebd2ab8bb83e8072507df3576a",
+      "tableHash": "sha256:b0b78b56e3ea17fb20eae8be5d432e397ce5f4189b47136ee9ea03070908bb82",
       "columns": [
         {
           "name": "factor_id",
@@ -601,6 +601,34 @@
           "nullable": false,
           "verified": true,
           "description": "Whether user verification was performed when the credential was created."
+        },
+        {
+          "name": "key_stamp_token",
+          "type": "bytea",
+          "nullable": true,
+          "verified": true,
+          "description": "RFC 3161 timestamp token over the SHA-256 of public_key_cose, DER encoded, proving the key existed at key_stamped_at. NULL until a timestamp service gave one; the first token stays."
+        },
+        {
+          "name": "key_stamped_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "The time key_stamp_token states. NULL while the key has no timestamp."
+        },
+        {
+          "name": "key_stamp_service",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "The address of the timestamp service that gave key_stamp_token. NULL while the key has no timestamp."
+        },
+        {
+          "name": "key_stamp_kind",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "How the key got its timestamp: AT_REGISTRATION right after the credential was registered, AFTER_REGISTRATION by the daily retry for a credential no timestamp service stamped then or registered before key timestamps, AT_FIRST_SIGNING during the first signing act that reached a timestamp service. Only AT_REGISTRATION fixes the key as the one registered. NULL while the key has no timestamp."
         }
       ],
       "foreignKeys": [
@@ -22917,7 +22945,7 @@
       "description": "The installation's own certificate authorities, which issue the certificates the stations seal documents with. The first is created the first time any station seals a document; at most one is active, and a retired authority stays so the station certificates it issued and the documents sealed with them can still be traced to it."
     },
     "signing_evidence": {
-      "tableHash": "sha256:08ab44a63dd0b230f42bc16154422c7cf6c3b4e5f6ca4651f3fae2fcb0db26a0",
+      "tableHash": "sha256:d6249b28f7faae4abbc03f8a2c21b012154f206c2b3ce1311aaad6ec5f7fc66f",
       "columns": [
         {
           "name": "id",
@@ -23163,6 +23191,34 @@
           "nullable": false,
           "verified": true,
           "description": "When the evidence was stored."
+        },
+        {
+          "name": "credential_key_stamp_token",
+          "type": "bytea",
+          "nullable": true,
+          "verified": true,
+          "description": "For a passkey or security key: the RFC 3161 timestamp token over the SHA-256 of credential_public_key as the credential held it at the act, DER encoded. NULL for every other proof, and for a key that had no timestamp and got none at the act (not stamped)."
+        },
+        {
+          "name": "credential_key_stamped_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "The time credential_key_stamp_token states. NULL where the key was not stamped."
+        },
+        {
+          "name": "credential_key_stamp_service",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "The address of the timestamp service that gave credential_key_stamp_token. NULL where the key was not stamped."
+        },
+        {
+          "name": "credential_key_stamp_kind",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "How the key got its timestamp, as the credential recorded it: AT_REGISTRATION, AFTER_REGISTRATION (by the daily retry) or AT_FIRST_SIGNING (during the first signing act that reached a timestamp service, possibly this one). NULL where the key was not stamped."
         }
       ],
       "foreignKeys": [

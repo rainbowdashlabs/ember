@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.signing.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import de.chojo.sadu.mapper.wrapper.Row;
+import dev.chojo.ember.feature.twofactor.entity.CredentialKeyStamp;
 import dev.chojo.ember.feature.twofactor.entity.StepUpProof;
 import org.jspecify.annotations.Nullable;
 
@@ -52,8 +53,9 @@ public record StoredEvidence(
             e.guardian_linked_at, e.guardian_linked_by_name, e.field_name, e.statement, e.content_sha256,
             e.entry_fields, e.entry_values, e.nonce, e.signed_at, e.truncated_ip, e.user_agent, e.relying_party_id,
             e.challenge, e.credential_id, e.credential_public_key, e.client_data_json, e.authenticator_data,
-            e.signature, e.user_verified, e.signature_count, e.sealed_sha256, e.recorded_at,
-            r.uid AS request_uid""";
+            e.signature, e.user_verified, e.signature_count, e.credential_key_stamp_token,
+            e.credential_key_stamped_at, e.credential_key_stamp_service, e.credential_key_stamp_kind, e.sealed_sha256,
+            e.recorded_at, r.uid AS request_uid""";
 
     /** Maps a row read with {@link #COLUMNS}. */
     public static RowMapping<StoredEvidence> map() {
@@ -85,7 +87,8 @@ public record StoredEvidence(
                         row.getBytes("authenticator_data"),
                         row.getBytes("signature"),
                         row.getBoolean("user_verified"),
-                        row.getLong("signature_count"));
+                        row.getLong("signature_count"),
+                        CredentialKeyStamp.read(row, "credential_"));
             case TOTP -> new SigningEvidence.TotpUnbound(act);
             case PASSWORD -> new SigningEvidence.PasswordUnbound(act);
             default -> throw new IllegalStateException("Evidence " + row.getInt("id") + " names the proof " + proof);

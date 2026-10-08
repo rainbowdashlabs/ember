@@ -295,6 +295,7 @@ import dev.chojo.ember.feature.quiz.route.RemoteQuizRoutes;
 import dev.chojo.ember.feature.quiz.service.QuizFederationService;
 import dev.chojo.ember.feature.signing.route.PublicSigningRoutes;
 import dev.chojo.ember.feature.signing.route.SigningRoutes;
+import dev.chojo.ember.feature.signing.service.CredentialKeyStamps;
 import dev.chojo.ember.feature.signing.service.InEmberSignatureProvider;
 import dev.chojo.ember.feature.signing.service.SignatureProvider;
 import dev.chojo.ember.feature.signing.service.SignatureRetentionSweeper;
@@ -782,6 +783,7 @@ public class EmberModule extends AbstractModule {
         taskSources.addBinding().to(FeedMetricsService.class);
         taskSources.addBinding().to(GenerationJobRunner.class);
         taskSources.addBinding().to(SignatureRetentionSweeper.class);
+        taskSources.addBinding().to(CredentialKeyStamps.class);
 
         Multibinder<ShutdownFlush> flushes = Multibinder.newSetBinder(binder(), ShutdownFlush.class);
         flushes.addBinding().to(PageHitRecorder.class);

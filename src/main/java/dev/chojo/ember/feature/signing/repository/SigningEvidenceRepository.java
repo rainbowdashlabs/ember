@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.signing.entity.SignatureLevel;
 import dev.chojo.ember.feature.signing.entity.SignerEntry;
 import dev.chojo.ember.feature.signing.entity.SigningEvidence;
 import dev.chojo.ember.feature.signing.entity.StoredEvidence;
+import dev.chojo.ember.feature.twofactor.entity.CredentialKeyStamp;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -85,14 +86,17 @@ public class SigningEvidenceRepository {
                                                      signed_at, truncated_ip, user_agent, relying_party_id,
                                                      challenge, credential_id, credential_public_key,
                                                      client_data_json, authenticator_data, signature, user_verified,
-                                                     signature_count)
+                                                     signature_count, credential_key_stamp_token,
+                                                     credential_key_stamped_at, credential_key_stamp_service,
+                                                     credential_key_stamp_kind)
                         VALUES (:field_id, :signature_level, :proof, :bound, :capacity, :challenge_account_id,
                                 :challenge_member_id, :account_member_id, :member_id, :account_holder_name,
                                 :member_name, :guardian_position, :guardian_linked_at, :guardian_linked_by_name,
                                 :field_name, :statement, :content_hash, :entry_fields, :entry_values, :nonce,
                                 :signed_at, :truncated_ip, :user_agent, :relying_party_id, :challenge,
                                 :credential_id, :credential_public_key, :client_data_json, :authenticator_data,
-                                :signature, :user_verified, :signature_count)
+                                :signature, :user_verified, :signature_count, :key_stamp_token, :key_stamped_at,
+                                :key_stamp_service, :key_stamp_kind)
                         RETURNING id;""", call, row -> row.getInt("id"));
         return query("""
                         SELECT %s
@@ -136,5 +140,13 @@ public class SigningEvidenceRepository {
                 .bind("signature", bound == null ? null : bound.signature())
                 .bind("user_verified", bound == null ? null : bound.userVerified())
                 .bind("signature_count", bound == null ? null : bound.signatureCount());
+        bindKeyStamp(call, bound == null ? null : bound.credentialKeyStamp());
+    }
+
+    private static void bindKeyStamp(Call call, @Nullable CredentialKeyStamp stamp) {
+        call.bind("key_stamp_token", stamp == null ? null : stamp.token())
+                .bind("key_stamped_at", stamp == null ? null : stamp.stampedAt(), INSTANT_TIMESTAMP)
+                .bind("key_stamp_service", stamp == null ? null : stamp.service())
+                .bind("key_stamp_kind", stamp == null ? null : stamp.kind());
     }
 }

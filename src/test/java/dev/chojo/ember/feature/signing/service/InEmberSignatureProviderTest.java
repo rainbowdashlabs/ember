@@ -28,6 +28,7 @@ import dev.chojo.ember.feature.signing.entity.SigningCircumstances;
 import dev.chojo.ember.feature.signing.entity.SigningEvidence;
 import dev.chojo.ember.feature.signing.entity.SigningRequest;
 import dev.chojo.ember.feature.signing.entity.SigningStart;
+import dev.chojo.ember.feature.twofactor.entity.KeyStampKind;
 import dev.chojo.ember.feature.twofactor.entity.StepUpProof;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorKind;
 import dev.chojo.ember.feature.twofactor.repository.WebAuthnChallengeRepository;
@@ -40,6 +41,7 @@ import dev.chojo.ember.feature.twofactor.service.TwoFactorService;
 import dev.chojo.ember.feature.twofactor.service.WebAuthnCredentialStore;
 import dev.chojo.ember.feature.twofactor.service.WebAuthnRelyingPartyFactory;
 import dev.chojo.ember.feature.twofactor.service.WebAuthnService;
+import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -55,6 +57,7 @@ import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
@@ -92,13 +95,7 @@ class InEmberSignatureProviderTest extends RepositoryTestBase {
 
     private final StationSigningKeys keys = mock(StationSigningKeys.class);
     private final PdfSealer sealer = mock(PdfSealer.class);
-    private final InEmberSignatureProvider provider = new InEmberSignatureProvider(
-            twoFactor,
-            new SigningAssertions(parties, twoFactorRepo, new WebAuthnSettings()),
-            new SignerNames(accountRepo, memberNameResolver),
-            keys,
-            sealer,
-            Clock.fixed(NOW, ZoneOffset.UTC));
+    private final InEmberSignatureProvider provider = providerStampingWith(TestKeyStamps.timestampsOff());
 
     @BeforeAll
     static void relyingParty() throws Exception {
@@ -112,8 +109,9 @@ class InEmberSignatureProviderTest extends RepositoryTestBase {
                 settings, api, store, new SecondFactorCredentialStore(twoFactorRepo, store));
         var challenges = new WebAuthnChallengeRepository(TokenHasher.forTesting("signing-test-pepper"));
         var audit = new TwoFactorAuditService(twoFactorRepo);
-        securityKeys = new WebAuthnService(parties, twoFactorRepo, audit, challenges, settings);
-        passkeys = new PasskeyService(parties, twoFactorRepo, audit, challenges, settings);
+        var keyStamps = TestKeyStamps.off(twoFactorRepo);
+        securityKeys = new WebAuthnService(parties, twoFactorRepo, audit, challenges, settings, keyStamps);
+        passkeys = new PasskeyService(parties, twoFactorRepo, audit, challenges, settings, keyStamps);
         twoFactor = new TwoFactorService(
                 twoFactorRepo,
                 mock(TotpService.class),
@@ -213,6 +211,7 @@ class InEmberSignatureProviderTest extends RepositoryTestBase {
                 twoFactorRepo.findActiveWebAuthnForAccount(account).getFirst().publicKeyCose(),
                 evidence.credentialPublicKeyCose());
         assertEquals(1, evidence.signatureCount());
+        assertNull(evidence.credentialKeyStamp());
         assertEquals(SignatureLevel.SIMPLE, signed.level());
         assertArrayEquals(new byte[] {1, 2, 3}, signed.sealed().pdf());
     }
@@ -229,6 +228,83 @@ class InEmberSignatureProviderTest extends RepositoryTestBase {
 
         assertEquals(StepUpProof.PASSKEY, evidence.proof());
         assertTrue(evidence.boundToDocument());
+    }
+
+    @Test
+    void anUnstampedKeyIsStampedAtItsFirstSigningAndTheEvidenceCarriesTheToken() throws Exception {
+        int account = account("Karin", "Muster");
+        TestAuthenticator key = enrolSecurityKey(account);
+        SigningRequest request = request(Signer.accountHolder(account));
+        sealsInto(new byte[] {6});
+
+        try (var tsa = LocalTimestampService.start()) {
+            var stamping = providerStampingWith(TestKeyStamps.asking(tsa.pinned()));
+            var start = assertInstanceOf(SigningStart.InEmber.class, stamping.start(request));
+            var evidence = assertInstanceOf(
+                    SigningEvidence.WebAuthnBound.class,
+                    stamping.complete(request, answer(key, start, true)).evidence());
+
+            var stamp = Objects.requireNonNull(evidence.credentialKeyStamp());
+            assertEquals(KeyStampKind.AT_FIRST_SIGNING, stamp.kind());
+            assertEquals(tsa.url(), stamp.service());
+            KeyStampTokens.assertStamps(stamp, evidence.credentialPublicKeyCose());
+            var kept = Objects.requireNonNull(twoFactorRepo
+                    .findActiveWebAuthnForAccount(account)
+                    .getFirst()
+                    .keyStamp());
+            assertArrayEquals(stamp.token(), kept.token());
+            assertEquals(KeyStampKind.AT_FIRST_SIGNING, kept.kind());
+            assertEquals(1, tsa.requests());
+        }
+    }
+
+    @Test
+    void aKeyStampedAtRegistrationIsCopiedIntoTheEvidenceWithoutAskingAgain() throws Exception {
+        int account = account("Karin", "Muster");
+        TestAuthenticator passkey = enrolPasskey(account);
+        int factorId =
+                twoFactorRepo.findActiveWebAuthnForAccount(account).getFirst().factorId();
+        SigningRequest request = request(Signer.accountHolder(account));
+        sealsInto(new byte[] {7});
+
+        try (var tsa = LocalTimestampService.start()) {
+            new CredentialKeyStamps(TestKeyStamps.asking(tsa.pinned()), twoFactorRepo, new TaskScheduler())
+                    .stampRegistered(factorId);
+            var registered = Objects.requireNonNull(
+                    twoFactorRepo.findWebAuthnByFactorId(factorId).orElseThrow().keyStamp());
+
+            var stamping = providerStampingWith(TestKeyStamps.asking(tsa.pinned()));
+            var start = assertInstanceOf(SigningStart.InEmber.class, stamping.start(request));
+            var evidence = assertInstanceOf(
+                    SigningEvidence.WebAuthnBound.class,
+                    stamping.complete(request, answer(passkey, start, true)).evidence());
+
+            var stamp = Objects.requireNonNull(evidence.credentialKeyStamp());
+            assertEquals(KeyStampKind.AT_REGISTRATION, stamp.kind());
+            assertArrayEquals(registered.token(), stamp.token());
+            assertEquals(registered.stampedAt(), stamp.stampedAt());
+            assertEquals(registered.service(), stamp.service());
+            assertEquals(1, tsa.requests());
+        }
+    }
+
+    @Test
+    void aSigningActWithoutAnyAnsweringServiceStillSucceedsAndRecordsTheKeyAsNotStamped() throws Exception {
+        int account = account("Karin", "Muster");
+        TestAuthenticator key = enrolSecurityKey(account);
+        SigningRequest request = request(Signer.accountHolder(account));
+        sealsInto(new byte[] {8});
+
+        var stamping = providerStampingWith(
+                TestKeyStamps.asking(LocalTimestampService.pinned(LocalTimestampService.unreachableUrl())));
+        var start = assertInstanceOf(SigningStart.InEmber.class, stamping.start(request));
+        var signed = stamping.complete(request, answer(key, start, true));
+
+        var evidence = assertInstanceOf(SigningEvidence.WebAuthnBound.class, signed.evidence());
+        assertNull(evidence.credentialKeyStamp());
+        assertNull(
+                twoFactorRepo.findActiveWebAuthnForAccount(account).getFirst().keyStamp());
+        assertArrayEquals(new byte[] {8}, signed.sealed().pdf());
     }
 
     @Test
@@ -451,6 +527,17 @@ class InEmberSignatureProviderTest extends RepositoryTestBase {
                     DocumentRefusal.SIGNING_PROOF_NOT_ACCEPTED, () -> provider.complete(request, passed(start, proof)));
         }
         verify(sealer, never()).seal(any(), any(), any());
+    }
+
+    private InEmberSignatureProvider providerStampingWith(TimestampServices timestamps) {
+        return new InEmberSignatureProvider(
+                twoFactor,
+                new SigningAssertions(parties, twoFactorRepo, new WebAuthnSettings()),
+                new SignerNames(accountRepo, memberNameResolver),
+                keys,
+                sealer,
+                new CredentialKeyStamps(timestamps, twoFactorRepo, new TaskScheduler()),
+                Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
     private int account(String firstName, String lastName) {

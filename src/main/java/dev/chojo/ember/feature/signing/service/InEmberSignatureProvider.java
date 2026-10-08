@@ -41,7 +41,10 @@ import java.util.Set;
  * without a second factor, the password are taken as well and recorded as unbound. A backup code is a
  * recovery path and a confirmation on another device happens on a screen that never showed the document,
  * so neither is ever taken. Which proofs an account has comes from {@link TwoFactorService#availableProofs},
- * the same rule step-up follows.
+ * the same rule step-up follows. The evidence of a passkey or security key carries the timestamp over the
+ * credential's public key; a credential that has none yet is stamped during the act
+ * ({@link CredentialKeyStamps#forSigning}), and when no timestamp service answers the act still goes through
+ * and its evidence records the key as not stamped.
  *
  * <p><b>Sealing.</b> For now the frozen content is sealed as it is, with the station's key, and the
  * evidence is returned beside it; the signer's mark and typed values are not drawn into the document yet.
@@ -59,6 +62,7 @@ public class InEmberSignatureProvider implements SignatureProvider {
     private final SignerNames names;
     private final StationSigningKeys keys;
     private final PdfSealer sealer;
+    private final CredentialKeyStamps keyStamps;
     private final Clock clock;
 
     @Inject
@@ -67,8 +71,9 @@ public class InEmberSignatureProvider implements SignatureProvider {
             SigningAssertions assertions,
             SignerNames names,
             StationSigningKeys keys,
-            PdfSealer sealer) {
-        this(twoFactor, assertions, names, keys, sealer, Clock.systemUTC());
+            PdfSealer sealer,
+            CredentialKeyStamps keyStamps) {
+        this(twoFactor, assertions, names, keys, sealer, keyStamps, Clock.systemUTC());
     }
 
     InEmberSignatureProvider(
@@ -77,12 +82,14 @@ public class InEmberSignatureProvider implements SignatureProvider {
             SignerNames names,
             StationSigningKeys keys,
             PdfSealer sealer,
+            CredentialKeyStamps keyStamps,
             Clock clock) {
         this.twoFactor = twoFactor;
         this.assertions = assertions;
         this.names = names;
         this.keys = keys;
         this.sealer = sealer;
+        this.keyStamps = keyStamps;
         this.clock = clock;
     }
 
@@ -128,12 +135,13 @@ public class InEmberSignatureProvider implements SignatureProvider {
                 verified.relyingPartyId(),
                 challenge,
                 assertion.credentialId(),
-                verified.publicKeyCose(),
+                verified.credential().publicKeyCose(),
                 assertion.clientDataJson(),
                 assertion.authenticatorData(),
                 assertion.signature(),
                 verified.userVerified(),
-                verified.signatureCount());
+                verified.signatureCount(),
+                keyStamps.forSigning(verified.credential()));
     }
 
     private SigningEvidence unbound(SigningRequest request, StepUpPassed passed) {

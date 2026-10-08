@@ -9,6 +9,7 @@ import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.feature.twofactor.entity.BackupCode;
+import dev.chojo.ember.feature.twofactor.entity.CredentialKeyStamp;
 import dev.chojo.ember.feature.twofactor.entity.StepUpProof;
 import dev.chojo.ember.feature.twofactor.entity.TotpFactor;
 import dev.chojo.ember.feature.twofactor.entity.TrustedDevice;
@@ -43,7 +44,8 @@ public class TwoFactorRepository {
             "factor_id, secret_encrypted, secret_kid, digits, period_seconds, algorithm, last_used_step";
     private static final String ACCOUNT_2FA_WEBAUTHN_COLUMNS = """
             factor_id, credential_id, public_key_cose, signature_counter, aaguid, transports, \
-            attestation_format, user_handle, sign_in, second_factor, discoverable, user_verified""";
+            attestation_format, user_handle, sign_in, second_factor, discoverable, user_verified, \
+            key_stamp_token, key_stamped_at, key_stamp_service, key_stamp_kind""";
     private static final String ACCOUNT_2FA_BACKUP_CODE_COLUMNS = "id, factor_id, code_hash, used_at, used_via_ip";
     private static final String ACCOUNT_2FA_TRUSTED_DEVICE_COLUMNS =
             "id, account_id, token_hash, user_agent, created_at, trusted_until, last_seen_at, revoked_at";
@@ -296,6 +298,64 @@ public class TwoFactorRepository {
                 .single(call().bind("account_id", accountId))
                 .map(WebAuthnCredential.map())
                 .all();
+    }
+
+    /**
+     * The credential of a factor, whether or not the factor is still active.
+     *
+     * @param factorId the factor
+     * @return the credential, or empty when the factor holds none
+     */
+    public Optional<WebAuthnCredential> findWebAuthnByFactorId(int factorId) {
+        return query("SELECT %s FROM account_2fa_webauthn WHERE factor_id = :factor_id;", ACCOUNT_2FA_WEBAUTHN_COLUMNS)
+                .single(call().bind("factor_id", factorId))
+                .map(WebAuthnCredential.map())
+                .first();
+    }
+
+    /**
+     * Active credentials whose public key has no timestamp yet, registered before the given time, the
+     * oldest first.
+     *
+     * @param registeredBefore only credentials whose factor was created before this
+     * @param limit            how many at most
+     * @return the credentials
+     */
+    public List<WebAuthnCredential> findUnstampedWebAuthn(Instant registeredBefore, int limit) {
+        return query("""
+                SELECT %s
+                FROM account_2fa_webauthn w
+                JOIN account_2fa_factor f ON f.id = w.factor_id
+                WHERE w.key_stamp_token IS NULL AND f.disabled_at IS NULL AND f.created_at < :before
+                ORDER BY f.created_at, f.id
+                LIMIT :limit;""", alias("w", ACCOUNT_2FA_WEBAUTHN_COLUMNS))
+                .single(call().bind("before", registeredBefore, INSTANT_TIMESTAMP)
+                        .bind("limit", limit))
+                .map(WebAuthnCredential.map())
+                .all();
+    }
+
+    /**
+     * Records the timestamp over a credential's public key, unless it already has one: the first stamp
+     * stays, since a later one proves less.
+     *
+     * @param factorId the credential's factor
+     * @param stamp    the timestamp
+     * @return whether it was recorded
+     */
+    public boolean recordKeyStamp(int factorId, CredentialKeyStamp stamp) {
+        return query("""
+                UPDATE account_2fa_webauthn
+                SET key_stamp_token = :token, key_stamped_at = :stamped_at, key_stamp_service = :service,
+                    key_stamp_kind = :kind
+                WHERE factor_id = :factor_id AND key_stamp_token IS NULL;""")
+                .single(call().bind("factor_id", factorId)
+                        .bind("token", stamp.token())
+                        .bind("stamped_at", stamp.stampedAt(), INSTANT_TIMESTAMP)
+                        .bind("service", stamp.service())
+                        .bind("kind", stamp.kind()))
+                .update()
+                .changed();
     }
 
     public void updateWebAuthnSignatureCounter(int factorId, long newCounter) {

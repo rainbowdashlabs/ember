@@ -5,7 +5,9 @@
  */
 package dev.chojo.ember.feature.signing.entity;
 
+import dev.chojo.ember.feature.twofactor.entity.CredentialKeyStamp;
 import dev.chojo.ember.feature.twofactor.entity.StepUpProof;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Set;
 
@@ -36,6 +38,12 @@ public sealed interface SigningEvidence
      * have the user-verified flag set, and the signature must verify over the authenticator data followed
      * by the SHA-256 of the client data, under the credential's public key.
      *
+     * <p>The key stamp says whether that public key is the one the credential was registered with: its
+     * token is an RFC 3161 timestamp over the SHA-256 of {@code credentialPublicKeyCose}, and its kind says
+     * whether it was taken at the registration, later by the retry, or at the first signing act that
+     * reached a timestamp service. A key stamped only at or after an act proves less about who registered
+     * it than one stamped at the registration.
+     *
      * <p>The arrays are handed over as they are, without a copy.
      *
      * @param act                     what the act was
@@ -50,6 +58,8 @@ public sealed interface SigningEvidence
      * @param userVerified            whether the authenticator verified its user, always true for an
      *                                accepted act and recorded all the same
      * @param signatureCount          the authenticator's signature counter at this act
+     * @param credentialKeyStamp      the timestamp over the credential's public key as it stood at this
+     *                                act, or null when the key had none and no timestamp service gave one
      */
     record WebAuthnBound(
             SigningAct act,
@@ -62,7 +72,8 @@ public sealed interface SigningEvidence
             byte[] authenticatorData,
             byte[] signature,
             boolean userVerified,
-            long signatureCount)
+            long signatureCount,
+            @Nullable CredentialKeyStamp credentialKeyStamp)
             implements SigningEvidence {
         private static final Set<StepUpProof> WEBAUTHN = Set.of(StepUpProof.PASSKEY, StepUpProof.SECURITY_KEY);
 
