@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.signing.service;
 
 import dev.chojo.ember.conf.file.elements.Api;
+import dev.chojo.ember.feature.signing.entity.ActPicture;
 import dev.chojo.ember.feature.signing.entity.AssembledDocument;
 import dev.chojo.ember.feature.signing.entity.FieldState;
 import dev.chojo.ember.feature.signing.entity.RecordTimeBasis;
@@ -46,6 +47,7 @@ import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 /**
  * Puts together the document for one signing state: the frozen content as every signer read it, with the
@@ -141,7 +143,8 @@ public class SigningStateAssembler {
      * @param authority the installation authority that issued the certificate the document will be sealed
      *                  with, whose fingerprint the record page prints
      * @param timeBasis where the document's times come from
-     * @param pictures  the signature picture of each act, by the id of the field it filled
+     * @param pictures  the signature picture of each act, by the id of the field it filled; the evidence and
+     *                  the record name each one by its hash and how it came to the act
      * @return the document, not yet sealed, with the page its record starts on
      * @throws IllegalArgumentException when the content is not the request's frozen content, the station is
      *                                  gone, or evidence names a field the request does not have
@@ -152,7 +155,7 @@ public class SigningStateAssembler {
             byte[] content,
             X509Certificate authority,
             RecordTimeBasis timeBasis,
-            Map<Integer, byte[]> pictures) {
+            Map<Integer, ActPicture> pictures) {
         var request = view.request();
         if (!Sha256.hex(content).equals(request.contentSha256())) {
             throw new IllegalArgumentException("The content is not the frozen content of request " + request.uid());
@@ -160,7 +163,7 @@ public class SigningStateAssembler {
         Station station = stations.findById(request.stationId())
                 .orElseThrow(() -> new IllegalArgumentException("No station " + request.stationId()));
         Instant now = clock.instant();
-        SigningEvidenceFile evidence = SigningEvidenceFiles.of(view, now);
+        SigningEvidenceFile evidence = SigningEvidenceFiles.of(view, pictures, now);
         byte[] evidenceJson = SigningEvidenceFiles.write(evidence);
         String language = StationFormat.languageOf(station);
         var zone = StationFormat.timezoneOf(station);
@@ -194,7 +197,10 @@ public class SigningStateAssembler {
 
     /** The mark of every field a signing act filled, in the order the fields were asked for. */
     private static List<SignatureMark> marks(
-            SignatureRequestView view, Map<Integer, byte[]> pictures, MarkCaptions captions, int recordPage) {
+            SignatureRequestView view, Map<Integer, ActPicture> pictures, MarkCaptions captions, int recordPage) {
+        Map<Integer, byte[]> pngs = pictures.entrySet().stream()
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey, entry -> entry.getValue().png()));
         var marks = new ArrayList<SignatureMark>();
         for (var field : view.fields()) {
             if (field.state() != FieldState.SIGNED) continue;
@@ -204,7 +210,7 @@ public class SigningStateAssembler {
                     .map(stored -> stored.evidence().act())
                     .ifPresent(act -> marks.add(new SignatureMark(
                             field.fieldName(),
-                            pictures.get(field.id()),
+                            pngs.get(field.id()),
                             captions.act(act.signerName(), act.signedAt(), recordPage))));
         }
         return marks;

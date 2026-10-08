@@ -8,13 +8,16 @@ package dev.chojo.ember.feature.generator.service;
 import dev.chojo.ember.feature.generator.entity.SignatureRole;
 import dev.chojo.ember.feature.generator.service.pdf.SignatureFields;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.signing.entity.PadesLevel;
 import dev.chojo.ember.feature.signing.entity.SealLevel;
 import dev.chojo.ember.feature.signing.entity.SignatureImageSource;
+import dev.chojo.ember.feature.signing.entity.ValidationIndication;
 import dev.chojo.ember.feature.signing.repository.AccountSignatureRepository;
 import dev.chojo.ember.feature.signing.repository.IssuerSignatureRepository;
 import dev.chojo.ember.feature.signing.service.IssuedLetterSigner;
 import dev.chojo.ember.feature.signing.service.PdfSealer;
 import dev.chojo.ember.feature.signing.service.SignatureImageService;
+import dev.chojo.ember.feature.signing.service.SigningSamples;
 import dev.chojo.ember.feature.signing.service.StationSigningKeys;
 import dev.chojo.ember.feature.signing.service.TestSealing;
 import dev.chojo.ember.feature.signing.service.TestSignatures;
@@ -48,7 +51,8 @@ import static org.mockito.Mockito.when;
 /**
  * A letter whose template names its issuer is signed for them as it is generated, where they agreed to it
  * and keep a signature picture: the picture and their name are drawn into the issuer field, the letter is
- * sealed with the station's key, and the signed letter is what is filed and logged. A letter is filed as it
+ * sealed with the station's key, and the signed letter is what is filed and logged; with a timestamp service
+ * on loopback it validates at the verifier as a long-term seal. A letter is filed as it
  * was drawn, unsealed and with the field empty, without the consent, without a picture, for an issuer a
  * manager picked for the occasion, and when signing fails.
  */
@@ -104,6 +108,43 @@ class IssuerSignedLettersTest extends GeneratorTestBase {
         assertEquals(consent.autoSignConsentedAt(), record.consentedAt());
         assertEquals(saved.imageSha256(), record.imageSha256());
         assertEquals(SealLevel.BASELINE_B, record.sealLevel());
+    }
+
+    @Test
+    void aLetterSignedForItsIssuerWithATimestampValidatesLongTerm() throws IOException {
+        try (var sealing = TestSealing.withTimestamps()) {
+            var stamped = wire(
+                    stationRepo.create("Stempelnde Wache " + UUID.randomUUID()),
+                    sealing.stampingLetterSigner(stationRepo, stationMemberRepo, images));
+            var issuer = stamped.member(UUID.randomUUID() + "@issued.test", "Erika", "Stempel");
+            var boss = stamped.member(UUID.randomUUID() + "@issued.test", "Bo", "Leitung");
+            images.save(issuer.accountId(), TestSignatures.drawn(), SignatureImageSource.DRAWN);
+            images.consent(issuer.accountId(), true);
+
+            var generated = stamped.generation()
+                    .generate(
+                            as(boss),
+                            certificate(stamped, issuer, boss),
+                            participant(stamped).id(),
+                            null);
+
+            byte[] file = fileOf(stamped, generated.documentId());
+            assertEquals(List.of(), SignatureFields.unsigned(file));
+            assertEquals(
+                    SealLevel.BASELINE_LT,
+                    records.findByGeneration(generated.generationId())
+                            .orElseThrow()
+                            .sealLevel());
+            var verification = TestSealing.verifier().verify(file);
+            assertEquals(1, verification.signatures().size());
+            var seal = verification.signatures().getFirst();
+            assertEquals(ValidationIndication.TOTAL_PASSED, seal.indication());
+            assertEquals(PadesLevel.BASELINE_LT, seal.level());
+            assertTrue(seal.issuedHere());
+            assertTrue(seal.intact());
+            assertFalse(seal.modifiedAfterSealing());
+            SigningSamples.write("issued-letter-baseline-lt.pdf", file);
+        }
     }
 
     @Test

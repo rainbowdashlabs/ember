@@ -93,6 +93,22 @@
   rows
 }
 
+#let picture-source(s) = {
+  if s == "DRAWN" [Beim Unterschreiben gezeichnet]
+  else if s == "TYPED" [Beim Unterschreiben als Name getippt]
+  else if s == "UPLOADED" [Beim Unterschreiben als Foto oder Scan hochgeladen]
+  else if s == "SAVED" [Vorher im Konto gespeichert]
+  else [#s]
+}
+
+#let picture-rows(a) = {
+  if a.picture == none { return () }
+  (
+    [Unterschriftsbild], [#picture-source(a.picture.source)],
+    [Unterschriftsbild (SHA-256)], mono(a.picture.sha256),
+  )
+}
+
 #let entry-rows(a) = {
   if a.entries.len() == 0 { return () }
   ([Eingaben], a.entries.map(e => [#e.field: #e.value]).join(linebreak()))
@@ -104,6 +120,7 @@
   ..guardian-rows(a),
   [Erklärung], [#a.statement],
   ..entry-rows(a),
+  ..picture-rows(a),
   ..proof-rows(a),
   [Zeitpunkt], [#a.signedAt],
   [Netzadresse (gekürzt)], if a.truncatedIp != none [#a.truncatedIp] else [Nicht bekannt],

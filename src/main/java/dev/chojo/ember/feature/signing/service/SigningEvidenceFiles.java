@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.signing.service;
 
+import dev.chojo.ember.feature.signing.entity.ActPicture;
 import dev.chojo.ember.feature.signing.entity.RequestedSignature;
 import dev.chojo.ember.feature.signing.entity.SignatureRequestView;
 import dev.chojo.ember.feature.signing.entity.SigningAct;
@@ -32,15 +33,18 @@ public final class SigningEvidenceFiles {
      * The evidence of a request as it stands.
      *
      * @param view        the request, its fields and the evidence of every act on them
+     * @param pictures    the signature picture each act left, by the id of the field it filled; an act
+     *                    without one is left out
      * @param assembledAt when this signing state is put together
      * @return the evidence file, its fields in the request's order, each with the act that filled it
      * @throws IllegalArgumentException when evidence names a field the request does not have
      */
-    public static SigningEvidenceFile of(SignatureRequestView view, Instant assembledAt) {
+    public static SigningEvidenceFile of(
+            SignatureRequestView view, Map<Integer, ActPicture> pictures, Instant assembledAt) {
         Map<Integer, StoredEvidence> byField =
                 view.evidence().stream().collect(Collectors.toMap(StoredEvidence::fieldId, Function.identity()));
         List<SigningEvidenceFile.Field> fields = view.fields().stream()
-                .map(field -> field(field, byField.remove(field.id())))
+                .map(field -> field(field, byField.remove(field.id()), pictures.get(field.id())))
                 .toList();
         if (!byField.isEmpty()) {
             throw new IllegalArgumentException("Evidence for fields the request does not have: " + byField.keySet());
@@ -72,7 +76,8 @@ public final class SigningEvidenceFiles {
         return Json.MAPPER.readValue(json, SigningEvidenceFile.class);
     }
 
-    private static SigningEvidenceFile.Field field(RequestedSignature field, @Nullable StoredEvidence evidence) {
+    private static SigningEvidenceFile.Field field(
+            RequestedSignature field, @Nullable StoredEvidence evidence, @Nullable ActPicture picture) {
         return new SigningEvidenceFile.Field(
                 field.fieldName(),
                 field.role(),
@@ -81,10 +86,10 @@ public final class SigningEvidenceFiles {
                 field.statement(),
                 field.settledAt(),
                 field.settledByName(),
-                evidence == null ? null : act(evidence));
+                evidence == null ? null : act(evidence, picture));
     }
 
-    private static SigningEvidenceFile.Act act(StoredEvidence stored) {
+    private static SigningEvidenceFile.Act act(StoredEvidence stored, @Nullable ActPicture picture) {
         SigningEvidence evidence = stored.evidence();
         SigningAct act = evidence.act();
         return new SigningEvidenceFile.Act(
@@ -106,7 +111,8 @@ public final class SigningEvidenceFiles {
                 act.truncatedIp(),
                 act.userAgent(),
                 stored.guardianLink(),
-                evidence instanceof SigningEvidence.WebAuthnBound bound ? webAuthn(bound) : null);
+                evidence instanceof SigningEvidence.WebAuthnBound bound ? webAuthn(bound) : null,
+                picture == null ? null : new SigningEvidenceFile.Picture(picture.sha256(), picture.source()));
     }
 
     private static SigningEvidenceFile.WebAuthn webAuthn(SigningEvidence.WebAuthnBound bound) {

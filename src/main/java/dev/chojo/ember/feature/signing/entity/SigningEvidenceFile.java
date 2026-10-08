@@ -96,6 +96,8 @@ public record SigningEvidenceFile(
      * @param guardianLink      the guardian link the act went through as it stood then, or null
      * @param webAuthn          the authenticator's answer, or null for a proof that is not a passkey or a
      *                          security key
+     * @param picture           the signature picture the act left in its field, or null for an act that left
+     *                          none, whose field shows the name and date only
      */
     public record Act(
             SignatureLevel level,
@@ -116,7 +118,18 @@ public record SigningEvidenceFile(
             @Nullable String truncatedIp,
             @Nullable String userAgent,
             @Nullable GuardianLink guardianLink,
-            @Nullable WebAuthn webAuthn) {}
+            @Nullable WebAuthn webAuthn,
+            @Nullable Picture picture) {}
+
+    /**
+     * The signature picture an act left in its field. The picture is not in the file, only its hash: the
+     * document shows it in the field, and Ember keeps it with the evidence.
+     *
+     * @param sha256 SHA-256 of the picture as a transparent PNG, before it was drawn in, lower-case
+     *               hexadecimal
+     * @param source how it came to the act: made for it (drawn, typed, uploaded) or saved before
+     */
+    public record Picture(String sha256, ActPictureSource source) {}
 
     /**
      * What a passkey or security key answered, and the key it answered with.

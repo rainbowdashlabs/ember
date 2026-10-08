@@ -12,6 +12,8 @@ import dev.chojo.ember.feature.documents.entity.Document;
 import dev.chojo.ember.feature.documents.repository.DocumentRepository;
 import dev.chojo.ember.feature.documents.service.DocumentDoor;
 import dev.chojo.ember.feature.documents.service.DocumentService;
+import dev.chojo.ember.feature.signing.entity.ActPicture;
+import dev.chojo.ember.feature.signing.entity.ActPictureSource;
 import dev.chojo.ember.feature.signing.entity.DocumentToSign;
 import dev.chojo.ember.feature.signing.entity.FieldState;
 import dev.chojo.ember.feature.signing.entity.OpenSignature;
@@ -69,8 +71,9 @@ import java.util.Set;
  * more that the field is open and the caller's.
  *
  * <p><b>Signature picture.</b> Every act leaves the signer's picture in its field: one made for the act, or
- * the one the account keeps. It is stored with the evidence, so each sealed version draws the picture the
- * act was given and not whatever the account keeps later.
+ * the one the account keeps. It is stored with the evidence together with how it came to the act (drawn,
+ * typed or uploaded for it, or saved before), so each sealed version draws the picture the act was given and
+ * not whatever the account keeps later, and names it by its hash and source in the evidence and the record.
  *
  * <p><b>Sealing.</b> Once the evidence is stored, the request's new state is sealed into its document
  * ({@link SigningStateSealer}). A seal that fails leaves the act recorded; it is sealed with the next act on
@@ -238,11 +241,13 @@ public class SigningActService {
         }
         var made = picture.made();
         var cleaned = made == null ? null : SignatureImages.clean(made);
-        byte[] png = cleaned != null ? cleaned.png() : savedPicture(parked.signer(), session.accountId());
+        ActPicture mark = cleaned != null
+                ? new ActPicture(cleaned.png(), ActPictureSource.madeAs(picture.source()))
+                : new ActPicture(savedPicture(parked.signer(), session.accountId()), ActPictureSource.SAVED);
         var completed = provider.complete(request, confirmation(parked, answer, circumstances));
         var stored = Transactions.call(() -> {
             var recorded = fields.record(session, completed);
-            evidence.storeMark(recorded.id(), png);
+            evidence.storeMark(recorded.id(), mark);
             return recorded;
         });
         if (cleaned != null && picture.keep()) keepPicture(session.accountId(), parked.signer(), cleaned, picture);

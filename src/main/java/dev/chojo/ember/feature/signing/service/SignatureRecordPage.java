@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.signing.service;
 
+import dev.chojo.ember.feature.signing.entity.ActPictureSource;
 import dev.chojo.ember.feature.signing.entity.FieldRole;
 import dev.chojo.ember.feature.signing.entity.FieldState;
 import dev.chojo.ember.feature.signing.entity.GuardianLink;
@@ -31,7 +32,8 @@ import java.util.regex.Pattern;
 
 /**
  * Renders the signature record page of a signed document: who signed it, for whom, what they confirmed,
- * with which proof, when and from where, which fields are still open or were settled otherwise, and how
+ * with which proof, when and from where, which signature picture went into their field and how it was made,
+ * which fields are still open or were settled otherwise, and how
  * the seal and its time can be checked. It is the readable alternative to a reader's signature panel,
  * which screen readers, phone viewers and paper do not show.
  *
@@ -147,7 +149,13 @@ public final class SignatureRecordPage {
                 webAuthn == null ? null : keyStamp(webAuthn.credentialKeyStamp(), times),
                 times.format(act.signedAt()),
                 act.truncatedIp(),
-                act.userAgent());
+                act.userAgent(),
+                picture(act.picture()));
+    }
+
+    private static @Nullable PictureModel picture(SigningEvidenceFile.@Nullable Picture picture) {
+        if (picture == null) return null;
+        return new PictureModel(picture.source(), lines(grouped(picture.sha256()), HASH_GROUPS_PER_LINE));
     }
 
     private static @Nullable GuardianModel guardian(@Nullable GuardianLink link, Times times) {
@@ -279,6 +287,7 @@ public final class SignatureRecordPage {
      * @param signedAt          when
      * @param truncatedIp       from which network, or null
      * @param userAgent         with which browser, or null
+     * @param picture           the signature picture the act left in its field, or null where it left none
      */
     record ActModel(
             String signerName,
@@ -294,7 +303,16 @@ public final class SignatureRecordPage {
             @Nullable KeyStampModel keyStamp,
             String signedAt,
             @Nullable String truncatedIp,
-            @Nullable String userAgent) {}
+            @Nullable String userAgent,
+            @Nullable PictureModel picture) {}
+
+    /**
+     * A signature picture on the page.
+     *
+     * @param source how it came to the act
+     * @param sha256 its hash in lines of grouped characters
+     */
+    record PictureModel(ActPictureSource source, List<String> sha256) {}
 
     /**
      * A guardian link on the page.

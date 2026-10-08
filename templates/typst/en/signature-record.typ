@@ -93,6 +93,22 @@
   rows
 }
 
+#let picture-source(s) = {
+  if s == "DRAWN" [Drawn when signing]
+  else if s == "TYPED" [Typed as a name when signing]
+  else if s == "UPLOADED" [Uploaded as a photo or scan when signing]
+  else if s == "SAVED" [Saved in the account beforehand]
+  else [#s]
+}
+
+#let picture-rows(a) = {
+  if a.picture == none { return () }
+  (
+    [Signature picture], [#picture-source(a.picture.source)],
+    [Signature picture (SHA-256)], mono(a.picture.sha256),
+  )
+}
+
 #let entry-rows(a) = {
   if a.entries.len() == 0 { return () }
   ([Entries], a.entries.map(e => [#e.field: #e.value]).join(linebreak()))
@@ -104,6 +120,7 @@
   ..guardian-rows(a),
   [Statement], [#a.statement],
   ..entry-rows(a),
+  ..picture-rows(a),
   ..proof-rows(a),
   [Time], [#a.signedAt],
   [Network address (shortened)], if a.truncatedIp != none [#a.truncatedIp] else [Not known],

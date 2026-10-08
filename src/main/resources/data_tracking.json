@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:880d6470d6cc32700bb607ea789812c9eb34ced75eded94b45fa4eaa1a878673",
-  "generatedAt": "2026-10-08T17:01:22Z",
+  "schemaHash": "sha256:67b3ebc7d6574d8b8ea0224853e1773e51557e6ab8c6ef493c7c8767e59b36da",
+  "generatedAt": "2026-10-08T20:01:00Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -23390,7 +23390,7 @@
     "signing_evidence": {
       "feature": "signing",
       "scope": "STATION",
-      "tableHash": "sha256:2114fd405649e427938e8f8b3dab01bf19ccb7000814b8ef78a18373b9c0f76e",
+      "tableHash": "sha256:9e3391eedba9b0770d17a208399da037ca11febbf984519eefb7019bb97f39c0",
       "columns": [
         {
           "name": "id",
@@ -23671,6 +23671,13 @@
           "nullable": true,
           "verified": true,
           "description": "The signature picture drawn into the signed field, a transparent PNG as the signer gave it at the act: their saved picture or one drawn on the spot. Every sealed version of the document draws it from here, so a later change of the saved picture never changes an earlier signature. NULL for acts recorded before signature pictures, whose field shows the name and date only."
+        },
+        {
+          "name": "mark_source",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "How mark_image came to the act: DRAWN, TYPED or UPLOADED when it was made for the act, SAVED when it was the picture the signer's account kept. The evidence attached to each sealed version and its record page name it beside the picture's SHA-256. NULL exactly when mark_image is."
         }
       ],
       "foreignKeys": [

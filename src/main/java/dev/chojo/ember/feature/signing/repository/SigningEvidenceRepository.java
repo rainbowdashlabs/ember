@@ -7,6 +7,8 @@ package dev.chojo.ember.feature.signing.repository;
 
 import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import de.chojo.sadu.queries.api.call.Call;
+import dev.chojo.ember.feature.signing.entity.ActPicture;
+import dev.chojo.ember.feature.signing.entity.ActPictureSource;
 import dev.chojo.ember.feature.signing.entity.GuardianLink;
 import dev.chojo.ember.feature.signing.entity.SignatureLevel;
 import dev.chojo.ember.feature.signing.entity.SignerEntry;
@@ -131,30 +133,37 @@ public class SigningEvidenceRepository {
      * Keeps the signature picture an act left in its field, which every sealed version draws from here.
      *
      * @param evidenceId the evidence of the act
-     * @param png        the picture, a transparent PNG
+     * @param picture    the picture, a transparent PNG, with how it came to the act
      */
-    public void storeMark(int evidenceId, byte[] png) {
+    public void storeMark(int evidenceId, ActPicture picture) {
         query("""
                         UPDATE signing_evidence
-                        SET mark_image = :mark_image
-                        WHERE id = :id;""").single(call().bind("id", evidenceId).bind("mark_image", png)).update();
+                        SET mark_image  = :mark_image,
+                            mark_source = :mark_source
+                        WHERE id = :id;""")
+                .single(call().bind("id", evidenceId)
+                        .bind("mark_image", picture.png())
+                        .bind("mark_source", picture.source()))
+                .update();
     }
 
     /**
      * @param requestId the request
-     * @return the signature pictures of the acts on the request's fields, by field id; an act without one
-     *     is left out
+     * @return the signature pictures of the acts on the request's fields with how each came to its act, by
+     *     field id; an act without one is left out
      */
-    public Map<Integer, byte[]> marksOf(int requestId) {
-        var marks = new HashMap<Integer, byte[]>();
+    public Map<Integer, ActPicture> marksOf(int requestId) {
+        var marks = new HashMap<Integer, ActPicture>();
         query("""
-                        SELECT e.field_id, e.mark_image
+                        SELECT e.field_id, e.mark_image, e.mark_source
                         FROM signing_evidence e
                                  JOIN signing_request_field f ON f.id = e.field_id
                         WHERE f.request_id = :request_id
                           AND e.mark_image IS NOT NULL;""")
                 .single(call().bind("request_id", requestId))
-                .map(row -> Map.entry(row.getInt("field_id"), row.getBytes("mark_image")))
+                .map(row -> Map.entry(
+                        row.getInt("field_id"),
+                        new ActPicture(row.getBytes("mark_image"), row.getEnum("mark_source", ActPictureSource.class))))
                 .all()
                 .forEach(entry -> marks.put(entry.getKey(), entry.getValue()));
         return marks;

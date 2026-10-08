@@ -891,10 +891,16 @@ COMMENT ON CONSTRAINT issuer_signature_timestamp ON ember_schema.issuer_signatur
     'A timestamp service is named exactly when the seal carries a timestamp.';
 
 ALTER TABLE ember_schema.signing_evidence
-    ADD COLUMN mark_image BYTEA NULL;
+    ADD COLUMN mark_image  BYTEA NULL,
+    ADD COLUMN mark_source TEXT  NULL CHECK (mark_source IN ('DRAWN', 'TYPED', 'UPLOADED', 'SAVED')),
+    ADD CONSTRAINT signing_evidence_mark CHECK ((mark_image IS NULL) = (mark_source IS NULL));
 
 COMMENT ON COLUMN ember_schema.signing_evidence.mark_image IS
     'The signature picture drawn into the signed field, a transparent PNG as the signer gave it at the act: their saved picture or one drawn on the spot. Every sealed version of the document draws it from here, so a later change of the saved picture never changes an earlier signature. NULL for acts recorded before signature pictures, whose field shows the name and date only.';
+COMMENT ON COLUMN ember_schema.signing_evidence.mark_source IS
+    'How mark_image came to the act: DRAWN, TYPED or UPLOADED when it was made for the act, SAVED when it was the picture the signer''s account kept. The evidence attached to each sealed version and its record page name it beside the picture''s SHA-256. NULL exactly when mark_image is.';
+COMMENT ON CONSTRAINT signing_evidence_mark ON ember_schema.signing_evidence IS
+    'A signature picture is recorded together with how it came to the act, or neither is.';
 
 ALTER TABLE ember_schema.document_template_field
     ADD COLUMN statement TEXT NULL CHECK (statement IS NULL OR (kind = 'SIGNATURE' AND length(statement) <= 500));

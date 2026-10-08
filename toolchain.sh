@@ -198,6 +198,11 @@ Backend
   be-data-tracking-check
                         The data tracking suite CI runs, including the check that the committed file
                         is exactly what be-data-tracking would write
+  be-signing-samples    Seal sample documents with the signing tests (baseline B, T and LT, a timestamp
+                        outage, two signers, an issued letter) into build/signing-samples, for opening
+                        in a PDF reader that shows signatures, and check them as PDF/A-3b with veraPDF
+                        from nix-shell. The timestamp service runs on loopback, so their timestamps
+                        show as untrusted in Acrobat Reader
   be-cloudflare-ranges  Rewrite the committed snapshot of Cloudflare's edge ranges from cloudflare.com.
                         A running instance fetches the current list on start; the snapshot only
                         answers until that fetch lands
@@ -532,6 +537,19 @@ case "$cmd" in
     be-settings-catalog)   cd "$ROOT"; run ./gradlew generateSettingsCatalog "$@" ;;
     be-data-tracking)      cd "$ROOT"; run ./gradlew refreshDataTracking spotlessJsonApply "$@" ;;
     be-data-tracking-check) cd "$ROOT"; run ./gradlew testTracking "$@" ;;
+    be-signing-samples)
+        cd "$ROOT"
+        samples="$ROOT/build/signing-samples"
+        rm -rf "$samples"
+        EMBER_SIGNING_SAMPLES="$samples" run ./gradlew testServices --rerun \
+            --tests '*SignedDocumentMatrixTest' --tests '*IssuerSignedLettersTest' "$@"
+        if command -v nix-shell >/dev/null 2>&1; then
+            nix-shell -p verapdf --run "verapdf --flavour 3b --format text $samples/*.pdf"
+        else
+            echo "be-signing-samples: nix-shell is missing, so veraPDF did not check the samples" >&2
+        fi
+        echo "Samples in $samples"
+        ;;
     be-cloudflare-ranges)
         cd "$ROOT"
         ranges=$(run sh -c 'set -e

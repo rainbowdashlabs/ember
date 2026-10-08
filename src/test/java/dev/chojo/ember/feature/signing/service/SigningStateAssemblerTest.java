@@ -6,6 +6,8 @@
 package dev.chojo.ember.feature.signing.service;
 
 import dev.chojo.ember.feature.generator.service.pdf.SignatureFields;
+import dev.chojo.ember.feature.signing.entity.ActPicture;
+import dev.chojo.ember.feature.signing.entity.ActPictureSource;
 import dev.chojo.ember.feature.signing.entity.AssembledDocument;
 import dev.chojo.ember.feature.signing.entity.FieldRole;
 import dev.chojo.ember.feature.signing.entity.FieldState;
@@ -51,9 +53,11 @@ import java.security.cert.X509Certificate;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
@@ -210,7 +214,8 @@ class SigningStateAssemblerTest extends RepositoryTestBase {
     @Test
     void eachSignedFieldShowsItsPictureNameDayAndRecordPage() throws IOException {
         var station = station("de-DE", "Europe/Berlin");
-        var pictures = Map.of(11, SignatureImages.clean(TestSignatures.drawn()).png());
+        var pictures = Map.of(
+                11, new ActPicture(SignatureImages.clean(TestSignatures.drawn()).png(), ActPictureSource.SAVED));
 
         var assembled =
                 assembler().assemble(view(station), content, authority, RecordTimeBasis.TIMESTAMPS_OFF, pictures);
@@ -222,6 +227,66 @@ class SigningStateAssemblerTest extends RepositoryTestBase {
             assertTrue(page.contains("Elektronisch signiert am 08.10.2026, Nachweis Seite 2"));
             assertEquals(1, imagesOn(document.getPage(0)), "the guardian's picture; the child left none");
         }
+    }
+
+    @Test
+    void theEvidenceAndTheRecordNameEachPictureByItsHashAndHowItWasMade() throws IOException {
+        var station = station("de-DE", "Europe/Berlin");
+        var saved = new ActPicture(SignatureImages.clean(TestSignatures.drawn()).png(), ActPictureSource.SAVED);
+        var uploaded = new ActPicture(
+                SignatureImages.clean(TestSignatures.photographed()).png(), ActPictureSource.UPLOADED);
+
+        var assembled = assembler()
+                .assemble(
+                        view(station),
+                        content,
+                        authority,
+                        RecordTimeBasis.TIMESTAMPS_OFF,
+                        Map.of(11, saved, 13, uploaded));
+
+        try (var document = Loader.loadPDF(assembled.pdf())) {
+            var file = SigningEvidenceFiles.read(
+                    attachment(document).getEmbeddedFile().toByteArray());
+            var guardian = file.fields().getFirst().act();
+            var participant = file.fields().get(2).act();
+            assertNotNull(guardian);
+            assertNotNull(participant);
+            assertEquals(new SigningEvidenceFile.Picture(saved.sha256(), ActPictureSource.SAVED), guardian.picture());
+            assertEquals(
+                    new SigningEvidenceFile.Picture(uploaded.sha256(), ActPictureSource.UPLOADED),
+                    participant.picture());
+            assertEquals(SigningChallenge.LABEL, file.challengeLayout(), "the challenge layout stays as it was");
+
+            String record = text(document, assembled.recordPage(), document.getNumberOfPages());
+            assertTrue(record.contains("Vorher im Konto gespeichert"));
+            assertTrue(record.contains("Beim Unterschreiben als Foto oder Scan hochgeladen"));
+            assertTrue(record.contains(grouped(saved.sha256())), record);
+            assertTrue(record.contains(grouped(uploaded.sha256())), record);
+        }
+    }
+
+    @Test
+    void anActWithoutAPictureIsRecordedWithoutOne() throws IOException {
+        var station = station("en-GB", "UTC");
+
+        var assembled = assembler().assemble(view(station), content, authority, RecordTimeBasis.TIMESTAMPS_OFF);
+
+        try (var document = Loader.loadPDF(assembled.pdf())) {
+            var file = SigningEvidenceFiles.read(
+                    attachment(document).getEmbeddedFile().toByteArray());
+            assertNull(Objects.requireNonNull(file.fields().getFirst().act()).picture());
+            assertFalse(text(document, assembled.recordPage(), document.getNumberOfPages())
+                    .contains("Signature picture"));
+        }
+    }
+
+    /** The first line of a hash as the record prints it: groups of four, eight to a line. */
+    private static String grouped(String sha256) {
+        var groups = new ArrayList<String>();
+        for (int i = 0; i < 32; i += 4) {
+            groups.add(sha256.substring(i, i + 4));
+        }
+        return String.join(" ", groups);
     }
 
     @Test

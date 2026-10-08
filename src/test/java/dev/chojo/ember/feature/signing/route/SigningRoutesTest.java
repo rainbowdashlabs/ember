@@ -44,6 +44,7 @@ import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.passkey.service.PasskeyService;
 import dev.chojo.ember.feature.passkey.service.TestAuthenticator;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
+import dev.chojo.ember.feature.signing.entity.ActPictureSource;
 import dev.chojo.ember.feature.signing.entity.FieldState;
 import dev.chojo.ember.feature.signing.entity.RequestState;
 import dev.chojo.ember.feature.signing.entity.SignatureImageSource;
@@ -793,9 +794,9 @@ class SigningRoutesTest extends RepositoryTestBase {
                     PASSWORD,
                     null,
                     false);
-            assertEquals(
-                    saved.imageSha256(),
-                    Sha256.hex(evidenceRepo.marksOf(request.id()).get(fieldId)));
+            var mark = evidenceRepo.marksOf(request.id()).get(fieldId);
+            assertEquals(saved.imageSha256(), mark.sha256());
+            assertEquals(ActPictureSource.SAVED, mark.source());
         });
         assertEquals(FieldState.SIGNED, fieldState(request));
     }
@@ -852,8 +853,12 @@ class SigningRoutesTest extends RepositoryTestBase {
         assertTrue(kept.hasImage());
         assertEquals(SignatureImageSource.DRAWN, kept.imageSource());
         var marks = evidenceRepo.marksOf(request.id());
-        assertEquals(kept.imageSha256(), Sha256.hex(marks.get(guardianField)));
-        assertEquals(Sha256.hex(SignatureImages.clean(childPicture).png()), Sha256.hex(marks.get(childField)));
+        assertEquals(kept.imageSha256(), marks.get(guardianField).sha256());
+        assertEquals(ActPictureSource.DRAWN, marks.get(guardianField).source());
+        assertEquals(
+                Sha256.hex(SignatureImages.clean(childPicture).png()),
+                marks.get(childField).sha256());
+        assertEquals(ActPictureSource.DRAWN, marks.get(childField).source());
 
         var sealed = documents.read(filedDocument(request)).orElseThrow();
         assertEquals(List.of(), SignatureFields.unsigned(sealed));

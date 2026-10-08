@@ -120,6 +120,44 @@ public final class TestSealing implements AutoCloseable {
     }
 
     /**
+     * Signs letters for their issuer with the installation's real keys under the same fixed test secret as
+     * {@link #stateSealer}, stamping through this service, so a signed letter reaches {@code BASELINE-LT}.
+     *
+     * @param stations the stations
+     * @param members  the station members, whose accounts keep the pictures
+     * @param images   the signature pictures and consents
+     * @return the signer
+     */
+    public IssuedLetterSigner stampingLetterSigner(
+            StationRepository stations, StationMemberRepository members, SignatureImageService images) {
+        var keys = new SigningKeyRepository();
+        var wrap = new SigningKeyWrap(Base64.getEncoder().encodeToString(new byte[32]));
+        return new IssuedLetterSigner(
+                members,
+                stations,
+                images,
+                new StationSigningKeys(keys, new SigningCertificates(), wrap, stations, STATE_BASE_URL),
+                sealer(new StationKeyRevocations(keys, new RevocationLists(), wrap)),
+                new IssuerSignatureRepository());
+    }
+
+    /**
+     * The installation's verifier under the same fixed test secret as {@link #stateSealer}, trusting the
+     * installation's authorities and the root of these test timestamp services only.
+     *
+     * @return the verifier
+     */
+    public static SealVerifier verifier() {
+        var keys = new SigningKeyRepository();
+        var wrap = new SigningKeyWrap(Base64.getEncoder().encodeToString(new byte[32]));
+        return new SealVerifier(
+                keys,
+                new StationKeyRevocations(keys, new RevocationLists(), wrap),
+                new SealedVersionRepository(),
+                List.of(timestampRoot()));
+    }
+
+    /**
      * The seals a document carries that are intact and were made with a key of the station, checked offline
      * against the authority that issued it.
      *
