@@ -6,10 +6,7 @@
 package dev.chojo.ember.feature.signing.service;
 
 import dev.chojo.ember.api.refusal.DocumentRefusal;
-import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.legal.service.ConsentService;
-import dev.chojo.ember.feature.members.entity.NameParts;
-import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.signing.entity.SealedDocument;
 import dev.chojo.ember.feature.signing.entity.SealingKey;
 import dev.chojo.ember.feature.signing.entity.SignatureLevel;
@@ -59,8 +56,7 @@ public class InEmberSignatureProvider implements SignatureProvider {
 
     private final TwoFactorService twoFactor;
     private final SigningAssertions assertions;
-    private final AccountRepository accounts;
-    private final MemberNameResolver names;
+    private final SignerNames names;
     private final StationSigningKeys keys;
     private final PdfSealer sealer;
     private final Clock clock;
@@ -69,24 +65,21 @@ public class InEmberSignatureProvider implements SignatureProvider {
     public InEmberSignatureProvider(
             TwoFactorService twoFactor,
             SigningAssertions assertions,
-            AccountRepository accounts,
-            MemberNameResolver names,
+            SignerNames names,
             StationSigningKeys keys,
             PdfSealer sealer) {
-        this(twoFactor, assertions, accounts, names, keys, sealer, Clock.systemUTC());
+        this(twoFactor, assertions, names, keys, sealer, Clock.systemUTC());
     }
 
     InEmberSignatureProvider(
             TwoFactorService twoFactor,
             SigningAssertions assertions,
-            AccountRepository accounts,
-            MemberNameResolver names,
+            SignerNames names,
             StationSigningKeys keys,
             PdfSealer sealer,
             Clock clock) {
         this.twoFactor = twoFactor;
         this.assertions = assertions;
-        this.accounts = accounts;
         this.names = names;
         this.keys = keys;
         this.sealer = sealer;
@@ -160,8 +153,8 @@ public class InEmberSignatureProvider implements SignatureProvider {
         return new SigningAct(
                 request.requestUid(),
                 request.signer(),
-                accountHolderName(request.signer().accountId()),
-                memberName(request.signer().memberId()),
+                names.accountHolder(request.signer().accountId()),
+                names.member(request.signer().memberId()),
                 request.fieldName(),
                 request.statement(),
                 request.contentSha256(),
@@ -170,19 +163,6 @@ public class InEmberSignatureProvider implements SignatureProvider {
                 clock.instant(),
                 truncated(circumstances.clientIp()),
                 circumstances.userAgent());
-    }
-
-    private String accountHolderName(int accountId) {
-        return accounts.findById(accountId)
-                .map(account -> NameParts.of(account).official())
-                .orElseThrow(() -> new IllegalStateException("The signing account " + accountId + " is gone"));
-    }
-
-    private @Nullable String memberName(@Nullable Integer memberId) {
-        if (memberId == null) return null;
-        NameParts parts = names.parts(memberId);
-        if (!parts.known()) throw new IllegalStateException("The member " + memberId + " is not known");
-        return parts.official();
     }
 
     private static @Nullable String truncated(@Nullable String clientIp) {

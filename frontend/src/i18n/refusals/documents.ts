@@ -6,6 +6,7 @@
 import {
     DOCUMENT_NOT_HERE,
     PICTURE_NOT_HERE,
+    TOO_MANY_ATTEMPTS,
     UPLOAD_WITHOUT_FILE,
 } from './shared'
 
@@ -136,4 +137,17 @@ export default {
     'D-152': 'Diese Bitte um Unterschriften wartet auf keine Unterschrift mehr',
     'D-153': 'Diese Bitte um Unterschriften wurde zurückgezogen oder ersetzt',
     'D-154': 'Ein berichtigtes Dokument muss dasselbe Mitglied betreffen wie das, das es ersetzt',
+    'D-155': 'Für dieses Feld wartet kein solcher Unterschriftsversuch, die Unterschrift muss neu beginnen',
+    'D-156': 'Der Unterschriftsversuch hat länger als fünf Minuten gedauert und muss neu beginnen',
+    'D-157': 'Die Bestätigung kam ohne den Versuch, den Nachweis oder die Antwort darauf an',
+    'D-158': 'Dieser Code war nicht richtig, es wurde nichts unterschrieben',
+    'D-159': 'Dieses Passwort war nicht richtig, es wurde nichts unterschrieben',
+    'D-160': TOO_MANY_ATTEMPTS,
+    'D-161': TOO_MANY_ATTEMPTS,
+    'D-162': 'Das zu unterschreibende Dokument ist nicht mehr abgelegt und lässt sich deshalb nicht unterschreiben',
+    'D-163': 'Ein Wert wurde eingetragen, ohne sein Feld zu nennen',
+    'D-164': 'Ein auszufüllendes Feld wurde leer gelassen',
+    'D-165': 'Ein Feld wurde zweimal ausgefüllt',
+    'D-166': 'Ein Feldname darf höchstens 64 Zeichen lang sein und ein Wert höchstens 500',
+    'D-167': 'Beim Unterschreiben lassen sich höchstens 20 Felder ausfüllen',
 }

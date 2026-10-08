@@ -259,6 +259,25 @@ public class SignatureRequestRepository {
     }
 
     /**
+     * A signature field of a request at the station, whatever state it and its request are in.
+     *
+     * @param stationId the station
+     * @param fieldId   the field
+     * @return the field with its document, or empty where the station has no such field
+     */
+    public Optional<PendingSignature> findField(int stationId, int fieldId) {
+        return query("""
+                        SELECT %s, r.uid AS request_uid, r.document_id, r.member_name AS request_member_name
+                        FROM signing_request_field f
+                                 JOIN signing_request r ON r.id = f.request_id
+                        WHERE r.station_id = :station_id
+                          AND f.id = :field_id;""", SqlSupport.alias("f", RequestedSignature.COLUMNS))
+                .single(call().bind("station_id", stationId).bind("field_id", fieldId))
+                .map(PendingSignature.map())
+                .first();
+    }
+
+    /**
      * The guardian link between two members as it stands, for the evidence of an act that goes through it.
      *
      * @param guardianId the guardian

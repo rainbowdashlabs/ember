@@ -294,6 +294,7 @@ import dev.chojo.ember.feature.quiz.route.QuizTestRoutes;
 import dev.chojo.ember.feature.quiz.route.RemoteQuizRoutes;
 import dev.chojo.ember.feature.quiz.service.QuizFederationService;
 import dev.chojo.ember.feature.signing.route.PublicSigningRoutes;
+import dev.chojo.ember.feature.signing.route.SigningRoutes;
 import dev.chojo.ember.feature.signing.service.InEmberSignatureProvider;
 import dev.chojo.ember.feature.signing.service.SignatureProvider;
 import dev.chojo.ember.feature.signing.service.SignatureRetentionSweeper;
@@ -557,6 +558,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(PublicEventRoutes.class);
         routesBinder.addBinding().to(PublicStationRoutes.class);
         routesBinder.addBinding().to(PublicSigningRoutes.class);
+        routesBinder.addBinding().to(SigningRoutes.class);
         routesBinder.addBinding().to(UtilRoutes.class);
         routesBinder.addBinding().to(TestProtocolExaminerRoutes.class);
         routesBinder.addBinding().to(TestProtocolRoutes.class);

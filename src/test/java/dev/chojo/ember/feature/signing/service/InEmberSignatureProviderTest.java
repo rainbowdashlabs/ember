@@ -94,9 +94,8 @@ class InEmberSignatureProviderTest extends RepositoryTestBase {
     private final PdfSealer sealer = mock(PdfSealer.class);
     private final InEmberSignatureProvider provider = new InEmberSignatureProvider(
             twoFactor,
-            new SigningAssertions(parties, twoFactorRepo),
-            accountRepo,
-            memberNameResolver,
+            new SigningAssertions(parties, twoFactorRepo, new WebAuthnSettings()),
+            new SignerNames(accountRepo, memberNameResolver),
             keys,
             sealer,
             Clock.fixed(NOW, ZoneOffset.UTC));

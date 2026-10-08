@@ -52592,6 +52592,198 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/signing/fields/{fieldId}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm a started signing act */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    fieldId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["SigningCompleteRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SigningCompleteResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Gone */
+                410: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Too Many Requests */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/signing/fields/{fieldId}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start signing a field */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    fieldId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["SigningStartRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SigningStartResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/signing/open": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The signature fields waiting for the reader, and for the members in their care */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OpenSignatureResponse"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/station-applications": {
         parameters: {
             query?: never;
@@ -61593,6 +61785,10 @@ export interface components {
             name?: string;
         };
         /** @enum {string} */
+        FieldRole: "PARTICIPANT" | "GUARDIAN" | "ANY_GUARDIAN" | "ISSUER";
+        /** @enum {string} */
+        FieldState: "OPEN" | "SIGNED" | "PAPER_CONFIRMED" | "WAIVED" | "WITHDRAWN";
+        /** @enum {string} */
         FieldType: "TEXT" | "LONG_TEXT" | "NUMBER" | "DATE" | "TIME" | "BOOLEAN" | "CHOICE" | "GENDER" | "URL" | "MEMBER" | "MEMBER_LIST" | "BIRTH_DATE" | "EXPIRY_DATE" | "AGE" | "SECTION" | "SPACER" | "LOCATION" | "MEMBER_OF_GROUP" | "MEMBER_LIST_OF_GROUP" | "MEMBER_OF_TYPE" | "MEMBER_LIST_OF_TYPE" | "MEMBER_OF_TAG" | "MEMBER_LIST_OF_TAG" | "LANE_ASSIGNEE";
         FieldUpdateRequest: {
             config?: components["schemas"]["FieldConfig"];
@@ -64719,6 +64915,22 @@ export interface components {
             /** Format: int32 */
             subjectId: number | null;
         };
+        OpenSignatureResponse: {
+            capacity: components["schemas"]["SignerCapacity"];
+            /** Format: int32 */
+            documentId: number | null;
+            /** Format: int32 */
+            fieldId: number;
+            fieldName: string;
+            /** Format: int32 */
+            memberId: number | null;
+            memberName: string;
+            /** Format: uuid */
+            requestUid: string;
+            role: components["schemas"]["FieldRole"];
+            signerName: string | null;
+            statement: string;
+        };
         Option: {
             key: string;
             label: string;
@@ -66543,6 +66755,8 @@ export interface components {
             screenSize?: string;
             userRoles?: string;
         };
+        /** @enum {string} */
+        RequestState: "OPEN" | "COMPLETE" | "WITHDRAWN" | "SUPERSEDED";
         RequeuedMails: {
             /** Format: int32 */
             requeued: number;
@@ -67541,6 +67755,12 @@ export interface components {
         };
         /** @enum {string} */
         SignatureRole: "PARTICIPANT" | "GUARDIAN_1" | "GUARDIAN_2" | "EACH_GUARDIAN" | "ANY_GUARDIAN" | "ISSUER";
+        /** @enum {string} */
+        SignerCapacity: "ACCOUNT_HOLDER" | "GUARDIAN" | "MEMBER_THROUGH_ACCOUNT";
+        SignerEntryDraft: {
+            field?: string | null;
+            value?: string | null;
+        };
         SignerRevocation: {
             reason: components["schemas"]["RevocationReason"] | null;
             revokedAt: components["schemas"]["Instant"] | null;
@@ -67562,8 +67782,48 @@ export interface components {
             validFrom: components["schemas"]["Instant"];
             validUntil: components["schemas"]["Instant"];
         };
+        SigningCompleteRequest: {
+            credentialJson?: string | null;
+            proof?: components["schemas"]["StepUpProof"] | null;
+            secret?: string | null;
+            startToken?: string | null;
+        };
+        SigningCompleteResponse: {
+            bound: boolean;
+            /** Format: int32 */
+            fieldId: number;
+            fieldName: string;
+            proof: components["schemas"]["StepUpProof"];
+            requestState: components["schemas"]["RequestState"];
+            /** Format: uuid */
+            requestUid: string;
+            settledAt: components["schemas"]["Instant"] | null;
+            state: components["schemas"]["FieldState"];
+        };
         SigningSecretRequest: {
             secret?: string;
+        };
+        SigningStartRequest: {
+            entries?: components["schemas"]["SignerEntryDraft"][] | null;
+        };
+        SigningStartResponse: {
+            acceptedProofs: components["schemas"]["StepUpProof"][];
+            accountHolderName: string;
+            capacity: components["schemas"]["SignerCapacity"];
+            contentSha256: string;
+            documentMemberName: string;
+            expiresAt: components["schemas"]["Instant"];
+            /** Format: int32 */
+            fieldId: number;
+            fieldName: string;
+            memberName: string | null;
+            /** Format: uuid */
+            requestUid: string;
+            role: components["schemas"]["FieldRole"];
+            signerName: string;
+            startToken: string;
+            statement: string;
+            webAuthnOptionsJson: string | null;
         };
         Simple: {
             required: boolean;
@@ -69801,6 +70061,8 @@ export type FieldOrderRequest = components['schemas']['FieldOrderRequest'];
 export type FieldOrigin = components['schemas']['FieldOrigin'];
 export type FieldRect = components['schemas']['FieldRect'];
 export type FieldRequest = components['schemas']['FieldRequest'];
+export type FieldRole = components['schemas']['FieldRole'];
+export type FieldState = components['schemas']['FieldState'];
 export type FieldType = components['schemas']['FieldType'];
 export type FieldUpdateRequest = components['schemas']['FieldUpdateRequest'];
 export type FieldValue = components['schemas']['FieldValue'];
@@ -70236,6 +70498,7 @@ export type OnboardingLevel = components['schemas']['OnboardingLevel'];
 export type OnboardingStatus = components['schemas']['OnboardingStatus'];
 export type OnboardingTaskState = components['schemas']['OnboardingTaskState'];
 export type OnboardingTaskView = components['schemas']['OnboardingTaskView'];
+export type OpenSignatureResponse = components['schemas']['OpenSignatureResponse'];
 export type Option = components['schemas']['Option'];
 export type Ordering = components['schemas']['Ordering'];
 export type OrderingView = components['schemas']['OrderingView'];
@@ -70486,6 +70749,7 @@ export type ReplaceQuestionRequest = components['schemas']['ReplaceQuestionReque
 export type ReportData = components['schemas']['ReportData'];
 export type ReportPayload = components['schemas']['ReportPayload'];
 export type ReportRequest = components['schemas']['ReportRequest'];
+export type RequestState = components['schemas']['RequestState'];
 export type RequeuedMails = components['schemas']['RequeuedMails'];
 export type RequiredDocumentStatus = components['schemas']['RequiredDocumentStatus'];
 export type RequiredInventoryItem = components['schemas']['RequiredInventoryItem'];
@@ -70622,11 +70886,17 @@ export type ShareSetting = components['schemas']['ShareSetting'];
 export type SidebarCounts = components['schemas']['SidebarCounts'];
 export type SignatureConfig = components['schemas']['SignatureConfig'];
 export type SignatureRole = components['schemas']['SignatureRole'];
+export type SignerCapacity = components['schemas']['SignerCapacity'];
+export type SignerEntryDraft = components['schemas']['SignerEntryDraft'];
 export type SignerRevocation = components['schemas']['SignerRevocation'];
 export type SignInClaimRequest = components['schemas']['SignInClaimRequest'];
 export type SignInFinishRequest = components['schemas']['SignInFinishRequest'];
 export type SigningAuthorityInfo = components['schemas']['SigningAuthorityInfo'];
+export type SigningCompleteRequest = components['schemas']['SigningCompleteRequest'];
+export type SigningCompleteResponse = components['schemas']['SigningCompleteResponse'];
 export type SigningSecretRequest = components['schemas']['SigningSecretRequest'];
+export type SigningStartRequest = components['schemas']['SigningStartRequest'];
+export type SigningStartResponse = components['schemas']['SigningStartResponse'];
 export type Simple = components['schemas']['Simple'];
 export type SizeRequest = components['schemas']['SizeRequest'];
 export type SizeStatResponse = components['schemas']['SizeStatResponse'];
@@ -71200,6 +71470,21 @@ export const FederationStatus = {
 export const FieldOrigin = {
     CLUSTER: "CLUSTER",
     STATION: "STATION",
+} as const;
+
+export const FieldRole = {
+    ANY_GUARDIAN: "ANY_GUARDIAN",
+    GUARDIAN: "GUARDIAN",
+    ISSUER: "ISSUER",
+    PARTICIPANT: "PARTICIPANT",
+} as const;
+
+export const FieldState = {
+    OPEN: "OPEN",
+    PAPER_CONFIRMED: "PAPER_CONFIRMED",
+    SIGNED: "SIGNED",
+    WAIVED: "WAIVED",
+    WITHDRAWN: "WITHDRAWN",
 } as const;
 
 export const FieldType = {
@@ -71824,6 +72109,13 @@ export const RegistrationStatus = {
     WITHDRAWN: "WITHDRAWN",
 } as const;
 
+export const RequestState = {
+    COMPLETE: "COMPLETE",
+    OPEN: "OPEN",
+    SUPERSEDED: "SUPERSEDED",
+    WITHDRAWN: "WITHDRAWN",
+} as const;
+
 export const RequirementStatus = {
     GENERATED: "GENERATED",
     NOT_GENERATED: "NOT_GENERATED",
@@ -71960,6 +72252,12 @@ export const SignatureRole = {
     GUARDIAN_2: "GUARDIAN_2",
     ISSUER: "ISSUER",
     PARTICIPANT: "PARTICIPANT",
+} as const;
+
+export const SignerCapacity = {
+    ACCOUNT_HOLDER: "ACCOUNT_HOLDER",
+    GUARDIAN: "GUARDIAN",
+    MEMBER_THROUGH_ACCOUNT: "MEMBER_THROUGH_ACCOUNT",
 } as const;
 
 export const SmtpEncryption = {

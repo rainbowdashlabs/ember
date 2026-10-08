@@ -483,7 +483,52 @@ public enum DocumentRefusal implements Refusal {
 
     /** A corrected document about another member than the one it is to replace. */
     SIGNING_CORRECTION_OTHER_MEMBER(
-            154, HttpStatus.CONFLICT, "A corrected document must be about the same member as the one it replaces");
+            154, HttpStatus.CONFLICT, "A corrected document must be about the same member as the one it replaces"),
+
+    /** A signing act completed under a token that names no start of this account for this field. */
+    SIGNING_START_UNKNOWN(
+            155,
+            HttpStatus.NOT_FOUND,
+            "No signing attempt for this field waits under that token, so the signing has to start again"),
+
+    /** A signing act completed after its start expired. */
+    SIGNING_START_EXPIRED(
+            156, HttpStatus.GONE, "The signing attempt took longer than five minutes, so it has to start again"),
+
+    /** A signing act completed without the start token, the proof or the answer the proof needs. */
+    SIGNING_ANSWER_MISSING(
+            157, HttpStatus.BAD_REQUEST, "The confirmation came without the attempt, the proof or its answer"),
+
+    /** A signing act confirmed with an authenticator app code that was not right. */
+    SIGNING_CODE_WRONG(158, HttpStatus.FORBIDDEN, "That code was not right, so nothing was signed"),
+
+    /** A signing act confirmed with a password that was not right. */
+    SIGNING_PASSWORD_WRONG(159, HttpStatus.FORBIDDEN, "That password was not right, so nothing was signed"),
+
+    /** Confirming signing acts with a code, a passkey or a security key far more often than a person could. */
+    SIGNING_CONFIRMATION_TOO_OFTEN(160, HttpStatus.TOO_MANY_REQUESTS, Sentences.TOO_MANY_ATTEMPTS),
+
+    /** Confirming signing acts with the password far more often than a person could. */
+    SIGNING_PASSWORD_TOO_OFTEN(161, HttpStatus.TOO_MANY_REQUESTS, Sentences.TOO_MANY_ATTEMPTS),
+
+    /** A signing act on a document that is no longer filed or can no longer be read. */
+    SIGNING_DOCUMENT_GONE(162, HttpStatus.CONFLICT, "The document to sign is no longer filed, so it cannot be signed"),
+
+    /** A value typed at signing without the name of its field. */
+    SIGNING_ENTRY_UNNAMED(163, HttpStatus.BAD_REQUEST, "A value was filled in without naming its field"),
+
+    /** A field to fill in at signing that was sent empty. */
+    SIGNING_ENTRY_EMPTY(164, HttpStatus.BAD_REQUEST, "A field to fill in was left empty"),
+
+    /** A field filled in twice at signing. */
+    SIGNING_ENTRY_TWICE(165, HttpStatus.BAD_REQUEST, "A field was filled in twice"),
+
+    /** A field name or value typed at signing that is longer than a field holds. */
+    SIGNING_ENTRY_TOO_LONG(
+            166, HttpStatus.BAD_REQUEST, "A field name may be at most 64 characters long and a value at most 500"),
+
+    /** More fields filled in at signing than a document carries. */
+    SIGNING_TOO_MANY_ENTRIES(167, HttpStatus.BAD_REQUEST, "At most 20 fields can be filled in when signing");
 
     private final Definition definition;
 

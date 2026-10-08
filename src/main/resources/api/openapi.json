@@ -39926,6 +39926,179 @@
         }
       }
     },
+    "/api/v1/signing/fields/{fieldId}/complete" : {
+      "post" : {
+        "summary" : "Confirm a started signing act",
+        "tags" : [ "Signing" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SigningCompleteResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "410" : {
+            "description" : "Gone",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "429" : {
+            "description" : "Too Many Requests",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "fieldId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SigningCompleteRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/signing/fields/{fieldId}/start" : {
+      "post" : {
+        "summary" : "Start signing a field",
+        "tags" : [ "Signing" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SigningStartResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "fieldId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SigningStartRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/signing/open" : {
+      "get" : {
+        "summary" : "The signature fields waiting for the reader, and for the members in their care",
+        "tags" : [ "Signing" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/OpenSignatureResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/station-applications" : {
       "post" : {
         "summary" : "Submit a station application",
@@ -54230,6 +54403,14 @@
           "config" : { }
         }
       },
+      "FieldRole" : {
+        "type" : "string",
+        "enum" : [ "PARTICIPANT", "GUARDIAN", "ANY_GUARDIAN", "ISSUER" ]
+      },
+      "FieldState" : {
+        "type" : "string",
+        "enum" : [ "OPEN", "SIGNED", "PAPER_CONFIRMED", "WAIVED", "WITHDRAWN" ]
+      },
       "FieldType" : {
         "type" : "string",
         "enum" : [ "TEXT", "LONG_TEXT", "NUMBER", "DATE", "TIME", "BOOLEAN", "CHOICE", "GENDER", "URL", "MEMBER", "MEMBER_LIST", "BIRTH_DATE", "EXPIRY_DATE", "AGE", "SECTION", "SPACER", "LOCATION", "MEMBER_OF_GROUP", "MEMBER_LIST_OF_GROUP", "MEMBER_OF_TYPE", "MEMBER_LIST_OF_TYPE", "MEMBER_OF_TAG", "MEMBER_LIST_OF_TAG", "LANE_ASSIGNEE" ]
@@ -63173,6 +63354,46 @@
         },
         "required" : [ "id", "key", "subject", "subjectId", "state", "confirmable", "actorName", "changedAt" ]
       },
+      "OpenSignatureResponse" : {
+        "type" : "object",
+        "properties" : {
+          "fieldId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "requestUid" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "documentId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "memberName" : {
+            "type" : "string"
+          },
+          "fieldName" : {
+            "type" : "string"
+          },
+          "role" : {
+            "$ref" : "#/components/schemas/FieldRole"
+          },
+          "capacity" : {
+            "$ref" : "#/components/schemas/SignerCapacity"
+          },
+          "memberId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "signerName" : {
+            "type" : [ "string", "null" ]
+          },
+          "statement" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "fieldId", "requestUid", "documentId", "memberName", "fieldName", "role", "capacity", "memberId", "signerName", "statement" ]
+      },
       "Option" : {
         "type" : "object",
         "properties" : {
@@ -68544,6 +68765,10 @@
           }
         }
       },
+      "RequestState" : {
+        "type" : "string",
+        "enum" : [ "OPEN", "COMPLETE", "WITHDRAWN", "SUPERSEDED" ]
+      },
       "RequeuedMails" : {
         "type" : "object",
         "properties" : {
@@ -71634,6 +71859,21 @@
         "type" : "string",
         "enum" : [ "PARTICIPANT", "GUARDIAN_1", "GUARDIAN_2", "EACH_GUARDIAN", "ANY_GUARDIAN", "ISSUER" ]
       },
+      "SignerCapacity" : {
+        "type" : "string",
+        "enum" : [ "ACCOUNT_HOLDER", "GUARDIAN", "MEMBER_THROUGH_ACCOUNT" ]
+      },
+      "SignerEntryDraft" : {
+        "type" : "object",
+        "properties" : {
+          "field" : {
+            "type" : [ "string", "null" ]
+          },
+          "value" : {
+            "type" : [ "string", "null" ]
+          }
+        }
+      },
       "SignerRevocation" : {
         "type" : "object",
         "properties" : {
@@ -71681,6 +71921,63 @@
         },
         "required" : [ "serialNumber", "subject", "sha256Fingerprint", "validFrom", "validUntil", "active" ]
       },
+      "SigningCompleteRequest" : {
+        "type" : "object",
+        "properties" : {
+          "startToken" : {
+            "type" : [ "string", "null" ]
+          },
+          "proof" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/StepUpProof"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "credentialJson" : {
+            "type" : [ "string", "null" ]
+          },
+          "secret" : {
+            "type" : [ "string", "null" ]
+          }
+        }
+      },
+      "SigningCompleteResponse" : {
+        "type" : "object",
+        "properties" : {
+          "fieldId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "fieldName" : {
+            "type" : "string"
+          },
+          "state" : {
+            "$ref" : "#/components/schemas/FieldState"
+          },
+          "settledAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "requestUid" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "requestState" : {
+            "$ref" : "#/components/schemas/RequestState"
+          },
+          "proof" : {
+            "$ref" : "#/components/schemas/StepUpProof"
+          },
+          "bound" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "fieldId", "fieldName", "state", "settledAt", "requestUid", "requestState", "proof", "bound" ]
+      },
       "SigningSecretRequest" : {
         "type" : "object",
         "properties" : {
@@ -71688,6 +71985,73 @@
             "type" : "string"
           }
         }
+      },
+      "SigningStartRequest" : {
+        "type" : "object",
+        "properties" : {
+          "entries" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "$ref" : "#/components/schemas/SignerEntryDraft"
+            }
+          }
+        }
+      },
+      "SigningStartResponse" : {
+        "type" : "object",
+        "properties" : {
+          "startToken" : {
+            "type" : "string"
+          },
+          "expiresAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "fieldId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "requestUid" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "fieldName" : {
+            "type" : "string"
+          },
+          "role" : {
+            "$ref" : "#/components/schemas/FieldRole"
+          },
+          "capacity" : {
+            "$ref" : "#/components/schemas/SignerCapacity"
+          },
+          "statement" : {
+            "type" : "string"
+          },
+          "signerName" : {
+            "type" : "string"
+          },
+          "accountHolderName" : {
+            "type" : "string"
+          },
+          "memberName" : {
+            "type" : [ "string", "null" ]
+          },
+          "documentMemberName" : {
+            "type" : "string"
+          },
+          "contentSha256" : {
+            "type" : "string"
+          },
+          "acceptedProofs" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/StepUpProof"
+            }
+          },
+          "webAuthnOptionsJson" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "startToken", "expiresAt", "fieldId", "requestUid", "fieldName", "role", "capacity", "statement", "signerName", "accountHolderName", "memberName", "documentMemberName", "contentSha256", "acceptedProofs", "webAuthnOptionsJson" ]
       },
       "Simple" : {
         "type" : "object",

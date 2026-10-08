@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.signing.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.yubico.webauthn.AssertionRequest;
 import com.yubico.webauthn.AssertionResult;
 import com.yubico.webauthn.FinishAssertionOptions;
@@ -20,11 +21,14 @@ import com.yubico.webauthn.data.UserVerificationRequirement;
 import com.yubico.webauthn.data.exception.Base64UrlException;
 import com.yubico.webauthn.exception.AssertionFailedException;
 import dev.chojo.ember.api.refusal.DocumentRefusal;
+import dev.chojo.ember.conf.file.elements.WebAuthnSettings;
 import dev.chojo.ember.feature.signing.entity.SignerConfirmation.WebAuthnAssertion;
+import dev.chojo.ember.feature.signing.entity.SigningCircumstances;
 import dev.chojo.ember.feature.twofactor.entity.StepUpProof;
 import dev.chojo.ember.feature.twofactor.entity.WebAuthnCredential;
 import dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository;
 import dev.chojo.ember.feature.twofactor.service.RelyingParties;
+import dev.chojo.ember.feature.twofactor.service.WebAuthnCredentialStore;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -35,12 +39,16 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.security.MessageDigest;
+import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 
 /**
- * Checks a passkey or security key answer to a signing challenge, on the same relying party and credential
- * store as every other ceremony.
+ * Asks the browser to answer a signing challenge with a passkey or security key, and checks the answer, on
+ * the same relying party and credential store as every other ceremony.
+ *
+ * <p>The request is built by hand around the signing challenge rather than minted by the WebAuthn library,
+ * which would choose a random challenge of its own: the challenge is what binds the answer to the document.
  *
  * <p>The client data and the authenticator data are read first, so that another challenge, another type,
  * another origin and a missing user verification each get a refusal of their own. Then the WebAuthn
@@ -56,11 +64,69 @@ public class SigningAssertions {
 
     private final RelyingParties relyingParties;
     private final TwoFactorRepository credentials;
+    private final WebAuthnCredentialStore credentialIds;
+    private final WebAuthnSettings settings;
 
     @Inject
-    public SigningAssertions(RelyingParties relyingParties, TwoFactorRepository credentials) {
+    public SigningAssertions(
+            RelyingParties relyingParties, TwoFactorRepository credentials, WebAuthnSettings settings) {
         this.relyingParties = relyingParties;
         this.credentials = credentials;
+        this.credentialIds = new WebAuthnCredentialStore(credentials);
+        this.settings = settings;
+    }
+
+    /**
+     * What the browser hands to {@code navigator.credentials.get} to answer a signing challenge: the
+     * challenge as it is, every active credential of the account, passkey or security key, and user
+     * verification required, on the relying party and with the timeout every other ceremony uses.
+     *
+     * @param accountId the account whose credential is to answer
+     * @param challenge the signing challenge
+     * @return the request options in the shape the browser takes
+     */
+    public String requestOptions(int accountId, byte[] challenge) {
+        var options = PublicKeyCredentialRequestOptions.builder()
+                .challenge(new ByteArray(challenge))
+                .rpId(relyingParty().getIdentity().getId())
+                .allowCredentials(List.copyOf(credentialIds.getCredentialIdsForUsername(String.valueOf(accountId))))
+                .userVerification(UserVerificationRequirement.REQUIRED)
+                .timeout(settings.timeoutSeconds() * 1000L)
+                .build();
+        try {
+            return AssertionRequest.builder()
+                    .publicKeyCredentialRequestOptions(options)
+                    .username(String.valueOf(accountId))
+                    .build()
+                    .toCredentialsGetJson();
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("The signing request options could not be written", e);
+        }
+    }
+
+    /**
+     * Reads the answer the browser passed on, as {@code navigator.credentials.get} returned it.
+     *
+     * @param nonce          the nonce of the started act, from where it was kept on the server
+     * @param credentialJson the credential the browser returned, as JSON
+     * @param circumstances  where the answer came from
+     * @return the answer, unchecked
+     */
+    public WebAuthnAssertion answer(byte[] nonce, String credentialJson, SigningCircumstances circumstances) {
+        try {
+            var credential = PublicKeyCredential.parseAssertionResponseJson(credentialJson);
+            var response = credential.getResponse();
+            return new WebAuthnAssertion(
+                    nonce,
+                    credential.getId().getBytes(),
+                    response.getClientDataJSON().getBytes(),
+                    response.getAuthenticatorData().getBytes(),
+                    response.getSignature().getBytes(),
+                    response.getUserHandle().map(ByteArray::getBytes).orElse(null),
+                    circumstances);
+        } catch (IOException | RuntimeException e) {
+            throw DocumentRefusal.SIGNING_ASSERTION_INVALID.raise();
+        }
     }
 
     /**
