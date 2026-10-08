@@ -1,12 +1,12 @@
 {
   "version": 1,
-  "schemaHash": "sha256:fd60e9b542f63a05a56967d51b38b5ab936d5224e1a56841c6542db635151ae5",
-  "generatedAt": "2026-10-08T20:09:53Z",
+  "schemaHash": "sha256:66de91c152aabe4f28f427c69942cbcec53d0a27317c4501ddba620a6e49f7d3",
+  "generatedAt": "2026-10-08T20:18:27Z",
   "tables": {
     "account": {
       "feature": "account",
       "scope": "USER",
-      "tableHash": "sha256:2b233be8f7af9197d383b64cf45313c0b184acdeaa5f48f4eef68a6ef0227013",
+      "tableHash": "sha256:c4511f1622efb2578c63ea81d6ea778f66519b9522042752e50e04c6c4ad9d11",
       "columns": [
         {
           "name": "id",
@@ -110,6 +110,13 @@
           "nullable": true,
           "verified": true,
           "description": "When every session of this account was last ended at once. A device grant approved before that moment is refused at claim time, which catches the one a revoke could not see because it had no account on it yet."
+        },
+        {
+          "name": "unconfirmed_since",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When a station import created this account under its address. Until the owner sets a password or a passkey through a link sent to that address, no station may change the account's address or how it signs in. NULL for every account whose owner confirmed it, and for every account made any other way."
         }
       ],
       "foreignKeys": [
@@ -132,7 +139,8 @@
           "id",
           "email_verified",
           "instance_user_type",
-          "full_name"
+          "full_name",
+          "unconfirmed_since"
         ],
         "rationale": "Reached via station_member.account_id; engine uses customScope to filter accounts referenced by this station's members. Importer matches by email or creates anew."
       },
@@ -214,7 +222,7 @@
           "type": "int4",
           "nullable": true,
           "verified": true,
-          "description": "The station whose administration acted, for an event a station administrator caused. NULL for everything done by the account itself or by an instance administrator."
+          "description": "The station whose administration acted, for an event a station administrator caused, and the station the account was linked to for ACCOUNT_LINK_ACCEPTED. NULL for everything else done by the account itself or by an instance administrator."
         }
       ],
       "foreignKeys": [
@@ -825,6 +833,172 @@
         ]
       },
       "description": "Password credentials for local authentication. One per account."
+    },
+    "account_link_request": {
+      "feature": "accountlink",
+      "scope": "STATION",
+      "tableHash": "sha256:63e68cdc334e314678e9805544acddb082a3f61a2c38d1f69e5f47087a6d6229",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Primary key."
+        },
+        {
+          "name": "uid",
+          "type": "uuid",
+          "nullable": false,
+          "verified": true,
+          "description": "The request as the person's screens name it when they accept or decline."
+        },
+        {
+          "name": "station_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The station that asks."
+        },
+        {
+          "name": "station_member_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The member the account would be linked to. The member exists without an account while the request waits."
+        },
+        {
+          "name": "account_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The existing account the station asks to link, found by the address it named."
+        },
+        {
+          "name": "origin",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "How the station came to ask: IMPORT when a station import found the account by its address, INVITE when a member manager invited that address."
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the station first asked."
+        },
+        {
+          "name": "created_by",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The member who invited the address. NULL for an import, and once that member is gone."
+        },
+        {
+          "name": "sent_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the request was last sent, first or again. Sending again is refused for a day after it."
+        },
+        {
+          "name": "token_hash",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "SHA-256 of the token in the link mailed to the account, lower-case hexadecimal. The link only opens the request for a session of that account and never answers it. NULL where no mail could be sent, and once the request is answered."
+        },
+        {
+          "name": "expires_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "Until when the person may answer: thirty days after the request was last sent. A daily sweep marks it EXPIRED afterwards."
+        },
+        {
+          "name": "answered_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When the request was answered or expired. NULL while it waits."
+        },
+        {
+          "name": "answer",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "ACCEPTED when the person linked their account to the member, DECLINED when they refused, EXPIRED when thirty days passed without an answer. NULL while it waits."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "account_id",
+          "refTable": "account",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "created_by",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
+        {
+          "column": "station_id",
+          "refTable": "station",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "station_member_id",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "A request names an account of this installation, which the destination does not have. An import that finds an account there by its address asks anew on the destination."
+      },
+      "gdprExport": {
+        "status": "TRACKED",
+        "identityColumns": [
+          {
+            "type": "ACCOUNT_ID",
+            "column": "account_id"
+          },
+          {
+            "type": "MEMBER_ID",
+            "column": "station_member_id"
+          },
+          {
+            "type": "MEMBER_ID",
+            "column": "created_by"
+          }
+        ]
+      },
+      "gdprDeletion": {
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "account_id",
+            "strategy": "CASCADE",
+            "reason": "FK ON DELETE CASCADE on account delete"
+          },
+          {
+            "column": "station_member_id",
+            "strategy": "CASCADE",
+            "reason": "FK ON DELETE CASCADE on member delete"
+          },
+          {
+            "column": "created_by",
+            "strategy": "NULL",
+            "reason": "FK ON DELETE SET NULL keeps the request, who invited the address unlinked"
+          }
+        ]
+      },
+      "description": "A station asking a person to link their existing account to one of its members. An import that found the account by its address and an invite naming that address both leave the member without an account and ask here instead; only the person signed in to that account can accept. The answered rows stay as the record of what was asked and answered."
     },
     "account_session": {
       "feature": "account",

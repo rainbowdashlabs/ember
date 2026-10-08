@@ -989,3 +989,71 @@ COMMENT ON CONSTRAINT federation_partner_signing_ca_pin ON ember_schema.federati
     'An authority is pinned once per partnership.';
 COMMENT ON CONSTRAINT federation_partner_signing_ca_crl ON ember_schema.federation_partner_signing_ca IS
     'A revocation list is stored together with its two dates or not at all.';
+
+ALTER TABLE ember_schema.account
+    ADD COLUMN unconfirmed_since TIMESTAMPTZ NULL;
+
+COMMENT ON COLUMN ember_schema.account.unconfirmed_since IS
+    'When a station import created this account under its address. Until the owner sets a password or a passkey through a link sent to that address, no station may change the account''s address or how it signs in. NULL for every account whose owner confirmed it, and for every account made any other way.';
+
+CREATE TABLE IF NOT EXISTS ember_schema.account_link_request
+(
+    id                SERIAL PRIMARY KEY,
+    uid               UUID        NOT NULL UNIQUE DEFAULT gen_random_uuid(),
+    station_id        INTEGER     NOT NULL REFERENCES ember_schema.station (id) ON DELETE CASCADE,
+    station_member_id INTEGER     NOT NULL REFERENCES ember_schema.station_member (id) ON DELETE CASCADE,
+    account_id        INTEGER     NOT NULL REFERENCES ember_schema.account (id) ON DELETE CASCADE,
+    origin            TEXT        NOT NULL CHECK (origin IN ('IMPORT', 'INVITE')),
+    created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+    created_by        INTEGER     NULL REFERENCES ember_schema.station_member (id) ON DELETE SET NULL,
+    sent_at           TIMESTAMPTZ NOT NULL DEFAULT now(),
+    token_hash        TEXT        NULL UNIQUE,
+    expires_at        TIMESTAMPTZ NOT NULL,
+    answered_at       TIMESTAMPTZ NULL,
+    answer            TEXT        NULL CHECK (answer IN ('ACCEPTED', 'DECLINED', 'EXPIRED')),
+    CONSTRAINT account_link_request_answered CHECK ((answer IS NULL) = (answered_at IS NULL))
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS account_link_request_open_idx
+    ON ember_schema.account_link_request (station_member_id)
+    WHERE answer IS NULL;
+CREATE INDEX IF NOT EXISTS account_link_request_account_idx
+    ON ember_schema.account_link_request (account_id)
+    WHERE answer IS NULL;
+CREATE INDEX IF NOT EXISTS account_link_request_station_idx ON ember_schema.account_link_request (station_id);
+CREATE INDEX IF NOT EXISTS account_link_request_member_idx ON ember_schema.account_link_request (station_member_id);
+
+COMMENT ON TABLE ember_schema.account_link_request IS
+    'A station asking a person to link their existing account to one of its members. An import that found the account by its address and an invite naming that address both leave the member without an account and ask here instead; only the person signed in to that account can accept. The answered rows stay as the record of what was asked and answered.';
+COMMENT ON COLUMN ember_schema.account_link_request.id IS 'Primary key.';
+COMMENT ON COLUMN ember_schema.account_link_request.uid IS
+    'The request as the person''s screens name it when they accept or decline.';
+COMMENT ON COLUMN ember_schema.account_link_request.station_id IS 'The station that asks.';
+COMMENT ON COLUMN ember_schema.account_link_request.station_member_id IS
+    'The member the account would be linked to. The member exists without an account while the request waits.';
+COMMENT ON COLUMN ember_schema.account_link_request.account_id IS
+    'The existing account the station asks to link, found by the address it named.';
+COMMENT ON COLUMN ember_schema.account_link_request.origin IS
+    'How the station came to ask: IMPORT when a station import found the account by its address, INVITE when a member manager invited that address.';
+COMMENT ON COLUMN ember_schema.account_link_request.created_at IS 'When the station first asked.';
+COMMENT ON COLUMN ember_schema.account_link_request.created_by IS
+    'The member who invited the address. NULL for an import, and once that member is gone.';
+COMMENT ON COLUMN ember_schema.account_link_request.sent_at IS
+    'When the request was last sent, first or again. Sending again is refused for a day after it.';
+COMMENT ON COLUMN ember_schema.account_link_request.token_hash IS
+    'SHA-256 of the token in the link mailed to the account, lower-case hexadecimal. The link only opens the request for a session of that account and never answers it. NULL where no mail could be sent, and once the request is answered.';
+COMMENT ON COLUMN ember_schema.account_link_request.expires_at IS
+    'Until when the person may answer: thirty days after the request was last sent. A daily sweep marks it EXPIRED afterwards.';
+COMMENT ON COLUMN ember_schema.account_link_request.answered_at IS
+    'When the request was answered or expired. NULL while it waits.';
+COMMENT ON COLUMN ember_schema.account_link_request.answer IS
+    'ACCEPTED when the person linked their account to the member, DECLINED when they refused, EXPIRED when thirty days passed without an answer. NULL while it waits.';
+COMMENT ON CONSTRAINT account_link_request_answered ON ember_schema.account_link_request IS
+    'A request has an answering time exactly when it has an answer.';
+COMMENT ON INDEX ember_schema.account_link_request_open_idx IS
+    'A member waits for at most one link at a time.';
+
+ALTER TYPE ember_schema.two_factor_event ADD VALUE IF NOT EXISTS 'ACCOUNT_LINK_ACCEPTED';
+
+COMMENT ON COLUMN ember_schema.account_2fa_audit.station_id IS
+    'The station whose administration acted, for an event a station administrator caused, and the station the account was linked to for ACCOUNT_LINK_ACCEPTED. NULL for everything else done by the account itself or by an instance administrator.';
