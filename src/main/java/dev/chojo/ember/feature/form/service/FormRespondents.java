@@ -161,7 +161,7 @@ public class FormRespondents {
     private Map<Integer, Facts> factsOf(int stationId, Set<Integer> memberIds) {
         if (memberIds.isEmpty()) return Map.of();
         var groupsOf = groups.findGroupIdsOfMembers(memberIds);
-        var tagsOf = tags.findTagIdsOfMembers(memberIds);
+        var tagsOf = tags.findOpenTagIdsOfMembers(memberIds);
         var stationFields = profileFields.findByStation(stationId);
         var answers = answersOf(groupableFields(stationFields), memberIds);
         var birthDates = birthDatesOf(stationFields, memberIds);

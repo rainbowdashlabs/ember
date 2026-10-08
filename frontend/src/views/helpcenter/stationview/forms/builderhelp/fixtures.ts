@@ -7,6 +7,7 @@ import {PageTargetKind} from '@/api/forms'
 import {
     FormQuestionType,
     StationUserType,
+    TagVisibility,
     type FormLayout,
     type FormPage,
     type FormQuestion,
@@ -72,7 +73,7 @@ export function sampleGroups(t: Translate): MemberGroup[] {
 
 /** The tags a form can be limited to. */
 export function sampleTags(t: Translate): UserTag[] {
-    return [{id: 1, stationId: STATION, name: t('helpCenter.sample.groups.competitionGroup'), color: null, visible: true, position: 0}]
+    return [{id: 1, stationId: STATION, name: t('helpCenter.sample.groups.competitionGroup'), color: null, visibility: TagVisibility.BADGE, position: 0}]
 }
 
 /** The members a form can be limited to. */

@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
 import dev.chojo.ember.feature.members.service.MemberPermissionResolver;
+import dev.chojo.ember.feature.members.service.PrivateTags;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import dev.chojo.ember.feature.restriction.RestrictionMember;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
@@ -51,6 +52,7 @@ public class RestrictionService {
     private final UserTagRepository userTagRepository;
     private final KbAccessService kbAccessService;
     private final MemberPermissionResolver permissionResolver;
+    private final PrivateTags privateTags;
 
     @Inject
     public RestrictionService(
@@ -59,13 +61,15 @@ public class RestrictionService {
             MemberGroupRepository memberGroupRepository,
             UserTagRepository userTagRepository,
             KbAccessService kbAccessService,
-            MemberPermissionResolver permissionResolver) {
+            MemberPermissionResolver permissionResolver,
+            PrivateTags privateTags) {
         this.restrictionRepository = restrictionRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.memberGroupRepository = memberGroupRepository;
         this.userTagRepository = userTagRepository;
         this.kbAccessService = kbAccessService;
         this.permissionResolver = permissionResolver;
+        this.privateTags = privateTags;
     }
 
     /**
@@ -91,9 +95,11 @@ public class RestrictionService {
     }
 
     /**
-     * Replaces all restrictions of an entity.
+     * Replaces all restrictions of an entity. A private tag is refused, because whoever the
+     * restriction lets in would show who carries it.
      */
     public void setRestrictions(RestrictionType type, int entityId, RestrictionSelection selection) {
+        privateTags.requireChoosable(selection.tagIds());
         restrictionRepository.setRestrictions(type, entityId, selection);
         log.info(
                 "Restrictions of {} {} replaced: {} user type(s), {} group(s), {} tag(s), {} member(s), mode {}",
@@ -246,7 +252,7 @@ public class RestrictionService {
                         memberGroupRepository.findGroupsForMember(memberId).stream()
                                 .map(MemberGroup::id)
                                 .toList(),
-                        userTagRepository.findTagsForMember(memberId).stream()
+                        PrivateTags.withoutPrivate(userTagRepository.findTagsForMember(memberId)).stream()
                                 .map(UserTag::id)
                                 .toList()));
     }

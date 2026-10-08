@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.cluster.entity.ClusterMember;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.cluster.service.ClusterMemberManagementService.MemberPage;
 import dev.chojo.ember.feature.cluster.service.ClusterMemberSearchService.Search;
+import dev.chojo.ember.feature.members.entity.TagVisibility;
 import dev.chojo.ember.feature.members.entity.UserTag;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository.ClusterMemberRow;
@@ -94,7 +95,8 @@ class ClusterRouteServicesTest {
         when(management.search(5, "ma", 3, StationUserType.MEMBER, true, 0, 50))
                 .thenReturn(new MemberPage(List.of(tagged, plain), 7, 0, 50));
         when(groups.findNameColors(List.of(1, 2))).thenReturn(Map.of(1, "#f00"));
-        when(tags.findDisplayTags(List.of(1, 2))).thenReturn(Map.of(1, new UserTag(4, 3, "Leitung", "#0f0", true, 0)));
+        when(tags.findDisplayTags(List.of(1, 2)))
+                .thenReturn(Map.of(1, new UserTag(4, 3, "Leitung", "#0f0", TagVisibility.BADGE, 0)));
 
         var page = new ClusterMemberSearchService(management, groups, tags)
                 .search(5, new Search("ma", 3, StationUserType.MEMBER, true, 0, 50));

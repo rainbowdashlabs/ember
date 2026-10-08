@@ -13,7 +13,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import ColorDot from '@/components/display/ColorDot.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import type {UserTag} from '@/api/generated/schema'
+import {TagVisibility, type UserTag} from '@/api/generated/schema'
 
 const {t} = useI18n()
 
@@ -54,10 +54,12 @@ const emit = defineEmits<{
         <span class="flex items-center gap-2">
           <ColorDot v-if="tag.color" :color="tag.color"/>
           <span class="font-medium">{{ tag.name }}</span>
-          <font-awesome-icon v-if="tag.visible" :icon="['fas', 'eye']" class="text-xs text-(--text-muted)"/>
+          <font-awesome-icon v-if="tag.visibility === TagVisibility.BADGE" :icon="['fas', 'eye']" class="text-xs text-(--text-muted)"/>
+          <font-awesome-icon v-else-if="tag.visibility === TagVisibility.PRIVATE" :icon="['fas', 'lock']"
+                             :title="t('userTags.visibilities.PRIVATE.label')" class="text-xs text-(--text-muted)"/>
         </span>
         <div class="flex items-center gap-2">
-          <MutedIconButton v-if="canConvertToGroup" :icon="['fas', 'people-group']" :label="t('userTags.convertToGroup')" @click.stop="emit('convert', tag)"/>
+          <MutedIconButton v-if="canConvertToGroup && tag.visibility !== TagVisibility.PRIVATE" :icon="['fas', 'people-group']" :label="t('userTags.convertToGroup')" @click.stop="emit('convert', tag)"/>
           <EditButton @click.stop="emit('edit', tag)"/>
           <DeleteButton @click.stop="emit('delete', tag)"/>
         </div>

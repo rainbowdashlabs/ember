@@ -78,7 +78,7 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        service = new FederatedBoardService(federatedBoardRepo);
+        service = new FederatedBoardService(federatedBoardRepo, privateTags);
         transport = mock(FederationTransport.class);
         notificationService =
                 new FederatedBoardNotificationService(transport, new FederationRepository(), service, boardRepo);
@@ -93,7 +93,8 @@ class FederatedBoardServiceTest extends RepositoryTestBase {
                         boardRepo,
                         newStationMemberService(null, null),
                         mock(MemberGroupService.class),
-                        mock(UserTagService.class)),
+                        mock(UserTagService.class),
+                        privateTags),
                 new DomainEventBus(Set.of()),
                 newStationMemberService(null, null),
                 memberIdentityFactory,

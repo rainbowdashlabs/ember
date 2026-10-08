@@ -63,7 +63,7 @@ class TicketAssignmentNeedsWriteAccessTest extends RepositoryTestBase {
         var memberService = newStationMemberService(null, null);
         var groupService = newMemberGroupService();
         var tagService = new UserTagService(userTagRepo, memberGroupRepo);
-        boardService = new BoardService(boardRepo, memberService, groupService, tagService);
+        boardService = new BoardService(boardRepo, memberService, groupService, tagService, privateTags);
 
         var backend = localStorage();
         var storage = new StorageService(new StorageBackendResolver(backend), backend);

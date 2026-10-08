@@ -12,6 +12,7 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.feature.members.entity.MemberCard;
 import dev.chojo.ember.feature.members.service.MemberCardService;
+import dev.chojo.ember.feature.members.service.PrivateTags;
 import io.javalin.http.Context;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
@@ -30,10 +31,12 @@ import static dev.chojo.ember.api.RouteSupport.pathUuid;
 @Singleton
 public class MemberCardRoutes implements Routes {
     private final MemberCardService cardService;
+    private final PrivateTags privateTags;
 
     @Inject
-    public MemberCardRoutes(MemberCardService cardService) {
+    public MemberCardRoutes(MemberCardService cardService, PrivateTags privateTags) {
         this.cardService = cardService;
+        this.privateTags = privateTags;
     }
 
     @Override
@@ -54,7 +57,7 @@ public class MemberCardRoutes implements Routes {
     private void card(Context ctx) {
         var session = StationSession.from(ctx);
         ctx.json(cardService
-                .find(session.stationId(), session.stationUid(), pathUuid(ctx, "uid"))
+                .find(session.stationId(), session.stationUid(), pathUuid(ctx, "uid"), privateTags.seenBy(session))
                 .orElseThrow(MemberRefusal.MEMBER_NOT_HERE_BY_UID::raise));
     }
 }

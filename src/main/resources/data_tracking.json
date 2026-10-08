@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:66de91c152aabe4f28f427c69942cbcec53d0a27317c4501ddba620a6e49f7d3",
-  "generatedAt": "2026-10-08T20:42:48Z",
+  "schemaHash": "sha256:0e9d5eb464b49cb58b02ee98174deae7bd87fed6d441f14cb9435567966ca22f",
+  "generatedAt": "2026-10-08T21:31:30Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -28046,7 +28046,7 @@
     "user_tag": {
       "feature": "members",
       "scope": "STATION",
-      "tableHash": "sha256:c9baf8fd7a7cd93f24feb10ab27033d84514760d29d9e9706b98dbde082351d5",
+      "tableHash": "sha256:2b85367de3fcb1148d5aad8587420c05e6b8df12a925409e514fd38d0b8f90b5",
       "columns": [
         {
           "name": "id",
@@ -28077,18 +28077,18 @@
           "description": "Optional hex color for the tag badge."
         },
         {
-          "name": "visible",
-          "type": "bool",
-          "nullable": false,
-          "verified": true,
-          "description": "Whether this tag shows as a badge behind member names."
-        },
-        {
           "name": "position",
           "type": "int4",
           "nullable": false,
           "verified": true,
           "description": "Sort order / priority. Higher position = higher priority for badge display."
+        },
+        {
+          "name": "visibility",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "Who sees the tag. BADGE shows it as a badge behind member names, PLAIN shows it on the member only, PRIVATE shows it only to readers allowed to view members, never to the tagged member, and keeps it out of every audience and restriction."
         }
       ],
       "foreignKeys": [

@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.mail.service.MailChainService;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.Permission;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.members.entity.TagVisibility;
 import dev.chojo.ember.feature.members.entity.UserSettings;
 import dev.chojo.ember.feature.members.entity.UserTag;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
@@ -143,7 +144,8 @@ class SessionInfoServiceTest {
         when(memberService.findManaged(5)).thenReturn(List.of(member(6, 7, 2, null), member(8, 7, null, "Kid")));
         when(groupService.findGroupsForMember(5))
                 .thenReturn(List.of(new MemberGroup(3, 7, "Group", "#fff", 0, null, List.of())));
-        when(userTagRepository.findTagsForMember(5)).thenReturn(List.of(new UserTag(4, 7, "Tag", "#000", true, 0)));
+        when(userTagRepository.findTagsForMember(5))
+                .thenReturn(List.of(new UserTag(4, 7, "Tag", "#000", TagVisibility.BADGE, 0)));
         when(stationMemberRepository.findPermissions(5))
                 .thenReturn(List.of(new Permission(9, StationPermission.LOGIN)));
         when(profileFieldService.isProfileComplete(anyInt())).thenReturn(false);

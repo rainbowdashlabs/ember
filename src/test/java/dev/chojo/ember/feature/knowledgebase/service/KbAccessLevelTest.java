@@ -43,7 +43,7 @@ class KbAccessLevelTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         kbRepo = new KnowledgeBaseRepository();
-        accessService = new KbAccessService(kbRepo, memberGroupRepo, userTagRepo);
+        accessService = new KbAccessService(kbRepo, memberGroupRepo, userTagRepo, privateTags);
 
         station = stationRepo.create("KbGrantStation");
         account = accountRepo.create("kb-grant@test.com", "Grant", "Tester");

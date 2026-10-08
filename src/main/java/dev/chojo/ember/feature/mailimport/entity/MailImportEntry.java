@@ -60,7 +60,7 @@ public record MailImportEntry(
                 row.getString("subject"),
                 row.getString("attachment_name"),
                 row.getString("content_hash"),
-                MailImportOutcome.valueOf(row.getString("outcome")),
+                row.getEnum("outcome", MailImportOutcome.class),
                 row.getString("reason"),
                 row.getObject("document_id", Integer.class),
                 row.getBoolean("pruned"),

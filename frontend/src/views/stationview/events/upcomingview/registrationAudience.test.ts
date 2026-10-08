@@ -7,7 +7,7 @@
 import {describe, expect, it} from 'vitest'
 import {registrationAudienceNote} from './registrationAudience'
 import type {AllEventRestrictions} from '@/api/events'
-import type {MemberGroup, RestrictionAudience, UserTag} from '@/api/generated/schema'
+import {TagVisibility, type MemberGroup, type RestrictionAudience, type UserTag} from '@/api/generated/schema'
 
 const t = (key: string, arg?: number | Record<string, unknown>) => {
     switch (key) {
@@ -30,7 +30,7 @@ const groups: MemberGroup[] = [
     {id: 1, stationId: 's', name: 'Jugend', color: null, groupSetId: null, position: 0, userTypes: []},
     {id: 2, stationId: 's', name: 'Aktive', color: null, groupSetId: null, position: 1, userTypes: []},
 ]
-const tags: UserTag[] = [{id: 5, stationId: 's', name: 'Bootsführer', color: null, position: 0, visible: true}]
+const tags: UserTag[] = [{id: 5, stationId: 's', name: 'Bootsführer', color: null, position: 0, visibility: TagVisibility.BADGE}]
 
 function audience(partial: Partial<RestrictionAudience>): RestrictionAudience {
     return {userTypes: [], groupIds: [], tagIds: [], memberIds: [], mode: 'AND', ...partial}

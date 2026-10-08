@@ -774,15 +774,31 @@ public enum MemberRefusal implements Refusal {
     /** A pronoun of a gender field longer than a pronoun may be. */
     PROFILE_PRONOUN_TOO_LONG(213, HttpStatus.BAD_REQUEST, Sentences.PRONOUN_TOO_LONG),
 
+    /**
+     * A private tag named to choose people: an audience, a restriction, an access rule or a list of
+     * members to take in. Whoever is chosen by it would show who carries it.
+     */
+    TAG_PRIVATE_CHOOSES_NOBODY(
+            214, HttpStatus.BAD_REQUEST, "A private tag cannot be used to choose people, only to label them"),
+
+    /** A tag made private while audiences, restrictions or access rules still choose people by it, counted. */
+    TAG_PRIVATE_STILL_CHOOSES(
+            215,
+            HttpStatus.CONFLICT,
+            "This tag still chooses people for audiences or access rules, so it cannot be made private yet"),
+
+    /** A private tag to be turned into a group, which everybody can see. */
+    TAG_PRIVATE_NOT_A_GROUP(216, HttpStatus.CONFLICT, "A private tag cannot be turned into a group"),
+
     /** A station or a guardian reaching the address or the sign-in of an account that also belongs to another station, current or former. */
     ACCOUNT_SHARED_WITH_ANOTHER_STATION(
-            214,
+            217,
             HttpStatus.FORBIDDEN,
             "That account belongs to another station as well, so only the person can change its address or how it signs in"),
 
     /** A station or a guardian reaching the address or the sign-in of an account that holds a role in an association. */
     ACCOUNT_HELD_BY_AN_ASSOCIATION(
-            215,
+            218,
             HttpStatus.FORBIDDEN,
             "That account holds a role in an association, so only the person can change its address or how it signs in"),
 
@@ -792,33 +808,33 @@ public enum MemberRefusal implements Refusal {
      * token or uid probed by somebody else says nothing about whether it exists.
      */
     LINK_REQUEST_NOT_OPEN(
-            216, HttpStatus.NOT_FOUND, "This link request is not open, it may have been answered or expired"),
+            219, HttpStatus.NOT_FOUND, "This link request is not open, it may have been answered or expired"),
 
     /** A link request accepted by an account that already is a member of the station that asks. */
     LINK_ACCOUNT_ALREADY_AT_STATION(
-            217,
+            220,
             HttpStatus.CONFLICT,
             "Your account already belongs to a member of that station, so it was not linked a second time"),
 
     /** The link state asked for, or the link sent again, for a member that is not at the caller's station. */
-    LINK_MEMBER_NOT_HERE(218, HttpStatus.NOT_FOUND, Sentences.MEMBER_NOT_HERE),
+    LINK_MEMBER_NOT_HERE(221, HttpStatus.NOT_FOUND, Sentences.MEMBER_NOT_HERE),
 
     /** A link sent again for a member that waits for no link. */
-    LINK_NOTHING_TO_SEND_AGAIN(219, HttpStatus.NOT_FOUND, "This member waits for no link that could be sent again"),
+    LINK_NOTHING_TO_SEND_AGAIN(222, HttpStatus.NOT_FOUND, "This member waits for no link that could be sent again"),
 
     /** A link sent again that the person declined. */
     LINK_DECLINED_NOT_SENT_AGAIN(
-            220,
+            223,
             HttpStatus.CONFLICT,
             "The person declined the link, so it was not sent again. Invite another address instead"),
 
     /** A link sent again less than a day after it was last sent. */
     LINK_SENT_TOO_RECENTLY(
-            221, HttpStatus.TOO_MANY_REQUESTS, "The link was sent less than a day ago, so it was not sent again"),
+            224, HttpStatus.TOO_MANY_REQUESTS, "The link was sent less than a day ago, so it was not sent again"),
 
     /** A station or a guardian reaching the address or the sign-in of an account a station import created and its owner has not confirmed yet. */
     ACCOUNT_NOT_CONFIRMED_YET(
-            222,
+            225,
             HttpStatus.FORBIDDEN,
             "The person has not confirmed that account yet, so its address and how it signs in stay as they are until they set it up through the link sent to them");
 

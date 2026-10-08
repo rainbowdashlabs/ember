@@ -85,12 +85,13 @@ class SharedBoardChangeServiceTest extends RepositoryTestBase {
         var federationRepository = new FederationRepository();
         var transport = new FederationTestTransport(httpClient, federationRepository, stationRepo);
 
-        federatedBoards = new FederatedBoardService(federatedBoardRepo);
+        federatedBoards = new FederatedBoardService(federatedBoardRepo, privateTags);
         var boardService = new BoardService(
                 boardRepo,
                 newStationMemberService(null, null),
                 mock(MemberGroupService.class),
-                mock(UserTagService.class));
+                mock(UserTagService.class),
+                privateTags);
         var notifications = new FederatedBoardNotificationService(
                 transport.transport(), federationRepository, federatedBoards, boardRepo);
         transport.serve(notifications);

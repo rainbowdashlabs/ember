@@ -47,8 +47,15 @@ public class StationMemberEligibility implements MemberEligibility {
                 .orElse(false);
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>A private tag lets nobody through. Answering for it would tell whoever fills in the field
+     * who carries it, one member at a time.
+     */
     @Override
     public boolean hasTag(int memberId, int tagId) {
-        return tagRepository.findTagsForMember(memberId).stream().anyMatch(tag -> tag.id() == tagId);
+        return tagRepository.findTagsForMember(memberId).stream()
+                .anyMatch(tag -> tag.id() == tagId && !tag.visibility().restricted());
     }
 }

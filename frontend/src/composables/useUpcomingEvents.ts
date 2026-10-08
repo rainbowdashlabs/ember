@@ -101,7 +101,7 @@ export function useUpcomingEvents(currentMemberId: Ref<number>, isGuardian: () =
       events.listBreaks().catch(() => []),
       events.listAllRestrictions().catch(() => ({})),
       memberGroups.listGroups().catch(() => []),
-      userTags.listTags().catch(() => []),
+      userTags.listChoosableTags().catch(() => []),
       occurrences.load(),
     ])
     todayEvents.value = today

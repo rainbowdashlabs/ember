@@ -228,7 +228,7 @@ class DemoServiceTest extends RepositoryTestBase {
                 knowledgeBaseRepo,
                 kbFileStorage,
                 kbContentService,
-                new KbAccessService(knowledgeBaseRepo, memberGroupRepo, userTagRepo),
+                new KbAccessService(knowledgeBaseRepo, memberGroupRepo, userTagRepo, privateTags),
                 new KbPresentationService(knowledgeBaseRepo, kbFileStorage, kbContentService, new TaskScheduler()),
                 new KbLinkMetadataService(new OutboundHttp(new RemoteUrlValidator(new Federation(), new Demo()))),
                 new PresentationCompressor(kbStorageConfig),
@@ -239,7 +239,7 @@ class DemoServiceTest extends RepositoryTestBase {
                 kbFileStorage,
                 kbContentService,
                 kbSearchService,
-                new KbAccessService(knowledgeBaseRepo, memberGroupRepo, userTagRepo),
+                new KbAccessService(knowledgeBaseRepo, memberGroupRepo, userTagRepo, privateTags),
                 new KbAuthorNameService(stationMemberRepo, accountRepo),
                 pageRepo);
         var kbFederationService = new KnowledgeBaseFederationService(
@@ -256,7 +256,7 @@ class DemoServiceTest extends RepositoryTestBase {
                 federationFanout,
                 federationEntityResolver,
                 mock(KbPdfExportService.class),
-                new KbAccessService(knowledgeBaseRepo, memberGroupRepo, userTagRepo));
+                new KbAccessService(knowledgeBaseRepo, memberGroupRepo, userTagRepo, privateTags));
         var quizQuestionService = new QuizQuestionService(quizCatalogRepo);
         var quizService = new QuizService(
                 new QuizCatalogService(quizCatalogRepo),
@@ -363,11 +363,11 @@ class DemoServiceTest extends RepositoryTestBase {
                         eventRepo,
                         occurrenceCalendar),
                 noOpBus);
-        var federatedBoardService = new FederatedBoardService(federatedBoardRepo);
+        var federatedBoardService = new FederatedBoardService(federatedBoardRepo, privateTags);
 
         var lostAndFoundService =
                 new LostAndFoundService(lostAndFoundRepo, mock(Notifier.class), mock(LostAndFoundImageService.class));
-        var boardService = new BoardService(boardRepo, memberSvc, groupService, tagService);
+        var boardService = new BoardService(boardRepo, memberSvc, groupService, tagService, privateTags);
         var boardAttachmentSvc = new BoardAttachmentService(kbStorageSvc, stationRepo, kbBackend);
         var boardTicketService = new BoardTicketService(
                 boardTicketRepo,
@@ -520,7 +520,12 @@ class DemoServiceTest extends RepositoryTestBase {
         var newsSeeder = new DemoNewsSeeder(newsService, commentService, stationMemberRepo);
         var lostAndFoundSeederLocal = new DemoLostAndFoundSeeder(lostAndFoundService, demoClock);
         var checklistService = new ChecklistService(
-                new ChecklistRepository(), stationMemberRepo, memberGroupRepo, userTagRepo, eventRegistrationRepo);
+                new ChecklistRepository(),
+                stationMemberRepo,
+                memberGroupRepo,
+                userTagRepo,
+                eventRegistrationRepo,
+                privateTags);
         var checklistSeederLocal = new DemoChecklistSeeder(checklistService);
         var stationSeeder = new DemoStationSeeder(accountRepo, stationRepo);
         var mirrorStationSeeder = new DemoMirrorStationSeeder(

@@ -33,7 +33,7 @@ class KbAccessServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        service = new KbAccessService(knowledgeBaseRepo, memberGroupRepo, userTagRepo);
+        service = new KbAccessService(knowledgeBaseRepo, memberGroupRepo, userTagRepo, privateTags);
         station = stationRepo.create("KbAccessStation");
         account = accountRepo.create("kb-access@test.com", "Kb", "AccessTester");
         member = stationMemberRepo.create(station.id(), account.id());

@@ -75170,9 +75170,12 @@
           },
           "name" : {
             "type" : "string"
+          },
+          "visibility" : {
+            "$ref" : "#/components/schemas/TagVisibility"
           }
         },
-        "required" : [ "id", "name" ]
+        "required" : [ "id", "name", "visibility" ]
       },
       "TagRequest" : {
         "type" : "object",
@@ -75183,8 +75186,12 @@
           "color" : {
             "type" : [ "string", "null" ]
           },
-          "visible" : {
-            "type" : "boolean"
+          "visibility" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/TagVisibility"
+            }, {
+              "type" : "null"
+            } ]
           },
           "position" : {
             "type" : "integer",
@@ -75247,6 +75254,10 @@
             }
           }
         }
+      },
+      "TagVisibility" : {
+        "type" : "string",
+        "enum" : [ "BADGE", "PLAIN", "PRIVATE" ]
       },
       "TaggedItemSummary" : {
         "type" : "object",
@@ -77150,15 +77161,15 @@
           "color" : {
             "type" : [ "string", "null" ]
           },
-          "visible" : {
-            "type" : "boolean"
+          "visibility" : {
+            "$ref" : "#/components/schemas/TagVisibility"
           },
           "position" : {
             "type" : "integer",
             "format" : "int32"
           }
         },
-        "required" : [ "id", "stationId", "name", "color", "visible", "position" ]
+        "required" : [ "id", "stationId", "name", "color", "visibility", "position" ]
       },
       "UserTypeChangeResponse" : {
         "type" : "object",

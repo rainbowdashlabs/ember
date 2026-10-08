@@ -38,7 +38,7 @@ const {loading, failure} = useAsyncLoader(async () => {
   const [list, g, ts, m] = await Promise.all([
     checklists.listChecklists(),
     memberGroups.listGroups(),
-    userTags.listTags(),
+    userTags.listChoosableTags(),
     stationMembers.listMembers(false),
   ])
   items.value = list

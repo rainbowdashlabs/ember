@@ -58,7 +58,7 @@ export function useEventEditDeps(options: UseEventEditDepsOptions = {}): EventEd
             events.listCategories().catch(() => [] as EventCategory[]),
             attendance.listTemplates().catch(() => [] as AttendanceTemplate[]),
             memberGroupsApi.listGroups().catch(() => [] as MemberGroup[]),
-            userTagsApi.listTags().catch(() => [] as UserTag[]),
+            userTagsApi.listChoosableTags().catch(() => [] as UserTag[]),
         ] as const
         const tasks: Promise<unknown>[] = [...core]
         if (options.withMembers) tasks.push(stationMembers.listMembers().catch(() => [] as MemberWithName[]))

@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.members.entity.ProfileField;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
+import dev.chojo.ember.feature.members.service.PrivateTags;
 import dev.chojo.ember.feature.question.FieldType;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -113,7 +114,7 @@ public class FormResultGrouping {
                     case TAG ->
                         categorical(
                                 respondents,
-                                tags.findByStation(stationId).stream()
+                                PrivateTags.withoutPrivate(tags.findByStation(stationId)).stream()
                                         .map(tag -> new Category(String.valueOf(tag.id()), tag.name()))
                                         .toList(),
                                 respondent -> keysOf(respondent.tagIds()));

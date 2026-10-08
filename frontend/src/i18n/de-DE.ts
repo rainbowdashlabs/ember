@@ -4315,8 +4315,22 @@ export default {
         save: 'Speichern',
         cancel: 'Abbrechen',
         color: 'Farbe',
-        visible: 'Als Badge anzeigen',
-        visibleHint: 'Zeigt das Tag als Badge hinter dem Mitgliedernamen',
+        visibility: 'Sichtbarkeit',
+        visibilities: {
+            BADGE: {
+                label: 'Als Badge anzeigen',
+                hint: 'Zeigt das Tag als Badge hinter dem Mitgliedernamen.',
+            },
+            PLAIN: {
+                label: 'Nur am Mitglied',
+                hint: 'Das Tag steht am Mitglied, aber nicht hinter dem Namen.',
+            },
+            PRIVATE: {
+                label: 'Privat',
+                hint: 'Nur wer Mitglieder einsehen darf, sieht das Tag. Das Mitglied selbst sieht es nicht. '
+                    + 'Ein privates Tag kann keine Zielgruppe und keinen Zugriff festlegen.',
+            },
+        },
         selectHint: 'Tag auswählen, um Mitglieder zu verwalten',
         currentMembers: 'Mitglieder',
         noMembers: 'Keine Mitglieder',

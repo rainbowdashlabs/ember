@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.members.repository;
 
+import dev.chojo.ember.feature.members.entity.TagVisibility;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.Test;
 
@@ -81,9 +82,9 @@ class DisplayInBatchTest extends RepositoryTestBase {
         var low = userTagRepo.create(station.id(), "Unten " + n);
         var high = userTagRepo.create(station.id(), "Oben " + n);
         var hidden = userTagRepo.create(station.id(), "Versteckt " + n);
-        userTagRepo.update(low.id(), low.name(), "#111111", true, 1);
-        userTagRepo.update(high.id(), high.name(), "#222222", true, 5);
-        userTagRepo.update(hidden.id(), hidden.name(), "#333333", false, 9);
+        userTagRepo.update(low.id(), low.name(), "#111111", TagVisibility.BADGE, 1);
+        userTagRepo.update(high.id(), high.name(), "#222222", TagVisibility.BADGE, 5);
+        userTagRepo.update(hidden.id(), hidden.name(), "#333333", TagVisibility.PLAIN, 9);
         for (var tag : List.of(low, high, hidden)) userTagRepo.addMember(tag.id(), member.id());
 
         var tags = userTagRepo.findDisplayTags(List.of(member.id()));
@@ -91,7 +92,7 @@ class DisplayInBatchTest extends RepositoryTestBase {
         assertEquals("#222222", tags.get(member.id()).color(), "the hidden one above it is not worn");
         assertEquals(high.name(), tags.get(member.id()).name());
 
-        userTagRepo.update(high.id(), high.name(), "#222222", false, 5);
+        userTagRepo.update(high.id(), high.name(), "#222222", TagVisibility.PLAIN, 5);
         assertEquals(
                 "#111111",
                 userTagRepo
@@ -100,7 +101,7 @@ class DisplayInBatchTest extends RepositoryTestBase {
                         .color(),
                 "hiding the top one falls to the next visible, not past it to the one above");
 
-        userTagRepo.update(low.id(), low.name(), "#111111", false, 1);
+        userTagRepo.update(low.id(), low.name(), "#111111", TagVisibility.PLAIN, 1);
         assertNull(
                 userTagRepo.findDisplayTags(List.of(member.id())).get(member.id()),
                 "and with none visible there is nothing to wear");

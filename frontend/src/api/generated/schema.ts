@@ -69695,6 +69695,7 @@ export interface components {
             /** Format: int32 */
             id: number;
             name: string;
+            visibility: components["schemas"]["TagVisibility"];
         };
         TaggedItemSummary: {
             /** Format: int32 */
@@ -69717,7 +69718,7 @@ export interface components {
             name?: string;
             /** Format: int32 */
             position?: number;
-            visible?: boolean;
+            visibility?: components["schemas"]["TagVisibility"] | null;
         };
         TagResponse: {
             color: string | null;
@@ -69739,6 +69740,8 @@ export interface components {
         TagsRequest: {
             tags?: string[] | null;
         };
+        /** @enum {string} */
+        TagVisibility: "BADGE" | "PLAIN" | "PRIVATE";
         /** @enum {string} */
         TargetKind: "NEXT" | "PAGE" | "SUBMIT";
         /** @enum {string} */
@@ -70420,7 +70423,7 @@ export interface components {
             position: number;
             /** Format: uuid */
             stationId: string;
-            visible: boolean;
+            visibility: components["schemas"]["TagVisibility"];
         };
         UserTypeChangeResponse: {
             leftGroups: components["schemas"]["MemberGroup"][];
@@ -72236,6 +72239,7 @@ export type TagResponse = components['schemas']['TagResponse'];
 export type TagScopeResponse = components['schemas']['TagScopeResponse'];
 export type TagSetMembersRequest = components['schemas']['TagSetMembersRequest'];
 export type TagsRequest = components['schemas']['TagsRequest'];
+export type TagVisibility = components['schemas']['TagVisibility'];
 export type TargetKind = components['schemas']['TargetKind'];
 export type TaskOutcome = components['schemas']['TaskOutcome'];
 export type TaskStatus = components['schemas']['TaskStatus'];
@@ -73781,6 +73785,12 @@ export const SwitchBlockerKind = {
     PROCUREMENT: "PROCUREMENT",
     REQUIREMENT: "REQUIREMENT",
     SIZE: "SIZE",
+} as const;
+
+export const TagVisibility = {
+    BADGE: "BADGE",
+    PLAIN: "PLAIN",
+    PRIVATE: "PRIVATE",
 } as const;
 
 export const TargetKind = {
