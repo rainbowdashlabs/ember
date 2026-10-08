@@ -68,6 +68,16 @@ public record DocumentTemplate(
         Instant updatedAt,
         @Nullable Instant archivedAt) {
 
+    /**
+     * How many months a new legal template keeps the signatures asked for on its documents, their evidence
+     * and the signed document after the member has gone. Claims about a signed document fall due within
+     * the three years of the regular limitation period (section 195 BGB), which only starts at the end of
+     * the year they arose in (section 199 BGB), so four years cover a claim from the member's last year.
+     * Any other template keeps them only while the member is a member, since its documents are not kept
+     * as evidence.
+     */
+    public static final int LEGAL_SIGNATURE_RETENTION_MONTHS = 48;
+
     /** The columns {@link #map()} reads, in a form a query can splice in. */
     public static final String COLUMNS = """
             id, station_id, cluster_id, kind, name, title_pattern, file_name_pattern, tags, hidden, keep_on_archive,

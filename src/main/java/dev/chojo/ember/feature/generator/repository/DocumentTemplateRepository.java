@@ -55,13 +55,15 @@ public class DocumentTemplateRepository {
                                                       file_name_pattern, tags, hidden, keep_on_archive, legal,
                                                       for_appointments, self_service, self_service_cooldown_days,
                                                       restriction_mode, language, issuer_id, issuer_function,
-                                                      created_by, updated_by)
+                                                      signature_retention_months, created_by, updated_by)
                         VALUES (:station_id, :cluster_id, :kind, :name, :title_pattern,
                                 :file_name_pattern, :tags, :hidden, :keep_on_archive, :legal,
                                 :for_appointments, :self_service, :cooldown_days, :restriction_mode,
-                                :language, :issuer_id, :issuer_function, :author, :author)
+                                :language, :issuer_id, :issuer_function,
+                                CASE WHEN :legal THEN :legal_retention END, :author, :author)
                         RETURNING %s;""",
                 bindDraft(OwnerColumns.bind(owner).bind("kind", draft.kind()), draft)
+                        .bind("legal_retention", DocumentTemplate.LEGAL_SIGNATURE_RETENTION_MONTHS)
                         .bind("author", authorId),
                 DocumentTemplate.map(),
                 DocumentTemplate.COLUMNS);

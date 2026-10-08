@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.documents.service;
 
 import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.feature.documents.entity.Document;
+import dev.chojo.ember.feature.documents.entity.SealedVersion;
 import dev.chojo.ember.feature.documents.entity.Uploader;
 import dev.chojo.ember.feature.documents.repository.DocumentRepository;
 import dev.chojo.ember.feature.documents.repository.SealedVersionRepository;
@@ -25,7 +26,8 @@ import java.util.List;
  *
  * <p>A sealed document is a member document like any other for whoever reads it: it is listed, opened,
  * drawn on its tile and found by its words through the same paths, under the same read rules. What
- * differs is the lock. It is never deleted while its station exists, the members it is about stay
+ * differs is the lock. It is never deleted while its station exists, unless the retention of its
+ * signatures is over ({@link #removeExpired}), the members it is about stay
  * those it was sealed for, it is always kept when they leave and under their name where they are
  * deleted, and its file is never replaced. A later signature files a new sealed version that becomes
  * the one the document serves; the version before stays stored, marked superseded.
@@ -121,6 +123,24 @@ public class SealedDocumentService {
             log.info("Filed sealed version {} of document {} ({})", basedOn + 1, document.id(), sealed.level());
         }
         return documents.findById(document.id()).orElse(document);
+    }
+
+    /**
+     * Removes a sealed document whose signatures no longer need keeping, with its versions and their files.
+     *
+     * <p>This is the one way a sealed document goes while its station exists, and only the retention sweep
+     * of signing takes it. The database decides, not this method: it refuses the deletion unless a request
+     * for signatures on the document has passed the end of its retention and none still keeps it.
+     *
+     * @param document the sealed document
+     */
+    public void removeExpired(Document document) {
+        var sha256s = versions.versionsOf(document.id()).stream()
+                .map(SealedVersion::sha256)
+                .toList();
+        documents.delete(document.id());
+        documentService.deleteSealedFiles(document, sha256s);
+        log.info("Removed sealed document {} of station {} after its retention", document.id(), document.stationId());
     }
 
     /**

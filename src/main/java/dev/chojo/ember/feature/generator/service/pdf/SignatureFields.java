@@ -18,7 +18,9 @@ import org.apache.pdfbox.pdmodel.interactive.form.PDAcroForm;
 import org.apache.pdfbox.pdmodel.interactive.form.PDSignatureField;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.regex.Pattern;
@@ -122,6 +124,31 @@ public final class SignatureFields {
             add(document, page, link.getRectangle(), name);
         }
         return true;
+    }
+
+    /**
+     * The signature fields of a document that nobody has signed yet, which is what a generated document
+     * asks to be signed. Signature fields of other names, as an uploaded PDF may bring, are left out.
+     *
+     * @param pdf the document
+     * @return the names of its empty signature fields, in the order of its form
+     */
+    public static List<String> unsigned(byte[] pdf) {
+        try (var document = PdfFiles.open(pdf)) {
+            var form = document.getDocumentCatalog().getAcroForm(null);
+            if (form == null) return List.of();
+            var names = new ArrayList<String>();
+            for (var field : form.getFieldTree()) {
+                if (field instanceof PDSignatureField signature
+                        && signature.getSignature() == null
+                        && FIELD_NAME.matcher(signature.getPartialName()).matches()) {
+                    names.add(signature.getPartialName());
+                }
+            }
+            return names;
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     private static Optional<String> nameOf(PDAnnotationLink link, String marker) {

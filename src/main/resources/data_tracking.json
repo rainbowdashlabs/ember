@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:fc3d1cf04b1b7d043bca6b00c249fbf9172a464e862ca23055599e0a49cc9773",
-  "generatedAt": "2026-10-08T09:22:09Z",
+  "schemaHash": "sha256:8cc353ffec7e5ad21b01ed2ed28f8ec4cf4366c60e80432bdef5ce24a85fc8cf",
+  "generatedAt": "2026-10-08T11:20:02Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -6872,7 +6872,7 @@
       "description": "Every person whose data went into a generated document: the member it is about and the guardians it names."
     },
     "document_template": {
-      "tableHash": "sha256:edfe71b4fb70ec7f632164fe5d5ce9dad4020a65f8911f1b1d98ed69f46e03fa",
+      "tableHash": "sha256:b414f6acce802a5f4fc748bd7bf70bf83cc0171c15756af265445183dd77c10e",
       "columns": [
         {
           "name": "id",
@@ -7041,6 +7041,13 @@
           "nullable": true,
           "verified": true,
           "description": "When the template was archived. An archived template generates nothing more and stays for the documents generated from it. NULL while in use."
+        },
+        {
+          "name": "signature_retention_months",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "How many months the signatures asked for on a document of this template, their evidence and the signed document are kept after the member it is about has left or was deleted, as evidence for legal claims. NULL keeps them only while the member is a member. A legal template starts at 48 months: claims fall due within the three years of the regular limitation period, which runs from the end of the year they arose in."
         }
       ],
       "foreignKeys": [
@@ -17975,7 +17982,7 @@
           "type": "bool",
           "nullable": false,
           "verified": true,
-          "description": "Whether the document is sealed and therefore locked: it cannot be deleted, the members it is about cannot be changed, it is always kept when they leave, under their name where they are deleted, and its file is never replaced. Its files are its sealed versions. Only the deletion of its station takes it away."
+          "description": "Whether the document is sealed and therefore locked: it cannot be deleted, the members it is about cannot be changed, it is always kept when they leave, under their name where they are deleted, and its file is never replaced. Its files are its sealed versions. Only the deletion of its station takes it away, or the retention sweep once the signatures on it no longer need keeping."
         }
       ],
       "foreignKeys": [
@@ -18401,7 +18408,7 @@
           {
             "column": "document_id",
             "strategy": "RETAIN",
-            "reason": "A sealed document outlasts the deletion of the members it is about, under their departed name, and so do its versions; only deleting the station removes them",
+            "reason": "A sealed document outlasts the deletion of the members it is about, under their departed name, and so do its versions; only deleting the station removes them, or the signature retention sweep once the retention of the signatures on it is over",
             "legalBasis": "GDPR Art. 17(3)(e): kept as evidence for the establishment, exercise or defence of legal claims"
           }
         ]
@@ -22874,6 +22881,660 @@
         "reason": "Key material of the installation, not personal data."
       },
       "description": "The installation's own certificate authorities, which issue the certificates the stations seal documents with. The first is created the first time any station seals a document; at most one is active, and a retired authority stays so the station certificates it issued and the documents sealed with them can still be traced to it."
+    },
+    "signing_evidence": {
+      "tableHash": "sha256:08ab44a63dd0b230f42bc16154422c7cf6c3b4e5f6ca4651f3fae2fcb0db26a0",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Primary key."
+        },
+        {
+          "name": "field_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The signature field the act filled; a field is signed once."
+        },
+        {
+          "name": "signature_level",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The legal level the signature reached: SIMPLE for Ember's own signing, ADVANCED or QUALIFIED only through a provider outside Ember."
+        },
+        {
+          "name": "proof",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "What the account holder confirmed with: PASSKEY or SECURITY_KEY, which sign the challenge, or TOTP or PASSWORD, which only prove presence at that moment."
+        },
+        {
+          "name": "bound",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether the proof itself is bound to the document, which only a passkey or security key is, rather than only recorded next to it."
+        },
+        {
+          "name": "capacity",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "In what capacity the act was given: ACCOUNT_HOLDER for themselves, GUARDIAN on behalf of the member, MEMBER_THROUGH_ACCOUNT by the member through the account of somebody else."
+        },
+        {
+          "name": "challenge_account_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The id of the account whose step-up confirmed the act, as the challenge was computed from it. Kept as it was and never followed, so the challenge can be computed again after the account is gone or the station moved."
+        },
+        {
+          "name": "challenge_member_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The id of the member signed for or signing through the account, as the challenge was computed from it. Kept as it was and never followed. NULL exactly when the account holder signed for themselves."
+        },
+        {
+          "name": "account_member_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The member at the station whose account confirmed the act. NULL once that member was deleted."
+        },
+        {
+          "name": "member_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The member a guardian signed for, or who signed through the account. NULL where the account holder signed for themselves, and once that member was deleted."
+        },
+        {
+          "name": "account_holder_name",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The official name of the account holder whose step-up confirmed the act, as it was at signing."
+        },
+        {
+          "name": "member_name",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "The official name of the member signed for or signing through the account, as it was at signing. NULL where the account holder signed for themselves."
+        },
+        {
+          "name": "guardian_position",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "Where the account holder stood in the member's order of guardians at signing, counted from 0, when they acted as guardian or lent their account. NULL where the account holder signed for themselves."
+        },
+        {
+          "name": "guardian_linked_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When the account holder was linked to the member as guardian, as recorded at signing. NULL where nothing was recorded or no guardian was involved."
+        },
+        {
+          "name": "guardian_linked_by_name",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "The official name of the member who made that guardian link, as it was at signing. NULL where nobody did or no guardian was involved."
+        },
+        {
+          "name": "field_name",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The name of the signature field the act filled."
+        },
+        {
+          "name": "statement",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The statement the signer confirmed, exactly as shown."
+        },
+        {
+          "name": "content_sha256",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "SHA-256 of the frozen document the signer read, lower-case hexadecimal."
+        },
+        {
+          "name": "entry_fields",
+          "type": "_text",
+          "nullable": false,
+          "verified": true,
+          "description": "The names of the fields the signer typed values into, in the order the challenge took them."
+        },
+        {
+          "name": "entry_values",
+          "type": "_text",
+          "nullable": false,
+          "verified": true,
+          "description": "What the signer typed into those fields, exactly as typed, in the same order."
+        },
+        {
+          "name": "nonce",
+          "type": "bytea",
+          "nullable": false,
+          "verified": true,
+          "description": "The nonce issued when the act started, part of the challenge."
+        },
+        {
+          "name": "signed_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the confirmation was accepted, by the server's clock."
+        },
+        {
+          "name": "truncated_ip",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "The client's address with its host part zeroed. NULL where it was not known."
+        },
+        {
+          "name": "user_agent",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "The browser's user agent. NULL where it sent none."
+        },
+        {
+          "name": "relying_party_id",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "For a passkey or security key: the relying party id the credential is bound to. NULL for every other proof."
+        },
+        {
+          "name": "challenge",
+          "type": "bytea",
+          "nullable": true,
+          "verified": true,
+          "description": "For a passkey or security key: the challenge the authenticator signed, computed from the act. NULL for every other proof."
+        },
+        {
+          "name": "credential_id",
+          "type": "bytea",
+          "nullable": true,
+          "verified": true,
+          "description": "For a passkey or security key: the id of the credential that signed. NULL for every other proof."
+        },
+        {
+          "name": "credential_public_key",
+          "type": "bytea",
+          "nullable": true,
+          "verified": true,
+          "description": "For a passkey or security key: the credential's public key, COSE encoded, as it was on file at signing, which the signature verifies under after the credential is gone. NULL for every other proof."
+        },
+        {
+          "name": "client_data_json",
+          "type": "bytea",
+          "nullable": true,
+          "verified": true,
+          "description": "For a passkey or security key: the client data the browser collected. NULL for every other proof."
+        },
+        {
+          "name": "authenticator_data",
+          "type": "bytea",
+          "nullable": true,
+          "verified": true,
+          "description": "For a passkey or security key: the authenticator data. NULL for every other proof."
+        },
+        {
+          "name": "signature",
+          "type": "bytea",
+          "nullable": true,
+          "verified": true,
+          "description": "For a passkey or security key: the authenticator's signature over the authenticator data and the hash of the client data. NULL for every other proof."
+        },
+        {
+          "name": "user_verified",
+          "type": "bool",
+          "nullable": true,
+          "verified": true,
+          "description": "For a passkey or security key: whether the authenticator verified its user. NULL for every other proof."
+        },
+        {
+          "name": "signature_count",
+          "type": "int8",
+          "nullable": true,
+          "verified": true,
+          "description": "For a passkey or security key: the authenticator's signature counter at the act. NULL for every other proof."
+        },
+        {
+          "name": "sealed_sha256",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "SHA-256 of the sealed version of the document the act produced, lower-case hexadecimal. NULL until the act is sealed into its field."
+        },
+        {
+          "name": "recorded_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the evidence was stored."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "account_member_id",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
+        {
+          "column": "field_id",
+          "refTable": "signing_request_field",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "member_id",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED",
+        "rationale": "Evidence is part of the station's records and moves with its member documents and signing requests. The challenge ids are copied as they were, never remapped, since the challenge was computed from them."
+      },
+      "gdprExport": {
+        "status": "TRACKED",
+        "identityColumns": [
+          {
+            "type": "MEMBER_ID",
+            "column": "account_member_id"
+          },
+          {
+            "type": "MEMBER_ID",
+            "column": "member_id"
+          }
+        ]
+      },
+      "gdprDeletion": {
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "account_member_id",
+            "strategy": "RETAIN",
+            "reason": "Evidence of a signature outlasts the deletion of the signer until its request's retain_until, then the retention sweep deletes it; the foreign key unlinks the deleted member, the names copied at signing stay",
+            "legalBasis": "GDPR Art. 17(3)(e): kept as evidence for the establishment, exercise or defence of legal claims"
+          },
+          {
+            "column": "member_id",
+            "strategy": "RETAIN",
+            "reason": "Evidence of a signature for a member outlasts the deletion of that member until its request's retain_until, then the retention sweep deletes it; the foreign key unlinks the deleted member, the names copied at signing stay",
+            "legalBasis": "GDPR Art. 17(3)(e): kept as evidence for the establishment, exercise or defence of legal claims"
+          }
+        ]
+      },
+      "description": "The record of one signing act on one signature field, kept faithfully with everything a reader needs to check it again without Ember: who confirmed with which proof, for whom, what they read and confirmed, when and from where, and for a passkey or security key the whole answer and the public key it verifies under. Names and the guardian link are copied as they were, since the account, the member and the link may all be gone when somebody reads it."
+    },
+    "signing_request": {
+      "tableHash": "sha256:ca7940460aeeed1b43c7dd99b92a25bf27ccffdfafe215409cd90914b5f12559",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Primary key."
+        },
+        {
+          "name": "uid",
+          "type": "uuid",
+          "nullable": false,
+          "verified": true,
+          "description": "The request as it is known outside the database, which signing acts name."
+        },
+        {
+          "name": "station_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The station the document belongs to."
+        },
+        {
+          "name": "generation_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The entry of the generation log the document came from. NULL once that entry is gone."
+        },
+        {
+          "name": "document_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The member document the generated file was filed as, which signing seals. NULL once that document was deleted."
+        },
+        {
+          "name": "member_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The member the document is about. NULL once that member was deleted."
+        },
+        {
+          "name": "member_name",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The official name of the member the document is about, as it was when the request was made, so the request still says whom it is about once the member is gone."
+        },
+        {
+          "name": "content_sha256",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "SHA-256 of the generated file every signature binds to, lower-case hexadecimal. It never changes; a corrected document is a new request."
+        },
+        {
+          "name": "state",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "OPEN while a field waits for a signature, COMPLETE once every field is signed, confirmed on paper, waived or withdrawn and at least one was signed or confirmed, WITHDRAWN when nothing was signed or confirmed, SUPERSEDED when a corrected document replaced it."
+        },
+        {
+          "name": "superseded_by",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The request for the corrected document that replaced this one. NULL where none did, or once that request was deleted."
+        },
+        {
+          "name": "retention_months",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "How many months the request, its evidence and the signed document are kept after the member is gone, copied from the template when the request was made. NULL keeps them only while the member is a member."
+        },
+        {
+          "name": "retain_until",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "Until when the request is kept, set once the member has left or was deleted: the leaving date plus retention_months. The daily sweep deletes it afterwards, with its evidence and a sealed document nothing else keeps. NULL while the member is a member."
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the signatures were asked for."
+        },
+        {
+          "name": "created_by",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The member who asked for the signatures. NULL where nobody did, or once they are gone."
+        },
+        {
+          "name": "closed_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When the request stopped waiting: completed, withdrawn or superseded. NULL while it is open."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "created_by",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
+        {
+          "column": "document_id",
+          "refTable": "member_document",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
+        {
+          "column": "generation_id",
+          "refTable": "document_generation",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
+        {
+          "column": "member_id",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
+        {
+          "column": "station_id",
+          "refTable": "station",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "superseded_by",
+          "refTable": "signing_request",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED",
+        "rationale": "Requests belong to the station's records, beside the member documents they are on, and move with them; their references follow the documents, the generation log and the members to their new ids."
+      },
+      "gdprExport": {
+        "status": "TRACKED",
+        "identityColumns": [
+          {
+            "type": "MEMBER_ID",
+            "column": "member_id"
+          },
+          {
+            "type": "MEMBER_ID",
+            "column": "created_by"
+          }
+        ]
+      },
+      "gdprDeletion": {
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "member_id",
+            "strategy": "RETAIN",
+            "reason": "A request for signatures outlasts the deletion of the member it is about until its retain_until, then the retention sweep deletes it with its fields and evidence; the foreign key unlinks the deleted member, the name copied when it was made stays",
+            "legalBasis": "GDPR Art. 17(3)(e): kept as evidence for the establishment, exercise or defence of legal claims"
+          },
+          {
+            "column": "created_by",
+            "strategy": "NULL",
+            "reason": "FK ON DELETE SET NULL keeps the request, who asked for the signatures unlinked"
+          }
+        ]
+      },
+      "description": "Signatures asked for on one generated document: the document as it was frozen, whom it is about and whether it still waits for signatures. The fields to sign are in signing_request_field. Kept after the member leaves or is deleted until retain_until, then deleted by a daily sweep with its evidence."
+    },
+    "signing_request_field": {
+      "tableHash": "sha256:d7caa5aa1e61b6d3148f20f1e7997e814d8a1747015a1d5f0019f93fe16033db",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Primary key."
+        },
+        {
+          "name": "request_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The signing request the field belongs to."
+        },
+        {
+          "name": "field_name",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The name of the signature field in the document, which says who signs it: participant, guardian1, guardian2 and further guardians by place, anyGuardian or issuer."
+        },
+        {
+          "name": "role",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "Who signs: PARTICIPANT the member the document is about, GUARDIAN the guardian at the place the field name gives, ANY_GUARDIAN any one guardian of the member, ISSUER whoever issues the document."
+        },
+        {
+          "name": "member_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The member the document is about, copied from the request so the field is part of that member's data. NULL once that member was deleted."
+        },
+        {
+          "name": "signer_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The member who must sign: the member themselves, the guardian at that place, or the issuer. NULL for a field any guardian may sign, where nobody held the place when the request was made, and once that member was deleted; such a field can still be confirmed on paper or waived."
+        },
+        {
+          "name": "signer_name",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "The official name of the member who must sign, as it was when the request was made. NULL where nobody is named."
+        },
+        {
+          "name": "capacity",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "In what capacity the field is signed: ACCOUNT_HOLDER by the signer with their own account, GUARDIAN by a guardian on behalf of the member, MEMBER_THROUGH_ACCOUNT by a member without a login of their own through a guardian's account."
+        },
+        {
+          "name": "statement",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The statement the signer confirms, exactly as it is shown to them, such as a guardian's declaration that they hold custody of the member."
+        },
+        {
+          "name": "state",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "OPEN while it waits for a signature, SIGNED once a signing act filled it (its evidence is in signing_evidence), PAPER_CONFIRMED when a manager confirmed a signature on paper, WAIVED when a manager let it go, WITHDRAWN when the signature is no longer asked for."
+        },
+        {
+          "name": "settled_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When the field stopped being open. NULL while it is open."
+        },
+        {
+          "name": "settled_by",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The member who settled the field: the manager who confirmed, waived or withdrew it, or the member whose account confirmed the signature. NULL while it is open, where nobody did, and once they are gone."
+        },
+        {
+          "name": "settled_by_name",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "The official name of the member who settled the field, as it was then, kept once they are gone. NULL while it is open and where nobody settled it."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "member_id",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
+        {
+          "column": "request_id",
+          "refTable": "signing_request",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "settled_by",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
+        {
+          "column": "signer_id",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED",
+        "rationale": "Moves with its signing request; the members it names follow to their new ids."
+      },
+      "gdprExport": {
+        "status": "TRACKED",
+        "identityColumns": [
+          {
+            "type": "MEMBER_ID",
+            "column": "member_id"
+          },
+          {
+            "type": "MEMBER_ID",
+            "column": "signer_id"
+          },
+          {
+            "type": "MEMBER_ID",
+            "column": "settled_by"
+          }
+        ]
+      },
+      "gdprDeletion": {
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "member_id",
+            "strategy": "RETAIN",
+            "reason": "A signature field outlasts the deletion of the member the document is about until its request's retain_until, then the retention sweep deletes it; the foreign key unlinks the deleted member",
+            "legalBasis": "GDPR Art. 17(3)(e): kept as evidence for the establishment, exercise or defence of legal claims"
+          },
+          {
+            "column": "signer_id",
+            "strategy": "RETAIN",
+            "reason": "Who was asked to sign outlasts the deletion of the signer until the request's retain_until, then the retention sweep deletes it; the foreign key unlinks the deleted member, the name copied when it was asked stays",
+            "legalBasis": "GDPR Art. 17(3)(e): kept as evidence for the establishment, exercise or defence of legal claims"
+          },
+          {
+            "column": "settled_by",
+            "strategy": "RETAIN",
+            "reason": "Who confirmed a paper signature, waived or withdrew a field is part of the record until the request's retain_until, then the retention sweep deletes it; the foreign key unlinks the deleted member, the name copied then stays",
+            "legalBasis": "GDPR Art. 17(3)(e): kept as evidence for the establishment, exercise or defence of legal claims"
+          }
+        ]
+      },
+      "description": "One signature field of a signing request and who must sign it, resolved from the field's role when the request was made: the member, a guardian at a place in the member's order, any of the member's guardians, or the issuer. Every field is required; the request is complete once none is open."
     },
     "station": {
       "feature": "station",
@@ -27453,7 +28114,7 @@
           {
             "column": "member_id",
             "strategy": "RETAIN",
-            "reason": "A sealed document outlasts the deletion of the members it is about, under their departed name, with every version; only deleting the station removes its files",
+            "reason": "A sealed document outlasts the deletion of the members it is about, under their departed name, with every version; only deleting the station removes its files, or the signature retention sweep once the retention of the signatures on it is over",
             "legalBasis": "GDPR Art. 17(3)(e): kept as evidence for the establishment, exercise or defence of legal claims"
           }
         ]

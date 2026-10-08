@@ -122,4 +122,18 @@ export default {
     'D-139':
         'Der Passkey oder Sicherheitsschlüssel hat nicht geprüft, wer ihn hält, deshalb kann er keine Unterschrift bestätigen',
     'D-140': 'Die Bestätigung des Passkeys oder Sicherheitsschlüssels ließ sich nicht prüfen',
+    'D-141': 'Unter dieser Adresse gibt es hier keine Bitte um Unterschriften',
+    'D-142': 'Das Dokument bittet in diesem Feld um keine Unterschrift',
+    'D-143': 'Dieses Unterschriftsfeld wartet auf keine Unterschrift mehr',
+    'D-144': 'Dieses Unterschriftsfeld ist nicht von dir zu unterschreiben',
+    'D-145': 'Die Unterschrift wurde für ein anderes Dokument oder eine andere Erklärung gegeben als die erbetene',
+    'D-146': 'Unter dieser Adresse gibt es hier kein erstelltes Dokument',
+    'D-147': 'Das erstellte Dokument ist nicht mehr abgelegt, deshalb lässt sich um keine Unterschrift bitten',
+    'D-148': 'Das abgelegte Dokument ist nicht mehr das, das erstellt wurde',
+    'D-149': 'Das Dokument hat keine Unterschriftsfelder',
+    'D-150': 'Für dieses Dokument wird bereits um Unterschriften gebeten',
+    'D-151': 'Das Mitglied, um das es im Dokument geht, ist nicht mehr hier, deshalb lässt sich um keine Unterschrift bitten',
+    'D-152': 'Diese Bitte um Unterschriften wartet auf keine Unterschrift mehr',
+    'D-153': 'Diese Bitte um Unterschriften wurde zurückgezogen oder ersetzt',
+    'D-154': 'Ein berichtigtes Dokument muss dasselbe Mitglied betreffen wie das, das es ersetzt',
 }

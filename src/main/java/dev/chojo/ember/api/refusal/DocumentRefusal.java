@@ -433,7 +433,57 @@ public enum DocumentRefusal implements Refusal {
 
     /** A passkey or security key answer that does not verify against a credential of the account. */
     SIGNING_ASSERTION_INVALID(
-            140, HttpStatus.BAD_REQUEST, "The confirmation of the passkey or security key could not be verified");
+            140, HttpStatus.BAD_REQUEST, "The confirmation of the passkey or security key could not be verified"),
+
+    /** A request for signatures that does not exist at this station. */
+    SIGNING_REQUEST_NOT_FOUND(141, HttpStatus.NOT_FOUND, "No request for signatures exists here under that address"),
+
+    /** A signature field the request does not ask to be signed. */
+    SIGNING_FIELD_NOT_FOUND(142, HttpStatus.NOT_FOUND, "The document asks for no signature in that field"),
+
+    /** A signature field that was already signed, confirmed, waived or withdrawn. */
+    SIGNING_FIELD_NOT_OPEN(143, HttpStatus.CONFLICT, "This signature field no longer waits for a signature"),
+
+    /** A signature for a field that is not the signer's to sign, or not in the way it was given. */
+    SIGNING_FIELD_NOT_YOURS(144, HttpStatus.FORBIDDEN, "This signature field is not yours to sign"),
+
+    /** A signature given on other content or another statement than the request asks for. */
+    SIGNING_CONTENT_DIFFERS(
+            145,
+            HttpStatus.CONFLICT,
+            "The signature was given on another document or another statement than the one asked for"),
+
+    /** Signatures asked for on a generated document that does not exist at this station. */
+    SIGNING_GENERATION_NOT_FOUND(146, HttpStatus.NOT_FOUND, "No generated document exists here under that address"),
+
+    /** Signatures asked for on a generated document that is no longer filed. */
+    SIGNING_DOCUMENT_NOT_FILED(
+            147, HttpStatus.CONFLICT, "The generated document is no longer filed, so no signatures can be asked for"),
+
+    /** Signatures asked for on a filed document whose file is no longer the generated one. */
+    SIGNING_DOCUMENT_CHANGED(148, HttpStatus.CONFLICT, "The filed document is no longer the one that was generated"),
+
+    /** Signatures asked for on a document without a signature field. */
+    SIGNING_NO_FIELDS(149, HttpStatus.CONFLICT, "The document has no signature fields to sign"),
+
+    /** Signatures asked for twice on one generated document. */
+    SIGNING_ALREADY_REQUESTED(150, HttpStatus.CONFLICT, "Signatures are already asked for on this document"),
+
+    /** Signatures asked for on a document about a member who left or was deleted. */
+    SIGNING_MEMBER_GONE(
+            151,
+            HttpStatus.CONFLICT,
+            "The member the document is about is no longer here, so no signatures can be asked for"),
+
+    /** A request for signatures withdrawn while it no longer waits for any. */
+    SIGNING_REQUEST_NOT_OPEN(152, HttpStatus.CONFLICT, "This request for signatures no longer waits for signatures"),
+
+    /** A request for signatures corrected after it was withdrawn or already replaced. */
+    SIGNING_REQUEST_ENDED(153, HttpStatus.CONFLICT, "This request for signatures was withdrawn or replaced"),
+
+    /** A corrected document about another member than the one it is to replace. */
+    SIGNING_CORRECTION_OTHER_MEMBER(
+            154, HttpStatus.CONFLICT, "A corrected document must be about the same member as the one it replaces");
 
     private final Definition definition;
 

@@ -1,0 +1,140 @@
+/*
+ *     SPDX-License-Identifier: AGPL-3.0-only
+ *
+ *     Copyright (C) RainbowDashLabs and Contributor
+ */
+package dev.chojo.ember.feature.signing.repository;
+
+import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
+import de.chojo.sadu.queries.api.call.Call;
+import dev.chojo.ember.feature.signing.entity.GuardianLink;
+import dev.chojo.ember.feature.signing.entity.SignatureLevel;
+import dev.chojo.ember.feature.signing.entity.SignerEntry;
+import dev.chojo.ember.feature.signing.entity.SigningEvidence;
+import dev.chojo.ember.feature.signing.entity.StoredEvidence;
+import dev.chojo.ember.util.sql.SqlSupport;
+import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
+
+import java.util.HexFormat;
+import java.util.List;
+
+import static de.chojo.sadu.queries.api.call.Call.call;
+import static de.chojo.sadu.queries.api.query.Query.query;
+import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
+
+/**
+ * The evidence of signing acts, one record per signed field, stored as the provider handed it over.
+ */
+@Singleton
+public class SigningEvidenceRepository {
+
+    /**
+     * Stores the evidence of the act that filled a field.
+     *
+     * @param fieldId         the field the act filled
+     * @param level           the legal level the signature reached
+     * @param evidence        the act and its proof
+     * @param accountMemberId the member at the station whose account confirmed
+     * @param memberId        the member signed for or signing through the account, or null
+     * @param guardianLink    the guardian link the act went through, or null
+     * @return the evidence as stored
+     */
+    public StoredEvidence record(
+            int fieldId,
+            SignatureLevel level,
+            SigningEvidence evidence,
+            int accountMemberId,
+            @Nullable Integer memberId,
+            @Nullable GuardianLink guardianLink) {
+        var act = evidence.act();
+        var call = call().bind("field_id", fieldId)
+                .bind("signature_level", level)
+                .bind("proof", evidence.proof())
+                .bind("bound", evidence.boundToDocument())
+                .bind("capacity", act.signer().capacity())
+                .bind("challenge_account_id", act.signer().accountId())
+                .bind("challenge_member_id", act.signer().memberId())
+                .bind("account_member_id", accountMemberId)
+                .bind("member_id", memberId)
+                .bind("account_holder_name", act.accountHolderName())
+                .bind("member_name", act.memberName())
+                .bind("field_name", act.fieldName())
+                .bind("statement", act.statement())
+                .bind("content_hash", HexFormat.of().formatHex(act.contentSha256()))
+                .bind(
+                        "entry_fields",
+                        act.entries().stream().map(SignerEntry::field).toList(),
+                        PostgreSqlTypes.TEXT)
+                .bind(
+                        "entry_values",
+                        act.entries().stream().map(SignerEntry::value).toList(),
+                        PostgreSqlTypes.TEXT)
+                .bind("nonce", act.nonce())
+                .bind("signed_at", act.signedAt(), INSTANT_TIMESTAMP)
+                .bind("truncated_ip", act.truncatedIp())
+                .bind("user_agent", act.userAgent());
+        bindGuardianLink(call, guardianLink);
+        bindWebAuthn(call, evidence instanceof SigningEvidence.WebAuthnBound bound ? bound : null);
+        int id = SqlSupport.insertReturning("""
+                        INSERT INTO signing_evidence(field_id, signature_level, proof, bound, capacity,
+                                                     challenge_account_id, challenge_member_id, account_member_id,
+                                                     member_id, account_holder_name, member_name, guardian_position,
+                                                     guardian_linked_at, guardian_linked_by_name, field_name,
+                                                     statement, content_sha256, entry_fields, entry_values, nonce,
+                                                     signed_at, truncated_ip, user_agent, relying_party_id,
+                                                     challenge, credential_id, credential_public_key,
+                                                     client_data_json, authenticator_data, signature, user_verified,
+                                                     signature_count)
+                        VALUES (:field_id, :signature_level, :proof, :bound, :capacity, :challenge_account_id,
+                                :challenge_member_id, :account_member_id, :member_id, :account_holder_name,
+                                :member_name, :guardian_position, :guardian_linked_at, :guardian_linked_by_name,
+                                :field_name, :statement, :content_hash, :entry_fields, :entry_values, :nonce,
+                                :signed_at, :truncated_ip, :user_agent, :relying_party_id, :challenge,
+                                :credential_id, :credential_public_key, :client_data_json, :authenticator_data,
+                                :signature, :user_verified, :signature_count)
+                        RETURNING id;""", call, row -> row.getInt("id"));
+        return query("""
+                        SELECT %s
+                        FROM signing_evidence e
+                                 JOIN signing_request_field f ON f.id = e.field_id
+                                 JOIN signing_request r ON r.id = f.request_id
+                        WHERE e.id = :id;""", StoredEvidence.COLUMNS)
+                .single(call().bind("id", id))
+                .map(StoredEvidence.map())
+                .first()
+                .orElseThrow();
+    }
+
+    /** @return the evidence of every act on the fields of a request, in the order the fields were asked for */
+    public List<StoredEvidence> evidenceOf(int requestId) {
+        return query("""
+                        SELECT %s
+                        FROM signing_evidence e
+                                 JOIN signing_request_field f ON f.id = e.field_id
+                                 JOIN signing_request r ON r.id = f.request_id
+                        WHERE r.id = :request_id
+                        ORDER BY f.id;""", StoredEvidence.COLUMNS)
+                .single(call().bind("request_id", requestId))
+                .map(StoredEvidence.map())
+                .all();
+    }
+
+    private static void bindGuardianLink(Call call, @Nullable GuardianLink link) {
+        call.bind("guardian_position", link == null ? null : link.position())
+                .bind("guardian_linked_at", link == null ? null : link.linkedAt(), INSTANT_TIMESTAMP)
+                .bind("guardian_linked_by_name", link == null ? null : link.linkedByName());
+    }
+
+    private static void bindWebAuthn(Call call, SigningEvidence.@Nullable WebAuthnBound bound) {
+        call.bind("relying_party_id", bound == null ? null : bound.relyingPartyId())
+                .bind("challenge", bound == null ? null : bound.challenge())
+                .bind("credential_id", bound == null ? null : bound.credentialId())
+                .bind("credential_public_key", bound == null ? null : bound.credentialPublicKeyCose())
+                .bind("client_data_json", bound == null ? null : bound.clientDataJson())
+                .bind("authenticator_data", bound == null ? null : bound.authenticatorData())
+                .bind("signature", bound == null ? null : bound.signature())
+                .bind("user_verified", bound == null ? null : bound.userVerified())
+                .bind("signature_count", bound == null ? null : bound.signatureCount());
+    }
+}

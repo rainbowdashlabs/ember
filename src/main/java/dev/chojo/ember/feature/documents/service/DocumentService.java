@@ -265,6 +265,23 @@ public class DocumentService {
     }
 
     /**
+     * Removes the files of a sealed document whose row is already gone: the sealed files no other version
+     * names any more, and the picture of its tile.
+     *
+     * @param document the sealed document that was deleted
+     * @param sha256s  the hashes of its versions
+     */
+    void deleteSealedFiles(Document document, List<String> sha256s) {
+        var scope = scope(document.stationId());
+        for (String sha256 : sha256s) {
+            if (versions.firstWithHash(sha256).isEmpty()) {
+                storage.deletePrefix(scope, StorageCategory.MEMBER_DOCUMENTS, sealedKey(sha256));
+            }
+        }
+        storage.deletePrefix(scope, StorageCategory.MEMBER_DOCUMENTS, thumbnailKey(document.id()));
+    }
+
+    /**
      * Records what the document says, so it can be searched for rather than scrolled to. A file
      * nothing can be read out of is still findable by its title.
      */
