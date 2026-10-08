@@ -39926,6 +39926,63 @@
         }
       }
     },
+    "/api/v1/signing/fields/{fieldId}" : {
+      "get" : {
+        "summary" : "One signature field waiting for the reader, with how they would sign it",
+        "tags" : [ "Signing" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OpenSignatureResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "fieldId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
     "/api/v1/signing/fields/{fieldId}/complete" : {
       "post" : {
         "summary" : "Confirm a started signing act",
@@ -40010,6 +40067,56 @@
             }
           }
         }
+      }
+    },
+    "/api/v1/signing/fields/{fieldId}/document" : {
+      "get" : {
+        "summary" : "The document a field asks the reader to sign, exactly as it was frozen",
+        "tags" : [ "Signing" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "fieldId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
       }
     },
     "/api/v1/signing/fields/{fieldId}/start" : {
@@ -63375,6 +63482,9 @@
             "type" : [ "integer", "null" ],
             "format" : "int32"
           },
+          "documentTitle" : {
+            "type" : [ "string", "null" ]
+          },
           "memberName" : {
             "type" : "string"
           },
@@ -63398,7 +63508,7 @@
             "type" : "string"
           }
         },
-        "required" : [ "fieldId", "requestUid", "documentId", "memberName", "fieldName", "role", "capacity", "memberId", "signerName", "statement" ]
+        "required" : [ "fieldId", "requestUid", "documentId", "documentTitle", "memberName", "fieldName", "role", "capacity", "memberId", "signerName", "statement" ]
       },
       "Option" : {
         "type" : "object",
@@ -69014,9 +69124,15 @@
             "items" : {
               "$ref" : "#/components/schemas/RegistrationUpdateItem"
             }
+          },
+          "pendingSignatures" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/SignatureItem"
+            }
           }
         },
-        "required" : [ "forcedForms", "forcedQuizzes", "profileIncomplete", "selfChecks", "registrationUpdates" ]
+        "required" : [ "forcedForms", "forcedQuizzes", "profileIncomplete", "selfChecks", "registrationUpdates", "pendingSignatures" ]
       },
       "ResetPasswordRequest" : {
         "type" : "object",
@@ -71863,6 +71979,22 @@
             "$ref" : "#/components/schemas/SignatureRole"
           }
         }
+      },
+      "SignatureItem" : {
+        "type" : "object",
+        "properties" : {
+          "fieldId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "documentTitle" : {
+            "type" : [ "string", "null" ]
+          },
+          "memberName" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "fieldId", "documentTitle", "memberName" ]
       },
       "SignatureRole" : {
         "type" : "string",

@@ -1113,6 +1113,39 @@ volumes:
             exampleQuiz: 'Grundwissen Brandschutz',
             exampleEvent: 'Sommerfest',
             exampleEventText: 'Der Termin am 15.08.2026 stellt eine neue Frage. Deine Anmeldung braucht dafür noch eine Antwort.',
+            signaturesText: 'Dokumente unterschreiben - Wartet ein Dokument auf deine Unterschrift, führt dich die Karte direkt '
+                + 'zum Unterschreiben. Als Erziehungsberechtigter siehst du hier auch die Dokumente der Mitglieder, für die du '
+                + 'unterschreibst oder die über dein Konto unterschreiben.',
+            exampleSignature: 'Einverständnis Zeltlager',
+        },
+        signing: {
+            title: 'Dokument unterschreiben',
+            subtitle: 'Ein Dokument lesen, die Erklärung bestätigen und mit einem Nachweis unterschreiben.',
+            whatIs: 'Was passiert auf dieser Seite?',
+            whatIsText: 'Hier unterschreibst du ein Dokument, das die Wache für dich oder für ein Mitglied in deiner Obhut erstellt hat. '
+                + 'Die Unterschrift ist eine einfache elektronische Signatur: Ember hält fest, wer wann welche Erklärung zu genau diesem Dokument abgegeben hat.',
+            reachText: 'Du kommst über die offenen Aufgaben hierher, oder über einen Link, der dich um eine Unterschrift bittet.',
+            steps: 'Drei Schritte',
+            stepRead: '1. Dokument lesen - Die Seite zeigt genau die Datei, die du unterschreibst. Du kannst sie auch speichern oder im PDF-Betrachter deines Browsers öffnen.',
+            stepConfirm: '2. Erklärung bestätigen - Lies die Erklärung und setze den Haken, wenn du sie abgibst. Erst dann geht es weiter.',
+            stepProve: '3. Unterschrift bestätigen - Bestätige mit einem Nachweis aus deinem Konto. Erst damit ist das Dokument unterschrieben.',
+            exampleTitle: 'Einverständnis Zeltlager',
+            exampleChild: 'Mia Beispiel',
+            exampleGuardian: 'Jana Beispiel',
+            exampleStatement: 'Ich bin erziehungsberechtigt und bin einverstanden, dass Mia am Zeltlager teilnimmt.',
+            proofs: 'Welche Nachweise gibt es?',
+            proofsBound: 'Ein Passkey oder Sicherheitsschlüssel bindet die Bestätigung an genau dieses Dokument. Das ist der stärkste Nachweis.',
+            proofsUnbound: 'Ohne Passkey geht es mit dem Code aus deiner Authenticator-App. Hat dein Konto keinen zweiten Faktor, '
+                + 'reicht dein Passwort. Beides wird festgehalten, ist aber nicht an das Dokument selbst gebunden.',
+            proofsNever: 'Backup-Codes und die Bestätigung auf einem anderen Gerät gelten beim Unterschreiben nicht, denn das andere Gerät zeigt das Dokument nicht.',
+            forOthers: 'Für andere unterschreiben',
+            forOthersGuardian: 'Als Erziehungsberechtigter unterschreibst du in deinem eigenen Feld für das Mitglied in deiner Obhut.',
+            forOthersThrough: 'Hat ein Kind kein eigenes Konto, unterschreibt es sein eigenes Feld über dein Konto: Es liest und setzt den Haken auf deinem Gerät, danach bestätigst du mit deinem Nachweis.',
+            access: 'Mit Tastatur und Screenreader',
+            accessText: 'Jeder Schritt hat eine eigene Überschrift und ist mit der Tastatur erreichbar. Die Vorschau des Dokuments ist ein Bild, '
+                + 'deshalb gibt es daneben Speichern und Öffnen im PDF-Betrachter, wo ein Screenreader den Text vorlesen kann. '
+                + 'Was sich ändert, wird angesagt, und nach jedem Schritt springt der Fokus zum nächsten.',
+            tip: 'Ein angefangener Unterschriftsversuch gilt fünf Minuten. Dauert es länger oder war ein Code falsch, beginnt Ember beim nächsten Versuch von selbst neu. Du gibst dann nur den Nachweis noch einmal.',
         },
         newsList: {
             federatedTitle: 'Neuigkeiten von Partnerwachen',

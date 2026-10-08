@@ -133,7 +133,12 @@ function highlightSnippet(result: (typeof searchResults.value)[number]): string 
     </SidebarGroup>
 
     <SidebarGroup :icon="['fas', 'clipboard-check']" :label="t('sidebar.requirements')"
-                  to="/helpcenter/station/requirements" name="help-station-requirements" @navigate="close"/>
+                  to="/helpcenter/station/requirements" name="help-station-requirements" @navigate="close">
+      <SidebarLink :icon="['fas', 'file-signature']" name="help-station-signing"
+                   to="/helpcenter/station/signing/0" @navigate="close">
+        {{ t('helpCenter.signing.title') }}
+      </SidebarLink>
+    </SidebarGroup>
 
     <SidebarGroup :icon="['fas', 'newspaper']" :label="t('sidebar.news')"
                   to="/helpcenter/station/news" name="help-news-module-overview" @navigate="close">

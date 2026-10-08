@@ -177,12 +177,23 @@ public class SignatureRequestService {
      */
     public List<OpenSignature> openFor(StationSession session) {
         int me = session.member().id();
-        var wards = guardianPolicy.wards(session.user()).stream()
-                .map(StationMember::id)
-                .toList();
-        return requests.pendingFor(session.stationId(), me, wards).stream()
+        return pendingFor(session.stationId(), me).stream()
                 .map(pending -> new OpenSignature(pending, signerFor(pending, me, session.accountId())))
                 .toList();
+    }
+
+    /**
+     * The same open signature fields as {@link #openFor}, for a caller that knows the member but holds no
+     * session of theirs, such as the list of what a member still owes.
+     *
+     * @param stationId the station
+     * @param memberId  the member
+     * @return the fields they sign or lend their account to, oldest request first
+     */
+    public List<PendingSignature> pendingFor(int stationId, int memberId) {
+        var wards =
+                guardianPolicy.wardsOf(memberId).stream().map(StationMember::id).toList();
+        return requests.pendingFor(stationId, memberId, wards);
     }
 
     /**

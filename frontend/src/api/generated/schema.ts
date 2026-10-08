@@ -52592,6 +52592,71 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/signing/fields/{fieldId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One signature field waiting for the reader, with how they would sign it */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    fieldId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OpenSignatureResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/signing/fields/{fieldId}/complete": {
         parameters: {
             query?: never;
@@ -52673,6 +52738,69 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/signing/fields/{fieldId}/document": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The document a field asks the reader to sign, exactly as it was frozen */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    fieldId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -64920,6 +65048,7 @@ export interface components {
             capacity: components["schemas"]["SignerCapacity"];
             /** Format: int32 */
             documentId: number | null;
+            documentTitle: string | null;
             /** Format: int32 */
             fieldId: number;
             fieldName: string;
@@ -66836,6 +66965,7 @@ export interface components {
         RequirementsResponse: {
             forcedForms: components["schemas"]["RequirementItem"][];
             forcedQuizzes: components["schemas"]["RequirementItem"][];
+            pendingSignatures: components["schemas"]["SignatureItem"][];
             profileIncomplete: boolean;
             registrationUpdates: components["schemas"]["RegistrationUpdateItem"][];
             selfChecks: components["schemas"]["SelfCheckItem"][];
@@ -67754,6 +67884,12 @@ export interface components {
         };
         SignatureConfig: {
             signer?: components["schemas"]["SignatureRole"];
+        };
+        SignatureItem: {
+            documentTitle: string | null;
+            /** Format: int32 */
+            fieldId: number;
+            memberName: string | null;
         };
         /** @enum {string} */
         SignatureRole: "PARTICIPANT" | "GUARDIAN_1" | "GUARDIAN_2" | "EACH_GUARDIAN" | "ANY_GUARDIAN" | "ISSUER";
@@ -70887,6 +71023,7 @@ export type ShareScope = components['schemas']['ShareScope'];
 export type ShareSetting = components['schemas']['ShareSetting'];
 export type SidebarCounts = components['schemas']['SidebarCounts'];
 export type SignatureConfig = components['schemas']['SignatureConfig'];
+export type SignatureItem = components['schemas']['SignatureItem'];
 export type SignatureRole = components['schemas']['SignatureRole'];
 export type SignerCapacity = components['schemas']['SignerCapacity'];
 export type SignerEntryDraft = components['schemas']['SignerEntryDraft'];

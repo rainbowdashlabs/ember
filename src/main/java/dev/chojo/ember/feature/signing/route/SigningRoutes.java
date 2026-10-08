@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.signing.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
+import dev.chojo.ember.api.FileResponse;
 import dev.chojo.ember.api.RateLimits;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
@@ -48,6 +49,9 @@ import static dev.chojo.ember.api.RouteSupport.pathInt;
  * A member's own signing acts at their station: the fields they are asked to sign, at home and for the
  * members in their care, and the two halves of the act on one field.
  *
+ * <p>A field waiting for the reader can be read on its own, with the document it asks them to sign served
+ * exactly as the request froze it, so the signing screen shows the bytes the act binds to and nothing else.
+ *
  * <p>Starting an act keeps it on the server and answers what the signer confirms: the statement, the
  * official names, the hash of the document and the proofs they may give, with the passkey or security key
  * request built around the act's challenge. Completing it takes the token of the start and one proof. The
@@ -56,6 +60,8 @@ import static dev.chojo.ember.api.RouteSupport.pathInt;
  */
 @Singleton
 public class SigningRoutes implements Routes {
+    private static final String PDF = "application/pdf";
+
     private final SigningActService acts;
     private final SignatureRequestService requests;
     private final AuthRateLimiter rateLimiter;
@@ -70,6 +76,8 @@ public class SigningRoutes implements Routes {
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         routes.get(prefix + "/signing/open", this::open, StationPermission.LOGIN);
+        routes.get(prefix + "/signing/fields/{fieldId}", this::field, StationPermission.LOGIN);
+        routes.get(prefix + "/signing/fields/{fieldId}/document", this::document, StationPermission.LOGIN);
         routes.post(prefix + "/signing/fields/{fieldId}/start", this::start, StationPermission.LOGIN);
         routes.post(prefix + "/signing/fields/{fieldId}/complete", this::complete, StationPermission.LOGIN);
     }
@@ -86,6 +94,41 @@ public class SigningRoutes implements Routes {
         ctx.json(requests.openFor(session).stream()
                 .map(OpenSignatureResponse::of)
                 .toList());
+    }
+
+    @OpenApi(
+            path = "/api/v1/signing/fields/{fieldId}",
+            methods = HttpMethod.GET,
+            summary = "One signature field waiting for the reader, with how they would sign it",
+            tags = {"Signing"},
+            pathParams = @OpenApiParam(name = "fieldId", type = Integer.class, required = true),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = OpenSignatureResponse.class)),
+                @OpenApiResponse(status = "403", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "409", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void field(Context ctx) {
+        var session = StationSession.from(ctx);
+        ctx.json(OpenSignatureResponse.of(acts.requireOwnedField(session, pathInt(ctx, "fieldId"))));
+    }
+
+    @OpenApi(
+            path = "/api/v1/signing/fields/{fieldId}/document",
+            methods = HttpMethod.GET,
+            summary = "The document a field asks the reader to sign, exactly as it was frozen",
+            tags = {"Signing"},
+            pathParams = @OpenApiParam(name = "fieldId", type = Integer.class, required = true),
+            responses = {
+                @OpenApiResponse(status = "200"),
+                @OpenApiResponse(status = "403", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "409", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void document(Context ctx) {
+        var session = StationSession.from(ctx);
+        var document = acts.requireOwnedFieldDocument(session, pathInt(ctx, "fieldId"));
+        FileResponse.send(ctx, PDF, document.fileName(), document.pdf());
     }
 
     @OpenApi(
@@ -154,22 +197,24 @@ public class SigningRoutes implements Routes {
     /**
      * A signature field waiting for the reader.
      *
-     * @param fieldId     the field
-     * @param requestUid  the request it belongs to
-     * @param documentId  the member document it is on, or null once that was deleted
-     * @param memberName  the official name of the member the document is about
-     * @param fieldName   the field's name in the document
-     * @param role        who the field asks for
-     * @param capacity    in what capacity the reader would sign it
-     * @param memberId    the member the reader signs for or lets sign through their account, or null where
-     *                    they sign for themselves
-     * @param signerName  the official name of the person the field names, or null where it names nobody
-     * @param statement   the statement the signer confirms
+     * @param fieldId       the field
+     * @param requestUid    the request it belongs to
+     * @param documentId    the member document it is on, or null once that was deleted
+     * @param documentTitle the title the document is filed under, or null once it was deleted
+     * @param memberName    the official name of the member the document is about
+     * @param fieldName     the field's name in the document
+     * @param role          who the field asks for
+     * @param capacity      in what capacity the reader would sign it
+     * @param memberId      the member the reader signs for or lets sign through their account, or null
+     *                      where they sign for themselves
+     * @param signerName    the official name of the person the field names, or null where it names nobody
+     * @param statement     the statement the signer confirms
      */
     public record OpenSignatureResponse(
             int fieldId,
             UUID requestUid,
             @Nullable Integer documentId,
+            @Nullable String documentTitle,
             String memberName,
             String fieldName,
             FieldRole role,
@@ -184,6 +229,7 @@ public class SigningRoutes implements Routes {
                     field.id(),
                     pending.requestUid(),
                     pending.documentId(),
+                    pending.documentTitle(),
                     pending.memberName(),
                     field.fieldName(),
                     field.role(),

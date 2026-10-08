@@ -253,9 +253,11 @@ public class SignatureRequestRepository {
      */
     public List<PendingSignature> pendingFor(int stationId, int memberId, List<Integer> wardIds) {
         return query("""
-                        SELECT %s, r.uid AS request_uid, r.document_id, r.member_name AS request_member_name
+                        SELECT %s, r.uid AS request_uid, r.document_id, r.member_name AS request_member_name,
+                               d.title AS document_title
                         FROM signing_request_field f
                                  JOIN signing_request r ON r.id = f.request_id
+                                 LEFT JOIN member_document d ON d.id = r.document_id
                         WHERE r.station_id = :station_id
                           AND r.state = 'OPEN'
                           AND f.state = 'OPEN'
@@ -280,9 +282,11 @@ public class SignatureRequestRepository {
      */
     public Optional<PendingSignature> findField(int stationId, int fieldId) {
         return query("""
-                        SELECT %s, r.uid AS request_uid, r.document_id, r.member_name AS request_member_name
+                        SELECT %s, r.uid AS request_uid, r.document_id, r.member_name AS request_member_name,
+                               d.title AS document_title
                         FROM signing_request_field f
                                  JOIN signing_request r ON r.id = f.request_id
+                                 LEFT JOIN member_document d ON d.id = r.document_id
                         WHERE r.station_id = :station_id
                           AND f.id = :field_id;""", SqlSupport.alias("f", RequestedSignature.COLUMNS))
                 .single(call().bind("station_id", stationId).bind("field_id", fieldId))

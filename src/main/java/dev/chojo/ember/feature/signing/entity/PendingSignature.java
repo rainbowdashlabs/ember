@@ -15,20 +15,29 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.UUID_STRING
 /**
  * An open signature field together with the document it is on.
  *
- * @param requestUid the request it belongs to
- * @param documentId the member document it is on, or null once that was deleted
- * @param memberName the official name of the member the document is about
- * @param field      the field
+ * @param requestUid    the request it belongs to
+ * @param documentId    the member document it is on, or null once that was deleted
+ * @param documentTitle the title the document is filed under, or null once it was deleted
+ * @param memberName    the official name of the member the document is about
+ * @param field         the field
  */
 public record PendingSignature(
-        UUID requestUid, @Nullable Integer documentId, String memberName, RequestedSignature field) {
+        UUID requestUid,
+        @Nullable Integer documentId,
+        @Nullable String documentTitle,
+        String memberName,
+        RequestedSignature field) {
 
-    /** Maps a field row joined with its request's {@code request_uid}, {@code document_id} and {@code request_member_name}. */
+    /**
+     * Maps a field row joined with its request's {@code request_uid}, {@code document_id} and
+     * {@code request_member_name}, and its document's {@code document_title}.
+     */
     public static RowMapping<PendingSignature> map() {
         RowMapping<RequestedSignature> field = RequestedSignature.map();
         return row -> new PendingSignature(
                 row.get("request_uid", UUID_STRING),
                 row.getObject("document_id", Integer.class),
+                row.getString("document_title"),
                 row.getString("request_member_name"),
                 field.map(row));
     }

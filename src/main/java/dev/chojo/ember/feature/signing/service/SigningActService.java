@@ -8,8 +8,11 @@ package dev.chojo.ember.feature.signing.service;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.feature.account.service.AuthService;
+import dev.chojo.ember.feature.documents.entity.Document;
 import dev.chojo.ember.feature.documents.repository.DocumentRepository;
+import dev.chojo.ember.feature.documents.service.DocumentDoor;
 import dev.chojo.ember.feature.documents.service.DocumentService;
+import dev.chojo.ember.feature.signing.entity.DocumentToSign;
 import dev.chojo.ember.feature.signing.entity.FieldState;
 import dev.chojo.ember.feature.signing.entity.OpenSignature;
 import dev.chojo.ember.feature.signing.entity.ParkedSigningStart;
@@ -28,6 +31,7 @@ import dev.chojo.ember.feature.signing.entity.SigningStart;
 import dev.chojo.ember.feature.signing.repository.SignatureRequestRepository;
 import dev.chojo.ember.feature.twofactor.entity.StepUpProof;
 import dev.chojo.ember.feature.twofactor.service.TwoFactorService;
+import dev.chojo.ember.util.Sha256;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -118,6 +122,26 @@ public class SigningActService {
     }
 
     /**
+     * The document a field asks the caller to sign, exactly as the request froze it, for reading before
+     * the act. Served only while the field waits for the caller, so it shows nobody a document they could
+     * not sign, and refused once the filed bytes are no longer the frozen ones, so what is read is what the
+     * act binds to.
+     *
+     * @param session the signer
+     * @param fieldId the field
+     * @return the document's file name and bytes
+     */
+    public DocumentToSign requireOwnedFieldDocument(StationSession session, int fieldId) {
+        PendingSignature pending = requireOwnedField(session, fieldId).pending();
+        Document document = filedDocument(pending);
+        byte[] content = documentService
+                .open(document, DocumentDoor.STATION)
+                .orElseThrow(DocumentRefusal.SIGNING_DOCUMENT_GONE::raise);
+        requireFrozen(session, pending, content);
+        return new DocumentToSign(document.fileName(), content);
+    }
+
+    /**
      * Starts the caller's signing act on a field.
      *
      * @param session the signer
@@ -191,13 +215,10 @@ public class SigningActService {
     /** The request to sign, with the document as it is filed, which has to be the one the request froze. */
     private SigningRequest rebuild(
             StationSession session, PendingSignature pending, Signer signer, List<SignerEntry> entries) {
-        var frozen = requestService.requestAt(session, pending.requestUid());
-        Integer documentId = pending.documentId();
-        var document =
-                documentId == null ? null : documents.findById(documentId).orElse(null);
-        if (document == null) throw DocumentRefusal.SIGNING_DOCUMENT_GONE.raise();
-        byte[] content = documentService.read(document).orElseThrow(DocumentRefusal.SIGNING_DOCUMENT_GONE::raise);
-        var request = new SigningRequest(
+        byte[] content =
+                documentService.read(filedDocument(pending)).orElseThrow(DocumentRefusal.SIGNING_DOCUMENT_GONE::raise);
+        requireFrozen(session, pending, content);
+        return new SigningRequest(
                 pending.requestUid(),
                 session.stationId(),
                 content,
@@ -205,10 +226,21 @@ public class SigningActService {
                 signer,
                 pending.field().fieldName(),
                 entries);
-        if (!HexFormat.of().formatHex(request.contentSha256()).equals(frozen.contentSha256())) {
+    }
+
+    /** The member document a field is on, which has to still be filed. */
+    private Document filedDocument(PendingSignature pending) {
+        Integer documentId = pending.documentId();
+        if (documentId == null) throw DocumentRefusal.SIGNING_DOCUMENT_GONE.raise();
+        return documents.findById(documentId).orElseThrow(DocumentRefusal.SIGNING_DOCUMENT_GONE::raise);
+    }
+
+    /** Refuses content that is not the one the field's request froze. */
+    private void requireFrozen(StationSession session, PendingSignature pending, byte[] content) {
+        var frozen = requestService.requestAt(session, pending.requestUid());
+        if (!Sha256.hex(content).equals(frozen.contentSha256())) {
             throw DocumentRefusal.SIGNING_DOCUMENT_CHANGED.raise();
         }
-        return request;
     }
 
     /** The confirmation the provider checks, after checking a code or password here. */

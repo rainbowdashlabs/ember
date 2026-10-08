@@ -88,6 +88,7 @@ import dev.chojo.ember.owner.Owner;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import dev.chojo.ember.util.Sha256;
 import io.javalin.testtools.HttpClient;
+import io.javalin.testtools.Request;
 import io.javalin.testtools.Response;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
@@ -102,7 +103,11 @@ import tools.jackson.databind.node.JsonNodeFactory;
 import tools.jackson.databind.node.ObjectNode;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.lang.reflect.Field;
+import java.net.URI;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.file.Path;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
@@ -116,6 +121,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
@@ -140,8 +146,9 @@ import static org.mockito.Mockito.when;
  * passkey or security key answer binds the act and is kept as it came, a code or password confirms it
  * unbound, the proofs signing never takes are refused, a start is spent once and only by the account that
  * made it, a field is signed only by those it asks for, a guardian signs for a child and lends the child
- * their account, and wrong codes count toward the step-up limit. Sealing is a stand-in; it has tests of
- * its own.
+ * their account, and wrong codes count toward the step-up limit. A field and its document are read only
+ * by those it asks while it waits, and the document comes as the request froze it. Sealing is a
+ * stand-in; it has tests of its own.
  */
 class SigningRoutesTest extends RepositoryTestBase {
     private static final String RIGHT_CODE = "424242";
@@ -499,6 +506,71 @@ class SigningRoutesTest extends RepositoryTestBase {
     }
 
     @Test
+    void theSignerReadsTheFieldAndExactlyTheFrozenDocument() throws IOException {
+        var signer = member("Lea", "Leserin", true);
+        var request = ask(signer, SignatureRole.PARTICIPANT);
+        int fieldId = fieldOf(request);
+
+        harness.run((server, client) -> {
+            var asSigner = harness.as(signedIn(signer, StationPermission.LOGIN));
+            JsonNode field = json(client.get(fieldPath(fieldId), asSigner));
+            assertEquals(fieldId, field.path("fieldId").asInt());
+            assertEquals("Einverstaendnis", field.path("documentTitle").asString());
+            assertEquals(
+                    memberNameResolver.official(signer.id()),
+                    field.path("memberName").asString());
+            assertEquals("PARTICIPANT", field.path("role").asString());
+            assertEquals("ACCOUNT_HOLDER", field.path("capacity").asString());
+            assertEquals(
+                    requestRepo.fieldsOf(request.id()).getFirst().statement(),
+                    field.path("statement").asString());
+
+            HttpResponse<byte[]> document = fetchBytes(server.port(), fieldPath(fieldId) + "/document", asSigner);
+            assertEquals(200, document.statusCode());
+            assertTrue(
+                    document.headers().firstValue("Content-Type").orElseThrow().startsWith("application/pdf"));
+            assertTrue(document.headers()
+                    .firstValue("Content-Disposition")
+                    .orElseThrow()
+                    .startsWith("inline"));
+            assertEquals(request.contentSha256(), Sha256.hex(document.body()));
+
+            assertEquals(
+                    "Einverstaendnis",
+                    json(client.get(PREFIX + "/signing/open", asSigner))
+                            .get(0)
+                            .path("documentTitle")
+                            .asString());
+        });
+    }
+
+    @Test
+    void theFieldAndItsDocumentAreReadOnlyByThoseItAsksForWhileItWaits() throws IOException {
+        var owner = member("Olga", "Offen", true);
+        var stranger = member("Siggi", "Seitlich", true);
+        enrolAuthenticatorApp(owner.accountId());
+        var request = ask(owner, SignatureRole.PARTICIPANT);
+        int fieldId = fieldOf(request);
+
+        harness.run((server, client) -> {
+            var asStranger = harness.as(signedIn(stranger, StationPermission.LOGIN));
+            assertRefused(DocumentRefusal.SIGNING_FIELD_NOT_YOURS, client.get(fieldPath(fieldId), asStranger));
+            assertRefused(
+                    DocumentRefusal.SIGNING_FIELD_NOT_YOURS, client.get(fieldPath(fieldId) + "/document", asStranger));
+            assertRefused(
+                    DocumentRefusal.SIGNING_FIELD_NOT_FOUND, client.get(fieldPath(Integer.MAX_VALUE), asStranger));
+
+            complete(client, owner, fieldId, start(client, owner, fieldId, null), "TOTP", null, RIGHT_CODE);
+
+            var asOwner = harness.as(signedIn(owner, StationPermission.LOGIN));
+            assertRefused(DocumentRefusal.SIGNING_FIELD_NOT_OPEN, client.get(fieldPath(fieldId), asOwner));
+            assertRefused(
+                    DocumentRefusal.SIGNING_FIELD_NOT_OPEN, client.get(fieldPath(fieldId) + "/document", asOwner));
+        });
+        assertEquals(FieldState.SIGNED, fieldState(request));
+    }
+
+    @Test
     void whatASignerTypesIsCheckedBeforeTheActStarts() throws IOException {
         var signer = member("Fritz", "Feld", true);
         accountRepo.createCredential(signer.accountId(), hasher.hash(PASSWORD));
@@ -674,7 +746,30 @@ class SigningRoutesTest extends RepositoryTestBase {
     }
 
     private static String startPath(int fieldId) {
-        return PREFIX + "/signing/fields/" + fieldId + "/start";
+        return fieldPath(fieldId) + "/start";
+    }
+
+    private static String fieldPath(int fieldId) {
+        return PREFIX + "/signing/fields/" + fieldId;
+    }
+
+    /**
+     * Sends a GET past the harness's client, which reads every body as text, so a PDF arrives byte for
+     * byte, with the headers the harness would send for the session.
+     */
+    private static HttpResponse<byte[]> fetchBytes(int port, String path, Consumer<Request.Builder> session) {
+        var decorated = new Request.Builder();
+        session.accept(decorated);
+        var request = HttpRequest.newBuilder(URI.create("http://localhost:" + port + path));
+        decorated.url("http://localhost").build().getHeaders().forEach(request::header);
+        try (var http = java.net.http.HttpClient.newHttpClient()) {
+            return http.send(request.build(), HttpResponse.BodyHandlers.ofByteArray());
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException(e);
+        }
     }
 
     private static SignatureRequest ask(StationMember member, SignatureRole... roles) throws IOException {
