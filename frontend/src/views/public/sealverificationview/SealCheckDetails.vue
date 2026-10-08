@@ -10,11 +10,14 @@ import CertificateFactsList from './CertificateFactsList.vue'
 import IndicationText from './IndicationText.vue'
 import TimestampDetails from './TimestampDetails.vue'
 import type {SealCheck} from '@/api/generated/schema'
+import {isLongTerm} from './sealVerdict'
 
 /**
  * The technical side of one seal, closed until asked for: both verdicts under their ETSI names, the
- * baseline level, whether the signed span reaches the end of the file, the certificates with their
- * fingerprints, and each timestamp inside the seal.
+ * baseline level, whether the signed span reaches the end of the file and whether the file was changed
+ * after sealing, the certificates with their fingerprints, and each timestamp inside the seal. Why a
+ * seal does not reach the end of the file is explained only for the levels that add validation material
+ * after the seal, the one case where that is expected.
  */
 defineProps<{
   check: SealCheck
@@ -44,8 +47,12 @@ function yesNo(value: boolean): string {
         <dd>{{ yesNo(check.intact) }}</dd>
         <dt class="text-(--text-muted)">{{ t('sealVerification.details.coversWholeFile') }}</dt>
         <dd>{{ yesNo(check.coversWholeFile) }}</dd>
+        <dt class="text-(--text-muted)">{{ t('sealVerification.details.modifiedAfterSealing') }}</dt>
+        <dd data-testid="seal-modified-after-sealing">{{ yesNo(check.modifiedAfterSealing) }}</dd>
       </dl>
-      <MutedText tag="p">{{ t('sealVerification.details.coversWholeFileHint') }}</MutedText>
+      <MutedText v-if="isLongTerm(check)" tag="p" data-testid="seal-long-term-hint">
+        {{ t('sealVerification.details.coversWholeFileHint') }}
+      </MutedText>
       <CertificateFactsList :label="t('sealVerification.details.signer')" :certificate="check.signer"/>
       <CertificateFactsList :label="t('sealVerification.details.issuer')" :certificate="check.issuer"/>
       <TimestampDetails v-for="(stamp, index) in check.timestamps" :key="index" :stamp="stamp"/>

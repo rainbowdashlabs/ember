@@ -35,6 +35,11 @@ Wachen erstellen aus eigenen Vorlagen und denen ihres Verbands Dokumente für ih
 - **Ausrüstung von anderen Installationen steht in der Liste.** Ausrüstung, die eine Partnerwache auf einer anderen Installation verleiht, steht jetzt nach der Übergabe bei der ausgeliehenen Ausrüstung und verschwindet bei der Rückgabe wieder. Beide Installationen brauchen dafür diese Version.
 - **Partner leihen weiter bei einer umgezogenen Wache.** Zieht eine Wache auf eine andere Installation um, erreichen die Wachen, die sie zurücklässt, sie dort als Partner auf einer anderen Installation. Ihre Leihanfragen und ihre verliehene und ausgeliehene Ausrüstung bleiben bei ihnen und gehen wie gewohnt zurück.
 
+### Sicherheit
+
+- **Ein Import bleibt bei der importierten Wache.** In manchen Fällen konnte ein Import einer Wache von einer anderen Installation Leihanfragen und Nachrichten an andere Wachen dieser Installation hängen oder ein Mitglied allein über den Namen mit dem Konto einer anderen Person verbinden. Ein Import erreicht jetzt nur die importierte Wache, ihre Partner und Konten, die er über E-Mail-Adresse oder Kontokennung findet.
+- **Importierte Passwörter gelten nur für neue Konten.** Ein Import einer Wache konnte einem Konto dieser Installation ohne Passwort eines setzen, wenn er dessen E-Mail-Adresse nannte. Passwörter aus einem Import erhalten jetzt nur die Konten, die dieser Import anlegt.
+
 ### Änderungen
 
 - **Dokumente haben ein eigenes Menü.** In der Seitenleiste gibt es die Gruppe Dokumente mit Meine Dokumente, der Ablage, den Vorlagen, den erstellten Dokumenten und den Schriftarten, wobei Ablage, Vorlagen und Schriftarten bisher unter Mitglieder lagen. Alte Adressen und die Links in früheren Benachrichtigungen führen auf die neuen Seiten.
@@ -51,6 +56,8 @@ Wachen erstellen aus eigenen Vorlagen und denen ihres Verbands Dokumente für ih
 - **Die Mitgliederliste in Sichtbarkeitsfiltern war abgeschnitten.** Wo eine Einschränkung von Sichtbarkeit oder Zugriff eine Auswahl von Mitgliedern anbietet, öffnete sich die Liste nur so breit wie ihr Knopf, sodass Suche und Namen nicht zu lesen waren. Jetzt öffnet sie sich breit genug für die Namen und bleibt im Fenster.
 - **Vorschaubilder von PDFs waren verpixelt.** Die kleinen Bilder von PDFs in der Mediathek, bei Dokumenten von Mitgliedern und bei Anhängen von Terminen waren so grob, dass ihr Text nicht zu lesen war. Jetzt werden sie feiner gezeichnet und in der Größe ihrer Kachel gezeigt.
 - **Beim Umzug einer Wache gingen Dateien und Einstellungen verloren.** Nach dem Umzug einer Wache auf eine andere Installation zeigten ihre Dateien mitunter den Inhalt eines anderen Eintrags oder gar keinen, und manchmal schlug der Umzug fehl. Auch Gruppenberechtigungen, der Zugriff auf Ordner im Wiki, Einschränkungen und Vorgaben nach Mitgliedstyp, gespeicherte Filter, Antworten auf Anmeldefragen, Inventar des Verbands, verliehene und ausgeliehene Ausrüstung samt ihren Leihanfragen, Ergebnisse von Inventarprüfungen, für Termine eingeplante Ausrüstung und Teile des Verlaufs der Profiländerungen konnten fehlen; jetzt kommt alles mit der Wache an, und Dokumente behalten Vorschaubild, Tags und Mitglieder.
+- **Ein fehlgeschlagener Import löschte die Wache, in die er lief.** Schlug der Import von Daten einer anderen Wache in eine bestehende Wache fehl, wurde die bestehende Wache mit allem gelöscht, was sie enthielt. Jetzt bleibt die Wache mit allem bestehen, was sie enthielt.
+- **Beim Umzug einer Wache fehlten Einträge oder kamen doppelt an.** In manchen Fällen ließ der Umzug einer Wache mit vielen Einträgen einige davon aus und brachte andere zweimal. Jetzt kommt jeder Eintrag genau einmal an.
 
 ## v26.21.0
 

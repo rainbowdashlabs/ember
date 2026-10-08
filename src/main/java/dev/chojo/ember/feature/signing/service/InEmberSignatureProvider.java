@@ -46,10 +46,12 @@ import java.util.Set;
  * ({@link CredentialKeyStamps#forSigning}), and when no timestamp service answers the act still goes through
  * and its evidence records the key as not stamped.
  *
- * <p><b>Sealing.</b> For now the frozen content is sealed as it is, with the station's key, and the
- * evidence is returned beside it; the signer's mark and typed values are not drawn into the document yet.
- * Filling the signer's field and signing it incrementally replaces that inside {@link #complete} without
- * changing what it takes or returns.
+ * <p><b>Sealing.</b> {@link #complete} seals the frozen content as it is, with the station's key, and
+ * returns the evidence beside it; the signer's mark and typed values are not drawn into the document. No
+ * signing state is ever signed onto the one before: each is a fresh document, built from the frozen
+ * content with a signature record page and the evidence attached ({@link SigningStateAssembler}), and
+ * sealed on its own, so the latest version carries every act so far and the earlier ones stay valid as
+ * they are. {@link #complete} does not seal such a state yet.
  */
 @Singleton
 public class InEmberSignatureProvider implements SignatureProvider {
@@ -113,7 +115,7 @@ public class InEmberSignatureProvider implements SignatureProvider {
                     case WebAuthnAssertion assertion -> bound(request, assertion);
                     case StepUpPassed passed -> unbound(request, passed);
                 };
-        // TODO draw the signer's mark and typed values into their field and sign that field incrementally
+        // TODO seal the state SigningStateAssembler builds, mark drawn in, instead of the bare content
         SealingKey key = keys.forStation(request.stationId());
         SealedDocument sealed = sealer.seal(request.contentPdf(), key.privateKey(), key.chain());
         return new SignedDocument(sealed, level(), evidence);

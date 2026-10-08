@@ -120,6 +120,10 @@ public class SignatureRequestService {
         }
         int by = session.member().id();
         var created = Transactions.call(() -> {
+            var held = requests.lockRequest(old.id()).orElseThrow(DocumentRefusal.SIGNING_REQUEST_NOT_FOUND::raise);
+            if (held.state() == RequestState.SUPERSEDED || held.state() == RequestState.WITHDRAWN) {
+                throw DocumentRefusal.SIGNING_REQUEST_ENDED.raise();
+            }
             var replacement = create(session, generation, statements);
             requests.withdrawOpen(old.id(), by, names.official(by));
             requests.supersede(old.id(), replacement.id());
@@ -143,6 +147,8 @@ public class SignatureRequestService {
         if (!request.open()) throw DocumentRefusal.SIGNING_REQUEST_NOT_OPEN.raise();
         int by = session.member().id();
         Transactions.run(() -> {
+            var held = requests.lockRequest(request.id()).orElseThrow(DocumentRefusal.SIGNING_REQUEST_NOT_FOUND::raise);
+            if (!held.open()) throw DocumentRefusal.SIGNING_REQUEST_NOT_OPEN.raise();
             requests.withdrawOpen(request.id(), by, names.official(by));
             requests.closeIfSettled(request.id());
         });

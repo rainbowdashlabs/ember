@@ -18,27 +18,32 @@ import dev.chojo.ember.repository.RepositoryTestBase;
 import eu.europa.esig.dss.enumerations.Indication;
 import eu.europa.esig.dss.enumerations.SignatureLevel;
 import eu.europa.esig.dss.enumerations.SubIndication;
+import eu.europa.esig.dss.validation.reports.Reports;
 import io.javalin.http.UploadedFile;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.Semaphore;
 import java.util.stream.Collectors;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * What the route tests do not reach: the names the validator's results are mapped by, uploads that never
- * arrive whole, and an authority whose key no longer opens.
+ * arrive whole, an authority whose key no longer opens, the slots that bound how many checks run at once,
+ * and a validator that fails in a way it does not refuse itself.
  */
 class SealVerifierTest extends RepositoryTestBase {
     private static final String SECRET = Base64.getEncoder().encodeToString(new byte[32]);
@@ -109,6 +114,65 @@ class SealVerifierTest extends RepositoryTestBase {
         assertEquals(RevocationStatus.UNKNOWN, check.revocation().status());
         assertEquals(ValidationIndication.INDETERMINATE, check.indication());
         stationRepo.delete(station.id());
+    }
+
+    @Test
+    void aCheckWaitsForAFreeSlotAndIsRefusedAsBusyWhenNoneComes() throws Exception {
+        var station = stationRepo.create("Busy check station " + System.nanoTime());
+        var sealed = SealedPdfs.sealedWith(signingKeys.forStation(station.id()));
+        var slots = new Semaphore(1);
+        var busy = verifierWith(slots, Duration.ZERO);
+
+        slots.acquire();
+        assertRefused(DocumentRefusal.SEAL_CHECKS_BUSY, () -> busy.verify(sealed));
+        slots.release();
+
+        assertTrue(busy.verify(sealed).signatures().getFirst().intact());
+        assertEquals(1, slots.availablePermits(), "the check gives its slot back");
+        stationRepo.delete(station.id());
+    }
+
+    @Test
+    void aFileTheValidatorFailsOnUnexpectedlyIsAnsweredAsNoPdfThatCanBeRead() throws Exception {
+        var slots = new Semaphore(1);
+        var failing =
+                new SealVerifier(
+                        repository,
+                        new StationKeyRevocations(repository, new RevocationLists(), wrap),
+                        new SealedVersionRepository(),
+                        List.of(),
+                        slots,
+                        Duration.ZERO) {
+                    @Override
+                    Reports validate(byte[] pdf, List<Authority> authorities) {
+                        throw new ArrayIndexOutOfBoundsException("a reader of a broken file");
+                    }
+                };
+
+        assertRefused(DocumentRefusal.SEAL_CHECK_NOT_A_PDF, () -> failing.verify(SealedPdfs.onePagePdf()));
+        assertEquals(1, slots.availablePermits(), "a refused check gives its slot back too");
+    }
+
+    @Test
+    void aSealedFileIsNotModifiedAfterSealing() throws Exception {
+        var station = stationRepo.create("Unmodified station " + System.nanoTime());
+        var sealed = SealedPdfs.sealedWith(signingKeys.forStation(station.id()));
+
+        var check = verifier.verify(sealed).signatures().getFirst();
+
+        assertFalse(check.modifiedAfterSealing());
+        assertTrue(check.coversWholeFile());
+        stationRepo.delete(station.id());
+    }
+
+    private SealVerifier verifierWith(Semaphore slots, Duration queueTime) {
+        return new SealVerifier(
+                repository,
+                new StationKeyRevocations(repository, new RevocationLists(), wrap),
+                new SealedVersionRepository(),
+                List.of(),
+                slots,
+                queueTime);
     }
 
     private static void assertRefused(DocumentRefusal refusal, Executable call) {

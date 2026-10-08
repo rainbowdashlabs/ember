@@ -11,6 +11,8 @@ import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.TestUploads;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.RefusalResponse;
+import dev.chojo.ember.api.refusal.StationRefusal;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.event.DomainEventBus;
@@ -161,6 +163,7 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -467,6 +470,66 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
 
         var second = client.send(HttpRequest.newBuilder(uri).GET().build(), HttpResponse.BodyHandlers.ofString());
         assertEquals(410, second.statusCode());
+    }
+
+    /**
+     * An import into a station that was here before fails halfway, here because the one-shot backend
+     * descriptor was already spent. The station stays with everything it had, and the failed import
+     * cannot be retried, since a retry starts by deleting the station of the failed run.
+     */
+    @Test
+    void aFailedImportIntoAStationLeavesThatStationStanding() throws Exception {
+        Station source = stationRepo.create("Source FAILING INTO");
+        memberGroupRepo.create(source.id(), "Mitgebracht");
+        Station target = stationRepo.create("Target FAILING INTO");
+        memberGroupRepo.create(target.id(), "Schon da");
+        String token = rawToken(exportService.createTransferToken(source.id()));
+        spendBackendDescriptor(token);
+
+        importService.startRemoteImportInto(target.id(), baseUrl, token);
+        var failed = waitForFailure(target.id());
+
+        assertEquals(ImportProgress.Target.EXISTING_STATION, failed.target());
+        assertTrue(stationRepo.findById(target.id()).isPresent(), "the station that was here stays");
+        assertTrue(
+                memberGroupRepo.findByStation(target.id()).stream().anyMatch(group -> "Schon da".equals(group.name())));
+        var refusal = assertThrows(RefusalResponse.class, () -> importService.retryFailedImport(failed.stationUid()));
+        assertEquals(StationRefusal.STATION_IMPORT_INTO_NOT_RETRIED, refusal.refusal());
+        assertTrue(stationRepo.findById(target.id()).isPresent());
+    }
+
+    /** A failed import that made its station takes that station away again, as before. */
+    @Test
+    void aFailedImportTakesAwayTheStationItMade() throws Exception {
+        Station source = stationRepo.create("Source FAILING NEW");
+        String token = rawToken(exportService.createTransferToken(source.id()));
+        spendBackendDescriptor(token);
+
+        var started = importService.startRemoteImport(baseUrl, token);
+        var failed = waitForFailure(started.stationId());
+
+        assertEquals(ImportProgress.Target.NEW_STATION, failed.target());
+        assertTrue(stationRepo.findById(started.stationId()).isEmpty());
+    }
+
+    private static void spendBackendDescriptor(String token) throws Exception {
+        var uri = URI.create(baseUrl + "/api/v1/public/transfer/" + token + "/backend");
+        var spent = HttpClient.newHttpClient()
+                .send(HttpRequest.newBuilder(uri).GET().build(), HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, spent.statusCode());
+    }
+
+    @SuppressWarnings("BusyWait")
+    private static ImportProgress waitForFailure(int stationId) throws InterruptedException {
+        long deadline = System.nanoTime() + Duration.ofSeconds(120).toNanos();
+        while (System.nanoTime() < deadline) {
+            ImportProgress progress = importService.getProgress(stationId);
+            assertNotNull(progress, "import progress disappeared");
+            if (progress.status() == ImportProgress.Status.FAILED) return progress;
+            assertNotEquals(ImportProgress.Status.COMPLETED, progress.status(), "the import was meant to fail");
+            Thread.sleep(50);
+        }
+        return fail("import for station " + stationId + " did not fail within two minutes");
     }
 
     /**
@@ -837,8 +900,8 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
     /**
      * Gear lent to a partner and gear borrowed from one move with the station and with their lending
      * requests. The partner is found again by its uid, here on the same database as the destination,
-     * and the request lines name the gear as it arrived; what the partner wrote and what names the
-     * partner's own gear stays with the partner.
+     * and the request lines name the gear as it arrived; the conversation moves whole, while the
+     * partner's member and what names the partner's own gear stay with the partner.
      */
     @Test
     void lentAndBorrowedGearArriveWithTheirLendingRequests() throws Exception {
@@ -873,6 +936,7 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
         lending.updateRequestStatus(lentOut.id(), LendingStatus.LENT);
         lending.createMessage(lentOut.id(), source.uid(), sourceMember.id(), "Liegt bereit", false);
         lending.createMessage(lentOut.id(), partner.uid(), partnerMember.id(), "Danke", false);
+        partnersOnTheDestination(partner, source);
         itemCustodyService.lendToPartner(lentItem, partner.id());
         borrowedGearService.handOver(
                 inventoryRepo.findItemById(lentItem).orElseThrow(), source.id(), source.uid(), partner.id(), lentLine);
@@ -928,12 +992,14 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
         assertEquals(LendingStatus.LENT, arrivedLentOut.status());
         assertEquals(partner.uid(), arrivedLentOut.requestingStationUid());
         assertNull(arrivedLentOut.createdBy(), "the partner's member who asked stays with the partner");
+        var arrivedMessages = lending.findMessagesByRequest(arrivedLentOut.id());
         assertEquals(
-                List.of("Liegt bereit"),
-                lending.findMessagesByRequest(arrivedLentOut.id()).stream()
-                        .map(LendingMessage::message)
-                        .toList(),
-                "only what the station wrote moves; the partner keeps its own messages");
+                List.of("Liegt bereit", "Danke"),
+                arrivedMessages.stream().map(LendingMessage::message).toList(),
+                "the whole conversation moves, the partner's messages included");
+        var partnersMessage = arrivedMessages.getLast();
+        assertEquals(partner.uid(), partnersMessage.senderStationUid());
+        assertNull(partnersMessage.senderMemberId(), "the partner's member stays with the partner");
 
         var arrivedBorrowed = inventoryRepo.findBorrowedItems(destinationId).getFirst();
         assertEquals("PA-7", arrivedBorrowed.item().internalId());
@@ -1081,6 +1147,17 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
         assertTrue(lendingService.markReturned(arrived.loanRequestId(), destinationId));
 
         assertEquals(List.of(), inventoryRepo.findBorrowedItems(destinationId), "the borrowed copy went home");
+    }
+
+    /**
+     * The partnership a partner on the destination keeps with the station moving there, under the uid
+     * the station arrives with, as the partner's own row names it on a database of its own.
+     */
+    private static void partnersOnTheDestination(Station partner, Station moving) {
+        var federation = new FederationRepository();
+        var row = federation.createPartner(
+                partner.id(), SeparateDatabaseExport.arrivingAs(moving.id()), null, null, null);
+        federation.activatePartner(row.id(), "key");
     }
 
     /** Hands one piece over from one station of this installation to another, as a loan. */
@@ -1249,7 +1326,7 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
         public Map<String, Object> exportTable(int stationId, String tableName, int offset, int limit) {
             var page = super.exportTable(stationId, tableName, offset, limit);
             String leaving = stationRepo.requireUid(stationId).toString();
-            UUID arriving = ARRIVING_AS.computeIfAbsent(stationId, id -> UUID.randomUUID());
+            UUID arriving = arrivingAs(stationId);
             if (page.get(tableName) instanceof Map<?, ?> single) {
                 renameStation((Map<String, Object>) single, leaving, arriving);
             }
@@ -1269,6 +1346,14 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
                 }
             }
             return page;
+        }
+
+        /**
+         * @param stationId a station on the source
+         * @return the uid it arrives under on the destination
+         */
+        static UUID arrivingAs(int stationId) {
+            return ARRIVING_AS.computeIfAbsent(stationId, id -> UUID.randomUUID());
         }
 
         private static void renameStation(Map<String, Object> row, String leaving, UUID arriving) {

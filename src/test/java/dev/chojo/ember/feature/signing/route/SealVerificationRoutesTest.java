@@ -28,12 +28,17 @@ import dev.chojo.ember.repository.RepositoryTestBase;
 import dev.chojo.ember.util.Sha256;
 import io.javalin.testtools.Request;
 import io.javalin.testtools.Response;
+import org.apache.pdfbox.Loader;
+import org.apache.pdfbox.pdmodel.common.PDRectangle;
+import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotationText;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.net.http.HttpRequest;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -57,9 +62,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Checking the seals of an uploaded PDF over HTTP, through the real services and the database: a
- * document a station sealed here, one changed afterwards, one sealed with a key revoked later, one sealed
- * by a stranger, one lifted to a timestamp later, an unsigned one, and the refusals for files that are no
- * PDF, too large or missing. No answer names the document or the people it concerns.
+ * document a station sealed here, one changed afterwards, one with a note added after sealing, one sealed
+ * with a key revoked later, one sealed by a stranger, one lifted to a timestamp later, an unsigned one, one
+ * sent in chunks, and the refusals for files that are no PDF, too large or missing. No answer names the
+ * document or the people it concerns.
  */
 class SealVerificationRoutesTest extends RepositoryTestBase {
     private static final String SECRET = Base64.getEncoder().encodeToString(new byte[32]);
@@ -304,6 +310,47 @@ class SealVerificationRoutesTest extends RepositoryTestBase {
     }
 
     @Test
+    void aFileSentInChunksWithoutALengthIsChecked() throws Exception {
+        byte[] unsigned = TestSealing.onePagePdf();
+        var answer =
+                harness.request(client -> client.request(VERIFY, TestUploads.chunkedMultipart(FILE_NAME, unsigned)));
+
+        var body = answer.body().string();
+        assertEquals(200, answer.code(), body);
+        assertEquals(0, RouteHarness.body(body).path("signatures").size());
+    }
+
+    @Test
+    void aFileSentInChunksIsRefusedAsSoonAsItGrowsPastTheLimit() {
+        var tooLarge = new byte[SealVerifier.MAX_BYTES + 2 * PublicSigningRoutes.FORM_ALLOWANCE_BYTES];
+        System.arraycopy("%PDF-".getBytes(StandardCharsets.US_ASCII), 0, tooLarge, 0, 5);
+
+        assertRefused(
+                harness.request(client -> client.request(VERIFY, TestUploads.chunkedMultipart(FILE_NAME, tooLarge))),
+                413,
+                DocumentRefusal.SEAL_CHECK_TOO_LARGE);
+    }
+
+    @Test
+    void aSealedDocumentChangedAfterwardsIsReportedModifiedAfterSealing() throws Exception {
+        var station = station("Annotated station");
+        var sealed = sealLongTerm(signingKeys.forStation(station.id())).pdf();
+        assertFalse(
+                json(verify(sealed))
+                        .path("signatures")
+                        .get(0)
+                        .path("modifiedAfterSealing")
+                        .asBoolean(),
+                "the validation material added after the seal is no change");
+
+        var seal = json(verify(annotatedAfterwards(sealed))).path("signatures").get(0);
+
+        assertTrue(seal.path("intact").asBoolean(), "the sealed revision itself is untouched");
+        assertTrue(seal.path("modifiedAfterSealing").asBoolean());
+        assertFalse(seal.path("coversWholeFile").asBoolean());
+    }
+
+    @Test
     void aRequestWithoutAFileIsRefused() {
         Consumer<Request.Builder> empty =
                 builder -> builder.header("Content-Type", "multipart/form-data; boundary=ember-test-boundary")
@@ -311,6 +358,23 @@ class SealVerificationRoutesTest extends RepositoryTestBase {
 
         assertRefused(
                 harness.request(client -> client.request(VERIFY, empty)), 400, DocumentRefusal.SEAL_CHECK_NO_FILE);
+    }
+
+    /** The file with a note put on its first page in a revision of its own, as a reader could add one. */
+    private static byte[] annotatedAfterwards(byte[] sealed) throws IOException {
+        try (var pdf = Loader.loadPDF(sealed)) {
+            var page = pdf.getPage(0);
+            var note = new PDAnnotationText();
+            note.setRectangle(new PDRectangle(20, 20, 40, 40));
+            note.setContents("Added after sealing");
+            var annotations = new ArrayList<>(page.getAnnotations());
+            annotations.add(note);
+            page.setAnnotations(annotations);
+            page.getCOSObject().setNeedToBeUpdated(true);
+            var out = new ByteArrayOutputStream();
+            pdf.saveIncremental(out);
+            return out.toByteArray();
+        }
     }
 
     private SealedDocument sealLongTerm(SealingKey key) throws Exception {

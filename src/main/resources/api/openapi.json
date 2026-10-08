@@ -56678,6 +56678,12 @@
           },
           "filter" : {
             "type" : "string"
+          },
+          "withheldColumns" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
           }
         },
         "required" : [ "type", "column" ]
@@ -70002,6 +70008,9 @@
           "coversWholeFile" : {
             "type" : "boolean"
           },
+          "modifiedAfterSealing" : {
+            "type" : "boolean"
+          },
           "revocation" : {
             "$ref" : "#/components/schemas/SignerRevocation"
           },
@@ -70012,7 +70021,7 @@
             }
           }
         },
-        "required" : [ "signer", "issuer", "issuedHere", "indication", "subIndication", "validatorIndication", "validatorSubIndication", "level", "signingTime", "intact", "coversWholeFile", "revocation", "timestamps" ]
+        "required" : [ "signer", "issuer", "issuedHere", "indication", "subIndication", "validatorIndication", "validatorSubIndication", "level", "signingTime", "intact", "coversWholeFile", "modifiedAfterSealing", "revocation", "timestamps" ]
       },
       "SealLevel" : {
         "type" : "string",

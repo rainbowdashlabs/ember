@@ -35,6 +35,11 @@ Stations turn their own templates and those of their association into documents 
 - **Borrowed gear from other installations is listed.** Gear borrowed from a partner station on another installation now appears among the borrowed gear once it is handed over, and leaves the list when it is given back. Both installations need this version for it.
 - **Partners keep lending with a station that moved.** When a station moves to another installation, the stations it leaves behind reach it there as a partner on another installation. Their lending requests and their lent and borrowed gear stay with them and are given back as before.
 
+### Security
+
+- **Imports stay with the imported station.** In some cases an import of a station from another installation could attach lending requests and messages to other stations of this installation, or link a member to another person's account by name alone. An import now reaches only the imported station, its partners and the accounts it finds by email address or account identifier.
+- **Imported passwords apply only to new accounts.** An import of a station could set a password on an account of this installation that had none, where the import named its email address. Passwords from an import now reach only the accounts that import creates.
+
 ### Changes
 
 - **Documents have their own menu.** The sidebar has a Documents group with My documents, the document store, templates, generated documents and fonts, where the store, templates and fonts used to sit under Members. Old addresses and the links in earlier notifications lead to the new pages.
@@ -51,6 +56,8 @@ Stations turn their own templates and those of their association into documents 
 - **The member list in visibility filters was cut off.** Where a visibility or access restriction offers a choice of members, the list opened only as wide as its button, so the search and the names could not be read. It now opens wide enough for the names and stays inside the window.
 - **Pictures of PDFs were blurry.** The small pictures of PDFs in the media library, among member documents and among event attachments were so coarse that their text could not be read. They are now drawn finer and shown at the size of their tile.
 - **Moving a station lost files and settings.** After a station moved to another installation, its files could show the content of another entry or none at all, and in some cases the move failed. Group permissions, access to wiki folders, restrictions and requirements by member type, saved filters, answers to registration questions, items owned by the association, lent and borrowed gear with its lending requests, results of inventory checks, gear planned for appointments and parts of the profile change history could also be missing; every file and setting now arrives with the station, and documents keep their pictures, tags and members.
+- **A failed import deleted the station it ran into.** When an import of another station's data into an existing station failed, the existing station was deleted with everything it held. The station now stays in place with everything it held.
+- **Moving a station skipped or doubled entries.** In some cases moving a station with many entries left some of them out and brought others twice. Every entry now arrives exactly once.
 
 ## v26.21.0
 

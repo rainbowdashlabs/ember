@@ -66,6 +66,7 @@ function exampleSeal(changes: Partial<SealCheck>): SealCheck {
     signingTime: '2026-10-05T09:12:03Z',
     intact: true,
     coversWholeFile: false,
+    modifiedAfterSealing: false,
     revocation: {status: RevocationStatus.GOOD, revokedAt: null, reason: null},
     timestamps: [TIMESTAMP],
     ...changes,
@@ -105,7 +106,9 @@ const HELD: HeldCopy = {held: true, sealedAt: '2026-10-05T09:12:03Z', sealLevel:
       <BulletList>
         <li>{{ t('helpCenter.basics.seals.resultSealedHere') }}</li>
         <li>{{ t('helpCenter.basics.seals.resultAltered') }}</li>
+        <li>{{ t('helpCenter.basics.seals.resultModifiedAfterSealing') }}</li>
         <li>{{ t('helpCenter.basics.seals.resultNotIssuedHere') }}</li>
+        <li>{{ t('helpCenter.basics.seals.resultInvalid') }}</li>
         <li>{{ t('helpCenter.basics.seals.resultUnclear') }}</li>
         <li>{{ t('helpCenter.basics.seals.resultNone') }}</li>
       </BulletList>

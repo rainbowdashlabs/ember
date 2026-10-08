@@ -77,4 +77,12 @@ class GlobalRateLimiterTest {
         }
         assertFalse(limiter.check("9.9.9.9", true).isEmpty());
     }
+
+    @Test
+    void generatingWithAiAndCheckingSealsAreTheExpensivePaths() {
+        assertTrue(GlobalRateLimiter.isExpensive("/api/v1/station/ai/quiz"));
+        assertTrue(GlobalRateLimiter.isExpensive("/api/v1/public/signing/verify"));
+        assertFalse(GlobalRateLimiter.isExpensive("/api/v1/public/signing/ca"));
+        assertFalse(GlobalRateLimiter.isExpensive("/api/v1/station/members"));
+    }
 }

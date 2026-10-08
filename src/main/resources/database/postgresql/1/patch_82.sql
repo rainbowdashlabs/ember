@@ -273,7 +273,7 @@ SET signature_retention_months = 48
 WHERE legal;
 
 COMMENT ON COLUMN ember_schema.document_template.signature_retention_months IS
-    'How many months the signatures asked for on a document of this template, their evidence and the signed document are kept after the member it is about has left or was deleted, as evidence for legal claims. NULL keeps them only while the member is a member. A legal template starts at 48 months: claims fall due within the three years of the regular limitation period, which runs from the end of the year they arose in.';
+    'How many months the signatures asked for on a document of this template, their evidence and the signed document are kept after the member it is about has left or was deleted, as evidence for legal claims. NULL keeps them while the member is a member and for 12 months after the member was archived; deleting the member ends that at once. A legal template starts at 48 months: claims fall due within the three years of the regular limitation period, which runs from the end of the year they arose in.';
 
 CREATE TABLE IF NOT EXISTS ember_schema.signing_request
 (
@@ -330,9 +330,9 @@ COMMENT ON COLUMN ember_schema.signing_request.state IS
 COMMENT ON COLUMN ember_schema.signing_request.superseded_by IS
     'The request for the corrected document that replaced this one. NULL where none did, or once that request was deleted.';
 COMMENT ON COLUMN ember_schema.signing_request.retention_months IS
-    'How many months the request, its evidence and the signed document are kept after the member is gone, copied from the template when the request was made. NULL keeps them only while the member is a member.';
+    'How many months the request, its evidence and the signed document are kept after the member is gone, copied from the template when the request was made. NULL keeps them while the member is a member and for 12 months after the member was archived; deleting the member ends that at once.';
 COMMENT ON COLUMN ember_schema.signing_request.retain_until IS
-    'Until when the request is kept, set once the member has left or was deleted: the leaving date plus retention_months. The daily sweep deletes it afterwards, with its evidence and a sealed document nothing else keeps. NULL while the member is a member.';
+    'Until when the request is kept, set once the member has left or was deleted: the leaving date plus retention_months, or plus 12 months for an archived member where retention_months is NULL. Deleting the member moves it to that moment where retention_months is NULL. The daily sweep deletes it afterwards, with its evidence and a sealed document nothing else keeps. NULL while the member is a member.';
 COMMENT ON COLUMN ember_schema.signing_request.created_at IS 'When the signatures were asked for.';
 COMMENT ON COLUMN ember_schema.signing_request.created_by IS
     'The member who asked for the signatures. NULL where nobody did, or once they are gone.';
@@ -551,11 +551,16 @@ SELECT EXISTS (SELECT 1
            AND NOT EXISTS (SELECT 1
                            FROM ember_schema.signing_request r
                            WHERE r.document_id = sealed_document_id
-                             AND (r.retain_until IS NULL OR r.retain_until > now()));
+                             AND (r.retain_until IS NULL OR r.retain_until > now()))
+           AND NOT EXISTS (SELECT 1
+                           FROM ember_schema.member_document_member m
+                                    JOIN ember_schema.station_member sm ON sm.id = m.member_id
+                           WHERE m.document_id = sealed_document_id
+                             AND NOT sm.former);
 $$;
 
 COMMENT ON FUNCTION ember_schema.member_document_retention_over(INTEGER)
-    IS 'Whether the signatures on a sealed member document no longer need keeping: some signing request on it has passed its retain_until and none still keeps it. Only then may the retention sweep delete the document while its station exists.';
+    IS 'Whether a sealed member document no longer needs keeping: some signing request on it has passed its retain_until, none still keeps it, and none of the members it is bound to is still a current member of the station. Only then may the retention sweep delete the document while its station exists.';
 
 COMMENT ON COLUMN ember_schema.webauthn_challenge.purpose IS
     'Which ceremony minted the challenge: REGISTRATION, SECOND_FACTOR_ASSERTION, PASSKEY_SIGN_IN, PASSKEY_TRIAL, STEPUP_ASSERTION, DEVICE_ENROLLMENT or SIGNING (a started signing act, spent once by its completion). A challenge is only spendable at the finish of its own ceremony.';
@@ -609,6 +614,9 @@ SET label = coalesce((SELECT a.name FROM ember_schema.inventory_art a WHERE a.id
                      (SELECT v.name FROM ember_schema.inventory v WHERE v.id = ri.inventory_id),
                      '')
 WHERE ri.label = '';
+
+COMMENT ON COLUMN ember_schema.federation_lending_message.sender_member_id
+    IS 'The member who sent the message, where that member is at a station of this installation. NULL for system messages, for a message from a station on another installation, for a partner''s message that arrived with a station moving here, and once the member is gone.';
 
 COMMENT ON COLUMN ember_schema.federation_lending_request_item.label
     IS 'What the line asks for, in words, as it was named when it was asked for: the kind of thing, the piece or the inventory it names, and on the copy of a request to a station on another installation, what the lending station called it. Kept when the gear it names is gone or on another installation, so the line still says what it was. Empty only where nothing named it.';

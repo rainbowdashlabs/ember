@@ -111,9 +111,11 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
+import java.util.OptionalLong;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
@@ -144,6 +146,8 @@ import static org.mockito.Mockito.when;
 class SigningRoutesTest extends RepositoryTestBase {
     private static final String RIGHT_CODE = "424242";
     private static final String WRONG_CODE = "111111";
+    private static final String DEVELOPMENT_CODE = "000000";
+    private static final String APP_SECRET = "JBSWY3DPEHPK3PXP";
     private static final String PASSWORD = "lang-und-geheim-genug";
     private static final SigningStatements STATEMENTS =
             new SigningStatements("Ich stimme zu.", "Ich bin erziehungsberechtigt und stimme zu.");
@@ -201,7 +205,10 @@ class SigningRoutesTest extends RepositoryTestBase {
         securityKeys = new WebAuthnService(parties, twoFactorRepo, audit, challenges, settings, keyStamps);
         passkeys = new PasskeyService(parties, twoFactorRepo, audit, challenges, settings, keyStamps);
         var totp = mock(TotpService.class);
-        when(totp.isDevCode(RIGHT_CODE)).thenReturn(true);
+        when(totp.isDevCode(DEVELOPMENT_CODE)).thenReturn(true);
+        when(totp.decryptSecret(any())).thenReturn(APP_SECRET);
+        var steps = new AtomicLong();
+        when(totp.matchStep(APP_SECRET, RIGHT_CODE)).thenAnswer(call -> OptionalLong.of(steps.incrementAndGet()));
         var twoFactor = new TwoFactorService(
                 twoFactorRepo,
                 totp,
@@ -318,7 +325,7 @@ class SigningRoutesTest extends RepositoryTestBase {
     @Test
     void anAuthenticatorCodeConfirmsTheActUnbound() throws IOException {
         var signer = member("Tina", "Code", true);
-        twoFactorRepo.createFactor(signer.accountId(), TwoFactorKind.TOTP, "App");
+        enrolAuthenticatorApp(signer.accountId());
         var request = ask(signer, SignatureRole.PARTICIPANT);
 
         harness.run((server, client) -> {
@@ -341,7 +348,7 @@ class SigningRoutesTest extends RepositoryTestBase {
         accountRepo.createCredential(plain.accountId(), hasher.hash(PASSWORD));
         var guarded = member("Gerd", "Gesichert", true);
         accountRepo.createCredential(guarded.accountId(), hasher.hash(PASSWORD));
-        twoFactorRepo.createFactor(guarded.accountId(), TwoFactorKind.TOTP, "App");
+        enrolAuthenticatorApp(guarded.accountId());
         var plainRequest = ask(plain, SignatureRole.PARTICIPANT);
         var guardedRequest = ask(guarded, SignatureRole.PARTICIPANT);
 
@@ -383,7 +390,7 @@ class SigningRoutesTest extends RepositoryTestBase {
     @Test
     void aBackupCodeAndAnotherDeviceNeverConfirmASignature() throws IOException {
         var signer = member("Bea", "Backup", true);
-        twoFactorRepo.createFactor(signer.accountId(), TwoFactorKind.TOTP, "App");
+        enrolAuthenticatorApp(signer.accountId());
         var codes = twoFactorRepo.createFactor(signer.accountId(), TwoFactorKind.BACKUP_CODES, "Codes");
         twoFactorRepo.createBackupCode(codes.id(), "code-hash");
         var request = ask(signer, SignatureRole.PARTICIPANT);
@@ -403,7 +410,7 @@ class SigningRoutesTest extends RepositoryTestBase {
     @Test
     void anExpiredStartCannotBeCompleted() throws IOException {
         var signer = member("Eva", "Spaet", true);
-        twoFactorRepo.createFactor(signer.accountId(), TwoFactorKind.TOTP, "App");
+        enrolAuthenticatorApp(signer.accountId());
         var request = ask(signer, SignatureRole.PARTICIPANT);
 
         harness.run((server, client) -> {
@@ -422,7 +429,7 @@ class SigningRoutesTest extends RepositoryTestBase {
     @Test
     void aStartIsSpentOnceWhetherItWasRefusedOrSigned() throws IOException {
         var signer = member("Rudi", "Einmal", true);
-        twoFactorRepo.createFactor(signer.accountId(), TwoFactorKind.TOTP, "App");
+        enrolAuthenticatorApp(signer.accountId());
         var request = ask(signer, SignatureRole.PARTICIPANT);
 
         harness.run((server, client) -> {
@@ -445,9 +452,9 @@ class SigningRoutesTest extends RepositoryTestBase {
     @Test
     void aStartCanOnlyBeCompletedByItsAccountAndForItsField() throws IOException {
         var owner = member("Olga", "Eigen", true);
-        twoFactorRepo.createFactor(owner.accountId(), TwoFactorKind.TOTP, "App");
+        enrolAuthenticatorApp(owner.accountId());
         var other = member("Otto", "Fremd", true);
-        twoFactorRepo.createFactor(other.accountId(), TwoFactorKind.TOTP, "App");
+        enrolAuthenticatorApp(other.accountId());
         var ownRequest = ask(owner, SignatureRole.PARTICIPANT);
         var otherRequest = ask(other, SignatureRole.PARTICIPANT);
 
@@ -562,7 +569,7 @@ class SigningRoutesTest extends RepositoryTestBase {
     @Test
     void wrongCodesCountTowardTheStepUpLimit() throws IOException {
         var signer = member("Gabi", "Grind", true);
-        twoFactorRepo.createFactor(signer.accountId(), TwoFactorKind.TOTP, "App");
+        enrolAuthenticatorApp(signer.accountId());
         var request = ask(signer, SignatureRole.PARTICIPANT);
 
         harness.run((server, client) -> {
@@ -590,6 +597,50 @@ class SigningRoutesTest extends RepositoryTestBase {
                             RIGHT_CODE));
         });
         assertEquals(FieldState.OPEN, fieldState(request));
+    }
+
+    @Test
+    void theDevelopmentCodeNeverConfirmsASignature() throws IOException {
+        var signer = member("Dev", "Kode", true);
+        enrolAuthenticatorApp(signer.accountId());
+        var request = ask(signer, SignatureRole.PARTICIPANT);
+
+        harness.run((server, client) -> assertRefused(
+                DocumentRefusal.SIGNING_CODE_WRONG,
+                complete(
+                        client,
+                        signer,
+                        fieldOf(request),
+                        start(client, signer, fieldOf(request), null),
+                        "TOTP",
+                        null,
+                        DEVELOPMENT_CODE)));
+        assertEquals(FieldState.OPEN, fieldState(request));
+        assertTrue(requestRepo.fieldsOf(request.id()).stream().noneMatch(field -> field.state() == FieldState.SIGNED));
+    }
+
+    @Test
+    void anAccountHoldsOnlySoManyUnfinishedStarts() throws IOException {
+        var signer = member("Sammy", "Sammler", true);
+        enrolAuthenticatorApp(signer.accountId());
+        var request = ask(signer, SignatureRole.PARTICIPANT);
+
+        harness.run((server, client) -> {
+            JsonNode last = null;
+            for (int started = 0; started < SigningStarts.MAX_OPEN_PER_ACCOUNT; started++) {
+                last = start(client, signer, fieldOf(request), null);
+            }
+            assertRefused(DocumentRefusal.SIGNING_STARTS_TOO_MANY, startRaw(client, signer, fieldOf(request), null));
+
+            complete(client, signer, fieldOf(request), last, "TOTP", null, WRONG_CODE);
+            assertEquals(200, startRaw(client, signer, fieldOf(request), null).code(), "a spent start frees its place");
+        });
+    }
+
+    /** An authenticator app on the account, whose current code the test's code service knows as the right one. */
+    private static void enrolAuthenticatorApp(int accountId) {
+        var factor = twoFactorRepo.createFactor(accountId, TwoFactorKind.TOTP, "App");
+        twoFactorRepo.createTotp(factor.id(), new byte[] {1}, (short) 1, (short) 6, (short) 30, "SHA1");
     }
 
     private JsonNode start(HttpClient client, StationMember signer, int fieldId, String entries) {

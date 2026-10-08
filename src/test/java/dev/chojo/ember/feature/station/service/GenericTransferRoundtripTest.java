@@ -270,6 +270,12 @@ class GenericTransferRoundtripTest extends RepositoryTestBase {
         lending.createMessage(request.id(), lender.uid(), null, "Liegt bereit", false);
         itemCustodyService.lendToPartner(radio.id(), partner.id());
         borrowedGearService.handOver(radio, lender.id(), lender.uid(), partner.id(), line);
+        var federation = new FederationRepository();
+        federation.activatePartner(
+                federation
+                        .createPartner(partner.id(), lender.uid(), null, null, "https://lender.example")
+                        .id(),
+                "key");
 
         Map<String, Object> bundle = collectBundle(lender.id());
         stationRepo.markMovedAway(lender.id(), "https://partner.example");

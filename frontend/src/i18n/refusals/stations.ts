@@ -93,4 +93,5 @@ export default {
     'S-071': 'Dieser Schritt hakt sich selbst ab, sobald er wirklich erledigt ist, es wurde nichts geändert',
     'S-072': MEMBER_NOT_HERE,
     'S-073': STATION_NOT_HERE,
+    'S-074': 'Ein Import in eine bestehende Wache lässt sich hier nicht wiederholen, weil dafür die Wache entfernt würde',
 }

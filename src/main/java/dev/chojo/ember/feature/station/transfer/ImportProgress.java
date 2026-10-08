@@ -11,6 +11,9 @@ import java.util.UUID;
 /**
  * Tracks the progress of an asynchronous station import. Volatile fields make the progress
  * readable from polling endpoints without locks.
+ *
+ * <p>It knows whether the import made its station or merges into one that was here before, since
+ * only a station the import made may be taken away again when it fails.
  */
 public class ImportProgress {
     private final int stationId;
@@ -19,6 +22,7 @@ public class ImportProgress {
     private final List<String> phases;
     private final String sourceUrl;
     private final String token;
+    private final Target target;
     private volatile Status status = Status.IN_PROGRESS;
     private volatile String currentPhase;
     private volatile int completedPhases;
@@ -27,13 +31,27 @@ public class ImportProgress {
     private volatile String error;
 
     public ImportProgress(
-            int stationId, UUID stationUid, String stationName, List<String> phases, String sourceUrl, String token) {
+            int stationId,
+            UUID stationUid,
+            String stationName,
+            List<String> phases,
+            String sourceUrl,
+            String token,
+            Target target) {
         this.stationId = stationId;
         this.stationUid = stationUid;
         this.stationName = stationName;
         this.phases = List.copyOf(phases);
         this.sourceUrl = sourceUrl;
         this.token = token;
+        this.target = target;
+    }
+
+    /**
+     * @return whether the import made its station or merges into one that was here before
+     */
+    public Target target() {
+        return target;
     }
 
     public UUID stationUid() {
@@ -116,5 +134,13 @@ public class ImportProgress {
         IN_PROGRESS,
         COMPLETED,
         FAILED
+    }
+
+    /** The station an import writes into. */
+    public enum Target {
+        /** A station the import made, which goes again when the import fails. */
+        NEW_STATION,
+        /** A station that was here before, which stays whatever happens to the import. */
+        EXISTING_STATION
     }
 }

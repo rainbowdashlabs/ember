@@ -62,23 +62,23 @@ public final class GenericTableImporter {
     }
 
     /**
-     * Looks up an id in {@code table} where {@code column = value}. Returns null when no row
-     * matches. Adds a {@code ::uuid} cast to the bound value whenever the target column type is
-     * declared as {@code uuid} in the tracking config - Postgres rejects a {@code uuid = text}
-     * comparison without the cast.
-     *
-     * <p>A station is only found while it runs here: the copy a station left behind when it moved to
-     * another installation carries the same uid and is not the station a row names.
+     * Looks up an id in {@code table} where {@code column = value}, among the rows the import may name
+     * ({@link ImportReach}). Returns null when no such row matches. Adds a {@code ::uuid} cast to the
+     * bound value whenever the target column type is declared as {@code uuid} in the tracking config -
+     * Postgres rejects a {@code uuid = text} comparison without the cast.
      */
-    private Integer resolveByColumn(String table, String column, Object value) {
+    private @Nullable Integer resolveByColumn(
+            String table, String column, Object value, int stationId, IdRemapper idMap) {
         String columnType = lookupColumnType(table, column);
         String cast = "uuid".equalsIgnoreCase(columnType) ? "::uuid" : "";
-        String runningHere = "station".equals(table) ? " AND moved_away_at IS NULL" : "";
-        return query("SELECT id FROM " + table + " WHERE " + column + " = :v" + cast + runningHere + " LIMIT 1;")
-                .single(call().bind("v", value == null ? null : value.toString()))
+        Integer found = query("SELECT t.id FROM " + table + " t WHERE t." + column + " = :v" + cast
+                        + ImportReach.condition(table) + " LIMIT 1;")
+                .single(ImportReach.bind(table, call().bind("v", value.toString()), stationId))
                 .map(row -> row.getInt("id"))
                 .first()
                 .orElse(null);
+        if (found == null || !ImportReach.mayName(table, found, stationId, idMap)) return null;
+        return found;
     }
 
     private @Nullable String lookupColumnType(String tableName, String columnName) {
@@ -454,7 +454,7 @@ public final class GenericTableImporter {
             if (src == null) continue;
             Integer mapped = idMap.get(fk.refTable(), src);
             if (mapped == null || mapped <= 0) {
-                Integer viaLookup = tryResolveViaLookup(table, fk.column(), row);
+                Integer viaLookup = tryResolveViaLookup(table, fk.column(), row, stationId, idMap);
                 if (viaLookup != null) {
                     bind.put(fk.column(), new BoundValue(viaLookup, "int4"));
                     continue;
@@ -469,7 +469,7 @@ public final class GenericTableImporter {
             bind.put(fk.column(), new BoundValue(mapped, "int4"));
         }
 
-        ForeignKey unresolvedLookup = bindLookups(table, row, bind, emptied, losses);
+        ForeignKey unresolvedLookup = bindLookups(table, row, stationId, idMap, bind, emptied, losses);
         if (unresolvedLookup != null) return unresolvedLookup;
 
         Set<String> ignored = Set.copyOf(table.stationTransfer().ignoredColumns());
@@ -501,6 +501,8 @@ public final class GenericTableImporter {
     private @Nullable ForeignKey bindLookups(
             TableEntry table,
             Map<String, Object> row,
+            int stationId,
+            IdRemapper idMap,
             Map<String, BoundValue> bind,
             Set<String> emptied,
             RowLosses losses) {
@@ -514,7 +516,7 @@ public final class GenericTableImporter {
             Object pickedValue = row.get(lk.emitAs());
             if (pickedValue == null) continue;
             carried.add(lk.via());
-            Integer resolvedId = resolveByColumn(fk.refTable(), lk.pick(), pickedValue);
+            Integer resolvedId = resolveByColumn(fk.refTable(), lk.pick(), pickedValue, stationId, idMap);
             if (resolvedId != null) {
                 bind.put(lk.via(), new BoundValue(resolvedId, "int4"));
             }
@@ -552,13 +554,14 @@ public final class GenericTableImporter {
         }
     }
 
-    private @Nullable Integer tryResolveViaLookup(TableEntry table, String fkColumn, Map<String, Object> row) {
+    private @Nullable Integer tryResolveViaLookup(
+            TableEntry table, String fkColumn, Map<String, Object> row, int stationId, IdRemapper idMap) {
         for (Lookup lk : LookupSql.lookupsOf(table)) {
             if (!lk.via().equals(fkColumn)) continue;
             Object pickedValue = row.get(lk.emitAs());
             if (pickedValue == null) continue;
             ForeignKey fk = table.foreignKeyFor(lk.via());
-            Integer resolved = resolveByColumn(fk.refTable(), lk.pick(), pickedValue);
+            Integer resolved = resolveByColumn(fk.refTable(), lk.pick(), pickedValue, stationId, idMap);
             if (resolved != null) return resolved;
         }
         return null;
@@ -635,12 +638,37 @@ public final class GenericTableImporter {
      * Tracks source-table-id → target-table-id mappings keyed by table name. The exporter never
      * leaks source ids except for the {@code id} column of each table; importer records the
      * (source-id, RETURNING-id) pair so downstream FK columns can be remapped.
+     *
+     * <p>It also knows which rows here arrived with the run, including those of a table whose ids do
+     * not travel, such as an account found again by its address: a lookup may name them where it may
+     * not name just any row ({@link ImportReach}).
      */
     public static final class IdRemapper {
         private final Map<String, Map<Integer, Integer>> maps = new LinkedHashMap<>();
+        private final Map<String, Set<Integer>> arrived = new LinkedHashMap<>();
 
         public void put(String table, int sourceId, int targetId) {
             maps.computeIfAbsent(table, k -> new LinkedHashMap<>()).put(sourceId, targetId);
+            markArrived(table, targetId);
+        }
+
+        /**
+         * Records that a row here arrived with the run, without a source id to map from.
+         *
+         * @param table    the table
+         * @param targetId the row's id here
+         */
+        public void markArrived(String table, int targetId) {
+            arrived.computeIfAbsent(table, k -> new HashSet<>()).add(targetId);
+        }
+
+        /**
+         * @param table    the table
+         * @param targetId a row's id here
+         * @return whether that row arrived with the run
+         */
+        public boolean arrived(String table, int targetId) {
+            return arrived.getOrDefault(table, Set.of()).contains(targetId);
         }
 
         public @Nullable Integer get(String table, int sourceId) {

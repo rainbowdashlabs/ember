@@ -1,7 +1,7 @@
 {
   "version": 1,
   "schemaHash": "sha256:ea0c09f100344e2177dc5a4cc31aab93a6b1757aafeaa75606599550c154e5bb",
-  "generatedAt": "2026-10-08T13:21:35Z",
+  "generatedAt": "2026-10-08T13:55:37Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -7075,7 +7075,7 @@
           "type": "int4",
           "nullable": true,
           "verified": true,
-          "description": "How many months the signatures asked for on a document of this template, their evidence and the signed document are kept after the member it is about has left or was deleted, as evidence for legal claims. NULL keeps them only while the member is a member. A legal template starts at 48 months: claims fall due within the three years of the regular limitation period, which runs from the end of the year they arose in."
+          "description": "How many months the signatures asked for on a document of this template, their evidence and the signed document are kept after the member it is about has left or was deleted, as evidence for legal claims. NULL keeps them while the member is a member and for 12 months after the member was archived; deleting the member ends that at once. A legal template starts at 48 months: claims fall due within the three years of the regular limitation period, which runs from the end of the year they arose in."
         }
       ],
       "foreignKeys": [
@@ -11481,7 +11481,7 @@
           "type": "int4",
           "nullable": true,
           "verified": true,
-          "description": "Member who sent the message. NULL for system messages."
+          "description": "The member who sent the message, where that member is at a station of this installation. NULL for system messages, for a message from a station on another installation, for a partner's message that arrived with a station moving here, and once the member is gone."
         },
         {
           "name": "message",
@@ -11533,7 +11533,10 @@
       },
       "stationTransfer": {
         "status": "TRACKED",
-        "rationale": "Messages inherit their request's scope so the full conversation moves with the request."
+        "optionalReferences": [
+          "sender_member_id"
+        ],
+        "rationale": "Messages inherit their request's scope so the full conversation moves with the request, the partner's messages included. A message the partner's member wrote arrives without its member, who stays with the partner, and keeps the partner's uid as its sender. A message arrives only where its sender is one of its request's two stations."
       },
       "gdprExport": {
         "status": "TRACKED",
@@ -11672,7 +11675,7 @@
           "created_by",
           "event_id"
         ],
-        "rationale": "A request moves with either of its two stations, since both keep it: the one asking and the one lending. Who wrote it and the appointment it was collected for belong to the station asking, so a request that moves with the lender arrives without them."
+        "rationale": "A request moves with either of its two stations, since both keep it: the one asking and the one lending. Who wrote it and the appointment it was collected for belong to the station asking, so a request that moves with the lender arrives without them. A request arrives only where the moving station is one of its two stations and the other one is a partner of it or not on the destination."
       },
       "gdprExport": {
         "status": "TRACKED",
@@ -14583,7 +14586,7 @@
           "custody_partner_station_id",
           "owner_station_id"
         ],
-        "rationale": "A station's items go with it. A station carries no association with it, so an item the association owns arrives as owned by a body that does not run on the destination, which is what an empty owner says. A partner station is found again by its uid: gear lent out names the partner holding it when that partner runs on the destination too, and otherwise names none, as gear lent to another installation does. Borrowed gear always names its owner by uid in a column of its own, which the owner lookup reads; it names the owner by id as well when the owner runs on the destination, and keeps only the uid otherwise. The loan itself moves with the lending request."
+        "rationale": "A station's items go with it. A station carries no association with it, so an item the association owns arrives as owned by a body that does not run on the destination, which is what an empty owner says. A partner station is found again by its uid, and only a station that keeps a partnership with the moving station: gear lent out names the partner holding it when that partner runs on the destination too, and otherwise names none, as gear lent to another installation does. Borrowed gear always names its owner by uid in a column of its own, which the owner lookup reads; it names the owner by id as well when the owner runs on the destination, and keeps only the uid otherwise. The loan itself moves with the lending request."
       },
       "gdprExport": {
         "status": "TRACKED",
@@ -22788,7 +22791,7 @@
         "ignoredColumns": [
           "account_id"
         ],
-        "rationale": "Per-account saved filter presets; reached via station_member with customScope so a transferred station's members keep their personal filters. Accounts travel without their ids, so the owner is found again by email or uid, the same way a member finds its account; a filter whose owner is found nowhere is left behind and logged."
+        "rationale": "Per-account saved filter presets; reached via station_member with customScope so a transferred station's members keep their personal filters. Accounts travel without their ids, so the owner is found again by email or uid, the same way a member finds its account, and only among the accounts that arrived with the station and those of its members; a filter whose owner is found nowhere is left behind and logged."
       },
       "gdprExport": {
         "status": "TRACKED",
@@ -22945,6 +22948,8 @@
       "description": "The installation's own certificate authorities, which issue the certificates the stations seal documents with. The first is created the first time any station seals a document; at most one is active, and a retired authority stays so the station certificates it issued and the documents sealed with them can still be traced to it."
     },
     "signing_evidence": {
+      "feature": "signing",
+      "scope": "STATION",
       "tableHash": "sha256:d6249b28f7faae4abbc03f8a2c21b012154f206c2b3ce1311aaad6ec5f7fc66f",
       "columns": [
         {
@@ -23254,7 +23259,21 @@
           },
           {
             "type": "MEMBER_ID",
-            "column": "member_id"
+            "column": "member_id",
+            "withheldColumns": [
+              "truncated_ip",
+              "user_agent",
+              "credential_id",
+              "credential_public_key",
+              "client_data_json",
+              "authenticator_data",
+              "signature",
+              "signature_count",
+              "credential_key_stamp_token",
+              "credential_key_stamped_at",
+              "credential_key_stamp_service",
+              "credential_key_stamp_kind"
+            ]
           }
         ]
       },
@@ -23278,6 +23297,8 @@
       "description": "The record of one signing act on one signature field, kept faithfully with everything a reader needs to check it again without Ember: who confirmed with which proof, for whom, what they read and confirmed, when and from where, and for a passkey or security key the whole answer and the public key it verifies under. Names and the guardian link are copied as they were, since the account, the member and the link may all be gone when somebody reads it."
     },
     "signing_request": {
+      "feature": "signing",
+      "scope": "STATION",
       "tableHash": "sha256:ca7940460aeeed1b43c7dd99b92a25bf27ccffdfafe215409cd90914b5f12559",
       "columns": [
         {
@@ -23355,14 +23376,14 @@
           "type": "int4",
           "nullable": true,
           "verified": true,
-          "description": "How many months the request, its evidence and the signed document are kept after the member is gone, copied from the template when the request was made. NULL keeps them only while the member is a member."
+          "description": "How many months the request, its evidence and the signed document are kept after the member is gone, copied from the template when the request was made. NULL keeps them while the member is a member and for 12 months after the member was archived; deleting the member ends that at once."
         },
         {
           "name": "retain_until",
           "type": "timestamptz",
           "nullable": true,
           "verified": true,
-          "description": "Until when the request is kept, set once the member has left or was deleted: the leaving date plus retention_months. The daily sweep deletes it afterwards, with its evidence and a sealed document nothing else keeps. NULL while the member is a member."
+          "description": "Until when the request is kept, set once the member has left or was deleted: the leaving date plus retention_months, or plus 12 months for an archived member where retention_months is NULL. Deleting the member moves it to that moment where retention_months is NULL. The daily sweep deletes it afterwards, with its evidence and a sealed document nothing else keeps. NULL while the member is a member."
         },
         {
           "name": "created_at",
@@ -23460,6 +23481,8 @@
       "description": "Signatures asked for on one generated document: the document as it was frozen, whom it is about and whether it still waits for signatures. The fields to sign are in signing_request_field. Kept after the member leaves or is deleted until retain_until, then deleted by a daily sweep with its evidence."
     },
     "signing_request_field": {
+      "feature": "signing",
+      "scope": "STATION",
       "tableHash": "sha256:d7caa5aa1e61b6d3148f20f1e7997e814d8a1747015a1d5f0019f93fe16033db",
       "columns": [
         {
@@ -25172,16 +25195,6 @@
           "via": "account_id",
           "pick": "uid",
           "emitAs": "account_uid"
-        },
-        {
-          "via": "account_id",
-          "pick": "first_name",
-          "emitAs": "account_first_name"
-        },
-        {
-          "via": "account_id",
-          "pick": "last_name",
-          "emitAs": "account_last_name"
         }
       ],
       "stationTransfer": {

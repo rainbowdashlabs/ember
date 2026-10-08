@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -210,6 +211,44 @@ class GenericTableExporterTest extends RepositoryTestBase {
                 1,
                 exporter.export("federation_lending_request_item", asking.id(), 0, 100)
                         .size());
+    }
+
+    /**
+     * A table without an id of its own, whose rows all share their first column, still pages through every
+     * row exactly once: the order runs over every column, its key among them.
+     */
+    @Test
+    void pagesOfATableWithoutAnIdNeitherSkipNorRepeatARow() {
+        Station grouped = stationRepo.create("Paged Entries");
+        int group = memberGroupRepo.create(grouped.id(), "Alle").id();
+        for (int i = 0; i < 23; i++) {
+            var account = accountRepo.create("paged-" + i + "@export.test", "Page", "Member " + i, true);
+            memberGroupRepo.addMember(
+                    group, stationMemberRepo.create(grouped.id(), account.id()).id());
+        }
+
+        List<Object> seen = new ArrayList<>();
+        for (int offset = 0; offset < 30; offset += 5) {
+            exporter.export("member_group_entry", grouped.id(), offset, 5)
+                    .forEach(row -> seen.add(row.get("member_id")));
+        }
+
+        assertEquals(23, seen.size());
+        assertEquals(23, seen.stream().distinct().count(), "no row comes twice, so none is skipped");
+    }
+
+    @Test
+    void ordersByTheIdWhereThereIsOneAndByEverySortableColumnOtherwise() {
+        assertEquals(
+                List.of("t.id"),
+                GenericTableExporter.orderColumns(tracking.tables().get("account")));
+        assertEquals(
+                List.of("t.group_id", "t.member_id", "t.group_set_id"),
+                GenericTableExporter.orderColumns(tracking.tables().get("member_group_entry")));
+        assertEquals(
+                List.of("t.document_id", "t.source_text"),
+                GenericTableExporter.orderColumns(tracking.tables().get("member_document_search")),
+                "a text search vector cannot be sorted");
     }
 
     @Test

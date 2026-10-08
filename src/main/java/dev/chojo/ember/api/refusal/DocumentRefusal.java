@@ -528,7 +528,17 @@ public enum DocumentRefusal implements Refusal {
             166, HttpStatus.BAD_REQUEST, "A field name may be at most 64 characters long and a value at most 500"),
 
     /** More fields filled in at signing than a document carries. */
-    SIGNING_TOO_MANY_ENTRIES(167, HttpStatus.BAD_REQUEST, "At most 20 fields can be filled in when signing");
+    SIGNING_TOO_MANY_ENTRIES(167, HttpStatus.BAD_REQUEST, "At most 20 fields can be filled in when signing"),
+
+    /** A seal check sent while the server is already busy with as many checks as it runs at once. */
+    SEAL_CHECKS_BUSY(
+            168, HttpStatus.SERVICE_UNAVAILABLE, "Too many documents are being checked right now, try again shortly"),
+
+    /** A signing act started while the account already holds as many unfinished starts as it may. */
+    SIGNING_STARTS_TOO_MANY(
+            169,
+            HttpStatus.TOO_MANY_REQUESTS,
+            "Too many signing attempts are open at once, finish one or wait a few minutes");
 
     private final Definition definition;
 

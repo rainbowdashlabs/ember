@@ -51,6 +51,7 @@ export function createSealCheck(overrides: Partial<SealCheck> = {}): SealCheck {
         signingTime: '2026-10-05T09:12:03Z',
         intact: true,
         coversWholeFile: false,
+        modifiedAfterSealing: false,
         revocation: {status: RevocationStatus.GOOD, revokedAt: null, reason: null},
         timestamps: [createTimestampCheck()],
         ...overrides,

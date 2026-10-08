@@ -5,9 +5,23 @@
  */
 /** @vitest-environment happy-dom */
 import {describe, expect, it} from 'vitest'
-import {RevocationReason, RevocationStatus, ValidationIndication, ValidationSubIndication} from '@/api/generated/schema'
+import {
+    PadesLevel,
+    RevocationReason,
+    RevocationStatus,
+    ValidationIndication,
+    ValidationSubIndication,
+    type TimestampCheck,
+} from '@/api/generated/schema'
 import {createSealCheck, createTimestampCheck} from '@/test/mocks/sealVerification'
-import {certificateName, provingTimestamp, revokedAfterTimestamp, subjectAttribute, verdictOf} from './sealVerdict'
+import {
+    certificateName,
+    isLongTerm,
+    provingTimestamp,
+    revokedAfterTimestamp,
+    subjectAttribute,
+    verdictOf,
+} from './sealVerdict'
 
 /**
  * The one answer a reader gets about a seal before any detail, and the facts read out of the
@@ -33,6 +47,49 @@ describe('verdictOf', () => {
             indication: ValidationIndication.INDETERMINATE,
             subIndication: ValidationSubIndication.NOT_ISSUED_HERE,
         }))).toBe('notIssuedHere')
+    })
+
+    it('calls only a broken content, signature value or file structure altered', () => {
+        const failedWith = (subIndication: ValidationSubIndication) => verdictOf(createSealCheck({
+            indication: ValidationIndication.TOTAL_FAILED,
+            subIndication,
+        }))
+
+        expect(failedWith(ValidationSubIndication.HASH_FAILURE)).toBe('altered')
+        expect(failedWith(ValidationSubIndication.SIG_CRYPTO_FAILURE)).toBe('altered')
+        expect(failedWith(ValidationSubIndication.FORMAT_FAILURE)).toBe('altered')
+    })
+
+    it('calls every other failure invalid, never altered', () => {
+        const failedWith = (subIndication: ValidationSubIndication | null) => verdictOf(createSealCheck({
+            indication: ValidationIndication.TOTAL_FAILED,
+            subIndication,
+        }))
+
+        expect(failedWith(ValidationSubIndication.REVOKED)).toBe('invalid')
+        expect(failedWith(ValidationSubIndication.NOT_YET_VALID)).toBe('invalid')
+        expect(failedWith(ValidationSubIndication.CHAIN_CONSTRAINTS_FAILURE)).toBe('invalid')
+        expect(failedWith(null)).toBe('invalid')
+        expect(verdictOf(createSealCheck({
+            indication: ValidationIndication.FAILED,
+            subIndication: ValidationSubIndication.SIG_CONSTRAINTS_FAILURE,
+        }))).toBe('invalid')
+    })
+
+    it('calls an intact seal of a file changed afterwards modified after sealing, before anything else', () => {
+        expect(verdictOf(createSealCheck({modifiedAfterSealing: true}))).toBe('modifiedAfterSealing')
+        expect(verdictOf(createSealCheck({
+            modifiedAfterSealing: true,
+            indication: ValidationIndication.TOTAL_FAILED,
+            subIndication: ValidationSubIndication.FORMAT_FAILURE,
+        }))).toBe('modifiedAfterSealing')
+        expect(verdictOf(createSealCheck({
+            modifiedAfterSealing: true,
+            issuedHere: false,
+            indication: ValidationIndication.INDETERMINATE,
+            subIndication: ValidationSubIndication.NOT_ISSUED_HERE,
+        }))).toBe('modifiedAfterSealing')
+        expect(verdictOf(createSealCheck({modifiedAfterSealing: true, intact: false}))).toBe('altered')
     })
 
     it('calls anything else undecided unclear', () => {
@@ -82,5 +139,36 @@ describe('revokedAfterTimestamp', () => {
         })
 
         expect(provingTimestamp(check)?.time).toBe('2026-10-05T00:00:00Z')
+    })
+
+    it('takes only an intact timestamp of a pinned service that passed as proof of the time', () => {
+        const proving = (stamp: Partial<TimestampCheck>) => provingTimestamp(createSealCheck({
+            timestamps: [createTimestampCheck(stamp)],
+        }))
+
+        expect(proving({})).not.toBeNull()
+        expect(proving({intact: false})).toBeNull()
+        expect(proving({pinnedAuthority: false})).toBeNull()
+        expect(proving({indication: ValidationIndication.INDETERMINATE})).toBeNull()
+        expect(proving({indication: ValidationIndication.FAILED})).toBeNull()
+    })
+
+    it('does not leave a revoked key standing on a timestamp that proves nothing', () => {
+        const check = createSealCheck({
+            revocation: {status: RevocationStatus.REVOKED, revokedAt: '2026-10-06T00:00:00Z', reason: null},
+            timestamps: [createTimestampCheck({time: '2026-10-05T00:00:00Z', pinnedAuthority: false})],
+        })
+
+        expect(revokedAfterTimestamp(check)).toBe(false)
+    })
+})
+
+describe('isLongTerm', () => {
+    it('holds for the levels that add validation material after the seal', () => {
+        expect(isLongTerm(createSealCheck({level: PadesLevel.BASELINE_LT}))).toBe(true)
+        expect(isLongTerm(createSealCheck({level: PadesLevel.BASELINE_LTA}))).toBe(true)
+        expect(isLongTerm(createSealCheck({level: PadesLevel.BASELINE_T}))).toBe(false)
+        expect(isLongTerm(createSealCheck({level: PadesLevel.BASELINE_B}))).toBe(false)
+        expect(isLongTerm(createSealCheck({level: PadesLevel.NOT_BASELINE}))).toBe(false)
     })
 })

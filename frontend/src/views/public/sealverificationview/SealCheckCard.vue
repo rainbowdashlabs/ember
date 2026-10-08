@@ -37,7 +37,9 @@ interface VerdictLook {
 const LOOKS: Record<SealVerdict, VerdictLook> = {
   sealedHere: {container: SuccessContainer, icon: ['fas', 'circle-check'], tone: 'text-success-badge'},
   altered: {container: ErrorContainer, icon: ['fas', 'circle-xmark'], tone: 'text-error-badge'},
+  modifiedAfterSealing: {container: ErrorContainer, icon: ['fas', 'triangle-exclamation'], tone: 'text-warning-badge'},
   notIssuedHere: {container: InfoContainer, icon: ['fas', 'ban'], tone: 'text-info-badge'},
+  invalid: {container: ErrorContainer, icon: ['fas', 'ban'], tone: 'text-error-badge'},
   unclear: {container: NeutralContainer, icon: ['fas', 'circle-question'], tone: 'text-(--text-muted)'},
 }
 

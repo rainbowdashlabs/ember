@@ -22,6 +22,7 @@ import dev.chojo.ember.feature.quiz.service.StationAiKeyTransfer;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.transfer.ImportProgress;
+import dev.chojo.ember.feature.station.transfer.LendingRowScope;
 import dev.chojo.ember.feature.station.transfer.StationImportContext;
 import dev.chojo.ember.feature.station.transfer.StationTableImporter;
 import dev.chojo.ember.feature.station.transfer.TableImporter;
@@ -76,6 +77,7 @@ public class StationImportService {
     private static final Logger log = LoggerFactory.getLogger(StationImportService.class);
     private static final int PAGE_SIZE = 500;
     private static final String LENDING_REQUESTS = "federation_lending_request";
+    private static final String LENDING_MESSAGES = "federation_lending_message";
 
     private final AccountRepository accountRepository;
     private final AuthService authService;
@@ -264,7 +266,8 @@ public class StationImportService {
 
         UUID currentUid =
                 stationRepository.findById(stationId).map(Station::uid).orElse(station.uid());
-        var progress = new ImportProgress(stationId, currentUid, stationName, buildPhases(), baseUrl, token);
+        var progress = new ImportProgress(
+                stationId, currentUid, stationName, buildPhases(), baseUrl, token, ImportProgress.Target.NEW_STATION);
         activeImports.put(stationId, progress);
         var leftBehind = PartnersLeftBehind.read(stationPage);
         importLane.submit(() -> runRemoteImport(stationId, stationData, leftBehind, client, progress));
@@ -294,7 +297,14 @@ public class StationImportService {
 
         Station target =
                 stationRepository.findById(stationId).orElseThrow(StationRefusal.STATION_IMPORT_TARGET_NOT_HERE::raise);
-        var progress = new ImportProgress(stationId, target.uid(), target.name(), buildPhases(), baseUrl, token);
+        var progress = new ImportProgress(
+                stationId,
+                target.uid(),
+                target.name(),
+                buildPhases(),
+                baseUrl,
+                token,
+                ImportProgress.Target.EXISTING_STATION);
         activeImports.put(stationId, progress);
         var leftBehind = PartnersLeftBehind.read(stationPage);
         importLane.submit(() -> runRemoteImport(stationId, stationData, leftBehind, client, progress));
@@ -304,7 +314,8 @@ public class StationImportService {
      * Cleans up the destination side of a failed import and starts a fresh run with the same
      * token: deletes the half-imported station (if it still exists) and re-invokes
      * {@link #startRemoteImport(String, String)} with the source URL and token captured on the
-     * original attempt. Throws when the original progress is not in FAILED state.
+     * original attempt. Throws when the original progress is not in FAILED state, and for an import
+     * into a station that was here before, which a retry would delete.
      *
      * @param stationUid the destination station UUID of the failed run
      * @return the freshly minted import result
@@ -316,6 +327,9 @@ public class StationImportService {
         }
         if (failed.status() != ImportProgress.Status.FAILED) {
             throw StationRefusal.STATION_IMPORT_NOT_FAILED.raise();
+        }
+        if (failed.target() == ImportProgress.Target.EXISTING_STATION) {
+            throw StationRefusal.STATION_IMPORT_INTO_NOT_RETRIED.raise();
         }
         try {
             stationRepository.delete(failed.stationId());
@@ -482,14 +496,27 @@ public class StationImportService {
             log.info("completed for station '{}' (id={})", p.stationName(), stationId);
         } catch (Exception e) {
             log.error("failed for station {}", stationId, e);
-            p.fail(e.getMessage());
             client.notifyAbort();
-            try {
-                stationRepository.delete(stationId);
-                log.warn("deleted half-imported station {} after failure", stationId);
-            } catch (Exception deleteErr) {
-                log.error("could not clean up failed station {}", stationId, deleteErr);
-            }
+            removeStationMadeFor(p);
+            p.fail(e.getMessage());
+        }
+    }
+
+    /**
+     * Takes away the station of a failed import where the import made it. A station that was here
+     * before keeps everything it had, and what the import merged into it stays with it, logged.
+     */
+    private void removeStationMadeFor(ImportProgress p) {
+        int stationId = p.stationId();
+        if (p.target() == ImportProgress.Target.EXISTING_STATION) {
+            log.warn("import into existing station {} failed; the station stays with what arrived so far", stationId);
+            return;
+        }
+        try {
+            stationRepository.delete(stationId);
+            log.warn("deleted half-imported station {} after failure", stationId);
+        } catch (Exception deleteErr) {
+            log.error("could not clean up failed station {}", stationId, deleteErr);
         }
     }
 
@@ -584,8 +611,10 @@ public class StationImportService {
     /**
      * Dispatches a single wire payload (already extracted from the page envelope) to the importer
      * that claims the table, falling back to the metadata-driven engine, and then writes the rows that
-     * were waiting for what this payload brought. A lending request whose uid the partner's copy here
-     * already carries arrives under a stand-in and is merged into that copy once the run has settled.
+     * were waiting for what this payload brought. Lending requests and their messages arrive only where
+     * they are the imported station's ({@link LendingRowScope}). A lending request whose uid the
+     * partner's copy here already carries arrives under a stand-in and is merged into that copy once the
+     * run has settled.
      */
     @SuppressWarnings("unchecked")
     private int importTable(StationImportContext context, String table, Object payload) {
@@ -595,7 +624,12 @@ public class StationImportService {
                     + engine.admitWaiting(context.stationId(), context.idMap(), context.waitingRows());
         }
         var rows = (List<Map<String, Object>>) payload;
-        if (LENDING_REQUESTS.equals(table)) rows = lendingClashes.setAside(rows, context.lendingStandIns());
+        if (LENDING_REQUESTS.equals(table)) {
+            UUID importedUid = stationRepository.requireUid(context.stationId());
+            rows = lendingClashes.setAside(
+                    LendingRowScope.requests(context, importedUid, rows), context.lendingStandIns());
+        }
+        if (LENDING_MESSAGES.equals(table)) rows = LendingRowScope.messages(context, rows);
         int imported = engine.importRows(context.stationId(), table, rows, context.idMap(), context.waitingRows());
         return imported + engine.admitWaiting(context.stationId(), context.idMap(), context.waitingRows());
     }

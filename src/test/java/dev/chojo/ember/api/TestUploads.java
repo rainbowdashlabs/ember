@@ -26,6 +26,8 @@ import static org.mockito.Mockito.when;
  * Uploaded files for tests of services that take one as it arrived in a request.
  */
 public final class TestUploads {
+    private static final String BOUNDARY = "ember-test-boundary";
+
     private TestUploads() {}
 
     /**
@@ -79,7 +81,26 @@ public final class TestUploads {
      * @return what turns a request into the upload
      */
     public static Consumer<Request.Builder> multipart(String fileName, byte[] data, Map<String, String> fields) {
-        String boundary = "ember-test-boundary";
+        byte[] body = multipartBody(fileName, data, fields);
+        return builder -> builder.header("Content-Type", "multipart/form-data; boundary=" + BOUNDARY)
+                .post(HttpRequest.BodyPublishers.ofByteArray(body));
+    }
+
+    /**
+     * The same upload sent in chunks, without announcing its length, as a client streaming a file does.
+     *
+     * @param fileName the name it is uploaded under
+     * @param data     its bytes
+     * @return what turns a request into the upload
+     */
+    public static Consumer<Request.Builder> chunkedMultipart(String fileName, byte[] data) {
+        byte[] body = multipartBody(fileName, data, Map.of());
+        return builder -> builder.header("Content-Type", "multipart/form-data; boundary=" + BOUNDARY)
+                .post(HttpRequest.BodyPublishers.ofInputStream(() -> new ByteArrayInputStream(body)));
+    }
+
+    private static byte[] multipartBody(String fileName, byte[] data, Map<String, String> fields) {
+        String boundary = BOUNDARY;
         var body = new ByteArrayOutputStream();
         fields.forEach((name, value) -> body.writeBytes(
                 ("--" + boundary + "\r\nContent-Disposition: form-data; name=\"" + name + "\"\r\n\r\n" + value + "\r\n")
@@ -89,8 +110,7 @@ public final class TestUploads {
                 .getBytes(StandardCharsets.UTF_8));
         body.writeBytes(data);
         body.writeBytes(("\r\n--" + boundary + "--\r\n").getBytes(StandardCharsets.UTF_8));
-        return builder -> builder.header("Content-Type", "multipart/form-data; boundary=" + boundary)
-                .post(HttpRequest.BodyPublishers.ofByteArray(body.toByteArray()));
+        return body.toByteArray();
     }
 
     private static UploadedFile of(String fileName, String type, long size, InputStream content) {

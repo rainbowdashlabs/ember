@@ -6,6 +6,7 @@
 package dev.chojo.ember.tracking.engine;
 
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.repository.LendingRepository;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
@@ -16,6 +17,7 @@ import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import dev.chojo.ember.tracking.DataTrackingLoader;
 import dev.chojo.ember.tracking.engine.GenericTableImporter.IdRemapper;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -38,8 +40,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * The generic export and import against a real database: an array column travels as the list of its
  * elements and arrives as an array of its element type, an array of ids follows the rows it names, a row
  * waits for the row it names, an optional reference arrives empty only once its row cannot come any more,
- * a partner station is found again by its uid, and a row whose required reference cannot be found is left
- * behind instead of failing the import.
+ * a partner station is found again by its uid but no other station, an account only where it arrived with
+ * the run or belongs to the station, and a row whose required reference cannot be found is left behind
+ * instead of failing the import.
  */
 class GenericTableImporterTest extends RepositoryTestBase {
 
@@ -114,22 +117,50 @@ class GenericTableImporterTest extends RepositoryTestBase {
     }
 
     @Test
-    void aRowFindsItsRequiredAccountAgainByItsAddress() {
+    void aRowFindsAnAccountThatArrivedWithTheRunByItsAddress() {
         Station destination = stationRepo.create("Filter Destination");
         var account = accountRepo.create("filter-owner@import.test", "Fia", "Filter", true);
+        var idMap = new IdRemapper();
+        idMap.markArrived("account", account.id());
+
+        int imported = importer.importRows(
+                destination.id(), "saved_filter", List.of(filterRow("Aktive", account.email(), account.uid())), idMap);
+
+        assertEquals(1, imported);
+        assertEquals(List.of("Aktive"), filterNamesOf(account.id()));
+    }
+
+    @Test
+    void aRowFindsTheAccountOfAMemberOfTheStationByItsUid() {
+        Station destination = stationRepo.create("Filter Member Destination");
+        var account = accountRepo.create("filter-member@import.test", "Mia", "Member", true);
+        stationMemberRepo.create(destination.id(), account.id());
 
         int imported = importer.importRows(
                 destination.id(),
                 "saved_filter",
-                List.of(filterRow("Aktive", account.email(), account.uid())),
+                List.of(filterRow("Mitglieder", null, account.uid())),
                 new IdRemapper());
 
         assertEquals(1, imported);
-        assertEquals(
-                List.of("Aktive"),
-                savedFilterRepo.findByAccountAndTable(account.id(), FilterTableType.MEMBERS).stream()
-                        .map(SavedFilter::name)
-                        .toList());
+        assertEquals(List.of("Mitglieder"), filterNamesOf(account.id()));
+    }
+
+    @Test
+    void aRowNeverNamesTheAccountOfAStranger() {
+        Station destination = stationRepo.create("Filter Stranger Destination");
+        Station elsewhere = stationRepo.create("Filter Stranger Elsewhere");
+        var stranger = accountRepo.create("filter-stranger@import.test", "Sven", "Stranger", true);
+        stationMemberRepo.create(elsewhere.id(), stranger.id());
+
+        int imported = importer.importRows(
+                destination.id(),
+                "saved_filter",
+                List.of(filterRow("Fremd", stranger.email(), stranger.uid())),
+                new IdRemapper());
+
+        assertEquals(0, imported, "neither its address nor its uid reaches an account the station does not have");
+        assertEquals(List.of(), filterNamesOf(stranger.id()));
     }
 
     @Test
@@ -315,6 +346,7 @@ class GenericTableImporterTest extends RepositoryTestBase {
                 .createItem(radios, "HRT-6", "Handfunkgerät 6", null, null)
                 .id();
         itemCustodyService.lendToPartner(item, partner.id());
+        partnership(partner, destination);
         var idMap = new IdRemapper();
         idMap.put("station", source.id(), destination.id());
 
@@ -329,8 +361,39 @@ class GenericTableImporterTest extends RepositoryTestBase {
     }
 
     @Test
+    void aLentPieceNamesNoStationThatIsNotAPartnerOfTheImportedOne() {
+        Station source = stationRepo.create("Uid Stranger Source");
+        Station stranger = stationRepo.create("Uid Stranger");
+        Station asking = stationRepo.create("Uid Stranger Asking");
+        Station destination = stationRepo.create("Uid Stranger Destination");
+        int radios = inventoryRepo
+                .create(source.id(), "Funk", InventoryType.INTERNAL, false)
+                .id();
+        int item = inventoryRepo
+                .createItem(radios, "HRT-7", "Handfunkgerät 7", null, null)
+                .id();
+        itemCustodyService.lendToPartner(item, stranger.id());
+        pendingRequest(asking, destination);
+        var idMap = new IdRemapper();
+        idMap.put("station", source.id(), destination.id());
+        importer.importRows(destination.id(), "inventory", rowsOf("inventory", source), idMap);
+        var row = rowsOf("inventory_item", source).getFirst();
+
+        assertEquals(1, importer.importRows(destination.id(), "inventory_item", List.of(row), idMap));
+        row.put("custody_partner_station_uid", asking.uid());
+        row.put("internal_id", "HRT-7b");
+        assertEquals(1, importer.importRows(destination.id(), "inventory_item", List.of(row), idMap));
+
+        assertTrue(
+                inventoryRepo.findItemsByStation(destination.id()).stream()
+                        .allMatch(arrived -> arrived.custodyPartnerStationId() == null),
+                "neither a stranger nor a station that only asked to pair is named");
+    }
+
+    @Test
     void aBorrowedPieceFindsItsOwnerHereByItsUid() {
         var borrowing = borrowFromOwner("Here");
+        partnership(borrowing.owner(), borrowing.destination());
 
         assertEquals(1, borrowing.importBorrowed());
 
@@ -356,8 +419,21 @@ class GenericTableImporterTest extends RepositoryTestBase {
     }
 
     @Test
+    void aBorrowedPieceNamesNoOwnerHereThatIsNotAPartner() {
+        var borrowing = borrowFromOwner("Stranger");
+
+        assertEquals(1, borrowing.importBorrowed());
+
+        var arrived =
+                inventoryRepo.findBorrowedItems(borrowing.destination().id()).getFirst();
+        assertNull(arrived.ownerStationId(), "a station that is no partner of the imported one is not reached");
+        assertEquals(borrowing.owner().uid(), arrived.ownerStationUid());
+    }
+
+    @Test
     void anOwnerThatMovedAwayIsNotFoundHere() {
         var borrowing = borrowFromOwner("Moved");
+        partnership(borrowing.owner(), borrowing.destination());
         stationRepo.markMovedAway(borrowing.owner().id(), "https://elsewhere.example");
 
         assertEquals(1, borrowing.importBorrowed());
@@ -423,6 +499,24 @@ class GenericTableImporterTest extends RepositoryTestBase {
         }
     }
 
+    /** The partner's own, active partnership with the imported station, which lets the import name it. */
+    private static void partnership(Station partner, Station imported) {
+        var federation = new FederationRepository();
+        var row = federation.createPartner(partner.id(), imported.uid(), null, null, null);
+        federation.activatePartner(row.id(), "key");
+    }
+
+    /** A partnership the station asked for that is still pending, which no import may rely on. */
+    private static void pendingRequest(Station asking, Station imported) {
+        new FederationRepository().createPartner(asking.id(), imported.uid(), null, null, null);
+    }
+
+    private static List<String> filterNamesOf(int accountId) {
+        return savedFilterRepo.findByAccountAndTable(accountId, FilterTableType.MEMBERS).stream()
+                .map(SavedFilter::name)
+                .toList();
+    }
+
     private static List<Map<String, Object>> rowsOf(String table, Station station) {
         return exporter.export(table, station.id(), 0, 100);
     }
@@ -440,7 +534,7 @@ class GenericTableImporterTest extends RepositoryTestBase {
                 .toList();
     }
 
-    private static Map<String, Object> filterRow(String name, Object email, UUID uid) {
+    private static Map<String, Object> filterRow(String name, @Nullable Object email, UUID uid) {
         Map<String, Object> row = new LinkedHashMap<>();
         row.put("id", 1);
         row.put("table_type", FilterTableType.MEMBERS.name());

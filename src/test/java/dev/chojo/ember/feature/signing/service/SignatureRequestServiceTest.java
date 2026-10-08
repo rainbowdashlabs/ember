@@ -61,6 +61,7 @@ import dev.chojo.ember.lifecycle.Schedule;
 import dev.chojo.ember.owner.Owner;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import dev.chojo.ember.util.Sha256;
+import dev.chojo.ember.util.sql.Transactions;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
@@ -85,7 +86,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.LockSupport;
 import java.util.stream.Stream;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
@@ -550,6 +555,78 @@ class SignatureRequestServiceTest extends RepositoryTestBase {
                         STATEMENTS));
     }
 
+    /**
+     * Holds the request's row the way a signing act does and lets a withdrawal run into it. A withdrawal
+     * that took the fields first would hold them while it waits, and they could not be locked here
+     * without waiting; taking the request first, it holds nothing yet.
+     */
+    @Test
+    void withdrawingARequestTakesTheRequestBeforeItsFields() throws Exception {
+        var adult = member("Wim", "Zurueck", true);
+        var request = requests.request(
+                managing(), generated(adult, legalTemplate, null, "participant").id(), STATEMENTS);
+
+        var withdrawn = whileTheRequestIsHeld(request, () -> requests.withdraw(managing(), request.uid()));
+
+        assertEquals(RequestState.WITHDRAWN, withdrawn.state());
+    }
+
+    /** The same for a correction, which withdraws the open fields of the request it replaces. */
+    @Test
+    void correctingARequestTakesTheRequestBeforeItsFields() throws Exception {
+        var adult = member("Kai", "Korrektur", true);
+        var request = requests.request(
+                managing(), generated(adult, legalTemplate, null, "participant").id(), STATEMENTS);
+        int corrected = generated(adult, legalTemplate, null, "participant").id();
+
+        var replacement = whileTheRequestIsHeld(
+                request, () -> requests.rectify(managing(), request.uid(), corrected, STATEMENTS));
+
+        assertEquals(
+                RequestState.SUPERSEDED,
+                requestRepo.findById(request.id()).orElseThrow().state());
+        assertEquals(RequestState.OPEN, replacement.state());
+    }
+
+    /**
+     * Runs a change on another thread while this one holds the request's row, checks that the change
+     * holds none of the request's fields while it waits, and hands back what the change returned once
+     * the row is let go.
+     */
+    private static <T> T whileTheRequestIsHeld(SignatureRequest request, Callable<T> change) throws Exception {
+        int fieldId = requestRepo.fieldsOf(request.id()).getFirst().id();
+        try (var executor = Executors.newSingleThreadExecutor()) {
+            var pending = Transactions.call(() -> {
+                requestRepo.lockRequest(request.id());
+                var running = executor.submit(change);
+                awaitALockSomebodyWaitsFor();
+                assertEquals(
+                        fieldId,
+                        query("SELECT id FROM signing_request_field WHERE id = :id FOR UPDATE NOWAIT;")
+                                .single(call().bind("id", fieldId))
+                                .map(row -> row.getInt("id"))
+                                .first()
+                                .orElseThrow(),
+                        "the waiting change holds no lock on the fields");
+                return running;
+            });
+            return pending.get(1, TimeUnit.MINUTES);
+        }
+    }
+
+    private static void awaitALockSomebodyWaitsFor() {
+        var deadline = System.nanoTime() + Duration.ofSeconds(30).toNanos();
+        while (query("SELECT count(*) AS n FROM pg_locks WHERE NOT granted AND pid <> pg_backend_pid();")
+                        .single(call())
+                        .map(row -> row.getInt("n"))
+                        .first()
+                        .orElse(0)
+                == 0) {
+            if (System.nanoTime() > deadline) throw new IllegalStateException("Nobody waited for the lock");
+            LockSupport.parkNanos(Duration.ofMillis(20).toNanos());
+        }
+    }
+
     @Test
     void aCorrectedDocumentSupersedesTheRequestAndKeepsWhatWasSigned() throws IOException {
         var child = member("Nora", "Kind", false);
@@ -793,6 +870,76 @@ class SignatureRequestServiceTest extends RepositoryTestBase {
         assertTrue(rowsOf(guardianTables, "signing_request", request.id()).isEmpty());
     }
 
+    /**
+     * Both exports name both people, but the device a guardian confirmed with, their credential and the
+     * address and browser they signed from, are the guardian's data and reach only the guardian's export.
+     */
+    @Test
+    void theGuardiansDeviceReachesOnlyTheGuardiansExportWhileBothCarryTheNames() throws IOException {
+        var child = member("Nele", "Geraet", false);
+        var guardian = member("Olli", "Geraet", true);
+        guard(guardian, child);
+        var request = requests.request(
+                managing(), generated(child, legalTemplate, null, "guardian1").id(), STATEMENTS);
+        var act = act(request, "guardian1", Signer.guardian(account(guardian), child.id()), STATEMENTS.guardian());
+        fields.record(
+                at(guardian),
+                new SignedDocument(SealedDocument.withoutTimestamp(bytes(8, 9)), SignatureLevel.SIMPLE, passkey(act)));
+        var export = new GdprExportService(
+                accountRepo,
+                stationMemberRepo,
+                memberLookupService,
+                mock(KbFileStorageService.class),
+                memberDocumentRepo,
+                documents);
+
+        var childsEvidence =
+                memberTables(export, child.id()).get("signing_evidence").getFirst();
+        var guardiansEvidence =
+                memberTables(export, guardian.id()).get("signing_evidence").getFirst();
+
+        for (var row : List.of(childsEvidence, guardiansEvidence)) {
+            assertEquals("Konto Inhaber", row.get("account_holder_name"));
+            assertEquals("Mitglied Name", row.get("member_name"));
+            assertEquals(STATEMENTS.guardian(), row.get("statement"));
+        }
+        for (String device : List.of(
+                "credential_id",
+                "credential_public_key",
+                "truncated_ip",
+                "user_agent",
+                "client_data_json",
+                "authenticator_data",
+                "signature",
+                "credential_key_stamp_token")) {
+            assertTrue(childsEvidence.containsKey(device), device + " is named, but empty");
+            assertNull(childsEvidence.get(device), device + " is the guardian's");
+            assertNotNull(guardiansEvidence.get(device), device + " reaches the guardian");
+        }
+        assertEquals("203.0.113.0", guardiansEvidence.get("truncated_ip"));
+        assertEquals("Test Browser", guardiansEvidence.get("user_agent"));
+    }
+
+    private static SigningEvidence.WebAuthnBound passkey(SigningAct act) {
+        return new SigningEvidence.WebAuthnBound(
+                act,
+                StepUpProof.PASSKEY,
+                "ember.test",
+                bytes(32, 1),
+                bytes(16, 2),
+                bytes(77, 3),
+                bytes(120, 4),
+                bytes(37, 5),
+                bytes(70, 6),
+                true,
+                42,
+                new CredentialKeyStamp(
+                        bytes(90, 7),
+                        Instant.parse("2026-10-01T08:00:00Z"),
+                        "http://tsa.test",
+                        KeyStampKind.AT_REGISTRATION));
+    }
+
     @Test
     void retentionStartsWhenTheMemberLeavesStopsWhenTheyReturnAndTheSweepDeletesWhatIsOver() throws IOException {
         var archived = member("Arne", "Archiv", true);
@@ -833,14 +980,19 @@ class SignatureRequestServiceTest extends RepositoryTestBase {
                 "a deleted member counts from the first sweep that sees them gone");
         var briefUntil = requestRepo.findById(brief.id()).orElseThrow().retainUntil();
         assertNotNull(briefUntil);
-        assertFalse(briefUntil.isAfter(Instant.now()), "a template without retention keeps nothing past leaving");
+        assertTrue(
+                briefUntil.isAfter(Instant.now().plus(Duration.ofDays(11 * 30))),
+                "a template without retention keeps an archived member's for the grace period");
 
         stationMemberRepo.setFormer(archived.id(), false);
         int removed = sweeper.sweep(Instant.now());
 
         assertNull(requestRepo.findById(kept.id()).orElseThrow().retainUntil(), "a returning member keeps it again");
-        assertTrue(removed >= 2);
+        assertTrue(removed >= 1);
         assertTrue(requestRepo.findById(gone.id()).isEmpty());
+        assertTrue(requestRepo.findById(brief.id()).isPresent(), "still within the grace period");
+
+        sweeper.sweep(Instant.now().plus(Duration.ofDays(13 * 31)));
         assertTrue(requestRepo.findById(brief.id()).isEmpty());
         assertTrue(
                 memberDocumentRepo
@@ -852,6 +1004,69 @@ class SignatureRequestServiceTest extends RepositoryTestBase {
                         SELECT count(*) AS count FROM signing_evidence e
                         JOIN signing_request_field f ON f.id = e.field_id
                         WHERE f.request_id = :id""", gone.id()));
+    }
+
+    /**
+     * A template without a retention period keeps an archived member's signed document for twelve months
+     * after the archiving, while a deleted member's goes with the next sweep, also where an archiving had
+     * already given it the grace period.
+     */
+    @Test
+    void withoutARetentionAnArchivedMemberKeepsAYearAndDeletingEndsItAtOnce() throws IOException {
+        var recent = member("Ali", "Gnade", true);
+        var longAgo = member("Olaf", "Lange", true);
+        var deletedLater = member("Dana", "Spaeter", true);
+        var recentSealed = sealedGeneration(recent, List.of(recent.id()), plainTemplate);
+        var longAgoSealed = sealedGeneration(longAgo, List.of(longAgo.id()), plainTemplate);
+        var deletedSealed = sealedGeneration(deletedLater, List.of(deletedLater.id()), plainTemplate);
+        var kept = requests.request(managing(), recentSealed.id(), STATEMENTS);
+        var over = requests.request(managing(), longAgoSealed.id(), STATEMENTS);
+        var gone = requests.request(managing(), deletedSealed.id(), STATEMENTS);
+        for (var member : List.of(recent, longAgo, deletedLater)) stationMemberRepo.setFormer(member.id(), true);
+        query("UPDATE station_member SET former_at = now() - INTERVAL '13 months' WHERE id = :id;")
+                .single(call().bind("id", longAgo.id()))
+                .update();
+        var sweeper = new SignatureRetentionSweeper(requestRepo, memberDocumentRepo, sealedDocuments);
+
+        sweeper.sweep(Instant.now());
+
+        assertTrue(retainedPastAYear(kept), "twelve months after the archiving");
+        assertTrue(memberDocumentRepo.findById(recentSealed.documentId()).isPresent());
+        assertTrue(retainedPastAYear(gone), "archived first, so the grace period started");
+        assertTrue(requestRepo.findById(over.id()).isEmpty(), "archived longer than the grace period");
+        assertTrue(memberDocumentRepo.findById(longAgoSealed.documentId()).isEmpty());
+
+        documents.memberLeaves(deletedLater.id(), DocumentService.Leaving.DELETED);
+        stationMemberRepo.delete(deletedLater.id());
+        sweeper.sweep(Instant.now());
+
+        assertTrue(requestRepo.findById(gone.id()).isEmpty(), "deleting the member ended the grace period at once");
+        assertTrue(memberDocumentRepo.findById(deletedSealed.documentId()).isEmpty());
+        assertTrue(requestRepo.findById(kept.id()).isPresent());
+        assertTrue(memberDocumentRepo.findById(recentSealed.documentId()).isPresent());
+    }
+
+    /**
+     * The database itself refuses to let the retention sweep delete a sealed document that is bound to a
+     * member still at the station, whatever the requests on it say.
+     */
+    @Test
+    void theDatabaseKeepsASealedDocumentBoundToACurrentMember() throws IOException {
+        var leaving = member("Lea", "Geht", true);
+        var staying = member("Bea", "Bleibt", true);
+        var shared = sealedGeneration(leaving, List.of(leaving.id(), staying.id()));
+        var request = requests.request(managing(), shared.id(), STATEMENTS);
+        documents.memberLeaves(leaving.id(), DocumentService.Leaving.DELETED);
+        stationMemberRepo.delete(leaving.id());
+        new SignatureRetentionSweeper(requestRepo, memberDocumentRepo, sealedDocuments)
+                .sweep(Instant.now().minus(Duration.ofDays(5 * 365)));
+        assertNotNull(requestRepo.findById(request.id()).orElseThrow().retainUntil());
+
+        assertFalse(retentionOver(shared.documentId()), "a current member is bound to it");
+        assertGuarded("DELETE FROM member_document WHERE id = " + shared.documentId());
+
+        stationMemberRepo.setFormer(staying.id(), true);
+        assertTrue(retentionOver(shared.documentId()));
     }
 
     @Test
@@ -945,12 +1160,30 @@ class SignatureRequestServiceTest extends RepositoryTestBase {
 
     private static DocumentGeneration sealedGeneration(StationMember member, List<Integer> memberIds)
             throws IOException {
+        return sealedGeneration(member, memberIds, legalTemplate);
+    }
+
+    private static DocumentGeneration sealedGeneration(StationMember member, List<Integer> memberIds, int templateId)
+            throws IOException {
         byte[] pdf = pdfWith("participant");
         var document = sealedDocuments.file(
                 station.id(),
                 new SealedFiling(memberIds, "Einverstaendnis", "e.pdf", false, Uploader.nobody(), List.of()),
                 SealedDocument.withoutTimestamp(pdf));
-        return log(member, legalTemplate, null, document.id(), Sha256.hex(pdf));
+        return log(member, templateId, null, document.id(), Sha256.hex(pdf));
+    }
+
+    private static boolean retainedPastAYear(SignatureRequest request) {
+        Instant until = requestRepo.findById(request.id()).orElseThrow().retainUntil();
+        return until != null && until.isAfter(Instant.now().plus(Duration.ofDays(360)));
+    }
+
+    private static boolean retentionOver(int documentId) {
+        return query("SELECT member_document_retention_over(:id) AS over;")
+                .single(call().bind("id", documentId))
+                .map(row -> row.getBoolean("over"))
+                .first()
+                .orElseThrow();
     }
 
     private static DocumentGeneration generated(

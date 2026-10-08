@@ -26,11 +26,17 @@ import java.util.Objects;
  * completion that names it, whether that completion succeeds or is refused, so a start is never used
  * twice, and it expires after {@link #LIFETIME}. Only the account that started it can spend it. Expired
  * starts nobody completed go with the store's regular sweep.
+ *
+ * <p>Every start writes a row, so an account holds at most {@link #MAX_OPEN_PER_ACCOUNT} that are neither
+ * completed nor expired; a further start is refused until one of them is.
  */
 @Singleton
 public class SigningStarts {
     /** How long a started act waits for the signer's confirmation. */
     public static final Duration LIFETIME = Duration.ofMinutes(5);
+
+    /** How many started acts an account may hold that are neither completed nor expired. */
+    public static final int MAX_OPEN_PER_ACCOUNT = 10;
 
     private final WebAuthnChallengeRepository challenges;
 
@@ -46,6 +52,9 @@ public class SigningStarts {
      * @return the token it is kept under and when it expires
      */
     public Parked park(ParkedSigningStart start) {
+        if (challenges.countLive(ChallengePurpose.SIGNING, start.accountId()) >= MAX_OPEN_PER_ACCOUNT) {
+            throw DocumentRefusal.SIGNING_STARTS_TOO_MANY.raise();
+        }
         String token = RandomTokens.hex(32);
         Instant expiresAt = Instant.now().plus(LIFETIME);
         challenges.create(

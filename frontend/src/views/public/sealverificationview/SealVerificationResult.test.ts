@@ -7,6 +7,7 @@
 import {describe, expect, it} from 'vitest'
 import {mount} from '@vue/test-utils'
 import {
+    PadesLevel,
     RevocationReason,
     RevocationStatus,
     SealLevel,
@@ -136,6 +137,37 @@ describe('SealVerificationResult', () => {
         expect(details.text()).toContain('3A:7F:12:C4:9B:E0:55:D1')
         expect(details.text()).toContain('B-LT')
         expect(details.text()).toContain('Deckt die ganze Datei ab')
+    })
+
+    it('says a file changed after sealing is not what was sealed, though the seal itself holds', () => {
+        const view = show(createSealVerification({signatures: [createSealCheck({modifiedAfterSealing: true})]}))
+
+        expect(verdicts(view)).toEqual(['modifiedAfterSealing'])
+        expect(view.text()).toContain('Nach dem Versiegeln geändert')
+        expect(view.get('[data-testid="seal-modified-after-sealing"]').text()).toBe('Ja')
+    })
+
+    it('says a seal that failed for another reason than a change is invalid', () => {
+        const view = show(createSealVerification({
+            signatures: [createSealCheck({
+                indication: ValidationIndication.TOTAL_FAILED,
+                subIndication: ValidationSubIndication.REVOKED,
+            })],
+        }))
+
+        expect(verdicts(view)).toEqual(['invalid'])
+        expect(view.text()).toContain('Siegel ungültig')
+        expect(view.text()).not.toContain('Verändert seit dem Versiegeln')
+    })
+
+    it('explains a seal that does not reach the end of the file only for the long-term levels', () => {
+        const longTerm = show(createSealVerification({signatures: [createSealCheck({level: PadesLevel.BASELINE_LT})]}))
+        const archived = show(createSealVerification({signatures: [createSealCheck({level: PadesLevel.BASELINE_LTA})]}))
+        const timestamped = show(createSealVerification({signatures: [createSealCheck({level: PadesLevel.BASELINE_T})]}))
+
+        expect(longTerm.find('[data-testid="seal-long-term-hint"]').exists()).toBe(true)
+        expect(archived.find('[data-testid="seal-long-term-hint"]').exists()).toBe(true)
+        expect(timestamped.find('[data-testid="seal-long-term-hint"]').exists()).toBe(false)
     })
 
     it('lists timestamps on the file as a whole apart from the seals', () => {

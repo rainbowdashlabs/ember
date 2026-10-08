@@ -62525,6 +62525,7 @@ export interface components {
             column: string;
             filter?: string;
             type: components["schemas"]["IdentityType"];
+            withheldColumns?: string[];
         };
         IdentityResponse: {
             baseUrl: string;
@@ -67153,6 +67154,7 @@ export interface components {
             issuedHere: boolean;
             issuer: components["schemas"]["CertificateFacts"] | null;
             level: components["schemas"]["PadesLevel"];
+            modifiedAfterSealing: boolean;
             revocation: components["schemas"]["SignerRevocation"];
             signer: components["schemas"]["CertificateFacts"] | null;
             signingTime: components["schemas"]["Instant"] | null;

@@ -10554,11 +10554,19 @@ export default {
             },
             altered: {
                 title: 'Verändert seit dem Versiegeln',
-                text: 'Die Datei passt nicht mehr zu ihrem Siegel. Sie wurde nach dem Versiegeln verändert oder ist beschädigt.',
+                text: 'Die Datei passt nicht mehr zu ihrem Siegel. Der versiegelte Inhalt wurde verändert oder die Datei ist beschädigt.',
+            },
+            modifiedAfterSealing: {
+                title: 'Nach dem Versiegeln geändert',
+                text: 'Der versiegelte Inhalt ist unverändert, aber die Datei wurde danach geändert, etwa um Seiten, Anmerkungen oder Formulareinträge. Was sie zeigt, ist also nicht genau das, was versiegelt wurde.',
             },
             notIssuedHere: {
                 title: 'Nicht von dieser Installation versiegelt',
                 text: 'Das Siegel stammt nicht von einer Wache dieser Installation. Ob es anderswo gilt, kann diese Seite nicht sagen.',
+            },
+            invalid: {
+                title: 'Siegel ungültig',
+                text: 'Das Siegel gilt nicht, etwa weil sein Zertifikat gesperrt oder abgelaufen ist. Woran es lag, steht in den Einzelheiten.',
             },
             unclear: {
                 title: 'Nicht eindeutig prüfbar',
@@ -10609,6 +10617,7 @@ export default {
             level: 'Stufe',
             intact: 'Signierter Inhalt unverändert',
             coversWholeFile: 'Deckt die ganze Datei ab',
+            modifiedAfterSealing: 'Nach dem Versiegeln geändert',
             coversWholeFileHint: 'Ein Siegel mit eingebetteten Prüfdaten deckt die ganze Datei nicht ab, weil die Prüfdaten danach angehängt werden. Steht dort Nein, heißt das allein also nicht, dass etwas verändert wurde.',
             signer: 'Zertifikat des Siegels',
             issuer: 'Ausgestellt von',

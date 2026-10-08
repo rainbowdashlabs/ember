@@ -52,8 +52,8 @@ import java.util.Set;
  * rebuilt from the field and the kept start, never from what the browser sends, and has to still yield
  * the challenge the start was issued with, which catches a document or statement that changed in between
  * for every proof, bound or not. An authenticator app code or the password is checked here and only the
- * fact that it passed reaches the provider; a passkey or security key answer goes to the provider as it
- * came. The evidence is stored against the field by {@link SignatureFieldService#record}, which checks once
+ * fact that it passed reaches the provider; the fixed code a development instance takes for any account is
+ * never a code here. A passkey or security key answer goes to the provider as it came. The evidence is stored against the field by {@link SignatureFieldService#record}, which checks once
  * more that the field is open and the caller's.
  */
 @Singleton
@@ -221,7 +221,7 @@ public class SigningActService {
             case PASSKEY, SECURITY_KEY ->
                 assertions.answer(parked.nonce(), required(answer.credentialJson()), circumstances);
             case TOTP -> {
-                if (!twoFactor.verifyTotp(accountId, required(answer.secret()))) {
+                if (!twoFactor.verifyAuthenticatorCode(accountId, required(answer.secret()))) {
                     log.info("Signing code of account {} was not right for field {}", accountId, parked.fieldId());
                     throw DocumentRefusal.SIGNING_CODE_WRONG.raise();
                 }

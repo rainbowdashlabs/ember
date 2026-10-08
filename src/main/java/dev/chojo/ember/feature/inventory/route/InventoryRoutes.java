@@ -1100,11 +1100,14 @@ public class InventoryRoutes implements Routes {
     private void listBorrowed(Context ctx) {
         StationSession session = StationSession.from(ctx);
         ctx.json(borrowedGearService.borrowedAt(session.stationId()).stream()
-                .map(borrowed -> new BorrowedItemResponse(
-                        borrowed.item(),
-                        borrowed.ownerStationName(),
-                        borrowed.loanRequestId(),
-                        borrowed.dueOn() != null ? borrowed.dueOn().toString() : null))
+                .map(borrowed -> {
+                    var dueOn = borrowed.dueOn();
+                    return new BorrowedItemResponse(
+                            borrowed.item(),
+                            borrowed.ownerStationName(),
+                            borrowed.loanRequestId(),
+                            dueOn != null ? dueOn.toString() : null);
+                })
                 .toList());
     }
 

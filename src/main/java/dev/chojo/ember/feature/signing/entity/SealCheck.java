@@ -39,6 +39,10 @@ import java.util.List;
  * @param coversWholeFile whether the signed revision runs to the end of the file. A sealed document
  *                        that carries its validation material has one more revision after the seal,
  *                        so false alone does not mean a change
+ * @param modifiedAfterSealing whether a revision after the signed one changes what the document shows or
+ *                        holds: its pages, what is drawn on them, its form fields, signatures or
+ *                        annotations, or anything the validator cannot name. Validation material and
+ *                        document timestamps added later are not such a change
  * @param revocation      what this installation's revocation lists say about the signer's certificate
  * @param timestamps      the timestamps inside the signature, proving when it existed
  */
@@ -54,6 +58,7 @@ public record SealCheck(
         @Nullable Instant signingTime,
         boolean intact,
         boolean coversWholeFile,
+        boolean modifiedAfterSealing,
         SignerRevocation revocation,
         List<TimestampCheck> timestamps) {
 

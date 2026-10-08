@@ -18,7 +18,7 @@ import java.util.Optional;
  *
  * <p>Two buckets per IP: a generous global bucket sized for the bursty request
  * pattern of a single-page app, and a much tighter bucket applied on top for
- * known-expensive endpoints (AI generation) so one client cannot monopolise the
+ * known-expensive endpoints ({@link #isExpensive(String)}) so one client cannot monopolise the
  * costly work. Both admit bursts up to their capacity and then throttle to the
  * sustained refill rate.
  *
@@ -43,6 +43,18 @@ public class GlobalRateLimiter {
     public GlobalRateLimiter(Clock clock) {
         this.global = new LeakyBucket(900, 600, PRUNE_AFTER, clock);
         this.expensive = new LeakyBucket(40, 20, PRUNE_AFTER, clock);
+    }
+
+    /**
+     * Whether a request path is one of the expensive ones, which also takes from the tighter bucket: AI
+     * generation, and checking the seals of an uploaded document, which anybody may ask for without
+     * signing in.
+     *
+     * @param path the request path
+     * @return whether it is expensive
+     */
+    public static boolean isExpensive(String path) {
+        return path.contains("/ai/") || path.endsWith("/public/signing/verify");
     }
 
     /**

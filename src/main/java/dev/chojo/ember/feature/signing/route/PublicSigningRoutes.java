@@ -17,6 +17,8 @@ import dev.chojo.ember.feature.signing.service.RevocationListAddress;
 import dev.chojo.ember.feature.signing.service.SealVerifier;
 import dev.chojo.ember.util.SafeContentDisposition;
 import io.javalin.http.Context;
+import io.javalin.http.UploadedFile;
+import io.javalin.http.util.MultipartUtil;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
@@ -26,6 +28,8 @@ import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import jakarta.servlet.MultipartConfigElement;
+import org.jspecify.annotations.Nullable;
 
 /**
  * The public addresses a reader of a sealed document checks its seal against, without signing in: the
@@ -39,7 +43,8 @@ import jakarta.inject.Singleton;
  *
  * <p>Anybody holding a PDF can also have its seals checked here ({@link SealVerifier}): the file is
  * checked in memory and never stored, and a request larger than a check takes is refused by its announced
- * length before its body is read. Like every route, the check counts towards the global rate limit.
+ * length before its body is read, or while it is read where it announces none. Besides the global rate
+ * limit, the check counts towards the tighter limit of the expensive routes.
  */
 @Singleton
 public class PublicSigningRoutes implements Routes {
@@ -54,6 +59,15 @@ public class PublicSigningRoutes implements Routes {
      * request announcing more is refused before any of its body is read.
      */
     static final int FORM_ALLOWANCE_BYTES = 64 * 1024;
+
+    /** How much of a form is kept in memory before the server writes it to a temporary file. */
+    private static final int IN_MEMORY_BYTES = 1024 * 1024;
+
+    private static final MultipartConfigElement CHECK_FORM = new MultipartConfigElement(
+            System.getProperty("java.io.tmpdir"),
+            SealVerifier.MAX_BYTES,
+            SealVerifier.MAX_BYTES + FORM_ALLOWANCE_BYTES,
+            IN_MEMORY_BYTES);
 
     private final PublishedCertificates certificates;
     private final SealVerifier verifier;
@@ -97,7 +111,35 @@ public class PublicSigningRoutes implements Routes {
         if (ctx.contentLength() > SealVerifier.MAX_BYTES + FORM_ALLOWANCE_BYTES) {
             throw DocumentRefusal.SEAL_CHECK_TOO_LARGE.raise();
         }
-        ctx.json(verifier.verify(ctx.uploadedFile("file")));
+        ctx.json(verifier.verify(upload(ctx)));
+    }
+
+    /**
+     * The file sent for a check, read under the check's own limits rather than the server's: the file at
+     * most {@link SealVerifier#MAX_BYTES} and the whole form at most {@link #FORM_ALLOWANCE_BYTES} more. The
+     * limits hold while the body is read, so a body sent in chunks without announcing its length is cut off
+     * as soon as it grows past them. A body cut off that way is refused as too large, any other one that
+     * cannot be read as a form as not received.
+     */
+    private static @Nullable UploadedFile upload(Context ctx) {
+        ctx.req().setAttribute(MultipartUtil.MULTIPART_CONFIG_ATTRIBUTE, CHECK_FORM);
+        try {
+            return ctx.uploadedFile("file");
+        } catch (Exception e) {
+            if (overLimit(e)) throw DocumentRefusal.SEAL_CHECK_TOO_LARGE.raise();
+            throw DocumentRefusal.SEAL_CHECK_NOT_RECEIVED.raise();
+        }
+    }
+
+    /** Whether reading a form broke off because it grew past a limit, which the server says in words only. */
+    private static boolean overLimit(Throwable failure) {
+        for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
+            String message = cause.getMessage();
+            if (cause instanceof IllegalStateException && message != null && message.contains(" exceeded")) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @OpenApi(

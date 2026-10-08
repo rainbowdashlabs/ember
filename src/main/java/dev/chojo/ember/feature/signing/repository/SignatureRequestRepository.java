@@ -116,18 +116,31 @@ public class SignatureRequestRepository {
     }
 
     /**
+     * Reads a request and holds it until the transaction ends. Every change to a request or its fields
+     * takes the request first and its fields after it, so two changes never wait for each other the other
+     * way round.
+     *
+     * @param requestId the request
+     * @return the request as it stands, or empty where none has this id
+     */
+    public Optional<SignatureRequest> lockRequest(int requestId) {
+        return query("SELECT %s FROM signing_request WHERE id = :id FOR UPDATE;", SignatureRequest.COLUMNS)
+                .single(call().bind("id", requestId))
+                .map(SignatureRequest.map())
+                .first();
+    }
+
+    /**
      * Reads a field and holds it until the transaction ends, so two acts on one field cannot both find it
-     * open. Its request is held too, so the request cannot be superseded or withdrawn in between.
+     * open. Its request is held first ({@link #lockRequest}), so the request cannot be superseded or
+     * withdrawn in between.
      *
      * @param requestId the request
      * @param fieldName the field's name
      * @return the field, or empty where the request asks for no such field
      */
     public Optional<RequestedSignature> lockField(int requestId, String fieldName) {
-        query("SELECT id FROM signing_request WHERE id = :id FOR UPDATE;")
-                .single(call().bind("id", requestId))
-                .map(row -> row.getInt("id"))
-                .first();
+        lockRequest(requestId);
         return query("""
                         SELECT %s FROM signing_request_field
                         WHERE request_id = :request_id AND field_name = :field_name
@@ -302,22 +315,40 @@ public class SignatureRequestRepository {
      * not started yet: kept from the day they left, or from now for a member who is gone without a date,
      * for the request's retention period.
      *
-     * @param now the time a member deleted without a date counts as gone
-     * @return how many requests started their retention
+     * <p>A request without a retention period of its own keeps its member's documents only while they
+     * are a member, and an archived member gets {@code archivedGraceMonths} on top, since archiving is
+     * undone easily and often. Deleting the member ends that at once: a request without a retention
+     * period whose member is deleted is due now, also where an earlier archiving had set a later date.
+     *
+     * @param now                 the time a member deleted without a date counts as gone
+     * @param archivedGraceMonths how long a request without a retention period is kept after its member
+     *                            was archived
+     * @return how many requests started their retention or had it ended by the deletion of their member
      */
-    public int startRetention(Instant now) {
-        return query("""
+    public int startRetention(Instant now, int archivedGraceMonths) {
+        int started = query("""
                         UPDATE signing_request r
-                        SET retain_until = gone.left_at + make_interval(months => coalesce(r.retention_months, 0))
-                        FROM (SELECT q.id, coalesce(sm.former_at, :now) AS left_at
+                        SET retain_until = gone.left_at + make_interval(
+                                months => coalesce(r.retention_months, CASE WHEN gone.archived THEN :grace ELSE 0 END))
+                        FROM (SELECT q.id, coalesce(sm.former_at, :now) AS left_at, sm.id IS NOT NULL AS archived
                               FROM signing_request q
                                        LEFT JOIN station_member sm ON sm.id = q.member_id
                               WHERE q.retain_until IS NULL
                                 AND (sm.id IS NULL OR sm.former)) gone
                         WHERE r.id = gone.id;""")
+                .single(call().bind("now", now, INSTANT_TIMESTAMP).bind("grace", archivedGraceMonths))
+                .update()
+                .rows();
+        int ended = query("""
+                        UPDATE signing_request
+                        SET retain_until = :now
+                        WHERE retention_months IS NULL
+                          AND member_id IS NULL
+                          AND retain_until > :now;""")
                 .single(call().bind("now", now, INSTANT_TIMESTAMP))
                 .update()
                 .rows();
+        return started + ended;
     }
 
     /**

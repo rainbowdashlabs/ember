@@ -31,14 +31,16 @@ import java.util.List;
  * evidence for legal claims, and only for as long as that needs. Retention starts when the member leaves
  * or is deleted, however that happens, so the sweep finds those requests itself rather than being told by
  * every path that removes a member: a request whose member is former or gone gets its {@code retain_until},
- * and one whose member came back loses it again.
+ * and one whose member came back loses it again. Where the template set no retention, an archived member's
+ * signed documents stay for {@link #ARCHIVED_GRACE_MONTHS} months after the archiving, so an archiving
+ * undone within that time loses nothing; a deleted member's go with the next run.
  *
  * <p>A request past its {@code retain_until} goes with its fields and evidence. Its document goes too
  * where it is sealed and nothing else keeps it: no other request on it is still kept, and no member it is
  * about is still at the station. A sealed document is locked against every other deletion while its
- * station exists, and the database lets this one through only because it checks the retention itself
- * ({@code member_document_retention_over}). A document that is not sealed is left to the member documents'
- * own rules.
+ * station exists, and the database lets this one through only because it checks the retention and the
+ * members itself ({@code member_document_retention_over}). A document that is not sealed is left to the
+ * member documents' own rules.
  *
  * <p>Runs daily and asks only whether a retention is over, so an instance that was off catches up by
  * itself; one run is capped, since each removal is file work.
@@ -51,6 +53,12 @@ public class SignatureRetentionSweeper implements TaskSource {
 
     /** How many requests one run deletes at most. */
     static final int MAX_PER_RUN = 200;
+
+    /**
+     * How many months a request whose template sets no retention keeps its evidence and sealed document
+     * after its member was archived. Deleting the member ends it at once.
+     */
+    static final int ARCHIVED_GRACE_MONTHS = 12;
 
     private final SignatureRequestRepository requests;
     private final DocumentRepository documents;
@@ -95,7 +103,7 @@ public class SignatureRetentionSweeper implements TaskSource {
      */
     int sweep(Instant now) {
         requests.stopRetention();
-        requests.startRetention(now);
+        requests.startRetention(now, ARCHIVED_GRACE_MONTHS);
         int removed = 0;
         for (var request : requests.expired(now, MAX_PER_RUN)) {
             try {

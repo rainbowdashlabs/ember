@@ -36,6 +36,10 @@ import static dev.chojo.ember.feature.station.transfer.WireValues.asUuid;
  *       too young to have an address still need a member record.</li>
  * </ul>
  *
+ * <p>Every account a row arrives as, found or created, is marked as arrived with the run: the rows
+ * that name an account by its address or uid may name these, and the accounts of the station's own
+ * members, but no other account here.
+ *
  * <p>Newly-created accounts try to preserve the source UID so UID-typed columns elsewhere
  * (e.g. {@code author_account_uid} on comments) round-trip without remap. A unique-constraint
  * collision on UID is rare; when it happens we accept the auto-generated UID and move on.
@@ -79,6 +83,7 @@ public class AccountTableImporter implements TableImporter {
                 String last = asString(row.get("last_name"), "");
                 var newAccount = accountRepository.create(storedEmail, first, last, true, context.stationId());
                 targetId = newAccount.id();
+                context.accountCreated(targetId);
                 UUID sourceUid = asUuid(row.get("uid"));
                 UUID destinationUid = newAccount.uid();
                 if (sourceUid != null && !sourceUid.equals(destinationUid)) {
@@ -98,6 +103,7 @@ public class AccountTableImporter implements TableImporter {
                 carryUsername(newAccount.id(), asString(row.get("username"), null), storedEmail);
                 created++;
             }
+            context.idMap().markArrived("account", targetId);
             if (sourceId != null) context.idMap().put("account", sourceId, targetId);
         }
         return created;

@@ -150,4 +150,6 @@ export default {
     'D-165': 'Ein Feld wurde zweimal ausgefüllt',
     'D-166': 'Ein Feldname darf höchstens 64 Zeichen lang sein und ein Wert höchstens 500',
     'D-167': 'Beim Unterschreiben lassen sich höchstens 20 Felder ausfüllen',
+    'D-168': 'Gerade werden zu viele Dokumente geprüft, versuche es gleich noch einmal',
+    'D-169': 'Zu viele Unterschriften sind gerade angefangen. Schließe eine ab oder warte ein paar Minuten',
 }

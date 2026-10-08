@@ -36,6 +36,7 @@ import static de.chojo.sadu.queries.api.query.Query.query;
  * </ul>
  */
 public final class GenericTableExporter {
+    private static final Set<String> UNSORTABLE_TYPES = Set.of("json", "xml", "tsvector");
 
     private final DataTracking tracking;
     private final StationScopeResolver scopeResolver;
@@ -53,8 +54,22 @@ public final class GenericTableExporter {
         lookups.appendSelect(sb);
     }
 
-    private static void appendOrderAndPagination(StringBuilder sb, List<String> columns) {
-        sb.append(" ORDER BY t.").append(columns.get(0)).append(" OFFSET :offset LIMIT :limit");
+    /**
+     * Orders a page by something unique, so consecutive pages neither skip nor repeat a row: the
+     * table's {@code id} where it has one, whether it travels or not, and otherwise every column of the
+     * table that can be sorted, which includes the columns of its key.
+     */
+    private static void appendOrderAndPagination(StringBuilder sb, TableEntry table) {
+        sb.append(" ORDER BY ").append(String.join(", ", orderColumns(table))).append(" OFFSET :offset LIMIT :limit");
+    }
+
+    static List<String> orderColumns(TableEntry table) {
+        boolean hasId = table.columns().stream().anyMatch(column -> "id".equals(column.name()));
+        if (hasId) return List.of("t.id");
+        return table.columns().stream()
+                .filter(column -> !UNSORTABLE_TYPES.contains(column.type()))
+                .map(column -> "t." + column.name())
+                .toList();
     }
 
     /**
@@ -159,7 +174,7 @@ public final class GenericTableExporter {
         }
         lookups.appendJoins(sb);
         sb.append(" WHERE (").append(String.join(" OR ", conditions)).append(')');
-        appendOrderAndPagination(sb, columns);
+        appendOrderAndPagination(sb, tableEntry(tableName));
         return sb.toString();
     }
 
@@ -170,7 +185,7 @@ public final class GenericTableExporter {
         sb.append(" FROM ").append(tableName).append(" t");
         lookups.appendJoins(sb);
         sb.append(" WHERE ").append(buildCustomScopeFilter(customScope, "t", 0));
-        appendOrderAndPagination(sb, columns);
+        appendOrderAndPagination(sb, tableEntry(tableName));
         return sb.toString();
     }
 

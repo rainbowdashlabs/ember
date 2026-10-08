@@ -72,6 +72,46 @@ class WebAuthnChallengeRepositoryTest extends RepositoryTestBase {
     }
 
     @Test
+    void countsOnlyTheLiveChallengesOfOnePurposeAndAccount() {
+        int accountId = newAccount();
+        int otherAccount = newAccount();
+        repo.create(
+                newToken(),
+                ChallengePurpose.SIGNING,
+                accountId,
+                "{}",
+                Instant.now().plusSeconds(300));
+        repo.create(
+                newToken(),
+                ChallengePurpose.SIGNING,
+                accountId,
+                "{}",
+                Instant.now().plusSeconds(300));
+        repo.create(
+                newToken(),
+                ChallengePurpose.SIGNING,
+                accountId,
+                "{}",
+                Instant.now().minusSeconds(60));
+        repo.create(
+                newToken(),
+                ChallengePurpose.REGISTRATION,
+                accountId,
+                "{}",
+                Instant.now().plusSeconds(300));
+        repo.create(
+                newToken(),
+                ChallengePurpose.SIGNING,
+                otherAccount,
+                "{}",
+                Instant.now().plusSeconds(300));
+
+        assertEquals(2, repo.countLive(ChallengePurpose.SIGNING, accountId));
+        assertEquals(1, repo.countLive(ChallengePurpose.REGISTRATION, accountId));
+        assertEquals(0, repo.countLive(ChallengePurpose.STEPUP_ASSERTION, accountId));
+    }
+
+    @Test
     void consumeUnknownTokenIsEmpty() {
         assertTrue(repo.consume("no-such-token").isEmpty());
     }

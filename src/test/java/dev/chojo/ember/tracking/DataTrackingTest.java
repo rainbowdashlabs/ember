@@ -250,6 +250,12 @@ class DataTrackingTest extends RepositoryTestBase {
                     if (!columns.contains(identity.column())) {
                         dangling.add(entry.getKey() + "." + identity.column() + " (identity " + identity.type() + ")");
                     }
+                    for (var withheld : Objects.requireNonNullElse(identity.withheldColumns(), List.<String>of())) {
+                        if (!columns.contains(withheld)) {
+                            dangling.add(
+                                    entry.getKey() + "." + withheld + " (withheld from " + identity.column() + ")");
+                        }
+                    }
                 }
             }
         }
@@ -257,6 +263,35 @@ class DataTrackingTest extends RepositoryTestBase {
             fail("These rules name columns their table does not have (" + dangling.size() + " total):\n  "
                     + String.join("\n  ", dangling)
                     + "\n\nName the column the table really carries, or drop the rule.");
+        }
+    }
+
+    /**
+     * A lookup finds a row of another table again by a value that names exactly one row: an account by
+     * its address or uid, a station by its uid, a permission by its name. A bundle of a station transfer
+     * is written by whoever runs the source, so a lookup by anything else, such as a person's name, would
+     * let it attach rows to whoever happens to carry that value here.
+     */
+    @Test
+    void everyLookupIdentifiesItsRow() {
+        Map<String, Set<String>> identifying = Map.of(
+                "account", Set.of("email", "uid"),
+                "station", Set.of("uid"),
+                "station_permission", Set.of("name"));
+        List<String> vague = new ArrayList<>();
+        for (var entry : tracking.tables().entrySet()) {
+            var table = entry.getValue();
+            for (var lookup : Objects.requireNonNullElse(table.lookups(), List.<Lookup>of())) {
+                String target = table.foreignKeyFor(lookup.via()).refTable();
+                if (!identifying.getOrDefault(target, Set.of()).contains(lookup.pick())) {
+                    vague.add(entry.getKey() + "." + lookup.emitAs() + " -> " + target + "." + lookup.pick());
+                }
+            }
+        }
+        if (!vague.isEmpty()) {
+            fail("These lookups find a row by a value that does not identify it (" + vague.size() + " total):\n  "
+                    + String.join("\n  ", vague)
+                    + "\n\nLook the row up by a unique key, or leave the reference behind.");
         }
     }
 
