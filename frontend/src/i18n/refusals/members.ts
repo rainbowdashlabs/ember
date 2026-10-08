@@ -271,4 +271,5 @@ export default {
     'M-219': 'Für dieses Mitglied wartet keine Anfrage, die erneut gesendet werden könnte',
     'M-220': 'Die Person hat die Verknüpfung abgelehnt, die Anfrage wurde nicht erneut gesendet. Lade stattdessen eine andere Adresse ein',
     'M-221': 'Die Anfrage wurde vor weniger als einem Tag gesendet und wurde nicht erneut gesendet',
+    'M-222': 'Die Person hat dieses Konto noch nicht bestätigt. Adresse und Anmeldung bleiben, wie sie sind, bis sie es über den zugeschickten Link einrichtet',
 }

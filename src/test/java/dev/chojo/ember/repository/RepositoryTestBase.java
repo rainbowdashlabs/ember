@@ -24,6 +24,7 @@ import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AccountInviteService;
+import dev.chojo.ember.feature.account.service.AccountReach;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
 import dev.chojo.ember.feature.attendance.service.AttendanceTemplateGuards;
@@ -1031,7 +1032,13 @@ public abstract class RepositoryTestBase {
     protected static StationMemberService newStationMemberService(
             AccountRepository accountRepository, AuthService authService, DocumentService documentService) {
         return new StationMemberService(
-                stationMemberRepo, stationRepo, accountRepository, authService, memberLookupService, documentService);
+                stationMemberRepo,
+                stationRepo,
+                accountRepository,
+                authService,
+                memberLookupService,
+                documentService,
+                new AccountReach(accountRepository));
     }
 
     /**

@@ -178,13 +178,14 @@ class MemberAccountServiceTest {
     }
 
     @Test
-    void renamingAnAccountDoesNotAskWhetherItIsShared() {
+    void renamingAnAccountIsDecidedAsAnActionInsideTheStation() {
         targetIsAtTheStation();
         when(accounts.findById(TARGET)).thenReturn(Optional.of(target("tom@test.com", InstanceUserType.USER)));
 
         update(manager(), TARGET, new UpdateAccountRequest("tom@test.com", null, "A", "B"));
 
-        verify(reach, never()).require(anyInt(), anyInt(), any());
+        verify(reach).require(STATION_ID, TARGET, AccountAction.RENAME);
+        verify(reach, never()).require(STATION_ID, TARGET, AccountAction.EMAIL_CHANGE);
     }
 
     @Test

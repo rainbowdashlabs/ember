@@ -55,6 +55,38 @@ class AccountReachTest extends RepositoryTestBase {
     }
 
     @Test
+    void anImportedAccountItsOwnerHasNotConfirmedIsRefusedUntilTheyDo() {
+        accountRepo.markUnconfirmed(account.id());
+
+        var refused = assertThrows(
+                RefusalResponse.class,
+                () -> reach.require(station.id(), account.id(), AccountAction.ONE_TIME_PASSWORD));
+        assertEquals(MemberRefusal.ACCOUNT_NOT_CONFIRMED_YET, refused.refusal());
+
+        accountRepo.confirm(account.id());
+        assertDoesNotThrow(() -> reach.require(station.id(), account.id(), AccountAction.ONE_TIME_PASSWORD));
+    }
+
+    /**
+     * What stays inside the station is the station's to decide even for an account it shares or its
+     * owner has not confirmed: the name it shows, sign-in there, the setup mail the person still needs.
+     */
+    @Test
+    void actionsInsideTheStationReachEveryAccountOfItsMembers() {
+        var elsewhere = stationRepo.create("Reach inside " + System.nanoTime());
+        stationMemberRepo.create(elsewhere.id(), account.id());
+        accountRepo.markUnconfirmed(account.id());
+
+        for (AccountAction action : AccountAction.values()) {
+            if (action.reachesPastStation()) {
+                assertThrows(RefusalResponse.class, () -> reach.require(station.id(), account.id(), action));
+            } else {
+                assertDoesNotThrow(() -> reach.require(station.id(), account.id(), action));
+            }
+        }
+    }
+
+    @Test
     void anAccountWithAnAssociationRoleIsRefused() {
         var association = clusterRepo.create("Reach association " + System.nanoTime(), null, station.id());
         clusterRepo.addMember(association.id(), account.id(), ClusterUserType.CLUSTER_USER);

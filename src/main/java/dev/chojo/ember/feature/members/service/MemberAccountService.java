@@ -166,6 +166,7 @@ public class MemberAccountService {
                 throw MemberRefusal.ACCOUNT_NOT_YOURS_TO_CHANGE.raise();
             }
             requireStationAccount(accountId, stationId);
+            if (stationId != null) accountReach.require(stationId, accountId, AccountAction.RENAME);
         }
         var existing =
                 accountRepository.findById(accountId).orElseThrow(MemberRefusal.ACCOUNT_NOT_HERE_ON_CHANGE::raise);

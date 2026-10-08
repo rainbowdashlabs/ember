@@ -124,6 +124,7 @@ public class ManagedAccessService {
     public ManagedAccess setUsername(int guardianMemberId, int memberId, String username) {
         StationMember member = requireManaged(guardianMemberId, memberId);
         var account = account(member);
+        accountReach.require(member.stationId(), account.id(), AccountAction.GUARDIAN_USERNAME);
         accountRepository.updateUsername(account.id(), loginNameService.validatedFor(account, username));
         log.info(
                 "Guardian {} set the username of managed member {} (account {})",
@@ -246,6 +247,7 @@ public class ManagedAccessService {
     public ManagedAccess setLogin(int guardianMemberId, int memberId, boolean enabled) {
         StationMember member = requireManaged(guardianMemberId, memberId);
         var account = account(member);
+        accountReach.require(member.stationId(), account.id(), AccountAction.GUARDIAN_LOGIN);
         var permission = memberRepository
                 .findPermissionByName(StationPermission.LOGIN)
                 .orElseThrow(MemberRefusal.MANAGED_SIGN_IN_PERMISSION_MISSING::raise);

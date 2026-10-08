@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.signing.route;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.DocumentRefusal;
+import dev.chojo.ember.feature.account.service.AccountReach;
 import dev.chojo.ember.feature.account.service.AvatarService;
 import dev.chojo.ember.feature.documents.service.DocumentService;
 import dev.chojo.ember.feature.knowledgebase.service.KbFileStorageService;
@@ -180,7 +181,8 @@ class SignatureImageRoutesTest extends RepositoryTestBase {
                 memberLookupService,
                 new AvatarService(new ImageVariants(storage)),
                 newDocumentService(storage),
-                images);
+                images,
+                new AccountReach(accountRepo));
         var scope = scopeOf(member);
         deletion.deleteAccount(member.accountId());
 

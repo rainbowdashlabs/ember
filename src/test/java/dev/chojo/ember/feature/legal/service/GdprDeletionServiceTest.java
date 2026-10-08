@@ -9,6 +9,7 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.account.service.AccountReach;
 import dev.chojo.ember.feature.account.service.AvatarService;
 import dev.chojo.ember.feature.documents.entity.Uploader;
 import dev.chojo.ember.feature.media.service.ImageVariants;
@@ -50,7 +51,8 @@ class GdprDeletionServiceTest extends RepositoryTestBase {
                 memberLookupService,
                 avatars,
                 newDocumentService(storage),
-                new SignatureImageService(new AccountSignatureRepository(), accountRepo, storage));
+                new SignatureImageService(new AccountSignatureRepository(), accountRepo, storage),
+                new AccountReach(accountRepo));
         station = stationRepo.create("GdprStation");
         Account account = accountRepo.create("gdpr-del@test.com", "Delete", "Me");
         accountRepo.createCredential(account.id(), "hash");

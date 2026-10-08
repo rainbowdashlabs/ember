@@ -69,7 +69,8 @@ class ManagedAccessServiceTest extends RepositoryTestBase {
                 accountRepo,
                 mock(AuthService.class),
                 mock(MemberLookupService.class),
-                mock(DocumentService.class));
+                mock(DocumentService.class),
+                new AccountReach(accountRepo));
         noticeRepo = new ManagedLoginNoticeRepository();
         authService = mock(AuthService.class);
         service = new ManagedAccessService(

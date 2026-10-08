@@ -16,12 +16,19 @@ import org.slf4j.LoggerFactory;
 /**
  * Whether a station may act on the account behind one of its members.
  *
- * <p>An account belongs to the person, not to the station. Where the person is a member of this
- * station alone, the station looks after the account on their behalf and may reach its address and
- * its ways of signing in. Where the account also belongs to another station, current or former, or
- * holds a role in an association, it is not this station's to decide: the address and the
- * credentials are the person's to manage themselves. Each reason has its own refusal, so the screen
- * can say why.
+ * <p>An account belongs to the person, not to the station. Every action a station or a guardian takes
+ * on it comes through here with what it does ({@link AccountAction}). What stays inside the station,
+ * a name it shows or whether the member may sign in there, is the station's to decide. What changes
+ * the account's address or the ways it signs in is the station's only where the person is a member of
+ * this station alone and has confirmed the account:
+ * <ul>
+ *   <li>an account a station import created waits for its owner to sign in through the link sent to
+ *       its address, so a bundle cannot plant an account under somebody else's address and then reset
+ *       it;</li>
+ *   <li>an account that also belongs to another station, current or former, or holds a role in an
+ *       association, is the person's to manage themselves.</li>
+ * </ul>
+ * Each reason has its own refusal, so the screen can say why.
  */
 @Singleton
 public class AccountReach {
@@ -35,13 +42,23 @@ public class AccountReach {
     }
 
     /**
-     * Refuses the action when the account is not this station's alone.
+     * Refuses the action where it reaches past the station and the account is not this station's to
+     * decide on.
      *
      * @param stationId the station that acts
      * @param accountId the account it acts on
      * @param action    what it does to the account
      */
     public void require(int stationId, int accountId, AccountAction action) {
+        if (!action.reachesPastStation()) return;
+        if (accountRepository.isUnconfirmed(accountId)) {
+            log.info(
+                    "Station {} refused {} on account {}: its owner has not confirmed it",
+                    stationId,
+                    action,
+                    accountId);
+            throw MemberRefusal.ACCOUNT_NOT_CONFIRMED_YET.raise();
+        }
         var ties = accountRepository.findTies(accountId, stationId);
         if (ties.association()) {
             log.info(

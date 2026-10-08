@@ -7,7 +7,9 @@ package dev.chojo.ember.feature.legal.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.MemberRefusal;
+import dev.chojo.ember.feature.account.entity.AccountAction;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.account.service.AccountReach;
 import dev.chojo.ember.feature.account.service.AvatarService;
 import dev.chojo.ember.feature.documents.service.DocumentService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
@@ -46,6 +48,7 @@ public class GdprDeletionService {
     private final AvatarService avatarService;
     private final DocumentService documentService;
     private final SignatureImageService signatureImages;
+    private final AccountReach accountReach;
     private final GenericGdprDeleter engine;
 
     @Inject
@@ -55,13 +58,15 @@ public class GdprDeletionService {
             MemberLookupService memberLookupService,
             AvatarService avatarService,
             DocumentService documentService,
-            SignatureImageService signatureImages) {
+            SignatureImageService signatureImages,
+            AccountReach accountReach) {
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.memberLookupService = memberLookupService;
         this.avatarService = avatarService;
         this.documentService = documentService;
         this.signatureImages = signatureImages;
+        this.accountReach = accountReach;
         DataTracking t;
         try {
             t = DataTrackingLoader.loadFromClasspath();
@@ -114,9 +119,12 @@ public class GdprDeletionService {
      * has to say whom it is about.
      */
     public void anonymizeMember(int memberId) {
-        documentService.memberLeaves(memberId, DocumentService.Leaving.DELETED);
         var member = stationMemberRepository.findById(memberId).orElse(null);
         Integer accountId = member != null ? member.accountId() : null;
+        if (member != null && accountId != null) {
+            accountReach.require(member.stationId(), accountId, AccountAction.MEMBER_DELETE);
+        }
+        documentService.memberLeaves(memberId, DocumentService.Leaving.DELETED);
         UUID memberUid = memberLookupService.resolveUid(memberId);
 
         var memberReport = engine.deleteByIdentity(IdentityType.MEMBER_ID, memberId);

@@ -814,7 +814,13 @@ public enum MemberRefusal implements Refusal {
 
     /** A link sent again less than a day after it was last sent. */
     LINK_SENT_TOO_RECENTLY(
-            221, HttpStatus.TOO_MANY_REQUESTS, "The link was sent less than a day ago, so it was not sent again");
+            221, HttpStatus.TOO_MANY_REQUESTS, "The link was sent less than a day ago, so it was not sent again"),
+
+    /** A station or a guardian reaching the address or the sign-in of an account a station import created and its owner has not confirmed yet. */
+    ACCOUNT_NOT_CONFIRMED_YET(
+            222,
+            HttpStatus.FORBIDDEN,
+            "The person has not confirmed that account yet, so its address and how it signs in stay as they are until they set it up through the link sent to them");
 
     private final Definition definition;
 
