@@ -26,22 +26,19 @@ import type {
 } from '@/api/generated/schema'
 import {StationPermission} from '@/api/generated/schema'
 import { waitingList, memberGroups } from '@/api'
-import { useSidebarCounts } from '@/composables/useSidebarCounts'
 import { useSession } from '@/composables/useSession'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
 import { useAsyncAction } from '@/composables/useAsyncAction'
-import { useConfirmAction } from '@/composables/useConfirmAction'
 import { useFlashMessage } from '@/composables/useFlashMessage'
 import { describeFailure, type Failure } from '@/util/failure'
 import { useListInvites } from './detailview/useListInvites'
 import { useEntryTransitions } from './detailview/useEntryTransitions'
 import { useEntryInvitation } from './detailview/useEntryInvitation'
-import { entryFullName } from './detailview/entryFullName'
+import { useEntryDeletion } from './useEntryDeletion'
 
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
-const { refresh: refreshSidebarCounts } = useSidebarCounts()
 const { hasPermission } = useSession()
 
 const canManage = computed(() => hasPermission(StationPermission.WAITLIST_MANAGER))
@@ -159,16 +156,11 @@ function navigateToCreateEntry() {
 
 const {
   show: showDeleteEntryModal,
-  target: deleteEntryTarget,
+  message: deleteEntryMessage,
   request: requestDeleteEntry,
   confirm: confirmDeleteEntry,
-} = useConfirmAction<WaitingListEntryWithScore>({
-  onConfirm: e => waitingList.deleteEntry(listId.value, e.entry.id),
-  onSuccess: async () => {
-    entries.value = await waitingList.listEntries(listId.value)
-    refreshSidebarCounts()
-  },
-  failure,
+} = useEntryDeletion(listId, failure, async () => {
+  entries.value = await waitingList.listEntries(listId.value)
 })
 
 function navigateToEntry(entryId: number) {
@@ -270,7 +262,7 @@ function showFailure(reported: Failure) {
     <ConfirmDeleteModal
       v-model="showDeleteEntryModal"
       :title="t('waitingList.deleteEntryTitle')"
-      :message="t('waitingList.deleteEntryConfirm', { name: deleteEntryTarget ? entryFullName(deleteEntryTarget) : '' })"
+      :message="deleteEntryMessage"
       @confirm="confirmDeleteEntry"
     />
   </ViewContent>

@@ -1,5 +1,13 @@
 # Änderungsprotokoll
 
+## v26.21.3
+
+Einträge einer Warteliste lassen sich auf ihrer eigenen Seite löschen, egal in welchem Status.
+
+### Fehlerbehebungen
+
+- **Einträge einer Warteliste ließen sich auf ihrer eigenen Seite nicht löschen.** Gelöscht werden konnte ein Eintrag nur in der Liste und nur, solange er wartete oder eingeladen war. Die Seite des Eintrags bietet das Löschen jetzt in jedem Status an, für alle, die die Warteliste bearbeiten dürfen.
+
 ## v26.21.2
 
 Eine abgelehnte Speicherung im Browser lässt sich auf der Anmeldeseite ändern. Datenschutzerklärung und Einwilligung werden nur noch erneut abgefragt, wenn sich ihr Text oder die Arten der gespeicherten Daten ändern. Geänderte Zeilen der rechtlichen Texte erscheinen formatiert.

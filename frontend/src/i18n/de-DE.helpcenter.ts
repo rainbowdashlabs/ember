@@ -2869,7 +2869,7 @@ volumes:
             createEntryTitle: 'Neuen Eintrag erstellen',
             createEntryText: 'Trage Vorname, Nachname, Erziehungsberechtigte und Notizen ein.',
             entryDetailTitle: 'Eintrag bearbeiten',
-            entryDetailText: 'Auf der Detailseite bearbeitest du die Daten und siehst den Status.',
+            entryDetailText: 'Auf der Detailseite bearbeitest du die Daten und siehst den Status. Wer die Warteliste bearbeiten darf, kann den Eintrag dort auch löschen, egal in welchem Status er steht.',
             fieldEditorTitle: 'Eigene Felder anlegen',
             fieldEditorText: 'Du kannst eigene Felder erstellen mit verschiedenen Typen.',
             invites: 'Einladungslinks',

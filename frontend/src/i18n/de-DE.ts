@@ -5796,6 +5796,7 @@ export default {
         deleteList: 'Warteliste löschen',
         deleteListTitle: 'Warteliste wirklich löschen?',
         deleteListConfirm: 'Soll die Warteliste "{name}" wirklich gelöscht werden? Alle Einträge gehen verloren.',
+        deleteEntry: 'Eintrag löschen',
         deleteEntryTitle: 'Eintrag wirklich löschen?',
         deleteEntryConfirm: 'Soll der Eintrag "{name}" wirklich gelöscht werden?',
         deleteFieldTitle: 'Feld wirklich löschen?',

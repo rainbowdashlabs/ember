@@ -11,21 +11,30 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import SaveButton from '@/components/button/SaveButton.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ErrorButton from '@/components/button/ErrorButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
+import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import EntryHeaderInfo from './entrydetailview/EntryHeaderInfo.vue'
 import EntryCoreFieldsCard from './entrydetailview/EntryCoreFieldsCard.vue'
 import EntryCustomFieldsCard from './entrydetailview/EntryCustomFieldsCard.vue'
 import type { GuardianInput } from '@/api/waitingList'
 import type { WaitingListEntryWithScore, WaitingListField } from '@/api/generated/schema'
+import { StationPermission } from '@/api/generated/schema'
 import { waitingList } from '@/api'
 import { setFieldValue as writeFieldValue } from '@/util/profileFields'
 import { useAsyncLoader } from '@/composables/useAsyncLoader'
+import { useSession } from '@/composables/useSession'
 import { instantToLocalInput } from '@/util/format'
 import { describeFailure, FailureKind } from '@/util/failure'
+import { useEntryDeletion } from './useEntryDeletion'
 
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
+const { hasPermission } = useSession()
+
+const canEdit = computed(() => hasPermission(StationPermission.WAITLIST_EDIT))
 
 const listId = computed(() => Number(route.params.id))
 const entryId = computed(() => Number(route.params.entryId))
@@ -146,6 +155,13 @@ function goBack() {
   router.push({ name: 'waiting-list-detail', params: { id: listId.value } })
 }
 
+const {
+  show: showDeleteModal,
+  message: deleteMessage,
+  request: requestDelete,
+  confirm: confirmDelete,
+} = useEntryDeletion(listId, failure, goBack)
+
 </script>
 
 <template>
@@ -154,11 +170,14 @@ function goBack() {
       :subtitle="t('pages.waiting-list-entry.subtitle')"
   >
     <div class="space-y-6">
-      <div class="flex items-center justify-between">
+      <ButtonRow align="between">
         <SecondaryButton :icon="['fas', 'chevron-left']" @click="goBack">
           {{ t('waitingList.backToList') }}
         </SecondaryButton>
-      </div>
+        <ErrorButton v-if="canEdit && entry" :icon="['fas', 'trash']" data-testid="delete-entry" @click="requestDelete(entry)">
+          {{ t('waitingList.deleteEntry') }}
+        </ErrorButton>
+      </ButtonRow>
 
       <Spinner v-if="loading" size="lg" />
       <FailureAlert :failure="failure"/>
@@ -193,5 +212,12 @@ function goBack() {
         </div>
       </template>
     </div>
+
+    <ConfirmDeleteModal
+      v-model="showDeleteModal"
+      :title="t('waitingList.deleteEntryTitle')"
+      :message="deleteMessage"
+      @confirm="confirmDelete"
+    />
   </ViewContent>
 </template>
