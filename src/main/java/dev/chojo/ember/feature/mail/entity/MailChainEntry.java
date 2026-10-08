@@ -17,12 +17,12 @@ import org.jspecify.annotations.Nullable;
  * block list, for one. So sending is not one provider but a list: each gets a number of attempts,
  * and when it has used them the next one takes over.
  *
- * @param position       where in the order this provider sits, counted from zero
- * @param smtpEncryption how the connection to the relay is secured
- * @param attempts       how many attempts it gets before the next one takes over
- * @param dailySendLimit how many mails it may send in a day, or zero for no limit. Free tiers are
- *                       sold by the day, so a chain that ignores the allowance keeps pushing at a
- *                       provider that has already spent it instead of moving to the next.
+ * @param position         where in the order this provider sits, counted from zero
+ * @param smtpEncryption   how the connection to the relay is secured
+ * @param attempts         how many attempts it gets before the next one takes over
+ * @param dailySendLimit   how many mails it may send in a day, or zero for no limit. Free tiers are
+ *                         sold by the day, so a chain that ignores the allowance keeps pushing at a
+ *                         provider that has already spent it instead of moving to the next.
  * @param providerName     the provider name shown to members, empty when none was given
  * @param providerUrl      the provider website shown to members, empty when none was given
  * @param instancePosition where this provider sits in the instance's list when it is one of the
@@ -30,6 +30,8 @@ import org.jspecify.annotations.Nullable;
  *                         instance's providers has them after its own, so its chain holds both
  *                         kinds, and the allowance of an instance provider is counted by this
  *                         position whoever's mail it carries.
+ * @param replyTo          where replies to a mail sent through this provider go, empty for the
+ *                         sender address itself
  */
 public record MailChainEntry(
         int position,
@@ -46,10 +48,11 @@ public record MailChainEntry(
         int dailySendLimit,
         String providerName,
         String providerUrl,
-        @Nullable Integer instancePosition) {
+        @Nullable Integer instancePosition,
+        String replyTo) {
 
     /**
-     * A station's own provider, which is what every entry read from a station's list is.
+     * A station's own provider as its list stores it, replies going to its sender address.
      */
     public MailChainEntry(
             int position,
@@ -81,7 +84,8 @@ public record MailChainEntry(
                 dailySendLimit,
                 providerName,
                 providerUrl,
-                null);
+                null,
+                "");
     }
 
     /**
@@ -117,7 +121,8 @@ public record MailChainEntry(
                 dailySendLimit,
                 providerName,
                 providerUrl,
-                instancePosition);
+                instancePosition,
+                replyTo);
     }
 
     /**
@@ -139,7 +144,35 @@ public record MailChainEntry(
                 dailySendLimit,
                 providerName,
                 providerUrl,
-                inInstanceList);
+                inInstanceList,
+                replyTo);
+    }
+
+    /**
+     * This entry sending under another display name, with replies going elsewhere. The sender
+     * address stays: it is the one the provider has authorised.
+     *
+     * @param displayName the name shown beside the sender address
+     * @param replyAddress where replies go, empty for the sender address itself
+     */
+    public MailChainEntry sendingAs(String displayName, String replyAddress) {
+        return new MailChainEntry(
+                position,
+                provider,
+                smtpHost,
+                smtpPort,
+                smtpEncryption,
+                smtpUser,
+                smtpPassword,
+                apiKey,
+                senderAddress,
+                displayName,
+                attempts,
+                dailySendLimit,
+                providerName,
+                providerUrl,
+                instancePosition,
+                replyAddress);
     }
 
     /**

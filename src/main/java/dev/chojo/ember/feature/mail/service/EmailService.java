@@ -138,11 +138,12 @@ public class EmailService implements TaskSource {
     }
 
     /**
-     * Builds a {@link MailProvider} from one entry of a list, without persisting anything. Returns
-     * {@code null} when the entry's provider is {@link MailProviderType#NONE}.
+     * Builds a {@link MailProvider} from one entry of a list, without persisting anything, sending
+     * under the entry's display name with replies going where the entry says. Returns {@code null}
+     * when the entry's provider is {@link MailProviderType#NONE}.
      */
     private static @Nullable MailProvider buildProvider(MailChainEntry entry) {
-        return buildProvider(
+        var provider = buildProvider(
                 entry.provider(),
                 entry.smtpHost(),
                 entry.smtpPort(),
@@ -152,6 +153,7 @@ public class EmailService implements TaskSource {
                 entry.apiKey(),
                 entry.senderAddress(),
                 entry.senderName());
+        return provider == null ? null : provider.replyingTo(entry.replyTo());
     }
 
     /**
@@ -162,7 +164,7 @@ public class EmailService implements TaskSource {
      * Brevo carries the correlation header through to its delivery events, which ties an event back
      * to its mail.
      */
-    private static @Nullable MailProvider buildProvider(
+    private static @Nullable SmtpMailProvider buildProvider(
             MailProviderType provider,
             String smtpHost,
             int smtpPort,

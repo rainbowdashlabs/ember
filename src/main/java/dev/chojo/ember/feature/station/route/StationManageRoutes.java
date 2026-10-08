@@ -24,6 +24,7 @@ import dev.chojo.ember.feature.mail.service.MailDashboardService.MailDashboard;
 import dev.chojo.ember.feature.mail.service.MailDashboardService.RequeuedMails;
 import dev.chojo.ember.feature.mail.service.MailLocaleService;
 import dev.chojo.ember.feature.mail.service.StationMailSettingsService;
+import dev.chojo.ember.feature.mail.service.StationMailSettingsService.MailReplyTo;
 import dev.chojo.ember.feature.mail.service.StationMailSettingsService.WebhookUrl;
 import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.entity.MailProviderType;
@@ -139,6 +140,8 @@ public class StationManageRoutes implements Routes {
                 prefix + "/station/manage/mail/signing-secret",
                 this::updateSigningSecret,
                 StationPermission.STATION_MAIL);
+        routes.get(prefix + "/station/manage/mail/reply-to", this::getReplyTo, StationPermission.STATION_MAIL);
+        routes.put(prefix + "/station/manage/mail/reply-to", this::updateReplyTo, StationPermission.STATION_MAIL);
         routes.get(
                 prefix + "/station/manage/notifications",
                 this::getNotificationSchedule,
@@ -429,6 +432,31 @@ public class StationManageRoutes implements Routes {
      * @param secret the secret as the provider issued it, or empty to stop checking signatures
      */
     public record SigningSecretRequest(String secret) {}
+
+    /**
+     * Where replies to the station's mail go, whichever provider carries it.
+     */
+    @OpenApi(
+            path = "/api/v1/station/manage/mail/reply-to",
+            methods = HttpMethod.GET,
+            summary = "Get where replies to the station's mail go",
+            tags = {"Station Manage"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MailReplyTo.class)))
+    private void getReplyTo(Context ctx) {
+        ctx.json(mailSettings.replyTo(StationSession.from(ctx).stationId()));
+    }
+
+    @OpenApi(
+            path = "/api/v1/station/manage/mail/reply-to",
+            methods = HttpMethod.PUT,
+            summary = "Set where replies to the station's mail go, or send them to the sender address again",
+            tags = {"Station Manage"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = MailReplyTo.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MailReplyTo.class)))
+    private void updateReplyTo(Context ctx) {
+        var request = ctx.bodyAsClass(MailReplyTo.class);
+        ctx.json(mailSettings.updateReplyTo(StationSession.from(ctx).stationId(), request.replyTo()));
+    }
 
     /**
      * Replaces this station's webhook key, which takes its old address out of service at once.

@@ -42043,6 +42043,49 @@
         }
       }
     },
+    "/api/v1/station/manage/mail/reply-to" : {
+      "get" : {
+        "summary" : "Get where replies to the station's mail go",
+        "tags" : [ "Station Manage" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MailReplyTo"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "summary" : "Set where replies to the station's mail go, or send them to the sender address again",
+        "tags" : [ "Station Manage" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MailReplyTo"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/MailReplyTo"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/station/manage/mail/signing-secret" : {
       "put" : {
         "summary" : "Store the signing secret the station's mail provider issued",
@@ -59634,6 +59677,15 @@
           }
         },
         "required" : [ "id", "recipient", "subject", "createdAt", "sentAt", "status", "deliveryStatus", "deliveryDetail", "attempts", "providerPosition", "reachable" ]
+      },
+      "MailReplyTo" : {
+        "type" : "object",
+        "properties" : {
+          "replyTo" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "replyTo" ]
       },
       "MailRuleAction" : {
         "type" : "string",

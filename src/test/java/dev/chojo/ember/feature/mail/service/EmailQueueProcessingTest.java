@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.mail.repository.EmailQueueRepository.QueuedEmail;
 import dev.chojo.ember.feature.mail.repository.MailProviderBlockRepository;
 import dev.chojo.ember.feature.station.entity.MailProviderType;
 import dev.chojo.ember.feature.storage.service.StationReadOnlyGuard;
+import jakarta.mail.internet.InternetAddress;
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -166,6 +167,40 @@ class EmailQueueProcessingTest {
         verify(queue).markSent(11, 0);
         verify(queue, never()).incrementDailyCount(any());
         assertEquals(1, relay.getReceivedMessages().length);
+    }
+
+    /**
+     * Through the instance's provider the mail leaves from the instance's address, which is the one
+     * the provider has authorised, under the station's name, with replies going to the station.
+     */
+    @Test
+    void stationMailThroughTheInstanceComesFromTheStationAndRepliesGoThere() throws Exception {
+        queued(STATION);
+        var lent = relayEntry(0).asInstanceProvider(0).sendingAs("Wache Nord", "kontakt@nord.test");
+        var chain = List.of(lent);
+        when(chains.forStation(STATION)).thenReturn(chain);
+        when(allowance.anyRoomToday(STATION, chain)).thenReturn(true);
+        when(allowance.hasRoomToday(STATION, lent)).thenReturn(true);
+
+        runQueue();
+
+        var message = relay.getReceivedMessages()[0];
+        var from = (InternetAddress) message.getFrom()[0];
+        assertEquals("post@instance.test", from.getAddress());
+        assertEquals("Wache Nord", from.getPersonal());
+        assertEquals("kontakt@nord.test", ((InternetAddress) message.getReplyTo()[0]).getAddress());
+    }
+
+    @Test
+    void withoutAReplyAddressRepliesGoToTheSender() throws Exception {
+        queued(null);
+        var chain = chains.forInstance();
+        when(allowance.hasRoomToday(eq(null), eq(chain.getFirst()))).thenReturn(true);
+
+        runQueue();
+
+        var message = relay.getReceivedMessages()[0];
+        assertEquals("post@instance.test", ((InternetAddress) message.getReplyTo()[0]).getAddress());
     }
 
     @Test

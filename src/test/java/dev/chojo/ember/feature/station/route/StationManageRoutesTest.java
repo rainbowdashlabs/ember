@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.mail.service.MailDashboardService;
 import dev.chojo.ember.feature.mail.service.MailLocaleService;
 import dev.chojo.ember.feature.mail.service.StationMailSettingsService;
+import dev.chojo.ember.feature.mail.service.StationMailSettingsService.MailReplyTo;
 import dev.chojo.ember.feature.mail.service.StationMailSettingsService.WebhookUrl;
 import dev.chojo.ember.feature.members.entity.UserSettings;
 import dev.chojo.ember.feature.members.route.UserSettingsRoutes;
@@ -175,6 +176,27 @@ class StationManageRoutesTest {
         verify(mail).clear(STATION_ID);
         verify(times).update(STATION_ID, List.of("08:00"));
         verify(dashboard).liftBlock(STATION_ID, MailProviderType.BREVO, "example.org");
+    }
+
+    @Test
+    void theReplyAddressBelongsToTheStationAsking() {
+        when(mail.replyTo(STATION_ID)).thenReturn(new MailReplyTo("kontakt@nord.test"));
+        when(mail.updateReplyTo(STATION_ID, "neu@nord.test")).thenReturn(new MailReplyTo("neu@nord.test"));
+
+        harness.run((server, client) -> {
+            assertEquals(
+                    "kontakt@nord.test",
+                    json(as(client, "GET", "/station/manage/mail/reply-to", null))
+                            .path("replyTo")
+                            .asString());
+            assertEquals(
+                    "neu@nord.test",
+                    json(as(client, "PUT", "/station/manage/mail/reply-to", body("{\"replyTo\": \"neu@nord.test\"}")))
+                            .path("replyTo")
+                            .asString());
+        });
+
+        verify(mail).updateReplyTo(STATION_ID, "neu@nord.test");
     }
 
     @Test

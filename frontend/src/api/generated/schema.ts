@@ -55326,6 +55326,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/station/manage/mail/reply-to": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get where replies to the station's mail go */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MailReplyTo"];
+                    };
+                };
+            };
+        };
+        /** Set where replies to the station's mail go, or send them to the sender address again */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["MailReplyTo"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MailReplyTo"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/station/manage/mail/signing-secret": {
         parameters: {
             query?: never;
@@ -63343,6 +63403,9 @@ export interface components {
             status: components["schemas"]["EmailQueueStatus"];
             subject: string;
         };
+        MailReplyTo: {
+            replyTo: string | null;
+        };
         /** @enum {string} */
         MailRuleAction: "NOTHING" | "MARK_SEEN" | "FLAG" | "MOVE";
         /** @enum {string} */
@@ -69693,6 +69756,7 @@ export type MailingConfigResponse = components['schemas']['MailingConfigResponse
 export type MailProviderType = components['schemas']['MailProviderType'];
 export type MailReaches = components['schemas']['MailReaches'];
 export type MailRecord = components['schemas']['MailRecord'];
+export type MailReplyTo = components['schemas']['MailReplyTo'];
 export type MailRuleAction = components['schemas']['MailRuleAction'];
 export type MailSecurity = components['schemas']['MailSecurity'];
 export type MailTestResponse = components['schemas']['MailTestResponse'];

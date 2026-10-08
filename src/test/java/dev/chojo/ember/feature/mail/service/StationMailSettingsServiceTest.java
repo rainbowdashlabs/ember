@@ -12,9 +12,11 @@ import dev.chojo.ember.feature.mail.entity.InstanceMailGrant;
 import dev.chojo.ember.feature.mail.entity.MailChainEntry;
 import dev.chojo.ember.feature.mail.entity.MailFallbackPayload;
 import dev.chojo.ember.feature.mail.entity.SmtpEncryption;
+import dev.chojo.ember.feature.mail.entity.StationMailSender;
 import dev.chojo.ember.feature.mail.repository.InstanceMailGrantRepository;
 import dev.chojo.ember.feature.mail.repository.ProviderSecretRepository;
 import dev.chojo.ember.feature.mail.repository.StationMailProviderRepository;
+import dev.chojo.ember.feature.mail.repository.StationMailSenderRepository;
 import dev.chojo.ember.feature.station.entity.MailProviderType;
 import dev.chojo.ember.feature.webhook.service.WebhookKeyService;
 import org.junit.jupiter.api.BeforeEach;
@@ -39,6 +41,7 @@ class StationMailSettingsServiceTest {
     private ProviderSecretRepository secrets;
     private WebhookKeyService webhookKeys;
     private InstanceMailGrantRepository grants;
+    private StationMailSenderRepository senders;
     private StationMailSettingsService service;
 
     private static MailChainEntry stored(String password) {
@@ -87,7 +90,24 @@ class StationMailSettingsServiceTest {
         when(webhookKeys.webhookUrl(eq("https://ember.test"), eq(3), anyString()))
                 .thenReturn("https://ember.test/hook");
         grants = mock(InstanceMailGrantRepository.class);
-        service = new StationMailSettingsService(providers, secrets, webhookKeys, api, grants);
+        senders = mock(StationMailSenderRepository.class);
+        service = new StationMailSettingsService(providers, secrets, webhookKeys, api, grants, senders);
+    }
+
+    @Test
+    void theReplyAddressIsCheckedTrimmedAndClearedByLeavingItEmpty() {
+        when(senders.find(3)).thenReturn(Optional.of(new StationMailSender("Nord", "kontakt@nord.test")));
+
+        assertEquals(
+                "kontakt@nord.test",
+                service.updateReplyTo(3, "  kontakt@nord.test ").replyTo());
+        service.updateReplyTo(3, " ");
+        var refused = assertThrows(RefusalResponse.class, () -> service.updateReplyTo(3, "kontakt"));
+
+        verify(senders).updateReplyTo(3, "kontakt@nord.test");
+        verify(senders).updateReplyTo(3, null);
+        assertEquals(StationRefusal.MAIL_REPLY_TO_NOT_AN_ADDRESS, refused.refusal());
+        assertEquals("", service.replyTo(4).replyTo(), "a station named nothing");
     }
 
     @Test

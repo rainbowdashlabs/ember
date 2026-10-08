@@ -7,9 +7,11 @@ package dev.chojo.ember.feature.mail.service;
 
 import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.feature.mail.entity.MailChainEntry;
+import dev.chojo.ember.feature.mail.entity.StationMailSender;
 import dev.chojo.ember.feature.mail.repository.InstanceMailGrantRepository;
 import dev.chojo.ember.feature.mail.repository.ProviderSecretRepository;
 import dev.chojo.ember.feature.mail.repository.StationMailProviderRepository;
+import dev.chojo.ember.feature.mail.repository.StationMailSenderRepository;
 import dev.chojo.ember.feature.station.entity.MailProviderType;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -41,17 +43,20 @@ public class MailChainService {
     private final StationMailProviderRepository providerRepository;
     private final ProviderSecretRepository secretRepository;
     private final InstanceMailGrantRepository grantRepository;
+    private final StationMailSenderRepository senderRepository;
 
     @Inject
     public MailChainService(
             Mailing mailing,
             StationMailProviderRepository providerRepository,
             ProviderSecretRepository secretRepository,
-            InstanceMailGrantRepository grantRepository) {
+            InstanceMailGrantRepository grantRepository,
+            StationMailSenderRepository senderRepository) {
         this.mailing = mailing;
         this.providerRepository = providerRepository;
         this.secretRepository = secretRepository;
         this.grantRepository = grantRepository;
+        this.senderRepository = senderRepository;
     }
 
     /**
@@ -86,12 +91,17 @@ public class MailChainService {
     /**
      * The order a station's mail is tried through: its own providers, followed by the instance's
      * where the station was granted them. Empty when it has neither.
+     *
+     * <p>The instance's providers send from the instance's address, because that is the one its
+     * providers have authorised, but under the station's name: a reader should see who wrote to
+     * them. Replies go to the station's reply address where it set one, through any provider.
      */
     public List<MailChainEntry> forStation(int stationId) {
-        List<MailChainEntry> chain = new ArrayList<>(ownForStation(stationId));
-        if (grantRepository.find(stationId).isEmpty()) return chain;
+        var sender = senderRepository.find(stationId).orElse(null);
+        List<MailChainEntry> chain = new ArrayList<>(own(stationId, sender));
+        if (sender == null || grantRepository.find(stationId).isEmpty()) return chain;
         for (var entry : forInstance()) {
-            chain.add(entry.withPosition(chain.size()));
+            chain.add(entry.withPosition(chain.size()).sendingAs(sender.name(), sender.replyTo()));
         }
         return chain;
     }
@@ -101,7 +111,15 @@ public class MailChainService {
      * configures, tries and shows its members is this list.
      */
     public List<MailChainEntry> ownForStation(int stationId) {
-        return configured(new ArrayList<>(providerRepository.findByStation(stationId)));
+        return own(stationId, senderRepository.find(stationId).orElse(null));
+    }
+
+    private List<MailChainEntry> own(int stationId, @Nullable StationMailSender sender) {
+        var chain = configured(new ArrayList<>(providerRepository.findByStation(stationId)));
+        if (sender == null || sender.replyTo().isBlank()) return chain;
+        return chain.stream()
+                .map(entry -> entry.sendingAs(entry.senderName(), sender.replyTo()))
+                .toList();
     }
 
     /**

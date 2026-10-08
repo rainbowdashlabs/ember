@@ -9,11 +9,14 @@ import dev.chojo.ember.api.refusal.StationRefusal;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.mail.entity.MailChainEntry;
 import dev.chojo.ember.feature.mail.entity.MailFallbackPayload;
+import dev.chojo.ember.feature.mail.entity.StationMailSender;
 import dev.chojo.ember.feature.mail.repository.InstanceMailGrantRepository;
 import dev.chojo.ember.feature.mail.repository.ProviderSecretRepository;
 import dev.chojo.ember.feature.mail.repository.StationMailProviderRepository;
+import dev.chojo.ember.feature.mail.repository.StationMailSenderRepository;
 import dev.chojo.ember.feature.station.entity.MailProviderType;
 import dev.chojo.ember.feature.webhook.service.WebhookKeyService;
+import dev.chojo.ember.util.MailAddress;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -42,6 +45,7 @@ public class StationMailSettingsService {
     private final WebhookKeyService webhookKeys;
     private final Api api;
     private final InstanceMailGrantRepository grants;
+    private final StationMailSenderRepository senders;
 
     @Inject
     public StationMailSettingsService(
@@ -49,12 +53,35 @@ public class StationMailSettingsService {
             ProviderSecretRepository secrets,
             WebhookKeyService webhookKeys,
             Api api,
-            InstanceMailGrantRepository grants) {
+            InstanceMailGrantRepository grants,
+            StationMailSenderRepository senders) {
         this.providers = providers;
         this.secrets = secrets;
         this.webhookKeys = webhookKeys;
         this.api = api;
         this.grants = grants;
+        this.senders = senders;
+    }
+
+    /**
+     * Where replies to the station's mail go.
+     */
+    public MailReplyTo replyTo(int stationId) {
+        return new MailReplyTo(
+                senders.find(stationId).map(StationMailSender::replyTo).orElse(""));
+    }
+
+    /**
+     * Sets where replies to the station's mail go, through whichever provider carries it. An empty
+     * address sends replies back to the sender address again.
+     */
+    public MailReplyTo updateReplyTo(int stationId, @Nullable String replyTo) {
+        String address = replyTo == null || replyTo.isBlank()
+                ? null
+                : MailAddress.require(replyTo, StationRefusal.MAIL_REPLY_TO_NOT_AN_ADDRESS);
+        senders.updateReplyTo(stationId, address);
+        log.info("Station {} set its reply address", stationId);
+        return replyTo(stationId);
     }
 
     /**
@@ -198,4 +225,9 @@ public class StationMailSettingsService {
      * @param signingSecretSet   whether a signing secret is stored, without revealing it
      */
     public record WebhookUrl(String deliveryWebhookUrl, boolean signingSecretSet) {}
+
+    /**
+     * @param replyTo where replies to the station's mail go, empty for the sender address itself
+     */
+    public record MailReplyTo(@Nullable String replyTo) {}
 }

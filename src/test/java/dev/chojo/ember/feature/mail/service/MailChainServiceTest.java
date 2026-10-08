@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.mail.entity.SmtpEncryption;
 import dev.chojo.ember.feature.mail.repository.InstanceMailGrantRepository;
 import dev.chojo.ember.feature.mail.repository.ProviderSecretRepository;
 import dev.chojo.ember.feature.mail.repository.StationMailProviderRepository;
+import dev.chojo.ember.feature.mail.repository.StationMailSenderRepository;
 import dev.chojo.ember.feature.station.entity.MailProviderType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -37,6 +38,7 @@ class MailChainServiceTest extends RepositoryTestBase {
 
     private static final StationMailProviderRepository providers = new StationMailProviderRepository();
     private static final InstanceMailGrantRepository grants = new InstanceMailGrantRepository();
+    private static final StationMailSenderRepository senders = new StationMailSenderRepository();
     private static MailChainService service;
     private static MailChainService withInstanceList;
     private static Station station;
@@ -44,13 +46,13 @@ class MailChainServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        service = new MailChainService(new Mailing(), providers, new ProviderSecretRepository(), grants);
+        service = new MailChainService(new Mailing(), providers, new ProviderSecretRepository(), grants, senders);
         var mailing = new Mailing();
         setField(
                 mailing,
                 "providers",
                 List.of(instanceProvider(MailProviderType.BREVO), instanceProvider(MailProviderType.SWEEGO)));
-        withInstanceList = new MailChainService(mailing, providers, new ProviderSecretRepository(), grants);
+        withInstanceList = new MailChainService(mailing, providers, new ProviderSecretRepository(), grants, senders);
         station = stationRepo.create("Chain Station");
         granted = stationRepo.create("Chain Station Granted");
     }
@@ -116,6 +118,30 @@ class MailChainServiceTest extends RepositoryTestBase {
         assertEquals(
                 MailProviderType.SMTP,
                 withInstanceList.firstForStation(granted.id()).orElseThrow().provider());
+    }
+
+    /**
+     * The instance's providers send from the instance's address, the one they have authorised, but
+     * under the station's name, so the reader sees who wrote. A reply goes to the station.
+     */
+    @Test
+    void theInstanceSendsUnderTheStationsNameWithRepliesToTheStation() {
+        grants.grant(granted.id(), null);
+        providers.replace(granted.id(), List.of(fallback(0, MailProviderType.SMTP, 2)));
+        senders.updateReplyTo(granted.id(), "kontakt@wache.test");
+
+        var chain = withInstanceList.forStation(granted.id());
+
+        assertEquals("post@instance", chain.get(1).senderAddress(), "the instance's own address");
+        assertEquals("Chain Station Granted", chain.get(1).senderName(), "the station's name");
+        assertEquals("kontakt@wache.test", chain.get(1).replyTo());
+        assertEquals("Wache", chain.getFirst().senderName(), "its own provider keeps its own name");
+        assertEquals("kontakt@wache.test", chain.getFirst().replyTo(), "replies go to the station through any");
+
+        senders.updateReplyTo(granted.id(), null);
+        var withoutReplyAddress = withInstanceList.forStation(granted.id());
+        assertEquals("", withoutReplyAddress.get(1).replyTo(), "no reply address, replies go to the sender");
+        assertEquals("", withoutReplyAddress.getFirst().replyTo());
     }
 
     @Test
@@ -201,7 +227,7 @@ class MailChainServiceTest extends RepositoryTestBase {
     @Test
     void theInstanceListIsReadFromTheListRatherThanTheOldFields() {
         var mailing = new Mailing();
-        var withList = new MailChainService(mailing, providers, new ProviderSecretRepository(), grants);
+        var withList = new MailChainService(mailing, providers, new ProviderSecretRepository(), grants, senders);
 
         assertTrue(withList.forInstance().isEmpty(), "a bare configuration lists nothing");
 
