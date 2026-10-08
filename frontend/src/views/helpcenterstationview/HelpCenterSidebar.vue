@@ -106,6 +106,10 @@ function highlightSnippet(result: (typeof searchResults.value)[number]): string 
                    to="/helpcenter/station/basics/federation" @navigate="close">
         {{ t('helpCenter.basics.sidebarFederation') }}
       </SidebarLink>
+      <SidebarLink :icon="['fas', 'file-signature']" name="help-basics-seals"
+                   to="/helpcenter/station/basics/seals" @navigate="close">
+        {{ t('helpCenter.basics.sidebarSeals') }}
+      </SidebarLink>
     </SidebarGroup>
 
     <SidebarGroup :icon="['fas', 'rocket']" :label="t('setup.headerTitle')" prefix="/helpcenter/station/setup"

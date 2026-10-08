@@ -45,6 +45,7 @@ export default defineNuxtConfig({
     '/login': {ssr: true},
     '/discovery': {ssr: true},
     '/discovery/**': {ssr: true},
+    '/verify': {ssr: true},
     '/public/**': {ssr: true},
     '/f/**': {ssr: true, headers: {'X-Robots-Tag': 'noindex, nofollow', 'Referrer-Policy': 'no-referrer'}},
     '/s/**': {ssr: true, headers: {'X-Robots-Tag': 'noindex, nofollow', 'Referrer-Policy': 'no-referrer'}},

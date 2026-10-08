@@ -89,6 +89,7 @@ export * as insights from './insights'
 export * as twoFactorAdmin from './twoFactorAdmin'
 export * as adminAccounts from './adminAccounts'
 export * as adminTasks from './adminTasks'
+export * as signing from './signing'
 
 export {default as client} from './client'
 export type * from './types'

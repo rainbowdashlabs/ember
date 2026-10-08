@@ -8,29 +8,18 @@ import {useI18n} from 'vue-i18n'
 import MutedText from '@/components/typography/MutedText.vue'
 import SectionLabel from '@/components/typography/SectionLabel.vue'
 import type {SigningAuthorityInfo} from '@/api/generated/schema'
+import {fingerprintRows} from '@/util/fingerprint'
 
 /**
  * The fingerprint of each signing authority a station's documents are sealed under, with its
  * certificate and revocation list to download, so a reader can check a sealed document against
- * something published apart from the document itself. The fingerprint is broken into rows of eight
- * pairs, the way it is compared by eye.
+ * something published apart from the document itself, and the way to the page that checks one.
  */
 defineProps<{
   authorities: SigningAuthorityInfo[]
 }>()
 
 const {t} = useI18n()
-
-const PAIRS_PER_ROW = 8
-
-function fingerprintRows(fingerprint: string): string[] {
-  const pairs = fingerprint.split(':')
-  const rows: string[] = []
-  for (let start = 0; start < pairs.length; start += PAIRS_PER_ROW) {
-    rows.push(pairs.slice(start, start + PAIRS_PER_ROW).join(':'))
-  }
-  return rows
-}
 
 function authorityAddress(serialNumber: string, suffix: 'crt' | 'crl'): string {
   return `/api/v1/public/signing/ca/${serialNumber}.${suffix}`
@@ -55,5 +44,8 @@ function authorityAddress(serialNumber: string, suffix: 'crt' | 'crl'): string {
         </a>
       </div>
     </div>
+    <NuxtLink to="/verify" class="inline-block text-sm text-(--link) hover:underline">
+      {{ t('publicStation.seal.verify') }}
+    </NuxtLink>
   </section>
 </template>

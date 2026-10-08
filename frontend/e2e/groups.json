@@ -107,6 +107,7 @@
     "profile",
     "public",
     "public.ssr",
+    "seal-verification",
     "session-cookie",
     "sidebar-permissions",
     "twofactor"
