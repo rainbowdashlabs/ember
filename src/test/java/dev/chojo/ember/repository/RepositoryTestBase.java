@@ -254,6 +254,7 @@ import static org.mockito.Mockito.mock;
 @Tag("database")
 public abstract class RepositoryTestBase {
     private static final AtomicInteger SCHEMA_COUNTER = new AtomicInteger(0);
+    private static final long SHARED_MEMORY_BYTES = 1024L * 1024 * 1024;
 
     /**
      * A single PostgreSQL container per JVM (Gradle test fork), started lazily on the first test
@@ -268,11 +269,17 @@ public abstract class RepositoryTestBase {
      * would poison this class for the whole fork ({@code NoClassDefFoundError} on every later
      * class). From {@code @BeforeAll} a failure fails only the current class and the next one
      * retries the start.
+     *
+     * <p>The server keeps statistics for every table of every schema the fork creates in dynamic
+     * shared memory, which grows with each test class. Docker's default of 64 MB for that memory ran
+     * out late in a long suite, crashed the server and failed every class after it, so the container
+     * gets far more than a fork needs.
      */
     static final PostgreSQLContainer PG = new PostgreSQLContainer(TestContainers.POSTGRES_IMAGE)
             .withDatabaseName("ember_test")
             .withUsername("test")
             .withPassword("test")
+            .withSharedMemorySize(SHARED_MEMORY_BYTES)
             .withStartupAttempts(8);
 
     protected static AccountRepository accountRepo;
