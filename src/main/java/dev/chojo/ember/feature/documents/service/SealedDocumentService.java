@@ -30,7 +30,8 @@ import java.util.List;
  * signatures is over ({@link #removeExpired}), the members it is about stay
  * those it was sealed for, it is always kept when they leave and under their name where they are
  * deleted, and its file is never replaced. A later signature files a new sealed version that becomes
- * the one the document serves; the version before stays stored, marked superseded.
+ * the one the document serves; the version before stays stored, marked superseded. A document sealed
+ * after it was filed keeps the file it was filed with beside its versions.
  *
  * <p>Each sealed file is stored once under its SHA-256, byte for byte as the sealer returned it, and
  * nothing that compresses or rewrites files ever reaches it. The station's quota does not refuse a
@@ -123,6 +124,43 @@ public class SealedDocumentService {
             log.info("Filed sealed version {} of document {} ({})", basedOn + 1, document.id(), sealed.level());
         }
         return documents.findById(document.id()).orElse(document);
+    }
+
+    /**
+     * Files a sealed file as the current version of a document filed before, for a document whose
+     * signatures are sealed into it one state after the other, each state a whole document of its own. A
+     * document filed unsealed is sealed with the file as its first version and keeps the file it was filed
+     * with, which its signatures bind to and every version is built from
+     * ({@link DocumentService#readUploaded}); a sealed one has its current version superseded. The same
+     * file offered again changes nothing.
+     *
+     * <p>Joins the caller's transaction where there is one, so the caller files the version together with
+     * what it records about it. Neither the station's switch for documents nor its quota refuses it, since
+     * it records acts that already happened.
+     *
+     * @param document the document
+     * @param sealed   the sealed file
+     * @return whether a version was added
+     */
+    public boolean fileVersion(Document document, SealedDocument sealed) {
+        byte[] pdf = sealed.pdf();
+        String sha256 = Sha256.hex(pdf);
+        boolean added = Transactions.call(() -> {
+            var locked = documents
+                    .lock(document.id())
+                    .orElseThrow(() -> new IllegalArgumentException("No document " + document.id()));
+            var current = versions.current(document.id());
+            if (current.isPresent() && current.get().sha256().equals(sha256)) return false;
+            if (!locked.sealed()) documents.seal(document.id());
+            versions.supersedeCurrent(document.id());
+            var version = versions.add(document.id(), sha256, pdf.length, sealed.level(), sealed.timestampedBy());
+            documents.setSize(document.id(), pdf.length);
+            documentService.storeSealed(document.stationId(), sha256, pdf);
+            log.info("Filed sealed version {} of document {} ({})", version.version(), document.id(), sealed.level());
+            return true;
+        });
+        if (added) documentService.describe(document, pdf);
+        return added;
     }
 
     /**

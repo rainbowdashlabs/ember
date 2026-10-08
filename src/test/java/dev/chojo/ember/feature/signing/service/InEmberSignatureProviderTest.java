@@ -16,10 +16,8 @@ import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.mail.service.MailLocaleService;
 import dev.chojo.ember.feature.passkey.service.PasskeyService;
 import dev.chojo.ember.feature.passkey.service.TestAuthenticator;
-import dev.chojo.ember.feature.signing.entity.SealedDocument;
-import dev.chojo.ember.feature.signing.entity.SealingKey;
+import dev.chojo.ember.feature.signing.entity.CompletedSigning;
 import dev.chojo.ember.feature.signing.entity.SignatureLevel;
-import dev.chojo.ember.feature.signing.entity.SignedDocument;
 import dev.chojo.ember.feature.signing.entity.Signer;
 import dev.chojo.ember.feature.signing.entity.SignerConfirmation.StepUpPassed;
 import dev.chojo.ember.feature.signing.entity.SignerConfirmation.WebAuthnAssertion;
@@ -49,8 +47,6 @@ import org.junit.jupiter.api.function.Executable;
 
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
-import java.security.PrivateKey;
-import java.security.cert.X509Certificate;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -69,17 +65,12 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 /**
  * Ember's own provider against real credentials: which proofs a start offers per kind of account, that a
  * passkey or security key answer is checked against this request and nothing else, and what the evidence
- * records. The station key and the sealer are stand-ins; sealing has tests of its own.
+ * records. The provider seals nothing; sealing a request's state has tests of its own.
  */
 class InEmberSignatureProviderTest extends RepositoryTestBase {
     private static final ObjectMapper MAPPER = new ObjectMapper();
@@ -93,8 +84,6 @@ class InEmberSignatureProviderTest extends RepositoryTestBase {
     private static PasskeyService passkeys;
     private static TwoFactorService twoFactor;
 
-    private final StationSigningKeys keys = mock(StationSigningKeys.class);
-    private final PdfSealer sealer = mock(PdfSealer.class);
     private final InEmberSignatureProvider provider = providerStampingWith(TestKeyStamps.timestampsOff());
 
     @BeforeAll
@@ -196,9 +185,7 @@ class InEmberSignatureProviderTest extends RepositoryTestBase {
         TestAuthenticator key = enrolSecurityKey(account);
         SigningRequest request = request(Signer.accountHolder(account));
         var start = started(request);
-        sealsInto(new byte[] {1, 2, 3});
-
-        SignedDocument signed = provider.complete(request, answer(key, start, true));
+        CompletedSigning signed = provider.complete(request, answer(key, start, true));
 
         var evidence = assertInstanceOf(SigningEvidence.WebAuthnBound.class, signed.evidence());
         assertEquals(StepUpProof.SECURITY_KEY, evidence.proof());
@@ -213,7 +200,6 @@ class InEmberSignatureProviderTest extends RepositoryTestBase {
         assertEquals(1, evidence.signatureCount());
         assertNull(evidence.credentialKeyStamp());
         assertEquals(SignatureLevel.SIMPLE, signed.level());
-        assertArrayEquals(new byte[] {1, 2, 3}, signed.sealed().pdf());
     }
 
     @Test
@@ -222,7 +208,6 @@ class InEmberSignatureProviderTest extends RepositoryTestBase {
         TestAuthenticator passkey = enrolPasskey(account);
         SigningRequest request = request(Signer.accountHolder(account));
         var start = started(request);
-        sealsInto(new byte[] {4});
 
         var evidence = provider.complete(request, answer(passkey, start, true)).evidence();
 
@@ -235,7 +220,6 @@ class InEmberSignatureProviderTest extends RepositoryTestBase {
         int account = account("Karin", "Muster");
         TestAuthenticator key = enrolSecurityKey(account);
         SigningRequest request = request(Signer.accountHolder(account));
-        sealsInto(new byte[] {6});
 
         try (var tsa = LocalTimestampService.start()) {
             var stamping = providerStampingWith(TestKeyStamps.asking(tsa.pinned()));
@@ -265,7 +249,6 @@ class InEmberSignatureProviderTest extends RepositoryTestBase {
         int factorId =
                 twoFactorRepo.findActiveWebAuthnForAccount(account).getFirst().factorId();
         SigningRequest request = request(Signer.accountHolder(account));
-        sealsInto(new byte[] {7});
 
         try (var tsa = LocalTimestampService.start()) {
             new CredentialKeyStamps(TestKeyStamps.asking(tsa.pinned()), twoFactorRepo, new TaskScheduler())
@@ -293,7 +276,6 @@ class InEmberSignatureProviderTest extends RepositoryTestBase {
         int account = account("Karin", "Muster");
         TestAuthenticator key = enrolSecurityKey(account);
         SigningRequest request = request(Signer.accountHolder(account));
-        sealsInto(new byte[] {8});
 
         var stamping = providerStampingWith(
                 TestKeyStamps.asking(LocalTimestampService.pinned(LocalTimestampService.unreachableUrl())));
@@ -304,7 +286,6 @@ class InEmberSignatureProviderTest extends RepositoryTestBase {
         assertNull(evidence.credentialKeyStamp());
         assertNull(
                 twoFactorRepo.findActiveWebAuthnForAccount(account).getFirst().keyStamp());
-        assertArrayEquals(new byte[] {8}, signed.sealed().pdf());
     }
 
     @Test
@@ -316,7 +297,6 @@ class InEmberSignatureProviderTest extends RepositoryTestBase {
         TestAuthenticator key = enrolSecurityKey(guardian);
         SigningRequest request = request(Signer.memberThroughAccount(guardian, child));
         var start = started(request);
-        sealsInto(new byte[] {5});
 
         var act =
                 provider.complete(request, answer(key, start, true)).evidence().act();
@@ -345,7 +325,6 @@ class InEmberSignatureProviderTest extends RepositoryTestBase {
                 .id();
         SigningRequest request = request(Signer.guardian(guardian, child));
         var start = started(request);
-        sealsInto(new byte[] {6});
 
         var act = provider.complete(request, passed(start, StepUpProof.PASSWORD))
                 .evidence()
@@ -375,7 +354,6 @@ class InEmberSignatureProviderTest extends RepositoryTestBase {
                 FROM);
 
         assertRefused(DocumentRefusal.SIGNING_CHALLENGE_MISMATCH, () -> provider.complete(request, mixed));
-        verify(sealer, never()).seal(any(), any(), any());
     }
 
     @Test
@@ -473,7 +451,6 @@ class InEmberSignatureProviderTest extends RepositoryTestBase {
         int account = account("Karin", "Muster");
         twoFactorRepo.createFactor(account, TwoFactorKind.TOTP, "App");
         SigningRequest request = request(Signer.accountHolder(account));
-        sealsInto(new byte[] {7});
 
         var evidence = provider.complete(request, passed(started(request), StepUpProof.TOTP))
                 .evidence();
@@ -488,7 +465,6 @@ class InEmberSignatureProviderTest extends RepositoryTestBase {
         int account = account("Karin", "Muster");
         accountRepo.createCredential(account, "hash");
         SigningRequest request = request(Signer.accountHolder(account));
-        sealsInto(new byte[] {8});
 
         var evidence = provider.complete(request, passed(started(request), StepUpProof.PASSWORD))
                 .evidence();
@@ -526,7 +502,6 @@ class InEmberSignatureProviderTest extends RepositoryTestBase {
             assertRefused(
                     DocumentRefusal.SIGNING_PROOF_NOT_ACCEPTED, () -> provider.complete(request, passed(start, proof)));
         }
-        verify(sealer, never()).seal(any(), any(), any());
     }
 
     private InEmberSignatureProvider providerStampingWith(TimestampServices timestamps) {
@@ -534,8 +509,6 @@ class InEmberSignatureProviderTest extends RepositoryTestBase {
                 twoFactor,
                 new SigningAssertions(parties, twoFactorRepo, new WebAuthnSettings()),
                 new SignerNames(accountRepo, memberNameResolver),
-                keys,
-                sealer,
                 new CredentialKeyStamps(timestamps, twoFactorRepo, new TaskScheduler()),
                 Clock.fixed(NOW, ZoneOffset.UTC));
     }
@@ -578,12 +551,6 @@ class InEmberSignatureProviderTest extends RepositoryTestBase {
 
     private SigningStart.InEmber started(SigningRequest request) {
         return assertInstanceOf(SigningStart.InEmber.class, provider.start(request));
-    }
-
-    private void sealsInto(byte[] pdf) {
-        when(keys.forStation(anyInt()))
-                .thenReturn(new SealingKey(mock(PrivateKey.class), List.of(mock(X509Certificate.class))));
-        when(sealer.seal(any(), any(), any())).thenReturn(SealedDocument.withoutTimestamp(pdf));
     }
 
     private static StepUpPassed passed(SigningStart.InEmber start, StepUpProof proof) {

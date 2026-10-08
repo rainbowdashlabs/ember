@@ -17,6 +17,7 @@ import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
+import java.time.Instant;
 import java.util.HexFormat;
 import java.util.List;
 
@@ -121,6 +122,52 @@ public class SigningEvidenceRepository {
                         ORDER BY f.id;""", StoredEvidence.COLUMNS)
                 .single(call().bind("request_id", requestId))
                 .map(StoredEvidence.map())
+                .all();
+    }
+
+    /**
+     * Records the sealed version that carries the acts on a request no sealed version carried yet.
+     *
+     * @param requestId the request
+     * @param sha256    SHA-256 of the sealed version, lower-case hexadecimal
+     * @return how many acts it carries for the first time
+     */
+    public int markSealed(int requestId, String sha256) {
+        return query("""
+                        UPDATE signing_evidence e
+                        SET sealed_sha256 = :sealed_hash
+                        FROM signing_request_field f
+                        WHERE f.id = e.field_id
+                          AND f.request_id = :request_id
+                          AND e.sealed_sha256 IS NULL;""")
+                .single(call().bind("request_id", requestId).bind("sealed_hash", sha256))
+                .update()
+                .rows();
+    }
+
+    /**
+     * The requests with acts no sealed version carries yet, recorded before a given time, so an act whose
+     * own sealing is still running is left to it.
+     *
+     * @param recordedBefore only acts recorded before this count
+     * @param limit          how many requests to read at most
+     * @return the ids of those requests, the one waiting longest first
+     */
+    public List<Integer> requestsWithUnsealedActs(Instant recordedBefore, int limit) {
+        return query("""
+                        SELECT f.request_id
+                        FROM signing_evidence e
+                                 JOIN signing_request_field f ON f.id = e.field_id
+                                 JOIN signing_request r ON r.id = f.request_id
+                        WHERE e.sealed_sha256 IS NULL
+                          AND e.recorded_at < :recorded_before
+                          AND r.document_id IS NOT NULL
+                        GROUP BY f.request_id
+                        ORDER BY min(e.recorded_at), f.request_id
+                        LIMIT :limit;""")
+                .single(call().bind("recorded_before", recordedBefore, INSTANT_TIMESTAMP)
+                        .bind("limit", limit))
+                .map(row -> row.getInt("request_id"))
                 .all();
     }
 

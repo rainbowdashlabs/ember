@@ -30,6 +30,7 @@ import dev.chojo.ember.feature.legal.service.GdprExportService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
+import dev.chojo.ember.feature.signing.entity.CompletedSigning;
 import dev.chojo.ember.feature.signing.entity.FieldRole;
 import dev.chojo.ember.feature.signing.entity.FieldState;
 import dev.chojo.ember.feature.signing.entity.OpenSignature;
@@ -38,7 +39,6 @@ import dev.chojo.ember.feature.signing.entity.RequestedSignature;
 import dev.chojo.ember.feature.signing.entity.SealedDocument;
 import dev.chojo.ember.feature.signing.entity.SignatureLevel;
 import dev.chojo.ember.feature.signing.entity.SignatureRequest;
-import dev.chojo.ember.feature.signing.entity.SignedDocument;
 import dev.chojo.ember.feature.signing.entity.Signer;
 import dev.chojo.ember.feature.signing.entity.SignerCapacity;
 import dev.chojo.ember.feature.signing.entity.SignerEntry;
@@ -345,9 +345,7 @@ class SignatureRequestServiceTest extends RepositoryTestBase {
                         "http://tsa.test",
                         KeyStampKind.AT_FIRST_SIGNING));
 
-        var stored = fields.record(
-                at(adult),
-                new SignedDocument(SealedDocument.withoutTimestamp(bytes(8, 9)), SignatureLevel.SIMPLE, evidence));
+        var stored = fields.record(at(adult), new CompletedSigning(SignatureLevel.SIMPLE, evidence));
 
         assertNull(stored.guardianLink());
         assertNull(stored.memberId());
@@ -882,9 +880,7 @@ class SignatureRequestServiceTest extends RepositoryTestBase {
         var request = requests.request(
                 managing(), generated(child, legalTemplate, null, "guardian1").id(), STATEMENTS);
         var act = act(request, "guardian1", Signer.guardian(account(guardian), child.id()), STATEMENTS.guardian());
-        fields.record(
-                at(guardian),
-                new SignedDocument(SealedDocument.withoutTimestamp(bytes(8, 9)), SignatureLevel.SIMPLE, passkey(act)));
+        fields.record(at(guardian), new CompletedSigning(SignatureLevel.SIMPLE, passkey(act)));
         var export = new GdprExportService(
                 accountRepo,
                 stationMemberRepo,
@@ -1245,15 +1241,13 @@ class SignatureRequestServiceTest extends RepositoryTestBase {
         }
     }
 
-    private static SignedDocument signed(SignatureRequest request, String fieldName, Signer signer, String statement) {
+    private static CompletedSigning signed(
+            SignatureRequest request, String fieldName, Signer signer, String statement) {
         return signed(act(request, fieldName, signer, statement));
     }
 
-    private static SignedDocument signed(SigningAct act) {
-        return new SignedDocument(
-                SealedDocument.withoutTimestamp(bytes(8, 1)),
-                SignatureLevel.SIMPLE,
-                new SigningEvidence.TotpUnbound(act));
+    private static CompletedSigning signed(SigningAct act) {
+        return new CompletedSigning(SignatureLevel.SIMPLE, new SigningEvidence.TotpUnbound(act));
     }
 
     private static SigningAct act(SignatureRequest request, String fieldName, Signer signer, String statement) {

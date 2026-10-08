@@ -126,7 +126,7 @@ ALTER TABLE ember_schema.member_document
     ADD CONSTRAINT member_document_sealed_kept CHECK (NOT sealed OR keep_on_archive);
 
 COMMENT ON COLUMN ember_schema.member_document.sealed
-    IS 'Whether the document is sealed and therefore locked: it cannot be deleted, the members it is about cannot be changed, it is always kept when they leave, under their name where they are deleted, and its file is never replaced. Its files are its sealed versions. Only the deletion of its station takes it away, or the retention sweep once the signatures on it no longer need keeping.';
+    IS 'Whether the document is sealed and therefore locked: it cannot be deleted, the members it is about cannot be changed, it is always kept when they leave, under their name where they are deleted, and its file is never replaced. It serves its current sealed version; a document sealed after it was filed keeps the file it was filed with beside its versions, since its signatures bind to that file and every version is built from it. Only the deletion of its station takes it away, or the retention sweep once the signatures on it no longer need keeping.';
 COMMENT ON CONSTRAINT member_document_sealed_kept ON ember_schema.member_document
     IS 'A sealed document is always kept when its members leave.';
 
@@ -461,6 +461,12 @@ CREATE TABLE IF NOT EXISTS ember_schema.signing_evidence
 
 CREATE INDEX IF NOT EXISTS signing_evidence_account_member_idx ON ember_schema.signing_evidence (account_member_id);
 CREATE INDEX IF NOT EXISTS signing_evidence_member_idx ON ember_schema.signing_evidence (member_id);
+CREATE INDEX IF NOT EXISTS signing_evidence_unsealed_idx
+    ON ember_schema.signing_evidence (recorded_at)
+    WHERE sealed_sha256 IS NULL;
+
+COMMENT ON INDEX ember_schema.signing_evidence_unsealed_idx IS
+    'Finds the acts no sealed version carries yet, which the sweep seals, the one waiting longest first.';
 
 COMMENT ON TABLE ember_schema.signing_evidence IS
     'The record of one signing act on one signature field, kept faithfully with everything a reader needs to check it again without Ember: who confirmed with which proof, for whom, what they read and confirmed, when and from where, and for a passkey or security key the whole answer and the public key it verifies under. Names and the guardian link are copied as they were, since the account, the member and the link may all be gone when somebody reads it.';
@@ -524,7 +530,7 @@ COMMENT ON COLUMN ember_schema.signing_evidence.user_verified IS
 COMMENT ON COLUMN ember_schema.signing_evidence.signature_count IS
     'For a passkey or security key: the authenticator''s signature counter at the act. NULL for every other proof.';
 COMMENT ON COLUMN ember_schema.signing_evidence.sealed_sha256 IS
-    'SHA-256 of the sealed version of the document the act produced, lower-case hexadecimal. NULL until the act is sealed into its field.';
+    'SHA-256 of the first sealed version of the document that carries the act, lower-case hexadecimal. NULL until a sealed version carries it; such acts are sealed again by a sweep.';
 COMMENT ON COLUMN ember_schema.signing_evidence.recorded_at IS 'When the evidence was stored.';
 COMMENT ON CONSTRAINT signing_evidence_field ON ember_schema.signing_evidence IS
     'Evidence goes with its field. Checked at commit, because deleting a station empties both member columns of evidence whose field the same statement deletes.';

@@ -7,10 +7,8 @@ package dev.chojo.ember.feature.signing.service;
 
 import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.feature.legal.service.ConsentService;
-import dev.chojo.ember.feature.signing.entity.SealedDocument;
-import dev.chojo.ember.feature.signing.entity.SealingKey;
+import dev.chojo.ember.feature.signing.entity.CompletedSigning;
 import dev.chojo.ember.feature.signing.entity.SignatureLevel;
-import dev.chojo.ember.feature.signing.entity.SignedDocument;
 import dev.chojo.ember.feature.signing.entity.SignerConfirmation;
 import dev.chojo.ember.feature.signing.entity.SignerConfirmation.StepUpPassed;
 import dev.chojo.ember.feature.signing.entity.SignerConfirmation.WebAuthnAssertion;
@@ -46,12 +44,11 @@ import java.util.Set;
  * ({@link CredentialKeyStamps#forSigning}), and when no timestamp service answers the act still goes through
  * and its evidence records the key as not stamped.
  *
- * <p><b>Sealing.</b> {@link #complete} seals the frozen content as it is, with the station's key, and
- * returns the evidence beside it; the signer's mark and typed values are not drawn into the document. No
- * signing state is ever signed onto the one before: each is a fresh document, built from the frozen
- * content with a signature record page and the evidence attached ({@link SigningStateAssembler}), and
- * sealed on its own, so the latest version carries every act so far and the earlier ones stay valid as
- * they are. {@link #complete} does not seal such a state yet.
+ * <p><b>Sealing.</b> {@link #complete} gives the evidence only and seals nothing. Once the act is recorded,
+ * {@link SigningStateSealer} seals the request's new state: a fresh document built from the frozen content
+ * with a signature record page and the evidence of every act so far attached ({@link SigningStateAssembler}),
+ * sealed on its own, so the latest version carries every act so far and the earlier ones stay valid as they
+ * are. No state is ever signed onto the one before.
  */
 @Singleton
 public class InEmberSignatureProvider implements SignatureProvider {
@@ -62,8 +59,6 @@ public class InEmberSignatureProvider implements SignatureProvider {
     private final TwoFactorService twoFactor;
     private final SigningAssertions assertions;
     private final SignerNames names;
-    private final StationSigningKeys keys;
-    private final PdfSealer sealer;
     private final CredentialKeyStamps keyStamps;
     private final Clock clock;
 
@@ -72,25 +67,19 @@ public class InEmberSignatureProvider implements SignatureProvider {
             TwoFactorService twoFactor,
             SigningAssertions assertions,
             SignerNames names,
-            StationSigningKeys keys,
-            PdfSealer sealer,
             CredentialKeyStamps keyStamps) {
-        this(twoFactor, assertions, names, keys, sealer, keyStamps, Clock.systemUTC());
+        this(twoFactor, assertions, names, keyStamps, Clock.systemUTC());
     }
 
     InEmberSignatureProvider(
             TwoFactorService twoFactor,
             SigningAssertions assertions,
             SignerNames names,
-            StationSigningKeys keys,
-            PdfSealer sealer,
             CredentialKeyStamps keyStamps,
             Clock clock) {
         this.twoFactor = twoFactor;
         this.assertions = assertions;
         this.names = names;
-        this.keys = keys;
-        this.sealer = sealer;
         this.keyStamps = keyStamps;
         this.clock = clock;
     }
@@ -109,16 +98,13 @@ public class InEmberSignatureProvider implements SignatureProvider {
     }
 
     @Override
-    public SignedDocument complete(SigningRequest request, SignerConfirmation confirmation) {
+    public CompletedSigning complete(SigningRequest request, SignerConfirmation confirmation) {
         SigningEvidence evidence =
                 switch (confirmation) {
                     case WebAuthnAssertion assertion -> bound(request, assertion);
                     case StepUpPassed passed -> unbound(request, passed);
                 };
-        // TODO seal the state SigningStateAssembler builds, mark drawn in, instead of the bare content
-        SealingKey key = keys.forStation(request.stationId());
-        SealedDocument sealed = sealer.seal(request.contentPdf(), key.privateKey(), key.chain());
-        return new SignedDocument(sealed, level(), evidence);
+        return new CompletedSigning(level(), evidence);
     }
 
     private Set<StepUpProof> acceptedProofs(int accountId) {

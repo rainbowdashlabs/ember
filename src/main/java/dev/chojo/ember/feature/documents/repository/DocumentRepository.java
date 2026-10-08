@@ -137,6 +137,19 @@ public class DocumentRepository {
                 .first();
     }
 
+    /**
+     * Takes the row of a document, sealed or not, for the rest of the transaction, so a document sealed
+     * after it was filed is sealed once and its versions are added one after the other.
+     *
+     * @return the document as it stands, or empty when there is none by that id
+     */
+    public Optional<Document> lock(int documentId) {
+        return query("SELECT %s FROM member_document WHERE id = :id FOR UPDATE;", COLUMNS)
+                .single(call().bind("id", documentId))
+                .map(Document.map())
+                .first();
+    }
+
     /** Records the size of the file a document now serves, which for a sealed one is its current version. */
     public void setSize(int documentId, long sizeBytes) {
         query("UPDATE member_document SET size_bytes = :size_bytes WHERE id = :id;")

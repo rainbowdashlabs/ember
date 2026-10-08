@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.signing.entity.FieldState;
 import dev.chojo.ember.feature.signing.entity.OpenSignature;
 import dev.chojo.ember.feature.signing.entity.ParkedSigningStart;
 import dev.chojo.ember.feature.signing.entity.PendingSignature;
+import dev.chojo.ember.feature.signing.entity.SignatureRequest;
 import dev.chojo.ember.feature.signing.entity.Signer;
 import dev.chojo.ember.feature.signing.entity.SignerConfirmation;
 import dev.chojo.ember.feature.signing.entity.SignerConfirmation.StepUpPassed;
@@ -59,6 +60,11 @@ import java.util.Set;
  * fact that it passed reaches the provider; the fixed code a development instance takes for any account is
  * never a code here. A passkey or security key answer goes to the provider as it came. The evidence is stored against the field by {@link SignatureFieldService#record}, which checks once
  * more that the field is open and the caller's.
+ *
+ * <p><b>Sealing.</b> Once the evidence is stored, the request's new state is sealed into its document
+ * ({@link SigningStateSealer}). A seal that fails leaves the act recorded; it is sealed with the next act on
+ * the request or by {@link SigningStateSweeper}. Every act reads and binds to the file the document was
+ * filed with, never to a sealed version, so a later signer signs the same content as the first.
  */
 @Singleton
 public class SigningActService {
@@ -71,6 +77,7 @@ public class SigningActService {
     private final DocumentRepository documents;
     private final DocumentService documentService;
     private final SignatureProvider provider;
+    private final SigningStateSealer stateSealer;
     private final SigningStarts starts;
     private final SigningAssertions assertions;
     private final SignerNames names;
@@ -85,6 +92,7 @@ public class SigningActService {
             DocumentRepository documents,
             DocumentService documentService,
             SignatureProvider provider,
+            SigningStateSealer stateSealer,
             SigningStarts starts,
             SigningAssertions assertions,
             SignerNames names,
@@ -96,6 +104,7 @@ public class SigningActService {
         this.documents = documents;
         this.documentService = documentService;
         this.provider = provider;
+        this.stateSealer = stateSealer;
         this.starts = starts;
         this.assertions = assertions;
         this.names = names;
@@ -123,9 +132,9 @@ public class SigningActService {
 
     /**
      * The document a field asks the caller to sign, exactly as the request froze it, for reading before
-     * the act. Served only while the field waits for the caller, so it shows nobody a document they could
-     * not sign, and refused once the filed bytes are no longer the frozen ones, so what is read is what the
-     * act binds to.
+     * the act: the file the document was filed with, also once earlier acts sealed versions of it. Served
+     * only while the field waits for the caller, so it shows nobody a document they could not sign, and
+     * refused once that file is no longer the frozen one, so what is read is what the act binds to.
      *
      * @param session the signer
      * @param fieldId the field
@@ -135,7 +144,7 @@ public class SigningActService {
         PendingSignature pending = requireOwnedField(session, fieldId).pending();
         Document document = filedDocument(pending);
         byte[] content = documentService
-                .open(document, DocumentDoor.STATION)
+                .openUploaded(document, DocumentDoor.STATION)
                 .orElseThrow(DocumentRefusal.SIGNING_DOCUMENT_GONE::raise);
         requireFrozen(session, pending, content);
         return new DocumentToSign(document.fileName(), content);
@@ -202,21 +211,38 @@ public class SigningActService {
             throw DocumentRefusal.SIGNING_CONTENT_DIFFERS.raise();
         }
         var stored = fields.record(session, provider.complete(request, confirmation(parked, answer, circumstances)));
+        var signedRequest = requestService.requestAt(session, pending.requestUid());
+        sealRecorded(signedRequest);
         var field = requests.findField(session.stationId(), fieldId)
                 .orElseThrow(DocumentRefusal.SIGNING_FIELD_NOT_FOUND::raise);
-        var requestState = requestService.requestAt(session, field.requestUid()).state();
         return new SigningOutcome(
                 field,
-                requestState,
+                signedRequest.state(),
                 stored.evidence().proof(),
                 stored.evidence().boundToDocument());
     }
 
-    /** The request to sign, with the document as it is filed, which has to be the one the request froze. */
+    /**
+     * Seals the state the act left the request in. The act is recorded whatever happens here: a seal that
+     * fails is logged, and the next act on the request or {@link SigningStateSweeper} seals the state then.
+     */
+    private void sealRecorded(SignatureRequest request) {
+        try {
+            stateSealer.sealLatest(request.id());
+        } catch (RuntimeException e) {
+            log.warn("Signing request {} was signed but not sealed yet; it is sealed later", request.uid(), e);
+        }
+    }
+
+    /**
+     * The request to sign, with the file the document was filed with, which has to be the one the request
+     * froze. A document sealed by an earlier act keeps that file beside its sealed versions.
+     */
     private SigningRequest rebuild(
             StationSession session, PendingSignature pending, Signer signer, List<SignerEntry> entries) {
-        byte[] content =
-                documentService.read(filedDocument(pending)).orElseThrow(DocumentRefusal.SIGNING_DOCUMENT_GONE::raise);
+        byte[] content = documentService
+                .readUploaded(filedDocument(pending))
+                .orElseThrow(DocumentRefusal.SIGNING_DOCUMENT_GONE::raise);
         requireFrozen(session, pending, content);
         return new SigningRequest(
                 pending.requestUid(),

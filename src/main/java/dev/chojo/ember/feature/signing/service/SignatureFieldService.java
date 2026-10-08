@@ -9,11 +9,11 @@ import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
+import dev.chojo.ember.feature.signing.entity.CompletedSigning;
 import dev.chojo.ember.feature.signing.entity.FieldState;
 import dev.chojo.ember.feature.signing.entity.GuardianLink;
 import dev.chojo.ember.feature.signing.entity.RequestedSignature;
 import dev.chojo.ember.feature.signing.entity.SignatureRequest;
-import dev.chojo.ember.feature.signing.entity.SignedDocument;
 import dev.chojo.ember.feature.signing.entity.Signer;
 import dev.chojo.ember.feature.signing.entity.SignerCapacity;
 import dev.chojo.ember.feature.signing.entity.StoredEvidence;
@@ -72,13 +72,14 @@ public class SignatureFieldService {
 
     /**
      * Stores the evidence of a signing act against the field it filled, and closes the request once no
-     * field is open any more.
+     * field is open any more. The evidence is stored unsealed; {@link SigningStateSealer} seals it into the
+     * request's document afterwards.
      *
      * @param session the signer, whose account confirmed the act
      * @param signed  what the provider handed back
      * @return the evidence as stored
      */
-    public StoredEvidence record(StationSession session, SignedDocument signed) {
+    public StoredEvidence record(StationSession session, CompletedSigning signed) {
         var act = signed.evidence().act();
         if (act.signer().accountId() != session.accountId()) throw DocumentRefusal.SIGNING_FIELD_NOT_YOURS.raise();
         var request = requestService.requestAt(session, act.requestUid());
@@ -91,7 +92,6 @@ public class SignatureFieldService {
             @Nullable GuardianLink link = linkFor(session, request, field, act.signer());
             int me = session.member().id();
             requests.settle(field.id(), FieldState.SIGNED, me, act.accountHolderName());
-            // TODO record the hash of the sealed version once a signing act files one into its field
             var recorded = evidence.record(
                     field.id(),
                     signed.level(),

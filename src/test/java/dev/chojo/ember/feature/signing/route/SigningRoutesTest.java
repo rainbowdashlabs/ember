@@ -22,6 +22,7 @@ import dev.chojo.ember.conf.file.elements.WebAuthnSettings;
 import dev.chojo.ember.feature.account.service.AccountEmailService;
 import dev.chojo.ember.feature.account.service.AuthRateLimiter;
 import dev.chojo.ember.feature.account.service.AuthService;
+import dev.chojo.ember.feature.documents.entity.Document;
 import dev.chojo.ember.feature.documents.entity.Uploader;
 import dev.chojo.ember.feature.documents.service.DocumentAccessService;
 import dev.chojo.ember.feature.documents.service.DocumentService;
@@ -45,8 +46,6 @@ import dev.chojo.ember.feature.passkey.service.TestAuthenticator;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.signing.entity.FieldState;
 import dev.chojo.ember.feature.signing.entity.RequestState;
-import dev.chojo.ember.feature.signing.entity.SealedDocument;
-import dev.chojo.ember.feature.signing.entity.SealingKey;
 import dev.chojo.ember.feature.signing.entity.SignatureRequest;
 import dev.chojo.ember.feature.signing.entity.SignerCapacity;
 import dev.chojo.ember.feature.signing.entity.SignerEntry;
@@ -56,7 +55,6 @@ import dev.chojo.ember.feature.signing.entity.StoredEvidence;
 import dev.chojo.ember.feature.signing.repository.SignatureRequestRepository;
 import dev.chojo.ember.feature.signing.repository.SigningEvidenceRepository;
 import dev.chojo.ember.feature.signing.service.InEmberSignatureProvider;
-import dev.chojo.ember.feature.signing.service.PdfSealer;
 import dev.chojo.ember.feature.signing.service.SignatureFieldService;
 import dev.chojo.ember.feature.signing.service.SignatureRequestService;
 import dev.chojo.ember.feature.signing.service.SignerNames;
@@ -65,8 +63,9 @@ import dev.chojo.ember.feature.signing.service.SigningActService;
 import dev.chojo.ember.feature.signing.service.SigningAssertions;
 import dev.chojo.ember.feature.signing.service.SigningGuards;
 import dev.chojo.ember.feature.signing.service.SigningStarts;
-import dev.chojo.ember.feature.signing.service.StationSigningKeys;
+import dev.chojo.ember.feature.signing.service.SigningStateSealer;
 import dev.chojo.ember.feature.signing.service.TestKeyStamps;
+import dev.chojo.ember.feature.signing.service.TestSealing;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
@@ -109,19 +108,19 @@ import java.net.URI;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.file.Path;
-import java.security.PrivateKey;
-import java.security.cert.X509Certificate;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
+import java.util.Objects;
 import java.util.OptionalLong;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
@@ -134,6 +133,8 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -147,8 +148,9 @@ import static org.mockito.Mockito.when;
  * unbound, the proofs signing never takes are refused, a start is spent once and only by the account that
  * made it, a field is signed only by those it asks for, a guardian signs for a child and lends the child
  * their account, and wrong codes count toward the step-up limit. A field and its document are read only
- * by those it asks while it waits, and the document comes as the request froze it. Sealing is a
- * stand-in; it has tests of its own.
+ * by those it asks while it waits, and the document comes as the request froze it, also to a second signer
+ * once the first act was sealed into a version of it. Each act is sealed with real keys and without
+ * timestamps, and an act whose seal failed stays signed and is sealed with the next one.
  */
 class SigningRoutesTest extends RepositoryTestBase {
     private static final String RIGHT_CODE = "424242";
@@ -172,6 +174,7 @@ class SigningRoutesTest extends RepositoryTestBase {
     private static DocumentService documents;
     private static SignatureRequestService requests;
     private static SigningActService acts;
+    private static Function<SigningStateSealer, SigningActService> actsSealingWith;
     private static WebAuthnService securityKeys;
     private static PasskeyService passkeys;
     private static Station station;
@@ -226,18 +229,23 @@ class SigningRoutesTest extends RepositoryTestBase {
                 mock(EmailService.class));
         var assertions = new SigningAssertions(parties, twoFactorRepo, settings);
         var names = new SignerNames(accountRepo, memberNameResolver);
-        acts = new SigningActService(
+        var starts = new SigningStarts(challenges);
+        var provider = new InEmberSignatureProvider(twoFactor, assertions, names, keyStamps);
+        var auth = authService();
+        actsSealingWith = stateSealer -> new SigningActService(
                 requestRepo,
                 requests,
                 fields,
                 memberDocumentRepo,
                 documents,
-                new InEmberSignatureProvider(twoFactor, assertions, names, sealingKeys(), sealer(), keyStamps),
-                new SigningStarts(challenges),
+                provider,
+                stateSealer,
+                starts,
                 assertions,
                 names,
                 twoFactor,
-                authService());
+                auth);
+        acts = actsSealingWith.apply(TestSealing.stateSealer(memberDocumentRepo, documents, stationRepo));
 
         loginPermission = stationMemberRepo
                 .findPermissionByName(StationPermission.LOGIN)
@@ -258,7 +266,11 @@ class SigningRoutesTest extends RepositoryTestBase {
 
     @BeforeEach
     void freshLimits() {
-        harness = RouteHarness.serving(new SigningRoutes(acts, requests, new AuthRateLimiter(Clock.systemUTC())))
+        harness = serving(acts);
+    }
+
+    private static RouteHarness serving(SigningActService signingActs) {
+        return RouteHarness.serving(new SigningRoutes(signingActs, requests, new AuthRateLimiter(Clock.systemUTC())))
                 .withStations(stationRepo);
     }
 
@@ -571,6 +583,93 @@ class SigningRoutesTest extends RepositoryTestBase {
     }
 
     @Test
+    void aSecondSignerReadsAndSignsTheFrozenDocumentAfterTheFirstWasSealed() throws IOException {
+        var child = member("Lina", "Lesend", true);
+        var guardian = member("Gabriel", "Danach", true);
+        accountRepo.createCredential(child.accountId(), hasher.hash(PASSWORD));
+        accountRepo.createCredential(guardian.accountId(), hasher.hash(PASSWORD));
+        stationMemberRepo.addManager(guardian.id(), child.id(), manager.id());
+        var request = ask(child, SignatureRole.PARTICIPANT, SignatureRole.GUARDIAN_1);
+        int childField = fieldNamed(request, "participant");
+        int guardianField = fieldNamed(request, "guardian1");
+
+        harness.run((server, client) -> {
+            complete(client, child, childField, start(client, child, childField, null), "PASSWORD", null, PASSWORD);
+            var document = filedDocument(request);
+            assertTrue(document.sealed());
+            byte[] firstVersion = documents.read(document).orElseThrow();
+            assertNotEquals(request.contentSha256(), Sha256.hex(firstVersion));
+
+            var asGuardian = harness.as(signedIn(guardian, StationPermission.LOGIN));
+            HttpResponse<byte[]> shown = fetchBytes(server.port(), fieldPath(guardianField) + "/document", asGuardian);
+            assertEquals(200, shown.statusCode());
+            assertEquals(request.contentSha256(), Sha256.hex(shown.body()));
+
+            JsonNode completed = json(complete(
+                    client,
+                    guardian,
+                    guardianField,
+                    start(client, guardian, guardianField, null),
+                    "PASSWORD",
+                    null,
+                    PASSWORD));
+            assertEquals("SIGNED", completed.path("state").asString());
+            assertEquals("COMPLETE", completed.path("requestState").asString());
+        });
+
+        var document = filedDocument(request);
+        var versions = documents.sealedVersions(document);
+        assertEquals(2, versions.size());
+        var sealedHashes = evidenceRepo.evidenceOf(request.id()).stream()
+                .map(StoredEvidence::sealedSha256)
+                .toList();
+        assertEquals(List.of(versions.getLast().sha256(), versions.getFirst().sha256()), sealedHashes);
+        assertEquals(
+                versions.getFirst().sha256(),
+                Sha256.hex(documents.read(document).orElseThrow()));
+    }
+
+    @Test
+    void aSealThatFailsLeavesTheActSignedAndTheNextActSealsBoth() throws IOException {
+        var child = member("Mia", "Misslingen", true);
+        var guardian = member("Moritz", "Nachher", true);
+        accountRepo.createCredential(child.accountId(), hasher.hash(PASSWORD));
+        accountRepo.createCredential(guardian.accountId(), hasher.hash(PASSWORD));
+        stationMemberRepo.addManager(guardian.id(), child.id(), manager.id());
+        var request = ask(child, SignatureRole.PARTICIPANT, SignatureRole.GUARDIAN_1);
+        int childField = fieldNamed(request, "participant");
+        int guardianField = fieldNamed(request, "guardian1");
+        var failing = mock(SigningStateSealer.class);
+        when(failing.sealLatest(anyInt())).thenThrow(new IllegalStateException("The store is down"));
+
+        harness = serving(actsSealingWith.apply(failing));
+        harness.run((server, client) -> {
+            JsonNode completed = json(complete(
+                    client, child, childField, start(client, child, childField, null), "PASSWORD", null, PASSWORD));
+            assertEquals("SIGNED", completed.path("state").asString());
+        });
+        assertEquals(
+                FieldState.SIGNED, requestRepo.fieldsOf(request.id()).getFirst().state());
+        assertNull(evidenceRepo.evidenceOf(request.id()).getFirst().sealedSha256());
+        assertFalse(filedDocument(request).sealed());
+
+        harness = serving(acts);
+        harness.run((server, client) -> complete(
+                client,
+                guardian,
+                guardianField,
+                start(client, guardian, guardianField, null),
+                "PASSWORD",
+                null,
+                PASSWORD));
+
+        var versions = documents.sealedVersions(filedDocument(request));
+        assertEquals(1, versions.size());
+        assertTrue(evidenceRepo.evidenceOf(request.id()).stream()
+                .allMatch(evidence -> versions.getFirst().sha256().equals(evidence.sealedSha256())));
+    }
+
+    @Test
     void whatASignerTypesIsCheckedBeforeTheActStarts() throws IOException {
         var signer = member("Fritz", "Feld", true);
         accountRepo.createCredential(signer.accountId(), hasher.hash(PASSWORD));
@@ -783,6 +882,20 @@ class SigningRoutesTest extends RepositoryTestBase {
         return requestRepo.fieldsOf(request.id()).getFirst().id();
     }
 
+    private static int fieldNamed(SignatureRequest request, String fieldName) {
+        return requestRepo.fieldsOf(request.id()).stream()
+                .filter(field -> field.fieldName().equals(fieldName))
+                .findFirst()
+                .orElseThrow()
+                .id();
+    }
+
+    private static Document filedDocument(SignatureRequest request) {
+        return memberDocumentRepo
+                .findById(Objects.requireNonNull(request.documentId()))
+                .orElseThrow();
+    }
+
     private static FieldState fieldState(SignatureRequest request) {
         return requestRepo.fieldsOf(request.id()).getFirst().state();
     }
@@ -880,19 +993,6 @@ class SigningRoutesTest extends RepositoryTestBase {
         var store = new WebAuthnCredentialStore(twoFactorRepo);
         return WebAuthnRelyingPartyFactory.build(
                 settings, api, store, new SecondFactorCredentialStore(twoFactorRepo, store));
-    }
-
-    private static StationSigningKeys sealingKeys() {
-        var keys = mock(StationSigningKeys.class);
-        when(keys.forStation(anyInt()))
-                .thenReturn(new SealingKey(mock(PrivateKey.class), List.of(mock(X509Certificate.class))));
-        return keys;
-    }
-
-    private static PdfSealer sealer() {
-        var sealer = mock(PdfSealer.class);
-        when(sealer.seal(any(), any(), any())).thenReturn(SealedDocument.withoutTimestamp(new byte[] {1, 2, 3}));
-        return sealer;
     }
 
     private static AuthService authService() {

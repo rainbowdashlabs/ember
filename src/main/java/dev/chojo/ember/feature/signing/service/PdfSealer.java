@@ -118,14 +118,31 @@ public class PdfSealer {
     }
 
     /**
+     * Seals a PDF document at {@code BASELINE-B} without asking any timestamp service, for a document
+     * that says on its face that no service answered when it was sealed a moment before.
+     *
+     * @param pdf   the document to seal
+     * @param key   the private key of the first certificate in {@code chain}
+     * @param chain the signing certificate first, followed by the certificates that issued it
+     * @return the sealed document at {@code BASELINE-B}
+     * @throws IllegalArgumentException when the chain is empty
+     * @throws IllegalStateException    when the key cannot produce a signature
+     * @throws AlertException           when the revocation list of the key's authority names it
+     */
+    public SealedDocument sealWithoutTimestamp(byte[] pdf, PrivateKey key, List<X509Certificate> chain) {
+        if (chain.isEmpty()) throw new IllegalArgumentException("A seal needs at least the signing certificate");
+        return SealedDocument.withoutTimestamp(sign(pdf, key, chain, SignatureLevel.PAdES_BASELINE_B, null));
+    }
+
+    /**
      * Takes a sealed document as far towards {@code BASELINE-LT} as the services allow now: adds a
      * document timestamp, which lifts a {@code BASELINE-B} seal to {@code BASELINE-T}, and then the
      * validation material of the seal and of every timestamp.
      *
      * <p>Each addition goes into a revision of its own, so the bytes the earlier seals cover stay as
      * they are and every one of them stays valid. Meant for documents sealed while no timestamp
-     * service answered or their revocation data could not be fetched; nothing calls it yet, because
-     * sealed documents are not stored yet. A document that already carries a timestamp gets one more.
+     * service answered or their revocation data could not be fetched; nothing calls it yet. A document
+     * that already carries a timestamp gets one more.
      *
      * @param sealed a document holding at least one seal
      * @return the document with what could be added, or the document unchanged at {@code BASELINE-B}

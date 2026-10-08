@@ -6,15 +6,16 @@
 package dev.chojo.ember.feature.signing.service;
 
 import dev.chojo.ember.api.refusal.RefusalResponse;
+import dev.chojo.ember.feature.signing.entity.CompletedSigning;
 import dev.chojo.ember.feature.signing.entity.SignatureLevel;
-import dev.chojo.ember.feature.signing.entity.SignedDocument;
 import dev.chojo.ember.feature.signing.entity.SignerConfirmation;
 import dev.chojo.ember.feature.signing.entity.SigningRequest;
 import dev.chojo.ember.feature.signing.entity.SigningStart;
 
 /**
- * Something that runs a person's signing act and turns it into a sealed document with evidence. The rest
- * of Ember only ever sees a {@link SignedDocument}, whoever ran the act.
+ * Something that runs a person's signing act and turns it into evidence. The rest of Ember only ever sees
+ * a {@link CompletedSigning}, whoever ran the act, and the station seals the document from the evidence it
+ * records, whichever provider gave it.
  *
  * <p>An act has two halves. {@link #start} opens an attempt and says how it goes on: in Ember with a
  * step-up, or at an outside provider the signer is sent to, whose callback leads to {@link #complete}.
@@ -36,13 +37,13 @@ public interface SignatureProvider {
     SigningStart start(SigningRequest request);
 
     /**
-     * Checks the signer's confirmation against the request and, when it holds, seals the document and
-     * records the act.
+     * Checks the signer's confirmation against the request and, when it holds, gives the evidence of the
+     * act. The caller records it and then seals the request's state ({@link SigningStateSealer}).
      *
      * @param request      the request the attempt was started for
      * @param confirmation the signer's confirmation, with the nonce the start issued
-     * @return the sealed document with the evidence of the act
+     * @return the level reached with the evidence of the act
      * @throws RefusalResponse when the confirmation does not belong to this request or is not accepted
      */
-    SignedDocument complete(SigningRequest request, SignerConfirmation confirmation);
+    CompletedSigning complete(SigningRequest request, SignerConfirmation confirmation);
 }

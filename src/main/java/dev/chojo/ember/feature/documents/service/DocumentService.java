@@ -193,6 +193,28 @@ public class DocumentService {
      */
     public Optional<byte[]> read(Document document) {
         if (document.sealed()) return versions.current(document.id()).flatMap(version -> read(document, version));
+        return readUploaded(document);
+    }
+
+    /**
+     * The file a document was filed with, for a reader at a station that keeps documents. For a document
+     * sealed after it was filed, that is the file its signatures bind to, which stays beside its sealed
+     * versions; {@link #open} serves the current version instead.
+     *
+     * @param door who reads, which decides the words of a refusal
+     * @return the file as it was uploaded, or empty for a document that was filed sealed
+     */
+    public Optional<byte[]> openUploaded(Document document, DocumentDoor door) {
+        requireKept(document.stationId(), door);
+        return readUploaded(document);
+    }
+
+    /**
+     * The file a document was filed with, whatever the station switched off, sealed since or not.
+     *
+     * @return the file as it was uploaded, or empty for a document that was filed sealed
+     */
+    public Optional<byte[]> readUploaded(Document document) {
         return storage.readAllBytes(
                 scope(document.stationId()), StorageCategory.MEMBER_DOCUMENTS, contentKey(document.id()), CONTENT);
     }
@@ -266,7 +288,8 @@ public class DocumentService {
 
     /**
      * Removes the files of a sealed document whose row is already gone: the sealed files no other version
-     * names any more, and the picture of its tile.
+     * names any more, the file it was filed with where it was sealed after filing, and the picture of its
+     * tile.
      *
      * @param document the sealed document that was deleted
      * @param sha256s  the hashes of its versions
@@ -278,6 +301,7 @@ public class DocumentService {
                 storage.deletePrefix(scope, StorageCategory.MEMBER_DOCUMENTS, sealedKey(sha256));
             }
         }
+        storage.deletePrefix(scope, StorageCategory.MEMBER_DOCUMENTS, contentKey(document.id()));
         storage.deletePrefix(scope, StorageCategory.MEMBER_DOCUMENTS, thumbnailKey(document.id()));
     }
 

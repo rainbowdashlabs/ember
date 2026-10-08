@@ -1,7 +1,7 @@
 {
   "version": 1,
   "schemaHash": "sha256:ea0c09f100344e2177dc5a4cc31aab93a6b1757aafeaa75606599550c154e5bb",
-  "generatedAt": "2026-10-08T13:55:37Z",
+  "generatedAt": "2026-10-08T14:53:28Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -18047,7 +18047,7 @@
           "type": "bool",
           "nullable": false,
           "verified": true,
-          "description": "Whether the document is sealed and therefore locked: it cannot be deleted, the members it is about cannot be changed, it is always kept when they leave, under their name where they are deleted, and its file is never replaced. Its files are its sealed versions. Only the deletion of its station takes it away, or the retention sweep once the signatures on it no longer need keeping."
+          "description": "Whether the document is sealed and therefore locked: it cannot be deleted, the members it is about cannot be changed, it is always kept when they leave, under their name where they are deleted, and its file is never replaced. It serves its current sealed version; a document sealed after it was filed keeps the file it was filed with beside its versions, since its signatures bind to that file and every version is built from it. Only the deletion of its station takes it away, or the retention sweep once the signatures on it no longer need keeping."
         }
       ],
       "foreignKeys": [
@@ -23188,7 +23188,7 @@
           "type": "text",
           "nullable": true,
           "verified": true,
-          "description": "SHA-256 of the sealed version of the document the act produced, lower-case hexadecimal. NULL until the act is sealed into its field."
+          "description": "SHA-256 of the first sealed version of the document that carries the act, lower-case hexadecimal. NULL until a sealed version carries it; such acts are sealed again by a sweep."
         },
         {
           "name": "recorded_at",
