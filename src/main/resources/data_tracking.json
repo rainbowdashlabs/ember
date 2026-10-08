@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:ba01258704b50593c3d95e5f7e8543b92af463670c2dd719a517a070b49a38fe",
-  "generatedAt": "2026-10-07T22:40:10Z",
+  "schemaHash": "sha256:6bcea5ee5793df25b4e26cbe1045844c2da87ec151cc9ea3416fd469c5c01ca1",
+  "generatedAt": "2026-10-08T21:24:25Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -7823,7 +7823,7 @@
     "email_queue": {
       "feature": "mail",
       "scope": "INSTANCE",
-      "tableHash": "sha256:d793ff57260df3195c3d474878dad012428f8100b5219cfb850ec232fac39da2",
+      "tableHash": "sha256:85138b3b4314e2276c8a22f95814fdcae6d0560b826c6dcb9d0d33b9f027e888",
       "columns": [
         {
           "name": "id",
@@ -7936,6 +7936,13 @@
           "nullable": true,
           "verified": true,
           "description": "When the worker last took this mail in hand for sending. A mail in sending for long past this was left behind by a worker that died."
+        },
+        {
+          "name": "instance_position",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "Which provider of the instance's list carried the mail, counted from zero, whether the mail was the instance's own or a station's. NULL while unsent and for mail a station's own provider carried. The daily allowance of an instance provider and the share stations may use of it are counted from this."
         }
       ],
       "foreignKeys": [
@@ -22634,7 +22641,7 @@
     "station": {
       "feature": "station",
       "scope": "STATION",
-      "tableHash": "sha256:945454e2e3cd7fe73ef6d7d0a2a535ad984ec493b2a6a6da429065acf4ca1474",
+      "tableHash": "sha256:92ead8d0dec34807f43e423d49aa1e9d603190e737a1ce45e678f658706c82ca",
       "columns": [
         {
           "name": "id",
@@ -22984,6 +22991,27 @@
           "nullable": true,
           "verified": true,
           "description": "When a manager last saved how the station is listed in discovery, NULL while nobody has. Once set, the station has decided knowingly and the discovery step of its setup counts as done."
+        },
+        {
+          "name": "instance_mail_granted_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When an instance administrator let the station send its own mail through the instance's mail providers, after its own. NULL while it may not."
+        },
+        {
+          "name": "instance_mail_daily_limit",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "How many mails a day the station may send through the instance's mail providers. NULL for no limit of its own; the share all stations together may use of each provider still applies."
+        },
+        {
+          "name": "mail_reply_to",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "The address replies to the station's mail go to. NULL when the station named none."
         }
       ],
       "foreignKeys": [
@@ -23031,7 +23059,9 @@
           "read_only_for_transfer",
           "setup_completed_at",
           "metrics_uid",
-          "federation_private_key"
+          "federation_private_key",
+          "instance_mail_granted_at",
+          "instance_mail_daily_limit"
         ],
         "rationale": "Single-row table; exported as an object via outputShape=SINGLE. The federation key is encrypted with the source instance's key, so it travels sealed with the transfer token beside the station page instead of as a column."
       },
