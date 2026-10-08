@@ -55,6 +55,7 @@ Stations turn their own templates and those of their association into documents 
 - **The member list in visibility filters was cut off.** Where a visibility or access restriction offers a choice of members, the list opened only as wide as its button, so the search and the names could not be read. It now opens wide enough for the names and stays inside the window.
 - **Pictures of PDFs were blurry.** The small pictures of PDFs in the media library, among member documents and among event attachments were so coarse that their text could not be read. They are now drawn finer and shown at the size of their tile.
 - **New tags lost their colour and badge.** A tag created with a colour or as a badge was saved without them until it was edited. Both are now kept from the start.
+- **System mail could stay unsent for good.** In some cases, once every provider of the instance had reached its daily limit, a waiting mail such as a password link was never sent, not even the next day. It now goes out the next day.
 
 ## v26.21.0
 

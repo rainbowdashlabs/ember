@@ -953,6 +953,11 @@ public class EmailService implements TaskSource {
      * rather than failing: the allowances turn over at midnight, and a reminder that goes out a day
      * late is worth more than one that never does. A station with no provider at all has nothing to
      * wait for, so its mail fails.
+     *
+     * <p>The instance's own mail that has walked past every provider waits for the next day the same
+     * way and starts again at the first provider then. Left where the walk ended, it would sit past
+     * the end of its list and never be carried again. While the instance has no provider at all, its
+     * mail stays queued until one is configured.
      */
     private Outcome process(EmailQueueRepository.QueuedEmail email) {
         Integer stationId = email.stationId();
@@ -983,9 +988,14 @@ public class EmailService implements TaskSource {
 
         var inTurn = entryInTurn(chain, email);
         if (inTurn.isEmpty()) {
-            if (stationId == null) {
-                log.debug("Email {} deferred: no instance provider is configured or has room left today", email.id());
+            if (stationId == null && chain.isEmpty()) {
+                log.debug("Email {} deferred: no instance provider is configured", email.id());
                 queueRepository.requeue(email.id());
+                return Outcome.REQUEUED;
+            }
+            if (stationId == null) {
+                log.info("Email {} waits until tomorrow: no instance provider has room left today", email.id());
+                queueRepository.waitUntil(email.id(), LocalDate.now().plusDays(1));
                 return Outcome.REQUEUED;
             }
             log.warn("Email {} failed: station {} has no provider left to try", email.id(), stationId);

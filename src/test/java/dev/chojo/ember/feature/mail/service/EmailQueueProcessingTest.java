@@ -216,9 +216,27 @@ class EmailQueueProcessingTest {
         assertEquals(1, relay.getReceivedMessages().length);
     }
 
+    /**
+     * Every instance provider has spent its allowance, so the mail walks past all of them. It waits
+     * for the next day and starts over at the first provider, instead of staying past the end of
+     * its list where nothing would ever carry it again.
+     */
     @Test
-    void instanceMailWithoutRoomIsHeldForTheNextRound() {
+    void instanceMailPastEverySpentProviderWaitsUntilTomorrow() {
         queued(null);
+
+        runQueue();
+
+        verify(queue).advanceProvider(11);
+        verify(queue).waitUntil(11, LocalDate.now().plusDays(1));
+        verify(queue, never()).requeue(anyInt());
+        assertEquals(0, relay.getReceivedMessages().length);
+    }
+
+    @Test
+    void instanceMailWithoutAnyProviderStaysQueuedUntilOneIsConfigured() {
+        queued(null);
+        when(chains.forInstance()).thenReturn(List.of());
 
         runQueue();
 
