@@ -340,7 +340,7 @@ public class AuthService {
         }
 
         invalidateAfterPasswordRotation(accountToken.accountId(), null);
-        if (confirmsOwnership(type) && accountRepository.confirm(accountToken.accountId())) {
+        if (confirmsOwnership(type, accountToken.accountId()) && accountRepository.confirm(accountToken.accountId())) {
             log.info("Account {} confirmed by its owner through a {} step", accountToken.accountId(), type);
         }
         notifyPasswordChanged(account.get());
@@ -354,16 +354,19 @@ public class AuthService {
      *
      * <p>A setup or reset link went to the account's address, so following it is the owner's answer.
      * The forced change after signing in with an imported password proves nothing about the address,
-     * so where the installation can send mail it leaves the account waiting for that link. Where it
-     * cannot, no link can ever reach the owner, and signing in with the password they brought along
-     * and replacing it is the most the owner can show; the same mail check decides whether a link
-     * request goes out by mail.
+     * so where a link can reach somebody it leaves the account waiting for that link. Where none can,
+     * because the installation sends no mail (the same check that decides whether a link request goes
+     * out by mail) or because the account has no address and no guardian with one, signing in with the
+     * password the owner brought along and replacing it is the most they can show.
      *
-     * @param type the token the password was set with
+     * @param type      the token the password was set with
+     * @param accountId the account the password was set for
      * @return true where setting the password confirms the account
      */
-    private boolean confirmsOwnership(TokenType type) {
-        return type != TokenType.FORCE_PASSWORD_CHANGE || !emailService.isGlobalMailConfigured();
+    private boolean confirmsOwnership(TokenType type, int accountId) {
+        return type != TokenType.FORCE_PASSWORD_CHANGE
+                || !emailService.isGlobalMailConfigured()
+                || !mailRecipientService.isReachable(accountId);
     }
 
     /**

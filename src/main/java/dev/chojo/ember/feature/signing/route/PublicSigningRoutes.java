@@ -44,7 +44,7 @@ import org.jspecify.annotations.Nullable;
  * <p>Anybody holding a PDF can also have its seals checked here ({@link SealVerifier}): the file is
  * checked in memory and never stored, and a request larger than a check takes is refused by its announced
  * length before its body is read, or while it is read where it announces none. Besides the global rate
- * limit, the check counts towards the tighter limit of the expensive routes.
+ * limit, the check counts towards a tight limit of its own.
  */
 @Singleton
 public class PublicSigningRoutes implements Routes {

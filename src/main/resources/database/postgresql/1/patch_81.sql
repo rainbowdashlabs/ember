@@ -1720,3 +1720,28 @@ COMMENT ON COLUMN ember_schema.issuer_signature.seal_level IS
     'The PAdES baseline level the station''s seal on the letter reached: BASELINE_B without a timestamp, BASELINE_T with one, BASELINE_LT with the timestamp and the material to check both offline, BASELINE_LTA with that material covered by a later document timestamp that renews the earlier ones.';
 COMMENT ON CONSTRAINT issuer_signature_seal_level_check ON ember_schema.issuer_signature IS
     'The PAdES baseline levels Ember seals at.';
+
+ALTER TABLE ember_schema.event_document_submission
+    ALTER COLUMN document_id DROP NOT NULL,
+    DROP CONSTRAINT event_document_submission_document_id_fkey,
+    ADD CONSTRAINT event_document_submission_document_id_fkey
+        FOREIGN KEY (document_id) REFERENCES ember_schema.member_document (id) ON DELETE SET NULL;
+
+DROP INDEX IF EXISTS ember_schema.uq_event_document_submission_standing;
+CREATE UNIQUE INDEX IF NOT EXISTS uq_event_document_submission_standing
+    ON ember_schema.event_document_submission (event_id, event_date, template_id, member_id)
+    WHERE state <> 'REJECTED' AND document_id IS NOT NULL;
+
+COMMENT ON COLUMN ember_schema.event_document_submission.document_id IS
+    'The scan, filed in the participant''s documents. NULL once the scan was deleted: the submission stays on record with its state and reason, but no longer stands, which opens the requirement again.';
+COMMENT ON INDEX ember_schema.uq_event_document_submission_standing IS
+    'At most one scan per participant, document and date waits or is confirmed; turned-down ones and those whose scan was deleted are kept beside it.';
+COMMENT ON CONSTRAINT event_document_submission_document_id_fkey ON ember_schema.event_document_submission IS
+    'Deleting the scan keeps the submission on record without it.';
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_station_member_station_account
+    ON ember_schema.station_member (station_id, account_id)
+    WHERE account_id IS NOT NULL;
+
+COMMENT ON INDEX ember_schema.uq_station_member_station_account IS
+    'An account is at most one member of a station, former members included, so two answers or joins arriving at once cannot give it a second one.';

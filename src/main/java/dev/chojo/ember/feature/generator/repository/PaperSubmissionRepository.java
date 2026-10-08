@@ -22,6 +22,9 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 /**
  * The scans of signed paper copies handed in for the documents appointments ask for, and what became of
  * them.
+ *
+ * <p>A submission whose scan was deleted stays on record without it, but is read by nothing here: it no
+ * longer stands, cannot be reviewed and does not show, so the document is open again.
  */
 @Singleton
 public class PaperSubmissionRepository {
@@ -55,6 +58,7 @@ public class PaperSubmissionRepository {
                           AND template_id = :template_id
                           AND member_id = :member_id
                           AND state <> 'REJECTED'
+                          AND document_id IS NOT NULL
                         FOR UPDATE;""", COLUMNS)
                 .single(call().bind("event_id", subject.eventId())
                         .bind("event_date", subject.eventDate())
@@ -65,15 +69,15 @@ public class PaperSubmissionRepository {
     }
 
     /**
-     * Records a scan handed in.
+     * Records a scan handed in, unless another one came to stand for the same subject in the meantime.
      *
      * @param subject     what the scan is for
      * @param documentId  the scan as filed
      * @param submittedBy who handed it in
      * @param confirmed   whether it counts as confirmed at once, by whoever handed it in
-     * @return the submission
+     * @return the submission, or empty where another scan handed in at the same time stands already
      */
-    public PaperSubmission create(Subject subject, int documentId, int submittedBy, boolean confirmed) {
+    public Optional<PaperSubmission> create(Subject subject, int documentId, int submittedBy, boolean confirmed) {
         return query("""
                         INSERT INTO event_document_submission(station_id, event_id, event_date, template_id, member_id,
                                                               document_id, state, submitted_by, reviewed_at,
@@ -81,6 +85,7 @@ public class PaperSubmissionRepository {
                         VALUES (:station_id, :event_id, :event_date, :template_id, :member_id, :document_id, :state,
                                 :submitted_by, CASE WHEN :confirmed THEN now() END,
                                 CASE WHEN :confirmed THEN :submitted_by END)
+                        ON CONFLICT DO NOTHING
                         RETURNING %s;""", COLUMNS)
                 .single(call().bind("station_id", subject.stationId())
                         .bind("event_id", subject.eventId())
@@ -92,8 +97,7 @@ public class PaperSubmissionRepository {
                         .bind("submitted_by", submittedBy)
                         .bind("confirmed", confirmed))
                 .map(PaperSubmission.map())
-                .first()
-                .orElseThrow();
+                .first();
     }
 
     /**
@@ -111,12 +115,14 @@ public class PaperSubmissionRepository {
      * @param stationId the station
      * @param eventId   the appointment
      * @param id        the submission
-     * @return the submission, where it was handed in for that appointment of that station
+     * @return the submission, where it was handed in for that appointment of that station and its scan is
+     *         still filed
      */
     public Optional<PaperSubmission> find(int stationId, int eventId, int id) {
         return query("""
                         SELECT %s FROM event_document_submission
-                        WHERE id = :id AND station_id = :station_id AND event_id = :event_id;""", COLUMNS)
+                        WHERE id = :id AND station_id = :station_id AND event_id = :event_id
+                          AND document_id IS NOT NULL;""", COLUMNS)
                 .single(call().bind("id", id).bind("station_id", stationId).bind("event_id", eventId))
                 .map(PaperSubmission.map())
                 .first();
@@ -138,7 +144,7 @@ public class PaperSubmissionRepository {
                             reviewed_at   = now(),
                             reviewed_by   = :reviewed_by,
                             reject_reason = :reason
-                        WHERE id = :id AND state = 'SUBMITTED'
+                        WHERE id = :id AND state = 'SUBMITTED' AND document_id IS NOT NULL
                         RETURNING %s;""", COLUMNS)
                 .single(call().bind("id", id)
                         .bind("state", state)
@@ -149,7 +155,7 @@ public class PaperSubmissionRepository {
     }
 
     /**
-     * The latest scan handed in for each document of each participant on a date of an appointment,
+     * The latest scan still filed for each document of each participant on a date of an appointment,
      * whatever became of it.
      *
      * @param eventId   the appointment
@@ -164,6 +170,7 @@ public class PaperSubmissionRepository {
                         WHERE event_id = :event_id
                           AND event_date = :event_date
                           AND member_id = ANY(:member_ids)
+                          AND document_id IS NOT NULL
                         ORDER BY template_id, member_id, submitted_at DESC, id DESC;""", COLUMNS)
                 .single(call().bind("event_id", eventId)
                         .bind("event_date", eventDate)

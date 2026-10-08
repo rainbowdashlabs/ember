@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.accountlink.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.MemberRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.auth.TokenHasher;
 import dev.chojo.ember.feature.account.entity.Account;
@@ -31,7 +32,12 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.CountDownLatch;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -171,5 +177,45 @@ class LinkAnswerServiceTest extends RepositoryTestBase {
                 MemberRefusal.LINK_ACCOUNT_ALREADY_AT_STATION,
                 assertThrows(RefusalResponse.class, () -> answers.accept(owner.id(), request.uid(), null, null))
                         .refusal());
+    }
+
+    /** Two requests of one station accepted at the same moment link the account to one member only. */
+    @Test
+    void twoRequestsAcceptedAtOnceLinkTheAccountOnce() throws Exception {
+        var alsoWaiting = stationMemberRepo.createWithoutAccount(station.id(), "Anna Twice");
+        var second = links.create(
+                station.id(),
+                alsoWaiting.id(),
+                owner.id(),
+                LinkOrigin.INVITE,
+                null,
+                HASHER.hash(token + "-second"),
+                Instant.now().plus(Duration.ofDays(30)));
+        var start = new CountDownLatch(1);
+        var refusals = new ConcurrentLinkedQueue<Refusal>();
+
+        var threads = Stream.of(request.uid(), second.uid())
+                .map(uid -> Thread.ofPlatform().start(() -> {
+                    try {
+                        start.await();
+                        answers.accept(owner.id(), uid, null, null);
+                    } catch (RefusalResponse refused) {
+                        refusals.add(refused.refusal());
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                }))
+                .toList();
+        start.countDown();
+        for (var thread : threads) thread.join();
+
+        assertEquals(List.of(MemberRefusal.LINK_ACCOUNT_ALREADY_AT_STATION), List.copyOf(refusals));
+        assertEquals(
+                1,
+                Stream.of(waiting.id(), alsoWaiting.id())
+                        .filter(id -> Objects.equals(
+                                owner.id(),
+                                stationMemberRepo.findById(id).orElseThrow().accountId()))
+                        .count());
     }
 }

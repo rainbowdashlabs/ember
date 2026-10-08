@@ -37,8 +37,11 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static de.chojo.sadu.queries.api.call.Call.call;
+import static de.chojo.sadu.queries.api.query.Query.query;
 import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.letter;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -313,6 +316,62 @@ class PaperSubmissionServiceTest extends GeneratorTestBase {
         var again = handIn(lena);
         assertEquals(PaperState.SUBMITTED, again.state());
         assertEquals(again, lenasStatus().paper());
+    }
+
+    /** The document a scan was for is named in the notice even where the station can no longer generate it. */
+    @Test
+    void aScanIsTurnedDownForADocumentTheStationNoLongerUses() {
+        var submission = handIn(guardian);
+        var elsewhere = stationRepo.create("Andere Wache " + System.nanoTime());
+        query("UPDATE document_template SET station_id = :station_id WHERE id = :id;")
+                .single(call().bind("station_id", elsewhere.id()).bind("id", consent))
+                .update();
+
+        var rejected = scans.reject(as(manager), camp, submission.id(), "Unterschrift fehlt");
+
+        assertEquals(PaperState.REJECTED, rejected.state());
+        var data = ArgumentCaptor.forClass(NotificationData.class);
+        verify(notifier).notify(any(), eq(NotificationType.DOCUMENT_SCAN_REJECTED), data.capture(), any());
+        assertEquals(
+                consentName,
+                ((NotificationParams.DocumentScanRejected) data.getValue().params()).documentName());
+    }
+
+    /**
+     * Two first scans handed in at the same moment both find nothing standing; the second is refused
+     * by name, and its file is not left behind.
+     */
+    @Test
+    void aSecondFirstScanHandedInAtTheSameMomentIsRefused() {
+        var blind = new PaperSubmissionService(
+                new PaperSubmissionRepository() {
+                    @Override
+                    public Optional<PaperSubmission> lockStanding(PaperSubmissionRepository.Subject subject) {
+                        return Optional.empty();
+                    }
+                },
+                appointments,
+                wiring.templates(),
+                wiring.documents(),
+                new DocumentCatalogService(memberDocumentRepo, wiring.documents()),
+                memberNameResolver,
+                notifier);
+        var first = blind.submit(as(guardian), camp, DAY, consent, lena.id(), null, scanFile());
+        int filed = memberDocumentRepo
+                .findByMember(wiring.station().id(), lena.id(), true)
+                .size();
+
+        refused(
+                DocumentRefusal.DOCUMENT_SCAN_HANDED_IN_AT_ONCE,
+                () -> blind.submit(as(lena), camp, DAY, consent, lena.id(), null, scanFile()));
+
+        assertEquals(first, lenasStatus().paper());
+        assertEquals(
+                filed,
+                memberDocumentRepo
+                        .findByMember(wiring.station().id(), lena.id(), true)
+                        .size(),
+                "the refused scan is not filed");
     }
 
     @Test

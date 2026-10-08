@@ -990,10 +990,16 @@ class SignatureRequestServiceTest extends RepositoryTestBase {
                 "client_data_json",
                 "authenticator_data",
                 "signature",
-                "credential_key_stamp_token")) {
+                "credential_key_stamp_token",
+                "nonce",
+                "challenge")) {
             assertTrue(childsEvidence.containsKey(device), device + " is named, but empty");
             assertNull(childsEvidence.get(device), device + " is the guardian's");
             assertNotNull(guardiansEvidence.get(device), device + " reaches the guardian");
+        }
+        for (String mark : List.of("mark_image", "mark_source")) {
+            assertTrue(childsEvidence.containsKey(mark), mark + " is named, but empty");
+            assertNull(childsEvidence.get(mark), mark + " is the guardian's signature");
         }
         assertEquals("203.0.113.0", guardiansEvidence.get("truncated_ip"));
         assertEquals("Test Browser", guardiansEvidence.get("user_agent"));

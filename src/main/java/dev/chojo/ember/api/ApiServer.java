@@ -620,8 +620,7 @@ public class ApiServer {
         if (demoConfig.dev()) return;
         if (ctx.path().startsWith(API_PREFIX + "/remote/")) return;
 
-        boolean expensivePath = GlobalRateLimiter.isExpensive(ctx.path());
-        RateLimits.enforce(GeneralRefusal.REQUESTS_TOO_OFTEN, globalRateLimiter.check(ctx.ip(), expensivePath));
+        RateLimits.enforce(GeneralRefusal.REQUESTS_TOO_OFTEN, globalRateLimiter.check(ctx.ip(), ctx.path()));
     }
 
     /**

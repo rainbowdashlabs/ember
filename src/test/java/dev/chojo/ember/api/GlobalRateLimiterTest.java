@@ -45,15 +45,19 @@ class GlobalRateLimiterTest {
         }
     }
 
+    private static final String PLAIN = "/api/v1/station/members";
+    private static final String AI = "/api/v1/station/ai/quiz";
+    private static final String SEAL_CHECK = "/api/v1/public/signing/verify";
+
     @Test
     void allowsBurstThenThrottles() {
         var clock = new MutableClock(Instant.parse("2026-01-01T00:00:00Z"));
         var limiter = new GlobalRateLimiter(clock);
 
         for (int i = 0; i < 900; i++) {
-            assertTrue(limiter.check("1.2.3.4", false).isEmpty());
+            assertTrue(limiter.check("1.2.3.4", PLAIN).isEmpty());
         }
-        assertFalse(limiter.check("1.2.3.4", false).isEmpty());
+        assertFalse(limiter.check("1.2.3.4", PLAIN).isEmpty());
     }
 
     @Test
@@ -62,9 +66,9 @@ class GlobalRateLimiterTest {
         var limiter = new GlobalRateLimiter(clock);
 
         for (int i = 0; i < 900; i++) {
-            limiter.check("1.1.1.1", false);
+            limiter.check("1.1.1.1", PLAIN);
         }
-        assertTrue(limiter.check("2.2.2.2", false).isEmpty());
+        assertTrue(limiter.check("2.2.2.2", PLAIN).isEmpty());
     }
 
     @Test
@@ -73,16 +77,35 @@ class GlobalRateLimiterTest {
         var limiter = new GlobalRateLimiter(clock);
 
         for (int i = 0; i < 40; i++) {
-            assertTrue(limiter.check("9.9.9.9", true).isEmpty());
+            assertTrue(limiter.check("9.9.9.9", AI).isEmpty());
         }
-        assertFalse(limiter.check("9.9.9.9", true).isEmpty());
+        assertFalse(limiter.check("9.9.9.9", AI).isEmpty());
+    }
+
+    /** A seal check carries a large file and holds one of very few slots, so its burst is far smaller than AI's. */
+    @Test
+    void checkingSealsHasTheSmallestBurstOfItsOwn() {
+        var clock = new MutableClock(Instant.parse("2026-01-01T00:00:00Z"));
+        var limiter = new GlobalRateLimiter(clock);
+
+        for (int i = 0; i < GlobalRateLimiter.SEAL_CHECK_BURST; i++) {
+            assertTrue(limiter.check("8.8.8.8", SEAL_CHECK).isEmpty());
+        }
+        assertFalse(limiter.check("8.8.8.8", SEAL_CHECK).isEmpty());
+        assertTrue(limiter.check("8.8.8.8", AI).isEmpty(), "the checks take nothing from the AI budget");
+        assertTrue(GlobalRateLimiter.SEAL_CHECK_BURST < 40);
+
+        clock.advance(Duration.ofSeconds(10));
+        assertTrue(limiter.check("8.8.8.8", SEAL_CHECK).isEmpty(), "and refill at their own pace");
     }
 
     @Test
     void generatingWithAiAndCheckingSealsAreTheExpensivePaths() {
-        assertTrue(GlobalRateLimiter.isExpensive("/api/v1/station/ai/quiz"));
-        assertTrue(GlobalRateLimiter.isExpensive("/api/v1/public/signing/verify"));
-        assertFalse(GlobalRateLimiter.isExpensive("/api/v1/public/signing/ca"));
-        assertFalse(GlobalRateLimiter.isExpensive("/api/v1/station/members"));
+        assertTrue(GlobalRateLimiter.isExpensive(AI));
+        assertTrue(GlobalRateLimiter.isSealCheck(SEAL_CHECK));
+        assertFalse(GlobalRateLimiter.isExpensive(SEAL_CHECK));
+        assertFalse(GlobalRateLimiter.isSealCheck("/api/v1/public/signing/ca"));
+        assertFalse(GlobalRateLimiter.isExpensive(PLAIN));
+        assertFalse(GlobalRateLimiter.isSealCheck(PLAIN));
     }
 }

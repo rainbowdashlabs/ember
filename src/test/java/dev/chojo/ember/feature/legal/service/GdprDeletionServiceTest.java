@@ -17,10 +17,14 @@ import dev.chojo.ember.feature.media.service.ImageVariants;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.question.FieldType;
+import dev.chojo.ember.feature.signing.entity.SignatureImageSource;
 import dev.chojo.ember.feature.signing.repository.AccountSignatureRepository;
 import dev.chojo.ember.feature.signing.service.SignatureImageService;
+import dev.chojo.ember.feature.signing.service.TestSignatures;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
+import dev.chojo.ember.feature.storage.entity.StorageCategory;
+import dev.chojo.ember.feature.storage.entity.StorageScope;
 import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.BeforeAll;
@@ -38,21 +42,24 @@ import static org.junit.jupiter.api.Assertions.*;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class GdprDeletionServiceTest extends RepositoryTestBase {
     private static GdprDeletionService service;
+    private static StorageService storage;
+    private static SignatureImageService signatureImages;
     private static Station station;
     private static StationMember member;
 
     @BeforeAll
     static void setup() {
         var backend = localStorage();
-        var storage = new StorageService(new StorageBackendResolver(backend), backend);
+        storage = new StorageService(new StorageBackendResolver(backend), backend);
         var avatars = new AvatarService(new ImageVariants(storage));
+        signatureImages = new SignatureImageService(new AccountSignatureRepository(), accountRepo, storage);
         service = new GdprDeletionService(
                 accountRepo,
                 stationMemberRepo,
                 memberLookupService,
                 avatars,
                 newDocumentService(storage),
-                new SignatureImageService(new AccountSignatureRepository(), accountRepo, storage),
+                signatureImages,
                 new AccountReach(accountRepo));
         station = stationRepo.create("GdprStation");
         Account account = accountRepo.create("gdpr-del@test.com", "Delete", "Me");
@@ -167,6 +174,24 @@ class GdprDeletionServiceTest extends RepositoryTestBase {
         service.deleteOwnAccount(own.id());
 
         assertTrue(accountRepo.findById(own.id()).isEmpty());
+    }
+
+    /** The signature picture lives in the account's file store, outside the rows the deletion removes. */
+    @Test
+    @Order(32)
+    void aDeletedAccountTakesItsSignaturePictureAlong() {
+        var signer = accountRepo.create("gdpr-signature@test.com", "Unter", "Schrift");
+        stationMemberRepo.create(station.id(), signer.id());
+        signatureImages.save(signer.id(), TestSignatures.drawn(), SignatureImageSource.DRAWN);
+        var scope = new StorageScope.Account(signer.uid());
+        assertTrue(storage.readAllBytes(scope, StorageCategory.IMAGE_SIGNATURE, "signature.png")
+                .isPresent());
+
+        service.deleteAccount(signer.id());
+
+        assertTrue(storage.readAllBytes(scope, StorageCategory.IMAGE_SIGNATURE, "signature.png")
+                .isEmpty());
+        assertTrue(new AccountSignatureRepository().find(signer.id()).isEmpty());
     }
 
     private static StationMember memberWithDocuments(String address, boolean keptForTheRecord) {

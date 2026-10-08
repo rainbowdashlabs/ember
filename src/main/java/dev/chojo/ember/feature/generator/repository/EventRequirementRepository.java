@@ -101,7 +101,7 @@ public class EventRequirementRepository {
 
     /**
      * The members who have a copy still filed of a document an appointment asks for on a date, or for
-     * whom a scan of a signed copy was handed in. For an appointment without registrations this is the
+     * whom a scan of a signed copy was handed in and is still filed. For an appointment without registrations this is the
      * only list of who takes part.
      *
      * @param eventId   the appointment
@@ -121,6 +121,7 @@ public class EventRequirementRepository {
                 FROM event_document_submission
                 WHERE event_id = :event_id
                   AND event_date = :event_date
+                  AND document_id IS NOT NULL
                 ORDER BY member_id;""")
                 .single(call().bind("event_id", eventId).bind("event_date", eventDate))
                 .map(row -> row.getInt("member_id"))

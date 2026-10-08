@@ -598,7 +598,13 @@ public enum DocumentRefusal implements Refusal {
 
     /** A partner asking a station for its signing authorities that has no federation key to sign them with. */
     AUTHORITIES_CANNOT_BE_VOUCHED_FOR(
-            191, HttpStatus.CONFLICT, "This station has no federation key to vouch for its signing authorities");
+            191, HttpStatus.CONFLICT, "This station has no federation key to vouch for its signing authorities"),
+
+    /** A scan handed in at the same moment as another one for the same document, participant and date. */
+    DOCUMENT_SCAN_HANDED_IN_AT_ONCE(
+            230,
+            HttpStatus.CONFLICT,
+            "Another scan of this document was handed in at the same moment, so this one was not filed");
 
     private final Definition definition;
 

@@ -72,6 +72,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import javax.security.auth.x500.X500Principal;
@@ -113,8 +115,11 @@ import javax.security.auth.x500.X500Principal;
  * <p>The uploaded bytes are only held in memory for the check and never stored.
  *
  * <p><b>Load.</b> Anybody may send a file, and checking one costs far more than sending it, so at most
- * {@link #CONCURRENT_CHECKS} checks run at once on the whole server. A check that finds no free slot within
- * {@link #QUEUE_TIME} is refused as busy. A file the validator fails on in a way it does not refuse itself
+ * {@link #CONCURRENT_CHECKS} checks run at once on the whole server. An uploaded file is read into memory
+ * only once its check holds a slot, so the files held at any time are bounded by the slots, not by the
+ * requests waiting. A check that finds no free slot within {@link #QUEUE_TIME} is refused as busy, and so
+ * is one that finds {@link #MAX_WAITING} others already waiting, so waiting requests cannot pile up
+ * either. A file the validator fails on in a way it does not refuse itself
  * is answered as no PDF that can be checked, never as a fault of the server.
  */
 @Singleton
@@ -137,6 +142,9 @@ public class SealVerifier {
     /** How long a check waits for one of the others to finish before it is refused. */
     static final Duration QUEUE_TIME = Duration.ofSeconds(5);
 
+    /** How many checks may wait for a slot at once; one more is refused as busy without waiting. */
+    static final int MAX_WAITING = 4;
+
     private final SigningKeyRepository keys;
     private final StationKeyRevocations revocations;
     private final SealedVersionRepository versions;
@@ -145,6 +153,8 @@ public class SealVerifier {
     private final Set<String> timestampFingerprints;
     private final Semaphore slots;
     private final Duration queueTime;
+    private final int maxWaiting;
+    private final AtomicInteger waiting = new AtomicInteger();
 
     /**
      * Pins the timestamp roots the configuration names, together with the shipped ones.
@@ -180,7 +190,15 @@ public class SealVerifier {
             SealedVersionRepository versions,
             PartnerAuthorityRepository partnerPins,
             List<X509Certificate> timestampRoots) {
-        this(keys, revocations, versions, partnerPins, timestampRoots, new Semaphore(CONCURRENT_CHECKS), QUEUE_TIME);
+        this(
+                keys,
+                revocations,
+                versions,
+                partnerPins,
+                timestampRoots,
+                new Semaphore(CONCURRENT_CHECKS),
+                QUEUE_TIME,
+                MAX_WAITING);
     }
 
     /**
@@ -193,6 +211,7 @@ public class SealVerifier {
      * @param timestampRoots the roots a timestamp has to chain to
      * @param slots          the checks that may run at once
      * @param queueTime      how long a check waits for a slot
+     * @param maxWaiting     how many checks may wait for a slot at once
      */
     SealVerifier(
             SigningKeyRepository keys,
@@ -201,7 +220,8 @@ public class SealVerifier {
             PartnerAuthorityRepository partnerPins,
             List<X509Certificate> timestampRoots,
             Semaphore slots,
-            Duration queueTime) {
+            Duration queueTime,
+            int maxWaiting) {
         this.keys = keys;
         this.revocations = revocations;
         this.versions = versions;
@@ -210,24 +230,22 @@ public class SealVerifier {
         this.timestampFingerprints = fingerprints(this.timestampRoots);
         this.slots = slots;
         this.queueTime = queueTime;
+        this.maxWaiting = maxWaiting;
     }
 
     /**
-     * Checks an uploaded file.
+     * Checks an uploaded file, reading it into memory only once the check holds a slot.
      *
      * @param upload the file as it arrived, or null when the request carried none
      * @return what the check found
      * @throws dev.chojo.ember.api.refusal.RefusalResponse when no file came, it is larger than
-     *                                                     {@link #MAX_BYTES}, broke off or is no PDF
+     *                                                     {@link #MAX_BYTES}, broke off or is no PDF, or
+     *                                                     no slot for a check came free in time
      */
     public SealVerification verify(@Nullable UploadedFile upload) {
         if (upload == null) throw DocumentRefusal.SEAL_CHECK_NO_FILE.raise();
         if (upload.size() > MAX_BYTES) throw DocumentRefusal.SEAL_CHECK_TOO_LARGE.raise();
-        try (var in = upload.content()) {
-            return verify(in.readNBytes(MAX_BYTES + 1));
-        } catch (IOException e) {
-            throw DocumentRefusal.SEAL_CHECK_NOT_RECEIVED.raise();
-        }
+        return inSlot(() -> checkFile(read(upload)));
     }
 
     /**
@@ -240,18 +258,34 @@ public class SealVerifier {
      *                                                     came free in time
      */
     public SealVerification verify(byte[] pdf) {
-        if (pdf.length > MAX_BYTES) throw DocumentRefusal.SEAL_CHECK_TOO_LARGE.raise();
-        if (!startsLikeAPdf(pdf)) throw DocumentRefusal.SEAL_CHECK_NOT_A_PDF.raise();
+        return inSlot(() -> checkFile(pdf));
+    }
+
+    private static byte[] read(UploadedFile upload) {
+        try (var in = upload.content()) {
+            return in.readNBytes(MAX_BYTES + 1);
+        } catch (IOException e) {
+            throw DocumentRefusal.SEAL_CHECK_NOT_RECEIVED.raise();
+        }
+    }
+
+    private SealVerification inSlot(Supplier<SealVerification> check) {
         if (!acquireSlot()) throw DocumentRefusal.SEAL_CHECKS_BUSY.raise();
         try {
-            var here = installationAuthorities();
-            var authorities = new ArrayList<>(here);
-            authorities.addAll(partnerAuthorities(partnerPins.allPinned(), fingerprintsOf(here)));
-            var checked = checked(pdf, authorities);
-            return new SealVerification(held(pdf), checked.signatures(), checked.documentTimestamps());
+            return check.get();
         } finally {
             slots.release();
         }
+    }
+
+    private SealVerification checkFile(byte[] pdf) {
+        if (pdf.length > MAX_BYTES) throw DocumentRefusal.SEAL_CHECK_TOO_LARGE.raise();
+        if (!startsLikeAPdf(pdf)) throw DocumentRefusal.SEAL_CHECK_NOT_A_PDF.raise();
+        var here = installationAuthorities();
+        var authorities = new ArrayList<>(here);
+        authorities.addAll(partnerAuthorities(partnerPins.allPinned(), fingerprintsOf(here)));
+        var checked = checked(pdf, authorities);
+        return new SealVerification(held(pdf), checked.signatures(), checked.documentTimestamps());
     }
 
     /**
@@ -345,12 +379,20 @@ public class SealVerifier {
         return authorities.stream().map(Authority::fingerprint).collect(Collectors.toUnmodifiableSet());
     }
 
+    /** Takes a free slot at once, or waits for one while fewer than {@link #maxWaiting} others do. */
     private boolean acquireSlot() {
+        if (slots.tryAcquire()) return true;
+        if (waiting.incrementAndGet() > maxWaiting) {
+            waiting.decrementAndGet();
+            return false;
+        }
         try {
             return slots.tryAcquire(queueTime.toMillis(), TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             return false;
+        } finally {
+            waiting.decrementAndGet();
         }
     }
 

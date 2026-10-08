@@ -342,7 +342,7 @@ public class AccountRepository {
 
     /**
      * Records that the owner confirmed the account by setting a password or a passkey through a link
-     * sent to its address, or, on an installation that sends no mail, by replacing the imported
+     * sent to its address, or, where no mail can reach anybody for it, by replacing the imported
      * password after signing in with it. No-op for an account that was never waiting.
      *
      * @param accountId the account

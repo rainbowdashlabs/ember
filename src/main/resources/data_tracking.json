@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:04a0bb5ff9b19274f1407bbd85e4d0e8df7b4079da0d5c7c7e137392b45a4ac4",
-  "generatedAt": "2026-10-08T23:21:56Z",
+  "schemaHash": "sha256:174cd4528b107b47569f249be2e9fd2defdda0610191243d3ce24ca62aada1fb",
+  "generatedAt": "2026-10-08T23:25:56Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -8999,7 +8999,7 @@
       "description": "A document template an appointment or an appointment template names as a document to bring. Every registered participant gets a copy filled with their data. An appointment made from a template starts with the template's list."
     },
     "event_document_submission": {
-      "tableHash": "sha256:2a7138652458eb7e99350fc84a700ef01cde53c4abe815ed27590e14fd2248d0",
+      "tableHash": "sha256:60afbd53cba7c2f386cd2ed2f632e06b9256a5ea7e23b19631be51bf48481590",
       "columns": [
         {
           "name": "id",
@@ -9046,9 +9046,9 @@
         {
           "name": "document_id",
           "type": "int4",
-          "nullable": false,
+          "nullable": true,
           "verified": true,
-          "description": "The scan, filed in the participant's documents. Deleting the scan removes the submission with it, which opens the requirement again."
+          "description": "The scan, filed in the participant's documents. NULL once the scan was deleted: the submission stays on record with its state and reason, but no longer stands, which opens the requirement again."
         },
         {
           "name": "state",
@@ -9098,7 +9098,7 @@
           "column": "document_id",
           "refTable": "member_document",
           "refColumn": "id",
-          "onDelete": "CASCADE"
+          "onDelete": "SET NULL"
         },
         {
           "column": "event_id",
@@ -24033,7 +24033,11 @@
               "credential_key_stamp_token",
               "credential_key_stamped_at",
               "credential_key_stamp_service",
-              "credential_key_stamp_kind"
+              "credential_key_stamp_kind",
+              "nonce",
+              "challenge",
+              "mark_image",
+              "mark_source"
             ]
           }
         ]

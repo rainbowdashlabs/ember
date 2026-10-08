@@ -33,6 +33,7 @@ import org.mockito.ArgumentCaptor;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -339,6 +340,47 @@ class AuthServiceTest extends RepositoryTestBase {
             assertFalse(accountRepo.isUnconfirmed(imported.id()));
         } finally {
             accountRepo.delete(imported.id());
+        }
+    }
+
+    /**
+     * An imported account with no address and no guardian who has one can be reached by no link either,
+     * even where the installation sends mail, so the forced change confirms it too. Once a guardian with
+     * an address looks after it, the link is the way again.
+     */
+    @Test
+    @Order(17)
+    void theForcedChangeConfirmsAnImportedAccountNoMailCanReach() {
+        when(emailService.isGlobalMailConfigured()).thenReturn(true);
+        var station = stationRepo.create("Unreachable import " + System.nanoTime());
+        var unreachable = accountRepo.create(null, "Ohne", "Adresse");
+        var reachable = accountRepo.create(null, "Mit", "Vormund");
+        var guardianAccount = accountRepo.create("imported-guardian@test.com", "Vor", "Mund");
+        try {
+            stationMemberRepo.create(station.id(), unreachable.id());
+            var ward = stationMemberRepo.create(station.id(), reachable.id());
+            var guardian = stationMemberRepo.create(station.id(), guardianAccount.id());
+            stationMemberRepo.addManager(guardian.id(), ward.id());
+            for (var account : List.of(unreachable, reachable)) {
+                accountRepo.markUnconfirmed(account.id());
+                accountRepo.createToken(
+                        account.id(),
+                        "forced-unreachable-" + account.id(),
+                        TokenType.FORCE_PASSWORD_CHANGE,
+                        Instant.now().plusSeconds(600));
+                assertEquals(
+                        AuthService.SetPasswordOutcome.OK,
+                        service.setPassword("forced-unreachable-" + account.id(), "Unreachable123!"));
+            }
+
+            assertFalse(accountRepo.isUnconfirmed(unreachable.id()));
+            assertTrue(accountRepo.isUnconfirmed(reachable.id()), "the guardian's mail can carry the link");
+        } finally {
+            when(emailService.isGlobalMailConfigured()).thenReturn(false);
+            stationRepo.delete(station.id());
+            accountRepo.delete(unreachable.id());
+            accountRepo.delete(reachable.id());
+            accountRepo.delete(guardianAccount.id());
         }
     }
 

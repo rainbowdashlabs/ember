@@ -163,6 +163,19 @@ public class AccountLinkRepository {
     }
 
     /**
+     * Holds the account until the transaction ends, so two of its requests accepted at once are linked
+     * one after the other and the second sees the member the first made.
+     *
+     * @param accountId the account answering
+     */
+    public void holdAccount(int accountId) {
+        query("SELECT id FROM account WHERE id = :id FOR UPDATE;")
+                .single(call().bind("id", accountId))
+                .map(row -> row.getInt("id"))
+                .first();
+    }
+
+    /**
      * Answers a request that still waits, and drops its token.
      *
      * @param id     the request

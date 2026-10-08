@@ -169,4 +169,5 @@ export default {
     'D-184': 'Unterschriebene Dokumente lassen sich 0 bis 240 Monate nach dem Austritt aufbewahren',
     'D-190': 'Die Zertifizierungsstellen werden nur gegen eine frische Prüfzahl genannt',
     'D-191': 'Diese Wache hat keinen Föderationsschlüssel, um ihre Zertifizierungsstellen zu bestätigen',
+    'D-230': 'Im selben Moment wurde ein anderer Scan dieses Dokuments abgegeben, dieser wurde deshalb nicht abgelegt',
 }

@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.documents.service.DocumentCatalogService;
 import dev.chojo.ember.feature.documents.service.DocumentDoor;
 import dev.chojo.ember.feature.documents.service.DocumentService;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.generator.entity.DocumentTemplate;
 import dev.chojo.ember.feature.generator.entity.PaperState;
 import dev.chojo.ember.feature.generator.entity.PaperSubmission;
 import dev.chojo.ember.feature.generator.repository.PaperSubmissionRepository;
@@ -133,7 +134,10 @@ public class PaperSubmissionService {
                 var standing = submissions.lockStanding(subject);
                 requireNotConfirmed(standing);
                 standing.ifPresent(replaced -> submissions.delete(replaced.id()));
-                return new Handover(submissions.create(subject, scan.id(), me, manages), standing);
+                var created = submissions
+                        .create(subject, scan.id(), me, manages)
+                        .orElseThrow(DocumentRefusal.DOCUMENT_SCAN_HANDED_IN_AT_ONCE::raise);
+                return new Handover(created, standing);
             });
         } catch (RuntimeException e) {
             documents.delete(scan);
@@ -200,8 +204,9 @@ public class PaperSubmissionService {
         if (given.length() > MAX_REASON_LENGTH) throw DocumentRefusal.DOCUMENT_SCAN_REASON_TOO_LONG.raise();
         var submission = requireAt(session, event, submissionId);
         String documentName = templates
-                .requireUsable(session.stationId(), submission.templateId())
-                .name();
+                .find(submission.templateId())
+                .map(DocumentTemplate::name)
+                .orElseThrow(DocumentRefusal.DOCUMENT_SCAN_NOT_FOUND::raise);
         var rejected = submissions
                 .review(submission.id(), PaperState.REJECTED, session.member().id(), given)
                 .orElseThrow(DocumentRefusal.DOCUMENT_SCAN_NOT_WAITING::raise);

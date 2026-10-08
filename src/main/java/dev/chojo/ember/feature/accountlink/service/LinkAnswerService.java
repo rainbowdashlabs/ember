@@ -118,7 +118,8 @@ public class LinkAnswerService {
     /**
      * Links the account to the member the station asked about. The member keeps whatever the station
      * gave it, its permissions among them, which reach the account from now on. The answer and the link
-     * are written together or not at all. The account's own audit records it, and whoever edits members
+     * are written together or not at all, while the account is held, so two requests of one station
+     * accepted at once cannot give the account two members there. The account's own audit records it, and whoever edits members
      * at the station is told.
      *
      * @param accountId the signed-in account
@@ -128,12 +129,13 @@ public class LinkAnswerService {
      */
     public void accept(int accountId, UUID uid, @Nullable String userAgent, @Nullable String country) {
         var request = requireWaiting(accountId, uid);
-        if (memberRepository
-                .findByStationAndAccount(request.stationId(), accountId)
-                .isPresent()) {
-            throw MemberRefusal.LINK_ACCOUNT_ALREADY_AT_STATION.raise();
-        }
         Transactions.run(() -> {
+            repository.holdAccount(accountId);
+            if (memberRepository
+                    .findByStationAndAccount(request.stationId(), accountId)
+                    .isPresent()) {
+                throw MemberRefusal.LINK_ACCOUNT_ALREADY_AT_STATION.raise();
+            }
             if (!repository.answer(request.id(), LinkAnswer.ACCEPTED)
                     || !memberRepository.linkAccount(request.memberId(), accountId)) {
                 throw MemberRefusal.LINK_REQUEST_NOT_OPEN.raise();

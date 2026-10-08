@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.signing.service;
 
 import dev.chojo.ember.api.TestUploads;
 import dev.chojo.ember.api.refusal.DocumentRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.documents.repository.SealedVersionRepository;
 import dev.chojo.ember.feature.signing.entity.PadesLevel;
@@ -32,6 +33,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
@@ -146,7 +148,8 @@ class SealVerifierTest extends RepositoryTestBase {
                         new PartnerAuthorityRepository(),
                         List.of(),
                         slots,
-                        Duration.ZERO) {
+                        Duration.ZERO,
+                        SealVerifier.MAX_WAITING) {
                     @Override
                     Reports validate(byte[] pdf, List<Authority> authorities) {
                         throw new ArrayIndexOutOfBoundsException("a reader of a broken file");
@@ -169,7 +172,48 @@ class SealVerifierTest extends RepositoryTestBase {
         stationRepo.delete(station.id());
     }
 
+    /** An upload is read only once its check holds a slot, so a busy server never holds the file of a waiting one. */
+    @Test
+    void anUploadIsReadOnlyOnceItsCheckHoldsASlot() throws Exception {
+        var slots = new Semaphore(1);
+        var busy = verifierWith(slots, Duration.ZERO);
+
+        slots.acquire();
+        assertRefused(DocumentRefusal.SEAL_CHECKS_BUSY, () -> busy.verify(TestUploads.unreadable("waiting.pdf", 100)));
+        slots.release();
+
+        assertRefused(
+                DocumentRefusal.SEAL_CHECK_NOT_RECEIVED, () -> busy.verify(TestUploads.unreadable("read.pdf", 100)));
+        assertEquals(1, slots.availablePermits(), "a check that could not read its file gives its slot back");
+    }
+
+    /** Only so many checks wait for a slot; one more is refused at once instead of joining the queue. */
+    @Test
+    void aCheckFindingTooManyWaitingIsRefusedWithoutWaiting() throws Exception {
+        var slots = new Semaphore(0);
+        var busy = verifierWith(slots, Duration.ofSeconds(30), 1);
+        var firstOutcome = new AtomicReference<Refusal>();
+        var first = Thread.ofPlatform()
+                .start(() -> firstOutcome.set(
+                        assertThrows(RefusalResponse.class, () -> busy.verify(TestUploads.unreadable("first.pdf", 100)))
+                                .refusal()));
+        while (!slots.hasQueuedThreads()) Thread.onSpinWait();
+
+        long started = System.nanoTime();
+        assertRefused(DocumentRefusal.SEAL_CHECKS_BUSY, () -> busy.verify(TestUploads.unreadable("second.pdf", 100)));
+        assertTrue(Duration.ofNanos(System.nanoTime() - started).compareTo(Duration.ofSeconds(5)) < 0);
+
+        slots.release();
+        first.join();
+        assertEquals(DocumentRefusal.SEAL_CHECK_NOT_RECEIVED, firstOutcome.get(), "the waiting check got its slot");
+        assertEquals(1, slots.availablePermits(), "and gave it back");
+    }
+
     private SealVerifier verifierWith(Semaphore slots, Duration queueTime) {
+        return verifierWith(slots, queueTime, SealVerifier.MAX_WAITING);
+    }
+
+    private SealVerifier verifierWith(Semaphore slots, Duration queueTime, int maxWaiting) {
         return new SealVerifier(
                 repository,
                 new StationKeyRevocations(repository, new RevocationLists(), wrap),
@@ -177,7 +221,8 @@ class SealVerifierTest extends RepositoryTestBase {
                 new PartnerAuthorityRepository(),
                 List.of(),
                 slots,
-                queueTime);
+                queueTime,
+                maxWaiting);
     }
 
     private static void assertRefused(DocumentRefusal refusal, Executable call) {
