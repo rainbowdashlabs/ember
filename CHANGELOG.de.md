@@ -1,5 +1,13 @@
 # Änderungsprotokoll
 
+## v26.21.4
+
+E-Mail-Adressen werden bei der Anmeldung und beim Zurücksetzen des Passworts unabhängig von Groß- und Kleinschreibung erkannt.
+
+### Fehlerbehebungen
+
+- **Eine großgeschriebene E-Mail-Adresse wurde nicht erkannt.** In manchen Fällen, etwa wenn ein Handy den ersten Buchstaben großschrieb, schlug die Anmeldung fehl und beim Zurücksetzen des Passworts kam keine Mail an. E-Mail-Adressen werden jetzt unabhängig von Groß- und Kleinschreibung erkannt.
+
 ## v26.21.3
 
 Einträge einer Warteliste lassen sich auf ihrer eigenen Seite löschen, egal in welchem Status.

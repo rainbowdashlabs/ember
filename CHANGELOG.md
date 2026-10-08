@@ -1,5 +1,13 @@
 # Changelog
 
+## v26.21.4
+
+Email addresses are recognised regardless of capital letters when signing in and when asking for a new password.
+
+### Fixes
+
+- **A capitalised email address was not recognised.** In some cases, for example when a phone capitalised the first letter, signing in failed and a password reset sent no mail. Email addresses are now recognised regardless of capital letters.
+
 ## v26.21.3
 
 Waiting list entries can be deleted from their own page, whatever their state.

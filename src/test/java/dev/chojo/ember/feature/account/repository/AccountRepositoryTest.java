@@ -79,6 +79,12 @@ class AccountRepositoryTest extends RepositoryTestBase {
     }
 
     @Test
+    @Order(4)
+    void findByEmailIgnoresCase() {
+        assertTrue(accountRepo.findByEmail("Test@Example.COM").isPresent());
+    }
+
+    @Test
     @Order(6)
     void findAll() {
         assertTrue(accountRepo.findAll().size() >= 2);
