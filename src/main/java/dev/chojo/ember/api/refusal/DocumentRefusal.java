@@ -563,7 +563,27 @@ public enum DocumentRefusal implements Refusal {
     SIGNING_KEYS_CHANGED(
             176,
             HttpStatus.CONFLICT,
-            "The signing keys that no longer open have changed since the page was loaded, nothing was given up");
+            "The signing keys that no longer open have changed since the page was loaded, nothing was given up"),
+
+    /** A signature picture to save that was not sent. */
+    SIGNATURE_IMAGE_MISSING(177, HttpStatus.BAD_REQUEST, "No signature picture was sent"),
+
+    /** A signature picture that is no picture this server reads. */
+    SIGNATURE_IMAGE_NOT_A_PICTURE(
+            178, HttpStatus.UNSUPPORTED_MEDIA_TYPE, "A signature picture has to be a PNG, JPEG or WebP picture"),
+
+    /** A signature picture larger than one is taken. */
+    SIGNATURE_IMAGE_TOO_LARGE(179, HttpStatus.CONTENT_TOO_LARGE, "A signature picture may be at most 5 MB"),
+
+    /** A signature picture on which no signature stands out from the background. */
+    SIGNATURE_IMAGE_EMPTY(180, HttpStatus.BAD_REQUEST, "No signature can be made out on the picture"),
+
+    /** A signature picture sent without saying how it was made. */
+    SIGNATURE_IMAGE_SOURCE_UNKNOWN(
+            181, HttpStatus.BAD_REQUEST, "Say whether the signature was drawn, typed or uploaded"),
+
+    /** A signing act confirmed without a signature picture, where none is saved to use. */
+    SIGNING_MARK_MISSING(182, HttpStatus.BAD_REQUEST, "Draw a signature to sign with, since none is saved");
 
     private final Definition definition;
 

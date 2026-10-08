@@ -17,12 +17,14 @@ import dev.chojo.ember.feature.signing.entity.FieldRole;
 import dev.chojo.ember.feature.signing.entity.FieldState;
 import dev.chojo.ember.feature.signing.entity.OpenSignature;
 import dev.chojo.ember.feature.signing.entity.RequestState;
+import dev.chojo.ember.feature.signing.entity.SignatureImageSource;
 import dev.chojo.ember.feature.signing.entity.SignerCapacity;
 import dev.chojo.ember.feature.signing.entity.SignerEntryDraft;
 import dev.chojo.ember.feature.signing.entity.SigningAnswer;
 import dev.chojo.ember.feature.signing.entity.SigningAttempt;
 import dev.chojo.ember.feature.signing.entity.SigningCircumstances;
 import dev.chojo.ember.feature.signing.entity.SigningOutcome;
+import dev.chojo.ember.feature.signing.entity.SigningPicture;
 import dev.chojo.ember.feature.signing.service.SignatureRequestService;
 import dev.chojo.ember.feature.signing.service.SigningActService;
 import dev.chojo.ember.feature.twofactor.entity.StepUpProof;
@@ -39,6 +41,7 @@ import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
+import java.util.Base64;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -180,8 +183,21 @@ public class SigningRoutes implements Routes {
                 pathInt(ctx, "fieldId"),
                 startToken,
                 new SigningAnswer(proof, body.credentialJson(), body.secret()),
+                pictureOf(body),
                 new SigningCircumstances(ctx.ip(), ctx.userAgent()));
         ctx.json(SigningCompleteResponse.of(outcome));
+    }
+
+    /** The signature picture the signer sent, or the saved one where they sent none. */
+    private static SigningPicture pictureOf(SigningCompleteRequest body) {
+        String encoded = body.signatureImage();
+        if (encoded == null || encoded.isBlank()) return SigningPicture.SAVED;
+        try {
+            byte[] made = Base64.getDecoder().decode(encoded.strip());
+            return new SigningPicture(made, body.signatureSource(), Boolean.TRUE.equals(body.keepSignature()));
+        } catch (IllegalArgumentException e) {
+            throw DocumentRefusal.SIGNATURE_IMAGE_NOT_A_PICTURE.raise();
+        }
     }
 
     private void throttle(Context ctx, int accountId, StepUpProof proof) {
@@ -313,12 +329,20 @@ public class SigningRoutes implements Routes {
      * @param credentialJson the passkey or security key answer as {@code navigator.credentials.get} returned
      *                       it, for those two
      * @param secret         the authenticator app code or the password, for those two; checked and never kept
+     * @param signatureImage the signature picture made for this act, a PNG, JPEG or WebP picture in Base64, or
+     *                       null to sign with the picture the account keeps
+     * @param signatureSource how that picture was made, or null
+     * @param keepSignature  whether that picture replaces the one the account keeps, which a member signing
+     *                       through another person's account never does
      */
     public record SigningCompleteRequest(
             @Nullable String startToken,
             @Nullable StepUpProof proof,
             @Nullable String credentialJson,
-            @Nullable String secret) {}
+            @Nullable String secret,
+            @Nullable String signatureImage,
+            @Nullable SignatureImageSource signatureSource,
+            @Nullable Boolean keepSignature) {}
 
     /**
      * Where a field stands after the act.

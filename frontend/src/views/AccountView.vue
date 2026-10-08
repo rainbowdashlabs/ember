@@ -33,6 +33,9 @@ onMounted(() => {
       <SidebarLink :icon="['fas', 'image']" name="account-avatar" to="/account/avatar" @navigate="close">
         {{ t('sidebar.accountAvatar') }}
       </SidebarLink>
+      <SidebarLink :icon="['fas', 'signature']" name="account-signature" to="/account/signature" @navigate="close">
+        {{ t('sidebar.accountSignature') }}
+      </SidebarLink>
       <SidebarLink :icon="['fas', 'palette']" name="account-theming" to="/account/theming" @navigate="close">
         {{ t('sidebar.accountTheming') }}
       </SidebarLink>

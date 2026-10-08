@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.legal.service.GdprExportService;
 import dev.chojo.ember.feature.signing.entity.SealLevel;
 import dev.chojo.ember.feature.signing.entity.SealedDocument;
 import dev.chojo.ember.feature.signing.service.PdfSealer;
+import dev.chojo.ember.feature.signing.service.SignatureImageService;
 import dev.chojo.ember.feature.signing.service.StationKeyRevocations;
 import dev.chojo.ember.feature.signing.service.TimestampServices;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -342,7 +343,8 @@ class SealedDocumentServiceTest extends RepositoryTestBase {
                 memberLookupService,
                 mock(KbFileStorageService.class),
                 memberDocumentRepo,
-                documents);
+                documents,
+                mock(SignatureImageService.class));
 
         @SuppressWarnings("unchecked")
         var listed =

@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:3f71da56bd9744bbf10595a9fd3cfef590002808994e5d445aeee1fa06522507",
-  "generatedAt": "2026-10-08T16:05:07Z",
+  "schemaHash": "sha256:13ce9c56f873526c8a747156f709edd0dc4560203100078326ef6d9571a9a9ed",
+  "generatedAt": "2026-10-08T16:27:08Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -968,6 +968,80 @@
         ]
       },
       "description": "Active login sessions (bearer tokens)."
+    },
+    "account_signature": {
+      "feature": "signing",
+      "scope": "USER",
+      "tableHash": "sha256:d705ebb8a843e903864d5fff306daca6e9c660cd81c674653ace7be1e5b0eda2",
+      "columns": [
+        {
+          "name": "account_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The account the signature belongs to."
+        },
+        {
+          "name": "image_sha256",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "SHA-256 of the stored signature picture, lower-case hexadecimal. NULL while no picture is saved."
+        },
+        {
+          "name": "image_source",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "How the picture was made: DRAWN on the screen, TYPED as the name in a handwriting style, UPLOADED as a photo or scan cleaned to a transparent picture. NULL while no picture is saved."
+        },
+        {
+          "name": "image_saved_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When the picture was saved. NULL while no picture is saved."
+        },
+        {
+          "name": "auto_sign_consented_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When the person agreed that letters naming them as the template's issuer are signed with their picture and sealed by the station without asking each time. NULL while they have not agreed or took it back; taking it back stops it for every letter generated afterwards."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "account_id",
+          "refTable": "account",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "A signature picture and the consent to signing with it belong to the person, not to a station, and stay with the account on this installation"
+      },
+      "gdprExport": {
+        "status": "TRACKED",
+        "identityColumns": [
+          {
+            "type": "ACCOUNT_ID",
+            "column": "account_id"
+          }
+        ]
+      },
+      "gdprDeletion": {
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "account_id",
+            "strategy": "CASCADE",
+            "reason": "FK ON DELETE CASCADE on account delete; the picture file is removed with the avatar"
+          }
+        ]
+      },
+      "description": "A person's own signature picture and whether they let letters they issue be signed with it without signing each by hand, one row per account. The picture itself is a transparent PNG in the account's file store (images/signatures/signature.png); this row says which one it is."
     },
     "account_token": {
       "feature": "account",
@@ -15712,6 +15786,107 @@
       },
       "description": "A tag a station puts on its items, picked from what exists rather than typed per item."
     },
+    "issuer_signature": {
+      "feature": "signing",
+      "scope": "STATION",
+      "tableHash": "sha256:bf18d718f2cf452678c3a0534486d771d75c2150ce538adc89ab5ef187aee7e4",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Primary key."
+        },
+        {
+          "name": "generation_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The entry of the generation log for the letter. The record goes with it."
+        },
+        {
+          "name": "issuer_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The member whose signature picture was drawn in, the template's issuer. NULL once that member was deleted."
+        },
+        {
+          "name": "consented_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the issuer had agreed to letters being signed with their picture, as it stood when this letter was signed."
+        },
+        {
+          "name": "image_sha256",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "SHA-256 of the signature picture that was drawn in, lower-case hexadecimal, as the account held it then."
+        },
+        {
+          "name": "seal_level",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The PAdES baseline level the station's seal on the letter reached: BASELINE_B without a timestamp, BASELINE_T with one, BASELINE_LT with the timestamp and the material to check both offline."
+        },
+        {
+          "name": "timestamped_by",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "The address of the timestamp service whose timestamp the letter carries; NULL for a seal without a timestamp."
+        },
+        {
+          "name": "signed_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the picture was drawn in and the letter sealed."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "generation_id",
+          "refTable": "document_generation",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "issuer_id",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED",
+        "rationale": "Moves with the generation log entry of its letter; the issuer follows to their new id."
+      },
+      "gdprExport": {
+        "status": "TRACKED",
+        "identityColumns": [
+          {
+            "type": "MEMBER_ID",
+            "column": "issuer_id"
+          }
+        ]
+      },
+      "gdprDeletion": {
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "issuer_id",
+            "strategy": "NULL",
+            "reason": "FK ON DELETE SET NULL keeps the record that the letter was signed, who signed it unlinked; the letter itself still shows the name it printed"
+          }
+        ]
+      },
+      "description": "A generated letter the station signed for its issuer without asking them each time: the issuer's signature picture drawn into the letter's issuer field and the letter sealed with the station's key before it was filed, under the issuer's standing consent. One row per generated document that was signed so; the filed file and the SHA-256 in the generation log are the signed letter."
+    },
     "item_movement": {
       "feature": "inventory",
       "scope": "STATION",
@@ -23208,7 +23383,7 @@
     "signing_evidence": {
       "feature": "signing",
       "scope": "STATION",
-      "tableHash": "sha256:d6249b28f7faae4abbc03f8a2c21b012154f206c2b3ce1311aaad6ec5f7fc66f",
+      "tableHash": "sha256:2114fd405649e427938e8f8b3dab01bf19ccb7000814b8ef78a18373b9c0f76e",
       "columns": [
         {
           "name": "id",
@@ -23482,6 +23657,13 @@
           "nullable": true,
           "verified": true,
           "description": "How the key got its timestamp, as the credential recorded it: AT_REGISTRATION, AFTER_REGISTRATION (by the daily retry) or AT_FIRST_SIGNING (during the first signing act that reached a timestamp service, possibly this one). NULL where the key was not stamped."
+        },
+        {
+          "name": "mark_image",
+          "type": "bytea",
+          "nullable": true,
+          "verified": true,
+          "description": "The signature picture drawn into the signed field, a transparent PNG as the signer gave it at the act: their saved picture or one drawn on the spot. Every sealed version of the document draws it from here, so a later change of the saved picture never changes an earlier signature. NULL for acts recorded before signature pictures, whose field shows the name and date only."
         }
       ],
       "foreignKeys": [
@@ -28565,6 +28747,35 @@
     }
   },
   "fileStores": {
+    "account_signature_images": {
+      "path": "account/{accountUid}/images/signatures/signature.png",
+      "linkedTable": "account_signature",
+      "linkColumn": "account_id",
+      "feature": "signing",
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "The picture belongs to the person's account, not to a station, and stays on this installation with it"
+      },
+      "gdprExport": {
+        "status": "TRACKED",
+        "identityColumns": [
+          {
+            "type": "ACCOUNT_ID",
+            "column": "account_id"
+          }
+        ]
+      },
+      "gdprDeletion": {
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "account_id",
+            "strategy": "DELETE_EXPLICIT",
+            "reason": "GdprDeletionService removes the picture file with the avatar when the account is deleted; deleting it in the account settings removes it at once"
+          }
+        ]
+      }
+    },
     "sealed_member_documents": {
       "path": "station/{stationUid}/member-documents/sealed/{sha256}/content",
       "linkedTable": "member_document_version",

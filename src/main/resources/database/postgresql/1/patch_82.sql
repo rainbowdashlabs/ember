@@ -829,3 +829,69 @@ COMMENT ON COLUMN ember_schema.signing_key_recovery.station_key_serials IS
     'Certificate serial numbers of the station keys given up, lower-case hexadecimal. Empty when every station key still opened.';
 COMMENT ON CONSTRAINT signing_key_recovery_not_empty_check ON ember_schema.signing_key_recovery IS
     'A recovery gives up at least one key.';
+
+CREATE TABLE IF NOT EXISTS ember_schema.account_signature
+(
+    account_id             INTEGER PRIMARY KEY REFERENCES ember_schema.account (id) ON DELETE CASCADE,
+    image_sha256           TEXT        NULL CHECK (image_sha256 ~ '^[0-9a-f]{64}$'),
+    image_source           TEXT        NULL CHECK (image_source IN ('DRAWN', 'TYPED', 'UPLOADED')),
+    image_saved_at         TIMESTAMPTZ NULL,
+    auto_sign_consented_at TIMESTAMPTZ NULL,
+    CONSTRAINT account_signature_image CHECK (num_nonnulls(image_sha256, image_source, image_saved_at) IN (0, 3))
+);
+
+COMMENT ON TABLE ember_schema.account_signature IS
+    'A person''s own signature picture and whether they let letters they issue be signed with it without signing each by hand, one row per account. The picture itself is a transparent PNG in the account''s file store (images/signatures/signature.png); this row says which one it is.';
+COMMENT ON COLUMN ember_schema.account_signature.account_id IS 'The account the signature belongs to.';
+COMMENT ON COLUMN ember_schema.account_signature.image_sha256 IS
+    'SHA-256 of the stored signature picture, lower-case hexadecimal. NULL while no picture is saved.';
+COMMENT ON COLUMN ember_schema.account_signature.image_source IS
+    'How the picture was made: DRAWN on the screen, TYPED as the name in a handwriting style, UPLOADED as a photo or scan cleaned to a transparent picture. NULL while no picture is saved.';
+COMMENT ON COLUMN ember_schema.account_signature.image_saved_at IS 'When the picture was saved. NULL while no picture is saved.';
+COMMENT ON COLUMN ember_schema.account_signature.auto_sign_consented_at IS
+    'When the person agreed that letters naming them as the template''s issuer are signed with their picture and sealed by the station without asking each time. NULL while they have not agreed or took it back; taking it back stops it for every letter generated afterwards.';
+COMMENT ON CONSTRAINT account_signature_image ON ember_schema.account_signature IS
+    'A saved picture is recorded whole or not at all.';
+
+CREATE TABLE IF NOT EXISTS ember_schema.issuer_signature
+(
+    id             SERIAL PRIMARY KEY,
+    generation_id  INTEGER     NOT NULL UNIQUE,
+    issuer_id      INTEGER     NULL REFERENCES ember_schema.station_member (id) ON DELETE SET NULL,
+    consented_at   TIMESTAMPTZ NOT NULL,
+    image_sha256   TEXT        NOT NULL CHECK (image_sha256 ~ '^[0-9a-f]{64}$'),
+    seal_level     TEXT        NOT NULL CHECK (seal_level IN ('BASELINE_B', 'BASELINE_T', 'BASELINE_LT')),
+    timestamped_by TEXT        NULL,
+    signed_at      TIMESTAMPTZ NOT NULL,
+    CONSTRAINT issuer_signature_generation FOREIGN KEY (generation_id)
+        REFERENCES ember_schema.document_generation (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+    CONSTRAINT issuer_signature_timestamp CHECK ((seal_level = 'BASELINE_B') = (timestamped_by IS NULL))
+);
+
+CREATE INDEX IF NOT EXISTS issuer_signature_issuer_idx ON ember_schema.issuer_signature (issuer_id);
+
+COMMENT ON TABLE ember_schema.issuer_signature IS
+    'A generated letter the station signed for its issuer without asking them each time: the issuer''s signature picture drawn into the letter''s issuer field and the letter sealed with the station''s key before it was filed, under the issuer''s standing consent. One row per generated document that was signed so; the filed file and the SHA-256 in the generation log are the signed letter.';
+COMMENT ON COLUMN ember_schema.issuer_signature.id IS 'Primary key.';
+COMMENT ON COLUMN ember_schema.issuer_signature.generation_id IS 'The entry of the generation log for the letter. The record goes with it.';
+COMMENT ON COLUMN ember_schema.issuer_signature.issuer_id IS
+    'The member whose signature picture was drawn in, the template''s issuer. NULL once that member was deleted.';
+COMMENT ON COLUMN ember_schema.issuer_signature.consented_at IS
+    'When the issuer had agreed to letters being signed with their picture, as it stood when this letter was signed.';
+COMMENT ON COLUMN ember_schema.issuer_signature.image_sha256 IS
+    'SHA-256 of the signature picture that was drawn in, lower-case hexadecimal, as the account held it then.';
+COMMENT ON COLUMN ember_schema.issuer_signature.seal_level IS
+    'The PAdES baseline level the station''s seal on the letter reached: BASELINE_B without a timestamp, BASELINE_T with one, BASELINE_LT with the timestamp and the material to check both offline.';
+COMMENT ON COLUMN ember_schema.issuer_signature.timestamped_by IS
+    'The address of the timestamp service whose timestamp the letter carries; NULL for a seal without a timestamp.';
+COMMENT ON COLUMN ember_schema.issuer_signature.signed_at IS 'When the picture was drawn in and the letter sealed.';
+COMMENT ON CONSTRAINT issuer_signature_generation ON ember_schema.issuer_signature IS
+    'The record goes with its generation log entry. Checked at commit, because deleting a station empties the issuer column of a record whose log entry the same statement deletes.';
+COMMENT ON CONSTRAINT issuer_signature_timestamp ON ember_schema.issuer_signature IS
+    'A timestamp service is named exactly when the seal carries a timestamp.';
+
+ALTER TABLE ember_schema.signing_evidence
+    ADD COLUMN mark_image BYTEA NULL;
+
+COMMENT ON COLUMN ember_schema.signing_evidence.mark_image IS
+    'The signature picture drawn into the signed field, a transparent PNG as the signer gave it at the act: their saved picture or one drawn on the spot. Every sealed version of the document draws it from here, so a later change of the saved picture never changes an earlier signature. NULL for acts recorded before signature pictures, whose field shows the name and date only.';

@@ -52759,6 +52759,196 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/session/signature": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The caller's own signature picture and consent to automatic signing */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SignatureSettingsResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/session/signature/consent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Agree to, or take back, letters being signed with the caller's picture automatically */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["SignatureConsentRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SignatureSettingsResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/session/signature/image": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The caller's own signature picture */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "image/png": string;
+                    };
+                };
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        /** Save a drawn, typed or uploaded signature picture as the caller's own */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "multipart/form-data": string;
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SignatureSettingsResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Content Too Large */
+                413: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Unsupported Media Type */
+                415: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Delete the caller's own signature picture */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SignatureSettingsResponse"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/session/stations": {
         parameters: {
             query?: never;
@@ -68216,6 +68406,11 @@ export interface components {
         SignatureConfig: {
             signer?: components["schemas"]["SignatureRole"];
         };
+        SignatureConsentRequest: {
+            consented?: boolean;
+        };
+        /** @enum {string} */
+        SignatureImageSource: "DRAWN" | "TYPED" | "UPLOADED";
         SignatureItem: {
             documentTitle: string | null;
             /** Format: int32 */
@@ -68224,6 +68419,12 @@ export interface components {
         };
         /** @enum {string} */
         SignatureRole: "PARTICIPANT" | "GUARDIAN_1" | "GUARDIAN_2" | "EACH_GUARDIAN" | "ANY_GUARDIAN" | "ISSUER";
+        SignatureSettingsResponse: {
+            autoSignConsentedAt: components["schemas"]["Instant"] | null;
+            hasImage: boolean;
+            imageSavedAt: components["schemas"]["Instant"] | null;
+            imageSource: components["schemas"]["SignatureImageSource"] | null;
+        };
         /** @enum {string} */
         SignerCapacity: "ACCOUNT_HOLDER" | "GUARDIAN" | "MEMBER_THROUGH_ACCOUNT";
         SignerEntryDraft: {
@@ -68253,8 +68454,11 @@ export interface components {
         };
         SigningCompleteRequest: {
             credentialJson?: string | null;
+            keepSignature?: boolean | null;
             proof?: components["schemas"]["StepUpProof"] | null;
             secret?: string | null;
+            signatureImage?: string | null;
+            signatureSource?: components["schemas"]["SignatureImageSource"] | null;
             startToken?: string | null;
         };
         SigningCompleteResponse: {
@@ -68815,7 +69019,7 @@ export interface components {
         /** @enum {string} */
         StorageBackendType: "LOCAL" | "SMB" | "SFTP" | "S3";
         /** @enum {string} */
-        StorageCategory: "MEDIA_FILES" | "INSTANCE_MEDIA_FILES" | "MEDIA_IMAGES" | "KB_FILES" | "MEMBER_DOCUMENTS" | "DOCUMENT_TEMPLATES" | "ASSOCIATION_DOCUMENT_TEMPLATES" | "FONTS" | "ASSOCIATION_FONTS" | "INSTANCE_FONTS" | "MOVEMENT_DOCUMENTS" | "BOARD_ATTACHMENTS" | "IMAGE_AVATAR" | "IMAGE_LOST_AND_FOUND" | "IMAGE_LOGO_FRAGMENT" | "IMAGE_STATION_LOGO" | "IMAGE_QUIZ_QUESTION" | "IMAGE_KB_ICON" | "IMAGE_KB_IMAGE" | "IMAGE_KB_FILE_PICTURE" | "IMAGE_DOCUMENT_TEMPLATE_PICTURE" | "IMAGE_ASSOCIATION_DOCUMENT_TEMPLATE_PICTURE" | "DOCUMENT" | "DISCOVERY_KEY" | "MAP_TILE_CACHE" | "DEMO_AVATAR" | "IMAGE_DISCOVERY_LOGO";
+        StorageCategory: "MEDIA_FILES" | "INSTANCE_MEDIA_FILES" | "MEDIA_IMAGES" | "KB_FILES" | "MEMBER_DOCUMENTS" | "DOCUMENT_TEMPLATES" | "ASSOCIATION_DOCUMENT_TEMPLATES" | "FONTS" | "ASSOCIATION_FONTS" | "INSTANCE_FONTS" | "MOVEMENT_DOCUMENTS" | "BOARD_ATTACHMENTS" | "IMAGE_AVATAR" | "IMAGE_SIGNATURE" | "IMAGE_LOST_AND_FOUND" | "IMAGE_LOGO_FRAGMENT" | "IMAGE_STATION_LOGO" | "IMAGE_QUIZ_QUESTION" | "IMAGE_KB_ICON" | "IMAGE_KB_IMAGE" | "IMAGE_KB_FILE_PICTURE" | "IMAGE_DOCUMENT_TEMPLATE_PICTURE" | "IMAGE_ASSOCIATION_DOCUMENT_TEMPLATE_PICTURE" | "DOCUMENT" | "DISCOVERY_KEY" | "MAP_TILE_CACHE" | "DEMO_AVATAR" | "IMAGE_DISCOVERY_LOGO";
         StorageQuotaPreset: {
             /** Format: int64 */
             board: number;
@@ -71377,8 +71581,11 @@ export type ShareScope = components['schemas']['ShareScope'];
 export type ShareSetting = components['schemas']['ShareSetting'];
 export type SidebarCounts = components['schemas']['SidebarCounts'];
 export type SignatureConfig = components['schemas']['SignatureConfig'];
+export type SignatureConsentRequest = components['schemas']['SignatureConsentRequest'];
+export type SignatureImageSource = components['schemas']['SignatureImageSource'];
 export type SignatureItem = components['schemas']['SignatureItem'];
 export type SignatureRole = components['schemas']['SignatureRole'];
+export type SignatureSettingsResponse = components['schemas']['SignatureSettingsResponse'];
 export type SignerCapacity = components['schemas']['SignerCapacity'];
 export type SignerEntryDraft = components['schemas']['SignerEntryDraft'];
 export type SignerRevocation = components['schemas']['SignerRevocation'];
@@ -72752,6 +72959,12 @@ export const ShareScope = {
     SPECIFIC: "SPECIFIC",
 } as const;
 
+export const SignatureImageSource = {
+    DRAWN: "DRAWN",
+    TYPED: "TYPED",
+    UPLOADED: "UPLOADED",
+} as const;
+
 export const SignatureRole = {
     ANY_GUARDIAN: "ANY_GUARDIAN",
     EACH_GUARDIAN: "EACH_GUARDIAN",
@@ -72981,6 +73194,7 @@ export const StorageCategory = {
     IMAGE_LOGO_FRAGMENT: "IMAGE_LOGO_FRAGMENT",
     IMAGE_LOST_AND_FOUND: "IMAGE_LOST_AND_FOUND",
     IMAGE_QUIZ_QUESTION: "IMAGE_QUIZ_QUESTION",
+    IMAGE_SIGNATURE: "IMAGE_SIGNATURE",
     IMAGE_STATION_LOGO: "IMAGE_STATION_LOGO",
     INSTANCE_FONTS: "INSTANCE_FONTS",
     INSTANCE_MEDIA_FILES: "INSTANCE_MEDIA_FILES",

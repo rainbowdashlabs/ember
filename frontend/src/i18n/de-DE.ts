@@ -717,6 +717,7 @@ export default {
         twoFactor: 'Zwei-Faktor verwalten',
         accounts: 'Konten',
         accountAvatar: 'Profil',
+        accountSignature: 'Unterschrift',
         accountTheming: 'Erscheinungsbild',
         accountSessions: 'Sitzungen',
         accountSecurity: 'Sicherheit',
@@ -1462,6 +1463,10 @@ export default {
         'account-avatar': {
             title: 'Profil',
             subtitle: 'Profilbild und Kontodaten',
+        },
+        'account-signature': {
+            title: 'Unterschrift',
+            subtitle: 'Deine Unterschrift für Dokumente',
         },
         'account-theming': {
             title: 'Erscheinungsbild',
@@ -10760,6 +10765,54 @@ export default {
             authenticator: 'Bestätige jetzt mit deinem Passkey oder Sicherheitsschlüssel.',
             checking: 'Wird geprüft.',
             signed: 'Unterschrieben.',
+        },
+        mark: {
+            heading: 'Deine Unterschrift im Dokument',
+            savedAlt: 'Deine gespeicherte Unterschrift',
+            savedHint: 'Diese Unterschrift kommt in dein Feld, mit deinem Namen und dem Datum darunter.',
+            drawNew: 'Neu zeichnen',
+            drawHint: 'Zeichne oder tippe die Unterschrift, die in dein Feld kommt.',
+            throughAccount: '{name} zeichnet die Unterschrift hier selbst. Deine gespeicherte Unterschrift kommt nicht in dieses Feld.',
+            keep: 'Für das nächste Mal speichern',
+            useSaved: 'Gespeicherte Unterschrift nehmen',
+        },
+    },
+    signaturePad: {
+        draw: 'Zeichnen',
+        type: 'Name tippen',
+        drawHint: 'Unterschreibe im weißen Feld mit dem Finger, einem Stift oder der Maus.',
+        drawLabel: 'Feld für die Unterschrift',
+        clear: 'Neu anfangen',
+        typeLabel: 'Name für die Unterschrift',
+        typeHint: 'Der Name erscheint in einer Schreibschrift. So geht es auch ohne Zeichnen, nur mit der Tastatur.',
+        typedPreview: 'Unterschrift: {name}',
+    },
+    accountSignature: {
+        saved: {
+            heading: 'Gespeicherte Unterschrift',
+            alt: 'Deine gespeicherte Unterschrift',
+            none: 'Noch keine Unterschrift gespeichert. Ohne sie fragt dich Ember beim Unterschreiben jedes Mal nach einer.',
+            made: {
+                DRAWN: 'Gezeichnet am {time}',
+                TYPED: 'Getippt am {time}',
+                UPLOADED: 'Hochgeladen am {time}',
+            },
+        },
+        new: {
+            heading: 'Neue Unterschrift',
+            hint: 'Die Unterschrift gilt an jeder Wache. Sie kommt nur in ein Dokument, wenn du selbst unterschreibst oder es unten erlaubst.',
+            save: 'Unterschrift speichern',
+            uploadHeading: 'Oder ein Foto hochladen',
+            uploadHint: 'Unterschrift auf hellem Papier, gut ausgeleuchtet. Ember schneidet sie aus und macht den Hintergrund durchsichtig.',
+            upload: 'Foto oder Scan wählen',
+        },
+        consent: {
+            heading: 'Briefe automatisch unterschreiben',
+            what: 'Manche Vorlagen nennen dich als ausstellende Person, zum Beispiel bei einer Urkunde. Mit deiner Zustimmung setzt Ember deine Unterschrift in diese Briefe, sobald jemand sie erstellt, und versiegelt sie für die Wache.',
+            when: 'Das gilt nur, wenn die Vorlage dich selbst nennt, nicht, wenn jemand dich für einen einzelnen Brief auswählt. Du kannst die Zustimmung jederzeit zurücknehmen.',
+            toggle: 'Briefe, die ich ausstelle, mit meiner Unterschrift versehen',
+            since: 'Zugestimmt am {time}',
+            noImage: 'Es ist noch keine Unterschrift gespeichert. Bis dahin bleiben deine Briefe ohne Unterschrift.',
         },
     },
     publicStation: {

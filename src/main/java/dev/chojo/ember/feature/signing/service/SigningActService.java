@@ -17,8 +17,11 @@ import dev.chojo.ember.feature.signing.entity.FieldState;
 import dev.chojo.ember.feature.signing.entity.OpenSignature;
 import dev.chojo.ember.feature.signing.entity.ParkedSigningStart;
 import dev.chojo.ember.feature.signing.entity.PendingSignature;
+import dev.chojo.ember.feature.signing.entity.SignatureImageSource;
+import dev.chojo.ember.feature.signing.entity.SignaturePicture;
 import dev.chojo.ember.feature.signing.entity.SignatureRequest;
 import dev.chojo.ember.feature.signing.entity.Signer;
+import dev.chojo.ember.feature.signing.entity.SignerCapacity;
 import dev.chojo.ember.feature.signing.entity.SignerConfirmation;
 import dev.chojo.ember.feature.signing.entity.SignerConfirmation.StepUpPassed;
 import dev.chojo.ember.feature.signing.entity.SignerEntry;
@@ -27,12 +30,15 @@ import dev.chojo.ember.feature.signing.entity.SigningAnswer;
 import dev.chojo.ember.feature.signing.entity.SigningAttempt;
 import dev.chojo.ember.feature.signing.entity.SigningCircumstances;
 import dev.chojo.ember.feature.signing.entity.SigningOutcome;
+import dev.chojo.ember.feature.signing.entity.SigningPicture;
 import dev.chojo.ember.feature.signing.entity.SigningRequest;
 import dev.chojo.ember.feature.signing.entity.SigningStart;
 import dev.chojo.ember.feature.signing.repository.SignatureRequestRepository;
+import dev.chojo.ember.feature.signing.repository.SigningEvidenceRepository;
 import dev.chojo.ember.feature.twofactor.entity.StepUpProof;
 import dev.chojo.ember.feature.twofactor.service.TwoFactorService;
 import dev.chojo.ember.util.Sha256;
+import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -42,6 +48,7 @@ import org.slf4j.LoggerFactory;
 import java.security.MessageDigest;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -60,6 +67,10 @@ import java.util.Set;
  * fact that it passed reaches the provider; the fixed code a development instance takes for any account is
  * never a code here. A passkey or security key answer goes to the provider as it came. The evidence is stored against the field by {@link SignatureFieldService#record}, which checks once
  * more that the field is open and the caller's.
+ *
+ * <p><b>Signature picture.</b> Every act leaves the signer's picture in its field: one made for the act, or
+ * the one the account keeps. It is stored with the evidence, so each sealed version draws the picture the
+ * act was given and not whatever the account keeps later.
  *
  * <p><b>Sealing.</b> Once the evidence is stored, the request's new state is sealed into its document
  * ({@link SigningStateSealer}). A seal that fails leaves the act recorded; it is sealed with the next act on
@@ -83,6 +94,8 @@ public class SigningActService {
     private final SignerNames names;
     private final TwoFactorService twoFactor;
     private final AuthService auth;
+    private final SigningEvidenceRepository evidence;
+    private final SignatureImageService images;
 
     @Inject
     public SigningActService(
@@ -97,7 +110,11 @@ public class SigningActService {
             SigningAssertions assertions,
             SignerNames names,
             TwoFactorService twoFactor,
-            AuthService auth) {
+            AuthService auth,
+            SigningEvidenceRepository evidence,
+            SignatureImageService images) {
+        this.evidence = evidence;
+        this.images = images;
         this.requests = requests;
         this.requestService = requestService;
         this.fields = fields;
@@ -185,12 +202,20 @@ public class SigningActService {
     }
 
     /**
-     * Completes a started act with the signer's confirmation and stores its evidence.
+     * Completes a started act with the signer's confirmation, stores its evidence and the signature picture
+     * it leaves in its field.
+     *
+     * <p>The picture is the one made for the act, or the one the signer's account keeps. A member signing
+     * through another person's account always makes their own, since the account's picture is not theirs.
+     * Without either the act is refused before anything is confirmed. A picture made for the act replaces
+     * the saved one afterwards where the signer asked for it and it is their own account; a failure there is
+     * logged and the act stands.
      *
      * @param session       the signer, who has to be the one who started it
      * @param fieldId       the field the act was started for
      * @param startToken    the token the start was handed out under
      * @param answer        the signer's confirmation
+     * @param picture       the signature picture to leave in the field
      * @param circumstances where the confirmation came from
      * @return where the field and its request now stand
      */
@@ -199,6 +224,7 @@ public class SigningActService {
             int fieldId,
             String startToken,
             SigningAnswer answer,
+            SigningPicture picture,
             SigningCircumstances circumstances) {
         ParkedSigningStart parked = starts.spend(startToken, session.accountId());
         if (parked.stationId() != session.stationId() || parked.fieldId() != fieldId) {
@@ -210,7 +236,16 @@ public class SigningActService {
         if (!MessageDigest.isEqual(parked.challenge(), SigningChallenge.of(parked.nonce(), request))) {
             throw DocumentRefusal.SIGNING_CONTENT_DIFFERS.raise();
         }
-        var stored = fields.record(session, provider.complete(request, confirmation(parked, answer, circumstances)));
+        var made = picture.made();
+        var cleaned = made == null ? null : SignatureImages.clean(made);
+        byte[] png = cleaned != null ? cleaned.png() : savedPicture(parked.signer(), session.accountId());
+        var completed = provider.complete(request, confirmation(parked, answer, circumstances));
+        var stored = Transactions.call(() -> {
+            var recorded = fields.record(session, completed);
+            evidence.storeMark(recorded.id(), png);
+            return recorded;
+        });
+        if (cleaned != null && picture.keep()) keepPicture(session.accountId(), parked.signer(), cleaned, picture);
         var signedRequest = requestService.requestAt(session, pending.requestUid());
         sealRecorded(signedRequest);
         var field = requests.findField(session.stationId(), fieldId)
@@ -220,6 +255,24 @@ public class SigningActService {
                 signedRequest.state(),
                 stored.evidence().proof(),
                 stored.evidence().boundToDocument());
+    }
+
+    /** The picture the signer's account keeps, which a member signing through another's account never uses. */
+    private byte[] savedPicture(Signer signer, int accountId) {
+        if (signer.capacity() == SignerCapacity.MEMBER_THROUGH_ACCOUNT) {
+            throw DocumentRefusal.SIGNING_MARK_MISSING.raise();
+        }
+        return images.image(accountId).orElseThrow(DocumentRefusal.SIGNING_MARK_MISSING::raise);
+    }
+
+    /** Saves the picture made for an act as the account's own, where it is the account holder's picture. */
+    private void keepPicture(int accountId, Signer signer, SignaturePicture cleaned, SigningPicture picture) {
+        if (signer.capacity() == SignerCapacity.MEMBER_THROUGH_ACCOUNT) return;
+        try {
+            images.save(accountId, cleaned, Objects.requireNonNullElse(picture.source(), SignatureImageSource.DRAWN));
+        } catch (RuntimeException e) {
+            log.warn("The signature picture of account {} could not be kept after signing", accountId, e);
+        }
     }
 
     /**

@@ -13,8 +13,19 @@ const getSigningField = vi.hoisted(() => vi.fn())
 const getSigningDocument = vi.hoisted(() => vi.fn())
 const startSigning = vi.hoisted(() => vi.fn())
 const completeSigning = vi.hoisted(() => vi.fn())
+const getSignatureImage = vi.hoisted(() => vi.fn())
 
-vi.mock('@/api/signing', () => ({getSigningField, getSigningDocument, startSigning, completeSigning}))
+vi.mock('@/api/signing', () => ({
+    getSigningField,
+    getSigningDocument,
+    startSigning,
+    completeSigning,
+    getSignatureImage,
+    getSignatureSettings: vi.fn(),
+    saveSignatureImage: vi.fn(),
+    deleteSignatureImage: vi.fn(),
+    setSignatureConsent: vi.fn(),
+}))
 
 vi.mock('vue-router', async (importOriginal) => ({
     ...(await importOriginal<typeof import('vue-router')>()),
@@ -107,6 +118,45 @@ describe('SigningView', () => {
         getSigningDocument.mockResolvedValue(new Blob(['%PDF-1.7'], {type: 'application/pdf'}))
         startSigning.mockResolvedValue(started())
         completeSigning.mockResolvedValue(signed())
+        getSignatureImage.mockResolvedValue(new Blob(['png'], {type: 'image/png'}))
+    })
+
+    it('signs with the saved signature picture unless the signer draws a new one', async () => {
+        const view = await open()
+        await tickAndProceed(view)
+
+        const mark = view.get('[data-testid="signing-mark"]')
+        expect(mark.find('img').attributes('alt')).toBe('Deine gespeicherte Unterschrift')
+        expect(view.find('[data-testid="signature-pad"]').exists()).toBe(false)
+
+        await view.get('[data-testid="signing-mark-new"]').trigger('click')
+
+        expect(view.find('[data-testid="signature-pad"]').exists()).toBe(true)
+        expect(view.get('[data-testid="signing-proof"] form input').attributes('disabled')).toBeDefined()
+        view.unmount()
+    })
+
+    it('asks for a picture where none is saved and waits for it before the proof', async () => {
+        getSignatureImage.mockResolvedValue(null)
+        const view = await open()
+        await tickAndProceed(view)
+
+        expect(view.find('[data-testid="signature-pad"]').exists()).toBe(true)
+        expect(view.text()).toContain('Für das nächste Mal speichern')
+        expect(view.get('[data-testid="signing-proof"] form input').attributes('disabled')).toBeDefined()
+        view.unmount()
+    })
+
+    it('lets a child signing through the account draw its own picture and never keeps it', async () => {
+        startSigning.mockResolvedValue(started({capacity: 'MEMBER_THROUGH_ACCOUNT'}))
+        const view = await open()
+        await tickAndProceed(view)
+
+        const mark = view.get('[data-testid="signing-mark"]')
+        expect(mark.text()).toContain('Mia Beispiel zeichnet die Unterschrift hier selbst.')
+        expect(mark.find('img').exists()).toBe(false)
+        expect(mark.text()).not.toContain('Für das nächste Mal speichern')
+        view.unmount()
     })
 
     it('shows the document, the capacity and the statement, and waits for the tick', async () => {

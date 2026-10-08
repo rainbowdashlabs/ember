@@ -18,8 +18,10 @@ import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Map;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
@@ -123,6 +125,39 @@ public class SigningEvidenceRepository {
                 .single(call().bind("request_id", requestId))
                 .map(StoredEvidence.map())
                 .all();
+    }
+
+    /**
+     * Keeps the signature picture an act left in its field, which every sealed version draws from here.
+     *
+     * @param evidenceId the evidence of the act
+     * @param png        the picture, a transparent PNG
+     */
+    public void storeMark(int evidenceId, byte[] png) {
+        query("""
+                        UPDATE signing_evidence
+                        SET mark_image = :mark_image
+                        WHERE id = :id;""").single(call().bind("id", evidenceId).bind("mark_image", png)).update();
+    }
+
+    /**
+     * @param requestId the request
+     * @return the signature pictures of the acts on the request's fields, by field id; an act without one
+     *     is left out
+     */
+    public Map<Integer, byte[]> marksOf(int requestId) {
+        var marks = new HashMap<Integer, byte[]>();
+        query("""
+                        SELECT e.field_id, e.mark_image
+                        FROM signing_evidence e
+                                 JOIN signing_request_field f ON f.id = e.field_id
+                        WHERE f.request_id = :request_id
+                          AND e.mark_image IS NOT NULL;""")
+                .single(call().bind("request_id", requestId))
+                .map(row -> Map.entry(row.getInt("field_id"), row.getBytes("mark_image")))
+                .all()
+                .forEach(entry -> marks.put(entry.getKey(), entry.getValue()));
+        return marks;
     }
 
     /**

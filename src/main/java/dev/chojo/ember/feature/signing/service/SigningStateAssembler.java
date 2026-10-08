@@ -7,7 +7,9 @@ package dev.chojo.ember.feature.signing.service;
 
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.signing.entity.AssembledDocument;
+import dev.chojo.ember.feature.signing.entity.FieldState;
 import dev.chojo.ember.feature.signing.entity.RecordTimeBasis;
+import dev.chojo.ember.feature.signing.entity.SignatureMark;
 import dev.chojo.ember.feature.signing.entity.SignatureRequestView;
 import dev.chojo.ember.feature.signing.entity.SigningEvidenceFile;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -38,15 +40,18 @@ import java.security.cert.X509Certificate;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
 /**
- * Puts together the document for one signing state: the frozen content as every signer read it, the
- * {@link SignatureRecordPage} after its last page, and the {@link SigningEvidenceFile} attached. The result is
- * not sealed yet; it is sealed once, as a whole, and supersedes the document of the state before.
+ * Puts together the document for one signing state: the frozen content as every signer read it, with the
+ * mark of each signed field drawn into that field ({@link SignatureMarks}), the {@link SignatureRecordPage}
+ * after its last page, and the {@link SigningEvidenceFile} attached. The result is not sealed yet; it is
+ * sealed once, as a whole, and supersedes the document of the state before.
  *
  * <p>Every state is assembled afresh from the frozen content, never by adding to the document before it: a
  * page added after a seal counts as a change to the sealed document, and DSS's default policy fails the
@@ -119,6 +124,35 @@ public class SigningStateAssembler {
      */
     public AssembledDocument assemble(
             SignatureRequestView view, byte[] content, X509Certificate authority, RecordTimeBasis timeBasis) {
+        return assemble(view, content, authority, timeBasis, Map.of());
+    }
+
+    /**
+     * Puts together the document of a request as it stands now, with the mark of every signed field drawn
+     * into it.
+     *
+     * <p>Each field a signing act filled shows the signer's picture, their official name and the day, and
+     * the page their record starts on ({@link SignatureMarks}); an act without a picture shows the caption
+     * alone. A seal the content carries from before, as a letter signed for its issuer when it was
+     * generated has, is taken out first, since the document is sealed afresh as a whole.
+     *
+     * @param view      the request, its fields and the evidence of every act on them
+     * @param content   the frozen content every signer read, whose SHA-256 the request holds
+     * @param authority the installation authority that issued the certificate the document will be sealed
+     *                  with, whose fingerprint the record page prints
+     * @param timeBasis where the document's times come from
+     * @param pictures  the signature picture of each act, by the id of the field it filled
+     * @return the document, not yet sealed, with the page its record starts on
+     * @throws IllegalArgumentException when the content is not the request's frozen content, the station is
+     *                                  gone, or evidence names a field the request does not have
+     * @throws UncheckedIOException     when the content cannot be read or the record page cannot be rendered
+     */
+    public AssembledDocument assemble(
+            SignatureRequestView view,
+            byte[] content,
+            X509Certificate authority,
+            RecordTimeBasis timeBasis,
+            Map<Integer, byte[]> pictures) {
         var request = view.request();
         if (!Sha256.hex(content).equals(request.contentSha256())) {
             throw new IllegalArgumentException("The content is not the frozen content of request " + request.uid());
@@ -128,14 +162,18 @@ public class SigningStateAssembler {
         Instant now = clock.instant();
         SigningEvidenceFile evidence = SigningEvidenceFiles.of(view, now);
         byte[] evidenceJson = SigningEvidenceFiles.write(evidence);
+        String language = StationFormat.languageOf(station);
+        var zone = StationFormat.timezoneOf(station);
         try (PDDocument document = Loader.loadPDF(content)) {
             int recordPage = document.getNumberOfPages() + 1;
+            SignatureMarks.withoutSeals(document);
+            SignatureMarks.draw(document, marks(view, pictures, MarkCaptions.of(language, zone), recordPage));
             byte[] record = SignatureRecordPage.render(new SignatureRecordPage.Input(
                     evidence,
                     Sha256.hex(evidenceJson),
                     station.name(),
-                    StationFormat.languageOf(station),
-                    StationFormat.timezoneOf(station),
+                    language,
+                    zone,
                     fingerprintOf(authority),
                     timeBasis,
                     verifyAddress,
@@ -152,6 +190,24 @@ public class SigningStateAssembler {
             Thread.currentThread().interrupt();
             throw new IllegalStateException("Interrupted while rendering the record of request " + request.uid(), e);
         }
+    }
+
+    /** The mark of every field a signing act filled, in the order the fields were asked for. */
+    private static List<SignatureMark> marks(
+            SignatureRequestView view, Map<Integer, byte[]> pictures, MarkCaptions captions, int recordPage) {
+        var marks = new ArrayList<SignatureMark>();
+        for (var field : view.fields()) {
+            if (field.state() != FieldState.SIGNED) continue;
+            view.evidence().stream()
+                    .filter(stored -> stored.fieldId() == field.id())
+                    .findFirst()
+                    .map(stored -> stored.evidence().act())
+                    .ifPresent(act -> marks.add(new SignatureMark(
+                            field.fieldName(),
+                            pictures.get(field.id()),
+                            captions.act(act.signerName(), act.signedAt(), recordPage))));
+        }
+        return marks;
     }
 
     /**

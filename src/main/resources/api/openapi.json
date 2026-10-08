@@ -40111,6 +40111,143 @@
         }
       }
     },
+    "/api/v1/session/signature" : {
+      "get" : {
+        "summary" : "The caller's own signature picture and consent to automatic signing",
+        "tags" : [ "Signing" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SignatureSettingsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/session/signature/consent" : {
+      "put" : {
+        "summary" : "Agree to, or take back, letters being signed with the caller's picture automatically",
+        "tags" : [ "Signing" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SignatureSettingsResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SignatureConsentRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/session/signature/image" : {
+      "get" : {
+        "summary" : "The caller's own signature picture",
+        "tags" : [ "Signing" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "image/png" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      },
+      "put" : {
+        "summary" : "Save a drawn, typed or uploaded signature picture as the caller's own",
+        "tags" : [ "Signing" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SignatureSettingsResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "413" : {
+            "description" : "Content Too Large",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "415" : {
+            "description" : "Unsupported Media Type",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "multipart/form-data" : {
+              "schema" : {
+                "type" : "string"
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "summary" : "Delete the caller's own signature picture",
+        "tags" : [ "Signing" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SignatureSettingsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/session/stations" : {
       "get" : {
         "summary" : "List stations the current user is a member of",
@@ -72337,6 +72474,18 @@
           }
         }
       },
+      "SignatureConsentRequest" : {
+        "type" : "object",
+        "properties" : {
+          "consented" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "SignatureImageSource" : {
+        "type" : "string",
+        "enum" : [ "DRAWN", "TYPED", "UPLOADED" ]
+      },
       "SignatureItem" : {
         "type" : "object",
         "properties" : {
@@ -72356,6 +72505,36 @@
       "SignatureRole" : {
         "type" : "string",
         "enum" : [ "PARTICIPANT", "GUARDIAN_1", "GUARDIAN_2", "EACH_GUARDIAN", "ANY_GUARDIAN", "ISSUER" ]
+      },
+      "SignatureSettingsResponse" : {
+        "type" : "object",
+        "properties" : {
+          "hasImage" : {
+            "type" : "boolean"
+          },
+          "imageSource" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/SignatureImageSource"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "imageSavedAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "autoSignConsentedAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "hasImage", "imageSource", "imageSavedAt", "autoSignConsentedAt" ]
       },
       "SignerCapacity" : {
         "type" : "string",
@@ -72437,6 +72616,19 @@
           },
           "secret" : {
             "type" : [ "string", "null" ]
+          },
+          "signatureImage" : {
+            "type" : [ "string", "null" ]
+          },
+          "signatureSource" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/SignatureImageSource"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "keepSignature" : {
+            "type" : [ "boolean", "null" ]
           }
         }
       },
@@ -73953,7 +74145,7 @@
       },
       "StorageCategory" : {
         "type" : "string",
-        "enum" : [ "MEDIA_FILES", "INSTANCE_MEDIA_FILES", "MEDIA_IMAGES", "KB_FILES", "MEMBER_DOCUMENTS", "DOCUMENT_TEMPLATES", "ASSOCIATION_DOCUMENT_TEMPLATES", "FONTS", "ASSOCIATION_FONTS", "INSTANCE_FONTS", "MOVEMENT_DOCUMENTS", "BOARD_ATTACHMENTS", "IMAGE_AVATAR", "IMAGE_LOST_AND_FOUND", "IMAGE_LOGO_FRAGMENT", "IMAGE_STATION_LOGO", "IMAGE_QUIZ_QUESTION", "IMAGE_KB_ICON", "IMAGE_KB_IMAGE", "IMAGE_KB_FILE_PICTURE", "IMAGE_DOCUMENT_TEMPLATE_PICTURE", "IMAGE_ASSOCIATION_DOCUMENT_TEMPLATE_PICTURE", "DOCUMENT", "DISCOVERY_KEY", "MAP_TILE_CACHE", "DEMO_AVATAR", "IMAGE_DISCOVERY_LOGO" ]
+        "enum" : [ "MEDIA_FILES", "INSTANCE_MEDIA_FILES", "MEDIA_IMAGES", "KB_FILES", "MEMBER_DOCUMENTS", "DOCUMENT_TEMPLATES", "ASSOCIATION_DOCUMENT_TEMPLATES", "FONTS", "ASSOCIATION_FONTS", "INSTANCE_FONTS", "MOVEMENT_DOCUMENTS", "BOARD_ATTACHMENTS", "IMAGE_AVATAR", "IMAGE_SIGNATURE", "IMAGE_LOST_AND_FOUND", "IMAGE_LOGO_FRAGMENT", "IMAGE_STATION_LOGO", "IMAGE_QUIZ_QUESTION", "IMAGE_KB_ICON", "IMAGE_KB_IMAGE", "IMAGE_KB_FILE_PICTURE", "IMAGE_DOCUMENT_TEMPLATE_PICTURE", "IMAGE_ASSOCIATION_DOCUMENT_TEMPLATE_PICTURE", "DOCUMENT", "DISCOVERY_KEY", "MAP_TILE_CACHE", "DEMO_AVATAR", "IMAGE_DISCOVERY_LOGO" ]
       },
       "StorageQuotaPreset" : {
         "type" : "object",

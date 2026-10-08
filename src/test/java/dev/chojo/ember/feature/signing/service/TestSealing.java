@@ -9,6 +9,8 @@ import dev.chojo.ember.feature.documents.repository.DocumentRepository;
 import dev.chojo.ember.feature.documents.repository.SealedVersionRepository;
 import dev.chojo.ember.feature.documents.service.DocumentService;
 import dev.chojo.ember.feature.documents.service.SealedDocumentService;
+import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.signing.repository.IssuerSignatureRepository;
 import dev.chojo.ember.feature.signing.repository.SignatureRequestRepository;
 import dev.chojo.ember.feature.signing.repository.SigningEvidenceRepository;
 import dev.chojo.ember.feature.signing.repository.SigningKeyRepository;
@@ -93,6 +95,48 @@ public final class TestSealing implements AutoCloseable {
                 new SigningStateAssembler(stations, timestamps, STATE_BASE_URL, Clock.systemUTC()),
                 new PdfSealer(timestamps, new StationKeyRevocations(keys, new RevocationLists(), wrap)),
                 mock(SignedCopies.class));
+    }
+
+    /**
+     * Signs letters for their issuer with the installation's real keys under the same fixed test secret as
+     * {@link #stateSealer}, asking no timestamp service.
+     *
+     * @param stations the stations
+     * @param members  the station members, whose accounts keep the pictures
+     * @param images   the signature pictures and consents
+     * @return the signer
+     */
+    public static IssuedLetterSigner issuedLetterSigner(
+            StationRepository stations, StationMemberRepository members, SignatureImageService images) {
+        var keys = new SigningKeyRepository();
+        var wrap = new SigningKeyWrap(Base64.getEncoder().encodeToString(new byte[32]));
+        return new IssuedLetterSigner(
+                members,
+                stations,
+                images,
+                new StationSigningKeys(keys, new SigningCertificates(), wrap, stations, STATE_BASE_URL),
+                new PdfSealer(SealedPdfs.noTimestamps(), new StationKeyRevocations(keys, new RevocationLists(), wrap)),
+                new IssuerSignatureRepository());
+    }
+
+    /**
+     * The seals a document carries that are intact and were made with a key of the station, checked offline
+     * against the authority that issued it.
+     *
+     * @param sealed    the document
+     * @param stations  the stations
+     * @param stationId the station whose key sealed it
+     * @return how many of its seals are intact
+     */
+    public static long intactSealsOf(byte[] sealed, StationRepository stations, int stationId) {
+        var keys = new SigningKeyRepository();
+        var wrap = new SigningKeyWrap(Base64.getEncoder().encodeToString(new byte[32]));
+        var authority = new StationSigningKeys(keys, new SigningCertificates(), wrap, stations, STATE_BASE_URL)
+                .forStation(stationId)
+                .authority();
+        return SealedPdfs.validate(sealed, authority).getDiagnosticData().getSignatures().stream()
+                .filter(signature -> signature.isSignatureValid() && SealedPdfs.referencedDataIntact(signature))
+                .count();
     }
 
     /** @return an uncompressed one-page PDF, the one the sealing tests seal */

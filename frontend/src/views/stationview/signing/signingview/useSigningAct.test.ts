@@ -47,6 +47,23 @@ describe('useSigningAct', () => {
         getWebAuthnCredential.mockResolvedValue('{"id":"cred"}')
     })
 
+    it('sends a picture made for the act with how it was made, and whether to keep it', async () => {
+        startSigning.mockResolvedValue(started('drawn', {acceptedProofs: ['TOTP']}))
+        const act = useSigningAct(() => 4)
+        const draft = {dataUrl: 'data:image/png;base64,iVBORw0K', source: 'TYPED' as const}
+
+        await act.confirmWithSecret('TOTP', '424242', {draft, useSaved: false, keep: true})
+
+        expect(completeSigning).toHaveBeenCalledWith(4, {
+            startToken: 'drawn',
+            proof: 'TOTP',
+            secret: '424242',
+            signatureImage: 'iVBORw0K',
+            signatureSource: 'TYPED',
+            keepSignature: true,
+        })
+    })
+
     it('confirms with the authenticator against the start that offered it, as a passkey where one is taken', async () => {
         startSigning.mockResolvedValue(started('first'))
         const act = useSigningAct(() => 4)

@@ -40,6 +40,13 @@ export default {
             title: 'Sign a document',
             subtitle: 'Read it, confirm the statement, sign with a proof',
         },
+        'account-signature': {
+            title: 'Signature',
+            subtitle: 'Your signature for documents',
+        },
+    },
+    sidebar: {
+        accountSignature: 'Signature',
     },
     requirements: {
         signatureTitle: 'Sign a document',
@@ -103,6 +110,54 @@ export default {
             authenticator: 'Confirm now with your passkey or security key.',
             checking: 'Checking.',
             signed: 'Signed.',
+        },
+        mark: {
+            heading: 'Your signature in the document',
+            savedAlt: 'Your saved signature',
+            savedHint: 'This signature goes into your field, with your name and the date below it.',
+            drawNew: 'Draw a new one',
+            drawHint: 'Draw or type the signature that goes into your field.',
+            throughAccount: '{name} draws the signature here in person. Your saved signature does not go into this field.',
+            keep: 'Save it for next time',
+            useSaved: 'Use the saved signature',
+        },
+    },
+    signaturePad: {
+        draw: 'Draw',
+        type: 'Type the name',
+        drawHint: 'Sign in the white area with a finger, a pen or the mouse.',
+        drawLabel: 'Area for the signature',
+        clear: 'Start over',
+        typeLabel: 'Name for the signature',
+        typeHint: 'The name is set in a handwriting style. This works without drawing, with the keyboard alone.',
+        typedPreview: 'Signature: {name}',
+    },
+    accountSignature: {
+        saved: {
+            heading: 'Saved signature',
+            alt: 'Your saved signature',
+            none: 'No signature saved yet. Without one, Ember asks for one each time you sign.',
+            made: {
+                DRAWN: 'Drawn on {time}',
+                TYPED: 'Typed on {time}',
+                UPLOADED: 'Uploaded on {time}',
+            },
+        },
+        new: {
+            heading: 'New signature',
+            hint: 'The signature applies at every station. It only goes into a document when you sign yourself or allow it below.',
+            save: 'Save signature',
+            uploadHeading: 'Or upload a photo',
+            uploadHint: 'A signature on light paper, well lit. Ember cuts it out and makes the background transparent.',
+            upload: 'Choose a photo or scan',
+        },
+        consent: {
+            heading: 'Sign letters automatically',
+            what: 'Some templates name you as the issuer, for example on a certificate. With your consent, Ember puts your signature into these letters as soon as someone creates them, and seals them for the station.',
+            when: 'This only applies where the template names you, not where someone picks you for a single letter. You can take the consent back at any time.',
+            toggle: 'Sign letters I issue with my signature',
+            since: 'Agreed on {time}',
+            noImage: 'No signature is saved yet. Until then your letters stay unsigned.',
         },
     },
     exportFormat: {

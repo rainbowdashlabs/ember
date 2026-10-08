@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.knowledgebase.service.KbFileStorageService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberLookupService;
+import dev.chojo.ember.feature.signing.service.SignatureImageService;
 import dev.chojo.ember.tracking.DataTracking;
 import dev.chojo.ember.tracking.DataTrackingLoader;
 import dev.chojo.ember.tracking.IdentityType;
@@ -63,6 +64,7 @@ public class GdprExportService {
     private final KbFileStorageService kbFileStorageService;
     private final DocumentRepository documentRepository;
     private final DocumentService documentService;
+    private final SignatureImageService signatureImages;
     private final GenericGdprExporter engine;
 
     @Inject
@@ -72,13 +74,15 @@ public class GdprExportService {
             MemberLookupService memberLookupService,
             KbFileStorageService kbFileStorageService,
             DocumentRepository documentRepository,
-            DocumentService documentService) {
+            DocumentService documentService,
+            SignatureImageService signatureImages) {
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.memberLookupService = memberLookupService;
         this.kbFileStorageService = kbFileStorageService;
         this.documentRepository = documentRepository;
         this.documentService = documentService;
+        this.signatureImages = signatureImages;
         DataTracking t;
         try {
             t = DataTrackingLoader.loadFromClasspath();
@@ -124,7 +128,8 @@ public class GdprExportService {
     }
 
     /**
-     * ZIP archive containing {@code data.json}, an optional {@code data.pdf}, and the user's KB files.
+     * ZIP archive containing {@code data.json}, an optional {@code data.pdf}, the user's signature picture
+     * where one is saved, their KB files and their member documents.
      */
     public byte[] exportAccountDataAsZip(int accountId, @Nullable String locale) {
         var data = exportAccountData(accountId);
@@ -146,6 +151,9 @@ public class GdprExportService {
             } catch (Exception e) {
                 log.warn("Failed to generate GDPR export PDF, skipping", e);
             }
+
+            var signature = signatureImages.image(accountId);
+            if (signature.isPresent()) writeEntry(zip, "files/signature.png", signature.get());
 
             var memberships = stationMemberRepository.findAllByAccountId(accountId);
             for (var member : memberships) {

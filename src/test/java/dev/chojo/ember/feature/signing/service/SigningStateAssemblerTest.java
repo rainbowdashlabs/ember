@@ -34,8 +34,10 @@ import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.cos.COSArray;
 import org.apache.pdfbox.cos.COSName;
 import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.common.filespecification.PDComplexFileSpecification;
+import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -51,6 +53,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
@@ -205,7 +208,55 @@ class SigningStateAssemblerTest extends RepositoryTestBase {
     }
 
     @Test
-    void aPdfA3bContentStaysPdfA3bAndKeepsItsSignatureFields() throws IOException {
+    void eachSignedFieldShowsItsPictureNameDayAndRecordPage() throws IOException {
+        var station = station("de-DE", "Europe/Berlin");
+        var pictures = Map.of(11, SignatureImages.clean(TestSignatures.drawn()).png());
+
+        var assembled =
+                assembler().assemble(view(station), content, authority, RecordTimeBasis.TIMESTAMPS_OFF, pictures);
+
+        try (var document = Loader.loadPDF(assembled.pdf())) {
+            String page = text(document, 1, 1);
+            assertTrue(page.contains("Anna Beispiel"));
+            assertTrue(page.contains("Lena Beispiel"));
+            assertTrue(page.contains("Elektronisch signiert am 08.10.2026, Nachweis Seite 2"));
+            assertEquals(1, imagesOn(document.getPage(0)), "the guardian's picture; the child left none");
+        }
+    }
+
+    @Test
+    void anEnglishStationCaptionsItsMarksInEnglish() throws IOException {
+        var station = station("en-GB", "UTC");
+
+        var assembled = assembler().assemble(view(station), content, authority, RecordTimeBasis.TIMESTAMPS_OFF);
+
+        try (var document = Loader.loadPDF(assembled.pdf())) {
+            assertTrue(text(document, 1, 1).contains("Signed electronically on 8 October 2026, record on page 2"));
+        }
+    }
+
+    @Test
+    void aSealTheContentCarriesIsTakenOutBeforeTheStateIsSealedAgain() throws IOException {
+        var station = station("de-DE", "Europe/Berlin");
+        byte[] sealedContent = SealedPdfs.sealer(SealedPdfs.noTimestamps())
+                .seal(content, keys.getPrivate(), List.of(authority))
+                .pdf();
+
+        var assembled = assembler()
+                .assemble(view(station, sealedContent), sealedContent, authority, RecordTimeBasis.TIMESTAMPS_OFF);
+        var resealed = SealedPdfs.sealer(SealedPdfs.noTimestamps())
+                .seal(assembled.pdf(), keys.getPrivate(), List.of(authority))
+                .pdf();
+
+        var signatures =
+                SealedPdfs.validate(resealed, authority).getDiagnosticData().getSignatures();
+        assertEquals(1, signatures.size(), "only the new seal, no broken one from before");
+        assertTrue(signatures.getFirst().isSignatureValid());
+        assertTrue(SealedPdfs.referencedDataIntact(signatures.getFirst()));
+    }
+
+    @Test
+    void aPdfA3bContentStaysPdfA3bAndKeepsItsOpenSignatureFields() throws IOException {
         var station = station("de-DE", "Europe/Berlin");
 
         var assembled = assembler().assemble(view(station), content, authority, RecordTimeBasis.TIMESTAMP_SERVICE);
@@ -220,7 +271,7 @@ class SigningStateAssemblerTest extends RepositoryTestBase {
             assertTrue(
                     Pattern.compile("pdfaid:conformance(>|=\")B").matcher(xmp).find(), xmp);
         }
-        assertEquals(FIELDS, SignatureFields.unsigned(assembled.pdf()));
+        assertEquals(List.of("guardian2", "issuer"), SignatureFields.unsigned(assembled.pdf()));
     }
 
     @Test
@@ -322,6 +373,10 @@ class SigningStateAssemblerTest extends RepositoryTestBase {
     }
 
     private static SignatureRequestView view(Station station) {
+        return view(station, content);
+    }
+
+    private static SignatureRequestView view(Station station, byte[] frozen) {
         var request = new SignatureRequest(
                 1,
                 REQUEST,
@@ -330,7 +385,7 @@ class SigningStateAssemblerTest extends RepositoryTestBase {
                 null,
                 null,
                 "Lena Beispiel",
-                Sha256.hex(content),
+                Sha256.hex(frozen),
                 RequestState.OPEN,
                 null,
                 48,
@@ -514,5 +569,14 @@ class SigningStateAssemblerTest extends RepositoryTestBase {
         stripper.setStartPage(from);
         stripper.setEndPage(to);
         return stripper.getText(document).replaceAll("\\s+", " ");
+    }
+
+    /** How many pictures a page draws. */
+    static int imagesOn(PDPage page) throws IOException {
+        int images = 0;
+        for (COSName name : page.getResources().getXObjectNames()) {
+            if (page.getResources().getXObject(name) instanceof PDImageXObject) images++;
+        }
+        return images;
     }
 }

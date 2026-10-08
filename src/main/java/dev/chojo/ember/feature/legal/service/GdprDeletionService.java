@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.account.service.AvatarService;
 import dev.chojo.ember.feature.documents.service.DocumentService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberLookupService;
+import dev.chojo.ember.feature.signing.service.SignatureImageService;
 import dev.chojo.ember.tracking.DataTracking;
 import dev.chojo.ember.tracking.DataTrackingLoader;
 import dev.chojo.ember.tracking.IdentityType;
@@ -29,7 +30,7 @@ import static org.slf4j.LoggerFactory.getLogger;
  * GDPR-compliant deletion driven by {@code data_tracking.json}. Every TRACKED
  * {@code gdprDeletion} strategy is applied by {@link GenericGdprDeleter}; this service is just the
  * orchestrator that resolves the identity, runs the engine, and handles the few side effects that
- * sit outside the relational schema (avatar files on disk, account row finalization).
+ * sit outside the relational schema (avatar and signature picture files, account row finalization).
  *
  * <p>The hand-coded SQL queries from the previous implementation have been removed - the source
  * of truth for what gets deleted, anonymised, or retained is the tracking JSON.
@@ -44,6 +45,7 @@ public class GdprDeletionService {
     private final MemberLookupService memberLookupService;
     private final AvatarService avatarService;
     private final DocumentService documentService;
+    private final SignatureImageService signatureImages;
     private final GenericGdprDeleter engine;
 
     @Inject
@@ -52,12 +54,14 @@ public class GdprDeletionService {
             StationMemberRepository stationMemberRepository,
             MemberLookupService memberLookupService,
             AvatarService avatarService,
-            DocumentService documentService) {
+            DocumentService documentService,
+            SignatureImageService signatureImages) {
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.memberLookupService = memberLookupService;
         this.avatarService = avatarService;
         this.documentService = documentService;
+        this.signatureImages = signatureImages;
         DataTracking t;
         try {
             t = DataTrackingLoader.loadFromClasspath();
@@ -133,8 +137,9 @@ public class GdprDeletionService {
     }
 
     /**
-     * Runs the engine for the account and removes its avatar. The engine deletes the account row itself;
-     * the explicit delete afterwards is a safeguard against a missing strategy entry leaving it behind.
+     * Runs the engine for the account and removes its avatar and signature picture. The engine deletes the
+     * account row itself; the explicit delete afterwards is a safeguard against a missing strategy entry
+     * leaving it behind.
      */
     private void deleteAccountData(int accountId) {
         UUID accountUid = accountRepository.resolveUid(accountId);
@@ -142,6 +147,7 @@ public class GdprDeletionService {
         report.log(log);
         if (accountUid != null) {
             avatarService.delete(accountUid);
+            signatureImages.deleteFiles(accountUid);
         }
         if (accountRepository.findById(accountId).isPresent()) {
             accountRepository.delete(accountId);

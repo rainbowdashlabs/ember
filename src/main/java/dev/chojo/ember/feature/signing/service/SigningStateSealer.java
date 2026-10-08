@@ -33,8 +33,9 @@ import java.util.Optional;
  * Seals the state a request for signatures has reached into its member document, once its acts are
  * recorded.
  *
- * <p>Each state is a document of its own: the request's frozen content, the record page of every act so
- * far and their evidence attached ({@link SigningStateAssembler}), sealed once with the station's key at
+ * <p>Each state is a document of its own: the request's frozen content with the signature picture each act
+ * left drawn into its field, the record page of every act so far and their evidence attached
+ * ({@link SigningStateAssembler}), sealed once with the station's key at
  * {@code BASELINE-LT}, or as far towards it as the timestamp services allow ({@link PdfSealer}). It is filed
  * as the current version of the request's member document ({@link SealedDocumentService#fileVersion}), which
  * is locked from its first version on and keeps every earlier version as it was. The content always comes
@@ -139,11 +140,12 @@ public class SigningStateSealer {
     SealedDocument seal(UnsealedState state) {
         SealingKey key = keys.forStation(state.view().request().stationId());
         RecordTimeBasis expected = assembler.expectedTimeBasis();
-        var assembled = assembler.assemble(state.view(), state.content(), key.authority(), expected);
+        var pictures = evidence.marksOf(state.view().request().id());
+        var assembled = assembler.assemble(state.view(), state.content(), key.authority(), expected, pictures);
         var sealed = sealer.seal(assembled.pdf(), key.privateKey(), key.chain());
         if (expected != RecordTimeBasis.TIMESTAMP_SERVICE || sealed.level() != SealLevel.BASELINE_B) return sealed;
-        var unstamped =
-                assembler.assemble(state.view(), state.content(), key.authority(), RecordTimeBasis.NO_SERVICE_ANSWERED);
+        var unstamped = assembler.assemble(
+                state.view(), state.content(), key.authority(), RecordTimeBasis.NO_SERVICE_ANSWERED, pictures);
         return sealer.sealWithoutTimestamp(unstamped.pdf(), key.privateKey(), key.chain());
     }
 

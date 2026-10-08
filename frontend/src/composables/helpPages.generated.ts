@@ -115,6 +115,7 @@ export const HELP_PAGES: HelpPage[] = [
     {route: 'help-basics-overview', path: '/helpcenter/station/basics/overview', i18nPrefix: 'helpCenter.basics.overview'},
     {route: 'help-basics-permissions', path: '/helpcenter/station/basics/permissions', i18nPrefix: 'helpCenter.basics.permissions'},
     {route: 'help-basics-seals', path: '/helpcenter/station/basics/seals', i18nPrefix: 'helpCenter.basics.seals'},
+    {route: 'help-basics-signature', path: '/helpcenter/station/basics/signature', i18nPrefix: 'helpCenter.basics.signature'},
     {route: 'help-basics-videos', path: '/helpcenter/station/basics/videos', i18nPrefix: 'helpCenter.basics.videos'},
     {route: 'help-board-overview', path: '/helpcenter/station/boards', i18nPrefix: 'helpCenter.boardOverview'},
     {route: 'help-board-view', path: '/helpcenter/station/boards/0', i18nPrefix: ['helpCenter.boardView', 'helpCenter.sample.boards']},

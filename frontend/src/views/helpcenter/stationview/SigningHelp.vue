@@ -12,12 +12,15 @@ import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SigningStatement from '@/views/stationview/signing/signingview/SigningStatement.vue'
 import SigningProof from '@/views/stationview/signing/signingview/SigningProof.vue'
+import SigningMark from '@/views/stationview/signing/signingview/SigningMark.vue'
+import type {SigningMarkChoice} from '@/views/stationview/signing/signingview/useSigningAct'
 import {FieldRole, SignerCapacity, StepUpProof} from '@/api/generated/schema'
 import type {OpenSignatureResponse, SigningStartResponse} from '@/api/generated/schema'
 
 const {t} = useI18n()
 
 const exampleConfirmed = ref(true)
+const exampleMark: SigningMarkChoice = {draft: null, useSaved: false, keep: false}
 
 const exampleField = computed<OpenSignatureResponse>(() => ({
   fieldId: 0,
@@ -63,11 +66,19 @@ const exampleOffer = computed<SigningStartResponse>(() => ({
       <p>{{ t('helpCenter.signing.stepRead') }}</p>
       <p>{{ t('helpCenter.signing.stepConfirm') }}</p>
       <p>{{ t('helpCenter.signing.stepProve') }}</p>
+      <p>{{ t('helpCenter.signing.stepMark') }}</p>
     </HelpSection>
 
     <NeutralContainer class="space-y-8">
       <SigningStatement v-model:confirmed="exampleConfirmed" :field="exampleField" :preparing="false" :failure="null" started document-ready/>
-      <SigningProof :offer="exampleOffer" :busy="false" :failure="null"/>
+      <SigningProof :offer="exampleOffer" :busy="false" :failure="null">
+        <SigningMark
+            :model-value="exampleMark"
+            :capacity="SignerCapacity.GUARDIAN"
+            :member-name="t('helpCenter.signing.exampleChild')"
+            :saved-url="null"
+        />
+      </SigningProof>
     </NeutralContainer>
 
     <HelpSection :title="t('helpCenter.signing.proofs')">
@@ -79,6 +90,7 @@ const exampleOffer = computed<SigningStartResponse>(() => ({
     <HelpSection :title="t('helpCenter.signing.forOthers')">
       <p>{{ t('helpCenter.signing.forOthersGuardian') }}</p>
       <p>{{ t('helpCenter.signing.forOthersThrough') }}</p>
+      <p>{{ t('helpCenter.signing.forOthersMark') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.signing.mail')">

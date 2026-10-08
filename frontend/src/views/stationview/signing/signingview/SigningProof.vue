@@ -24,6 +24,9 @@ import {isWebAuthnSupported} from '@/util/webauthn'
  * The proof that confirms the signature, offered in the ways the signer's account allows: a passkey or
  * security key, the authenticator app's code, or, for an account without a second factor, the password.
  *
+ * <p>What the act leaves in its field, the signature picture, is chosen in the slot under the heading, before
+ * the proof that confirms it.
+ *
  * <p>The heading takes the focus when the section appears, so a keyboard or screen reader user lands on
  * the step that now waits for them instead of being left on the button that is gone.
  */
@@ -65,6 +68,7 @@ defineExpose({focusHeading})
       {{ t('signing.proof.heading') }}
     </SectionHeader>
     <MutedText tag="p" size="sm">{{ t('signing.proof.signerLine', {signer: offer.signerName, holder: offer.accountHolderName}) }}</MutedText>
+    <slot/>
 
     <div v-if="takesAuthenticator" class="space-y-2">
       <PrimaryButton

@@ -868,7 +868,8 @@ class SignatureRequestServiceTest extends RepositoryTestBase {
                 memberLookupService,
                 mock(KbFileStorageService.class),
                 memberDocumentRepo,
-                documents);
+                documents,
+                mock(SignatureImageService.class));
 
         var childTables = memberTables(export, child.id());
         var guardianTables = memberTables(export, guardian.id());
@@ -901,7 +902,8 @@ class SignatureRequestServiceTest extends RepositoryTestBase {
                 memberLookupService,
                 mock(KbFileStorageService.class),
                 memberDocumentRepo,
-                documents);
+                documents,
+                mock(SignatureImageService.class));
 
         var childsEvidence =
                 memberTables(export, child.id()).get("signing_evidence").getFirst();

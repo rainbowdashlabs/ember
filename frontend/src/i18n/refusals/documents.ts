@@ -159,4 +159,10 @@ export default {
     'D-174': 'Der Grund darf höchstens 300 Zeichen lang sein',
     'D-175': 'Alle Siegel-Schlüssel lassen sich noch öffnen, es wurde nichts aufgegeben',
     'D-176': 'Seit dem Laden der Seite haben sich die Schlüssel geändert, die sich nicht öffnen lassen. Es wurde nichts aufgegeben, lade die Seite neu',
+    'D-177': 'Es wurde kein Bild einer Unterschrift mitgeschickt',
+    'D-178': 'Das Bild der Unterschrift muss ein PNG-, JPEG- oder WebP-Bild sein',
+    'D-179': 'Das Bild der Unterschrift darf höchstens 5 MB groß sein',
+    'D-180': 'Auf dem Bild ist keine Unterschrift zu erkennen',
+    'D-181': 'Es fehlt, ob die Unterschrift gezeichnet, getippt oder hochgeladen wurde',
+    'D-182': 'Es ist keine Unterschrift gespeichert, zeichne eine zum Unterschreiben',
 }

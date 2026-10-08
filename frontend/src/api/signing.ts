@@ -6,6 +6,8 @@
 import type {
     OpenSignatureResponse,
     SealVerification,
+    SignatureImageSource,
+    SignatureSettingsResponse,
     SignerEntryDraft,
     SigningCompleteRequest,
     SigningCompleteResponse,
@@ -15,6 +17,48 @@ import type {
 } from '@/api/generated/schema'
 import client from './client'
 import {uploadFile} from './upload'
+
+/** The largest signature picture the server takes, the same limit it holds an upload to. */
+export const SIGNATURE_IMAGE_MAX_BYTES = 5 * 1024 * 1024
+
+/** The reader's own signature picture, whether one is saved, and their consent to letters signed with it. */
+export async function getSignatureSettings(): Promise<SignatureSettingsResponse> {
+    const res = await client.get<SignatureSettingsResponse>('/session/signature')
+    return res.data
+}
+
+/** The reader's own signature picture, or null where none is saved. */
+export async function getSignatureImage(): Promise<Blob | null> {
+    const res = await client.get<Blob>('/session/signature/image', {responseType: 'blob'})
+    return res.status === 204 ? null : res.data
+}
+
+/**
+ * Saves a signature picture as the reader's own, in place of the one before. The server cuts it to the
+ * signature and makes its background transparent.
+ *
+ * @param image  the picture: drawn, typed, or a photo or scan
+ * @param source how it was made
+ */
+export async function saveSignatureImage(image: Blob, source: SignatureImageSource): Promise<SignatureSettingsResponse> {
+    return uploadFile<SignatureSettingsResponse>('/session/signature/image', {image, source}, 'put')
+}
+
+/** Deletes the reader's own signature picture. The consent stays as it was. */
+export async function deleteSignatureImage(): Promise<SignatureSettingsResponse> {
+    const res = await client.delete<SignatureSettingsResponse>('/session/signature/image')
+    return res.data
+}
+
+/**
+ * Agrees to, or takes back, letters the reader issues being signed with their picture automatically.
+ *
+ * @param consented whether they agree from now on
+ */
+export async function setSignatureConsent(consented: boolean): Promise<SignatureSettingsResponse> {
+    const res = await client.put<SignatureSettingsResponse>('/session/signature/consent', {consented})
+    return res.data
+}
 
 /** The largest file the seal check takes, the same limit the server holds it to. */
 export const SEAL_CHECK_MAX_BYTES = 25 * 1024 * 1024

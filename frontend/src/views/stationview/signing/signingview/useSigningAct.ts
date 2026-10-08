@@ -5,9 +5,13 @@
  */
 import {computed, ref} from 'vue'
 import {StepUpProof} from '@/api/generated/schema'
-import type {SigningCompleteResponse, SigningStartResponse} from '@/api/generated/schema'
+import type {SigningCompleteRequest, SigningCompleteResponse, SigningStartResponse} from '@/api/generated/schema'
 import {completeSigning, startSigning} from '@/api/signing'
 import {getWebAuthnCredential} from '@/util/webauthn'
+import {draftBase64, type SignatureDraft} from '@/util/signatureDraft'
+
+/** Signs with the saved picture, which the server takes from the account. */
+const SAVED_MARK: Readonly<SigningMarkChoice> = Object.freeze({draft: null, useSaved: true, keep: false})
 
 /**
  * How long before its expiry a start is no longer trusted to reach the server in time, given that a
@@ -17,6 +21,26 @@ const EXPIRY_MARGIN_MS = 30_000
 
 /** The proofs a signer types: the authenticator app's code, or the password of an account without one. */
 export type TypedProof = typeof StepUpProof.TOTP | typeof StepUpProof.PASSWORD
+
+/**
+ * The signature picture an act leaves in its field: one made on the screen for it, or the saved one.
+ *
+ * <p>`keep` saves the picture made for the act as the signer's own afterwards.
+ */
+export interface SigningMarkChoice {
+    draft: SignatureDraft | null
+    useSaved: boolean
+    keep: boolean
+}
+
+/**
+ * @param choice the picture the signer chose
+ * @returns what the confirmation carries of it: the picture made for the act, or nothing for the saved one
+ */
+function markFields(choice: SigningMarkChoice): Partial<SigningCompleteRequest> {
+    if (choice.draft === null) return {}
+    return {signatureImage: draftBase64(choice.draft), signatureSource: choice.draft.source, keepSignature: choice.keep}
+}
 
 /**
  * The signing act on one field, from the start to the outcome.
@@ -48,21 +72,28 @@ export function useSigningAct(fieldId: () => number) {
         return prepare()
     }
 
-    async function complete(start: SigningStartResponse, proof: StepUpProof, answer: {credentialJson?: string; secret?: string}) {
+    async function complete(
+        start: SigningStartResponse,
+        proof: StepUpProof,
+        answer: {credentialJson?: string; secret?: string},
+        mark: SigningMarkChoice,
+    ) {
         spent.value = true
-        outcome.value = await completeSigning(fieldId(), {startToken: start.startToken, proof, ...answer})
+        outcome.value = await completeSigning(fieldId(), {startToken: start.startToken, proof, ...answer, ...markFields(mark)})
     }
 
     /**
      * Confirms with a passkey or a security key. Which of the two it was is read by the server from the
      * credential the signer picks, so one prompt serves both.
+     *
+     * @param mark the signature picture the act leaves in its field
      */
-    async function confirmWithAuthenticator(): Promise<void> {
+    async function confirmWithAuthenticator(mark: SigningMarkChoice = SAVED_MARK): Promise<void> {
         const start = await usableStart()
         if (!start.webAuthnOptionsJson) throw new Error('webauthn-unsupported')
         const credentialJson = await getWebAuthnCredential(start.webAuthnOptionsJson)
         const proof = start.acceptedProofs.includes(StepUpProof.PASSKEY) ? StepUpProof.PASSKEY : StepUpProof.SECURITY_KEY
-        await complete(start, proof, {credentialJson})
+        await complete(start, proof, {credentialJson}, mark)
     }
 
     /**
@@ -70,10 +101,11 @@ export function useSigningAct(fieldId: () => number) {
      *
      * @param proof  which of the two
      * @param secret what the signer typed, sent once and never kept
+     * @param mark   the signature picture the act leaves in its field
      */
-    async function confirmWithSecret(proof: TypedProof, secret: string): Promise<void> {
+    async function confirmWithSecret(proof: TypedProof, secret: string, mark: SigningMarkChoice = SAVED_MARK): Promise<void> {
         const start = await usableStart()
-        await complete(start, proof, {secret})
+        await complete(start, proof, {secret}, mark)
     }
 
     return {

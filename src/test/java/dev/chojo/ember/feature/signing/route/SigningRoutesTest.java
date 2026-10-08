@@ -46,16 +46,20 @@ import dev.chojo.ember.feature.passkey.service.TestAuthenticator;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.signing.entity.FieldState;
 import dev.chojo.ember.feature.signing.entity.RequestState;
+import dev.chojo.ember.feature.signing.entity.SignatureImageSource;
 import dev.chojo.ember.feature.signing.entity.SignatureRequest;
 import dev.chojo.ember.feature.signing.entity.SignerCapacity;
 import dev.chojo.ember.feature.signing.entity.SignerEntry;
 import dev.chojo.ember.feature.signing.entity.SigningEvidence;
 import dev.chojo.ember.feature.signing.entity.SigningStatements;
 import dev.chojo.ember.feature.signing.entity.StoredEvidence;
+import dev.chojo.ember.feature.signing.repository.AccountSignatureRepository;
 import dev.chojo.ember.feature.signing.repository.SignatureRequestRepository;
 import dev.chojo.ember.feature.signing.repository.SigningEvidenceRepository;
 import dev.chojo.ember.feature.signing.service.InEmberSignatureProvider;
 import dev.chojo.ember.feature.signing.service.SignatureFieldService;
+import dev.chojo.ember.feature.signing.service.SignatureImageService;
+import dev.chojo.ember.feature.signing.service.SignatureImages;
 import dev.chojo.ember.feature.signing.service.SignatureNotices;
 import dev.chojo.ember.feature.signing.service.SignatureRequestService;
 import dev.chojo.ember.feature.signing.service.SignerNames;
@@ -67,6 +71,7 @@ import dev.chojo.ember.feature.signing.service.SigningStarts;
 import dev.chojo.ember.feature.signing.service.SigningStateSealer;
 import dev.chojo.ember.feature.signing.service.TestKeyStamps;
 import dev.chojo.ember.feature.signing.service.TestSealing;
+import dev.chojo.ember.feature.signing.service.TestSignatures;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
@@ -151,7 +156,9 @@ import static org.mockito.Mockito.when;
  * their account, and wrong codes count toward the step-up limit. A field and its document are read only
  * by those it asks while it waits, and the document comes as the request froze it, also to a second signer
  * once the first act was sealed into a version of it. Each act is sealed with real keys and without
- * timestamps, and an act whose seal failed stays signed and is sealed with the next one.
+ * timestamps, and an act whose seal failed stays signed and is sealed with the next one. Every act leaves a
+ * signature picture, one made for it or the saved one, and is refused with neither; a picture a child makes
+ * through a guardian's account is never kept as the guardian's.
  */
 class SigningRoutesTest extends RepositoryTestBase {
     private static final String RIGHT_CODE = "424242";
@@ -175,6 +182,7 @@ class SigningRoutesTest extends RepositoryTestBase {
     private static DocumentService documents;
     private static SignatureRequestService requests;
     private static SigningActService acts;
+    private static SignatureImageService signatureImages;
     private static Function<SigningStateSealer, SigningActService> actsSealingWith;
     private static WebAuthnService securityKeys;
     private static PasskeyService passkeys;
@@ -240,6 +248,10 @@ class SigningRoutesTest extends RepositoryTestBase {
         var starts = new SigningStarts(challenges);
         var provider = new InEmberSignatureProvider(twoFactor, assertions, names, keyStamps);
         var auth = authService();
+        signatureImages = new SignatureImageService(
+                new AccountSignatureRepository(),
+                accountRepo,
+                new StorageService(new StorageBackendResolver(backend), backend));
         actsSealingWith = stateSealer -> new SigningActService(
                 requestRepo,
                 requests,
@@ -252,7 +264,9 @@ class SigningRoutesTest extends RepositoryTestBase {
                 assertions,
                 names,
                 twoFactor,
-                auth);
+                auth,
+                evidenceRepo,
+                signatureImages);
         acts = actsSealingWith.apply(TestSealing.stateSealer(memberDocumentRepo, documents, stationRepo));
 
         loginPermission = stationMemberRepo
@@ -746,6 +760,105 @@ class SigningRoutesTest extends RepositoryTestBase {
     }
 
     @Test
+    void anActWithoutAPictureSignsWithTheSavedOneOrIsRefusedWhereNoneIsSaved() throws IOException {
+        var signer = member("Paula", "Pinsel", true);
+        accountRepo.createCredential(signer.accountId(), hasher.hash(PASSWORD));
+        var request = ask(signer, SignatureRole.PARTICIPANT);
+        int fieldId = fieldOf(request);
+
+        harness.run((server, client) -> {
+            assertRefused(
+                    DocumentRefusal.SIGNING_MARK_MISSING,
+                    complete(
+                            client,
+                            signer,
+                            fieldId,
+                            start(client, signer, fieldId, null),
+                            "PASSWORD",
+                            null,
+                            PASSWORD,
+                            null,
+                            false));
+            assertEquals(FieldState.OPEN, fieldState(request));
+
+            var saved = signatureImages.save(signer.accountId(), TestSignatures.drawn(), SignatureImageSource.DRAWN);
+            complete(
+                    client,
+                    signer,
+                    fieldId,
+                    start(client, signer, fieldId, null),
+                    "PASSWORD",
+                    null,
+                    PASSWORD,
+                    null,
+                    false);
+            assertEquals(
+                    saved.imageSha256(),
+                    Sha256.hex(evidenceRepo.marksOf(request.id()).get(fieldId)));
+        });
+        assertEquals(FieldState.SIGNED, fieldState(request));
+    }
+
+    @Test
+    void aPictureMadeForTheActIsKeptOnlyWhereAskedAndNeverForAChildThroughTheAccount() throws IOException {
+        var child = member("Karla", "Kritzel", false);
+        var guardian = member("Georg", "Griffel", true);
+        accountRepo.createCredential(guardian.accountId(), hasher.hash(PASSWORD));
+        stationMemberRepo.addManager(guardian.id(), child.id(), manager.id());
+        var request = ask(child, SignatureRole.PARTICIPANT, SignatureRole.GUARDIAN_1);
+        int childField = fieldNamed(request, "participant");
+        int guardianField = fieldNamed(request, "guardian1");
+        byte[] childPicture = TestSignatures.photographed();
+
+        harness.run((server, client) -> {
+            assertRefused(
+                    DocumentRefusal.SIGNATURE_IMAGE_EMPTY,
+                    complete(
+                            client,
+                            guardian,
+                            childField,
+                            start(client, guardian, childField, null),
+                            "PASSWORD",
+                            null,
+                            PASSWORD,
+                            TestSignatures.empty(),
+                            false));
+            complete(
+                    client,
+                    guardian,
+                    childField,
+                    start(client, guardian, childField, null),
+                    "PASSWORD",
+                    null,
+                    PASSWORD,
+                    childPicture,
+                    true);
+            assertFalse(signatureImages.settings(guardian.accountId()).hasImage());
+
+            complete(
+                    client,
+                    guardian,
+                    guardianField,
+                    start(client, guardian, guardianField, null),
+                    "PASSWORD",
+                    null,
+                    PASSWORD,
+                    TestSignatures.drawn(),
+                    true);
+        });
+
+        var kept = signatureImages.settings(guardian.accountId());
+        assertTrue(kept.hasImage());
+        assertEquals(SignatureImageSource.DRAWN, kept.imageSource());
+        var marks = evidenceRepo.marksOf(request.id());
+        assertEquals(kept.imageSha256(), Sha256.hex(marks.get(guardianField)));
+        assertEquals(Sha256.hex(SignatureImages.clean(childPicture).png()), Sha256.hex(marks.get(childField)));
+
+        var sealed = documents.read(filedDocument(request)).orElseThrow();
+        assertEquals(List.of(), SignatureFields.unsigned(sealed));
+    }
+
+    @Test
     void wrongCodesCountTowardTheStepUpLimit() throws IOException {
         var signer = member("Gabi", "Grind", true);
         enrolAuthenticatorApp(signer.accountId());
@@ -841,11 +954,33 @@ class SigningRoutesTest extends RepositoryTestBase {
             String proof,
             String credentialJson,
             String secret) {
+        return complete(client, signer, fieldId, started, proof, credentialJson, secret, TestSignatures.drawn(), false);
+    }
+
+    /**
+     * Completes an act with a signature picture made for it, or with the saved one where {@code picture} is
+     * null.
+     */
+    private Response complete(
+            HttpClient client,
+            StationMember signer,
+            int fieldId,
+            JsonNode started,
+            String proof,
+            String credentialJson,
+            String secret,
+            byte[] picture,
+            boolean keep) {
         ObjectNode object = JsonNodeFactory.instance.objectNode();
         object.put("startToken", started.path("startToken").asString());
         object.put("proof", proof);
         object.put("credentialJson", credentialJson);
         object.put("secret", secret);
+        if (picture != null) {
+            object.put("signatureImage", Base64.getEncoder().encodeToString(picture));
+            object.put("signatureSource", "DRAWN");
+            object.put("keepSignature", keep);
+        }
         return client.post(
                 PREFIX + "/signing/fields/" + fieldId + "/complete",
                 object,

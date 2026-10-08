@@ -13,13 +13,16 @@ import SigningUnavailable from './signingview/SigningUnavailable.vue'
 import SigningDocument from './signingview/SigningDocument.vue'
 import SigningStatement from './signingview/SigningStatement.vue'
 import SigningProof from './signingview/SigningProof.vue'
+import SigningMark from './signingview/SigningMark.vue'
 import SigningDone from './signingview/SigningDone.vue'
-import {useSigningAct, type TypedProof} from './signingview/useSigningAct'
+import {useSigningAct, type SigningMarkChoice, type TypedProof} from './signingview/useSigningAct'
 import {describeSigningFailure} from './signingview/signingFailure'
+import {SignerCapacity} from '@/api/generated/schema'
 import type {OpenSignatureResponse} from '@/api/generated/schema'
 import {getSigningField} from '@/api/signing'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
+import {useOwnSignature} from '@/composables/useOwnSignature'
 import type {Failure} from '@/util/failure'
 
 /**
@@ -31,6 +34,10 @@ import type {Failure} from '@/util/failure'
  * the statement is ticked and the act is started, and takes the focus when it does; the result replaces
  * the steps and takes the focus in turn. What changes without a move of focus is said in the live region
  * at the top.
+ *
+ * <p>The proof step also takes the signature picture the act leaves in its field: the signer's saved one,
+ * or one drawn or typed there. The saved picture is read along with the field; where it cannot be read
+ * the signer simply draws one, and the proof waits until there is a picture.
  *
  * <p>The address is what a "please sign" link opens, so the page loads the field itself and says plainly
  * when it no longer waits for the reader, was never theirs, or is gone.
@@ -46,10 +53,23 @@ const announcement = ref('')
 const proofStep = ref<InstanceType<typeof SigningProof> | null>(null)
 
 const act = useSigningAct(() => fieldId.value)
+const {imageUrl: savedSignature, loadImage: loadSavedSignature} = useOwnSignature()
+const mark = ref<SigningMarkChoice>({draft: null, useSaved: true, keep: false})
 
 const {loading, failure: loadFailure} = useAsyncLoader(async (isCurrent) => {
   const loaded = await getSigningField(fieldId.value)
   if (isCurrent()) field.value = loaded
+  await loadSavedSignature().catch(() => undefined)
+})
+
+/**
+ * Whether the act has a picture to leave in its field: the saved one, where the signer may use it and
+ * chose to, or one made here. A member signing through another's account always makes their own.
+ */
+const markReady = computed(() => {
+  const capacity = act.offer.value?.capacity ?? field.value?.capacity
+  const savedUsable = capacity !== SignerCapacity.MEMBER_THROUGH_ACCOUNT && savedSignature.value !== null
+  return mark.value.draft !== null || (savedUsable && mark.value.useSaved)
 })
 
 const title = computed(() => field.value?.documentTitle ?? t('pages.station-signing.title'))
@@ -85,11 +105,11 @@ async function confirm(action: () => Promise<void>, waiting: string) {
 }
 
 function withAuthenticator() {
-  void confirm(act.confirmWithAuthenticator, t('signing.announce.authenticator'))
+  void confirm(() => act.confirmWithAuthenticator(mark.value), t('signing.announce.authenticator'))
 }
 
 function withSecret(proof: TypedProof, secret: string) {
-  void confirm(() => act.confirmWithSecret(proof, secret), t('signing.announce.checking'))
+  void confirm(() => act.confirmWithSecret(proof, secret, mark.value), t('signing.announce.checking'))
 }
 
 watch(confirmed, (ticked) => {
@@ -118,11 +138,18 @@ watch(confirmed, (ticked) => {
           v-if="confirmed && act.offer.value"
           ref="proofStep"
           :offer="act.offer.value"
-          :busy="confirming"
+          :busy="confirming || !markReady"
           :failure="confirmFailure"
           @authenticator="withAuthenticator"
           @secret="withSecret"
-      />
+      >
+        <SigningMark
+            v-model="mark"
+            :capacity="act.offer.value.capacity"
+            :member-name="act.offer.value.memberName"
+            :saved-url="savedSignature"
+        />
+      </SigningProof>
     </div>
   </ViewContent>
 </template>
