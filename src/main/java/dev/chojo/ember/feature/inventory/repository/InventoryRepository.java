@@ -6,8 +6,10 @@
 package dev.chojo.ember.feature.inventory.repository;
 
 import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
+import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.feature.inventory.entity.BorrowedItem;
+import dev.chojo.ember.feature.inventory.entity.BorrowedPiece;
 import dev.chojo.ember.feature.inventory.entity.Glyph;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
@@ -33,6 +35,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
@@ -1004,7 +1007,6 @@ public class InventoryRepository {
                 metadata,
                 owner,
                 owner == ItemOwner.CLUSTER ? ownerClusterId : null,
-                null,
                 null);
     }
 
@@ -1017,32 +1019,39 @@ public class InventoryRepository {
      * piece the borrower has.
      *
      * @param inventoryId       the borrowing station's shelf for gear belonging to somebody else
-     * @param internalId        the identifier as it stood at handover
-     * @param name              the name as it stood at handover
-     * @param metadata          the fields as they stood at handover
-     * @param ownerStationId    the partner station that owns it
+     * @param piece             the identifier, the name and the fields as they stood at handover
+     * @param ownerStationUid   the partner station that owns it
+     * @param ownerStationId    that station where it runs on this installation, or {@code null} where
+     *                          it runs on another one
      * @param loanRequestItemId the line of the lending request it came in on
      * @return the created item
      */
     public InventoryItem createBorrowedItem(
             int inventoryId,
-            @Nullable String internalId,
-            String name,
-            InventoryItemMetadata metadata,
-            int ownerStationId,
+            BorrowedPiece piece,
+            UUID ownerStationUid,
+            @Nullable Integer ownerStationId,
             int loanRequestItemId) {
         return writeItem(
                 inventoryId,
-                internalId,
-                name,
+                piece.internalId(),
+                piece.name(),
                 null,
                 null,
-                metadata,
+                piece.metadata(),
                 ItemOwner.PARTNER_STATION,
                 null,
-                ownerStationId,
-                loanRequestItemId);
+                new PartnerOwner(ownerStationUid, ownerStationId, loanRequestItemId));
     }
+
+    /**
+     * The partner a borrowed copy belongs to and the loan line it came on.
+     *
+     * @param stationUid        the owning station
+     * @param stationId         that station where it runs here, or {@code null}
+     * @param loanRequestItemId the line of the lending request
+     */
+    private record PartnerOwner(UUID stationUid, @Nullable Integer stationId, int loanRequestItemId) {}
 
     /**
      * Inserts an item. Gear the station records but does not own starts held at the station, since
@@ -1057,16 +1066,15 @@ public class InventoryRepository {
             @Nullable InventoryItemMetadata metadata,
             ItemOwner owner,
             @Nullable Integer ownerClusterId,
-            @Nullable Integer ownerStationId,
-            @Nullable Integer loanRequestItemId) {
+            @Nullable PartnerOwner partner) {
         boolean heldByStation = owner != ItemOwner.STATION;
         return SqlSupport.insertReturning(
                 """
                 INSERT INTO inventory_item(inventory_id, internal_id, name, size_id, art_id, metadata, owner_kind,
-                                           owner_cluster_id, owner_station_id, loan_request_item_id, custody,
-                                           custody_station_id)
+                                           owner_cluster_id, owner_station_id, owner_station_uid,
+                                           loan_request_item_id, custody, custody_station_id)
                 SELECT :inventory_id, :internal_id, :name, :size_id, :art_id, :metadata::JSONB, :owner_kind,
-                       :owner_cluster_id, :owner_station_id, :loan_request_item_id, :custody,
+                       :owner_cluster_id, :owner_station_id, :owner_station_uid::uuid, :loan_request_item_id, :custody,
                        CASE WHEN :held_by_station THEN i.station_id ELSE NULL END
                 FROM inventory i
                 WHERE i.id = :inventory_id
@@ -1079,12 +1087,37 @@ public class InventoryRepository {
                         .bind("metadata", (metadata != null ? metadata : InventoryItemMetadata.empty()).toJson())
                         .bind("owner_kind", owner)
                         .bind("owner_cluster_id", ownerClusterId)
-                        .bind("owner_station_id", ownerStationId)
-                        .bind("loan_request_item_id", loanRequestItemId)
+                        .bind("owner_station_id", partner == null ? null : partner.stationId())
+                        .bind(
+                                "owner_station_uid",
+                                partner == null ? null : partner.stationUid(),
+                                StandardValueConverter.UUID_STRING)
+                        .bind("loan_request_item_id", partner == null ? null : partner.loanRequestItemId())
                         .bind("custody", heldByStation ? ItemCustody.AT_STATION : ItemCustody.WITH_OWNER)
                         .bind("held_by_station", heldByStation),
                 InventoryItem.map(),
                 INVENTORY_ITEM_COLUMNS);
+    }
+
+    /**
+     * Lets go of a station that moved to another installation wherever the gear of the stations here
+     * names it: a borrowed copy of its gear keeps its owner by uid alone, and gear lent to it names no
+     * partner holding it any more, as gear lent to another installation does. Nothing of the other
+     * stations then goes when the copy the moved station left here is deleted.
+     *
+     * @param stationId the copy the moved station left here
+     * @return how many pieces let go of it
+     */
+    public int forgetMovedStation(int stationId) {
+        int owned = query("UPDATE inventory_item SET owner_station_id = NULL WHERE owner_station_id = :id;")
+                .single(call().bind("id", stationId))
+                .update()
+                .rows();
+        int held = query("""
+                UPDATE inventory_item
+                SET custody_partner_station_id = NULL
+                WHERE custody_partner_station_id = :id;""").single(call().bind("id", stationId)).update().rows();
+        return owned + held;
     }
 
     /**
@@ -1103,8 +1136,11 @@ public class InventoryRepository {
     }
 
     /**
-     * Every borrowed copy a station is holding, newest loan first, named with the partner it belongs
-     * to and the day it is due back.
+     * Every borrowed copy a station is holding, by partner and then by name, named with the partner it
+     * belongs to and the day it is due back.
+     *
+     * <p>An owner on this installation is named as it is called now; one on another installation by
+     * the name the borrowing station's partnership with it records.
      *
      * @param stationId the borrowing station
      * @return one row per borrowed piece
@@ -1112,17 +1148,25 @@ public class InventoryRepository {
     public List<BorrowedItem> findBorrowedItems(int stationId) {
         return query("""
                 SELECT %s,
-                       os.name AS owner_station_name,
-                       lr.id   AS loan_request_id,
-                       lr.requested_date_to AS due_on
+                       ii.owner_station_uid,
+                       coalesce(os.name,
+                                (SELECT fp.partner_station_name
+                                 FROM federation_partner fp
+                                 WHERE fp.station_id = inv.station_id
+                                   AND fp.partner_station_id = ii.owner_station_uid
+                                 ORDER BY fp.status = 'ACTIVE' DESC, fp.id
+                                 LIMIT 1),
+                                '')            AS owner_station_name,
+                       lr.id                   AS loan_request_id,
+                       lr.requested_date_to    AS due_on
                 FROM inventory_item ii
                 JOIN inventory inv ON inv.id = ii.inventory_id
-                JOIN station os ON os.id = ii.owner_station_id
+                LEFT JOIN station os ON os.id = ii.owner_station_id
                 JOIN federation_lending_request_item lri ON lri.id = ii.loan_request_item_id
                 JOIN federation_lending_request lr ON lr.id = lri.request_id
                 WHERE inv.station_id = :station_id
                   AND ii.owner_kind = 'PARTNER_STATION'
-                ORDER BY os.name, ii.name;""", SqlSupport.alias("ii", INVENTORY_ITEM_COLUMNS))
+                ORDER BY owner_station_name, ii.name;""", SqlSupport.alias("ii", INVENTORY_ITEM_COLUMNS))
                 .single(call().bind("station_id", stationId))
                 .map(BorrowedItem.map())
                 .all();

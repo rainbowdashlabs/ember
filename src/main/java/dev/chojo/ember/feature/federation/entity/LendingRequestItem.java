@@ -21,8 +21,9 @@ import org.jspecify.annotations.Nullable;
  * @param itemId      the piece the line names, or {@code null}
  * @param artId       the kind of thing the line asks for, or {@code null}
  * @param needId      the line of an appointment's needs this fills, or {@code null}
- * @param label       what the line asks for as the lending station named it, kept where that
- *                    station's gear is on another instance; empty otherwise
+ * @param label       what the line asks for, as it was named when it was asked for, or as the
+ *                    lending station named it where that station's gear is on another instance;
+ *                    kept when the gear it names is gone
  */
 public record LendingRequestItem(
         int id,

@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:8cc353ffec7e5ad21b01ed2ed28f8ec4cf4366c60e80432bdef5ce24a85fc8cf",
-  "generatedAt": "2026-10-08T11:20:02Z",
+  "schemaHash": "sha256:ea0c09f100344e2177dc5a4cc31aab93a6b1757aafeaa75606599550c154e5bb",
+  "generatedAt": "2026-10-08T12:50:15Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -11720,7 +11720,7 @@
           "type": "text",
           "nullable": false,
           "verified": true,
-          "description": "What the line asks for, in words, as the lending station named it. Kept on the borrowing station's copy of a request to a station on another instance, whose inventories are not here to name it. Empty where the line names gear of this instance."
+          "description": "What the line asks for, in words, as it was named when it was asked for: the kind of thing, the piece or the inventory it names, and on the copy of a request to a station on another installation, what the lending station called it. Kept when the gear it names is gone or on another installation, so the line still says what it was. Empty only where nothing named it."
         }
       ],
       "foreignKeys": [
@@ -14310,7 +14310,7 @@
     "inventory_item": {
       "feature": "inventory",
       "scope": "STATION",
-      "tableHash": "sha256:a4a3e277a68ee54cddf53dc0ede22a531a7dce28dbb7f5d26987d01f507fcf01",
+      "tableHash": "sha256:4243eb623a6765d93651ad0a92b69186ee64f1c6cd7f8265e305d35bfe06f6ad",
       "columns": [
         {
           "name": "id",
@@ -14436,7 +14436,7 @@
           "type": "int4",
           "nullable": true,
           "verified": true,
-          "description": "The station that owns the item when a partner station does, null for every other owner. Only ever set for PARTNER_STATION."
+          "description": "The partner station that owns the item while that station runs on this installation, null for every other owner. Only ever set for PARTNER_STATION, and empty for an owner on another installation, which owner_station_uid names."
         },
         {
           "name": "loan_request_item_id",
@@ -14451,6 +14451,13 @@
           "nullable": true,
           "verified": true,
           "description": "The federation partner holding the item while it is WITH_PARTNER, null for every other custody. Null while it stands only when that station has since been removed."
+        },
+        {
+          "name": "owner_station_uid",
+          "type": "uuid",
+          "nullable": true,
+          "verified": true,
+          "description": "The partner station that owns the item, by the uid it carries on every installation. Set exactly for PARTNER_STATION, whether the owner runs on this installation or on another one, and kept when the owner or the borrower moves to another installation."
         }
       ],
       "foreignKeys": [
@@ -14545,9 +14552,10 @@
           "owner_cluster_id"
         ],
         "optionalReferences": [
-          "custody_partner_station_id"
+          "custody_partner_station_id",
+          "owner_station_id"
         ],
-        "rationale": "A station's items go with it. A station carries no association with it, so an item the association owns arrives as owned by a body that does not run on the destination, which is what an empty owner says. A partner station is found again by its uid: gear lent out names the partner holding it when that partner runs on the destination too, and otherwise names none, as gear lent to another installation does. Borrowed gear needs its owner, so it is left behind and counted in the log when the owner does not run on the destination; the loan itself moves with the lending request."
+        "rationale": "A station's items go with it. A station carries no association with it, so an item the association owns arrives as owned by a body that does not run on the destination, which is what an empty owner says. A partner station is found again by its uid: gear lent out names the partner holding it when that partner runs on the destination too, and otherwise names none, as gear lent to another installation does. Borrowed gear always names its owner by uid in a column of its own, which the owner lookup reads; it names the owner by id as well when the owner runs on the destination, and keeps only the uid otherwise. The loan itself moves with the lending request."
       },
       "gdprExport": {
         "status": "TRACKED",
@@ -23565,7 +23573,7 @@
     "station": {
       "feature": "station",
       "scope": "STATION",
-      "tableHash": "sha256:945454e2e3cd7fe73ef6d7d0a2a535ad984ec493b2a6a6da429065acf4ca1474",
+      "tableHash": "sha256:42e7e9dafa7e398d0f083b76c6ac5cc36ad0e62a3cbfc901dce7b9cb665a40a1",
       "columns": [
         {
           "name": "id",
@@ -23915,6 +23923,20 @@
           "nullable": true,
           "verified": true,
           "description": "When a manager last saved how the station is listed in discovery, NULL while nobody has. Once set, the station has decided knowingly and the discovery step of its setup counts as done."
+        },
+        {
+          "name": "moved_away_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When the station finished moving to another installation. The row left here is a read-only copy under the same uid, which this installation no longer treats as running here: its partners reach the station at its new address. Null for every station that runs here."
+        },
+        {
+          "name": "moved_to",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "The address of the installation the station moved to, as the destination named itself. Null while the station runs here, and where the destination named no address."
         }
       ],
       "foreignKeys": [
@@ -23962,9 +23984,11 @@
           "read_only_for_transfer",
           "setup_completed_at",
           "metrics_uid",
-          "federation_private_key"
+          "federation_private_key",
+          "moved_away_at",
+          "moved_to"
         ],
-        "rationale": "Single-row table; exported as an object via outputShape=SINGLE. The federation key is encrypted with the source instance's key, so it travels sealed with the transfer token beside the station page instead of as a column."
+        "rationale": "Single-row table; exported as an object via outputShape=SINGLE. The federation key is encrypted with the source instance's key, so it travels sealed with the transfer token beside the station page instead of as a column. Whether the station moved away describes the copy a move leaves on the source, never the station arriving."
       },
       "gdprExport": {
         "status": "IGNORED",

@@ -141,6 +141,42 @@ public class StationRepository {
     }
 
     /**
+     * Finds a station that runs on this installation by its external UUID.
+     *
+     * <p>A station that moved to another installation leaves a read-only copy here under the same
+     * uid. That copy is still the station its managers open here, which {@link #findByUid(UUID)}
+     * answers, but it is not where the station runs: a partner, a loan or a federation request that
+     * names the uid means the station at its new address.
+     *
+     * @param uid the station UUID
+     * @return the station, or empty when none runs here under that uid
+     */
+    public Optional<Station> findHereByUid(UUID uid) {
+        return query("SELECT %s FROM station WHERE uid = :uid::UUID AND moved_away_at IS NULL;", STATION_COLUMNS)
+                .single(call().bind("uid", uid, StandardValueConverter.UUID_STRING))
+                .map(Station.map())
+                .first();
+    }
+
+    /**
+     * Records that a station finished moving to another installation, leaving its copy here behind.
+     *
+     * @param stationId the station that moved
+     * @param movedTo   the address of the installation it moved to, or {@code null} where none is known
+     * @return {@code true} when the station was marked
+     */
+    public boolean markMovedAway(int stationId, @Nullable String movedTo) {
+        return query("""
+                UPDATE station
+                SET moved_away_at = coalesce(moved_away_at, now()),
+                    moved_to      = :moved_to
+                WHERE id = :id;""")
+                .single(call().bind("id", stationId).bind("moved_to", movedTo))
+                .update()
+                .changed();
+    }
+
+    /**
      * Finds a station by its public slug.
      */
     public Optional<Station> findBySlug(String slug) {

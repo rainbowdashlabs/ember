@@ -29,6 +29,7 @@ import dev.chojo.ember.feature.federation.route.RemoteLendingRoutes.RemoteAvaila
 import dev.chojo.ember.feature.federation.route.RemoteLendingRoutes.RemoteLendingAccepted;
 import dev.chojo.ember.feature.federation.route.RemoteLendingRoutes.RemoteLendingLine;
 import dev.chojo.ember.feature.federation.route.RemoteLendingRoutes.RemoteLendingNotice;
+import dev.chojo.ember.feature.federation.route.RemoteLendingRoutes.RemoteLendingPiece;
 import dev.chojo.ember.feature.federation.route.RemoteLendingRoutes.RemoteLendingRequest;
 import dev.chojo.ember.feature.federation.route.RemoteLendingRoutes.RemoteLendingStatus;
 import dev.chojo.ember.feature.federation.transport.FederationEndpoints;
@@ -36,6 +37,7 @@ import dev.chojo.ember.feature.federation.transport.FederationServer;
 import dev.chojo.ember.feature.federation.transport.FederationTransport;
 import dev.chojo.ember.feature.federation.transport.PathParams;
 import dev.chojo.ember.feature.federation.transport.ServingPartner;
+import dev.chojo.ember.feature.inventory.entity.BorrowedPiece;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryArt;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
@@ -219,8 +221,7 @@ public class LendingService implements FederationServer {
             List<RequestLine> lines) {
         UUID requestingUid = stationRepository.requireUid(requestingStationId);
         var partner = requireLendingPartner(requestingStationId, owningUid);
-        Integer lendingStationHere =
-                stationRepository.findByUid(owningUid).map(Station::id).orElse(null);
+        Integer lendingStationHere = stationHere(owningUid);
         var request = repository.createRequest(
                 UUID.randomUUID(), requestingUid, owningUid, dateFrom, dateTo, createdBy, eventId, eventDate, occasion);
         for (var line : lines) {
@@ -642,7 +643,7 @@ public class LendingService implements FederationServer {
         var request = repository.findRequestById(requestId).orElse(null);
         if (request == null) return true;
         UUID actingUid = stationRepository.requireUid(stationId);
-        applyConsequences(request, status);
+        var handedOver = applyConsequences(request, status);
         repository.createMessage(requestId, actingUid, null, systemMessage, true);
         publishStatusChange(
                 request, stationId, stationName(stationId), stationOf(request.otherParty(actingUid)), status);
@@ -651,7 +652,7 @@ public class LendingService implements FederationServer {
             transport.notify(
                     partner,
                     RemoteLendingRoutes.CHANGE_STATUS.at(request.uid()),
-                    new RemoteLendingStatus(status, reason));
+                    new RemoteLendingStatus(status, reason, handedOver));
         }
         log.info("Lending request {} moved to {} by station {}", requestId, status, stationId);
         return true;
@@ -662,7 +663,8 @@ public class LendingService implements FederationServer {
      *
      * <p>Only the lending station agrees to a request and hands the gear over; either of the two may
      * decline, give back or close it. A change this copy already shows is the one row two stations of
-     * this instance share, and nothing further happens.
+     * this instance share, and nothing further happens. Gear handed over by a lending station on
+     * another instance is written down here from the pieces it lists.
      *
      * @param partner the partnership the change arrived on
      * @param uid     the request's identity between the two stations
@@ -677,6 +679,7 @@ public class LendingService implements FederationServer {
         if (request.status() == body.status()) return;
         if (!repository.updateRequestStatus(request.id(), body.status())) return;
         applyConsequences(request, body.status());
+        if (body.status() == LendingStatus.LENT) receiveHandedOver(request, body.handedOver());
         publishStatusChange(request, 0, partnerName(partner), partner.servingStationId(), body.status());
         log.info("Lending request {} moved to {} by partner {}", request.id(), body.status(), partner.partnerId());
     }
@@ -684,72 +687,104 @@ public class LendingService implements FederationServer {
     /**
      * What a request moving on does to the gear. Agreeing fills the lines, handing over and giving
      * back move the pieces set aside. On a copy of a request whose gear is on another instance there
-     * are no pieces here to move, so nothing happens there.
+     * are no pieces here to move, so only the borrowed copies come and go there.
+     *
+     * @return what was handed over, for a borrowing station on another instance to write down; empty
+     * unless the gear was handed over here
      */
-    private void applyConsequences(LendingRequest request, LendingStatus status) {
+    private List<RemoteLendingPiece> applyConsequences(LendingRequest request, LendingStatus status) {
         switch (status) {
             case APPROVED -> autoAssignItems(request.id());
-            case LENT -> handOver(request);
-            case RETURNED ->
-                forEachLentItem(request.id(), (requestItemId, itemId) -> {
-                    borrowedGearService.handBack(requestItemId);
-                    custodyService.returnFromPartner(itemId);
-                });
+            case LENT -> {
+                return handOver(request);
+            }
+            case RETURNED -> takeBack(request);
             default -> {}
         }
+        return List.of();
     }
 
     /**
-     * Hands the pieces set aside over to the borrowing station. A borrower on another instance has no
-     * rows here to write, so the owner's side is the whole of the handover and the borrower keeps
-     * only the request.
-     */
-    private void handOver(LendingRequest request) {
-        Integer borrower = stationRepository
-                .findByUid(request.requestingStationUid())
-                .map(Station::id)
-                .orElse(null);
-        Integer owner = stationRepository
-                .findByUid(request.owningStationUid())
-                .map(Station::id)
-                .orElse(null);
-        forEachLentItem(request.id(), (requestItemId, itemId) -> {
-            custodyService.lendToPartner(itemId, borrower);
-            if (borrower == null || owner == null) return;
-            inventoryRepository
-                    .findItemById(itemId)
-                    .ifPresent(item -> borrowedGearService.handOver(item, owner, borrower, requestItemId));
-        });
-    }
-
-    private int stationOf(UUID stationUid) {
-        return stationRepository.findByUid(stationUid).map(Station::id).orElse(0);
-    }
-
-    /**
-     * Runs an action over every item actually assigned to a lending request, which is what changes
-     * hands when the request is marked lent or returned. Request lines that never got an item
-     * assigned carry nothing to move.
+     * Hands the pieces set aside over to the borrowing station, line by line. The owner's rows say
+     * which partner has them; a borrower on this instance gets its copies written here, and one on
+     * another instance writes them itself from the pieces listed in the answer.
      *
-     * @param requestId the lending request
-     * @param action    what to do with each assigned item, given the line it was set aside on and the
-     *                  item itself
+     * @return the pieces handed over, each with the position of its line
      */
-    private void forEachLentItem(int requestId, LentItemAction action) {
-        for (var requestItem : repository.findItemsByRequest(requestId)) {
-            for (int itemId : repository.findAssignedItems(requestItem.id())) {
-                action.accept(requestItem.id(), itemId);
+    private List<RemoteLendingPiece> handOver(LendingRequest request) {
+        Integer borrower = stationHere(request.requestingStationUid());
+        Integer owner = stationHere(request.owningStationUid());
+        var lines = repository.findItemsByRequest(request.id());
+        var handedOver = new ArrayList<RemoteLendingPiece>();
+        for (int position = 0; position < lines.size(); position++) {
+            int lineId = lines.get(position).id();
+            var pieces = new ArrayList<BorrowedPiece>();
+            for (int itemId : repository.findAssignedItems(lineId)) {
+                custodyService.lendToPartner(itemId, borrower);
+                inventoryRepository.findItemById(itemId).map(BorrowedPiece::of).ifPresent(pieces::add);
+            }
+            if (borrower != null && owner != null) {
+                borrowedGearService.handOver(pieces, request.owningStationUid(), owner, borrower, lineId);
+            }
+            for (var piece : pieces) {
+                handedOver.add(new RemoteLendingPiece(position, piece.internalId(), piece.name()));
+            }
+        }
+        return handedOver;
+    }
+
+    /**
+     * Writes down the gear a lending station on another instance handed over, at the borrowing
+     * station of this instance. The pieces name their line by its position, which both copies of
+     * a request share.
+     *
+     * @param request the borrowing station's copy of the request
+     * @param pieces  what the lending station listed
+     */
+    private void receiveHandedOver(LendingRequest request, List<RemoteLendingPiece> pieces) {
+        Integer borrower = stationHere(request.requestingStationUid());
+        if (borrower == null || pieces.isEmpty() || stationHere(request.owningStationUid()) != null) return;
+        var lines = repository.findItemsByRequest(request.id());
+        var byLine = new LinkedHashMap<Integer, List<BorrowedPiece>>();
+        for (var piece : pieces) {
+            if (piece.line() < 0 || piece.line() >= lines.size()) continue;
+            byLine.computeIfAbsent(piece.line(), line -> new ArrayList<>())
+                    .add(BorrowedPiece.named(piece.internalId(), piece.name()));
+        }
+        byLine.forEach((position, linePieces) -> borrowedGearService.handOver(
+                linePieces,
+                request.owningStationUid(),
+                null,
+                borrower,
+                lines.get(position).id()));
+    }
+
+    /**
+     * Takes the gear back: the borrowed copies of every line go, wherever they were written, and the
+     * owner's pieces set aside on them are home again.
+     */
+    private void takeBack(LendingRequest request) {
+        for (var line : repository.findItemsByRequest(request.id())) {
+            borrowedGearService.handBack(line.id());
+            for (int itemId : repository.findAssignedItems(line.id())) {
+                custodyService.returnFromPartner(itemId);
             }
         }
     }
 
+    private int stationOf(UUID stationUid) {
+        return Objects.requireNonNullElse(stationHere(stationUid), 0);
+    }
+
     /**
-     * What to do with one piece of gear that is actually changing hands, told both which line of the
-     * request it is on and which item it is. The line is what pairs the two stations' rows.
+     * The station running on this instance under a uid. A station that moved to another instance
+     * left a copy here under the same uid, and that copy is not where the station is.
+     *
+     * @param stationUid the station
+     * @return its id here, or {@code null} where it runs on another instance
      */
-    @FunctionalInterface
-    private interface LentItemAction {
-        void accept(int requestItemId, int itemId);
+    private @Nullable Integer stationHere(UUID stationUid) {
+        return stationRepository.findHereByUid(stationUid).map(Station::id).orElse(null);
     }
 
     public LendingMessage sendMessage(
@@ -782,7 +817,7 @@ public class LendingService implements FederationServer {
      */
     public void serveNotice(ServingPartner partner, UUID uid, RemoteLendingNotice body) {
         var request = sharedRequest(partner, uid);
-        if (stationRepository.findByUid(partner.askingStationUid()).isPresent()) return;
+        if (stationRepository.findHereByUid(partner.askingStationUid()).isPresent()) return;
         eventBus.publish(new LendingMessageSent(
                 0, partner.servingStationId(), request.id(), partnerName(partner), body.senderName()));
     }
@@ -832,7 +867,7 @@ public class LendingService implements FederationServer {
      * @return the name, {@code "Unknown"} where neither is known
      */
     public String stationName(UUID stationUid, int viewingStationId) {
-        var here = stationRepository.findByUid(stationUid).map(Station::name);
+        var here = stationRepository.findHereByUid(stationUid).map(Station::name);
         if (here.isPresent()) return here.get();
         var partner = findPartnerForStation(viewingStationId, stationUid);
         return partner == null ? "Unknown" : FederationDisplayNames.partnerName(stationRepository, partner, "Unknown");
@@ -976,7 +1011,7 @@ public class LendingService implements FederationServer {
         var request = repository.findRequestById(requestId).orElse(null);
         if (request == null) return;
         var owningStation =
-                stationRepository.findByUid(request.owningStationUid()).orElse(null);
+                stationRepository.findHereByUid(request.owningStationUid()).orElse(null);
         if (owningStation == null) return;
         var lender = lenderAt(owningStation.id());
         Instant from = request.requestedDateFrom().atStartOfDay(ZoneOffset.UTC).toInstant();
@@ -1073,7 +1108,8 @@ public class LendingService implements FederationServer {
         var decorated = new ArrayList<AvailableInventoryEntry>(results.size());
         for (var entry : results) {
             Double distance = null;
-            var partnerStation = stationRepository.findByUid(entry.stationId()).orElse(null);
+            var partnerStation =
+                    stationRepository.findHereByUid(entry.stationId()).orElse(null);
             if (partnerStation != null && partnerStation.latitude() != null && partnerStation.longitude() != null) {
                 distance = StationLocationService.distanceKm(
                         localLat,

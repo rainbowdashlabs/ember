@@ -329,14 +329,57 @@ class GenericTableImporterTest extends RepositoryTestBase {
     }
 
     @Test
-    void aBorrowedPieceWhoseOwnerIsNowhereHereIsLeftBehind() {
-        Station source = stationRepo.create("Borrow Source");
-        Station owner = stationRepo.create("Borrow Owner");
-        Station destination = stationRepo.create("Borrow Destination");
+    void aBorrowedPieceFindsItsOwnerHereByItsUid() {
+        var borrowing = borrowFromOwner("Here");
+
+        assertEquals(1, borrowing.importBorrowed());
+
+        var arrived =
+                inventoryRepo.findBorrowedItems(borrowing.destination().id()).getFirst();
+        assertEquals("PA-Here", arrived.item().internalId());
+        assertEquals(borrowing.owner().id(), arrived.ownerStationId());
+        assertEquals(borrowing.owner().uid(), arrived.ownerStationUid());
+    }
+
+    @Test
+    void aBorrowedPieceWhoseOwnerIsNowhereHereKeepsItsOwnerByUid() {
+        var borrowing = borrowFromOwner("Elsewhere");
+        UUID elsewhere = UUID.randomUUID();
+        borrowing.borrowed().forEach(row -> row.put("owner_station_uid", elsewhere));
+
+        assertEquals(1, borrowing.importBorrowed());
+
+        var arrived =
+                inventoryRepo.findBorrowedItems(borrowing.destination().id()).getFirst();
+        assertNull(arrived.ownerStationId(), "the owner runs on another installation");
+        assertEquals(elsewhere, arrived.ownerStationUid());
+    }
+
+    @Test
+    void anOwnerThatMovedAwayIsNotFoundHere() {
+        var borrowing = borrowFromOwner("Moved");
+        stationRepo.markMovedAway(borrowing.owner().id(), "https://elsewhere.example");
+
+        assertEquals(1, borrowing.importBorrowed());
+
+        var arrived =
+                inventoryRepo.findBorrowedItems(borrowing.destination().id()).getFirst();
+        assertNull(arrived.ownerStationId(), "the copy the owner left here is not where it runs");
+        assertEquals(borrowing.owner().uid(), arrived.ownerStationUid());
+    }
+
+    /**
+     * A station that borrowed a piece from an owner on its installation, about to move to a
+     * destination: everything but the borrowed copy is already there.
+     */
+    private Borrowing borrowFromOwner(String name) {
+        Station source = stationRepo.create("Borrow Source " + name);
+        Station owner = stationRepo.create("Borrow Owner " + name);
+        Station destination = stationRepo.create("Borrow Destination " + name);
         int breathing = inventoryRepo
                 .create(owner.id(), "Atemschutz", InventoryType.INTERNAL, false)
                 .id();
-        var piece = inventoryRepo.createItem(breathing, "PA-3", "Pressluftatmer 3", null, null);
+        var piece = inventoryRepo.createItem(breathing, "PA-" + name, "Pressluftatmer " + name, null, null);
         var requests = new LendingRepository();
         var request = requests.createRequest(
                 UUID.randomUUID(),
@@ -350,12 +393,11 @@ class GenericTableImporterTest extends RepositoryTestBase {
                 "Übung");
         int line = requests.addRequestItem(request.id(), breathing, piece.id(), null, 1, null)
                 .id();
-        borrowedGearService.handOver(piece, owner.id(), source.id(), line);
+        borrowedGearService.handOver(piece, owner.id(), owner.uid(), source.id(), line);
         var idMap = new IdRemapper();
         idMap.put("station", source.id(), destination.id());
         var borrowed = rowsOf("inventory_item", source);
         assertEquals(owner.uid().toString(), String.valueOf(borrowed.getFirst().get("owner_station_uid")));
-        borrowed.forEach(row -> row.put("owner_station_uid", UUID.randomUUID()));
 
         importer.importRows(destination.id(), "inventory", rowsOf("inventory", source), idMap);
         importer.importRows(destination.id(), "federation_lending_request", requestRowsOf(source), idMap);
@@ -364,9 +406,21 @@ class GenericTableImporterTest extends RepositoryTestBase {
                 "federation_lending_request_item",
                 rowsOf("federation_lending_request_item", source),
                 idMap);
+        return new Borrowing(owner, destination, borrowed, idMap);
+    }
 
-        assertEquals(0, importer.importRows(destination.id(), "inventory_item", borrowed, idMap));
-        assertEquals(List.of(), internalIds(destination));
+    /**
+     * A borrowed copy on its way to the destination.
+     *
+     * @param owner       the station owning the piece
+     * @param destination the station the borrower arrives as
+     * @param borrowed    the borrower's exported item rows
+     * @param idMap       the ids handed out so far
+     */
+    private record Borrowing(Station owner, Station destination, List<Map<String, Object>> borrowed, IdRemapper idMap) {
+        int importBorrowed() {
+            return importer.importRows(destination.id(), "inventory_item", borrowed, idMap);
+        }
     }
 
     private static List<Map<String, Object>> rowsOf(String table, Station station) {

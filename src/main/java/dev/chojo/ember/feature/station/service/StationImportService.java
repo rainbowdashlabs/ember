@@ -11,7 +11,10 @@ import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.cluster.entity.StationKind;
 import dev.chojo.ember.feature.federation.service.FederationPartnerTransferFixupService;
+import dev.chojo.ember.feature.federation.service.LendingUidClashes;
 import dev.chojo.ember.feature.federation.service.OutboundHttp;
+import dev.chojo.ember.feature.federation.service.PartnersLeftBehind;
+import dev.chojo.ember.feature.federation.service.PartnersLeftBehind.LeftBehindPartner;
 import dev.chojo.ember.feature.federation.service.RemoteUrlValidator;
 import dev.chojo.ember.feature.federation.service.StationKeyTransfer;
 import dev.chojo.ember.feature.knowledgebase.service.KbIconService;
@@ -72,6 +75,7 @@ public class StationImportService {
 
     private static final Logger log = LoggerFactory.getLogger(StationImportService.class);
     private static final int PAGE_SIZE = 500;
+    private static final String LENDING_REQUESTS = "federation_lending_request";
 
     private final AccountRepository accountRepository;
     private final AuthService authService;
@@ -82,6 +86,8 @@ public class StationImportService {
     private final TransferFileImporter fileImporter;
     private final FederationPartnerTransferFixupService federationFixup;
     private final StationKeyTransfer keyTransfer;
+    private final PartnersLeftBehind partnersLeftBehind;
+    private final LendingUidClashes lendingClashes;
     private final StationAiKeyTransfer aiKeyTransfer;
     private final RemoteUrlValidator urlValidator;
     private final OutboundHttp outbound;
@@ -103,6 +109,8 @@ public class StationImportService {
             TransferFileImporter fileImporter,
             FederationPartnerTransferFixupService federationFixup,
             StationKeyTransfer keyTransfer,
+            PartnersLeftBehind partnersLeftBehind,
+            LendingUidClashes lendingClashes,
             StationAiKeyTransfer aiKeyTransfer,
             RemoteUrlValidator urlValidator,
             OutboundHttp outbound,
@@ -121,6 +129,8 @@ public class StationImportService {
         this.fileImporter = fileImporter;
         this.federationFixup = federationFixup;
         this.keyTransfer = keyTransfer;
+        this.partnersLeftBehind = partnersLeftBehind;
+        this.lendingClashes = lendingClashes;
         this.aiKeyTransfer = aiKeyTransfer;
         this.urlValidator = urlValidator;
         this.outbound = outbound;
@@ -256,7 +266,8 @@ public class StationImportService {
                 stationRepository.findById(stationId).map(Station::uid).orElse(station.uid());
         var progress = new ImportProgress(stationId, currentUid, stationName, buildPhases(), baseUrl, token);
         activeImports.put(stationId, progress);
-        importLane.submit(() -> runRemoteImport(stationId, stationData, client, progress));
+        var leftBehind = PartnersLeftBehind.read(stationPage);
+        importLane.submit(() -> runRemoteImport(stationId, stationData, leftBehind, client, progress));
         return new ImportResult(stationId, stationName, 0);
     }
 
@@ -285,7 +296,8 @@ public class StationImportService {
                 stationRepository.findById(stationId).orElseThrow(StationRefusal.STATION_IMPORT_TARGET_NOT_HERE::raise);
         var progress = new ImportProgress(stationId, target.uid(), target.name(), buildPhases(), baseUrl, token);
         activeImports.put(stationId, progress);
-        importLane.submit(() -> runRemoteImport(stationId, stationData, client, progress));
+        var leftBehind = PartnersLeftBehind.read(stationPage);
+        importLane.submit(() -> runRemoteImport(stationId, stationData, leftBehind, client, progress));
     }
 
     /**
@@ -392,6 +404,7 @@ public class StationImportService {
             total += importTable(context, table, payload);
         }
         total += engine.settle(context.stationId(), context.idMap(), context.waitingRows());
+        lendingClashes.merge(context.lendingStandIns());
         relinkFolderIcons(context.stationId());
         assignDefaultOwnerIfNeeded(context.stationId());
         return total;
@@ -429,7 +442,11 @@ public class StationImportService {
     }
 
     private void runRemoteImport(
-            int stationId, Map<String, Object> stationData, TransferSourceClient client, ImportProgress p) {
+            int stationId,
+            Map<String, Object> stationData,
+            List<LeftBehindPartner> leftBehind,
+            TransferSourceClient client,
+            ImportProgress p) {
         log.info(
                 "async run starting for station {} ('{}'), {} tables in topological order",
                 stationId,
@@ -454,9 +471,11 @@ public class StationImportService {
                 p.completePhase();
             }
             engine.settle(stationId, context.idMap(), context.waitingRows());
+            lendingClashes.merge(context.lendingStandIns());
             relinkFolderIcons(stationId);
             copyFiles(context, client, p);
             federationFixup.rewriteAfterImport(stationId, p.sourceUrl());
+            partnersLeftBehind.adopt(stationId, leftBehind);
             federationFixup.announceNewHostToRemotePartners(stationId, api.baseUrl());
             client.notifyComplete();
             p.complete();
@@ -565,19 +584,19 @@ public class StationImportService {
     /**
      * Dispatches a single wire payload (already extracted from the page envelope) to the importer
      * that claims the table, falling back to the metadata-driven engine, and then writes the rows that
-     * were waiting for what this payload brought.
+     * were waiting for what this payload brought. A lending request whose uid the partner's copy here
+     * already carries arrives under a stand-in and is merged into that copy once the run has settled.
      */
     @SuppressWarnings("unchecked")
     private int importTable(StationImportContext context, String table, Object payload) {
         TableImporter importer = importers.get(table);
-        int imported = importer != null
-                ? importer.importRows(context, payload)
-                : engine.importRows(
-                        context.stationId(),
-                        table,
-                        (List<Map<String, Object>>) payload,
-                        context.idMap(),
-                        context.waitingRows());
+        if (importer != null) {
+            return importer.importRows(context, payload)
+                    + engine.admitWaiting(context.stationId(), context.idMap(), context.waitingRows());
+        }
+        var rows = (List<Map<String, Object>>) payload;
+        if (LENDING_REQUESTS.equals(table)) rows = lendingClashes.setAside(rows, context.lendingStandIns());
+        int imported = engine.importRows(context.stationId(), table, rows, context.idMap(), context.waitingRows());
         return imported + engine.admitWaiting(context.stationId(), context.idMap(), context.waitingRows());
     }
 

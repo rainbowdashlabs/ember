@@ -269,7 +269,7 @@ public class MemberNameResolver {
     public @Nullable String resolve(@Nullable MemberIdentity identity) {
         if (identity == null) return null;
 
-        var station = stationRepository.findByUid(identity.stationUid()).orElse(null);
+        var station = stationRepository.findHereByUid(identity.stationUid()).orElse(null);
         if (station != null) {
             var memberId = memberService.resolveId(station.id(), identity.memberUid());
             if (memberId.isPresent()) {
@@ -315,7 +315,7 @@ public class MemberNameResolver {
     }
 
     private DisplayData resolveDisplayData(MemberIdentity identity) {
-        var station = stationRepository.findByUid(identity.stationUid()).orElse(null);
+        var station = stationRepository.findHereByUid(identity.stationUid()).orElse(null);
         String stationName = station != null ? station.name() : null;
         if (station != null) {
             var memberId = memberService.resolveId(station.id(), identity.memberUid());

@@ -5,8 +5,7 @@
  */
 package dev.chojo.ember.feature.station.service;
 
-import dev.chojo.ember.feature.federation.service.FederationPartnerTransferFixupService;
-import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.federation.service.MovedStationSwitchover;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -23,16 +22,16 @@ public class StationTransferService {
 
     private final StationRepository stationRepository;
     private final StationExportService exportService;
-    private final FederationPartnerTransferFixupService federationFixup;
+    private final MovedStationSwitchover switchover;
 
     @Inject
     public StationTransferService(
             StationRepository stationRepository,
             StationExportService exportService,
-            FederationPartnerTransferFixupService federationFixup) {
+            MovedStationSwitchover switchover) {
         this.stationRepository = stationRepository;
         this.exportService = exportService;
-        this.federationFixup = federationFixup;
+        this.switchover = switchover;
     }
 
     /**
@@ -48,8 +47,8 @@ public class StationTransferService {
     }
 
     /**
-     * Records that the destination imported every table, and points the federation partners the
-     * station keeps at the instance it moved to.
+     * Records that the destination imported every table, marks the copy left here as moved away, and
+     * switches the stations here that dealt with it over to the instance it moved to.
      *
      * @param stationId      the station that moved
      * @param signalledFrom  the destination as it named itself, or null or blank to use the one
@@ -64,10 +63,8 @@ public class StationTransferService {
                 stationId,
                 destinationUrl == null ? "<unknown>" : destinationUrl);
         exportService.markTransferComplete(stationId);
-        stationRepository
-                .findById(stationId)
-                .map(Station::uid)
-                .ifPresent(uid -> federationFixup.flipSourceSideRetainedPartners(uid, destinationUrl));
+        stationRepository.markMovedAway(stationId, destinationUrl);
+        stationRepository.findById(stationId).ifPresent(moved -> switchover.switchOver(moved, destinationUrl));
     }
 
     /**

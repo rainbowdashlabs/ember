@@ -32,6 +32,8 @@ Wachen erstellen aus eigenen Vorlagen und denen ihres Verbands Dokumente für ih
 - **Textausrichtung im Texteditor.** Absätze und Überschriften in Seiten, Neuigkeiten, Wiki-Artikeln und Briefen lassen sich über die Werkzeugleiste des Editors linksbündig, zentriert, rechtsbündig oder im Blocksatz ausrichten. Die Ausrichtung erscheint auf den veröffentlichten Seiten und in den PDFs von Briefen und Wiki.
 - **Jede Farbe für Text und Hervorhebung.** Neben den fertigen Farben nehmen Textfarbe und Hervorhebung im Editor jede Farbe als Hex-Code oder aus einem Farbwähler an. Die gewählte Farbe erscheint auf den veröffentlichten Seiten und in den PDFs von Briefen und Wiki.
 - **Eine Schriftgröße für markierte Wörter.** Über die Werkzeugleiste des Editors bekommen markierte Wörter in Seiten, Neuigkeiten, Wiki-Artikeln und Briefen eine Größe von 6 bis 96 Pixeln, und ein leeres Feld gibt ihnen die normale Größe zurück. Die Größe erscheint auf den veröffentlichten Seiten und in den PDFs von Briefen und Wiki.
+- **Ausrüstung von anderen Installationen steht in der Liste.** Ausrüstung, die eine Partnerwache auf einer anderen Installation verleiht, steht jetzt nach der Übergabe bei der ausgeliehenen Ausrüstung und verschwindet bei der Rückgabe wieder. Beide Installationen brauchen dafür diese Version.
+- **Partner leihen weiter bei einer umgezogenen Wache.** Zieht eine Wache auf eine andere Installation um, erreichen die Wachen, die sie zurücklässt, sie dort als Partner auf einer anderen Installation. Ihre Leihanfragen und ihre verliehene und ausgeliehene Ausrüstung bleiben bei ihnen und gehen wie gewohnt zurück.
 
 ### Änderungen
 

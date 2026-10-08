@@ -237,7 +237,7 @@ public class LendingRequestViewService {
     public EnrichedMessage describe(LendingMessage msg, int viewingStationId) {
         String senderName = null;
         boolean writtenHere =
-                stationRepository.findByUid(msg.senderStationUid()).isPresent();
+                stationRepository.findHereByUid(msg.senderStationUid()).isPresent();
         Integer senderMemberId = msg.senderMemberId();
         if (!msg.isSystem() && senderMemberId != null && writtenHere) {
             senderName = stationMemberRepository

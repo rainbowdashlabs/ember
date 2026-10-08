@@ -9,6 +9,7 @@ import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.api.refusal.StationRefusal;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.cluster.entity.StationKind;
+import dev.chojo.ember.feature.federation.service.PartnersLeftBehind;
 import dev.chojo.ember.feature.federation.service.StationKeyTransfer;
 import dev.chojo.ember.feature.quiz.service.StationAiKeyTransfer;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -64,6 +65,7 @@ public class StationExportService {
     private final String schemaHash;
     private final StationRepository stationRepository;
     private final StationKeyTransfer keyTransfer;
+    private final PartnersLeftBehind partnersLeftBehind;
     private final StationAiKeyTransfer aiKeyTransfer;
     private final Api apiConfig;
 
@@ -71,10 +73,12 @@ public class StationExportService {
     public StationExportService(
             StationRepository stationRepository,
             StationKeyTransfer keyTransfer,
+            PartnersLeftBehind partnersLeftBehind,
             StationAiKeyTransfer aiKeyTransfer,
             Api apiConfig) {
         this.stationRepository = stationRepository;
         this.keyTransfer = keyTransfer;
+        this.partnersLeftBehind = partnersLeftBehind;
         this.aiKeyTransfer = aiKeyTransfer;
         this.apiConfig = apiConfig;
         DataTracking tracking;
@@ -381,7 +385,9 @@ public class StationExportService {
      * <p>The same page as {@link #exportTable(int, String, int, int)}, except that the station page
      * also carries the station's federation key and its AI provider keys, sealed with the token, so
      * the destination can go on signing as the station its partners know and keeps working keys.
-     * The federation key column itself is never exported.
+     * The federation key column itself is never exported. It names the partners the station leaves
+     * behind on this instance as well, with the keys they sign with, which the destination needs to
+     * reach them once the two are on different instances.
      *
      * @param token     the transfer token the destination pulls with
      * @param stationId the station being transferred
@@ -394,6 +400,7 @@ public class StationExportService {
             String token, int stationId, String tableName, int offset, int limit) {
         var data = exportTable(stationId, tableName, offset, limit);
         if ("station".equals(tableName)) {
+            data.put(PartnersLeftBehind.FIELD, partnersLeftBehind.of(stationId));
             keyTransfer.seal(stationId, token).ifPresent(sealedKey -> data.put(StationKeyTransfer.FIELD, sealedKey));
             aiKeyTransfer
                     .seal(stationId, token)

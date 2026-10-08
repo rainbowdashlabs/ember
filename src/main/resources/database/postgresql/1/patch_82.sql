@@ -559,3 +559,56 @@ COMMENT ON FUNCTION ember_schema.member_document_retention_over(INTEGER)
 
 COMMENT ON COLUMN ember_schema.webauthn_challenge.purpose IS
     'Which ceremony minted the challenge: REGISTRATION, SECOND_FACTOR_ASSERTION, PASSKEY_SIGN_IN, PASSKEY_TRIAL, STEPUP_ASSERTION, DEVICE_ENROLLMENT or SIGNING (a started signing act, spent once by its completion). A challenge is only spendable at the finish of its own ceremony.';
+
+ALTER TABLE ember_schema.inventory_item
+    ADD COLUMN owner_station_uid UUID;
+
+UPDATE ember_schema.inventory_item ii
+SET owner_station_uid = s.uid
+FROM ember_schema.station s
+WHERE s.id = ii.owner_station_id;
+
+ALTER TABLE ember_schema.inventory_item
+    DROP CONSTRAINT IF EXISTS chk_inventory_item_owner;
+
+ALTER TABLE ember_schema.inventory_item
+    ADD CONSTRAINT chk_inventory_item_owner CHECK (
+        CASE owner_kind
+            WHEN 'STATION' THEN owner_cluster_id IS NULL AND owner_station_id IS NULL
+                AND owner_station_uid IS NULL AND loan_request_item_id IS NULL
+            WHEN 'CLUSTER' THEN owner_station_id IS NULL AND owner_station_uid IS NULL
+                AND loan_request_item_id IS NULL
+            WHEN 'PARTNER_STATION' THEN owner_cluster_id IS NULL
+                AND owner_station_uid IS NOT NULL AND loan_request_item_id IS NOT NULL
+            ELSE FALSE
+            END
+        );
+
+COMMENT ON COLUMN ember_schema.inventory_item.owner_station_id
+    IS 'The partner station that owns the item while that station runs on this installation, null for every other owner. Only ever set for PARTNER_STATION, and empty for an owner on another installation, which owner_station_uid names.';
+COMMENT ON COLUMN ember_schema.inventory_item.owner_station_uid
+    IS 'The partner station that owns the item, by the uid it carries on every installation. Set exactly for PARTNER_STATION, whether the owner runs on this installation or on another one, and kept when the owner or the borrower moves to another installation.';
+COMMENT ON CONSTRAINT chk_inventory_item_owner ON ember_schema.inventory_item
+    IS 'Each owner kind carries only the pointers that belong to it: a borrowed copy always names its owner by uid and the loan line it came on, a station''s own item names no owner, and an association''s item names no partner station.';
+
+ALTER TABLE ember_schema.station
+    ADD COLUMN moved_away_at TIMESTAMPTZ,
+    ADD COLUMN moved_to      TEXT,
+    ADD CONSTRAINT station_moved_to_check CHECK (moved_away_at IS NOT NULL OR moved_to IS NULL);
+
+COMMENT ON COLUMN ember_schema.station.moved_away_at
+    IS 'When the station finished moving to another installation. The row left here is a read-only copy under the same uid, which this installation no longer treats as running here: its partners reach the station at its new address. Null for every station that runs here.';
+COMMENT ON COLUMN ember_schema.station.moved_to
+    IS 'The address of the installation the station moved to, as the destination named itself. Null while the station runs here, and where the destination named no address.';
+COMMENT ON CONSTRAINT station_moved_to_check ON ember_schema.station
+    IS 'Only a station that moved away names where it went.';
+
+UPDATE ember_schema.federation_lending_request_item ri
+SET label = coalesce((SELECT a.name FROM ember_schema.inventory_art a WHERE a.id = ri.art_id),
+                     (SELECT i.name FROM ember_schema.inventory_item i WHERE i.id = ri.item_id),
+                     (SELECT v.name FROM ember_schema.inventory v WHERE v.id = ri.inventory_id),
+                     '')
+WHERE ri.label = '';
+
+COMMENT ON COLUMN ember_schema.federation_lending_request_item.label
+    IS 'What the line asks for, in words, as it was named when it was asked for: the kind of thing, the piece or the inventory it names, and on the copy of a request to a station on another installation, what the lending station called it. Kept when the gear it names is gone or on another installation, so the line still says what it was. Empty only where nothing named it.';

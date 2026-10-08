@@ -25,12 +25,21 @@ import dev.chojo.ember.feature.documents.entity.Uploader;
 import dev.chojo.ember.feature.documents.repository.SealedVersionRepository;
 import dev.chojo.ember.feature.documents.service.DocumentDoor;
 import dev.chojo.ember.feature.documents.service.DocumentService;
+import dev.chojo.ember.feature.equipment.repository.EquipmentAvailabilityRepository;
+import dev.chojo.ember.feature.equipment.repository.EquipmentNeedRepository;
+import dev.chojo.ember.feature.equipment.service.EquipmentAvailabilityService;
+import dev.chojo.ember.feature.federation.contract.FederationContractVersions;
 import dev.chojo.ember.feature.federation.entity.LendingMessage;
+import dev.chojo.ember.feature.federation.entity.LendingRequest;
 import dev.chojo.ember.feature.federation.entity.LendingRequestItem;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.repository.LendingRepository;
+import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationPartnerTransferFixupService;
+import dev.chojo.ember.feature.federation.service.LendingUidClashes;
+import dev.chojo.ember.feature.federation.service.MovedStationSwitchover;
+import dev.chojo.ember.feature.federation.service.PartnersLeftBehind;
 import dev.chojo.ember.feature.generator.entity.FontStyle;
 import dev.chojo.ember.feature.generator.repository.DocumentFontRepository;
 import dev.chojo.ember.feature.generator.repository.DocumentTemplateRepository;
@@ -46,6 +55,9 @@ import dev.chojo.ember.feature.generator.service.font.DocumentFontService;
 import dev.chojo.ember.feature.generator.service.font.FontLibrary;
 import dev.chojo.ember.feature.generator.service.font.TestFonts;
 import dev.chojo.ember.feature.generator.service.pdf.TestPdfs;
+import dev.chojo.ember.feature.inventory.entity.BorrowedItem;
+import dev.chojo.ember.feature.inventory.entity.BorrowedPiece;
+import dev.chojo.ember.feature.inventory.entity.InventoryItem;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
@@ -103,6 +115,7 @@ import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.owner.Owner;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import dev.chojo.ember.util.Sha256;
+import dev.chojo.ember.util.TestFederationServices;
 import dev.chojo.ember.util.TestRemoteUrlValidator;
 import dev.chojo.ember.util.TestStationKeys;
 import dev.chojo.ember.util.WebpEncoder;
@@ -134,6 +147,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import javax.imageio.ImageIO;
@@ -213,8 +227,11 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
                 new Api(),
                 backendImporter,
                 fileImporter,
-                new FederationPartnerTransferFixupService(new FederationRepository(), null),
+                new FederationPartnerTransferFixupService(
+                        new FederationRepository(), org.mockito.Mockito.mock(FederationHttpClient.class)),
                 TestStationKeys.transfer(),
+                TestStationKeys.partnersLeftBehind(),
+                new LendingUidClashes(new LendingRepository()),
                 TestStationKeys.aiKeyTransfer(),
                 TestRemoteUrlValidator.permissive(),
                 TestRemoteUrlValidator.permissiveOutbound(),
@@ -235,7 +252,12 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
                 new StationTransferService(
                         stationRepo,
                         exportService,
-                        new FederationPartnerTransferFixupService(new FederationRepository(), null)));
+                        new MovedStationSwitchover(
+                                new FederationRepository(),
+                                new FederationPartnerTransferFixupService(new FederationRepository(), null),
+                                TestStationKeys.store(),
+                                new LendingRepository(),
+                                inventoryRepo)));
         var assetRoutes = new StationTransferAssetRoutes(
                 exportService,
                 descriptorService,
@@ -853,7 +875,7 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
         lending.createMessage(lentOut.id(), partner.uid(), partnerMember.id(), "Danke", false);
         itemCustodyService.lendToPartner(lentItem, partner.id());
         borrowedGearService.handOver(
-                inventoryRepo.findItemById(lentItem).orElseThrow(), source.id(), partner.id(), lentLine);
+                inventoryRepo.findItemById(lentItem).orElseThrow(), source.id(), source.uid(), partner.id(), lentLine);
 
         int breathing = inventoryRepo
                 .create(partner.id(), "Atemschutz", InventoryType.INTERNAL, false)
@@ -876,7 +898,11 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
         lending.updateRequestStatus(borrowed.id(), LendingStatus.LENT);
         itemCustodyService.lendToPartner(partnerItem, source.id());
         borrowedGearService.handOver(
-                inventoryRepo.findItemById(partnerItem).orElseThrow(), partner.id(), source.id(), borrowedLine);
+                inventoryRepo.findItemById(partnerItem).orElseThrow(),
+                partner.id(),
+                partner.uid(),
+                source.id(),
+                borrowedLine);
 
         String token = rawToken(exportService.createTransferToken(source.id()));
         var importResult = importService.startRemoteImport(baseUrl, token);
@@ -927,6 +953,163 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
         assertEquals(LendingStatus.LENT, arrivedRequest.status());
         assertEquals(partner.uid(), arrivedRequest.owningStationUid());
         assertNotNull(arrivedRequest.createdBy(), "the member who asked moved with the station");
+    }
+
+    /**
+     * A station that lent to and borrowed from a partner of its installation moves away. The partner
+     * stays, reaches the moved station at its new address with the key the station took along, and
+     * keeps both loans as loans with another installation; deleting the copy the move left behind takes
+     * none of it away.
+     */
+    @Test
+    void aStationLeftBehindSwitchesOverToTheMovedStation() throws Exception {
+        Station source = stationRepo.create("Source SWITCH");
+        Station partner = stationRepo.create("Partner SWITCH");
+        var federationRepo = new FederationRepository();
+        var federation = TestFederationServices.of(federationRepo, stationRepo);
+        federation.acceptInvite(
+                partner.id(), source.id(), federation.encodePublicKey(federation.generateKeyPair()), null, null);
+        var lending = new LendingRepository();
+        int radios = inventoryRepo
+                .create(source.id(), "Funk", InventoryType.INTERNAL, false)
+                .id();
+        var radio = inventoryRepo.createItem(radios, "HRT-S", "Handfunkgerät S", null, null);
+        var lentOut = lend(lending, source, radio, partner);
+        int pumps = inventoryRepo
+                .create(partner.id(), "Pumpen", InventoryType.INTERNAL, false)
+                .id();
+        var pump = inventoryRepo.createItem(pumps, "TS-S", "Tragkraftspritze S", null, null);
+        var borrowed = lend(lending, partner, pump, source);
+        var keys = TestStationKeys.store();
+
+        var page = exportService.exportTableForTransfer("page-check", source.id(), "station", 0, 1);
+        assertEquals(
+                List.of(new PartnersLeftBehind.LeftBehindPartner(
+                        partner.uid(), "Partner SWITCH", keys.ensurePublicKey(partner.id()))),
+                page.get(PartnersLeftBehind.FIELD),
+                "the station takes along whom it leaves behind");
+
+        String token = rawToken(exportService.createTransferToken(source.id()));
+        var importResult = importService.startRemoteImport(baseUrl, token);
+        waitForImport(importResult.stationId());
+
+        var partnership = federationRepo
+                .findPartnerByStationAndRemoteUid(partner.id(), source.uid())
+                .orElseThrow();
+        assertEquals(new Api().baseUrl(), partnership.remoteHost(), "the partner reaches it at its new address");
+        assertEquals(keys.ensurePublicKey(source.id()), partnership.partnerPublicKey());
+        assertTrue(stationRepo.findHereByUid(source.uid()).isEmpty(), "the copy left behind is not where it runs");
+
+        var lentLine = lending.findItemsByRequest(lentOut.id()).getFirst();
+        assertNull(lentLine.itemId(), "the moved station's gear is not here to be named");
+        assertEquals("Handfunkgerät S", lentLine.label());
+        assertEquals(List.of(), lending.findAssignedItems(lentLine.id()));
+        var copy = borrowedFrom(partner, lentOut.id());
+        assertNull(copy.ownerStationId());
+        assertEquals(source.uid(), copy.ownerStationUid());
+        assertNull(inventoryRepo.findItemById(pump.id()).orElseThrow().custodyPartnerStationId());
+
+        stationRepo.delete(source.id());
+
+        assertEquals(1, lending.findItemsByRequest(lentOut.id()).size(), "the partner's loan outlives the copy");
+        assertEquals(
+                copy.item().id(), borrowedFrom(partner, lentOut.id()).item().id());
+        assertEquals(
+                List.of(pump.id()),
+                lending.findAssignedItems(
+                        lending.findItemsByRequest(borrowed.id()).getFirst().id()));
+    }
+
+    /**
+     * Gear borrowed from a partner on another installation arrives with the station, still owned by
+     * that partner's uid, and is handed back from the destination like any other.
+     */
+    @Test
+    void gearBorrowedFromAnotherInstallationArrivesAndGoesBackHome() throws Exception {
+        Station source = stationRepo.create("Source REMOTE OWNER");
+        UUID elsewhere = UUID.randomUUID();
+        var federation = TestFederationServices.of(new FederationRepository(), stationRepo);
+        String someKey = federation.encodePublicKey(federation.generateKeyPair());
+        new FederationRepository()
+                .createRemotePartner(
+                        source.id(),
+                        elsewhere,
+                        someKey,
+                        someKey,
+                        "https://owner-elsewhere.example",
+                        "Owner Elsewhere",
+                        FederationContractVersions.current());
+        var lending = new LendingRepository();
+        var request = lending.createRequest(
+                UUID.randomUUID(),
+                source.uid(),
+                elsewhere,
+                LocalDate.now(),
+                LocalDate.now().plusDays(3),
+                null,
+                null,
+                null,
+                "Übung");
+        int line =
+                lending.addRequestItem(request.id(), null, null, null, 1, null).id();
+        lending.labelItems(request.id(), List.of("Schläuche"));
+        lending.updateRequestStatus(request.id(), LendingStatus.LENT);
+        borrowedGearService.handOver(
+                List.of(BorrowedPiece.named("B-1", "Schlauch B 1")), elsewhere, null, source.id(), line);
+
+        String token = rawToken(exportService.createTransferToken(source.id()));
+        var importResult = importService.startRemoteImport(baseUrl, token);
+        waitForImport(importResult.stationId());
+        int destinationId = importResult.stationId();
+
+        var arrived = inventoryRepo.findBorrowedItems(destinationId).getFirst();
+        assertEquals("B-1", arrived.item().internalId());
+        assertNull(arrived.ownerStationId(), "the owner runs on another installation");
+        assertEquals(elsewhere, arrived.ownerStationUid());
+        assertEquals("Owner Elsewhere", arrived.ownerStationName());
+        assertEquals(
+                "Schläuche",
+                lending.findItemsByRequest(arrived.loanRequestId()).getFirst().label());
+
+        var lendingService = newLendingService(
+                new DomainEventBus(Set.of()),
+                new EquipmentAvailabilityService(
+                        new EquipmentAvailabilityRepository(),
+                        new EquipmentNeedRepository(),
+                        eventRepo,
+                        occurrenceCalendar));
+        assertTrue(lendingService.markReturned(arrived.loanRequestId(), destinationId));
+
+        assertEquals(List.of(), inventoryRepo.findBorrowedItems(destinationId), "the borrowed copy went home");
+    }
+
+    /** Hands one piece over from one station of this installation to another, as a loan. */
+    private static LendingRequest lend(
+            LendingRepository lending, Station lender, InventoryItem piece, Station borrower) {
+        var request = lending.createRequest(
+                UUID.randomUUID(),
+                borrower.uid(),
+                lender.uid(),
+                LocalDate.now(),
+                LocalDate.now().plusDays(7),
+                null,
+                null,
+                null,
+                "Übung");
+        int line = lending.addRequestItem(request.id(), piece.inventoryId(), piece.id(), null, 1, null)
+                .id();
+        lending.assignItem(line, piece.id());
+        lending.updateRequestStatus(request.id(), LendingStatus.LENT);
+        itemCustodyService.lendToPartner(piece.id(), borrower.id());
+        borrowedGearService.handOver(piece, lender.id(), lender.uid(), borrower.id(), line);
+        return request;
+    }
+
+    private static BorrowedItem borrowedFrom(Station borrower, int requestId) {
+        return inventoryRepo.findBorrowedItems(borrower.id()).stream()
+                .filter(item -> item.loanRequestId() == requestId)
+                .findFirst()
+                .orElseThrow();
     }
 
     private static LendingRequestItem lineNaming(int itemId) {
@@ -1043,18 +1226,37 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
      * collide on a database of its own. A lending request's uid is unique the same way. A saved filter belongs to an account, which both sides share here
      * as well, so the source's copy is cleared once it is sent: the destination's own database would not
      * hold it, and what the account has afterwards is what arrived.
+     *
+     * <p>The station's own uid is unique the same way, and the copy the move leaves on the source keeps
+     * it. Wherever it travels it is replaced by one uid per station that nothing here carries yet, which
+     * the arriving station takes, as it takes the source's uid on a database of its own; so the source
+     * switching over to the moved station never mistakes what arrived for what it left behind.
      */
     private static final class SeparateDatabaseExport extends StationExportService {
+        private static final Map<Integer, UUID> ARRIVING_AS = new ConcurrentHashMap<>();
+
         SeparateDatabaseExport() {
-            super(stationRepo, TestStationKeys.transfer(), TestStationKeys.aiKeyTransfer(), new Api());
+            super(
+                    stationRepo,
+                    TestStationKeys.transfer(),
+                    TestStationKeys.partnersLeftBehind(),
+                    TestStationKeys.aiKeyTransfer(),
+                    new Api());
         }
 
         @Override
         @SuppressWarnings("unchecked")
         public Map<String, Object> exportTable(int stationId, String tableName, int offset, int limit) {
             var page = super.exportTable(stationId, tableName, offset, limit);
+            String leaving = stationRepo.requireUid(stationId).toString();
+            UUID arriving = ARRIVING_AS.computeIfAbsent(stationId, id -> UUID.randomUUID());
+            if (page.get(tableName) instanceof Map<?, ?> single) {
+                renameStation((Map<String, Object>) single, leaving, arriving);
+            }
             if (page.get(tableName) instanceof List<?> rows) {
                 for (Object row : rows) {
+                    if (row instanceof Map<?, ?> columns)
+                        renameStation((Map<String, Object>) columns, leaving, arriving);
                     if (row instanceof Map<?, ?> columns && columns.containsKey("public_uid")) {
                         ((Map<String, Object>) columns).put("public_uid", UUID.randomUUID());
                     }
@@ -1067,6 +1269,10 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
                 }
             }
             return page;
+        }
+
+        private static void renameStation(Map<String, Object> row, String leaving, UUID arriving) {
+            row.replaceAll((column, value) -> value != null && leaving.equals(value.toString()) ? arriving : value);
         }
 
         private static void clearSavedFilter(Object id) {

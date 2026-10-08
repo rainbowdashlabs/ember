@@ -66,11 +66,15 @@ public final class GenericTableImporter {
      * matches. Adds a {@code ::uuid} cast to the bound value whenever the target column type is
      * declared as {@code uuid} in the tracking config - Postgres rejects a {@code uuid = text}
      * comparison without the cast.
+     *
+     * <p>A station is only found while it runs here: the copy a station left behind when it moved to
+     * another installation carries the same uid and is not the station a row names.
      */
     private Integer resolveByColumn(String table, String column, Object value) {
         String columnType = lookupColumnType(table, column);
         String cast = "uuid".equalsIgnoreCase(columnType) ? "::uuid" : "";
-        return query("SELECT id FROM " + table + " WHERE " + column + " = :v" + cast + " LIMIT 1;")
+        String runningHere = "station".equals(table) ? " AND moved_away_at IS NULL" : "";
+        return query("SELECT id FROM " + table + " WHERE " + column + " = :v" + cast + runningHere + " LIMIT 1;")
                 .single(call().bind("v", value == null ? null : value.toString()))
                 .map(row -> row.getInt("id"))
                 .first()

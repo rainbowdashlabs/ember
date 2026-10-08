@@ -326,6 +326,22 @@ class StationRepositoryTest extends RepositoryTestBase {
     }
 
     @Test
+    void aStationThatMovedAwayIsNoLongerFoundAsRunningHere() {
+        var station = stationRepo.create("Weggezogene Wache");
+        assertEquals(
+                station.id(),
+                stationRepo.findHereByUid(station.uid()).orElseThrow().id());
+
+        assertTrue(stationRepo.markMovedAway(station.id(), "https://elsewhere.example"));
+
+        assertTrue(stationRepo.findHereByUid(station.uid()).isEmpty());
+        assertEquals(
+                station.id(), stationRepo.findByUid(station.uid()).orElseThrow().id(), "its managers still open it");
+        assertFalse(stationRepo.markMovedAway(-1, null));
+        stationRepo.delete(station.id());
+    }
+
+    @Test
     @Order(99)
     void delete() {
         assertTrue(stationRepo.delete(stationId));

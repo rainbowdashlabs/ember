@@ -105,7 +105,7 @@ public class InventoryShareOverviewService {
         var names = new HashMap<Integer, String>();
         for (var partner : federationService.findPartners(stationId)) {
             String name = stationRepository
-                    .findByUid(partner.partnerStationId())
+                    .findHereByUid(partner.partnerStationId())
                     .map(Station::name)
                     .orElse(partner.partnerStationName());
             names.put(partner.id(), name != null ? name : UNNAMED);

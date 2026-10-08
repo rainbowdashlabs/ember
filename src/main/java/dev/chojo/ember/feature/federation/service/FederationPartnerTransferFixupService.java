@@ -70,6 +70,7 @@ public class FederationPartnerTransferFixupService {
                         FROM station s
                         WHERE fp.station_id = :station_id
                           AND s.uid = fp.partner_station_id
+                          AND s.moved_away_at IS NULL
                           AND (fp.partner_station_name IS NULL OR fp.partner_station_name = '');
                         """).single(call().bind("station_id", stationId)).update();
 
@@ -80,9 +81,12 @@ public class FederationPartnerTransferFixupService {
                         WHERE station_id = :station_id
                           AND NOT cluster_managed
                           AND EXISTS (
-                              SELECT 1 FROM station s WHERE s.uid = federation_partner.partner_station_id
+                              SELECT 1 FROM station s
+                              WHERE s.uid = federation_partner.partner_station_id
+                                AND s.moved_away_at IS NULL
                           );
                         """).single(call().bind("station_id", stationId)).update().rows();
+        int welcomed = welcomeHome(stationId);
 
         String url = sourceInstanceUrl == null ? null : sourceInstanceUrl.trim();
         int retargeted = 0;
@@ -94,7 +98,9 @@ public class FederationPartnerTransferFixupService {
                               AND NOT cluster_managed
                               AND remote_host IS NULL
                               AND NOT EXISTS (
-                                  SELECT 1 FROM station s WHERE s.uid = federation_partner.partner_station_id
+                                  SELECT 1 FROM station s
+                                  WHERE s.uid = federation_partner.partner_station_id
+                                    AND s.moved_away_at IS NULL
                               );
                             """)
                     .single(call().bind("station_id", stationId).bind("url", url))
@@ -102,11 +108,34 @@ public class FederationPartnerTransferFixupService {
                     .rows();
         }
         log.info(
-                "destination-side partner fixup for station {}: cleared {} intra-instance partner(s), pointed {} cross-instance partner(s) back at {}",
+                "destination-side partner fixup for station {}: cleared {} intra-instance partner(s), {} partner(s) here reach it here now, pointed {} cross-instance partner(s) back at {}",
                 stationId,
                 cleared,
+                welcomed,
                 retargeted,
                 url == null || url.isEmpty() ? "<unknown>" : url);
+    }
+
+    /**
+     * Turns the partnerships stations of this instance already had with the station that just
+     * arrived into partnerships on this instance: they reached it at its old address until now.
+     *
+     * @param stationId the station that arrived
+     * @return how many partner rows now reach it here
+     */
+    private int welcomeHome(int stationId) {
+        return query("""
+                        UPDATE federation_partner fp
+                        SET remote_host = NULL
+                        FROM station arrived, station holder
+                        WHERE arrived.id = :station_id
+                          AND fp.partner_station_id = arrived.uid
+                          AND fp.station_id <> arrived.id
+                          AND holder.id = fp.station_id
+                          AND holder.moved_away_at IS NULL
+                          AND fp.remote_host IS NOT NULL
+                          AND NOT fp.cluster_managed;
+                        """).single(call().bind("station_id", stationId)).update().rows();
     }
 
     /**

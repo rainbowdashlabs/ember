@@ -79,7 +79,7 @@ class InventoryShareOverviewServiceTest {
         when(inventories.findByStation(STATION)).thenReturn(List.of(tents));
         var local = mock(Station.class);
         when(local.name()).thenReturn("Wache Süd");
-        when(stations.findByUid(HERE)).thenReturn(Optional.of(local));
+        when(stations.findHereByUid(HERE)).thenReturn(Optional.of(local));
         when(federation.findPartners(STATION))
                 .thenReturn(List.of(
                         partner(7, HERE, "alt"), partner(8, ELSEWHERE, "Wache Nord"), partner(9, ELSEWHERE, null)));

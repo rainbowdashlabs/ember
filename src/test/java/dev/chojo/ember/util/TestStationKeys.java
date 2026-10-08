@@ -5,8 +5,10 @@
  */
 package dev.chojo.ember.util;
 
+import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.repository.StationKeyRepository;
 import dev.chojo.ember.feature.federation.service.FederationSigningService;
+import dev.chojo.ember.feature.federation.service.PartnersLeftBehind;
 import dev.chojo.ember.feature.federation.service.StationKeyStore;
 import dev.chojo.ember.feature.federation.service.StationKeyTransfer;
 import dev.chojo.ember.feature.federation.service.StationSigner;
@@ -14,6 +16,7 @@ import dev.chojo.ember.feature.quiz.repository.AccountAiCredentialRepository;
 import dev.chojo.ember.feature.quiz.repository.AiProviderRepository;
 import dev.chojo.ember.feature.quiz.service.AiCredentialService;
 import dev.chojo.ember.feature.quiz.service.StationAiKeyTransfer;
+import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.credential.CredentialCipher;
 
 import java.util.Base64;
@@ -46,6 +49,11 @@ public final class TestStationKeys {
     /** The transfer of station keys over a fresh key store. */
     public static StationKeyTransfer transfer() {
         return new StationKeyTransfer(store());
+    }
+
+    /** The partners a moving station leaves behind, with their keys from a fresh key store. */
+    public static PartnersLeftBehind partnersLeftBehind() {
+        return new PartnersLeftBehind(new FederationRepository(), new StationRepository(), store());
     }
 
     /** The transfer of a station's AI keys over the test database. */

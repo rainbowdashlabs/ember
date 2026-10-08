@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.tracking.engine;
 
+import dev.chojo.ember.tracking.ColumnEntry;
 import dev.chojo.ember.tracking.ForeignKey;
 import dev.chojo.ember.tracking.Lookup;
 import dev.chojo.ember.tracking.TableEntry;
@@ -12,6 +13,8 @@ import dev.chojo.ember.tracking.TableEntry;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * The SQL that flattens a table's {@link Lookup}s into its exported rows: one selected column and
@@ -22,8 +25,12 @@ import java.util.Objects;
  * without a tracked foreign key fails here with the table's name rather than as a query the
  * database cannot run.
  *
- * @param lookups the table's lookups, in order
- * @param targets the foreign key each lookup follows, at the same index
+ * <p>A lookup that emits under the name of one of the table's own columns is not joined: the row
+ * already carries the value it would pick, such as a borrowed piece naming its owner by uid beside
+ * the owner's id, and the import reads it from there.
+ *
+ * @param lookups the table's lookups that are joined in, in order
+ * @param targets the foreign key each of them follows, at the same index
  */
 record LookupSql(List<Lookup> lookups, List<ForeignKey> targets) {
 
@@ -33,19 +40,24 @@ record LookupSql(List<Lookup> lookups, List<ForeignKey> targets) {
      * @throws IllegalStateException when a lookup follows a column that has no tracked foreign key
      */
     static LookupSql of(String tableName, TableEntry table) {
-        List<Lookup> lookups = lookupsOf(table);
+        Set<String> ownColumns = table.columns().stream().map(ColumnEntry::name).collect(Collectors.toSet());
+        List<Lookup> joined = new ArrayList<>();
         List<ForeignKey> targets = new ArrayList<>();
-        for (Lookup lookup : lookups) {
+        for (Lookup lookup : lookupsOf(table)) {
+            ForeignKey target;
             try {
-                targets.add(table.foreignKeyFor(lookup.via()));
+                target = table.foreignKeyFor(lookup.via());
             } catch (IllegalStateException e) {
                 throw new IllegalStateException(
                         "Lookup '" + lookup.emitAs() + "' on table " + tableName + " cannot be followed: "
                                 + e.getMessage(),
                         e);
             }
+            if (ownColumns.contains(lookup.emitAs())) continue;
+            joined.add(lookup);
+            targets.add(target);
         }
-        return new LookupSql(lookups, List.copyOf(targets));
+        return new LookupSql(List.copyOf(joined), List.copyOf(targets));
     }
 
     /**

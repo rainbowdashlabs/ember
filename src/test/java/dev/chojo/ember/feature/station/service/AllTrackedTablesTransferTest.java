@@ -7,7 +7,9 @@ package dev.chojo.ember.feature.station.service;
 
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
+import dev.chojo.ember.feature.federation.repository.LendingRepository;
 import dev.chojo.ember.feature.federation.service.FederationPartnerTransferFixupService;
+import dev.chojo.ember.feature.federation.service.LendingUidClashes;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.transfer.AccountCredentialTableImporter;
@@ -62,7 +64,11 @@ class AllTrackedTablesTransferTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         exportService = new StationExportService(
-                stationRepo, TestStationKeys.transfer(), TestStationKeys.aiKeyTransfer(), new Api());
+                stationRepo,
+                TestStationKeys.transfer(),
+                TestStationKeys.partnersLeftBehind(),
+                TestStationKeys.aiKeyTransfer(),
+                new Api());
         var stationImporter = new StationTableImporter(stationRepo);
         importService = new StationImportService(
                 stationRepo,
@@ -72,6 +78,8 @@ class AllTrackedTablesTransferTest extends RepositoryTestBase {
                 null,
                 new FederationPartnerTransferFixupService(new FederationRepository(), null),
                 TestStationKeys.transfer(),
+                TestStationKeys.partnersLeftBehind(),
+                new LendingUidClashes(new LendingRepository()),
                 TestStationKeys.aiKeyTransfer(),
                 TestRemoteUrlValidator.permissive(),
                 TestRemoteUrlValidator.permissiveOutbound(),

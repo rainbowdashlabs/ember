@@ -128,8 +128,39 @@ public class RemoteLendingRoutes implements Routes {
      *
      * @param status the state it moved to
      * @param reason why, where it was declined, or {@code null}
+     * @param pieces what the lending station handed over, where it moved to lent; empty otherwise and
+     *               from a station that does not list them
      */
-    public record RemoteLendingStatus(LendingStatus status, String reason) {}
+    public record RemoteLendingStatus(
+            LendingStatus status,
+            @Nullable String reason,
+            @Nullable List<RemoteLendingPiece> pieces) {
+
+        /** A move that hands nothing over. */
+        public RemoteLendingStatus(LendingStatus status, @Nullable String reason) {
+            this(status, reason, List.of());
+        }
+
+        /**
+         * What was handed over, empty where nothing was listed.
+         *
+         * @return the pieces
+         */
+        public List<RemoteLendingPiece> handedOver() {
+            return pieces == null ? List.of() : pieces;
+        }
+    }
+
+    /**
+     * One piece the lending station handed over, which the borrowing station writes down as a
+     * borrowed copy.
+     *
+     * @param line       the position of the line it was lent on, counted from 0 in line order, which
+     *                   both copies of a request share
+     * @param internalId the piece's identifier, or {@code null}
+     * @param name       the piece's name
+     */
+    public record RemoteLendingPiece(int line, @Nullable String internalId, String name) {}
 
     /**
      * Word that a message was written on a request, so the other station's managers hear of it.

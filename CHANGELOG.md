@@ -32,6 +32,8 @@ Stations turn their own templates and those of their association into documents 
 - **Text alignment in the text editor.** Paragraphs and headings in pages, news, wiki articles and letters are aligned left, centred, right or justified from the editor's toolbar. The alignment shows on the published pages and in the letter and wiki PDFs.
 - **Any colour for text and highlights.** Next to the ready-made colours, the editor's text colour and highlight take any colour as a hex code or from a colour picker. The chosen colour shows on the published pages and in the letter and wiki PDFs.
 - **A font size for selected words.** The editor's toolbar sets selected words in pages, news, wiki articles and letters to a size from 6 to 96 pixels, and an empty field gives them their normal size back. The size shows on the published pages and in the letter and wiki PDFs.
+- **Borrowed gear from other installations is listed.** Gear borrowed from a partner station on another installation now appears among the borrowed gear once it is handed over, and leaves the list when it is given back. Both installations need this version for it.
+- **Partners keep lending with a station that moved.** When a station moves to another installation, the stations it leaves behind reach it there as a partner on another installation. Their lending requests and their lent and borrowed gear stay with them and are given back as before.
 
 ### Changes
 
