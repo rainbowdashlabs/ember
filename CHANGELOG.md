@@ -1,5 +1,13 @@
 # Changelog
 
+## v26.21.3
+
+Waiting list entries can be deleted from their own page, whatever their state.
+
+### Fixes
+
+- **Waiting list entries could not be deleted from their own page.** An entry could only be deleted from the list, and only while it was waiting or invited. The entry's own page now offers deleting it in every state, to everyone allowed to edit the waiting list.
+
 ## v26.21.2
 
 A refusal of storage in the browser can be changed on the sign-in page. The privacy policy and the consent are asked again only when their text or the kinds of stored data change. Changed lines of the legal texts appear formatted.
