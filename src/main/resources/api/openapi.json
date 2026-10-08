@@ -54734,11 +54734,17 @@
           "consentVersion" : {
             "type" : "string"
           },
+          "legacyPrivacyVersion" : {
+            "type" : "string"
+          },
+          "legacyTosVersion" : {
+            "type" : "string"
+          },
           "legacyConsentVersion" : {
             "type" : "string"
           }
         },
-        "required" : [ "privacyVersion", "tosVersion", "consentVersion", "legacyConsentVersion" ]
+        "required" : [ "privacyVersion", "tosVersion", "consentVersion", "legacyPrivacyVersion", "legacyTosVersion", "legacyConsentVersion" ]
       },
       "LendingItemRequest" : {
         "type" : "object",

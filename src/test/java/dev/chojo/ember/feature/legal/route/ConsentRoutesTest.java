@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.legal.route;
 import dev.chojo.ember.api.RouteHarness;
 import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.feature.legal.entity.DocumentVersion;
 import dev.chojo.ember.feature.legal.entity.DocumentVersions;
 import dev.chojo.ember.feature.legal.service.ConsentService;
 import dev.chojo.ember.feature.legal.service.ConsentStatusService;
@@ -56,15 +57,21 @@ class ConsentRoutesTest {
     }
 
     @Test
-    void theLegalVersionsNameTheLegacyConsentVersionStillAccepted() {
+    void theLegalVersionsNameTheLegacyVersionsStillAccepted() {
         var consents = mock(ConsentService.class);
-        when(consents.getCurrentVersions()).thenReturn(new DocumentVersions("p", "t", "c", "legacy"));
+        when(consents.getCurrentVersions())
+                .thenReturn(new DocumentVersions(
+                        new DocumentVersion("p", "p-legacy"),
+                        new DocumentVersion("t", "t-legacy"),
+                        new DocumentVersion("c", "c-legacy")));
         var harness = RouteHarness.serving(new ConsentRoutes(consents, mock(ConsentStatusService.class)));
 
         harness.run((server, client) -> {
             var versions = json(client.get(PREFIX + "/public/legal-versions"));
             assertEquals("c", versions.path("consentVersion").asString());
-            assertEquals("legacy", versions.path("legacyConsentVersion").asString());
+            assertEquals("c-legacy", versions.path("legacyConsentVersion").asString());
+            assertEquals("p-legacy", versions.path("legacyPrivacyVersion").asString());
+            assertEquals("t-legacy", versions.path("legacyTosVersion").asString());
         });
     }
 }

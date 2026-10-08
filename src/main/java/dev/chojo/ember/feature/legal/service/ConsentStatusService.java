@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.legal.service;
 
+import dev.chojo.ember.feature.legal.entity.DocumentVersion;
 import dev.chojo.ember.feature.legal.entity.DocumentVersions;
 import dev.chojo.ember.feature.legal.entity.GdprConsent;
 import jakarta.inject.Inject;
@@ -29,8 +30,8 @@ public class ConsentStatusService {
     /**
      * The account's latest consent, and whether it still covers every document as it now stands.
      * A consent that named no privacy policy or terms version is not held against the account for
-     * those. A consent to the consent text counts as current under either version
-     * {@link DocumentVersions#coversConsent} accepts.
+     * those. Each document counts as current under either version {@link DocumentVersion#covers}
+     * accepts.
      */
     public ConsentStatusResponse status(int accountId) {
         var current = consentService.getCurrentVersions();
@@ -38,9 +39,9 @@ public class ConsentStatusService {
                 .findLatestConsent(accountId)
                 .map(consent -> new ConsentStatusResponse(
                         true,
-                        current.coversConsent(consent.consentVersion())
-                                && !changed(consent.privacyVersion(), current.privacyVersion())
-                                && !changed(consent.tosVersion(), current.tosVersion()),
+                        current.consent().covers(consent.consentVersion())
+                                && !changed(consent.privacyVersion(), current.privacy())
+                                && !changed(consent.tosVersion(), current.tos()),
                         consent.consentVersion(),
                         consent.privacyVersion(),
                         consent.tosVersion(),
@@ -60,8 +61,8 @@ public class ConsentStatusService {
                         current.consentVersion()));
     }
 
-    private static boolean changed(String consented, String current) {
-        return consented != null && !current.equals(consented);
+    private static boolean changed(@Nullable String consented, DocumentVersion current) {
+        return consented != null && !current.covers(consented);
     }
 
     /**
@@ -75,11 +76,10 @@ public class ConsentStatusService {
         var consent = consentService.findLatestConsent(accountId);
         String privacyFrom = consent.map(GdprConsent::privacyVersion).orElse(null);
         String tosFrom = consent.map(GdprConsent::tosVersion).orElse(null);
-        boolean privacyChanged = changed(privacyFrom, current.privacyVersion());
-        boolean tosChanged = changed(tosFrom, current.tosVersion());
-        boolean consentChanged = consent.map(GdprConsent::consentVersion)
-                .map(version -> !current.coversConsent(version))
-                .orElse(false);
+        boolean privacyChanged = changed(privacyFrom, current.privacy());
+        boolean tosChanged = changed(tosFrom, current.tos());
+        boolean consentChanged =
+                changed(consent.map(GdprConsent::consentVersion).orElse(null), current.consent());
         return new ConsentChangesResponse(
                 privacyChanged,
                 tosChanged,

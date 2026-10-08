@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.legal.service;
 
+import dev.chojo.ember.feature.legal.entity.DocumentVersion;
 import dev.chojo.ember.feature.legal.entity.LegalDocumentType;
 import dev.chojo.ember.feature.system.service.DataInitializer;
 import dev.chojo.ember.util.FilePaths;
@@ -99,10 +100,15 @@ public class LegalDocumentService {
     }
 
     /**
-     * Initializes a document directory: checks for version changes, archives old content, generates diff.
-     * A directory without locale subdirectories is read flat.
+     * Initializes a document directory: checks for version changes, archives the content under its
+     * version, generates the diff from the previous version and pins the legacy hash
+     * ({@link LegacyVersionPin}). A directory without locale subdirectories is read flat.
      *
-     * @return true if the content changed since last startup, false on the very first one
+     * <p>Versions are those of {@link #versionOf(Path)}, so a stored key added to a known category
+     * is no change. A version file still holding the whole-document hash of the current text, as
+     * written before versions left out the stored keys, is no change either.
+     *
+     * @return true if the version changed since last startup, false on the very first one
      */
     public boolean initialize(Path baseDir) {
         String currentMarkdown = readMarkdownDirectory(baseDir, DEFAULT_LOCALE, browserStorage::toMarkdown);
@@ -114,16 +120,14 @@ public class LegalDocumentService {
             return false;
         }
 
-        String currentHash = hash(currentMarkdown);
+        String version = version(baseDir, typeSlug(baseDir));
+        String wholeDocumentHash = hash(currentMarkdown);
+        LegacyVersionPin.pinOnce(baseDir, wholeDocumentHash, version);
+
         Path versionFile = baseDir.resolve("version.txt");
         Path historyDir = baseDir.resolve("history");
-
-        String previousHash = readVersionFile(versionFile);
-
-        if (previousHash != null && previousHash.equals(currentHash)) {
-            log.info("Legal document unchanged: {} (version {})", baseDir, currentHash);
-            return false;
-        }
+        String previous = readVersionFile(versionFile);
+        boolean changed = previous != null && !previous.equals(version) && !previous.equals(wholeDocumentHash);
 
         try {
             Files.createDirectories(historyDir);
@@ -131,36 +135,34 @@ public class LegalDocumentService {
             log.error("Failed to create history directory: {}", historyDir, e);
         }
 
-        if (previousHash != null) {
-            log.info("Legal document changed: {} ({} -> {})", baseDir, previousHash, currentHash);
-
-            Path previousArchive = historyDir.resolve(previousHash + ".md");
-            if (Files.exists(previousArchive)) {
-                try {
-                    String previousMarkdown = Files.readString(previousArchive, StandardCharsets.UTF_8);
-                    String diff = generateDiff(previousMarkdown, currentMarkdown);
-
-                    Path diffFile = historyDir.resolve(previousHash + "_to_" + currentHash + ".diff");
-                    Files.writeString(diffFile, diff, StandardCharsets.UTF_8);
-                    log.info("Diff written to {}", diffFile);
-                } catch (IOException e) {
-                    log.error("Failed to generate diff", e);
-                }
-            }
+        if (changed) {
+            log.info("Legal document changed: {} ({} -> {})", baseDir, previous, version);
+            writeDiffFrom(historyDir, previous, version, currentMarkdown);
         } else {
-            log.info("Legal document initialized: {} (version {})", baseDir, currentHash);
+            log.info("Legal document unchanged: {} (version {})", baseDir, version);
         }
 
         try {
-            Path archiveFile = historyDir.resolve(currentHash + ".md");
-            Files.writeString(archiveFile, currentMarkdown, StandardCharsets.UTF_8);
+            Files.writeString(historyDir.resolve(version + ".md"), currentMarkdown, StandardCharsets.UTF_8);
         } catch (IOException e) {
             log.error("Failed to archive content", e);
         }
 
-        writeVersionFile(versionFile, currentHash);
+        writeVersionFile(versionFile, version);
+        return changed;
+    }
 
-        return previousHash != null;
+    private void writeDiffFrom(Path historyDir, String previous, String version, String currentMarkdown) {
+        Path previousArchive = historyDir.resolve(previous + ".md");
+        if (!Files.exists(previousArchive)) return;
+        try {
+            String previousMarkdown = Files.readString(previousArchive, StandardCharsets.UTF_8);
+            Path diffFile = historyDir.resolve(previous + "_to_" + version + ".diff");
+            Files.writeString(diffFile, generateDiff(previousMarkdown, currentMarkdown), StandardCharsets.UTF_8);
+            log.info("Diff written to {}", diffFile);
+        } catch (IOException e) {
+            log.error("Failed to generate diff", e);
+        }
     }
 
     /**
@@ -235,26 +237,42 @@ public class LegalDocumentService {
         String markdown = resolveMarkdown(baseDir, locale, typeSlug, browserStorage::toMarkdown);
         var numbered = LegalNumbering.apply(markdown, styleFor(typeSlug), paragraphSign(locale));
         String html = Markdown.toHtml(numbered.markdown(), HtmlSanitizer.Policy.STRICT);
-        String version = hash(markdown);
         if (!numbered.unresolved().isEmpty()) {
             log.warn("Legal document {} refers to sections that do not exist: {}", baseDir, numbered.unresolved());
         }
-        return new RenderedDocument(html, markdown, version);
+        return new RenderedDocument(html, markdown, version(baseDir, typeSlug));
     }
 
     /**
-     * The version of a document in the default locale, with its generated browser storage section
-     * counted by the storage categories alone instead of by every stored key.
+     * The version a consent to a document is given for, and the legacy hash still taken as it.
      *
-     * <p>This is the version a consent is given for: a key added to a category already disclosed
-     * leaves it as it was, while a new category, a reworded one or a change to the written text
-     * moves it. {@link #getDocument(Path)} keeps hashing the document as it reads.
+     * <p>The version is taken over the default locale with the generated browser storage section
+     * counted by its categories alone instead of by every stored key: a key added to a category
+     * already disclosed leaves it as it was, while a new category, a reworded one or a change to
+     * the written text moves it. A document without that section is versioned by its text alone.
+     *
+     * <p>The legacy hash is the one {@link LegacyVersionPin} holds while the version is still the
+     * one it was pinned to, otherwise the whole-document hash of the document as it reads now.
      *
      * @param baseDir the base directory containing the markdown files
-     * @return the content hash of the document with the storage section reduced to its categories
+     * @return the version and the legacy hash of the document
      */
-    public String versionByStorageCategories(Path baseDir) {
-        return hash(resolveMarkdown(baseDir, DEFAULT_LOCALE, typeSlug(baseDir), browserStorage::categorySummary));
+    public DocumentVersion versionOf(Path baseDir) {
+        String version = version(baseDir, typeSlug(baseDir));
+        String legacy = LegacyVersionPin.pinnedFor(baseDir, version).orElseGet(() -> wholeDocumentHash(baseDir));
+        return new DocumentVersion(version, legacy);
+    }
+
+    private String version(Path baseDir, @Nullable String typeSlug) {
+        return hash(resolveMarkdown(baseDir, DEFAULT_LOCALE, typeSlug, browserStorage::categorySummary));
+    }
+
+    /**
+     * The hash versions were taken from before they left out the stored keys: the whole document
+     * in the default locale, every stored key included.
+     */
+    String wholeDocumentHash(Path baseDir) {
+        return hash(resolveMarkdown(baseDir, DEFAULT_LOCALE, typeSlug(baseDir), browserStorage::toMarkdown));
     }
 
     /**
@@ -351,8 +369,20 @@ public class LegalDocumentService {
      * Gets the diff between two versions. First checks for a pre-computed diff file,
      * then falls back to generating the diff on-demand from archived markdown files.
      * This handles the case where multiple version changes occurred between user logins.
+     *
+     * <p>A legacy hash whose content was never archived is read as the version it was pinned to
+     * ({@link LegacyVersionPin}). Where neither is known, there is no diff and the reader is shown
+     * the current text alone.
      */
-    public @Nullable String getDiff(Path baseDir, String fromVersion, String toVersion) {
+    public @Nullable String getDiff(Path baseDir, @Nullable String fromVersion, @Nullable String toVersion) {
+        String diff = archivedDiff(baseDir, fromVersion, toVersion);
+        if (diff != null || fromVersion == null) return diff;
+        return LegacyVersionPin.versionPinnedTo(baseDir, fromVersion)
+                .map(pinned -> archivedDiff(baseDir, pinned, toVersion))
+                .orElse(null);
+    }
+
+    private @Nullable String archivedDiff(Path baseDir, @Nullable String fromVersion, @Nullable String toVersion) {
         if (fromVersion == null || toVersion == null || fromVersion.equals(toVersion)) {
             return null;
         }

@@ -12,6 +12,14 @@ import {
 import { useConsentGuard } from '@/composables/useConsentGuard'
 
 /**
+ * Whether a version stored in the browser still stands for the document in force: the current
+ * version, or the legacy hash the server still takes as it.
+ */
+function covers(stored: string | null | undefined, version: string, legacyVersion: string): boolean {
+  return stored === version || stored === legacyVersion
+}
+
+/**
  * The storage-consent gate on the login page and the legal documents behind it.
  *
  * Consent is stored in the browser together with the document versions it was given for, so a
@@ -51,11 +59,9 @@ export function useLoginConsent() {
       tosVersion.value = versions.tosVersion
 
       const stored = getStoredLegalVersions()
-      const consentCurrent = stored.consent === versions.consentVersion
-        || stored.consent === versions.legacyConsentVersion
-      const outdated = !consentCurrent
-        || stored.privacy !== versions.privacyVersion
-        || stored.tos !== versions.tosVersion
+      const outdated = !covers(stored.consent, versions.consentVersion, versions.legacyConsentVersion)
+        || !covers(stored.privacy, versions.privacyVersion, versions.legacyPrivacyVersion)
+        || !covers(stored.tos, versions.tosVersion, versions.legacyTosVersion)
       if (consent.value === 'accepted' && stored.consent && outdated) {
         consent.value = null
       }

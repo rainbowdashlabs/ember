@@ -59426,6 +59426,8 @@ export interface components {
         LegalVersionsResponse: {
             consentVersion: string;
             legacyConsentVersion: string;
+            legacyPrivacyVersion: string;
+            legacyTosVersion: string;
             privacyVersion: string;
             tosVersion: string;
         };

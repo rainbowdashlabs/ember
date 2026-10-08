@@ -16,47 +16,48 @@ vi.mock('@/api', () => ({
     getConsentText: vi.fn(async () => ({html: '<p>consent</p>', version: 'c-new'})),
     getLegalVersions: vi.fn(async () => ({
       consentVersion: 'c-new',
-      legacyConsentVersion: 'c-legacy',
-      privacyVersion: 'p',
+      privacyVersion: 'p-new',
       tosVersion: 't',
+      legacyConsentVersion: 'c-legacy',
+      legacyPrivacyVersion: 'p-legacy',
+      legacyTosVersion: 't',
     })),
   },
 }))
 
-function acceptedUnder(consentVersion: string) {
+function acceptedUnder(consent: string, privacy: string) {
   localStorage.setItem('storage_consent', 'accepted')
-  localStorage.setItem('consent_version', consentVersion)
-  localStorage.setItem('privacy_version', 'p')
+  localStorage.setItem('consent_version', consent)
+  localStorage.setItem('privacy_version', privacy)
   localStorage.setItem('tos_version', 't')
+}
+
+async function gateAfterLoading() {
+  const legal = useLoginConsent()
+  await legal.loadConsentText()
+  return legal.consent.value
 }
 
 describe('useLoginConsent', () => {
   beforeEach(() => localStorage.clear())
 
-  it('keeps a consent given under the current version', async () => {
-    acceptedUnder('c-new')
-    const legal = useLoginConsent()
-
-    await legal.loadConsentText()
-
-    expect(legal.consent.value).toBe('accepted')
+  it('keeps a consent given under the current versions', async () => {
+    acceptedUnder('c-new', 'p-new')
+    expect(await gateAfterLoading()).toBe('accepted')
   })
 
-  it('keeps a consent given under the legacy hash of the current consent text', async () => {
-    acceptedUnder('c-legacy')
-    const legal = useLoginConsent()
-
-    await legal.loadConsentText()
-
-    expect(legal.consent.value).toBe('accepted')
+  it('keeps a consent given under the legacy hashes of the current texts', async () => {
+    acceptedUnder('c-legacy', 'p-legacy')
+    expect(await gateAfterLoading()).toBe('accepted')
   })
 
   it('asks again for a consent given to an earlier consent text', async () => {
-    acceptedUnder('c-older')
-    const legal = useLoginConsent()
+    acceptedUnder('c-older', 'p-new')
+    expect(await gateAfterLoading()).toBeNull()
+  })
 
-    await legal.loadConsentText()
-
-    expect(legal.consent.value).toBeNull()
+  it('asks again for a consent given to an earlier privacy policy', async () => {
+    acceptedUnder('c-new', 'p-older')
+    expect(await gateAfterLoading()).toBeNull()
   })
 })

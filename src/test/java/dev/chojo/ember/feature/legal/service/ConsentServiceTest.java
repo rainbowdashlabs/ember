@@ -380,42 +380,47 @@ class ConsentServiceTest extends RepositoryTestBase {
         return ctx;
     }
 
-    /** The hash consents were recorded under before the consent version left out the stored keys. */
-    private static String legacyHashOfTheConsentDocument() {
+    /** The hash consents were recorded under before versions left out the stored keys. */
+    private static String legacyHashOf(String type) {
         return new LegalDocumentService(tempDir.resolve("placeholders.json").toString())
-                .getDocument(tempDir.resolve("consent"))
-                .version();
+                .wholeDocumentHash(tempDir.resolve(type));
     }
 
     @Test
     @Order(50)
-    void theConsentVersionNoLongerCoversTheStoredKeysButTheLegacyHashIsKnown() {
+    void theVersionsNoLongerCoverTheStoredKeysButTheLegacyHashesAreKnown() {
         var current = service.getCurrentVersions();
-        String legacy = legacyHashOfTheConsentDocument();
 
-        assertNotEquals(legacy, current.consentVersion(), "the consent text carries the generated storage section");
-        assertEquals(legacy, current.legacyConsentVersion());
+        for (var type : new String[] {"consent", "privacy"}) {
+            var version = "consent".equals(type) ? current.consent() : current.privacy();
+            assertNotEquals(legacyHashOf(type), version.version(), type + " carries the generated storage section");
+            assertEquals(legacyHashOf(type), version.legacyVersion());
+        }
         assertEquals(current.consentVersion(), service.getConsentText("de").version());
+        assertEquals(current.privacyVersion(), service.getPrivacyPolicy("en").version());
     }
 
     @Test
     @Order(51)
-    void aConsentUnderTheLegacyHashOfTheCurrentTextStaysCurrent() {
+    void aConsentUnderTheLegacyHashesOfTheCurrentTextsStaysCurrent() {
         var current = service.getCurrentVersions();
-        String legacy = legacyHashOfTheConsentDocument();
-        service.recordConsent(
-                account.id(), legacy, current.privacyVersion(), current.tosVersion(), "127.0.0.1", "DE", "Agent/1.0");
+        String consent = legacyHashOf("consent");
+        String privacy = legacyHashOf("privacy");
+        service.recordConsent(account.id(), consent, privacy, current.tosVersion(), "127.0.0.1", "DE", "Agent/1.0");
 
-        assertTrue(new ConsentStatusService(service).status(account.id()).current());
-        var proof = service.requireAcceptance(requestContext(), legacy, current.privacyVersion(), current.tosVersion());
-        assertEquals(legacy, proof.consentVersion());
+        var status = new ConsentStatusService(service);
+        assertTrue(status.status(account.id()).current());
+        assertFalse(status.changes(account.id(), "de").privacyChanged());
+        var proof = service.requireAcceptance(requestContext(), consent, privacy, current.tosVersion());
+        assertEquals(consent, proof.consentVersion());
+        assertEquals(privacy, proof.privacyVersion());
     }
 
     @Test
     @Order(52)
     void aLegacyHashOfAnEarlierConsentTextIsOutdated() throws IOException {
         var before = service.getCurrentVersions();
-        String legacy = legacyHashOfTheConsentDocument();
+        String legacy = legacyHashOf("consent");
         service.recordConsent(
                 account.id(), legacy, before.privacyVersion(), before.tosVersion(), "127.0.0.1", "DE", "Agent/1.0");
 
@@ -449,7 +454,6 @@ class ConsentServiceTest extends RepositoryTestBase {
             Files.createDirectories(root.resolve(type).resolve("de"));
             Files.writeString(root.resolve(type).resolve("de").resolve("01-" + type + ".md"), "# " + type);
         }
-        Files.writeString(root.resolve("privacy").resolve("de").resolve("_02-browser-storage.md"), "");
         var before = new BrowserStorageService().catalog();
         var entries = new ArrayList<>(before.entries());
         entries.add(new BrowserStorageEntry(
@@ -462,26 +466,29 @@ class ConsentServiceTest extends RepositoryTestBase {
 
         var switched = serviceOver(root, before);
         switched.initialize();
-        String legacy = new LegalDocumentService(
-                        tempDir.resolve("placeholders.json").toString(), new BrowserStorageService(before))
-                .getDocument(root.resolve("consent"))
-                .version();
+        var oldDocuments = new LegalDocumentService(
+                tempDir.resolve("placeholders.json").toString(), new BrowserStorageService(before));
+        String legacyConsent = oldDocuments.wholeDocumentHash(root.resolve("consent"));
+        String legacyPrivacy = oldDocuments.wholeDocumentHash(root.resolve("privacy"));
         var versions = switched.getCurrentVersions();
         var member = accountRepo.create("consent-legacy@test.com", "Legacy", "Consent");
         switched.recordConsent(
-                member.id(), legacy, versions.privacyVersion(), versions.tosVersion(), "127.0.0.1", "DE", "Agent/1.0");
+                member.id(), legacyConsent, legacyPrivacy, versions.tosVersion(), "127.0.0.1", "DE", "Agent/1.0");
 
         var extended = serviceOver(root, after);
         extended.initialize();
         var current = extended.getCurrentVersions();
 
         assertEquals(versions.consentVersion(), current.consentVersion());
+        assertEquals(versions.privacyVersion(), current.privacyVersion());
         assertTrue(
-                extended.getConsentText("de").markdown().contains("added_later"),
-                "the document as it reads now lists the added key, so its whole hash moved");
-        assertTrue(new ConsentStatusService(extended).status(member.id()).current());
-        assertDoesNotThrow(() ->
-                extended.requireAcceptance(requestContext(), legacy, current.privacyVersion(), current.tosVersion()));
+                extended.getPrivacyPolicy("de").markdown().contains("added_later"),
+                "the privacy policy as it reads now lists the added key, so its whole hash moved");
+        var status = new ConsentStatusService(extended);
+        assertTrue(status.status(member.id()).current());
+        assertFalse(status.changes(member.id(), "de").privacyChanged());
+        assertDoesNotThrow(
+                () -> extended.requireAcceptance(requestContext(), legacyConsent, legacyPrivacy, current.tosVersion()));
         accountRepo.delete(member.id());
     }
 }

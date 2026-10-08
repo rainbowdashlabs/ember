@@ -4,8 +4,9 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {ref} from 'vue'
+import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
+import {renderMarkdown} from '@/util/markdown'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import LinkButton from '@/components/button/LinkButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
@@ -37,6 +38,12 @@ function parseDiff(diff: string | undefined | null): { added: string[]; removed:
   }
   return {added, removed}
 }
+
+/**
+ * The lines the document lost and gained. Each is a line of the markdown source, so it is shown
+ * rendered the way the document itself reads rather than with its hashes and asterisks.
+ */
+const changedLines = computed(() => parseDiff(props.diff))
 </script>
 
 <template>
@@ -47,10 +54,10 @@ function parseDiff(diff: string | undefined | null): { added: string[]; removed:
     <template v-if="props.diff">
       <div class="text-xs text-(--text-muted) mb-1">{{ t('reconsent.whatChanged') }}</div>
       <div class="border border-(--border) rounded-lg p-3 text-sm space-y-1 max-h-48 overflow-y-auto bg-(--bg)">
-        <div v-for="(line, i) in parseDiff(props.diff).removed" :key="props.removedKeyPrefix + i"
-             class="text-error line-through">{{ line }}</div>
-        <div v-for="(line, i) in parseDiff(props.diff).added" :key="props.addedKeyPrefix + i"
-             class="text-success">{{ line }}</div>
+        <div v-for="(line, i) in changedLines.removed" :key="props.removedKeyPrefix + i"
+             class="legal-content text-error line-through" v-html="renderMarkdown(line)"/>
+        <div v-for="(line, i) in changedLines.added" :key="props.addedKeyPrefix + i"
+             class="legal-content text-success" v-html="renderMarkdown(line)"/>
       </div>
     </template>
 

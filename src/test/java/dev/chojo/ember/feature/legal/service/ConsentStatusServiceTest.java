@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.legal.service;
 
+import dev.chojo.ember.feature.legal.entity.DocumentVersion;
 import dev.chojo.ember.feature.legal.entity.DocumentVersions;
 import dev.chojo.ember.feature.legal.entity.GdprConsent;
 import org.junit.jupiter.api.BeforeEach;
@@ -36,7 +37,11 @@ class ConsentStatusServiceTest {
     @BeforeEach
     void setup() {
         consents = mock(ConsentService.class);
-        when(consents.getCurrentVersions()).thenReturn(new DocumentVersions("p2", "t2", "c2", "c2-legacy"));
+        when(consents.getCurrentVersions())
+                .thenReturn(new DocumentVersions(
+                        new DocumentVersion("p2", "p2-legacy"),
+                        new DocumentVersion("t2", "t2"),
+                        new DocumentVersion("c2", "c2-legacy")));
         service = new ConsentStatusService(consents);
     }
 
@@ -79,6 +84,15 @@ class ConsentStatusServiceTest {
         assertTrue(service.status(7).current());
         assertFalse(service.changes(7, "de").consentChanged());
         verify(consents, never()).getConsentText(any());
+    }
+
+    @Test
+    void aConsentUnderTheLegacyHashOfTheCurrentPrivacyPolicyIsCurrent() {
+        when(consents.findLatestConsent(7)).thenReturn(Optional.of(consent("c2", "p2-legacy", "t2")));
+
+        assertTrue(service.status(7).current());
+        assertFalse(service.changes(7, "de").privacyChanged());
+        verify(consents, never()).getPrivacyDiff(any(), any());
     }
 
     @Test
