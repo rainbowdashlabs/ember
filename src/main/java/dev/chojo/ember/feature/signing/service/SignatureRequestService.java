@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.signing.service;
 
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.refusal.DocumentRefusal;
+import dev.chojo.ember.feature.documents.entity.Document;
 import dev.chojo.ember.feature.documents.repository.DocumentRepository;
 import dev.chojo.ember.feature.documents.service.DocumentService;
 import dev.chojo.ember.feature.generator.entity.DocumentGeneration;
@@ -31,9 +32,11 @@ import dev.chojo.ember.util.Sha256;
 import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -53,6 +56,10 @@ import java.util.function.Supplier;
  * generated documents. What each field confirms comes from the template ({@link DocumentStatements}) and is
  * copied into the request with the template's retention period and whether a signer's copy carries the
  * PDF. A later change of the template leaves a request as it was made; only a new document asks anew.
+ *
+ * <p>The copies of the documents an appointment asks for are the exception: registering for the
+ * appointment asks for their signatures ({@link #requestForAppointment}), and no longer taking part
+ * withdraws what is still open ({@link #withdrawForAppointment}).
  *
  * <p>Everybody a new request asks is told so ({@link SignatureNotices}), and the requests for fields that
  * were withdrawn are taken back.
@@ -209,6 +216,59 @@ public class SignatureRequestService {
         return requests.findById(request.id()).orElse(request);
     }
 
+    /**
+     * Asks for the signatures of a participant's copy of a document an appointment asks for, generated as
+     * they registered. Nobody in particular asks: the appointment does, so the request names nobody who
+     * asked and nobody is told who signed. The caller has made sure the copy is the participant's for an
+     * appointment they take part in, so no right to change member documents is asked for.
+     *
+     * @param generationId the generation log entry of the copy
+     * @return the request
+     */
+    public SignatureRequest requestForAppointment(int generationId) {
+        var generation =
+                generations.findById(generationId).orElseThrow(DocumentRefusal.SIGNING_GENERATION_NOT_FOUND::raise);
+        var created = Transactions.call(() -> {
+            var plan = planOf(generation, memberOf(generation), filedDocument(generation));
+            return create(generation, plan, null);
+        });
+        notices.asked(created, requests.fieldsOf(created.id()));
+        return created;
+    }
+
+    /**
+     * Withdraws every signature still open on a participant's copies for one date of an appointment, once
+     * they no longer take part. What was already signed stays, and their reminders stop with the fields.
+     *
+     * @param eventId   the appointment
+     * @param eventDate the date
+     * @param memberId  the participant
+     * @return how many requests were withdrawn
+     */
+    public int withdrawForAppointment(int eventId, LocalDate eventDate, int memberId) {
+        int withdrawn = 0;
+        for (var open : requests.openForAppointment(eventId, eventDate, memberId)) {
+            int requestId = open.request().id();
+            boolean changed = Transactions.call(() -> {
+                var held = requests.lockRequest(requestId).orElse(null);
+                if (held == null || !held.open()) return false;
+                requests.withdrawOpen(requestId, null, null);
+                requests.closeIfSettled(requestId);
+                return true;
+            });
+            if (!changed) continue;
+            withdrawn++;
+            log.info(
+                    "Signing request {} withdrawn: member {} no longer takes part in appointment {} on {}",
+                    open.request().uid(),
+                    memberId,
+                    eventId,
+                    eventDate);
+            notices.settled(withdrawnFieldsOf(requestId));
+        }
+        return withdrawn;
+    }
+
     private List<Integer> withdrawnFieldsOf(int requestId) {
         return requests.fieldsOf(requestId).stream()
                 .filter(field -> field.state() == FieldState.WITHDRAWN)
@@ -299,7 +359,10 @@ public class SignatureRequestService {
     }
 
     private SignatureRequest create(StationSession session, DocumentGeneration generation) {
-        var plan = plan(session, generation);
+        return create(generation, plan(session, generation), session.member().id());
+    }
+
+    private SignatureRequest create(DocumentGeneration generation, Plan plan, @Nullable Integer askedBy) {
         if (requests.liveFor(generation.id())) throw DocumentRefusal.SIGNING_ALREADY_REQUESTED.raise();
         if (plan.fields().isEmpty()) throw DocumentRefusal.SIGNING_NO_FIELDS.raise();
         var created = requests.create(
@@ -311,7 +374,7 @@ public class SignatureRequestService {
                         plan.memberId(),
                         plan.memberName(),
                         plan.sha256(),
-                        session.member().id()),
+                        askedBy),
                 plan.fields());
         log.info(
                 "Asked for {} signatures on document {} at station {} ({})",
@@ -336,11 +399,20 @@ public class SignatureRequestService {
 
     private Plan plan(StationSession session, DocumentGeneration generation) {
         var member = memberOf(generation);
+        var document = filedDocument(generation);
+        guards.requireMayManage(session, document.id());
+        return planOf(generation, member, document);
+    }
+
+    private Document filedDocument(DocumentGeneration generation) {
         Integer documentId = generation.documentId();
         var document =
                 documentId == null ? null : documents.findById(documentId).orElse(null);
         if (document == null) throw DocumentRefusal.SIGNING_DOCUMENT_NOT_FILED.raise();
-        guards.requireMayManage(session, document.id());
+        return document;
+    }
+
+    private Plan planOf(DocumentGeneration generation, StationMember member, Document document) {
         byte[] content = documentService.read(document).orElseThrow(DocumentRefusal.SIGNING_DOCUMENT_NOT_FILED::raise);
         String sha256 = Sha256.hex(content);
         if (!sha256.equals(generation.fileSha256())) throw DocumentRefusal.SIGNING_DOCUMENT_CHANGED.raise();

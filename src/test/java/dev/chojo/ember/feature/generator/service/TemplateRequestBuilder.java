@@ -80,7 +80,7 @@ public final class TemplateRequestBuilder {
     }
 
     /** One row of blocks side by side, sharing the width evenly. */
-    static BlockRowRequest row(BlockCellRequest... cells) {
+    public static BlockRowRequest row(BlockCellRequest... cells) {
         return new BlockRowRequest(0, placed(cells));
     }
 
@@ -106,7 +106,7 @@ public final class TemplateRequestBuilder {
     }
 
     /** A text block. */
-    static BlockCellRequest text(String text) {
+    public static BlockCellRequest text(String text) {
         return block(CellContentType.MARKDOWN, text, null);
     }
 
@@ -133,7 +133,7 @@ public final class TemplateRequestBuilder {
     }
 
     /** A signature line for the signer, with the text under it. */
-    static BlockCellRequest signature(@Nullable SignatureRole signer, String below) {
+    public static BlockCellRequest signature(@Nullable SignatureRole signer, String below) {
         return signature(signer, below, null);
     }
 
@@ -203,7 +203,7 @@ public final class TemplateRequestBuilder {
         return this;
     }
 
-    TemplateRequestBuilder forAppointments(boolean forAppointments) {
+    public TemplateRequestBuilder forAppointments(boolean forAppointments) {
         this.forAppointments = forAppointments;
         return this;
     }
@@ -244,7 +244,7 @@ public final class TemplateRequestBuilder {
         return this;
     }
 
-    TemplateRequestBuilder body(List<BlockRowRequest> rows) {
+    public TemplateRequestBuilder body(List<BlockRowRequest> rows) {
         this.body = rows;
         return this;
     }

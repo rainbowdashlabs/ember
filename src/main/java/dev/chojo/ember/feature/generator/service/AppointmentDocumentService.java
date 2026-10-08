@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.generator.entity.GenerationOrigin;
 import dev.chojo.ember.feature.generator.entity.PaperSubmission;
 import dev.chojo.ember.feature.generator.entity.RequiredTemplate;
 import dev.chojo.ember.feature.generator.entity.RequirementGeneration;
+import dev.chojo.ember.feature.generator.entity.RequirementSignature;
 import dev.chojo.ember.feature.generator.entity.RequirementStatus;
 import dev.chojo.ember.feature.generator.repository.EventRequirementRepository;
 import dev.chojo.ember.feature.generator.repository.PaperSubmissionRepository;
@@ -47,10 +48,10 @@ import java.util.Set;
  * profile lacks is left as a gap to fill in by hand, which is what a form to print is for. The copy is
  * issued by the template's issuer at the station.
  *
- * <p>The status per participant and document is what the signing of these documents builds on later:
- * a copy is generated or it is not, and a copy from an older version of the template is marked as such
- * so a new one can be generated. Beside it stands the latest scan of a signed paper copy handed in for
- * it, whether it waits, was confirmed or was turned down.
+ * <p>The status per participant and document: a copy is generated or it is not, and a copy from an older
+ * version of the template is marked as such so a new one can be generated. Beside it stands the latest
+ * scan of a signed paper copy handed in for it, whether it waits, was confirmed or was turned down, and
+ * where signatures were asked for on the copy, where each of them stands ({@link RequirementSignatures}).
  */
 @Singleton
 public class AppointmentDocumentService {
@@ -65,6 +66,7 @@ public class AppointmentDocumentService {
     private final MemberNameResolver names;
     private final DocumentIssuerService issuers;
     private final EventRestrictionService audience;
+    private final RequirementSignatures signatures;
 
     @Inject
     public AppointmentDocumentService(
@@ -78,8 +80,10 @@ public class AppointmentDocumentService {
             EventFieldRepository fields,
             MemberNameResolver names,
             DocumentIssuerService issuers,
-            EventRestrictionService audience) {
+            EventRestrictionService audience,
+            RequirementSignatures signatures) {
         this.audience = audience;
+        this.signatures = signatures;
         this.requirements = requirements;
         this.submissions = submissions;
         this.templates = templates;
@@ -103,6 +107,7 @@ public class AppointmentDocumentService {
      * @param outdated    whether the template changed since that copy was generated
      * @param paper       the latest scan of a signed paper copy handed in for the participant, or null
      *                    where none was
+     * @param signature   the latest signatures asked for on the participant's copy, or null where none were
      */
     public record RequiredDocumentStatus(
             int templateId,
@@ -111,7 +116,8 @@ public class AppointmentDocumentService {
             @Nullable Integer documentId,
             @Nullable Instant generatedAt,
             boolean outdated,
-            @Nullable PaperSubmission paper) {}
+            @Nullable PaperSubmission paper,
+            @Nullable RequirementSignature signature) {}
 
     /**
      * The documents one participant is asked to bring.
@@ -165,16 +171,20 @@ public class AppointmentDocumentService {
         var asked = new LinkedHashSet<>(own);
         if (overview) asked.addAll(everyone);
         var copies = asked.isEmpty()
-                ? new Copies(List.of(), List.of())
-                : new Copies(requirements.latest(event.id(), date, asked), submissions.latest(event.id(), date, asked));
+                ? new Copies(List.of(), List.of(), List.of())
+                : new Copies(
+                        requirements.latest(event.id(), date, asked),
+                        submissions.latest(event.id(), date, asked),
+                        signatures.of(session, event.id(), date, asked));
         return new AppointmentDocuments(
                 required,
                 participantsOf(own, required, copies),
                 overview ? participantsOf(everyone, required, copies) : null);
     }
 
-    /** The generated copies and the scans handed in, for the participants asked about. */
-    private record Copies(List<RequirementGeneration> generated, List<PaperSubmission> scans) {}
+    /** The generated copies, the scans handed in and the signatures asked for, for the participants asked about. */
+    private record Copies(
+            List<RequirementGeneration> generated, List<PaperSubmission> scans, List<RequirementSignature> signed) {}
 
     /**
      * Refuses a scan to be handed in for a member by somebody who may not: the reader has to act for
@@ -246,11 +256,43 @@ public class AppointmentDocumentService {
             StationSession session, StationEvent event, LocalDate date, int templateId, int memberId) {
         requireMayHandIn(session, event, date, memberId, false);
         var template = requireAsked(session.stationId(), event.id(), templateId);
-        var context = new GenerationContext(
-                session.member().id(), facts(event, date), issuers.ofTemplate(template, session.stationId()));
+        return generateFor(event, date, template, memberId, session.member().id());
+    }
+
+    /**
+     * Generates a copy of a document the appointment asks for and files it with the participant, for a
+     * caller that already knows the member takes part, such as their registration. The copy is issued by
+     * the template's issuer at the appointment's station.
+     *
+     * @param event       the appointment
+     * @param date        the date of the appointment
+     * @param template    the document asked for
+     * @param memberId    the participant
+     * @param generatedBy the member the copy is generated by: whoever registered the participant
+     * @return the filed copy and the data it left as gaps
+     */
+    public GeneratedDocumentResponse generateFor(
+            StationEvent event, LocalDate date, DocumentTemplate template, int memberId, int generatedBy) {
+        var context =
+                new GenerationContext(generatedBy, facts(event, date), issuers.ofTemplate(template, event.stationId()));
         var prepared = generator.prepare(template, memberId, context);
         return generation.file(
-                template, memberId, session.member().id(), GenerationOrigin.appointment(event.id(), date), prepared);
+                template, memberId, generatedBy, GenerationOrigin.appointment(event.id(), date), prepared);
+    }
+
+    /**
+     * The documents an appointment asks for whose copy for the member asks the member or a guardian to
+     * sign, in the appointment's order. A document only the issuer signs is not among them.
+     *
+     * @param event    the appointment
+     * @param memberId the participant
+     * @return the templates, none where the appointment asks for nothing to sign
+     */
+    public List<DocumentTemplate> signableFor(StationEvent event, int memberId) {
+        return inUse(event.id()).stream()
+                .flatMap(required -> templates.find(required.templateId()).stream())
+                .filter(template -> generator.asksMemberSideToSign(template, memberId))
+                .toList();
     }
 
     private List<RequiredTemplate> inUse(int eventId) {
@@ -272,15 +314,30 @@ public class AppointmentDocumentService {
                                 .filter(scan ->
                                         scan.memberId() == memberId && scan.templateId() == template.templateId())
                                 .findFirst()
+                                .orElse(null),
+                        copies.signed().stream()
+                                .filter(signed ->
+                                        signed.memberId() == memberId && signed.templateId() == template.templateId())
+                                .findFirst()
                                 .orElse(null)))
                 .toList();
     }
 
     private static RequiredDocumentStatus status(
-            RequiredTemplate template, @Nullable RequirementGeneration copy, @Nullable PaperSubmission scan) {
+            RequiredTemplate template,
+            @Nullable RequirementGeneration copy,
+            @Nullable PaperSubmission scan,
+            @Nullable RequirementSignature signature) {
         if (copy == null) {
             return new RequiredDocumentStatus(
-                    template.templateId(), template.name(), RequirementStatus.NOT_GENERATED, null, null, false, scan);
+                    template.templateId(),
+                    template.name(),
+                    RequirementStatus.NOT_GENERATED,
+                    null,
+                    null,
+                    false,
+                    scan,
+                    signature);
         }
         return new RequiredDocumentStatus(
                 template.templateId(),
@@ -289,7 +346,8 @@ public class AppointmentDocumentService {
                 copy.documentId(),
                 copy.generatedAt(),
                 copy.templateVersion() < template.version(),
-                scan);
+                scan,
+                signature);
     }
 
     /** What a document says about the appointment on the date: its name, its times and its place. */

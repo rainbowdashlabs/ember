@@ -237,6 +237,23 @@ public class DocumentGeneratorService {
 
         /**
          * @param view what of a letter the member sees
+         * @return whether the member's document carries a signature field for somebody other than the
+         *         issuer: the member or a guardian
+         */
+        public boolean asksMemberSideToSign(MemberView view) {
+            return switch (content) {
+                case LetterContent letter -> {
+                    var issuer = SignatureRole.ISSUER.fieldNames(view.guardians());
+                    yield LetterLayout.signatureFields(letter, view).stream().anyMatch(name -> !issuer.contains(name));
+                }
+                case PdfContent pdf ->
+                    pdf.layout().fields().stream()
+                            .anyMatch(field -> field.role() != null && field.role() != SignatureRole.ISSUER);
+            };
+        }
+
+        /**
+         * @param view what of a letter the member sees
          * @return what the signer of each signature field of the member's document confirms, by the name of
          *         the field, for the fields whose line or box says so
          */
@@ -364,6 +381,19 @@ public class DocumentGeneratorService {
      */
     public Prepared prepare(DocumentTemplate template, int memberId, GenerationContext context) {
         return prepare(sourceOf(template), memberId, context);
+    }
+
+    /**
+     * Whether a member's document from a template asks the member or a guardian to sign, matched to the
+     * member as a document drawn now would be. A document that asks only the issuer does not.
+     *
+     * @param template the template
+     * @param memberId the member the document would be about
+     * @return whether it carries a signature field for the member or a guardian
+     */
+    public boolean asksMemberSideToSign(DocumentTemplate template, int memberId) {
+        var view = batch(List.of(memberId)).viewOf(memberId);
+        return sourceOf(template).asksMemberSideToSign(view);
     }
 
     /**

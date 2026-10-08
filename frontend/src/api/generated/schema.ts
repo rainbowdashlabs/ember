@@ -67933,6 +67933,7 @@ export interface components {
             name: string;
             outdated: boolean;
             paper: components["schemas"]["PaperSubmission"] | null;
+            signature: components["schemas"]["RequirementSignature"] | null;
             status: components["schemas"]["RequirementStatus"];
             /** Format: int32 */
             templateId: number;
@@ -67995,6 +67996,26 @@ export interface components {
             stationGroupId: number | null;
             userType: components["schemas"]["StationUserType"] | null;
         };
+        RequirementSignature: {
+            fields: components["schemas"]["RequirementSignatureField"][];
+            /** Format: int32 */
+            memberId: number;
+            /** Format: uuid */
+            requestUid: string;
+            state: components["schemas"]["RequirementSignatureState"];
+            /** Format: int32 */
+            templateId: number;
+        };
+        RequirementSignatureField: {
+            /** Format: int32 */
+            id: number;
+            name: string;
+            signerName: string | null;
+            state: components["schemas"]["RequirementSignatureState"];
+            yours: boolean;
+        };
+        /** @enum {string} */
+        RequirementSignatureState: "OPEN" | "SIGNED" | "PAPER_CONFIRMED" | "WAIVED";
         RequirementsRequest: {
             templateIds?: number[] | null;
         };
@@ -71997,6 +72018,9 @@ export type RequiredTemplate = components['schemas']['RequiredTemplate'];
 export type RequirementItem = components['schemas']['RequirementItem'];
 export type RequirementRequest = components['schemas']['RequirementRequest'];
 export type RequirementResponse = components['schemas']['RequirementResponse'];
+export type RequirementSignature = components['schemas']['RequirementSignature'];
+export type RequirementSignatureField = components['schemas']['RequirementSignatureField'];
+export type RequirementSignatureState = components['schemas']['RequirementSignatureState'];
 export type RequirementsRequest = components['schemas']['RequirementsRequest'];
 export type RequirementsResponse = components['schemas']['RequirementsResponse'];
 export type RequirementStatus = components['schemas']['RequirementStatus'];
@@ -73390,6 +73414,13 @@ export const RequestState = {
     OPEN: "OPEN",
     SUPERSEDED: "SUPERSEDED",
     WITHDRAWN: "WITHDRAWN",
+} as const;
+
+export const RequirementSignatureState = {
+    OPEN: "OPEN",
+    PAPER_CONFIRMED: "PAPER_CONFIRMED",
+    SIGNED: "SIGNED",
+    WAIVED: "WAIVED",
 } as const;
 
 export const RequirementStatus = {

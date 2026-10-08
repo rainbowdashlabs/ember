@@ -53,6 +53,9 @@ import java.util.Optional;
  *
  * <p>The scan is reached here through the appointment, so a manager of the registrations can read it
  * without the right to read member documents.
+ *
+ * <p>Once a scan counts as confirmed, the signatures still open on the participant's copy are settled as
+ * signed on paper ({@link ScanConfirmations}).
  */
 @Singleton
 public class PaperSubmissionService {
@@ -68,6 +71,7 @@ public class PaperSubmissionService {
     private final DocumentCatalogService catalog;
     private final MemberNameResolver names;
     private final Notifier notifier;
+    private final ScanConfirmations confirmations;
 
     @Inject
     public PaperSubmissionService(
@@ -77,7 +81,9 @@ public class PaperSubmissionService {
             DocumentService documents,
             DocumentCatalogService catalog,
             MemberNameResolver names,
-            Notifier notifier) {
+            Notifier notifier,
+            ScanConfirmations confirmations) {
+        this.confirmations = confirmations;
         this.submissions = submissions;
         this.appointments = appointments;
         this.templates = templates;
@@ -154,6 +160,9 @@ public class PaperSubmissionService {
                 event.id(),
                 date,
                 handover.submission().state());
+        if (handover.submission().state() == PaperState.CONFIRMED) {
+            confirmations.confirmed(session, handover.submission());
+        }
         return handover.submission();
     }
 
@@ -184,6 +193,7 @@ public class PaperSubmissionService {
                 "Scan submission {} confirmed by member {}",
                 submissionId,
                 session.member().id());
+        confirmations.confirmed(session, confirmed);
         return confirmed;
     }
 

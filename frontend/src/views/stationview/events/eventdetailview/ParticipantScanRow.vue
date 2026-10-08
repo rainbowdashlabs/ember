@@ -14,11 +14,14 @@ import ButtonRow from '@/components/button/ButtonRow.vue'
 import {PaperState, type PaperSubmission} from '@/api/generated/schema'
 import RequirementStatusBadge from './RequirementStatusBadge.vue'
 import ScanRejection from './ScanRejection.vue'
+import SignatureFieldList from '../eventshared/SignatureFieldList.vue'
 import {SCAN_TYPES, type ParticipantCopy} from './documentTiles'
 
 /**
  * Where one participant stands with one document, for an event manager: a scan that waits is read,
  * confirmed or turned down here, and until one is confirmed the manager may hand one in for them.
+ * Where signatures were asked for on the copy, each field shows whether it is signed, open, confirmed on
+ * paper or waived; confirming a scan confirms every open field on paper.
  */
 const props = defineProps<{
   copy: ParticipantCopy
@@ -61,6 +64,7 @@ const confirmed = computed(() => paper.value?.state === PaperState.CONFIRMED)
         {{ t('events.documents.scanUploadConfirmed') }}
       </FileUploadButton>
     </div>
+    <SignatureFieldList v-if="copy.document.signature" :signature="copy.document.signature" :offer-signing="false"/>
     <ScanRejection :paper="paper"/>
   </li>
 </template>

@@ -71,6 +71,7 @@ class PaperSubmissionServiceTest extends GeneratorTestBase {
     private static AppointmentDocumentService appointments;
     private static PaperSubmissionService scans;
     private static Notifier notifier;
+    private static ScanConfirmations confirmations;
     private static StationMember manager;
     private static StationMember lena;
     private static StationMember guardian;
@@ -107,8 +108,10 @@ class PaperSubmissionServiceTest extends GeneratorTestBase {
                 eventFieldRepo,
                 memberNameResolver,
                 wiring.issuers(),
-                new EventRestrictionService(eventRepo, restrictionService));
+                new EventRestrictionService(eventRepo, restrictionService),
+                RequirementSignatures.NONE);
         notifier = mock(Notifier.class);
+        confirmations = mock(ScanConfirmations.class);
         scans = new PaperSubmissionService(
                 submissions,
                 appointments,
@@ -116,7 +119,8 @@ class PaperSubmissionServiceTest extends GeneratorTestBase {
                 wiring.documents(),
                 new DocumentCatalogService(memberDocumentRepo, wiring.documents()),
                 memberNameResolver,
-                notifier);
+                notifier,
+                confirmations);
     }
 
     @BeforeEach
@@ -149,7 +153,7 @@ class PaperSubmissionServiceTest extends GeneratorTestBase {
                         manager.id())
                 .id();
         requirements.setForEvent(wiring.owner(), camp.id(), List.of(consent));
-        clearInvocations(notifier);
+        clearInvocations(notifier, confirmations);
     }
 
     private static UploadedFile scanFile() {
@@ -238,6 +242,7 @@ class PaperSubmissionServiceTest extends GeneratorTestBase {
         assertEquals(PaperState.CONFIRMED, submission.state());
         assertNotNull(submission.reviewedAt());
         assertEquals(PaperState.CONFIRMED, lenasStatus().paper().state());
+        verify(confirmations).confirmed(any(), eq(submission));
 
         int filed = memberDocumentRepo
                 .findByMember(wiring.station().id(), lena.id(), true)
@@ -265,9 +270,11 @@ class PaperSubmissionServiceTest extends GeneratorTestBase {
     @Test
     void aManagerConfirmsAWaitingScanOnce() {
         var submission = handIn(guardian);
+        verify(confirmations, never()).confirmed(any(), any());
 
         var confirmed = scans.confirm(as(manager), camp, submission.id());
 
+        verify(confirmations).confirmed(any(), eq(confirmed));
         assertEquals(PaperState.CONFIRMED, confirmed.state());
         assertEquals(PaperState.CONFIRMED, lenasStatus().paper().state());
         refused(DocumentRefusal.DOCUMENT_SCAN_NOT_WAITING, () -> scans.confirm(as(manager), camp, submission.id()));
@@ -355,7 +362,8 @@ class PaperSubmissionServiceTest extends GeneratorTestBase {
                 wiring.documents(),
                 new DocumentCatalogService(memberDocumentRepo, wiring.documents()),
                 memberNameResolver,
-                notifier);
+                notifier,
+                confirmations);
         var first = blind.submit(as(guardian), camp, DAY, consent, lena.id(), null, scanFile());
         int filed = memberDocumentRepo
                 .findByMember(wiring.station().id(), lena.id(), true)

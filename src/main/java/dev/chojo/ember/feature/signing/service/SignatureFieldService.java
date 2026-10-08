@@ -157,9 +157,29 @@ public class SignatureFieldService {
         return settle(session, requestUid, fieldName, FieldState.WITHDRAWN);
     }
 
+    /**
+     * Records that a field of a participant's copy of a document an appointment asks for was signed on
+     * paper, because a manager of the registrations confirmed the scan of the signed copy. Confirming the
+     * scan is the right this rests on, so the right to change member documents is not asked for.
+     *
+     * @param session    the manager of the registrations who confirmed the scan
+     * @param requestUid the request on the copy
+     * @param fieldName  the field
+     * @return the field as it now stands
+     */
+    public RequestedSignature confirmScanOnPaper(StationSession session, UUID requestUid, String fieldName) {
+        return settleChecked(
+                session, requestService.requestAt(session, requestUid), fieldName, FieldState.PAPER_CONFIRMED);
+    }
+
     private RequestedSignature settle(StationSession session, UUID requestUid, String fieldName, FieldState state) {
         var request = requestService.requestAt(session, requestUid);
         guards.requireMayManage(session, request.documentId());
+        return settleChecked(session, request, fieldName, state);
+    }
+
+    private RequestedSignature settleChecked(
+            StationSession session, SignatureRequest request, String fieldName, FieldState state) {
         int me = session.member().id();
         var settled = Transactions.call(() -> {
             var field = openField(request, fieldName);

@@ -69945,9 +69945,16 @@
             }, {
               "type" : "null"
             } ]
+          },
+          "signature" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/RequirementSignature"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
-        "required" : [ "templateId", "name", "status", "documentId", "generatedAt", "outdated", "paper" ]
+        "required" : [ "templateId", "name", "status", "documentId", "generatedAt", "outdated", "paper", "signature" ]
       },
       "RequiredInventoryItem" : {
         "type" : "object",
@@ -70102,6 +70109,59 @@
           }
         },
         "required" : [ "id", "inventoryId", "inventoryName", "userType", "groupId", "stationGroupId", "quantity", "position", "clusterName" ]
+      },
+      "RequirementSignature" : {
+        "type" : "object",
+        "properties" : {
+          "templateId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "memberId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "requestUid" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "state" : {
+            "$ref" : "#/components/schemas/RequirementSignatureState"
+          },
+          "fields" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/RequirementSignatureField"
+            }
+          }
+        },
+        "required" : [ "templateId", "memberId", "requestUid", "state", "fields" ]
+      },
+      "RequirementSignatureField" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "signerName" : {
+            "type" : [ "string", "null" ]
+          },
+          "state" : {
+            "$ref" : "#/components/schemas/RequirementSignatureState"
+          },
+          "yours" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "id", "name", "signerName", "state", "yours" ]
+      },
+      "RequirementSignatureState" : {
+        "type" : "string",
+        "enum" : [ "OPEN", "SIGNED", "PAPER_CONFIRMED", "WAIVED" ]
       },
       "RequirementStatus" : {
         "type" : "string",

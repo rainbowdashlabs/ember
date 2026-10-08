@@ -34,6 +34,7 @@ import dev.chojo.ember.feature.generator.service.AppointmentDocumentService;
 import dev.chojo.ember.feature.generator.service.DocumentTemplateService.DocumentTemplateSummary;
 import dev.chojo.ember.feature.generator.service.EventRequirementService;
 import dev.chojo.ember.feature.generator.service.GeneratorTestBase;
+import dev.chojo.ember.feature.generator.service.RequirementSignatures;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.mail.service.MailConfirmationPolicy;
 import dev.chojo.ember.feature.mail.service.MailLocaleService;
@@ -205,7 +206,8 @@ class DemoPhotoConsentSeederTest extends RepositoryTestBase {
                 eventFieldRepo,
                 memberNameResolver,
                 wiring.issuers(),
-                new EventRestrictionService(eventRepo, restrictionService));
+                new EventRestrictionService(eventRepo, restrictionService),
+                RequirementSignatures.NONE);
         return new DemoPhotoConsentSeeder(
                 wiring.templates(),
                 newEventServices(new DomainEventBus(Set.of())).crud(),

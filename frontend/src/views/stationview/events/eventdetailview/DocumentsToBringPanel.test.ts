@@ -9,10 +9,12 @@ import {mountSuspended} from '@nuxt/test-utils/runtime'
 import {
     DocumentTemplateKind,
     PaperState,
+    RequirementSignatureState,
     RequirementStatus,
     type AppointmentDocuments,
     type PaperSubmission,
     type ParticipantDocuments,
+    type RequirementSignature,
 } from '@/api/generated/schema'
 import {appointmentDocuments} from '@/api'
 import DocumentsToBringPanel from './DocumentsToBringPanel.vue'
@@ -44,7 +46,7 @@ function scan(state: PaperState, rejectReason: string | null = null): PaperSubmi
     }
 }
 
-function lena(paper: PaperSubmission | null = null): ParticipantDocuments {
+function lena(paper: PaperSubmission | null = null, signature: RequirementSignature | null = null): ParticipantDocuments {
     return {
         memberId: 11,
         name: 'Lena Schmidt',
@@ -56,7 +58,28 @@ function lena(paper: PaperSubmission | null = null): ParticipantDocuments {
             generatedAt: null,
             outdated: false,
             paper,
+            signature,
         }],
+    }
+}
+
+/** Lena's copy asks her and her first guardian; the reader may sign the participant field where `yours`. */
+function asked(
+    participant: RequirementSignatureState,
+    guardian: RequirementSignatureState,
+    yours = false,
+): RequirementSignature {
+    const fields = [
+        {id: 70, name: 'participant', signerName: 'Lena Schmidt', state: participant, yours},
+        {id: 71, name: 'guardian1', signerName: 'Anna Schmidt', state: guardian, yours: false},
+    ]
+    const open = fields.some(field => field.state === RequirementSignatureState.OPEN)
+    return {
+        templateId: 8,
+        memberId: 11,
+        requestUid: '0b9f5c1e-8f6d-4a39-9d55-2c1b7f3d4e10',
+        state: open ? RequirementSignatureState.OPEN : RequirementSignatureState.SIGNED,
+        fields,
     }
 }
 
@@ -168,6 +191,46 @@ describe('DocumentsToBringPanel', () => {
 
         expect(appointmentDocuments.rejectScan).toHaveBeenCalledWith(3, 20, 'Unterschrift fehlt')
         expect(panel.find('[data-testid="document-scan-reject-form"]').exists()).toBe(false)
+    })
+
+    it('shows a participant each signature of their copy and offers the ones they sign online', async () => {
+        const signature = asked(RequirementSignatureState.OPEN, RequirementSignatureState.OPEN, true)
+        const panel = await mountPanel({required: [CONSENT], own: [lena(null, signature)], participants: null})
+
+        const fields = panel.findAll('[data-testid="signature-field"]')
+        expect(fields).toHaveLength(2)
+        expect(fields[0]!.text()).toContain('Teilnehmende Person: Lena Schmidt')
+        expect(fields[0]!.text()).toContain('Unterschrift offen')
+        expect(fields[1]!.text()).toContain('Erziehungsberechtigte Person 1: Anna Schmidt')
+        expect(fields[0]!.find('[data-testid="signature-field-sign"]').exists()).toBe(true)
+        expect(fields[1]!.find('[data-testid="signature-field-sign"]').exists()).toBe(false)
+        expect(panel.find('[data-testid="document-to-bring"]').text()).toContain('Unterschrift offen')
+    })
+
+    it('shows an event manager signed, open, paper confirmed and waived fields without signing them', async () => {
+        const signed = {
+            ...asked(RequirementSignatureState.SIGNED, RequirementSignatureState.PAPER_CONFIRMED, true),
+            state: RequirementSignatureState.PAPER_CONFIRMED,
+        }
+        const panel = await mountPanel({required: [CONSENT], own: [], participants: [lena(null, signed)]})
+        await panel.find('[data-testid="document-to-bring-status"]').trigger('click')
+
+        const row = panel.find('[data-testid="documents-to-bring-participant"]')
+        const fields = row.findAll('[data-testid="signature-field"]')
+        expect(fields[0]!.text()).toContain('Unterschrieben')
+        expect(fields[1]!.text()).toContain('Auf Papier bestätigt')
+        expect(row.find('[data-testid="signature-field-sign"]').exists()).toBe(false)
+
+        const waived = await mountPanel({
+            required: [CONSENT],
+            own: [],
+            participants: [lena(null, {
+                ...asked(RequirementSignatureState.WAIVED, RequirementSignatureState.WAIVED),
+                state: RequirementSignatureState.WAIVED,
+            })],
+        })
+        await waived.find('[data-testid="document-to-bring-status"]').trigger('click')
+        expect(waived.find('[data-testid="documents-to-bring-participant"]').text()).toContain('Erlassen')
     })
 
     it('shows nothing where the appointment asks for nothing', async () => {

@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.signing.repository;
 
 import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
+import dev.chojo.ember.feature.signing.entity.AppointmentRequest;
 import dev.chojo.ember.feature.signing.entity.DueReminder;
 import dev.chojo.ember.feature.signing.entity.FieldState;
 import dev.chojo.ember.feature.signing.entity.GuardianLink;
@@ -19,6 +20,8 @@ import org.postgresql.util.PSQLException;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -42,6 +45,13 @@ public class SignatureRequestRepository {
               OR (f.role = 'GUARDIAN' AND f.signer_id = :member_id AND r.member_id = ANY (:ward_ids))
               OR (f.role = 'ANY_GUARDIAN' AND r.member_id = ANY (:ward_ids))
               OR (f.role = 'PARTICIPANT' AND f.signer_id = ANY (:ward_ids)))""";
+
+    /**
+     * What {@link AppointmentRequest#map()} reads: the request {@code r} and the template and member of the
+     * generation {@code g} its copy came from.
+     */
+    private static final String APPOINTMENT_COLUMNS = "g.template_id AS generation_template_id, "
+            + "g.member_id AS generation_member_id, " + SqlSupport.alias("r", SignatureRequest.COLUMNS);
 
     /**
      * Writes a request with its fields, the retention copied from the template the document came from.
@@ -165,6 +175,93 @@ public class SignatureRequestRepository {
                         ORDER BY id;""", RequestedSignature.COLUMNS)
                 .single(call().bind("request_id", requestId))
                 .map(RequestedSignature.map())
+                .all();
+    }
+
+    /**
+     * @param requestIds the requests
+     * @return the fields of all of them, each request's in the order they were asked for
+     */
+    public List<RequestedSignature> fieldsOfAll(List<Integer> requestIds) {
+        return query("""
+                        SELECT %s FROM signing_request_field
+                        WHERE request_id = ANY (:request_ids)
+                        ORDER BY request_id, id;""", RequestedSignature.COLUMNS)
+                .single(call().bind("request_ids", requestIds, PostgreSqlTypes.INTEGER))
+                .map(RequestedSignature.map())
+                .all();
+    }
+
+    /**
+     * The latest request on the copies of each document an appointment asks for, per participant, for one
+     * of its dates. A request a corrected copy superseded does not count.
+     *
+     * @param eventId   the appointment
+     * @param eventDate the date
+     * @param memberIds the participants
+     * @return at most one request per document and participant
+     */
+    public List<AppointmentRequest> latestForAppointment(
+            int eventId, LocalDate eventDate, Collection<Integer> memberIds) {
+        return query("""
+                        SELECT DISTINCT ON (g.template_id, g.member_id) %s
+                        FROM signing_request r
+                                 JOIN document_generation g ON g.id = r.generation_id
+                        WHERE g.event_id = :event_id
+                          AND g.event_date = :event_date
+                          AND g.member_id = ANY (:member_ids)
+                          AND r.state <> 'SUPERSEDED'
+                        ORDER BY g.template_id, g.member_id, r.id DESC;""", APPOINTMENT_COLUMNS)
+                .single(call().bind("event_id", eventId)
+                        .bind("event_date", eventDate)
+                        .bind("member_ids", List.copyOf(memberIds), PostgreSqlTypes.INTEGER))
+                .map(AppointmentRequest.map())
+                .all();
+    }
+
+    /**
+     * The requests on a participant's copies for one date of an appointment that are open or complete.
+     *
+     * @param eventId   the appointment
+     * @param eventDate the date
+     * @param memberId  the participant
+     * @return the requests, oldest first
+     */
+    public List<AppointmentRequest> liveForAppointment(int eventId, LocalDate eventDate, int memberId) {
+        return forAppointment(eventId, eventDate, memberId, "r.state IN ('OPEN', 'COMPLETE')");
+    }
+
+    /**
+     * The requests on a participant's copies for one date of an appointment that still wait for a
+     * signature.
+     *
+     * @param eventId   the appointment
+     * @param eventDate the date
+     * @param memberId  the participant
+     * @return the requests, oldest first
+     */
+    public List<AppointmentRequest> openForAppointment(int eventId, LocalDate eventDate, int memberId) {
+        return forAppointment(eventId, eventDate, memberId, "r.state = 'OPEN'");
+    }
+
+    /**
+     * @param stateCondition a condition on the request {@code r}, one of the constant ones above
+     */
+    private static List<AppointmentRequest> forAppointment(
+            int eventId, LocalDate eventDate, int memberId, String stateCondition) {
+        return query("""
+                        SELECT %s
+                        FROM signing_request r
+                                 JOIN document_generation g ON g.id = r.generation_id
+                        WHERE g.event_id = :event_id
+                          AND g.event_date = :event_date
+                          AND g.member_id = :member_id
+                          AND %s
+                        ORDER BY r.id;""", APPOINTMENT_COLUMNS, stateCondition)
+                .single(call().bind("event_id", eventId)
+                        .bind("event_date", eventDate)
+                        .bind("member_id", memberId))
+                .map(AppointmentRequest.map())
                 .all();
     }
 
