@@ -11,13 +11,14 @@ import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import AppIcon from '@/components/display/AppIcon.vue'
 import BareButton from '@/components/button/BareButton.vue'
 import MutedText from '@/components/typography/MutedText.vue'
+import SignatureStateBadge from './SignatureStateBadge.vue'
 import type {MemberDocumentResponse} from '@/api/generated/schema'
 import {formatDate, formatSize} from '@/util/format'
 import {fileKindIcon} from '@/util/fileKind'
 
 /**
  * One document as the store shows it: the picture of it where there is one, its title, whether it is
- * sealed, and the words it was filed under.
+ * sealed, how the signatures asked for on it stand, and the words it was filed under.
  */
 const props = defineProps<{
   document: MemberDocumentResponse
@@ -47,10 +48,11 @@ const icon = computed(() => fileKindIcon(props.document.mimeType))
     <div class="p-3 space-y-1">
       <div class="font-medium text-sm truncate" :title="props.document.title">{{ props.document.title }}</div>
       <MutedText size="sm">{{ formatSize(props.document.sizeBytes) }} · {{ formatDate(props.document.createdAt) }}</MutedText>
-      <div v-if="props.document.sealed" class="pt-1">
-        <SuccessBadge data-testid="document-sealed">
+      <div v-if="props.document.sealed || props.document.signature" class="flex flex-wrap gap-1 pt-1">
+        <SuccessBadge v-if="props.document.sealed" data-testid="document-sealed">
           <AppIcon :icon="['fas', 'lock']" class="mr-1"/>{{ t('documents.sealed') }}
         </SuccessBadge>
+        <SignatureStateBadge v-if="props.document.signature" :summary="props.document.signature"/>
       </div>
       <div v-if="props.document.tags.length > 0" class="flex flex-wrap gap-1 pt-1">
         <PrimaryBadge v-for="tag in props.document.tags" :key="tag">{{ tag }}</PrimaryBadge>

@@ -18,6 +18,8 @@ import DownloadButton from '@/components/button/DownloadButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import FileView from '@/components/documents/FileView.vue'
 import SealedVersionList from '@/components/documents/SealedVersionList.vue'
+import SignatureStateBadge from '@/components/documents/SignatureStateBadge.vue'
+import SignatureRequestPanel from '@/components/documents/signatures/SignatureRequestPanel.vue'
 import {formatDate, formatSize} from '@/util/format'
 import {downloadAuthed} from '@/util/downloadAuthed'
 import {contentUrl as stationContentUrl} from '@/api/documents'
@@ -33,7 +35,8 @@ type BoundMember = MemberLike & {formerAt?: string | null}
  * <p>Whom it concerns is decided here rather than at the upload, because that is usually noticed
  * while reading it, and it is a set rather than a list to add to: somebody put on it by mistake
  * has to come off again. A sealed document is locked: it offers neither removing nor choosing its
- * members, and lists its sealed versions instead.
+ * members, and lists its sealed versions instead, each to save on its own. Where signatures were asked
+ * for, it says how they stand, and a reader who looks after them sees each field and settles it there.
  */
 const modelValue = defineModel<boolean>({required: true})
 
@@ -49,11 +52,20 @@ const props = withDefaults(defineProps<{
   canEdit?: boolean
   /** Where the document itself is served from, which depends on the door the reader comes through. */
   contentUrl?: (documentId: number) => string
+  /** Where one sealed version is served from, or null where the door serves none. */
+  versionUrl?: ((documentId: number, version: number) => string) | null
+  /** Whether the reader looks after the signatures asked for on the document. */
+  manageSignatures?: boolean
+  /** Told after the signatures on the document changed, so the list behind can show it. */
+  onSignaturesChanged?: () => void
 }>(), {
   allMembers: undefined,
   allTags: undefined,
   canEdit: false,
   contentUrl: stationContentUrl,
+  versionUrl: null,
+  manageSignatures: false,
+  onSignaturesChanged: undefined,
 })
 
 const emit = defineEmits<{
@@ -73,6 +85,14 @@ watch(() => props.document, (document) => {
 }, {immediate: true})
 
 const memberOptions = computed(() => (props.allMembers ?? []).map(fromMember))
+
+/** Where a sealed version of the shown document is served from, where the door serves versions. */
+const versionUrlOfShown = computed(() => {
+  const url = props.versionUrl
+  const id = props.document?.id
+  if (!url || id === undefined) return null
+  return (version: number) => url(id, version)
+})
 
 /** Whether the reader may remove the document and choose its members, which a seal takes from everybody. */
 const canChange = computed(() => props.canEdit && !props.document?.sealed)
@@ -124,7 +144,14 @@ async function download() {
         <DeleteButton v-if="canChange" @click="emit('remove', props.document)"/>
       </div>
 
-      <SealedVersionList v-if="props.document.sealed" :versions="props.document.sealedVersions"/>
+      <SignatureStateBadge v-if="props.document.signature" :summary="props.document.signature"/>
+
+      <SealedVersionList v-if="props.document.sealed" :versions="props.document.sealedVersions"
+                         :file-name="props.document.fileName" :version-url="versionUrlOfShown"/>
+
+      <SignatureRequestPanel v-if="props.manageSignatures && props.document.signature"
+                             :request-uid="props.document.signature.requestUid"
+                             :on-changed="props.onSignaturesChanged"/>
 
       <FileView
           :source="props.contentUrl(props.document.id)"

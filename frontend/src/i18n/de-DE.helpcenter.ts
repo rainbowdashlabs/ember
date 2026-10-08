@@ -259,6 +259,7 @@ export default {
             pageEdit: 'Nur für Seiten-Bearbeiter',
             pageManager: 'Nur für Seiten-Verwalter',
             stationAdministrator: 'Nur für die Administration der Wache',
+            documentEditMember: 'Nur für Verwalter von Mitgliederdokumenten',
         },
         welcome: {
             title: 'Willkommen im Hilfe-Center',
@@ -2168,6 +2169,16 @@ volumes:
                 + 'auswählen" jedes, das der Filter findet, über alle Seiten. „Ausgewählte '
                 + 'löschen" entfernt sie nach einer Rückfrage in einem Zug, auch die zum Behalten '
                 + 'markierten. Dafür brauchst du „Mitgliederdokumente verwalten".',
+            sealedTitle: 'Versiegelte Dokumente und Unterschriften',
+            sealedText: 'Ein unterschriebenes Dokument ist versiegelt. Es lässt sich nicht löschen und bleibt bei '
+                + 'den Mitgliedern, für die es versiegelt wurde. Jede neue Unterschrift ergibt eine neue Fassung.',
+            sealedStateText: 'Wurde um Unterschriften gebeten, zeigt die Kachel, wie es steht: unterschrieben, '
+                + 'teilweise unterschrieben mit der Zahl der Unterschriften, offen, zurückgezogen oder ersetzt. '
+                + '„Niemand kann unterschreiben" heißt, dass ein Feld auf jemanden wartet, den es nicht gibt.',
+            sealedVersionsText: '„Herunterladen" speichert die aktuelle Fassung. Unter „Versiegelte Fassungen" '
+                + 'speicherst du jede frühere Fassung einzeln, über das Symbol neben ihr.',
+            sealedManageText: 'Wer Mitgliederdokumente verwalten darf, sieht im geöffneten Dokument jedes '
+                + 'Unterschriftsfeld. Wie das geht, steht unter Erstellte Dokumente.',
             filingRulesTitle: 'Dokumente aus Postfächern',
             filingRulesText: 'Ember kann Anhänge aus E-Mail-Postfächern in die Ablage legen. Die Regeln dafür '
                 + 'gehören zu den Postfächern und stehen unter Verwalten → Post-Import. Wer sie ändern darf, '
@@ -2213,6 +2224,25 @@ volumes:
             pagesText: 'Die Liste zeigt zuerst die 500 neuesten Dokumente. Mit „Ältere laden" kommen die nächsten '
                 + 'dazu; Suche und Filter wirken auf alles, was geladen ist.',
             rightsText: 'Die Liste sieht, wer „Mitgliederdokumente einsehen" hat.',
+            signatureTitle: 'Unterschriften',
+            signatureText: 'Die Spalte „Unterschriften" zeigt, wie es um ein Dokument steht: unterschrieben, '
+                + 'teilweise unterschrieben mit der Zahl der Unterschriften, offen, zurückgezogen, ersetzt oder '
+                + 'nicht angefordert. Du kannst auch danach filtern.',
+            signatureNobodyText: '„Niemand kann unterschreiben" heißt, dass ein Feld auf niemanden wartet, der es '
+                + 'unterschreiben kann. Das passiert zum Beispiel, wenn es keine zweite erziehungsberechtigte '
+                + 'Person gibt oder die Vorlage keine ausstellende Person nennt.',
+            manageTitle: 'Unterschriften verwalten',
+            manageText: 'Ein Klick auf eine Zeile öffnet die Anfrage. Du siehst jedes Feld mit der Person, die '
+                + 'unterschreiben soll, ihrer Erklärung und wann und womit unterschrieben wurde. „Aktuelle Fassung '
+                + 'herunterladen" speichert das Dokument, wie es jetzt ist.',
+            manageSettleText: 'Ein offenes Feld bestätigst du als „Auf Papier unterschrieben", lässt es mit '
+                + '„Erlassen" ohne Unterschrift gelten oder bittest mit „Zurückziehen" nicht mehr darum. Ember '
+                + 'fragt vorher noch einmal nach. Die nächste versiegelte Fassung zeigt es nach wenigen Minuten.',
+            manageWithdrawText: '„Ganze Anfrage zurückziehen" bittet um keine offene Unterschrift mehr. Was schon '
+                + 'unterschrieben ist, bleibt. Danach kannst du für das Dokument wieder um Unterschriften bitten.',
+            manageCorrectionText: 'Hast du das Dokument nach einer Änderung neu erstellt, wähle es unter „Nach einer '
+                + 'Änderung neu anfragen". Die alte Anfrage wird ersetzt, ihre Unterschriften bleiben erhalten.',
+            exampleStatement: 'Ich bin erziehungsberechtigt und stimme der Teilnahme zu.',
             tip: 'Willst du ein Dokument erneut erstellen, öffne die Seite des Mitglieds und wähle „Dokument '
                 + 'erstellen".',
         },

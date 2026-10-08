@@ -41,6 +41,8 @@ export interface MemberDocumentSource {
     contentUrl(documentId: number): string
     /** Where the picture of a document is served from, or null where this door serves none. */
     thumbnailUrl: ((documentId: number) => string) | null
+    /** Where one sealed version of a document is served from, or null where this door serves none. */
+    versionUrl: ((documentId: number, version: number) => string) | null
 }
 
 export async function listForMember(memberId: number): Promise<MemberDocumentResponse[]> {
@@ -115,6 +117,14 @@ export function contentUrl(documentId: number): string {
 }
 
 /**
+ * Where one sealed version of a document is served from: the one it serves now or an earlier one it
+ * superseded, each by its number.
+ */
+export function versionUrl(documentId: number, version: number): string {
+    return `/documents/${documentId}/versions/${version}/content`
+}
+
+/**
  * Where the picture of a document is served from, for the tile to show.
  *
  * <p>The size is the longest side. A portrait page is narrower than that, and a tile shows the page
@@ -130,4 +140,5 @@ export const stationDocumentSource: MemberDocumentSource = {
     upload: uploadForMember,
     contentUrl,
     thumbnailUrl: documentId => thumbnailUrl(documentId),
+    versionUrl,
 }

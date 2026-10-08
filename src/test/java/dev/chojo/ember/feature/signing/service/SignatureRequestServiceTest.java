@@ -39,6 +39,7 @@ import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.signing.entity.CompletedSigning;
 import dev.chojo.ember.feature.signing.entity.FieldRole;
 import dev.chojo.ember.feature.signing.entity.FieldState;
+import dev.chojo.ember.feature.signing.entity.ManagedSignatureRequest;
 import dev.chojo.ember.feature.signing.entity.OpenSignature;
 import dev.chojo.ember.feature.signing.entity.RequestState;
 import dev.chojo.ember.feature.signing.entity.RequestedSignature;
@@ -47,6 +48,7 @@ import dev.chojo.ember.feature.signing.entity.SignatureAsk;
 import dev.chojo.ember.feature.signing.entity.SignatureFieldName;
 import dev.chojo.ember.feature.signing.entity.SignatureLevel;
 import dev.chojo.ember.feature.signing.entity.SignatureRequest;
+import dev.chojo.ember.feature.signing.entity.SignatureSummary;
 import dev.chojo.ember.feature.signing.entity.Signer;
 import dev.chojo.ember.feature.signing.entity.SignerCapacity;
 import dev.chojo.ember.feature.signing.entity.SignerEntry;
@@ -92,6 +94,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HexFormat;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -104,6 +107,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -144,6 +148,8 @@ class SignatureRequestServiceTest extends RepositoryTestBase {
     private static SealedDocumentService sealedDocuments;
     private static SignatureRequestService requests;
     private static SignatureFieldService fields;
+    private static SignatureManagementService management;
+    private static SignatureSummaries summaries;
     private static SignatureNotices notices;
     private static SigningGuards guards;
     private static Station station;
@@ -168,6 +174,9 @@ class SignatureRequestServiceTest extends RepositoryTestBase {
         requests = requestService((template, member, name) -> STATEMENTS);
         fields = new SignatureFieldService(
                 requestRepo, evidenceRepo, requests, guards, guardianPolicy, memberNameResolver, notices);
+        management =
+                new SignatureManagementService(requests, fields, requestRepo, evidenceRepo, memberDocumentRepo, guards);
+        summaries = new SignatureSummaries(requestRepo);
         loginPermission = stationMemberRepo
                 .findPermissionByName(StationPermission.LOGIN)
                 .orElseThrow()
@@ -763,6 +772,201 @@ class SignatureRequestServiceTest extends RepositoryTestBase {
                         managing(),
                         replacement.uid(),
                         generated(stranger, legalTemplate, null, "participant").id()));
+    }
+
+    /**
+     * A manager sees each field with its signer, state and the act that signed it; a guardian place nobody
+     * holds and an issuer field without an issuer are fields nobody can sign until the manager settles them,
+     * and the lists count them.
+     */
+    @Test
+    void aManagerSeesEachFieldAndSettlesTheOnesNobodyCanSign() throws IOException {
+        var child = member("Lina", "Kind", false);
+        var guardian = member("Gero", "Vormund", true);
+        guard(guardian, child);
+        var generation = generated(child, legalTemplate, null, "participant", "guardian1", "guardian2", "issuer");
+        var request = requests.request(managing(), generation.id());
+        fields.record(
+                at(guardian),
+                signed(request, "guardian1", Signer.guardian(account(guardian), child.id()), STATEMENTS.guardian()));
+
+        var view = management.requireOwnedView(managing(), request.uid());
+
+        assertEquals("Einverstaendnis", view.documentTitle());
+        assertNull(view.supersededBy());
+        var byName = managedByName(view);
+        assertEquals(List.of("participant", "guardian1", "guardian2", "issuer"), List.copyOf(byName.keySet()));
+        assertFalse(byName.get("participant").nobodyCanSign(), "the child signs through the guardian's account");
+        assertNull(byName.get("participant").evidence());
+        var signedField = byName.get("guardian1");
+        assertEquals(FieldState.SIGNED, signedField.field().state());
+        assertEquals(
+                StepUpProof.TOTP,
+                Objects.requireNonNull(signedField.evidence()).evidence().proof());
+        assertFalse(signedField.nobodyCanSign());
+        assertTrue(byName.get("guardian2").nobodyCanSign(), "nobody holds the second guardian place");
+        assertTrue(byName.get("issuer").nobodyCanSign(), "the document names no issuer");
+        var documentId = Objects.requireNonNull(generation.documentId());
+        assertEquals(
+                new SignatureSummary(request.uid(), RequestState.OPEN, 1, 4, 3, 2),
+                summaries.ofDocuments(List.of(documentId)).get(documentId));
+
+        management.requireOwnedThenWaive(managing(), request.uid(), "guardian2");
+        var settled = management.requireOwnedThenConfirmOnPaper(managing(), request.uid(), "issuer");
+
+        var after = managedByName(settled);
+        assertEquals(FieldState.WAIVED, after.get("guardian2").field().state());
+        assertFalse(after.get("guardian2").nobodyCanSign());
+        assertEquals(FieldState.PAPER_CONFIRMED, after.get("issuer").field().state());
+        assertEquals(
+                memberNameResolver.official(manager.id()),
+                after.get("issuer").field().settledByName());
+        var summary = new SignatureSummary(request.uid(), RequestState.OPEN, 2, 3, 1, 0);
+        assertEquals(summary, summaries.ofDocuments(List.of(documentId)).get(documentId));
+        assertEquals(summary, summaries.ofGenerations(List.of(generation.id())).get(generation.id()));
+
+        var withdrawn = management.requireOwnedThenWithdrawField(managing(), request.uid(), "participant");
+
+        assertEquals(RequestState.COMPLETE, withdrawn.request().state());
+        assertEquals(
+                FieldState.WITHDRAWN,
+                managedByName(withdrawn).get("participant").field().state());
+    }
+
+    /**
+     * A child without a login and without guardians cannot sign their own field, and nobody can sign a field
+     * for any guardian; linking a guardian makes both signable.
+     */
+    @Test
+    void aChildWithoutGuardiansLeavesFieldsNobodyCanSign() throws IOException {
+        var orphan = member("Ole", "Allein", false);
+        var request = requests.request(
+                managing(),
+                generated(orphan, legalTemplate, null, "participant", "anyGuardian")
+                        .id());
+
+        assertEquals(
+                Set.of("participant", "anyGuardian"),
+                fieldsNobodyCanSign(management.requireOwnedView(managing(), request.uid())));
+
+        guard(member("Hanna", "Hilfe", true), orphan);
+
+        assertEquals(Set.of(), fieldsNobodyCanSign(management.requireOwnedView(managing(), request.uid())));
+    }
+
+    @Test
+    void managingARequestNeedsTheDocumentRightAtTheRequestsStation() throws IOException {
+        var adult = member("Mara", "Mitglied", true);
+        var request = requests.request(
+                managing(), generated(adult, legalTemplate, null, "participant").id());
+        var uid = request.uid();
+        var elsewhere = stationRepo.create("Other Signing Station");
+        try {
+            var foreign = stationSession(
+                    member(elsewhere.id(), "Fritz", "Fremd", true), StationPermission.DOCUMENT_EDIT_MEMBER);
+            List<Function<StationSession, ManagedSignatureRequest>> actions = List.of(
+                    session -> management.requireOwnedView(session, uid),
+                    session -> management.requireOwnedThenConfirmOnPaper(session, uid, "participant"),
+                    session -> management.requireOwnedThenWaive(session, uid, "participant"),
+                    session -> management.requireOwnedThenWithdrawField(session, uid, "participant"),
+                    session -> management.requireOwnedThenWithdraw(session, uid),
+                    session -> management.requireOwnedThenRectify(session, uid, 1));
+
+            for (var action : actions) {
+                assertRefused(DocumentRefusal.DOCUMENT_NOT_YOURS_TO_CHANGE, () -> action.apply(at(adult)));
+                assertRefused(DocumentRefusal.SIGNING_REQUEST_NOT_FOUND, () -> action.apply(foreign));
+            }
+            assertRefused(
+                    DocumentRefusal.SIGNING_REQUEST_NOT_FOUND,
+                    () -> management.requireOwnedView(managing(), UUID.randomUUID()));
+            assertRefused(
+                    DocumentRefusal.SIGNING_FIELD_NOT_FOUND,
+                    () -> management.requireOwnedThenWaive(managing(), uid, "guardian9"));
+            assertEquals(
+                    FieldState.OPEN,
+                    requestRepo.fieldsOf(request.id()).getFirst().state());
+        } finally {
+            stationRepo.delete(elsewhere.id());
+        }
+    }
+
+    /**
+     * A request offers the documents generated for its member since as corrections and is asked anew on one
+     * of them; the old one then names its replacement, and a request can be withdrawn as a whole.
+     */
+    @Test
+    void aRequestIsAskedAnewOnACorrectedDocumentOrWithdrawn() throws IOException {
+        var adult = member("Rolf", "Richtig", true);
+        var other = member("Sara", "Sonst", true);
+        var earlier = generated(adult, legalTemplate, null, "participant");
+        var original = generated(adult, legalTemplate, null, "participant");
+        var request = requests.request(managing(), original.id());
+        var ofOther = generated(other, legalTemplate, null, "participant");
+        var corrected = generated(adult, plainTemplate, null, "participant");
+
+        var view = management.requireOwnedView(managing(), request.uid());
+
+        assertEquals(
+                List.of(corrected.id()),
+                view.corrections().stream()
+                        .map(ManagedSignatureRequest.Correction::generationId)
+                        .toList(),
+                "neither an earlier document nor another member's");
+        assertEquals("Urkunde", view.corrections().getFirst().templateName());
+        assertRefused(
+                DocumentRefusal.SIGNING_CORRECTION_NOT_NAMED,
+                () -> management.requireOwnedThenRectify(managing(), request.uid(), null));
+
+        var replacement = management.requireOwnedThenRectify(managing(), request.uid(), corrected.id());
+
+        assertEquals(RequestState.OPEN, replacement.request().state());
+        assertEquals(corrected.id(), replacement.request().generationId());
+        assertTrue(replacement.corrections().isEmpty(), "the corrected document is asked now");
+        var old = management.requireOwnedView(managing(), request.uid());
+        assertEquals(RequestState.SUPERSEDED, old.request().state());
+        assertEquals(replacement.request().uid(), old.supersededBy());
+        assertTrue(old.corrections().isEmpty());
+
+        var withdrawn = management.requireOwnedThenWithdraw(
+                managing(), replacement.request().uid());
+
+        assertEquals(RequestState.WITHDRAWN, withdrawn.request().state());
+        assertTrue(withdrawn.corrections().isEmpty());
+        var listed = summaries.ofGenerations(List.of(earlier.id(), original.id(), ofOther.id(), corrected.id()));
+        assertEquals(Set.of(original.id(), corrected.id()), listed.keySet());
+        assertEquals(RequestState.SUPERSEDED, listed.get(original.id()).state());
+        assertEquals(RequestState.WITHDRAWN, listed.get(corrected.id()).state());
+        assertEquals(0, listed.get(corrected.id()).expected());
+        assertTrue(summaries.ofDocuments(List.of()).isEmpty());
+    }
+
+    /** A document asked to be signed again after a withdrawal shows its newest request. */
+    @Test
+    void theListsShowTheNewestRequestOnADocument() throws IOException {
+        var adult = member("Nele", "Neu", true);
+        var generation = generated(adult, legalTemplate, null, "participant");
+        var first = requests.request(managing(), generation.id());
+        management.requireOwnedThenWithdraw(managing(), first.uid());
+
+        var second = requests.request(managing(), generation.id());
+
+        var documentId = Objects.requireNonNull(generation.documentId());
+        assertEquals(
+                new SignatureSummary(second.uid(), RequestState.OPEN, 0, 1, 1, 0),
+                summaries.ofDocuments(List.of(documentId)).get(documentId));
+    }
+
+    private static Map<String, ManagedSignatureRequest.ManagedField> managedByName(ManagedSignatureRequest view) {
+        var byName = new LinkedHashMap<String, ManagedSignatureRequest.ManagedField>();
+        view.fields().forEach(field -> byName.put(field.field().fieldName(), field));
+        return byName;
+    }
+
+    private static Set<String> fieldsNobodyCanSign(ManagedSignatureRequest view) {
+        return view.fields().stream()
+                .filter(ManagedSignatureRequest.ManagedField::nobodyCanSign)
+                .map(field -> field.field().fieldName())
+                .collect(Collectors.toSet());
     }
 
     @Test

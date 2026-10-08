@@ -12,6 +12,8 @@ import dev.chojo.ember.feature.documents.entity.DocumentTag;
 import dev.chojo.ember.feature.documents.entity.SealedVersion;
 import dev.chojo.ember.feature.documents.repository.DocumentRepository;
 import dev.chojo.ember.feature.signing.entity.SealLevel;
+import dev.chojo.ember.feature.signing.entity.SignatureSummary;
+import dev.chojo.ember.feature.signing.service.SignatureSummaries;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -31,11 +33,14 @@ import java.util.Optional;
 public class DocumentCatalogService {
     private final DocumentRepository documents;
     private final DocumentService documentService;
+    private final SignatureSummaries signatures;
 
     @Inject
-    public DocumentCatalogService(DocumentRepository documents, DocumentService documentService) {
+    public DocumentCatalogService(
+            DocumentRepository documents, DocumentService documentService, SignatureSummaries signatures) {
         this.documents = documents;
         this.documentService = documentService;
+        this.signatures = signatures;
     }
 
     /**
@@ -54,9 +59,7 @@ public class DocumentCatalogService {
     public List<MemberDocumentResponse> forMember(
             int stationId, int memberId, boolean includeHidden, DocumentDoor door) {
         documentService.requireKept(stationId, door);
-        return documents.findByMember(stationId, memberId, includeHidden).stream()
-                .map(this::view)
-                .toList();
+        return views(documents.findByMember(stationId, memberId, includeHidden));
     }
 
     /**
@@ -65,12 +68,8 @@ public class DocumentCatalogService {
     public DocumentPage page(int stationId, StoreQuery query) {
         documentService.requireKept(stationId, DocumentDoor.STATION);
         String config = documentService.searchConfigOf(stationId);
-        var page =
-                documents
-                        .findByStation(stationId, query.filter(), config, query.size(), query.page() * query.size())
-                        .stream()
-                        .map(this::view)
-                        .toList();
+        var page = views(
+                documents.findByStation(stationId, query.filter(), config, query.size(), query.page() * query.size()));
         return new DocumentPage(page, documents.countByStation(stationId, query.filter(), config));
     }
 
@@ -115,10 +114,22 @@ public class DocumentCatalogService {
 
     /**
      * A document as a reader sees it, with the members it is bound to, the names of those who were
-     * deleted while it was kept for them, who put it in, the words it carries, and for a sealed one its
-     * sealed versions.
+     * deleted while it was kept for them, who put it in, the words it carries, for a sealed one its
+     * sealed versions, and how the signatures asked for on it stand.
      */
     public MemberDocumentResponse view(Document document) {
+        return view(document, signatures.ofDocuments(List.of(document.id())).get(document.id()));
+    }
+
+    /** Several documents as {@link #view(Document)} shows each, how their signatures stand read at once. */
+    private List<MemberDocumentResponse> views(List<Document> listed) {
+        var signed = signatures.ofDocuments(listed.stream().map(Document::id).toList());
+        return listed.stream()
+                .map(document -> view(document, signed.get(document.id())))
+                .toList();
+    }
+
+    private MemberDocumentResponse view(Document document, @Nullable SignatureSummary signature) {
         return new MemberDocumentResponse(
                 document.id(),
                 document.title(),
@@ -139,7 +150,8 @@ public class DocumentCatalogService {
                 document.sealed(),
                 documentService.sealedVersions(document).stream()
                         .map(SealedVersionResponse::of)
-                        .toList());
+                        .toList(),
+                signature);
     }
 
     /**
@@ -161,6 +173,7 @@ public class DocumentCatalogService {
      * @param departedNames the names of members who were deleted while it was kept for them
      * @param sealed        whether it is sealed, which locks it: never deleted, its members fixed
      * @param sealedVersions its sealed versions, newest first; none for a document that is not sealed
+     * @param signature     how the signatures asked for on it stand, or null where nobody was asked to sign it
      */
     public record MemberDocumentResponse(
             int id,
@@ -178,7 +191,8 @@ public class DocumentCatalogService {
             List<String> departedNames,
             List<String> tags,
             boolean sealed,
-            List<SealedVersionResponse> sealedVersions) {}
+            List<SealedVersionResponse> sealedVersions,
+            @Nullable SignatureSummary signature) {}
 
     /**
      * One sealed version of a document as a reader sees it.

@@ -9,12 +9,16 @@ import dev.chojo.ember.feature.generator.entity.GenerationLogEntry;
 import dev.chojo.ember.feature.generator.repository.DocumentGenerationRepository;
 import dev.chojo.ember.feature.generator.service.GenerationLogService.GeneratedDocumentEntry;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
+import dev.chojo.ember.feature.signing.entity.RequestState;
+import dev.chojo.ember.feature.signing.entity.SignatureSummary;
+import dev.chojo.ember.feature.signing.service.SignatureSummaries;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -24,8 +28,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * The list of generated documents names the member and whoever generated each, and leaves the name
- * empty for somebody who is gone.
+ * The list of generated documents names the member and whoever generated each, leaves the name empty for
+ * somebody who is gone, and carries how the signatures asked for on each stand.
  */
 class GenerationLogServiceTest {
 
@@ -41,7 +45,11 @@ class GenerationLogServiceTest {
                                 1, at, 8, "Bescheinigung", 2, false, 11, 12, false, 21, 12, "Jugendwartin"),
                         new GenerationLogEntry(2, at, 9, "Einverständnis", 1, true, null, 11, true, null, null, null)));
 
-        var listed = new GenerationLogService(generations, names).list(3, 50, 0);
+        var signatures = mock(SignatureSummaries.class);
+        var signed = new SignatureSummary(UUID.randomUUID(), RequestState.COMPLETE, 2, 2, 0, 0);
+        when(signatures.ofGenerations(List.of(1, 2))).thenReturn(Map.of(1, signed));
+
+        var listed = new GenerationLogService(generations, names, signatures).list(3, 50, 0);
 
         assertEquals(
                 List.of(
@@ -58,7 +66,8 @@ class GenerationLogServiceTest {
                                 false,
                                 21,
                                 "Nora Fülling",
-                                "Jugendwartin"),
+                                "Jugendwartin",
+                                signed),
                         new GeneratedDocumentEntry(
                                 2,
                                 at,
@@ -72,6 +81,7 @@ class GenerationLogServiceTest {
                                 true,
                                 null,
                                 null,
+                                null,
                                 null)),
                 listed);
         verify(names, never()).identified(anyInt());
@@ -81,7 +91,7 @@ class GenerationLogServiceTest {
     @Test
     void aPageIsHeldWithinItsBounds() {
         var generations = mock(DocumentGenerationRepository.class);
-        var log = new GenerationLogService(generations, mock(MemberNameResolver.class));
+        var log = new GenerationLogService(generations, mock(MemberNameResolver.class), mock(SignatureSummaries.class));
 
         log.list(3, 5000, -2);
         log.list(3, 0, 7);

@@ -151,7 +151,7 @@ class AppointmentSignaturesTest extends GeneratorTestBase {
                 appointments,
                 wiring.templates(),
                 wiring.documents(),
-                new DocumentCatalogService(memberDocumentRepo, wiring.documents()),
+                new DocumentCatalogService(memberDocumentRepo, wiring.documents(), new SignatureSummaries(requestRepo)),
                 memberNameResolver,
                 newNotifier(),
                 new ScanSignatures(requestRepo, fields));

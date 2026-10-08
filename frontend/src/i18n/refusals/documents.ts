@@ -170,4 +170,6 @@ export default {
     'D-190': 'Die Zertifizierungsstellen werden nur gegen eine frische Prüfzahl genannt',
     'D-191': 'Diese Wache hat keinen Föderationsschlüssel, um ihre Zertifizierungsstellen zu bestätigen',
     'D-230': 'Im selben Moment wurde ein anderer Scan dieses Dokuments abgegeben, dieser wurde deshalb nicht abgelegt',
+    'D-250': 'Dieses Dokument hat keine versiegelte Fassung mit dieser Nummer',
+    'D-251': 'Wähle das berichtigte Dokument, für das neu um Unterschriften gebeten wird',
 }

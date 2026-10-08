@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import type {
+    ManagedRequestResponse,
     OpenSignatureResponse,
     SealVerification,
     SignatureAskResponse,
@@ -104,6 +105,67 @@ export async function getSignatureAsk(generationId: number): Promise<SignatureAs
  */
 export async function requestSignatures(generationId: number): Promise<SignatureAskResponse> {
     const res = await client.post<SignatureAskResponse>(`/signing/generations/${generationId}/request`)
+    return res.data
+}
+
+/**
+ * A request for signatures as its document's manager sees it: every field with its signer, statement,
+ * state and the act that signed it, and the documents it could be asked anew on.
+ *
+ * @param requestUid the request
+ */
+export async function getSignatureRequest(requestUid: string): Promise<ManagedRequestResponse> {
+    const res = await client.get<ManagedRequestResponse>(`/signing/requests/${requestUid}`)
+    return res.data
+}
+
+/** What a manager can do to one field that still waits for a signature. */
+export const FieldSettlement = {
+    PAPER: 'paper',
+    WAIVE: 'waive',
+    WITHDRAW: 'withdraw',
+} as const
+
+export type FieldSettlement = typeof FieldSettlement[keyof typeof FieldSettlement]
+
+/**
+ * Settles a field no signing act will: confirmed on paper, waived or withdrawn. The next sealed version of
+ * the document shows it so.
+ *
+ * @param requestUid the request
+ * @param fieldName  the field
+ * @param settlement what becomes of it
+ */
+export async function settleSignatureField(
+    requestUid: string,
+    fieldName: string,
+    settlement: FieldSettlement,
+): Promise<ManagedRequestResponse> {
+    const res = await client.post<ManagedRequestResponse>(
+        `/signing/requests/${requestUid}/fields/${encodeURIComponent(fieldName)}/${settlement}`)
+    return res.data
+}
+
+/**
+ * Stops asking for every signature a request still waits for; what was signed stays.
+ *
+ * @param requestUid the request
+ */
+export async function withdrawSignatureRequest(requestUid: string): Promise<ManagedRequestResponse> {
+    const res = await client.post<ManagedRequestResponse>(`/signing/requests/${requestUid}/withdraw`)
+    return res.data
+}
+
+/**
+ * Asks a request's signatures anew on a document generated again for the same member after a change. The
+ * old request is replaced; what was signed on it stays.
+ *
+ * @param requestUid   the request to replace
+ * @param generationId the corrected document's entry in the generation log
+ * @return the new request
+ */
+export async function rectifySignatureRequest(requestUid: string, generationId: number): Promise<ManagedRequestResponse> {
+    const res = await client.post<ManagedRequestResponse>(`/signing/requests/${requestUid}/rectify`, {generationId})
     return res.data
 }
 

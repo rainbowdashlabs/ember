@@ -14,15 +14,11 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import {signing} from '@/api'
-import {
-    FieldRole,
-    SignerCapacity,
-    type AskedFieldResponse,
-    type SignatureAskResponse,
-} from '@/api/generated/schema'
+import type {SignatureAskResponse} from '@/api/generated/schema'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {showToast} from '@/util/toast'
+import {signerOf} from './signatureSigner'
 
 /**
  * Asking for the signatures of a generated document: who would be asked to sign each field and what they
@@ -66,15 +62,6 @@ const asking = useAsyncAction(async () => {
 const request = computed(() => ask.value?.request ?? null)
 const fields = computed(() => ask.value?.fields ?? [])
 
-function signerOf(field: AskedFieldResponse): string {
-  if (field.role === FieldRole.ANY_GUARDIAN) return t('signing.ask.anyGuardian')
-  if (!field.signerName) return t('signing.ask.nobody')
-  if (field.capacity === SignerCapacity.MEMBER_THROUGH_ACCOUNT) {
-    return t('signing.ask.throughAccount', {name: field.signerName})
-  }
-  return field.signerName
-}
-
 const keeping = computed(() => {
   const months = request.value?.retentionMonths
   if (months === null || months === undefined) return t('signing.ask.keptWhileMember')
@@ -98,7 +85,7 @@ const keeping = computed(() => {
         <ul class="space-y-3">
           <li v-for="field in fields" :key="field.fieldName" class="space-y-1" data-testid="signature-ask-field">
             <p class="text-sm font-medium">
-              {{ t(`signing.ask.role.${field.role}`) }}: {{ signerOf(field) }}
+              {{ t(`signing.ask.role.${field.role}`) }}: {{ signerOf(field, t) }}
               <span v-if="field.state" class="text-(--text-muted)">({{ t(`signing.ask.state.${field.state}`) }})</span>
             </p>
             <MutedText size="sm" tag="p">„{{ field.statement }}“</MutedText>

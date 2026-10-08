@@ -27,6 +27,8 @@ import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService;
 import dev.chojo.ember.feature.members.service.UserTypeChangeService;
 import dev.chojo.ember.feature.question.FieldType;
+import dev.chojo.ember.feature.signing.repository.SignatureRequestRepository;
+import dev.chojo.ember.feature.signing.service.SignatureSummaries;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
@@ -70,7 +72,10 @@ class ClusterMemberManagementServiceTest extends RepositoryTestBase {
                 new UserTypeChangeService(stationMemberRepo, newGroupMemberships()),
                 memberDocumentRepo,
                 documentService(),
-                new DocumentCatalogService(memberDocumentRepo, documentService()),
+                new DocumentCatalogService(
+                        memberDocumentRepo,
+                        documentService(),
+                        new SignatureSummaries(new SignatureRequestRepository())),
                 new FormerMemberService(
                         stationMemberRepo,
                         accountRepo,

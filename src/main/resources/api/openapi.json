@@ -15923,6 +15923,44 @@
         } ]
       }
     },
+    "/api/v1/documents/{id}/versions/{version}/content" : {
+      "get" : {
+        "summary" : "One sealed version of a document, the current one or an earlier one it superseded",
+        "tags" : [ "Members" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "version",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
     "/api/v1/equipment/collected" : {
       "post" : {
         "summary" : "Count a collected list again before it is sent",
@@ -40978,6 +41016,378 @@
         }
       }
     },
+    "/api/v1/signing/requests/{requestUid}" : {
+      "get" : {
+        "summary" : "A request for signatures with each field, its signer, its statement and the act that signed it",
+        "tags" : [ "Signing" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ManagedRequestResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "requestUid",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ]
+      }
+    },
+    "/api/v1/signing/requests/{requestUid}/fields/{fieldName}/paper" : {
+      "post" : {
+        "summary" : "Record that a signature field was signed on paper",
+        "tags" : [ "Signing" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ManagedRequestResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "requestUid",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "fieldName",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ]
+      }
+    },
+    "/api/v1/signing/requests/{requestUid}/fields/{fieldName}/waive" : {
+      "post" : {
+        "summary" : "Let a signature field go without a signature",
+        "tags" : [ "Signing" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ManagedRequestResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "requestUid",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "fieldName",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ]
+      }
+    },
+    "/api/v1/signing/requests/{requestUid}/fields/{fieldName}/withdraw" : {
+      "post" : {
+        "summary" : "Stop asking for one signature field",
+        "tags" : [ "Signing" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ManagedRequestResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "requestUid",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "fieldName",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ]
+      }
+    },
+    "/api/v1/signing/requests/{requestUid}/rectify" : {
+      "post" : {
+        "summary" : "Ask a request's signatures anew on a document generated again after a change",
+        "tags" : [ "Signing" ],
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ManagedRequestResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "requestUid",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RectifyRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/signing/requests/{requestUid}/withdraw" : {
+      "post" : {
+        "summary" : "Stop asking for every signature a request still waits for",
+        "tags" : [ "Signing" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ManagedRequestResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "requestUid",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ]
+      }
+    },
     "/api/v1/station-applications" : {
       "post" : {
         "summary" : "Submit a station application",
@@ -50661,6 +51071,22 @@
           }
         }
       },
+      "CorrectionResponse" : {
+        "type" : "object",
+        "properties" : {
+          "generationId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "templateName" : {
+            "type" : "string"
+          },
+          "generatedAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          }
+        },
+        "required" : [ "generationId", "templateName", "generatedAt" ]
+      },
       "CountDetail" : {
         "type" : "object",
         "properties" : {
@@ -57040,9 +57466,16 @@
           },
           "issuerFunction" : {
             "type" : [ "string", "null" ]
+          },
+          "signature" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/SignatureSummary"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
-        "required" : [ "id", "generatedAt", "templateId", "templateName", "templateVersion", "ofAssociation", "memberId", "memberName", "generatedByName", "selfService", "documentId", "issuerName", "issuerFunction" ]
+        "required" : [ "id", "generatedAt", "templateId", "templateName", "templateVersion", "ofAssociation", "memberId", "memberName", "generatedByName", "selfService", "documentId", "issuerName", "issuerFunction", "signature" ]
       },
       "GeneratedDocumentResponse" : {
         "type" : "object",
@@ -61312,6 +61745,50 @@
         },
         "required" : [ "email", "username", "loginEnabled", "canSignIn" ]
       },
+      "ManagedFieldResponse" : {
+        "type" : "object",
+        "properties" : {
+          "fieldName" : {
+            "type" : "string"
+          },
+          "role" : {
+            "$ref" : "#/components/schemas/FieldRole"
+          },
+          "signerName" : {
+            "type" : [ "string", "null" ]
+          },
+          "capacity" : {
+            "$ref" : "#/components/schemas/SignerCapacity"
+          },
+          "statement" : {
+            "type" : "string"
+          },
+          "state" : {
+            "$ref" : "#/components/schemas/FieldState"
+          },
+          "nobodyCanSign" : {
+            "type" : "boolean"
+          },
+          "settledAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "settledByName" : {
+            "type" : [ "string", "null" ]
+          },
+          "act" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/SignedActResponse"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "fieldName", "role", "signerName", "capacity", "statement", "state", "nobodyCanSign", "settledAt", "settledByName", "act" ]
+      },
       "ManagedMember" : {
         "type" : "object",
         "properties" : {
@@ -61419,6 +61896,62 @@
             }
           }
         }
+      },
+      "ManagedRequestResponse" : {
+        "type" : "object",
+        "properties" : {
+          "uid" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "state" : {
+            "$ref" : "#/components/schemas/RequestState"
+          },
+          "documentId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "documentTitle" : {
+            "type" : [ "string", "null" ]
+          },
+          "memberName" : {
+            "type" : "string"
+          },
+          "contentSha256" : {
+            "type" : "string"
+          },
+          "createdAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "closedAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "supersededBy" : {
+            "type" : [ "string", "null" ],
+            "format" : "uuid"
+          },
+          "retentionMonths" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "fields" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ManagedFieldResponse"
+            }
+          },
+          "corrections" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/CorrectionResponse"
+            }
+          }
+        },
+        "required" : [ "uid", "state", "documentId", "documentTitle", "memberName", "contentSha256", "createdAt", "closedAt", "supersededBy", "retentionMonths", "fields", "corrections" ]
       },
       "ManagedStationResponse" : {
         "type" : "object",
@@ -61873,9 +62406,16 @@
             "items" : {
               "$ref" : "#/components/schemas/SealedVersionResponse"
             }
+          },
+          "signature" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/SignatureSummary"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
-        "required" : [ "id", "title", "fileName", "mimeType", "sizeBytes", "hidden", "keepOnArchive", "hasThumbnail", "uploadedBy", "uploaderName", "createdAt", "memberIds", "departedNames", "tags", "sealed", "sealedVersions" ]
+        "required" : [ "id", "title", "fileName", "mimeType", "sizeBytes", "hidden", "keepOnArchive", "hasThumbnail", "uploadedBy", "uploaderName", "createdAt", "memberIds", "departedNames", "tags", "sealed", "sealedVersions", "signature" ]
       },
       "MemberExportRequest" : {
         "type" : "object",
@@ -69093,6 +69633,15 @@
           }
         }
       },
+      "RectifyRequest" : {
+        "type" : "object",
+        "properties" : {
+          "generationId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          }
+        }
+      },
       "RefreshResponse" : {
         "type" : "object",
         "properties" : {
@@ -73175,6 +73724,65 @@
           }
         },
         "required" : [ "hasImage", "imageSource", "imageSavedAt", "autoSignConsentedAt" ]
+      },
+      "SignatureSummary" : {
+        "type" : "object",
+        "properties" : {
+          "requestUid" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "state" : {
+            "$ref" : "#/components/schemas/RequestState"
+          },
+          "signed" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "expected" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "open" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "nobodyCanSign" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "requestUid", "state", "signed", "expected", "open", "nobodyCanSign" ]
+      },
+      "SignedActResponse" : {
+        "type" : "object",
+        "properties" : {
+          "signerName" : {
+            "type" : "string"
+          },
+          "accountHolderName" : {
+            "type" : "string"
+          },
+          "capacity" : {
+            "$ref" : "#/components/schemas/SignerCapacity"
+          },
+          "proof" : {
+            "$ref" : "#/components/schemas/StepUpProof"
+          },
+          "bound" : {
+            "type" : "boolean"
+          },
+          "userVerified" : {
+            "type" : [ "boolean", "null" ]
+          },
+          "signedAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "sealed" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "signerName", "accountHolderName", "capacity", "proof", "bound", "userVerified", "signedAt", "sealed" ]
       },
       "SignerCapacity" : {
         "type" : "string",

@@ -43,6 +43,8 @@ const props = withDefaults(defineProps<{
   canUpload?: boolean
   /** Whether the reader may bind, tag and remove, which follows from the right to edit members. */
   canEdit?: boolean
+  /** Whether the reader looks after the signatures asked for on these documents. */
+  manageSignatures?: boolean
   allMembers?: MemberLike[]
 }>(), {
   source: () => stationDocumentSource,
@@ -50,6 +52,7 @@ const props = withDefaults(defineProps<{
   hint: undefined,
   canUpload: false,
   canEdit: false,
+  manageSignatures: false,
   allMembers: undefined,
 })
 
@@ -122,6 +125,11 @@ function open(document: MemberDocumentResponse) {
   showDocument.value = true
 }
 
+/** Shows how the signatures stand after a manager changed them in the open document. */
+function signaturesChanged() {
+  void act(Promise.resolve())
+}
+
 async function act(action: Promise<unknown>) {
   actionFailure.value = null
   try {
@@ -174,6 +182,9 @@ async function act(action: Promise<unknown>) {
         :all-tags="allTags"
         :can-edit="props.canEdit"
         :content-url="props.source.contentUrl"
+        :version-url="props.source.versionUrl"
+        :manage-signatures="props.manageSignatures"
+        :on-signatures-changed="signaturesChanged"
         @members="(id, members) => act(documentsApi.setMembers(id, members))"
         @tags="(id, tags) => act(documentsApi.setTags(id, tags))"
         @remove="document => act(documentsApi.remove(document.id))"

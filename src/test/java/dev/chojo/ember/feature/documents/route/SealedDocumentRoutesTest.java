@@ -20,6 +20,8 @@ import dev.chojo.ember.feature.documents.service.SealedDocumentService.SealedFil
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.signing.entity.SealedDocument;
+import dev.chojo.ember.feature.signing.repository.SignatureRequestRepository;
+import dev.chojo.ember.feature.signing.service.SignatureSummaries;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import io.javalin.testtools.Request;
@@ -53,7 +55,8 @@ class SealedDocumentRoutesTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         DocumentService documents = newDocumentService();
-        var catalog = new DocumentCatalogService(memberDocumentRepo, documents);
+        var catalog = new DocumentCatalogService(
+                memberDocumentRepo, documents, new SignatureSummaries(new SignatureRequestRepository()));
         var access = new DocumentAccessService(memberDocumentRepo, documents, new GuardianPolicy(stationMemberRepo));
         harness =
                 RouteHarness.serving(new DocumentRoutes(documents, catalog, mock(StationMemberService.class), access));

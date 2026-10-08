@@ -19,8 +19,10 @@ import dev.chojo.ember.feature.knowledgebase.service.KbFileStorageService;
 import dev.chojo.ember.feature.legal.service.GdprExportService;
 import dev.chojo.ember.feature.signing.entity.SealLevel;
 import dev.chojo.ember.feature.signing.entity.SealedDocument;
+import dev.chojo.ember.feature.signing.repository.SignatureRequestRepository;
 import dev.chojo.ember.feature.signing.service.PdfSealer;
 import dev.chojo.ember.feature.signing.service.SignatureImageService;
+import dev.chojo.ember.feature.signing.service.SignatureSummaries;
 import dev.chojo.ember.feature.signing.service.StationKeyRevocations;
 import dev.chojo.ember.feature.signing.service.TimestampServices;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -97,7 +99,8 @@ class SealedDocumentServiceTest extends RepositoryTestBase {
         var backend = new LocalStorageBackend(storageRoot);
         storage = new StorageService(new StorageBackendResolver(backend), backend);
         documents = newDocumentService(storage);
-        catalog = new DocumentCatalogService(memberDocumentRepo, documents);
+        catalog = new DocumentCatalogService(
+                memberDocumentRepo, documents, new SignatureSummaries(new SignatureRequestRepository()));
         sealedDocuments = new SealedDocumentService(memberDocumentRepo, new SealedVersionRepository(), documents);
         sealer = new PdfSealer(new TimestampServices(mock(Signing.class)), mock(StationKeyRevocations.class));
         var generator = KeyPairGenerator.getInstance("RSA");
@@ -209,6 +212,30 @@ class SealedDocumentServiceTest extends RepositoryTestBase {
         assertRefused(
                 DocumentRefusal.DOCUMENT_NOT_SEALED, () -> sealedDocuments.supersede(plain, 1, seal(onePagePdf())));
         assertTrue(documents.sealedVersions(plain).isEmpty());
+        assertRefused(
+                DocumentRefusal.SEALED_VERSION_NOT_FOUND, () -> documents.openVersion(plain, 1, DocumentDoor.STATION));
+    }
+
+    /** A reader opens each sealed version by its number, the current one and the one it superseded. */
+    @Test
+    void eachSealedVersionOpensByItsNumber() throws IOException {
+        var first = seal(onePagePdf());
+        var document = file(newMember(), first);
+        var second = seal(first.pdf());
+        sealedDocuments.supersede(document, 1, second);
+
+        assertArrayEquals(
+                first.pdf(),
+                documents.openVersion(document, 1, DocumentDoor.STATION).orElseThrow());
+        assertArrayEquals(
+                second.pdf(),
+                documents.openVersion(document, 2, DocumentDoor.STATION).orElseThrow());
+        assertRefused(
+                DocumentRefusal.SEALED_VERSION_NOT_FOUND,
+                () -> documents.openVersion(document, 3, DocumentDoor.STATION));
+        assertEquals("Akte-v2.pdf", DocumentService.versionFileName("Akte.pdf", 2));
+        assertEquals("Akte-v1", DocumentService.versionFileName("Akte", 1));
+        assertEquals(".hidden-v1", DocumentService.versionFileName(".hidden", 1));
     }
 
     @Test

@@ -43,6 +43,7 @@ const filed = ref(0)
         :member-id="props.memberId"
         :can-upload="canEdit"
         :can-edit="canEdit"
+        :manage-signatures="canGenerate"
         :all-members="allMembers"
     />
     <GenerateDocumentModal v-if="generating" v-model="generating" :member-id="props.memberId" @filed="filed++"/>

@@ -10,9 +10,11 @@ import dev.chojo.ember.feature.signing.entity.AppointmentRequest;
 import dev.chojo.ember.feature.signing.entity.DueReminder;
 import dev.chojo.ember.feature.signing.entity.FieldState;
 import dev.chojo.ember.feature.signing.entity.GuardianLink;
+import dev.chojo.ember.feature.signing.entity.ManagedSignatureRequest;
 import dev.chojo.ember.feature.signing.entity.PendingSignature;
 import dev.chojo.ember.feature.signing.entity.RequestedSignature;
 import dev.chojo.ember.feature.signing.entity.SignatureRequest;
+import dev.chojo.ember.feature.signing.entity.SignatureSummary;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -23,8 +25,11 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
@@ -52,6 +57,19 @@ public class SignatureRequestRepository {
      */
     private static final String APPOINTMENT_COLUMNS = "g.template_id AS generation_template_id, "
             + "g.member_id AS generation_member_id, " + SqlSupport.alias("r", SignatureRequest.COLUMNS);
+
+    /**
+     * Whether an open field behind the alias {@code f} is one nobody can sign: a guardian place or an issuer
+     * field that names nobody, a participant field whose member is gone or has to sign through a guardian
+     * and has none, and a field for any guardian of a member who has none.
+     */
+    private static final String NOBODY_CAN_SIGN = """
+            f.state = 'OPEN'
+            AND (f.signer_id IS NULL AND f.role <> 'ANY_GUARDIAN'
+              OR f.role = 'PARTICIPANT' AND f.capacity = 'MEMBER_THROUGH_ACCOUNT'
+                 AND NOT EXISTS (SELECT 1 FROM member_manager m WHERE m.managed_id = f.signer_id)
+              OR f.role = 'ANY_GUARDIAN'
+                 AND NOT EXISTS (SELECT 1 FROM member_manager m WHERE m.managed_id = f.member_id))""";
 
     /**
      * Writes a request with its fields, the retention copied from the template the document came from.
@@ -675,5 +693,92 @@ public class SignatureRequestRepository {
      */
     public boolean delete(int requestId) {
         return SqlSupport.deleteById("signing_request", requestId);
+    }
+
+    /**
+     * How the signatures on documents stand, by the newest request on each.
+     *
+     * @param documentIds the member documents
+     * @return the summary per document id, none for a document nobody was asked to sign
+     */
+    public Map<Integer, SignatureSummary> summariesOfDocuments(Collection<Integer> documentIds) {
+        return summariesBy("document_id", documentIds);
+    }
+
+    /**
+     * How the signatures on generated documents stand, by the newest request on each.
+     *
+     * @param generationIds the generation log entries
+     * @return the summary per generation id, none for a document nobody was asked to sign
+     */
+    public Map<Integer, SignatureSummary> summariesOfGenerations(Collection<Integer> generationIds) {
+        return summariesBy("generation_id", generationIds);
+    }
+
+    private Map<Integer, SignatureSummary> summariesBy(String keyColumn, Collection<Integer> ids) {
+        if (ids.isEmpty()) return Map.of();
+        return query("""
+                        SELECT r.%1$s AS keyed_by, r.uid, r.state,
+                               count(f.id) FILTER (WHERE f.state IN ('SIGNED', 'PAPER_CONFIRMED')) AS signed,
+                               count(f.id) FILTER (WHERE f.state NOT IN ('WAIVED', 'WITHDRAWN')) AS expected,
+                               count(f.id) FILTER (WHERE f.state = 'OPEN') AS open,
+                               count(f.id) FILTER (WHERE %2$s) AS nobody_can_sign
+                        FROM (SELECT DISTINCT ON (%1$s) id, uid, state, %1$s
+                              FROM signing_request
+                              WHERE %1$s = ANY (:ids)
+                              ORDER BY %1$s, id DESC) r
+                                 LEFT JOIN signing_request_field f ON f.request_id = r.id
+                        GROUP BY r.%1$s, r.id, r.uid, r.state;""", keyColumn, NOBODY_CAN_SIGN)
+                .single(call().bind("ids", List.copyOf(ids), PostgreSqlTypes.INTEGER))
+                .map(row -> Map.entry(row.getInt("keyed_by"), SignatureSummary.read(row)))
+                .all()
+                .stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    }
+
+    /**
+     * The open fields of a request that nobody can sign.
+     *
+     * @param requestId the request
+     * @return the ids of those fields
+     */
+    public Set<Integer> fieldsNobodyCanSign(int requestId) {
+        return Set.copyOf(query("""
+                        SELECT f.id FROM signing_request_field f
+                        WHERE f.request_id = :request_id
+                          AND %s;""", NOBODY_CAN_SIGN)
+                .single(call().bind("request_id", requestId))
+                .map(row -> row.getInt("id"))
+                .all());
+    }
+
+    /**
+     * The documents a request could be asked anew on after a correction: generated at its station for its
+     * member after its own document, still filed, and not asked to be signed yet.
+     *
+     * @param request the request
+     * @param limit   how many at most
+     * @return the documents, the newest first
+     */
+    public List<ManagedSignatureRequest.Correction> corrections(SignatureRequest request, int limit) {
+        if (request.memberId() == null) return List.of();
+        return query("""
+                        SELECT g.id, g.generated_at, t.name AS template_name
+                        FROM document_generation g
+                                 JOIN document_template t ON t.id = g.template_id
+                                 JOIN signing_request r ON r.id = :request_id
+                        WHERE g.station_id = r.station_id
+                          AND g.member_id = r.member_id
+                          AND g.document_id IS NOT NULL
+                          AND (g.id > r.generation_id
+                            OR (r.generation_id IS NULL AND g.generated_at > r.created_at))
+                          AND NOT EXISTS (SELECT 1 FROM signing_request other
+                                          WHERE other.generation_id = g.id
+                                            AND other.state IN ('OPEN', 'COMPLETE'))
+                        ORDER BY g.generated_at DESC, g.id DESC
+                        LIMIT :limit;""")
+                .single(call().bind("request_id", request.id()).bind("limit", limit))
+                .map(ManagedSignatureRequest.Correction.map())
+                .all();
     }
 }

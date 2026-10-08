@@ -20424,6 +20424,52 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/documents/{id}/versions/{version}/content": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One sealed version of a document, the current one or an earlier one it superseded */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                    version: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/documents/ids": {
         parameters: {
             query?: never;
@@ -53864,6 +53910,403 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/signing/requests/{requestUid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A request for signatures with each field, its signer, its statement and the act that signed it */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    requestUid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ManagedRequestResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/signing/requests/{requestUid}/fields/{fieldName}/paper": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Record that a signature field was signed on paper */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    fieldName: string;
+                    requestUid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ManagedRequestResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/signing/requests/{requestUid}/fields/{fieldName}/waive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Let a signature field go without a signature */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    fieldName: string;
+                    requestUid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ManagedRequestResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/signing/requests/{requestUid}/fields/{fieldName}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Stop asking for one signature field */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    fieldName: string;
+                    requestUid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ManagedRequestResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/signing/requests/{requestUid}/rectify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ask a request's signatures anew on a document generated again after a change */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    requestUid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["RectifyRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ManagedRequestResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/signing/requests/{requestUid}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Stop asking for every signature a request still waits for */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    requestUid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ManagedRequestResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/station-applications": {
         parameters: {
             query?: never;
@@ -61226,6 +61669,12 @@ export interface components {
         };
         /** @enum {string} */
         ConversionStatus: "PENDING" | "SUCCESS" | "FAILED";
+        CorrectionResponse: {
+            generatedAt: components["schemas"]["Instant"];
+            /** Format: int32 */
+            generationId: number;
+            templateName: string;
+        };
         CorrectItemRequest: {
             internalId?: string | null;
             /** Format: int32 */
@@ -63404,6 +63853,7 @@ export interface components {
             memberName: string | null;
             ofAssociation: boolean;
             selfService: boolean;
+            signature: components["schemas"]["SignatureSummary"] | null;
             /** Format: int32 */
             templateId: number;
             templateName: string;
@@ -64997,6 +65447,18 @@ export interface components {
             loginEnabled: boolean;
             username: string | null;
         };
+        ManagedFieldResponse: {
+            act: components["schemas"]["SignedActResponse"] | null;
+            capacity: components["schemas"]["SignerCapacity"];
+            fieldName: string;
+            nobodyCanSign: boolean;
+            role: components["schemas"]["FieldRole"];
+            settledAt: components["schemas"]["Instant"] | null;
+            settledByName: string | null;
+            signerName: string | null;
+            state: components["schemas"]["FieldState"];
+            statement: string;
+        };
         ManagedMember: {
             /** Format: int32 */
             accountId: number;
@@ -65038,6 +65500,24 @@ export interface components {
         };
         ManagedMemberSetValuesRequest: {
             values?: components["schemas"]["ValueEntry"][];
+        };
+        ManagedRequestResponse: {
+            closedAt: components["schemas"]["Instant"] | null;
+            contentSha256: string;
+            corrections: components["schemas"]["CorrectionResponse"][];
+            createdAt: components["schemas"]["Instant"];
+            /** Format: int32 */
+            documentId: number | null;
+            documentTitle: string | null;
+            fields: components["schemas"]["ManagedFieldResponse"][];
+            memberName: string;
+            /** Format: int32 */
+            retentionMonths: number | null;
+            state: components["schemas"]["RequestState"];
+            /** Format: uuid */
+            supersededBy: string | null;
+            /** Format: uuid */
+            uid: string;
         };
         ManagedStationResponse: {
             name: string;
@@ -65186,6 +65666,7 @@ export interface components {
             mimeType: string;
             sealed: boolean;
             sealedVersions: components["schemas"]["SealedVersionResponse"][];
+            signature: components["schemas"]["SignatureSummary"] | null;
             /** Format: int64 */
             sizeBytes: number;
             tags: string[];
@@ -67649,6 +68130,10 @@ export interface components {
             privacyVersion?: string;
             tosVersion?: string;
         };
+        RectifyRequest: {
+            /** Format: int32 */
+            generationId?: number | null;
+        };
         RefreshResponse: {
             /** Format: int32 */
             added: number;
@@ -68974,6 +69459,29 @@ export interface components {
             hasImage: boolean;
             imageSavedAt: components["schemas"]["Instant"] | null;
             imageSource: components["schemas"]["SignatureImageSource"] | null;
+        };
+        SignatureSummary: {
+            /** Format: int32 */
+            expected: number;
+            /** Format: int32 */
+            nobodyCanSign: number;
+            /** Format: int32 */
+            open: number;
+            /** Format: uuid */
+            requestUid: string;
+            /** Format: int32 */
+            signed: number;
+            state: components["schemas"]["RequestState"];
+        };
+        SignedActResponse: {
+            accountHolderName: string;
+            bound: boolean;
+            capacity: components["schemas"]["SignerCapacity"];
+            proof: components["schemas"]["StepUpProof"];
+            sealed: boolean;
+            signedAt: components["schemas"]["Instant"];
+            signerName: string;
+            userVerified: boolean | null;
         };
         /** @enum {string} */
         SignerCapacity: "ACCOUNT_HOLDER" | "GUARDIAN" | "MEMBER_THROUGH_ACCOUNT";
@@ -71089,6 +71597,7 @@ export type ContentMode = components['schemas']['ContentMode'];
 export type ContentRow = components['schemas']['ContentRow'];
 export type ContentUpdateRequest = components['schemas']['ContentUpdateRequest'];
 export type ConversionStatus = components['schemas']['ConversionStatus'];
+export type CorrectionResponse = components['schemas']['CorrectionResponse'];
 export type CorrectItemRequest = components['schemas']['CorrectItemRequest'];
 export type CorrectMovementRequest = components['schemas']['CorrectMovementRequest'];
 export type CorrectRowRequest = components['schemas']['CorrectRowRequest'];
@@ -71607,10 +72116,12 @@ export type MailSecurity = components['schemas']['MailSecurity'];
 export type MailTestResponse = components['schemas']['MailTestResponse'];
 export type MailTitleSource = components['schemas']['MailTitleSource'];
 export type ManagedAccess = components['schemas']['ManagedAccess'];
+export type ManagedFieldResponse = components['schemas']['ManagedFieldResponse'];
 export type ManagedMember = components['schemas']['ManagedMember'];
 export type ManagedMemberInfo = components['schemas']['ManagedMemberInfo'];
 export type ManagedMemberResponse = components['schemas']['ManagedMemberResponse'];
 export type ManagedMemberSetValuesRequest = components['schemas']['ManagedMemberSetValuesRequest'];
+export type ManagedRequestResponse = components['schemas']['ManagedRequestResponse'];
 export type ManagedStationResponse = components['schemas']['ManagedStationResponse'];
 export type ManagerDetail = components['schemas']['ManagerDetail'];
 export type ManagerGenerationRequest = components['schemas']['ManagerGenerationRequest'];
@@ -71969,6 +72480,7 @@ export type RecheckResponse = components['schemas']['RecheckResponse'];
 export type Recommendation = components['schemas']['Recommendation'];
 export type RecommendedTag = components['schemas']['RecommendedTag'];
 export type RecordConsentRequest = components['schemas']['RecordConsentRequest'];
+export type RectifyRequest = components['schemas']['RectifyRequest'];
 export type RefreshResponse = components['schemas']['RefreshResponse'];
 export type RefusalDetail = components['schemas']['RefusalDetail'];
 export type RefusedEntry = components['schemas']['RefusedEntry'];
@@ -72157,6 +72669,8 @@ export type SignatureImageSource = components['schemas']['SignatureImageSource']
 export type SignatureItem = components['schemas']['SignatureItem'];
 export type SignatureRole = components['schemas']['SignatureRole'];
 export type SignatureSettingsResponse = components['schemas']['SignatureSettingsResponse'];
+export type SignatureSummary = components['schemas']['SignatureSummary'];
+export type SignedActResponse = components['schemas']['SignedActResponse'];
 export type SignerCapacity = components['schemas']['SignerCapacity'];
 export type SignerEntryDraft = components['schemas']['SignerEntryDraft'];
 export type SignerRevocation = components['schemas']['SignerRevocation'];

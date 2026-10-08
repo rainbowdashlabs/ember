@@ -4,15 +4,17 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import type {GeneratedDocumentEntry} from '@/api/generated/schema'
-import {ColumnTypes, type TableColumn} from '@/components/table/tableColumn'
+import {ColumnTypes, enumOptions, type TableColumn} from '@/components/table/tableColumn'
 import type {Translate} from '@/util/failure'
 import {issuerLine} from '@/components/documents/generation'
+import {SIGNATURE_DISPLAY_ORDER, signatureDisplayOf} from '@/components/documents/signatureState'
 
 /**
  * The columns of the list of generated documents: whom a document is about, which template and which
  * version of it, whether the template is the association's, who generated it and who issued it, when,
- * whether it was created through self service and whether it is still in the member's documents. A person
- * who is gone is named as such; a document that names no issuer leaves its issuer empty.
+ * whether it was created through self service, whether it is still in the member's documents, and how the
+ * signatures asked for on it stand. A person who is gone is named as such; a document that names no issuer
+ * leaves its issuer empty.
  *
  * @param t translates the labels
  */
@@ -28,6 +30,13 @@ export function generatedColumns(t: Translate): TableColumn<GeneratedDocumentEnt
         {key: 'generatedAt', label: t('generatedDocuments.generatedAt'), type: ColumnTypes.DATE_TIME, value: entry => entry.generatedAt},
         {key: 'selfService', label: t('generatedDocuments.selfService'), type: ColumnTypes.BOOLEAN, value: entry => entry.selfService},
         {key: 'filed', label: t('generatedDocuments.filed'), type: ColumnTypes.BOOLEAN, value: entry => entry.documentId !== null},
+        {
+            key: 'signature',
+            label: t('signing.state.column'),
+            type: ColumnTypes.ENUM,
+            value: entry => signatureDisplayOf(entry.signature),
+            options: enumOptions(SIGNATURE_DISPLAY_ORDER, value => t(`signing.state.${value}`)),
+        },
     ]
 }
 

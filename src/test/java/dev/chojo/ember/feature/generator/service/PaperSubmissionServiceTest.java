@@ -26,6 +26,8 @@ import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.entity.StationAudience;
 import dev.chojo.ember.feature.notifications.service.Notifier;
+import dev.chojo.ember.feature.signing.repository.SignatureRequestRepository;
+import dev.chojo.ember.feature.signing.service.SignatureSummaries;
 import io.javalin.http.UploadedFile;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -117,7 +119,10 @@ class PaperSubmissionServiceTest extends GeneratorTestBase {
                 appointments,
                 wiring.templates(),
                 wiring.documents(),
-                new DocumentCatalogService(memberDocumentRepo, wiring.documents()),
+                new DocumentCatalogService(
+                        memberDocumentRepo,
+                        wiring.documents(),
+                        new SignatureSummaries(new SignatureRequestRepository())),
                 memberNameResolver,
                 notifier,
                 confirmations);
@@ -360,7 +365,10 @@ class PaperSubmissionServiceTest extends GeneratorTestBase {
                 appointments,
                 wiring.templates(),
                 wiring.documents(),
-                new DocumentCatalogService(memberDocumentRepo, wiring.documents()),
+                new DocumentCatalogService(
+                        memberDocumentRepo,
+                        wiring.documents(),
+                        new SignatureSummaries(new SignatureRequestRepository())),
                 memberNameResolver,
                 notifier,
                 confirmations);

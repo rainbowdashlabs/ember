@@ -52,7 +52,7 @@ public class DocumentService {
     private static final Variant CONTENT = new Variant("content");
 
     /** What every sealed file is. */
-    static final String SEALED_TYPE = "application/pdf";
+    public static final String SEALED_TYPE = "application/pdf";
 
     private final DocumentRepository repository;
     private final SealedVersionRepository versions;
@@ -230,6 +230,39 @@ public class DocumentService {
     public Optional<byte[]> read(Document document, SealedVersion version) {
         return storage.readAllBytes(
                 scope(document.stationId()), StorageCategory.MEMBER_DOCUMENTS, sealedKey(version.sha256()), CONTENT);
+    }
+
+    /**
+     * One sealed version of a document for a reader, the one it serves or an earlier one it superseded, at a
+     * station that keeps documents.
+     *
+     * @param document the document, which has to be sealed
+     * @param number   the version's number within the document
+     * @param door     who reads, which decides the words of a refusal
+     * @return the sealed file, or empty when it is not in the store
+     */
+    public Optional<byte[]> openVersion(Document document, int number, DocumentDoor door) {
+        requireKept(document.stationId(), door);
+        var version = sealedVersions(document).stream()
+                .filter(candidate -> candidate.version() == number)
+                .findFirst()
+                .orElseThrow(DocumentRefusal.SEALED_VERSION_NOT_FOUND::raise);
+        return read(document, version);
+    }
+
+    /**
+     * The name a sealed version is saved under: the document's file name with the version before its
+     * ending, so the versions of one document do not overwrite each other in a downloads folder.
+     *
+     * @param fileName the document's file name
+     * @param number   the version's number
+     * @return the name
+     */
+    public static String versionFileName(String fileName, int number) {
+        int dot = fileName.lastIndexOf('.');
+        String suffix = "-v" + number;
+        if (dot <= 0) return fileName + suffix;
+        return fileName.substring(0, dot) + suffix + fileName.substring(dot);
     }
 
     /**

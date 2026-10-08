@@ -39,6 +39,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -66,7 +67,8 @@ class DocumentRoutesTest {
             List.of(),
             List.of(),
             false,
-            List.of());
+            List.of(),
+            null);
 
     private DocumentCatalogService catalog;
     private DocumentService documentService;
@@ -209,6 +211,48 @@ class DocumentRoutesTest {
             assertTrue(String.valueOf(response.headers().get("Content-Disposition"))
                     .contains("a.pdf"));
         });
+    }
+
+    /**
+     * A sealed version is served under the document's name with its number, after the same read check as the
+     * document; a version the document lacks and a document of another station are refused.
+     */
+    @Test
+    void aSealedVersionIsServedUnderItsNumber() {
+        when(documentService.openVersion(any(), eq(2), eq(DocumentDoor.STATION)))
+                .thenReturn(Optional.of("Fassung".getBytes()));
+        when(documentService.openVersion(any(), eq(9), eq(DocumentDoor.STATION)))
+                .thenThrow(DocumentRefusal.SEALED_VERSION_NOT_FOUND.raise());
+        harness.run((server, client) -> {
+            var reader = harness.as(TestSessions.member(3));
+
+            var response = client.get(PREFIX + "/documents/5/versions/2/content", reader);
+            assertEquals(200, response.code());
+            assertEquals("Fassung", response.body().string());
+            assertTrue(String.valueOf(response.headers().get("Content-Type")).contains("application/pdf"));
+            assertTrue(String.valueOf(response.headers().get("Content-Disposition"))
+                    .contains("a-v2.pdf"));
+
+            var missing = client.get(PREFIX + "/documents/5/versions/9/content", reader);
+            assertEquals(404, missing.code());
+            assertEquals(DocumentRefusal.SEALED_VERSION_NOT_FOUND, refusalOf(missing));
+
+            assertEquals(
+                    404,
+                    client.get(PREFIX + "/documents/9/versions/2/content", reader)
+                            .code());
+        });
+        verify(access, times(2)).requireReadable(any(), any());
+    }
+
+    @Test
+    void aVersionIsRefusedToAReaderWhoMayNotReadTheDocument() {
+        doThrow(DocumentRefusal.DOCUMENT_NOT_YOURS_TO_READ.raise()).when(access).requireReadable(any(), any());
+        harness.run((server, client) -> {
+            var response = client.get(PREFIX + "/documents/5/versions/1/content", harness.as(TestSessions.member(3)));
+            assertEquals(403, response.code());
+        });
+        verify(documentService, never()).openVersion(any(), anyInt(), any());
     }
 
     @Test

@@ -45,6 +45,7 @@ function document(overrides: Partial<MemberDocumentResponse> = {}): MemberDocume
         tags: [],
         sealed: false,
         sealedVersions: [],
+        signature: null,
         ...overrides,
     }
 }
@@ -56,6 +57,7 @@ function fakeSource(): MemberDocumentSource & {listOf: ReturnType<typeof vi.fn>,
         upload: vi.fn().mockResolvedValue(document()),
         contentUrl: (documentId: number) => `/elsewhere/${documentId}/content`,
         thumbnailUrl: null,
+        versionUrl: null,
     }
 }
 

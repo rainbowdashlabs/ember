@@ -604,7 +604,14 @@ public enum DocumentRefusal implements Refusal {
     DOCUMENT_SCAN_HANDED_IN_AT_ONCE(
             230,
             HttpStatus.CONFLICT,
-            "Another scan of this document was handed in at the same moment, so this one was not filed");
+            "Another scan of this document was handed in at the same moment, so this one was not filed"),
+
+    /** A sealed version a document does not have, or any version of a document that is not sealed. */
+    SEALED_VERSION_NOT_FOUND(250, HttpStatus.NOT_FOUND, "This document has no sealed version with that number"),
+
+    /** Signatures asked for again without naming the corrected document to ask them on. */
+    SIGNING_CORRECTION_NOT_NAMED(
+            251, HttpStatus.BAD_REQUEST, "Name the corrected document the signatures are to be asked for on");
 
     private final Definition definition;
 
