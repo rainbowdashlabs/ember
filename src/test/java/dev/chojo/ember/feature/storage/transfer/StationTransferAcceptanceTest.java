@@ -102,6 +102,7 @@ import dev.chojo.ember.feature.station.transfer.ImportProgress;
 import dev.chojo.ember.feature.station.transfer.SharedStorageFiles;
 import dev.chojo.ember.feature.station.transfer.StationTableImporter;
 import dev.chojo.ember.feature.station.transfer.TransferFileImporter;
+import dev.chojo.ember.feature.station.transfer.TransferPace;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
 import dev.chojo.ember.feature.storage.credential.CredentialCipher;
@@ -243,6 +244,7 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
                 TestStationKeys.aiKeyTransfer(),
                 TestRemoteUrlValidator.permissive(),
                 TestRemoteUrlValidator.permissiveOutbound(),
+                TransferPace.unthrottled(),
                 stationImporter,
                 Set.of(
                         stationImporter,

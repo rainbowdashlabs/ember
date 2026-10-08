@@ -29,6 +29,7 @@ import dev.chojo.ember.feature.station.transfer.StationImportContext;
 import dev.chojo.ember.feature.station.transfer.StationTableImporter;
 import dev.chojo.ember.feature.station.transfer.TableImporter;
 import dev.chojo.ember.feature.station.transfer.TransferFileImporter;
+import dev.chojo.ember.feature.station.transfer.TransferPace;
 import dev.chojo.ember.feature.station.transfer.TransferSourceClient;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageScope;
@@ -98,6 +99,7 @@ public class StationImportService {
     private final StationAiKeyTransfer aiKeyTransfer;
     private final RemoteUrlValidator urlValidator;
     private final OutboundHttp outbound;
+    private final TransferPace pace;
     private final StationTableImporter stationImporter;
     private final Map<String, TableImporter> importers;
     private final GenericTableImporter engine;
@@ -123,6 +125,7 @@ public class StationImportService {
             StationAiKeyTransfer aiKeyTransfer,
             RemoteUrlValidator urlValidator,
             OutboundHttp outbound,
+            TransferPace pace,
             StationTableImporter stationImporter,
             Set<TableImporter> importers,
             AccountRepository accountRepository,
@@ -146,6 +149,7 @@ public class StationImportService {
         this.aiKeyTransfer = aiKeyTransfer;
         this.urlValidator = urlValidator;
         this.outbound = outbound;
+        this.pace = pace;
         this.stationImporter = stationImporter;
         this.importers = importers.stream().collect(Collectors.toMap(TableImporter::table, Function.identity()));
         DataTracking t;
@@ -258,7 +262,7 @@ public class StationImportService {
     public ImportResult startRemoteImport(String sourceUrl, String token) {
         String baseUrl = normalizeSource(sourceUrl);
         log.info("start remote-import-as-new-station from source {}", baseUrl);
-        var client = new TransferSourceClient(baseUrl, token, api.baseUrl(), outbound);
+        var client = new TransferSourceClient(baseUrl, token, api.baseUrl(), outbound, pace);
         verifyRemoteSchemaHash(client, baseUrl);
 
         Map<String, Object> stationPage = fetchStationPage(client);
@@ -294,7 +298,7 @@ public class StationImportService {
     public void startRemoteImportInto(int stationId, String sourceUrl, String token) {
         String baseUrl = normalizeSource(sourceUrl);
         log.info("start remote-import-into-station {} from source {}", stationId, baseUrl);
-        var client = new TransferSourceClient(baseUrl, token, api.baseUrl(), outbound);
+        var client = new TransferSourceClient(baseUrl, token, api.baseUrl(), outbound, pace);
         verifyRemoteSchemaHash(client, baseUrl);
 
         Map<String, Object> stationPage = fetchStationPage(client);

@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.station.transfer.AccountCredentialTableImporter;
 import dev.chojo.ember.feature.station.transfer.AccountTableImporter;
 import dev.chojo.ember.feature.station.transfer.DisabledModuleTableImporter;
 import dev.chojo.ember.feature.station.transfer.StationTableImporter;
+import dev.chojo.ember.feature.station.transfer.TransferPace;
 import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import dev.chojo.ember.util.TestRemoteUrlValidator;
@@ -77,6 +78,7 @@ class GenericTransferRoundtripTest extends RepositoryTestBase {
                 TestStationKeys.aiKeyTransfer(),
                 TestRemoteUrlValidator.permissive(),
                 TestRemoteUrlValidator.permissiveOutbound(),
+                TransferPace.unthrottled(),
                 stationImporter,
                 Set.of(
                         stationImporter,
