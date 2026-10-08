@@ -16,6 +16,8 @@ import java.nio.file.Path;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -61,6 +63,22 @@ final class TimestampRoots {
         var configured = operatorRoots.get(url);
         if (configured != null && !configured.isBlank()) return fromFile(url, configured.strip());
         return Optional.ofNullable(SHIPPED.get(url)).map(TimestampRoots::shipped);
+    }
+
+    /**
+     * Every root a timestamp of this installation may chain to, whether its service is asked today or
+     * not, since a document stamped while it was asked keeps its timestamp.
+     *
+     * @param operatorRoots the operator's roots by service address, each the path of a certificate file
+     * @return each shipped root, then each operator root that can be read, without repeats
+     */
+    static List<X509Certificate> all(Map<String, String> operatorRoots) {
+        var roots = new LinkedHashSet<X509Certificate>();
+        SHIPPED.values().stream().sorted().map(TimestampRoots::shipped).forEach(roots::add);
+        operatorRoots.forEach((url, file) -> {
+            if (!file.isBlank()) fromFile(url, file.strip()).ifPresent(roots::add);
+        });
+        return List.copyOf(roots);
     }
 
     /** @return the addresses of the services Ember ships a root for */

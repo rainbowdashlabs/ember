@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.signing.service;
 
+import dev.chojo.ember.feature.signing.entity.StoredSigningKey;
 import dev.chojo.ember.feature.signing.repository.SigningKeyRepository;
 import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Inject;
@@ -15,7 +16,8 @@ import jakarta.inject.Singleton;
  *
  * <p>When the at-rest secret changes, the keys wrapped under the old one no longer open. This
  * re-encrypts every authority and every station key, active and retired alike, so retired keys stay
- * readable for revocation and history. The whole run is one transaction: the rows are locked, the
+ * readable for revocation and history. Keys of deleted stations have no private key left and are passed
+ * over. The whole run is one transaction: the rows are locked, the
  * authorities before the station keys as {@link SigningKeyRepository} prescribes, each
  * key is unwrapped with the old secret and wrapped with the current one, and a single key that does
  * not open with the old secret rolls everything back, leaving every stored key as it was.
@@ -54,34 +56,24 @@ public class SigningKeyRewrap {
         return Transactions.call(() -> {
             int count = 0;
             for (var authority : keys.lockAuthorities()) {
-                var wrapped = rewrapped(
-                        previous,
-                        authority.key().wrappedPrivateKey(),
-                        "authority",
-                        authority.key().serialNumber());
-                keys.replaceAuthorityWrap(authority.id(), wrapped);
+                keys.replaceAuthorityWrap(authority.id(), rewrapped(previous, authority.key(), "authority"));
                 count++;
             }
             for (var stationKey : keys.lockStationKeys()) {
-                var wrapped = rewrapped(
-                        previous,
-                        stationKey.key().wrappedPrivateKey(),
-                        "station key",
-                        stationKey.key().serialNumber());
-                keys.replaceStationKeyWrap(stationKey.id(), wrapped);
+                keys.replaceStationKeyWrap(stationKey.id(), rewrapped(previous, stationKey.key(), "station key"));
                 count++;
             }
             return count;
         });
     }
 
-    private byte[] rewrapped(SigningKeyWrap previous, byte[] wrapped, String kind, String serialNumber) {
+    private byte[] rewrapped(SigningKeyWrap previous, StoredSigningKey stored, String kind) {
         try {
-            return current.wrap(previous.unwrap(wrapped));
+            return current.wrap(previous.unwrap(stored));
         } catch (SigningKeyWrapException e) {
             throw new SigningKeyWrapException(
                     "Re-wrapping stopped and nothing was changed: the " + kind + " with certificate serial "
-                            + serialNumber + " does not open with the previous at-rest secret",
+                            + stored.serialNumber() + " does not open with the previous at-rest secret",
                     e);
         }
     }

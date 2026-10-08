@@ -47,14 +47,16 @@ CREATE TABLE IF NOT EXISTS ember_schema.station_signing_key
     signing_ca_id       INT         NOT NULL REFERENCES ember_schema.signing_ca (id),
     serial_number       TEXT        NOT NULL UNIQUE,
     certificate         BYTEA       NOT NULL,
-    wrapped_private_key BYTEA       NOT NULL,
+    wrapped_private_key BYTEA,
     valid_until         TIMESTAMPTZ NOT NULL,
     created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
     retired_at          TIMESTAMPTZ,
     revoked_at          TIMESTAMPTZ,
     revocation_reason   TEXT CHECK (revocation_reason IN ('KEY_COMPROMISE', 'SUPERSEDED', 'CESSATION_OF_OPERATION')),
     CONSTRAINT station_signing_key_revocation_check CHECK ((revoked_at IS NULL) = (revocation_reason IS NULL)),
-    CONSTRAINT station_signing_key_revoked_retired_check CHECK (revoked_at IS NULL OR retired_at IS NOT NULL)
+    CONSTRAINT station_signing_key_revoked_retired_check CHECK (revoked_at IS NULL OR retired_at IS NOT NULL),
+    CONSTRAINT station_signing_key_private_key_check CHECK ((wrapped_private_key IS NULL) = (station_id IS NULL)),
+    CONSTRAINT station_signing_key_station_retired_check CHECK (station_id IS NOT NULL OR retired_at IS NOT NULL)
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS station_signing_key_active_idx
@@ -80,17 +82,42 @@ COMMENT ON COLUMN ember_schema.station_signing_key.serial_number
 COMMENT ON COLUMN ember_schema.station_signing_key.certificate
     IS 'The station certificate issued by the installation''s authority, DER encoded. Public: it is embedded in every document the key seals.';
 COMMENT ON COLUMN ember_schema.station_signing_key.wrapped_private_key
-    IS 'The station''s private key, encrypted with a key derived from the installation''s at-rest encryption key. Never stored in clear; useless without that key file or setting.';
+    IS 'The station''s private key, encrypted with a key derived from the installation''s at-rest encryption key. Never stored in clear; useless without that key file or setting. Null exactly when the station was deleted: its keys seal nothing more, so their private keys are destroyed, while revoking them and listing them on revocation lists needs only the authority''s key.';
 COMMENT ON COLUMN ember_schema.station_signing_key.valid_until
     IS 'When the station certificate expires, copied from the certificate.';
 COMMENT ON COLUMN ember_schema.station_signing_key.created_at
     IS 'When the key was created.';
 COMMENT ON COLUMN ember_schema.station_signing_key.retired_at
-    IS 'When the key stopped being used for new seals; null while it is the station''s active key, and still null for the last active key of a deleted station, which seals nothing more.';
+    IS 'When the key stopped being used for new seals; null while it is the station''s active key. Deleting the station retires its active key at that moment.';
 COMMENT ON COLUMN ember_schema.station_signing_key.revoked_at
     IS 'When the key was revoked, the date its authority''s revocation lists give for it; null while it is not revoked. A revoked key is always retired.';
 COMMENT ON COLUMN ember_schema.station_signing_key.revocation_reason
     IS 'Why the key was revoked, as its authority''s revocation lists state it: KEY_COMPROMISE when the private key leaked, SUPERSEDED when it was replaced, CESSATION_OF_OPERATION when the station stopped sealing with it. Null while it is not revoked.';
+COMMENT ON CONSTRAINT station_signing_key_private_key_check ON ember_schema.station_signing_key
+    IS 'A key keeps its private key exactly as long as its station exists.';
+COMMENT ON CONSTRAINT station_signing_key_station_retired_check ON ember_schema.station_signing_key
+    IS 'A key of a deleted station is retired.';
+
+CREATE OR REPLACE FUNCTION ember_schema.station_signing_key_station_gone() RETURNS TRIGGER
+    LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    NEW.retired_at := coalesce(NEW.retired_at, now());
+    NEW.wrapped_private_key := NULL;
+    RETURN NEW;
+END;
+$$;
+
+COMMENT ON FUNCTION ember_schema.station_signing_key_station_gone()
+    IS 'Retires a station key whose station is deleted, if it was still active, and destroys its private key. Runs on the update that empties station_id, which deleting the station performs on every one of its keys, so no way of deleting a station leaves a key behind that could still seal.';
+
+CREATE TRIGGER station_signing_key_station_gone
+    BEFORE UPDATE OF station_id
+    ON ember_schema.station_signing_key
+    FOR EACH ROW
+    WHEN (OLD.station_id IS NOT NULL AND NEW.station_id IS NULL)
+EXECUTE FUNCTION ember_schema.station_signing_key_station_gone();
 
 ALTER TABLE ember_schema.member_document
     ADD COLUMN sealed BOOLEAN NOT NULL DEFAULT FALSE;
@@ -122,6 +149,9 @@ CREATE TABLE IF NOT EXISTS ember_schema.member_document_version
 CREATE UNIQUE INDEX IF NOT EXISTS member_document_version_current_idx
     ON ember_schema.member_document_version (document_id)
     WHERE superseded_at IS NULL;
+
+CREATE INDEX IF NOT EXISTS member_document_version_sha256_idx
+    ON ember_schema.member_document_version (sha256);
 
 COMMENT ON TABLE ember_schema.member_document_version
     IS 'The sealed versions of a sealed member document, one row per sealed file. Each file is stored once under its SHA-256 and never replaced; a later signature adds a version that supersedes the one before, which stays. Exactly one version of a document is current.';

@@ -388,7 +388,19 @@ public enum DocumentRefusal implements Refusal {
             128, HttpStatus.NOT_FOUND, "This station has no seal certificate with that serial number"),
 
     /** The seal certificates of a station that does not exist or never sealed a document. */
-    SEALING_STATION_NOT_HERE(129, HttpStatus.NOT_FOUND, "No station here seals documents under that address");
+    SEALING_STATION_NOT_HERE(129, HttpStatus.NOT_FOUND, "No station here seals documents under that address"),
+
+    /** A seal check asked for without a file in the field it is read from. */
+    SEAL_CHECK_NO_FILE(130, HttpStatus.BAD_REQUEST, "No file was sent to check"),
+
+    /** A file sent for a seal check that is larger than a check takes. */
+    SEAL_CHECK_TOO_LARGE(131, HttpStatus.CONTENT_TOO_LARGE, "A file to check may be at most 25 MB"),
+
+    /** A file sent for a seal check that is not a PDF or cannot be read as one. */
+    SEAL_CHECK_NOT_A_PDF(132, HttpStatus.UNSUPPORTED_MEDIA_TYPE, "The file is not a PDF that can be read"),
+
+    /** A file sent for a seal check whose upload broke off before it was complete. */
+    SEAL_CHECK_NOT_RECEIVED(133, HttpStatus.BAD_REQUEST, "The file did not arrive completely, so it was not checked");
 
     private final Definition definition;
 

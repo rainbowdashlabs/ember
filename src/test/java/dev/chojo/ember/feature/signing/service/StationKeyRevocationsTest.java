@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.signing.service;
 import dev.chojo.ember.feature.signing.entity.RevocationReason;
 import dev.chojo.ember.feature.signing.entity.SealingKey;
 import dev.chojo.ember.feature.signing.entity.StoredRevocationList;
+import dev.chojo.ember.feature.signing.entity.StoredSigningKey;
 import dev.chojo.ember.feature.signing.repository.SigningKeyRepository;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import dev.chojo.ember.util.sql.Transactions;
@@ -20,6 +21,7 @@ import org.bouncycastle.asn1.x509.SubjectKeyIdentifier;
 import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.postgresql.util.PSQLException;
 
 import java.security.cert.CRLReason;
 import java.security.cert.X509CRL;
@@ -367,6 +369,69 @@ class StationKeyRevocationsTest extends RepositoryTestBase {
         assertEquals(
                 Set.of(serialOf(leaked), serialOf(lastActive)),
                 entriesOf(listOf(leaked.authority())).keySet());
+    }
+
+    @Test
+    void deletingAStationRetiresItsActiveKeyAndDestroysEveryPrivateKey() throws Exception {
+        var station = stationRepo.create("Deleted key station");
+        var revoked = signingKeys.forStation(station.id());
+        revocations.revoke(station.id(), serialOf(revoked), RevocationReason.SUPERSEDED);
+        var rotated = signingKeys.forStation(station.id());
+        var lastActive = signingKeys.rotate(station.id());
+        var other = stationRepo.create("Surviving key station");
+        var survivor = signingKeys.forStation(other.id());
+
+        stationRepo.delete(station.id());
+
+        var orphaned = """
+                SELECT count(*) AS n FROM station_signing_key
+                WHERE station_id IS NULL AND retired_at IS NOT NULL AND wrapped_private_key IS NULL;""";
+        assertEquals(3, count(orphaned), "every key of the station is retired and without its private key");
+        assertEquals(1, count("SELECT count(*) AS n FROM station_signing_key WHERE wrapped_private_key IS NOT NULL;"));
+        assertEquals(serialOf(survivor), serialOf(signingKeys.forStation(other.id())), "another station keeps its key");
+        assertTrue(repository.authorityOfDeletedStationKey(serialOf(lastActive)).isPresent());
+
+        var list = listOf(revoked.authority());
+        assertTrue(list.isRevoked(revoked.certificate()), "the revoked key stays on the list");
+        assertTrue(revocations.revokeKeyOfDeletedStation(serialOf(rotated), RevocationReason.CESSATION_OF_OPERATION));
+        assertEquals(
+                Set.of(serialOf(revoked), serialOf(rotated)),
+                entriesOf(listOf(revoked.authority())).keySet());
+    }
+
+    @Test
+    void aKeyWithoutItsPrivateKeyIsRefusedWhereverItWouldBeOpened() {
+        var station = stationRepo.create("Destroyed key station");
+        var key = signingKeys.forStation(station.id());
+        stationRepo.delete(station.id());
+        var stored = query(
+                        "SELECT serial_number, certificate, wrapped_private_key, valid_until FROM station_signing_key;")
+                .single(call())
+                .map(StoredSigningKey.map())
+                .first()
+                .orElseThrow();
+
+        var refused = assertThrows(SigningKeyWrapException.class, () -> wrap.unwrap(stored));
+        assertTrue(refused.getMessage().contains(serialOf(key)));
+        assertThrows(SigningKeyWrapException.class, () -> wrap.open(stored));
+    }
+
+    @Test
+    void theDatabaseRefusesAKeyOfALivingStationWithoutItsPrivateKey() {
+        var station = stationRepo.create("Checked key station");
+        signingKeys.forStation(station.id());
+
+        var refused = assertThrows(PSQLException.class, () -> {
+            try (var connection = dataSource.getConnection();
+                    var statement = connection.createStatement()) {
+                statement.execute("UPDATE station_signing_key SET wrapped_private_key = NULL WHERE station_id = "
+                        + station.id() + ";");
+            }
+        });
+
+        assertEquals("23514", refused.getSQLState(), refused.getMessage());
+        assertTrue(refused.getMessage().contains("station_signing_key_private_key_check"));
+        assertEquals(1, count("SELECT count(*) AS n FROM station_signing_key WHERE wrapped_private_key IS NOT NULL;"));
     }
 
     @Test

@@ -47947,6 +47947,73 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/public/signing/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Check the seals and timestamps of a PDF */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "multipart/form-data": string;
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SealVerification"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Content Too Large */
+                413: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Unsupported Media Type */
+                415: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/public/station/{stationUid}/blog": {
         parameters: {
             query?: never;
@@ -59309,6 +59376,11 @@ export interface components {
             challengeToken: string;
             optionsJson: string;
         };
+        CertificateFacts: {
+            serialNumber: string;
+            sha256Fingerprint: string;
+            subject: string;
+        };
         ChangedCountResponse: {
             /** Format: int32 */
             changed: number;
@@ -60684,6 +60756,10 @@ export interface components {
             updatedAt: components["schemas"]["Instant"];
             /** Format: int32 */
             version: number;
+        };
+        DocumentTimestampCheck: {
+            coversWholeFile: boolean;
+            timestamp: components["schemas"]["TimestampCheck"];
         };
         DraftPreviewRequest: {
             /** Format: int32 */
@@ -62166,6 +62242,11 @@ export interface components {
         };
         HandoverRequest: {
             itemIds?: number[];
+        };
+        HeldCopy: {
+            held: boolean;
+            sealedAt: components["schemas"]["Instant"] | null;
+            sealLevel: components["schemas"]["SealLevel"] | null;
         };
         HeldReportRequest: {
             /** Format: int32 */
@@ -64678,6 +64759,8 @@ export interface components {
         OwnNameChangeResponse: {
             pending: components["schemas"]["OwnNameChange"] | null;
         };
+        /** @enum {string} */
+        PadesLevel: "BASELINE_B" | "BASELINE_T" | "BASELINE_LT" | "BASELINE_LTA" | "NOT_BASELINE";
         PagedChangesResponse: {
             changes: components["schemas"]["EnrichedProfileFieldChange"][];
             /** Format: int32 */
@@ -66663,6 +66746,10 @@ export interface components {
             /** Format: int32 */
             memberId?: number | null;
         };
+        /** @enum {string} */
+        RevocationReason: "KEY_COMPROMISE" | "SUPERSEDED" | "CESSATION_OF_OPERATION";
+        /** @enum {string} */
+        RevocationStatus: "GOOD" | "REVOKED" | "UNKNOWN";
         RichMember: {
             /** Format: int32 */
             accountId: number | null;
@@ -66840,6 +66927,21 @@ export interface components {
         ScheduleMode: "FIXED_DELAY" | "FIXED_RATE" | "ONCE";
         /** @enum {string} */
         Scope: "STATION" | "INSTANCE" | "USER" | "CLUSTER";
+        SealCheck: {
+            coversWholeFile: boolean;
+            indication: components["schemas"]["ValidationIndication"];
+            intact: boolean;
+            issuedHere: boolean;
+            issuer: components["schemas"]["CertificateFacts"] | null;
+            level: components["schemas"]["PadesLevel"];
+            revocation: components["schemas"]["SignerRevocation"];
+            signer: components["schemas"]["CertificateFacts"] | null;
+            signingTime: components["schemas"]["Instant"] | null;
+            subIndication: components["schemas"]["ValidationSubIndication"] | null;
+            timestamps: components["schemas"]["TimestampCheck"][];
+            validatorIndication: components["schemas"]["ValidationIndication"];
+            validatorSubIndication: components["schemas"]["ValidationSubIndication"] | null;
+        };
         SealedVersionResponse: {
             sealedAt: components["schemas"]["Instant"];
             sealLevel: components["schemas"]["SealLevel"];
@@ -66853,6 +66955,11 @@ export interface components {
         };
         /** @enum {string} */
         SealLevel: "BASELINE_B" | "BASELINE_T" | "BASELINE_LT";
+        SealVerification: {
+            document: components["schemas"]["HeldCopy"];
+            documentTimestamps: components["schemas"]["DocumentTimestampCheck"][];
+            signatures: components["schemas"]["SealCheck"][];
+        };
         SearchResultItem: {
             file: components["schemas"]["KbFile"];
             snippet: string;
@@ -67429,6 +67536,11 @@ export interface components {
         };
         /** @enum {string} */
         SignatureRole: "PARTICIPANT" | "GUARDIAN_1" | "GUARDIAN_2" | "EACH_GUARDIAN" | "ANY_GUARDIAN" | "ISSUER";
+        SignerRevocation: {
+            reason: components["schemas"]["RevocationReason"] | null;
+            revokedAt: components["schemas"]["Instant"] | null;
+            status: components["schemas"]["RevocationStatus"];
+        };
         SignInClaimRequest: {
             claimToken?: string;
         };
@@ -68458,6 +68570,14 @@ export interface components {
             /** Format: int64 */
             total: number;
         };
+        TimestampCheck: {
+            authority: components["schemas"]["CertificateFacts"] | null;
+            indication: components["schemas"]["ValidationIndication"];
+            intact: boolean;
+            pinnedAuthority: boolean;
+            subIndication: components["schemas"]["ValidationSubIndication"] | null;
+            time: components["schemas"]["Instant"] | null;
+        };
         TimestampRequest: {
             time?: components["schemas"]["Instant"];
         };
@@ -68815,6 +68935,10 @@ export interface components {
         UserTypesResponse: {
             userTypes: components["schemas"]["StationUserType"][];
         };
+        /** @enum {string} */
+        ValidationIndication: "TOTAL_PASSED" | "TOTAL_FAILED" | "INDETERMINATE" | "PASSED" | "FAILED" | "NO_SIGNATURE_FOUND";
+        /** @enum {string} */
+        ValidationSubIndication: "FORMAT_FAILURE" | "HASH_FAILURE" | "SIG_CRYPTO_FAILURE" | "REVOKED" | "EXPIRED" | "NOT_YET_VALID" | "SIG_CONSTRAINTS_FAILURE" | "CHAIN_CONSTRAINTS_FAILURE" | "CERTIFICATE_CHAIN_GENERAL_FAILURE" | "CRYPTO_CONSTRAINTS_FAILURE" | "POLICY_PROCESSING_ERROR" | "SIGNATURE_POLICY_NOT_AVAILABLE" | "TIMESTAMP_ORDER_FAILURE" | "NO_SIGNING_CERTIFICATE_FOUND" | "NO_CERTIFICATE_CHAIN_FOUND" | "NO_CERTIFICATE_CHAIN_FOUND_NO_POE" | "REVOKED_NO_POE" | "REVOKED_CA_NO_POE" | "OUT_OF_BOUNDS_NOT_REVOKED" | "OUT_OF_BOUNDS_NO_POE" | "REVOCATION_OUT_OF_BOUNDS_NO_POE" | "CRYPTO_CONSTRAINTS_FAILURE_NO_POE" | "NO_POE" | "TRY_LATER" | "SIGNED_DATA_NOT_FOUND" | "ATTESTATION_CONSTRAINTS_FAILURE" | "NOT_ISSUED_HERE";
         ValueEntry: {
             /** Format: int32 */
             fieldId?: number;
@@ -69361,6 +69485,7 @@ export type CellContentType = components['schemas']['CellContentType'];
 export type CellResponse = components['schemas']['CellResponse'];
 export type CellWriteRequest = components['schemas']['CellWriteRequest'];
 export type CeremonyResponse = components['schemas']['CeremonyResponse'];
+export type CertificateFacts = components['schemas']['CertificateFacts'];
 export type ChangedCountResponse = components['schemas']['ChangedCountResponse'];
 export type ChangedResponse = components['schemas']['ChangedResponse'];
 export type ChangelogEntry = components['schemas']['ChangelogEntry'];
@@ -69563,6 +69688,7 @@ export type DocumentTemplateKind = components['schemas']['DocumentTemplateKind']
 export type DocumentTemplateRequest = components['schemas']['DocumentTemplateRequest'];
 export type DocumentTemplateResponse = components['schemas']['DocumentTemplateResponse'];
 export type DocumentTemplateSummary = components['schemas']['DocumentTemplateSummary'];
+export type DocumentTimestampCheck = components['schemas']['DocumentTimestampCheck'];
 export type DraftPreviewRequest = components['schemas']['DraftPreviewRequest'];
 export type EligibleMembers = components['schemas']['EligibleMembers'];
 export type EmailChangeResponse = components['schemas']['EmailChangeResponse'];
@@ -69767,6 +69893,7 @@ export type GuardianEntry = components['schemas']['GuardianEntry'];
 export type HandOutRequest = components['schemas']['HandOutRequest'];
 export type HandOutSelfChecksRequest = components['schemas']['HandOutSelfChecksRequest'];
 export type HandoverRequest = components['schemas']['HandoverRequest'];
+export type HeldCopy = components['schemas']['HeldCopy'];
 export type HeldReportRequest = components['schemas']['HeldReportRequest'];
 export type HeroBannerConfig = components['schemas']['HeroBannerConfig'];
 export type HibpConfigRequest = components['schemas']['HibpConfigRequest'];
@@ -70111,6 +70238,7 @@ export type OverviewResponse = components['schemas']['OverviewResponse'];
 export type OwnerAboveResponse = components['schemas']['OwnerAboveResponse'];
 export type OwnNameChange = components['schemas']['OwnNameChange'];
 export type OwnNameChangeResponse = components['schemas']['OwnNameChangeResponse'];
+export type PadesLevel = components['schemas']['PadesLevel'];
 export type PagedChangesResponse = components['schemas']['PagedChangesResponse'];
 export type PageDetailResponse = components['schemas']['PageDetailResponse'];
 export type PageLeaderboardEntry = components['schemas']['PageLeaderboardEntry'];
@@ -70380,6 +70508,8 @@ export type ResultFieldCondition = components['schemas']['ResultFieldCondition']
 export type ResultFilter = components['schemas']['ResultFilter'];
 export type ResultGrouping = components['schemas']['ResultGrouping'];
 export type ReturnEverythingRequest = components['schemas']['ReturnEverythingRequest'];
+export type RevocationReason = components['schemas']['RevocationReason'];
+export type RevocationStatus = components['schemas']['RevocationStatus'];
 export type RichMember = components['schemas']['RichMember'];
 export type RoomDetail = components['schemas']['RoomDetail'];
 export type RuleRequest = components['schemas']['RuleRequest'];
@@ -70397,8 +70527,10 @@ export type SavePageRequest = components['schemas']['SavePageRequest'];
 export type SavePresetRequest = components['schemas']['SavePresetRequest'];
 export type ScheduleMode = components['schemas']['ScheduleMode'];
 export type Scope = components['schemas']['Scope'];
+export type SealCheck = components['schemas']['SealCheck'];
 export type SealedVersionResponse = components['schemas']['SealedVersionResponse'];
 export type SealLevel = components['schemas']['SealLevel'];
+export type SealVerification = components['schemas']['SealVerification'];
 export type SearchResultItem = components['schemas']['SearchResultItem'];
 export type SearchResultResponse = components['schemas']['SearchResultResponse'];
 export type SectionExaminers = components['schemas']['SectionExaminers'];
@@ -70482,6 +70614,7 @@ export type ShareSetting = components['schemas']['ShareSetting'];
 export type SidebarCounts = components['schemas']['SidebarCounts'];
 export type SignatureConfig = components['schemas']['SignatureConfig'];
 export type SignatureRole = components['schemas']['SignatureRole'];
+export type SignerRevocation = components['schemas']['SignerRevocation'];
 export type SignInClaimRequest = components['schemas']['SignInClaimRequest'];
 export type SignInFinishRequest = components['schemas']['SignInFinishRequest'];
 export type SigningAuthorityInfo = components['schemas']['SigningAuthorityInfo'];
@@ -70614,6 +70747,7 @@ export type TicketSummary = components['schemas']['TicketSummary'];
 export type TidyResult = components['schemas']['TidyResult'];
 export type TierRequest = components['schemas']['TierRequest'];
 export type TierResponse = components['schemas']['TierResponse'];
+export type TimestampCheck = components['schemas']['TimestampCheck'];
 export type TimestampRequest = components['schemas']['TimestampRequest'];
 export type TimestampResponse = components['schemas']['TimestampResponse'];
 export type TokenEnrollFinishRequest = components['schemas']['TokenEnrollFinishRequest'];
@@ -70674,6 +70808,8 @@ export type UserAgentsResponse = components['schemas']['UserAgentsResponse'];
 export type UserTag = components['schemas']['UserTag'];
 export type UserTypeChangeResponse = components['schemas']['UserTypeChangeResponse'];
 export type UserTypesResponse = components['schemas']['UserTypesResponse'];
+export type ValidationIndication = components['schemas']['ValidationIndication'];
+export type ValidationSubIndication = components['schemas']['ValidationSubIndication'];
 export type ValueEntry = components['schemas']['ValueEntry'];
 export type Verify2faRequest = components['schemas']['Verify2faRequest'];
 export type VerifyRequest = components['schemas']['VerifyRequest'];
@@ -71530,6 +71666,14 @@ export const OutputShape = {
     SINGLE: "SINGLE",
 } as const;
 
+export const PadesLevel = {
+    BASELINE_B: "BASELINE_B",
+    BASELINE_LT: "BASELINE_LT",
+    BASELINE_LTA: "BASELINE_LTA",
+    BASELINE_T: "BASELINE_T",
+    NOT_BASELINE: "NOT_BASELINE",
+} as const;
+
 export const PageVisibility = {
     DRAFT: "DRAFT",
     PUBLIC: "PUBLIC",
@@ -71694,6 +71838,18 @@ export const RestrictionType = {
     KB_FOLDER: "KB_FOLDER",
     NEWS: "NEWS",
     QUIZ_TEST: "QUIZ_TEST",
+} as const;
+
+export const RevocationReason = {
+    CESSATION_OF_OPERATION: "CESSATION_OF_OPERATION",
+    KEY_COMPROMISE: "KEY_COMPROMISE",
+    SUPERSEDED: "SUPERSEDED",
+} as const;
+
+export const RevocationStatus = {
+    GOOD: "GOOD",
+    REVOKED: "REVOKED",
+    UNKNOWN: "UNKNOWN",
 } as const;
 
 export const RunStatus = {
@@ -72133,6 +72289,45 @@ export const TwoFactorKind = {
     BACKUP_CODES: "BACKUP_CODES",
     TOTP: "TOTP",
     WEBAUTHN: "WEBAUTHN",
+} as const;
+
+export const ValidationIndication = {
+    FAILED: "FAILED",
+    INDETERMINATE: "INDETERMINATE",
+    NO_SIGNATURE_FOUND: "NO_SIGNATURE_FOUND",
+    PASSED: "PASSED",
+    TOTAL_FAILED: "TOTAL_FAILED",
+    TOTAL_PASSED: "TOTAL_PASSED",
+} as const;
+
+export const ValidationSubIndication = {
+    ATTESTATION_CONSTRAINTS_FAILURE: "ATTESTATION_CONSTRAINTS_FAILURE",
+    CERTIFICATE_CHAIN_GENERAL_FAILURE: "CERTIFICATE_CHAIN_GENERAL_FAILURE",
+    CHAIN_CONSTRAINTS_FAILURE: "CHAIN_CONSTRAINTS_FAILURE",
+    CRYPTO_CONSTRAINTS_FAILURE: "CRYPTO_CONSTRAINTS_FAILURE",
+    CRYPTO_CONSTRAINTS_FAILURE_NO_POE: "CRYPTO_CONSTRAINTS_FAILURE_NO_POE",
+    EXPIRED: "EXPIRED",
+    FORMAT_FAILURE: "FORMAT_FAILURE",
+    HASH_FAILURE: "HASH_FAILURE",
+    NOT_ISSUED_HERE: "NOT_ISSUED_HERE",
+    NOT_YET_VALID: "NOT_YET_VALID",
+    NO_CERTIFICATE_CHAIN_FOUND: "NO_CERTIFICATE_CHAIN_FOUND",
+    NO_CERTIFICATE_CHAIN_FOUND_NO_POE: "NO_CERTIFICATE_CHAIN_FOUND_NO_POE",
+    NO_POE: "NO_POE",
+    NO_SIGNING_CERTIFICATE_FOUND: "NO_SIGNING_CERTIFICATE_FOUND",
+    OUT_OF_BOUNDS_NOT_REVOKED: "OUT_OF_BOUNDS_NOT_REVOKED",
+    OUT_OF_BOUNDS_NO_POE: "OUT_OF_BOUNDS_NO_POE",
+    POLICY_PROCESSING_ERROR: "POLICY_PROCESSING_ERROR",
+    REVOCATION_OUT_OF_BOUNDS_NO_POE: "REVOCATION_OUT_OF_BOUNDS_NO_POE",
+    REVOKED: "REVOKED",
+    REVOKED_CA_NO_POE: "REVOKED_CA_NO_POE",
+    REVOKED_NO_POE: "REVOKED_NO_POE",
+    SIGNATURE_POLICY_NOT_AVAILABLE: "SIGNATURE_POLICY_NOT_AVAILABLE",
+    SIGNED_DATA_NOT_FOUND: "SIGNED_DATA_NOT_FOUND",
+    SIG_CONSTRAINTS_FAILURE: "SIG_CONSTRAINTS_FAILURE",
+    SIG_CRYPTO_FAILURE: "SIG_CRYPTO_FAILURE",
+    TIMESTAMP_ORDER_FAILURE: "TIMESTAMP_ORDER_FAILURE",
+    TRY_LATER: "TRY_LATER",
 } as const;
 
 export const WaitingListAnswer = {

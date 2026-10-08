@@ -44,7 +44,9 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  *
  * <p>Station keys outlive their station: deleting a station leaves its keys without a station, so a
  * revoked key stays on its authority's lists and a key of a deleted station can still be revoked by its
- * serial number.
+ * serial number. The database retires such a key and destroys its private key in the same step, so
+ * {@link StoredSigningKey#wrappedPrivateKey()} is null exactly for those; nothing needs it, since
+ * revoking and listing use the authority's key.
  */
 @Singleton
 public class SigningKeyRepository {
@@ -165,12 +167,20 @@ public class SigningKeyRepository {
     }
 
     /**
-     * Every station key, active and retired, locked like {@link #lockAuthorities()}.
+     * Every station key that still has its private key, active and retired, locked like
+     * {@link #lockAuthorities()}. The keys of deleted stations have none and are left out.
      *
      * @return the station keys, oldest first
      */
     public List<StoredStationKey> lockStationKeys() {
-        return query("SELECT %s FROM station_signing_key ORDER BY id FOR NO KEY UPDATE;", STATION_KEY_COLUMNS)
+        return query("""
+                        SELECT
+                            %s
+                        FROM
+                            station_signing_key
+                        WHERE wrapped_private_key IS NOT NULL
+                        ORDER BY id
+                        FOR NO KEY UPDATE;""", STATION_KEY_COLUMNS)
                 .single(call())
                 .map(StoredStationKey.map())
                 .all();

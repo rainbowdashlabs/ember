@@ -142,7 +142,7 @@ public class StationSigningKeys {
         var authority = keys.findAuthority(stored.authorityId())
                 .orElseThrow(() -> new IllegalStateException("The station key's authority is missing"));
         return new SealingKey(
-                wrap.unwrap(stored.key().wrappedPrivateKey()),
+                wrap.unwrap(stored.key()),
                 List.of(
                         SigningCertificates.certificateOf(stored.key().certificate()),
                         SigningCertificates.certificateOf(authority.key().certificate())));

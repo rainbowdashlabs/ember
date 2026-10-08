@@ -108,11 +108,27 @@ public class SigningKeyWrap {
      *
      * @param stored the key as it is stored
      * @return its private key and certificate
-     * @throws SigningKeyWrapException as {@link #unwrap(byte[])} does
+     * @throws SigningKeyWrapException as {@link #unwrap(StoredSigningKey)} does
      */
     public SigningCertificates.Issued open(StoredSigningKey stored) {
-        return new SigningCertificates.Issued(
-                unwrap(stored.wrappedPrivateKey()), SigningCertificates.certificateOf(stored.certificate()));
+        return new SigningCertificates.Issued(unwrap(stored), SigningCertificates.certificateOf(stored.certificate()));
+    }
+
+    /**
+     * Unwraps the private key of a stored key.
+     *
+     * @param stored the key as it is stored
+     * @return its private key
+     * @throws SigningKeyWrapException when the key has no private key any more, which is the case for
+     *                                 every key of a deleted station, or as {@link #unwrap(byte[])} does
+     */
+    public PrivateKey unwrap(StoredSigningKey stored) {
+        var wrapped = stored.wrappedPrivateKey();
+        if (wrapped == null) {
+            throw new SigningKeyWrapException("The signing key with certificate serial " + stored.serialNumber()
+                    + " has no private key: its station was deleted, which destroyed it");
+        }
+        return unwrap(wrapped);
     }
 
     /**

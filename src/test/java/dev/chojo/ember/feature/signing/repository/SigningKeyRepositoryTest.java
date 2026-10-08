@@ -188,7 +188,9 @@ class SigningKeyRepositoryTest extends RepositoryTestBase {
                 .authorityOfStationKey(station.id(), active.serialNumber())
                 .isEmpty());
         assertTrue(repository.findActive(station.id()).isEmpty());
-        assertEquals(2, Transactions.call(repository::lockStationKeys).size(), "both keys stay for re-wrapping");
+        assertTrue(
+                Transactions.call(repository::lockStationKeys).isEmpty(),
+                "without a private key there is nothing to re-wrap");
     }
 
     @Test

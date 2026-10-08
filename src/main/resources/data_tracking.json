@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:4549ea1add154ee27d5b8d22241ac4ea4221679009f8312477b69fdc1196948f",
-  "generatedAt": "2026-10-07T23:34:36Z",
+  "schemaHash": "sha256:fc3d1cf04b1b7d043bca6b00c249fbf9172a464e862ca23055599e0a49cc9773",
+  "generatedAt": "2026-10-08T09:22:09Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -24700,7 +24700,7 @@
     "station_signing_key": {
       "feature": "signing",
       "scope": "STATION",
-      "tableHash": "sha256:c98ff3ea36d6d3d2375028d8396d1d59d0f82295c15d5ff5ddb3ea8406fca730",
+      "tableHash": "sha256:e728fd439b41e4b84f29f50263b4f05c9db72516406c594a31dc7eb7c81441f3",
       "columns": [
         {
           "name": "id",
@@ -24740,9 +24740,9 @@
         {
           "name": "wrapped_private_key",
           "type": "bytea",
-          "nullable": false,
+          "nullable": true,
           "verified": true,
-          "description": "The station's private key, encrypted with a key derived from the installation's at-rest encryption key. Never stored in clear; useless without that key file or setting."
+          "description": "The station's private key, encrypted with a key derived from the installation's at-rest encryption key. Never stored in clear; useless without that key file or setting. Null exactly when the station was deleted: its keys seal nothing more, so their private keys are destroyed, while revoking them and listing them on revocation lists needs only the authority's key."
         },
         {
           "name": "valid_until",
@@ -24763,7 +24763,7 @@
           "type": "timestamptz",
           "nullable": true,
           "verified": true,
-          "description": "When the key stopped being used for new seals; null while it is the station's active key, and still null for the last active key of a deleted station, which seals nothing more."
+          "description": "When the key stopped being used for new seals; null while it is the station's active key. Deleting the station retires its active key at that moment."
         },
         {
           "name": "revoked_at",
@@ -24804,7 +24804,7 @@
       },
       "gdprDeletion": {
         "status": "IGNORED",
-        "reason": "Key material of the station, not personal data. Kept even when the station is deleted, so a revoked key stays on its authority's revocation lists."
+        "reason": "Key material of the station, not personal data. Kept even when the station is deleted, retired and without its private key, so a revoked key stays on its authority's revocation lists."
       },
       "description": "The keys a station seals documents with, each with a certificate issued by one of the installation's authorities. Created the first time a station seals a document; a station has at most one active key, and retired keys stay so older documents can still be traced to them. Keys outlive their station, so its revocations are never lost."
     },

@@ -84,6 +84,23 @@ public class SealedVersionRepository {
                 .first();
     }
 
+    /**
+     * The first filed version, of any document at any station, whose file has exactly this SHA-256.
+     *
+     * @param sha256 SHA-256 of a file, lower-case hexadecimal
+     * @return that version, or empty when no sealed document here has such a file
+     */
+    public Optional<SealedVersion> firstWithHash(String sha256) {
+        return query("""
+                        SELECT %s FROM member_document_version
+                        WHERE sha256 = :content_hash
+                        ORDER BY sealed_at, id
+                        LIMIT 1;""", COLUMNS)
+                .single(call().bind("content_hash", sha256))
+                .map(SealedVersion.map())
+                .first();
+    }
+
     /** @return every version of the document, newest first */
     public List<SealedVersion> versionsOf(int documentId) {
         return query("""

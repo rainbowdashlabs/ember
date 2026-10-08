@@ -36813,6 +36813,63 @@
         } ]
       }
     },
+    "/api/v1/public/signing/verify" : {
+      "post" : {
+        "summary" : "Check the seals and timestamps of a PDF",
+        "tags" : [ "Public Signing" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SealVerification"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "413" : {
+            "description" : "Content Too Large",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "415" : {
+            "description" : "Unsupported Media Type",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "multipart/form-data" : {
+              "schema" : {
+                "type" : "string"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/public/station/{stationUid}/blog" : {
       "get" : {
         "responses" : {
@@ -47808,6 +47865,21 @@
         },
         "required" : [ "challengeToken", "optionsJson" ]
       },
+      "CertificateFacts" : {
+        "type" : "object",
+        "properties" : {
+          "subject" : {
+            "type" : "string"
+          },
+          "serialNumber" : {
+            "type" : "string"
+          },
+          "sha256Fingerprint" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "subject", "serialNumber", "sha256Fingerprint" ]
+      },
       "ChangePasswordRequest" : {
         "type" : "object",
         "properties" : {
@@ -51790,6 +51862,18 @@
           }
         },
         "required" : [ "id", "name", "kind", "legal", "forAppointments", "selfService", "ofAssociation", "version", "createdAt", "updatedAt", "lastUsedAt", "archivedAt" ]
+      },
+      "DocumentTimestampCheck" : {
+        "type" : "object",
+        "properties" : {
+          "timestamp" : {
+            "$ref" : "#/components/schemas/TimestampCheck"
+          },
+          "coversWholeFile" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "timestamp", "coversWholeFile" ]
       },
       "DraftPreviewRequest" : {
         "type" : "object",
@@ -56167,6 +56251,29 @@
             }
           }
         }
+      },
+      "HeldCopy" : {
+        "type" : "object",
+        "properties" : {
+          "held" : {
+            "type" : "boolean"
+          },
+          "sealedAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "sealLevel" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/SealLevel"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "held", "sealedAt", "sealLevel" ]
       },
       "HeldReportRequest" : {
         "type" : "object",
@@ -63201,6 +63308,10 @@
         },
         "required" : [ "name" ]
       },
+      "PadesLevel" : {
+        "type" : "string",
+        "enum" : [ "BASELINE_B", "BASELINE_T", "BASELINE_LT", "BASELINE_LTA", "NOT_BASELINE" ]
+      },
       "PageDetailResponse" : {
         "type" : "object",
         "properties" : {
@@ -69103,6 +69214,14 @@
           }
         }
       },
+      "RevocationReason" : {
+        "type" : "string",
+        "enum" : [ "KEY_COMPROMISE", "SUPERSEDED", "CESSATION_OF_OPERATION" ]
+      },
+      "RevocationStatus" : {
+        "type" : "string",
+        "enum" : [ "GOOD", "REVOKED", "UNKNOWN" ]
+      },
       "RichMember" : {
         "type" : "object",
         "properties" : {
@@ -69587,9 +69706,98 @@
         "type" : "string",
         "enum" : [ "STATION", "INSTANCE", "USER", "CLUSTER" ]
       },
+      "SealCheck" : {
+        "type" : "object",
+        "properties" : {
+          "signer" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/CertificateFacts"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "issuer" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/CertificateFacts"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "issuedHere" : {
+            "type" : "boolean"
+          },
+          "indication" : {
+            "$ref" : "#/components/schemas/ValidationIndication"
+          },
+          "subIndication" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/ValidationSubIndication"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "validatorIndication" : {
+            "$ref" : "#/components/schemas/ValidationIndication"
+          },
+          "validatorSubIndication" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/ValidationSubIndication"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "level" : {
+            "$ref" : "#/components/schemas/PadesLevel"
+          },
+          "signingTime" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "intact" : {
+            "type" : "boolean"
+          },
+          "coversWholeFile" : {
+            "type" : "boolean"
+          },
+          "revocation" : {
+            "$ref" : "#/components/schemas/SignerRevocation"
+          },
+          "timestamps" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/TimestampCheck"
+            }
+          }
+        },
+        "required" : [ "signer", "issuer", "issuedHere", "indication", "subIndication", "validatorIndication", "validatorSubIndication", "level", "signingTime", "intact", "coversWholeFile", "revocation", "timestamps" ]
+      },
       "SealLevel" : {
         "type" : "string",
         "enum" : [ "BASELINE_B", "BASELINE_T", "BASELINE_LT" ]
+      },
+      "SealVerification" : {
+        "type" : "object",
+        "properties" : {
+          "document" : {
+            "$ref" : "#/components/schemas/HeldCopy"
+          },
+          "signatures" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/SealCheck"
+            }
+          },
+          "documentTimestamps" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/DocumentTimestampCheck"
+            }
+          }
+        },
+        "required" : [ "document", "signatures", "documentTimestamps" ]
       },
       "SealedVersionResponse" : {
         "type" : "object",
@@ -71410,6 +71618,29 @@
       "SignatureRole" : {
         "type" : "string",
         "enum" : [ "PARTICIPANT", "GUARDIAN_1", "GUARDIAN_2", "EACH_GUARDIAN", "ANY_GUARDIAN", "ISSUER" ]
+      },
+      "SignerRevocation" : {
+        "type" : "object",
+        "properties" : {
+          "status" : {
+            "$ref" : "#/components/schemas/RevocationStatus"
+          },
+          "revokedAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "reason" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/RevocationReason"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "status", "revokedAt", "reason" ]
       },
       "SigningAuthorityInfo" : {
         "type" : "object",
@@ -74156,6 +74387,42 @@
         },
         "required" : [ "id", "name", "total", "kb", "board", "images", "pages", "perFile", "perImage" ]
       },
+      "TimestampCheck" : {
+        "type" : "object",
+        "properties" : {
+          "time" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "authority" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/CertificateFacts"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "pinnedAuthority" : {
+            "type" : "boolean"
+          },
+          "indication" : {
+            "$ref" : "#/components/schemas/ValidationIndication"
+          },
+          "subIndication" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/ValidationSubIndication"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "intact" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "time", "authority", "pinnedAuthority", "indication", "subIndication", "intact" ]
+      },
       "TimestampRequest" : {
         "type" : "object",
         "properties" : {
@@ -75177,6 +75444,14 @@
           }
         },
         "required" : [ "userTypes" ]
+      },
+      "ValidationIndication" : {
+        "type" : "string",
+        "enum" : [ "TOTAL_PASSED", "TOTAL_FAILED", "INDETERMINATE", "PASSED", "FAILED", "NO_SIGNATURE_FOUND" ]
+      },
+      "ValidationSubIndication" : {
+        "type" : "string",
+        "enum" : [ "FORMAT_FAILURE", "HASH_FAILURE", "SIG_CRYPTO_FAILURE", "REVOKED", "EXPIRED", "NOT_YET_VALID", "SIG_CONSTRAINTS_FAILURE", "CHAIN_CONSTRAINTS_FAILURE", "CERTIFICATE_CHAIN_GENERAL_FAILURE", "CRYPTO_CONSTRAINTS_FAILURE", "POLICY_PROCESSING_ERROR", "SIGNATURE_POLICY_NOT_AVAILABLE", "TIMESTAMP_ORDER_FAILURE", "NO_SIGNING_CERTIFICATE_FOUND", "NO_CERTIFICATE_CHAIN_FOUND", "NO_CERTIFICATE_CHAIN_FOUND_NO_POE", "REVOKED_NO_POE", "REVOKED_CA_NO_POE", "OUT_OF_BOUNDS_NOT_REVOKED", "OUT_OF_BOUNDS_NO_POE", "REVOCATION_OUT_OF_BOUNDS_NO_POE", "CRYPTO_CONSTRAINTS_FAILURE_NO_POE", "NO_POE", "TRY_LATER", "SIGNED_DATA_NOT_FOUND", "ATTESTATION_CONSTRAINTS_FAILURE", "NOT_ISSUED_HERE" ]
       },
       "ValueEntry" : {
         "type" : "object",

@@ -109,4 +109,8 @@ export default {
     'D-127': 'Diese Installation hat keine Zertifizierungsstelle mit dieser Seriennummer',
     'D-128': 'Diese Wache hat kein Siegelzertifikat mit dieser Seriennummer',
     'D-129': 'Unter dieser Adresse versiegelt keine Wache Dokumente',
+    'D-130': 'Es wurde keine Datei zum Prüfen gesendet',
+    'D-131': 'Eine Datei zum Prüfen darf höchstens 25 MB groß sein',
+    'D-132': 'Die Datei ist kein lesbares PDF',
+    'D-133': 'Die Datei kam nicht vollständig an und wurde deshalb nicht geprüft',
 }

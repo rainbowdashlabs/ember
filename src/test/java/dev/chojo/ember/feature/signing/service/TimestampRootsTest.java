@@ -16,6 +16,7 @@ import java.security.cert.X509Certificate;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -112,6 +113,27 @@ class TimestampRootsTest {
                 Optional.of(root("certum.pem")),
                 TimestampRoots.rootFor("http://time.certum.pl", Map.of("http://time.certum.pl", " ")),
                 "a blank entry keeps the shipped root");
+    }
+
+    @Test
+    void everyRootIsTheShippedOnesAndTheReadableOperatorRoots(@TempDir Path directory) throws Exception {
+        var file = directory.resolve("operator.der");
+        Files.write(file, LocalTimestampService.root().getEncoded());
+        var operator = Map.of(
+                "https://tsa.example.org/tsr", file.toString(),
+                "https://other.example.org/tsr",
+                        directory.resolve("missing.pem").toString(),
+                "http://time.certum.pl", " ");
+
+        var roots = TimestampRoots.all(operator);
+
+        var shipped = TimestampRoots.shippedFiles().values().stream()
+                .map(TimestampRoots::shipped)
+                .collect(Collectors.toSet());
+        assertEquals(shipped.size() + 1, roots.size());
+        assertTrue(roots.containsAll(shipped));
+        assertTrue(roots.contains(LocalTimestampService.root()));
+        assertEquals(shipped.size(), TimestampRoots.all(Map.of()).size());
     }
 
     @Test

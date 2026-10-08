@@ -216,6 +216,42 @@ final class LocalTimestampService implements AutoCloseable {
         return holder.getEncoded();
     }
 
+    /**
+     * A signing certificate for somebody else, issued by {@link #root()} and naming this service's
+     * revocation list, so a seal made with it reaches {@code BASELINE-LT} and its chain ends in a pinned
+     * timestamp root.
+     *
+     * @param commonName the certificate's common name
+     * @return its private key and certificate
+     */
+    SigningCertificates.Issued signingCertificate(String commonName) {
+        try {
+            var keys = keyPair();
+            var extensions = new JcaX509ExtensionUtils();
+            var list = new DistributionPoint(
+                    new DistributionPointName(new GeneralNames(new GeneralName(
+                            GeneralName.uniformResourceIdentifier,
+                            urlOf(server.getAddress().getPort(), LIST_PATH)))),
+                    null,
+                    null);
+            var builder = validFromYesterday(new X500Name("CN=" + commonName), ROOT_NAME, keys)
+                    .addExtension(Extension.basicConstraints, true, new BasicConstraints(false))
+                    .addExtension(
+                            Extension.keyUsage, true, new KeyUsage(KeyUsage.digitalSignature | KeyUsage.nonRepudiation))
+                    .addExtension(
+                            Extension.subjectKeyIdentifier,
+                            false,
+                            extensions.createSubjectKeyIdentifier(keys.getPublic()))
+                    .addExtension(
+                            Extension.authorityKeyIdentifier, false, extensions.createAuthorityKeyIdentifier(ROOT))
+                    .addExtension(
+                            Extension.cRLDistributionPoints, false, new CRLDistPoint(new DistributionPoint[] {list}));
+            return new SigningCertificates.Issued(keys.getPrivate(), signed(builder, ROOT_KEYS));
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
     /** @return the address timestamps are requested at */
     String url() {
         return urlOf(server.getAddress().getPort(), TIMESTAMP_PATH);
