@@ -54,7 +54,9 @@ import java.util.function.IntSupplier;
  * <p>Each run handles at most {@link #MAX_PER_RUN} versions, each with its own {@link TimestampServices#BUDGET},
  * and is safe to stop and run again at any time, since every version is read, extended and filed on its own.
  * A run stops at the first version no service gave a useful timestamp for, since the next one would fare
- * no better; a version that fails otherwise is logged and the run goes on.
+ * no better. A version that fails otherwise, such as one whose file is missing from the store, is logged,
+ * noted as failed ({@link SealedVersionRepository#markTimestampsFailed}) and the run goes on; later runs take
+ * it only after every version that never failed, so a version that keeps failing holds back no other.
  */
 @Singleton
 public class SealedVersionTimestamps implements TaskSource {
@@ -172,7 +174,10 @@ public class SealedVersionTimestamps implements TaskSource {
         for (var version : due) {
             try {
                 var sealed = sealedFileOf(version);
-                if (sealed.isEmpty()) continue;
+                if (sealed.isEmpty()) {
+                    versions.markTimestampsFailed(version.id(), clock.instant());
+                    continue;
+                }
                 var extended = extend.apply(sealed.get());
                 if (extended.isEmpty()) {
                     log.warn("Stopped this run ({}): no timestamp service gave a timestamp that helps", what);
@@ -181,10 +186,11 @@ public class SealedVersionTimestamps implements TaskSource {
                 if (sealedDocuments.fileOnto(sealed.get().document(), version, extended.get())) filed++;
             } catch (RuntimeException e) {
                 log.warn(
-                        "Could not {} the timestamps of sealed version {}; the next run tries again",
+                        "Could not {} the timestamps of sealed version {}; a later run tries again",
                         what,
                         version.id(),
                         e);
+                versions.markTimestampsFailed(version.id(), clock.instant());
             }
         }
         return filed;

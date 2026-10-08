@@ -1698,3 +1698,25 @@ CREATE UNIQUE INDEX IF NOT EXISTS signing_request_live_idx
     WHERE state IN ('OPEN', 'COMPLETE');
 COMMENT ON INDEX ember_schema.signing_request_live_idx IS
     'A generated document has at most one request that is open or complete. Two managers asking at the same moment, or a correction racing a request, leave one of them refused.';
+
+ALTER TABLE ember_schema.signing_request
+    ADD COLUMN seal_failed_at TIMESTAMPTZ NULL;
+
+COMMENT ON COLUMN ember_schema.signing_request.seal_failed_at IS
+    'When the sweep that seals the newest state of requests last failed to seal this one. The sweep takes the requests that never failed first and the others in the order they last failed, so a request that keeps failing holds back no other. NULL once a version was filed, and for a request whose sealing never failed in the sweep.';
+
+ALTER TABLE ember_schema.member_document_version
+    ADD COLUMN timestamps_failed_at TIMESTAMPTZ NULL;
+
+COMMENT ON COLUMN ember_schema.member_document_version.timestamps_failed_at IS
+    'When adding a later timestamp to this version, the first one or a renewal, last failed for a reason of the version itself, such as a file missing from the store. The runs that add them take the versions that never failed first and the others in the order they last failed, so a version that keeps failing holds back no other. NULL for a version where it never failed.';
+
+ALTER TABLE ember_schema.issuer_signature
+    DROP CONSTRAINT issuer_signature_seal_level_check,
+    ADD CONSTRAINT issuer_signature_seal_level_check
+        CHECK (seal_level IN ('BASELINE_B', 'BASELINE_T', 'BASELINE_LT', 'BASELINE_LTA'));
+
+COMMENT ON COLUMN ember_schema.issuer_signature.seal_level IS
+    'The PAdES baseline level the station''s seal on the letter reached: BASELINE_B without a timestamp, BASELINE_T with one, BASELINE_LT with the timestamp and the material to check both offline, BASELINE_LTA with that material covered by a later document timestamp that renews the earlier ones.';
+COMMENT ON CONSTRAINT issuer_signature_seal_level_check ON ember_schema.issuer_signature IS
+    'The PAdES baseline levels Ember seals at.';

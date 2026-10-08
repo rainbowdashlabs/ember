@@ -197,9 +197,13 @@ public class SigningEvidenceRepository {
      * sealing is still running is left to it. A request nobody signed electronically has no sealed document
      * and is left out.
      *
+     * <p>The requests whose sealing never failed in the sweep come first, the one waiting longest first; the
+     * others follow in the order their sealing last failed ({@link #markSealFailed}), so a request that keeps
+     * failing holds back no other.
+     *
      * @param changedBefore only acts recorded and fields settled before this count
      * @param limit         how many requests to read at most
-     * @return the ids of those requests, the one waiting longest first
+     * @return the ids of those requests
      */
     public List<Integer> requestsToSeal(Instant changedBefore, int limit) {
         return query("""
@@ -221,13 +225,42 @@ public class SigningEvidenceRepository {
                                             WHERE signed.request_id = f.request_id)) waiting
                                  JOIN signing_request r ON r.id = waiting.request_id
                         WHERE r.document_id IS NOT NULL
-                        GROUP BY waiting.request_id
-                        ORDER BY min(waiting.since), waiting.request_id
+                        GROUP BY waiting.request_id, r.seal_failed_at
+                        ORDER BY r.seal_failed_at NULLS FIRST, min(waiting.since), waiting.request_id
                         LIMIT :limit;""")
                 .single(call().bind("changed_before", changedBefore, INSTANT_TIMESTAMP)
                         .bind("limit", limit))
                 .map(row -> row.getInt("request_id"))
                 .all();
+    }
+
+    /**
+     * Notes that the sweep failed to seal a request, which puts it behind every request whose sealing did not
+     * fail.
+     *
+     * @param requestId the request
+     * @param at        when it failed
+     */
+    public void markSealFailed(int requestId, Instant at) {
+        query("""
+                        UPDATE signing_request
+                        SET seal_failed_at = :failed_at
+                        WHERE id = :id;""")
+                .single(call().bind("id", requestId).bind("failed_at", at, INSTANT_TIMESTAMP))
+                .update();
+    }
+
+    /**
+     * Forgets an earlier failure to seal a request, once a version shows its state.
+     *
+     * @param requestId the request
+     */
+    public void clearSealFailure(int requestId) {
+        query("""
+                        UPDATE signing_request
+                        SET seal_failed_at = NULL
+                        WHERE id = :id
+                          AND seal_failed_at IS NOT NULL;""").single(call().bind("id", requestId)).update();
     }
 
     private static void bindGuardianLink(Call call, @Nullable GuardianLink link) {

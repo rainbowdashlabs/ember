@@ -170,8 +170,8 @@ first signature.
   No timestamp service answered when the document was sealed. All times on this page and in the seal
   therefore come only from the server's clock. A timestamp can be added later.
 ] else [
-  This installation asks no timestamp service. All times on this page and in the seal come only from the
-  server's clock.
+  When the document was sealed, this installation asked no timestamp service. All times on this page and in
+  the seal therefore come only from the server's clock. A timestamp can be added later.
 ]
 
 The seal comes from a certificate of the station, issued by this installation's certificate authority. Its

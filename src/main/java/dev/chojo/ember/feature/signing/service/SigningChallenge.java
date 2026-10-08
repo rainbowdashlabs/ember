@@ -40,6 +40,11 @@ import java.util.List;
  * </ol>
  *
  * <p>The challenge is the SHA-256 of all of that, thirty-two bytes.
+ *
+ * <p>The signature picture the act leaves in its field is not part of it: the picture is handed over when
+ * the act completes, after the challenge was issued. It is bound to the document only by the station's seal
+ * over the sealed version and the evidence attached to it ({@code SigningEvidenceFile.Picture}), never by
+ * the signer's passkey or security key.
  */
 public final class SigningChallenge {
     /** The label that opens every challenge input and names this layout. */

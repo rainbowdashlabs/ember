@@ -14,6 +14,9 @@ public enum RecordTimeBasis {
      * the server's clock until a timestamp is added later.
      */
     NO_SERVICE_ANSWERED,
-    /** The installation asks no timestamp service: the times are only the server's clock. */
+    /**
+     * The installation asked no timestamp service when the document was sealed: the times are only the
+     * server's clock, until a timestamp is added once the operator switches timestamps on.
+     */
     TIMESTAMPS_OFF
 }

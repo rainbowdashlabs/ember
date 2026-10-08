@@ -34,6 +34,6 @@ final class KeyStampTokens {
                 info.getMessageImprintAlgOID().getId());
         assertArrayEquals(Sha256.digest().digest(publicKeyCose), info.getMessageImprintDigest());
         assertEquals(info.getGenTime().toInstant(), stamp.stampedAt());
-        assertDoesNotThrow(() -> TimestampTrust.requireChainsTo(stamp.token(), LocalTimestampService.root()));
+        assertDoesNotThrow(() -> TimestampTrust.trustedUntil(stamp.token(), LocalTimestampService.root()));
     }
 }

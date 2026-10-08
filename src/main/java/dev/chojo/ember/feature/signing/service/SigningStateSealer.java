@@ -171,6 +171,7 @@ public class SigningStateSealer {
             String sha256 = Sha256.hex(sealed.pdf());
             var carried = evidence.markSealed(request.id(), sha256);
             int shown = requests.markSettledSealed(request.id(), sha256);
+            evidence.clearSealFailure(request.id());
             copies.queue(state.view(), state.document(), sealed.pdf(), sha256, carried);
             log.info(
                     "Sealed {} new acts and {} newly settled fields of signing request {} into document {} ({})",

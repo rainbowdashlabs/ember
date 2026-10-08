@@ -28,8 +28,10 @@ import java.util.List;
  * left to this sweep, so a manager working through a list does not wait for the timestamp services at every
  * field. The sweep picks up the requests with such an act or field from more than {@link #GRACE} ago, so an
  * act whose own sealing is still running is left to it, and seals the state each of them stands at now. A
- * request that fails again is logged and tried on the next run. A request whose document is gone has nothing
- * to be sealed into and is left out.
+ * request that fails again, such as one whose station key does not open, is logged and noted as failed
+ * ({@link SigningEvidenceRepository#markSealFailed}); later runs take it only after every request that never
+ * failed, so requests that keep failing hold back no other. A request whose document is gone has nothing to
+ * be sealed into and is left out.
  */
 @Singleton
 public class SigningStateSweeper implements TaskSource {
@@ -83,7 +85,8 @@ public class SigningStateSweeper implements TaskSource {
             try {
                 if (sealer.sealLatest(requestId)) sealed++;
             } catch (RuntimeException e) {
-                log.warn("Signing request {} could not be sealed; the next run tries again", requestId, e);
+                log.warn("Signing request {} could not be sealed; a later run tries again", requestId, e);
+                evidence.markSealFailed(requestId, now);
             }
         }
         return sealed;

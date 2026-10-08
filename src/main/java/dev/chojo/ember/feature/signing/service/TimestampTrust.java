@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.security.cert.CertPathBuilder;
 import java.security.cert.CertStore;
+import java.security.cert.Certificate;
 import java.security.cert.CollectionCertStoreParameters;
 import java.security.cert.PKIXBuilderParameters;
 import java.security.cert.TrustAnchor;
@@ -43,61 +44,54 @@ final class TimestampTrust {
     private TimestampTrust() {}
 
     /**
-     * Refuses a timestamp that does not chain to the pinned root.
+     * Refuses a timestamp that does not chain to the pinned root, and says when it stops proving anything on
+     * its own: the earliest end of validity along the chain it was checked over, from its signing certificate
+     * to the pinned root. Certificates the token carries beside that chain do not count. Before then a later
+     * timestamp has to cover it.
      *
      * @param token the timestamp token, a DER encoded CMS signed data
      * @param root  the root pinned for the service that answered
+     * @return the earliest end of validity along the chain
      * @throws UntrustedTimestampException when the token is malformed, its signature does not hold, or its
      *                                     signing certificate does not chain to the root
      */
-    static void requireChainsTo(byte[] token, X509Certificate root) {
+    static Instant trustedUntil(byte[] token, X509Certificate root) {
         try {
             var timestamp = new TimeStampToken(new CMSSignedData(token));
-            var certificates = certificatesOf(timestamp);
             var signer = signerOf(timestamp);
             timestamp.validate(new JcaSimpleSignerInfoVerifierBuilder().build(signer));
-            requireChain(certificate(signer), certificates, root, timestamp);
+            var chain = requireChain(certificate(signer), certificatesOf(timestamp), root, timestamp);
+            return earliestEnd(chain, root);
         } catch (TSPException | CMSException | IOException | OperatorCreationException | GeneralSecurityException e) {
             throw new UntrustedTimestampException(
                     "The timestamp does not chain to the pinned root: " + e.getMessage(), e);
         }
     }
 
-    /**
-     * When a timestamp stops proving anything on its own: the earliest end of validity among the
-     * certificates it rests on, the ones the token carries and the root pinned for its service. Before
-     * then a later timestamp has to cover it.
-     *
-     * @param token the timestamp token, a DER encoded CMS signed data, already checked to chain to the root
-     * @param root  the root pinned for the service that gave it
-     * @return the earliest end of validity
-     * @throws UntrustedTimestampException when the token cannot be read
-     */
-    static Instant validUntil(byte[] token, X509Certificate root) {
-        try {
-            var timestamp = new TimeStampToken(new CMSSignedData(token));
-            var earliest = root.getNotAfter().toInstant();
-            for (var certificate : certificatesOf(timestamp)) {
-                var end = certificate.getNotAfter().toInstant();
-                if (end.isBefore(earliest)) earliest = end;
-            }
-            return earliest;
-        } catch (TSPException | CMSException | IOException | GeneralSecurityException e) {
-            throw new UntrustedTimestampException("The timestamp's certificates cannot be read: " + e.getMessage(), e);
+    private static Instant earliestEnd(List<? extends Certificate> chain, X509Certificate root) {
+        var earliest = root.getNotAfter().toInstant();
+        for (var certificate : chain) {
+            var end = ((X509Certificate) certificate).getNotAfter().toInstant();
+            if (end.isBefore(earliest)) earliest = end;
         }
+        return earliest;
     }
 
-    private static void requireChain(
+    /** @return the validated path from the signing certificate up to, not including, the root */
+    private static List<? extends Certificate> requireChain(
             X509Certificate signer, List<X509Certificate> certificates, X509Certificate root, TimeStampToken timestamp)
             throws GeneralSecurityException {
-        if (signer.equals(root)) return;
+        if (signer.equals(root)) return List.of();
         var target = new X509CertSelector();
         target.setCertificate(signer);
         var parameters = new PKIXBuilderParameters(Set.of(new TrustAnchor(root, null)), target);
         parameters.addCertStore(CertStore.getInstance("Collection", new CollectionCertStoreParameters(certificates)));
         parameters.setRevocationEnabled(false);
         parameters.setDate(timestamp.getTimeStampInfo().getGenTime());
-        CertPathBuilder.getInstance("PKIX").build(parameters);
+        return CertPathBuilder.getInstance("PKIX")
+                .build(parameters)
+                .getCertPath()
+                .getCertificates();
     }
 
     private static X509CertificateHolder signerOf(TimeStampToken timestamp) throws TSPException {

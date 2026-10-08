@@ -6,13 +6,25 @@
 package dev.chojo.ember.feature.signing.service;
 
 import dev.chojo.ember.conf.file.elements.Signing;
+import org.bouncycastle.asn1.x500.X500Name;
+import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
+import org.bouncycastle.cert.jcajce.JcaX509CertificateHolder;
+import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
+import org.bouncycastle.cms.CMSSignedData;
+import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
+import org.bouncycastle.util.CollectionStore;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
+import java.math.BigInteger;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.KeyPairGenerator;
 import java.security.cert.X509Certificate;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
@@ -59,8 +71,29 @@ class TimestampRootsTest {
         for (var file : TimestampRoots.shippedFiles().values()) {
             var token = token(file);
 
-            assertDoesNotThrow(() -> TimestampTrust.requireChainsTo(token, TimestampRoots.shipped(file)), file);
+            assertDoesNotThrow(() -> TimestampTrust.trustedUntil(token, TimestampRoots.shipped(file)), file);
         }
+    }
+
+    @Test
+    void aCertificateTheTokenCarriesBesideItsChainDoesNotShortenItsEnd() throws Exception {
+        var digicert = token("digicert.pem");
+        var root = root("digicert.pem");
+        var expired = expiredCertificate();
+        var signed = new CMSSignedData(digicert);
+        var certificates = new ArrayList<>(signed.getCertificates().getMatches(null));
+        certificates.add(new JcaX509CertificateHolder(expired));
+        var padded = CMSSignedData.replaceCertificatesAndCRLs(
+                        signed,
+                        new CollectionStore<>(certificates),
+                        signed.getAttributeCertificates(),
+                        signed.getCRLs())
+                .getEncoded();
+
+        var end = TimestampTrust.trustedUntil(padded, root);
+
+        assertEquals(TimestampTrust.trustedUntil(digicert, root), end);
+        assertTrue(end.isAfter(expired.getNotAfter().toInstant()));
     }
 
     @Test
@@ -70,19 +103,18 @@ class TimestampRootsTest {
         for (var file : TimestampRoots.shippedFiles().values()) {
             if (file.equals("digicert.pem")) continue;
             var other = TimestampRoots.shipped(file);
-            assertThrows(
-                    UntrustedTimestampException.class, () -> TimestampTrust.requireChainsTo(digicert, other), file);
+            assertThrows(UntrustedTimestampException.class, () -> TimestampTrust.trustedUntil(digicert, other), file);
         }
         assertThrows(
                 UntrustedTimestampException.class,
-                () -> TimestampTrust.requireChainsTo(digicert, LocalTimestampService.root()));
+                () -> TimestampTrust.trustedUntil(digicert, LocalTimestampService.root()));
     }
 
     @Test
     void somethingThatIsNoTimestampIsRefused() {
         assertThrows(
                 UntrustedTimestampException.class,
-                () -> TimestampTrust.requireChainsTo(new byte[] {0x30, 0x03, 0x02, 0x01, 0x01}, root("apple.pem")));
+                () -> TimestampTrust.trustedUntil(new byte[] {0x30, 0x03, 0x02, 0x01, 0x01}, root("apple.pem")));
     }
 
     @Test
@@ -143,6 +175,23 @@ class TimestampRootsTest {
 
     private static X509Certificate root(String file) {
         return TimestampRoots.shipped(file);
+    }
+
+    /** A self-signed certificate that ended long ago, earlier than any certificate of a real chain. */
+    private static X509Certificate expiredCertificate() throws Exception {
+        var generator = KeyPairGenerator.getInstance("EC");
+        generator.initialize(256);
+        var keys = generator.generateKeyPair();
+        var name = new X500Name("CN=Unrelated");
+        var builder = new JcaX509v3CertificateBuilder(
+                name,
+                BigInteger.ONE,
+                Date.from(Instant.parse("2000-01-01T00:00:00Z")),
+                Date.from(Instant.parse("2001-01-01T00:00:00Z")),
+                name,
+                keys.getPublic());
+        var signer = new JcaContentSignerBuilder("SHA256withECDSA").build(keys.getPrivate());
+        return new JcaX509CertificateConverter().getCertificate(builder.build(signer));
     }
 
     private static byte[] token(String rootFile) throws IOException {

@@ -347,7 +347,7 @@ class SigningStateAssemblerTest extends RepositoryTestBase {
         assertTrue(recordOf(assembler().assemble(view, content, authority, RecordTimeBasis.NO_SERVICE_ANSWERED))
                 .contains("Beim Versiegeln hat kein Zeitstempeldienst geantwortet"));
         assertTrue(recordOf(assembler().assemble(view, content, authority, RecordTimeBasis.TIMESTAMPS_OFF))
-                .contains("Diese Installation holt keine Zeitstempel ein"));
+                .contains("Beim Versiegeln hat diese Installation keine Zeitstempel eingeholt"));
     }
 
     @Test
@@ -359,7 +359,8 @@ class SigningStateAssemblerTest extends RepositoryTestBase {
         assertTrue(record.contains("Signature record"));
         assertTrue(record.contains("as guardian of Lena Beispiel"));
         assertTrue(record.contains("8 October 2026, 12:30:00 UTC"));
-        assertTrue(record.contains("This installation asks no timestamp service"));
+        assertTrue(record.contains("When the document was sealed, this installation asked no timestamp service"));
+        assertTrue(record.contains("A timestamp can be added later"));
     }
 
     @Test

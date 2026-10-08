@@ -42,6 +42,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
+import java.util.Optional;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
@@ -52,14 +53,16 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
 
 /**
  * Later timestamps for the sealed versions of signed documents, against the database, real station keys,
  * the local timestamp service on loopback and DSS: a version sealed while no service answered is lifted
  * into a new version that validates at {@code BASELINE-LT}, a version whose newest timestamp is about to
- * end is renewed into one that validates at {@code BASELINE-LTA} where the operator switched it on, and
- * neither ever files over a version filed in the meantime. Nothing here reaches the internet.
+ * end is renewed into one that validates at {@code BASELINE-LTA} where the operator switched it on,
+ * neither ever files over a version filed in the meantime, and a version that keeps failing is taken after
+ * the others. Nothing here reaches the internet.
  */
 class SealedVersionTimestampsTest extends RepositoryTestBase {
     private static final String SECRET = Base64.getEncoder().encodeToString(new byte[32]);
@@ -166,6 +169,66 @@ class SealedVersionTimestampsTest extends RepositoryTestBase {
         assertEquals(2, currentOf(first).version());
         assertArrayEquals(later.pdf(), documents.read(first.document()).orElseThrow(), "the later signature stays");
         assertEquals(2, documents.sealedVersions(first.document()).size());
+    }
+
+    @Test
+    void aVersionThatKeepsFailingIsLiftedAfterTheOthers() throws Exception {
+        var service = service(LocalTimestampService.start());
+        var station = station("Stuck lifting station");
+        var key = stationKeys.forStation(station.id());
+        var stuck = file(station, sealedWithout(key));
+        var fresh = file(station, sealedWithout(key));
+        byte[] stuckPdf = documents.read(stuck.document(), stuck.version()).orElseThrow();
+        var asking = asking(service.url());
+        var sealer = spy(asking.sealer());
+        doAnswer(invocation -> {
+                    if (Arrays.equals(invocation.<byte[]>getArgument(0), stuckPdf)) {
+                        throw new IllegalStateException("A file DSS cannot read");
+                    }
+                    return invocation.callRealMethod();
+                })
+                .when(sealer)
+                .lift(any());
+
+        job(new Asking(asking.timestamps(), sealer), false).lift();
+
+        assertEquals(stuck.version(), currentOf(stuck));
+        assertTrue(timestampsFailed(stuck.version()));
+        assertEquals(2, currentOf(fresh).version(), "the run went on past the failing version");
+        var newer = file(station, sealedWithout(key));
+        assertBefore(newer.version(), stuck.version(), versions.currentWithoutTimestamp(Integer.MAX_VALUE));
+    }
+
+    @Test
+    void aVersionWhoseFileIsMissingIsRenewedAfterTheOthers() throws Exception {
+        var service = service(LocalTimestampService.start());
+        var longLived = service(LocalTimestampService.lastingFor(Duration.ofDays(400)));
+        var station = station("Missing file station");
+        var key = stationKeys.forStation(station.id());
+        var missing = file(station, sealedBy(service, key));
+        var present = file(station, sealedBy(service, key));
+        var due = Instant.now().plus(Duration.ofDays(60));
+        assertBefore(missing.version(), present.version(), versions.currentWithTimestampEndingBefore(due, 1000));
+        var store = spy(documents);
+        doReturn(Optional.empty()).when(store).read(missing.document(), missing.version());
+        var asking = asking(longLived.url());
+        var renewing = new SealedVersionTimestamps(
+                versions,
+                memberDocumentRepo,
+                store,
+                sealedDocuments,
+                asking.sealer(),
+                asking.timestamps(),
+                true,
+                Clock.systemUTC());
+
+        renewing.renew();
+
+        assertEquals(missing.version(), currentOf(missing));
+        assertTrue(timestampsFailed(missing.version()));
+        assertEquals(2, currentOf(present).version());
+        var newer = file(station, sealedBy(service, key));
+        assertBefore(newer.version(), missing.version(), versions.currentWithTimestampEndingBefore(due, 1000));
     }
 
     @Test
@@ -343,6 +406,24 @@ class SealedVersionTimestampsTest extends RepositoryTestBase {
                     Indication.PASSED,
                     reports.getDetailedReport().getBasicTimestampValidationIndication(timestamp.getId()));
         }
+    }
+
+    private static void assertBefore(SealedVersion first, SealedVersion second, List<SealedVersion> order) {
+        var ids = order.stream().map(SealedVersion::id).toList();
+        assertTrue(ids.contains(first.id()));
+        assertTrue(ids.contains(second.id()));
+        assertTrue(ids.indexOf(first.id()) < ids.indexOf(second.id()), ids::toString);
+    }
+
+    private static boolean timestampsFailed(SealedVersion version) {
+        return query("""
+                        SELECT timestamps_failed_at IS NOT NULL AS failed
+                        FROM member_document_version
+                        WHERE id = :id;""")
+                .single(call().bind("id", version.id()))
+                .map(row -> row.getBoolean("failed"))
+                .first()
+                .orElseThrow();
     }
 
     private static void assertCloseTo(Instant expected, Instant actual) {

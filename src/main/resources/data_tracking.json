@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:52379e9ec37732ea85ed70b044e647ceec032c221a45b265925cefa719672a9a",
-  "generatedAt": "2026-10-08T23:14:16Z",
+  "schemaHash": "sha256:04a0bb5ff9b19274f1407bbd85e4d0e8df7b4079da0d5c7c7e137392b45a4ac4",
+  "generatedAt": "2026-10-08T23:21:56Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -16131,7 +16131,7 @@
           "type": "text",
           "nullable": false,
           "verified": true,
-          "description": "The PAdES baseline level the station's seal on the letter reached: BASELINE_B without a timestamp, BASELINE_T with one, BASELINE_LT with the timestamp and the material to check both offline."
+          "description": "The PAdES baseline level the station's seal on the letter reached: BASELINE_B without a timestamp, BASELINE_T with one, BASELINE_LT with the timestamp and the material to check both offline, BASELINE_LTA with that material covered by a later document timestamp that renews the earlier ones."
         },
         {
           "name": "timestamped_by",
@@ -19113,7 +19113,7 @@
     "member_document_version": {
       "feature": "members",
       "scope": "STATION",
-      "tableHash": "sha256:b744946b4c0fd0e56c1ec4cff5dcc73620b3634a6731ca73e18edeaf554814a8",
+      "tableHash": "sha256:2cece3ad0d85400d5e5ef5c531a07692a6c561907c6438637227c8bfc0af0759",
       "columns": [
         {
           "name": "id",
@@ -19184,6 +19184,13 @@
           "nullable": true,
           "verified": true,
           "description": "The earliest end of validity among the certificates the newest timestamp of the file rests on: the timestamp service's certificates and the root pinned for it. Before then a later timestamp has to cover it, which the renewal of timestamps adds as a new version when the operator switched it on. Null for a seal without a timestamp."
+        },
+        {
+          "name": "timestamps_failed_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When adding a later timestamp to this version, the first one or a renewal, last failed for a reason of the version itself, such as a file missing from the store. The runs that add them take the versions that never failed first and the others in the order they last failed, so a version that keeps failing holds back no other. NULL for a version where it never failed."
         }
       ],
       "foreignKeys": [
@@ -24116,7 +24123,7 @@
     "signing_request": {
       "feature": "signing",
       "scope": "STATION",
-      "tableHash": "sha256:a14b2ae42294ba54d0f1123c28ac9646bb4d7bca541d22a50651007af4ef18a4",
+      "tableHash": "sha256:5837ea94b6885ea16722e213d54627051fdf4ae002a9f2feb9c61fbcf92fcf85",
       "columns": [
         {
           "name": "id",
@@ -24229,6 +24236,13 @@
           "nullable": false,
           "verified": true,
           "description": "Whether the copy each signer gets by mail carries the sealed PDF, copied from the template when the request was made."
+        },
+        {
+          "name": "seal_failed_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When the sweep that seals the newest state of requests last failed to seal this one. The sweep takes the requests that never failed first and the others in the order they last failed, so a request that keeps failing holds back no other. NULL once a version was filed, and for a request whose sealing never failed in the sweep."
         }
       ],
       "foreignKeys": [

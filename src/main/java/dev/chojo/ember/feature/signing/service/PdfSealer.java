@@ -177,7 +177,9 @@ public class PdfSealer {
      * @param sealed a document holding at least one seal with a timestamp
      * @param level  the level the document reached so far
      * @return the renewed document, at {@code BASELINE-LTA} where the new timestamp covers validation
-     *     material, or empty when timestamps are off or no service gave a timestamp
+     *     material and its own validation material could be added too, otherwise at {@code BASELINE-LT} or
+     *     {@code BASELINE-T} as far as the new timestamp's material goes, or empty when timestamps are off or
+     *     no service gave a timestamp
      */
     public Optional<SealedDocument> renew(byte[] sealed, SealLevel level) {
         var round = timestamps.round();
@@ -192,7 +194,8 @@ public class PdfSealer {
             return Optional.empty();
         }
         var renewed = withValidationMaterial(archived, round.get());
-        return Optional.of(coversMaterial ? renewed.archived() : renewed);
+        boolean longTerm = coversMaterial && renewed.level() == SealLevel.BASELINE_LT;
+        return Optional.of(longTerm ? renewed.archived() : renewed);
     }
 
     private Optional<byte[]> withCurrentValidationMaterial(byte[] sealed, TimestampServices.Round round) {

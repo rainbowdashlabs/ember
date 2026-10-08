@@ -125,6 +125,12 @@ public record SigningEvidenceFile(
      * The signature picture an act left in its field. The picture is not in the file, only its hash: the
      * document shows it in the field, and Ember keeps it with the evidence.
      *
+     * <p>The picture is bound to the document by the station's seal alone, not by the signer's proof: the
+     * challenge a passkey or security key signs ({@code challengeLayout}) does not include it, since the
+     * picture is handed over when the act completes, after the challenge was issued. The signer's proof
+     * covers the content, the statement and the entries; the picture is what the station drew in for them,
+     * and its hash here is as trustworthy as the seal over this file.
+     *
      * @param sha256 SHA-256 of the picture as a transparent PNG, before it was drawn in, lower-case
      *               hexadecimal
      * @param source how it came to the act: made for it (drawn, typed, uploaded) or saved before

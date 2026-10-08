@@ -209,8 +209,7 @@ public class TimestampServices {
                 }
                 try {
                     var timestamp = source(url).getTimeStampResponse(digestAlgorithm, digest);
-                    TimestampTrust.requireChainsTo(timestamp.getBytes(), service.root());
-                    validUntil = TimestampTrust.validUntil(timestamp.getBytes(), service.root());
+                    validUntil = TimestampTrust.trustedUntil(timestamp.getBytes(), service.root());
                     answeredBy = url;
                     log.info("Timestamp service {} stamped a seal", url);
                     return timestamp;

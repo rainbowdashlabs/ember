@@ -29,6 +29,7 @@ import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.notifications.service.NotificationText;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.signing.entity.CompletedSigning;
+import dev.chojo.ember.feature.signing.entity.RequestState;
 import dev.chojo.ember.feature.signing.entity.SealLevel;
 import dev.chojo.ember.feature.signing.entity.SignatureLevel;
 import dev.chojo.ember.feature.signing.entity.SignatureRequest;
@@ -72,6 +73,9 @@ import java.util.Base64;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 
@@ -86,6 +90,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
@@ -96,9 +102,10 @@ import static org.mockito.Mockito.when;
  * Sealing a request's state into its member document after an act, against the database, real station keys,
  * the record page rendered by Typst and DSS: each state is a fresh sealed version built from the file the
  * document was filed with, a later act supersedes the version before and both stay filed, the record says
- * where its times come from, a state that moved on while it was sealed is dropped for the newer one, and an
- * act whose sealing failed stays recorded until a later run seals it. No timestamp service outside loopback
- * is asked.
+ * where its times come from, a state that moved on while it was sealed is dropped for the newer one, an
+ * act whose sealing failed stays recorded until a later run seals it, a request whose sealing keeps failing
+ * is swept after the others, and two sealings racing on one request file one version. No timestamp service
+ * outside loopback is asked.
  */
 class SigningStateSealerTest extends RepositoryTestBase {
     private static final String SECRET = Base64.getEncoder().encodeToString(new byte[32]);
@@ -204,7 +211,7 @@ class SigningStateSealerTest extends RepositoryTestBase {
         assertSealIntact(sealed);
         try (var pdf = Loader.loadPDF(sealed)) {
             assertEquals(2, pdf.getNumberOfPages(), "the content page and the record after it");
-            assertTrue(record(pdf).contains("Diese Installation holt keine Zeitstempel ein"));
+            assertTrue(record(pdf).contains("Beim Versiegeln hat diese Installation keine Zeitstempel eingeholt"));
             assertTrue(attachedEvidence(pdf).contains("\"participant\""));
         }
 
@@ -345,6 +352,100 @@ class SigningStateSealerTest extends RepositoryTestBase {
 
         sweeper.sweep(Instant.now().plus(SigningStateSweeper.GRACE).plusSeconds(60));
         assertEquals(versions.current(documentOf(request).id()).orElseThrow().sha256(), sealedHashOf(evidence));
+    }
+
+    @Test
+    void aRequestThatKeepsFailingIsSweptAfterTheOthersUntilItIsSealed() throws IOException {
+        var stuckSigner = member("Sina", "Stocken");
+        var stuck = ask(stuckSigner);
+        sign(stuck, stuckSigner, "participant");
+        var laterSigner = member("Lars", "Spaeter");
+        var later = ask(laterSigner);
+        sign(later, laterSigner, "participant");
+        var due = Instant.now().plus(Duration.ofHours(1));
+        assertBefore(stuck, later, evidenceRepo.requestsToSeal(due, Integer.MAX_VALUE));
+
+        var failing = mock(SigningStateSealer.class);
+        when(failing.sealLatest(stuck.id())).thenThrow(new SigningKeyWrapException("The key does not open"));
+        new SigningStateSweeper(evidenceRepo, failing).sweep(due);
+
+        assertTrue(sealFailed(stuck));
+        assertFalse(sealFailed(later));
+        assertBefore(later, stuck, evidenceRepo.requestsToSeal(due, Integer.MAX_VALUE));
+
+        assertTrue(sealer(SealedPdfs.noTimestamps()).sealLatest(stuck.id()));
+
+        assertTrue(documentOf(stuck).sealed());
+        assertFalse(sealFailed(stuck), "a filed version forgets the failure");
+        assertFalse(evidenceRepo.requestsToSeal(due, Integer.MAX_VALUE).contains(stuck.id()));
+    }
+
+    @Test
+    void anActsOwnSealingAndTheSweepRacingFileOneVersion() throws Exception {
+        var signer = member("Rena", "Gleichzeitig");
+        var request = ask(signer);
+        var evidence = sign(request, signer, "participant");
+        var racing = sealingInStep(request);
+        var onlyThisRequest = spy(evidenceRepo);
+        doReturn(List.of(request.id())).when(onlyThisRequest).requestsToSeal(any(), anyInt());
+        var sweeper = new SigningStateSweeper(onlyThisRequest, racing);
+
+        var pool = Executors.newFixedThreadPool(2);
+        try {
+            var own = pool.submit(() -> racing.sealLatest(request.id()));
+            var swept = pool.submit(() ->
+                    sweeper.sweep(Instant.now().plus(SigningStateSweeper.GRACE).plusSeconds(60)));
+            own.get(2, TimeUnit.MINUTES);
+            swept.get(2, TimeUnit.MINUTES);
+        } finally {
+            pool.shutdownNow();
+        }
+
+        var document = documentOf(request);
+        assertEquals(1, versions.versionsOf(document.id()).size(), "the one that came second filed nothing");
+        assertEquals(versions.current(document.id()).orElseThrow().sha256(), sealedHashOf(evidence));
+        assertEquals(1, copiesTo(signer));
+        assertFalse(sealFailed(request));
+    }
+
+    @Test
+    void twoActsOnDifferentFieldsAtOnceEndInOneVersionCarryingBoth() throws Exception {
+        var signer = member("Tara", "Takt");
+        var request = ask(signer, "participant", "issuer");
+        var racing = sealingInStep(request);
+        var start = new CyclicBarrier(2);
+
+        var pool = Executors.newFixedThreadPool(2);
+        try {
+            var participant = pool.submit(() -> {
+                start.await(30, TimeUnit.SECONDS);
+                sign(request, signer, "participant");
+                return racing.sealLatest(request.id());
+            });
+            var issuer = pool.submit(() -> {
+                start.await(30, TimeUnit.SECONDS);
+                sign(request, manager, "issuer");
+                return racing.sealLatest(request.id());
+            });
+            boolean participantFiled = participant.get(2, TimeUnit.MINUTES);
+            boolean issuerFiled = issuer.get(2, TimeUnit.MINUTES);
+            assertTrue(participantFiled ^ issuerFiled, "exactly one of the two files a version");
+        } finally {
+            pool.shutdownNow();
+        }
+
+        var document = documentOf(request);
+        assertEquals(1, versions.versionsOf(document.id()).size());
+        String current = versions.current(document.id()).orElseThrow().sha256();
+        var acts = evidenceRepo.evidenceOf(request.id());
+        assertEquals(2, acts.size());
+        for (var act : acts) assertEquals(current, act.sealedSha256());
+        assertEquals(
+                RequestState.COMPLETE,
+                requestRepo.findById(request.id()).orElseThrow().state());
+        try (var pdf = Loader.loadPDF(documents.read(document).orElseThrow())) {
+            assertEquals(2, signedFieldsIn(attachedEvidence(pdf)));
+        }
     }
 
     @Test
@@ -518,6 +619,37 @@ class SigningStateSealerTest extends RepositoryTestBase {
                 assembler(timestamps),
                 pdfSealer,
                 copies);
+    }
+
+    /**
+     * A sealer whose two sealings of the given request each wait for the other once they read the state, so
+     * both have read it before either files.
+     */
+    private static SigningStateSealer sealingInStep(SignatureRequest request) {
+        var bothRead = new CyclicBarrier(2);
+        var sealer = spy(sealer(SealedPdfs.noTimestamps()));
+        doAnswer(invocation -> {
+                    SigningStateSealer.UnsealedState state = invocation.getArgument(0);
+                    if (state.view().request().id() == request.id()) bothRead.await(30, TimeUnit.SECONDS);
+                    return invocation.callRealMethod();
+                })
+                .when(sealer)
+                .seal(any());
+        return sealer;
+    }
+
+    private static void assertBefore(SignatureRequest first, SignatureRequest second, List<Integer> order) {
+        assertTrue(order.contains(first.id()));
+        assertTrue(order.contains(second.id()));
+        assertTrue(order.indexOf(first.id()) < order.indexOf(second.id()), order::toString);
+    }
+
+    private static boolean sealFailed(SignatureRequest request) {
+        return query("SELECT seal_failed_at IS NOT NULL AS failed FROM signing_request WHERE id = :id;")
+                .single(call().bind("id", request.id()))
+                .map(row -> row.getBoolean("failed"))
+                .first()
+                .orElseThrow();
     }
 
     private static PdfSealer pdfSealer(TimestampServices timestamps) {

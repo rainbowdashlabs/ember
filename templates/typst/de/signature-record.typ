@@ -170,8 +170,8 @@ Unterschrift erzeugt wurde.
   Beim Versiegeln hat kein Zeitstempeldienst geantwortet. Alle Zeiten auf dieser Seite und im Siegel stammen
   deshalb nur von der Uhr des Servers. Ein Zeitstempel kann später ergänzt werden.
 ] else [
-  Diese Installation holt keine Zeitstempel ein. Alle Zeiten auf dieser Seite und im Siegel stammen nur von
-  der Uhr des Servers.
+  Beim Versiegeln hat diese Installation keine Zeitstempel eingeholt. Alle Zeiten auf dieser Seite und im
+  Siegel stammen deshalb nur von der Uhr des Servers. Ein Zeitstempel kann später ergänzt werden.
 ]
 
 Das Siegel stammt von einem Zertifikat der Wache, ausgestellt von der Zertifizierungsstelle dieser

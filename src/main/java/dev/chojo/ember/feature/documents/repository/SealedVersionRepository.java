@@ -20,7 +20,8 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 
 /**
  * The sealed versions of sealed documents. A version is only ever added and, once a later one takes its
- * place, marked superseded; the database refuses every other change to it.
+ * place, marked superseded; the database refuses every other change to what it records. The one thing kept
+ * beside that is when adding a later timestamp to it last failed.
  */
 @Singleton
 public class SealedVersionRepository {
@@ -76,7 +77,8 @@ public class SealedVersionRepository {
     }
 
     /**
-     * Current versions sealed without a timestamp, oldest first, of stations that run here. A version of a
+     * Current versions sealed without a timestamp, of stations that run here: the ones where adding a
+     * timestamp never failed first, oldest first, then the others in the order it last failed. A version of a
      * station that moved away stays as it is, since the station's documents live on elsewhere.
      *
      * @param limit how many at most
@@ -88,7 +90,7 @@ public class SealedVersionRepository {
                         WHERE superseded_at IS NULL
                           AND seal_level = 'BASELINE_B'
                           AND %s
-                        ORDER BY sealed_at, id
+                        ORDER BY timestamps_failed_at NULLS FIRST, sealed_at, id
                         LIMIT :limit;""", COLUMNS, STATION_HERE)
                 .single(call().bind("limit", limit))
                 .map(SealedVersion.map())
@@ -96,8 +98,9 @@ public class SealedVersionRepository {
     }
 
     /**
-     * Current versions whose newest timestamp rests on a certificate that ends before the given time, the
-     * soonest first, of stations that run here.
+     * Current versions whose newest timestamp rests on a certificate that ends before the given time, of
+     * stations that run here: the ones where renewing never failed first, the soonest ending first, then the
+     * others in the order it last failed.
      *
      * @param before the time the certificates have to outlast
      * @param limit  how many at most
@@ -109,11 +112,27 @@ public class SealedVersionRepository {
                         WHERE superseded_at IS NULL
                           AND timestamp_valid_until < :before
                           AND %s
-                        ORDER BY timestamp_valid_until, id
+                        ORDER BY timestamps_failed_at NULLS FIRST, timestamp_valid_until, id
                         LIMIT :limit;""", COLUMNS, STATION_HERE)
                 .single(call().bind("before", before, INSTANT_TIMESTAMP).bind("limit", limit))
                 .map(SealedVersion.map())
                 .all();
+    }
+
+    /**
+     * Notes that adding a later timestamp to a version failed for a reason of the version itself, which puts
+     * it behind every version where it did not.
+     *
+     * @param versionId the version
+     * @param at        when it failed
+     */
+    public void markTimestampsFailed(int versionId, Instant at) {
+        query("""
+                        UPDATE member_document_version
+                        SET timestamps_failed_at = :failed_at
+                        WHERE id = :id;""")
+                .single(call().bind("id", versionId).bind("failed_at", at, INSTANT_TIMESTAMP))
+                .update();
     }
 
     /**
