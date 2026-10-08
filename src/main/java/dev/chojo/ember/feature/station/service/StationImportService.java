@@ -391,6 +391,7 @@ public class StationImportService {
             if (payload == null) continue;
             total += importTable(context, table, payload);
         }
+        total += engine.settle(context.stationId(), context.idMap(), context.waitingRows());
         relinkFolderIcons(context.stationId());
         assignDefaultOwnerIfNeeded(context.stationId());
         return total;
@@ -452,6 +453,7 @@ public class StationImportService {
                 fetchAndImportPaginated(context, table, client);
                 p.completePhase();
             }
+            engine.settle(stationId, context.idMap(), context.waitingRows());
             relinkFolderIcons(stationId);
             copyFiles(context, client, p);
             federationFixup.rewriteAfterImport(stationId, p.sourceUrl());
@@ -562,13 +564,21 @@ public class StationImportService {
 
     /**
      * Dispatches a single wire payload (already extracted from the page envelope) to the importer
-     * that claims the table, falling back to the metadata-driven engine.
+     * that claims the table, falling back to the metadata-driven engine, and then writes the rows that
+     * were waiting for what this payload brought.
      */
     @SuppressWarnings("unchecked")
     private int importTable(StationImportContext context, String table, Object payload) {
         TableImporter importer = importers.get(table);
-        if (importer != null) return importer.importRows(context, payload);
-        return engine.importRows(context.stationId(), table, (List<Map<String, Object>>) payload, context.idMap());
+        int imported = importer != null
+                ? importer.importRows(context, payload)
+                : engine.importRows(
+                        context.stationId(),
+                        table,
+                        (List<Map<String, Object>>) payload,
+                        context.idMap(),
+                        context.waitingRows());
+        return imported + engine.admitWaiting(context.stationId(), context.idMap(), context.waitingRows());
     }
 
     private OutputShape shapeOf(String table) {

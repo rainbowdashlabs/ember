@@ -60218,6 +60218,7 @@ export interface components {
         };
         CustomScope: {
             distinct: boolean;
+            orRefColumn?: string;
             refColumn: string;
             viaColumn: string;
             viaTable: string;
@@ -68674,6 +68675,7 @@ export interface components {
         TransferBackendDescriptor: components["schemas"]["Local"] | components["schemas"]["S3"] | components["schemas"]["Sftp"] | components["schemas"]["Smb"];
         TransferContext: {
             ignoredColumns?: string[];
+            optionalReferences?: string[];
             rationale?: string;
             reason?: string;
             status: components["schemas"]["TrackingStatus"];

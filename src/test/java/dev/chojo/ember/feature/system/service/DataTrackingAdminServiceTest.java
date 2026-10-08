@@ -82,7 +82,8 @@ class DataTrackingAdminServiceTest {
         var update = new TableUpdate(
                 null,
                 null,
-                new TransferContext(TrackingStatus.TRACKED, null, List.of("station_id"), "promoted from UNVERIFIED"),
+                new TransferContext(
+                        TrackingStatus.TRACKED, null, List.of("station_id"), List.of(), "promoted from UNVERIFIED"),
                 null,
                 null);
         var result = service.updateTable("station_member", update);

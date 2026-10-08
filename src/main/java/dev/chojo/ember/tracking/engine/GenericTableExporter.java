@@ -179,14 +179,23 @@ public final class GenericTableExporter {
      * the {@code customScope}'s viaTable. Recursive: when {@code viaTable} itself has a custom
      * scope (e.g. {@code federation_lending_message} → {@code federation_lending_request} →
      * {@code station}), the inner query nests through the chain. Otherwise the inner query
-     * joins through the viaTable's FK-resolved scope path.
+     * joins through the viaTable's FK-resolved scope path. A scope with a second column matches a
+     * row by either of them.
      *
      * @param depth nesting depth, used to generate non-colliding aliases for the recursive case
      */
     private String buildCustomScopeFilter(CustomScope customScope, String parentAlias, int depth) {
+        String values = buildCustomScopeValues(customScope, depth);
+        String filter = parentAlias + '.' + customScope.refColumn() + " IN " + values;
+        String orRefColumn = customScope.orRefColumn();
+        if (orRefColumn == null) return filter;
+        return "(" + filter + " OR " + parentAlias + '.' + orRefColumn + " IN " + values + ")";
+    }
+
+    /** The parenthesised {@code SELECT} of the values a custom scope compares its column against. */
+    private String buildCustomScopeValues(CustomScope customScope, int depth) {
         String vt = "vt" + depth;
-        var sb = new StringBuilder();
-        sb.append(parentAlias).append('.').append(customScope.refColumn()).append(" IN (SELECT ");
+        var sb = new StringBuilder("(SELECT ");
         if (customScope.distinct()) sb.append("DISTINCT ");
         sb.append(vt).append('.').append(customScope.viaColumn());
         sb.append(" FROM ").append(customScope.viaTable()).append(' ').append(vt);

@@ -50275,6 +50275,9 @@
           },
           "distinct" : {
             "type" : "boolean"
+          },
+          "orRefColumn" : {
+            "type" : "string"
           }
         },
         "required" : [ "viaTable", "viaColumn", "refColumn", "distinct" ]
@@ -74697,6 +74700,12 @@
             "type" : "string"
           },
           "ignoredColumns" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "optionalReferences" : {
             "type" : "array",
             "items" : {
               "type" : "string"

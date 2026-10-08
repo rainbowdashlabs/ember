@@ -131,7 +131,11 @@ public class DataTrackingAdminService {
         TransferContext transfer = update.stationTransfer();
         TransferContext newTransfer = transfer != null
                 ? new TransferContext(
-                        transfer.status(), transfer.reason(), copyOf(transfer.ignoredColumns()), transfer.rationale())
+                        transfer.status(),
+                        transfer.reason(),
+                        copyOf(transfer.ignoredColumns()),
+                        copyOf(transfer.optionalReferences()),
+                        transfer.rationale())
                 : existing.stationTransfer();
 
         GdprExportContext gdprExport = update.gdprExport();

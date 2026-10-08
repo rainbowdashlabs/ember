@@ -25,7 +25,11 @@ import dev.chojo.ember.feature.documents.entity.Uploader;
 import dev.chojo.ember.feature.documents.repository.SealedVersionRepository;
 import dev.chojo.ember.feature.documents.service.DocumentDoor;
 import dev.chojo.ember.feature.documents.service.DocumentService;
+import dev.chojo.ember.feature.federation.entity.LendingMessage;
+import dev.chojo.ember.feature.federation.entity.LendingRequestItem;
+import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
+import dev.chojo.ember.feature.federation.repository.LendingRepository;
 import dev.chojo.ember.feature.federation.service.FederationPartnerTransferFixupService;
 import dev.chojo.ember.feature.generator.entity.FontStyle;
 import dev.chojo.ember.feature.generator.repository.DocumentFontRepository;
@@ -42,6 +46,9 @@ import dev.chojo.ember.feature.generator.service.font.DocumentFontService;
 import dev.chojo.ember.feature.generator.service.font.FontLibrary;
 import dev.chojo.ember.feature.generator.service.font.TestFonts;
 import dev.chojo.ember.feature.generator.service.pdf.TestPdfs;
+import dev.chojo.ember.feature.inventory.entity.InventoryType;
+import dev.chojo.ember.feature.inventory.entity.ItemCustody;
+import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.knowledgebase.service.KbFilePictureService;
 import dev.chojo.ember.feature.knowledgebase.service.KbFileStorageService;
@@ -119,6 +126,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.time.LocalDate;
 import java.util.Base64;
 import java.util.Comparator;
 import java.util.List;
@@ -138,6 +146,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -803,6 +812,136 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
         assertEquals("\"C\"", changes.getFirst().newValue());
     }
 
+    /**
+     * Gear lent to a partner and gear borrowed from one move with the station and with their lending
+     * requests. The partner is found again by its uid, here on the same database as the destination,
+     * and the request lines name the gear as it arrived; what the partner wrote and what names the
+     * partner's own gear stays with the partner.
+     */
+    @Test
+    void lentAndBorrowedGearArriveWithTheirLendingRequests() throws Exception {
+        Station source = stationRepo.create("Source LENDING");
+        Station partner = stationRepo.create("Partner LENDING");
+        var sourceMember = stationMemberRepo.create(
+                source.id(),
+                accountRepo.create("lender@xfer.test", "Lea", "Lender", true).id());
+        var partnerMember = stationMemberRepo.create(
+                partner.id(),
+                accountRepo.create("borrower@xfer.test", "Bo", "Borrower", true).id());
+        var lending = new LendingRepository();
+
+        int radios = inventoryRepo
+                .create(source.id(), "Funk", InventoryType.INTERNAL, false)
+                .id();
+        int lentItem = inventoryRepo
+                .createItem(radios, "HRT-1", "Handfunkgerät 1", null, null)
+                .id();
+        var lentOut = lending.createRequest(
+                partner.uid(),
+                source.uid(),
+                LocalDate.now(),
+                LocalDate.now().plusDays(7),
+                partnerMember.id(),
+                null,
+                null,
+                "Übung");
+        int lentLine = lending.addRequestItem(lentOut.id(), radios, lentItem, null, 1, null)
+                .id();
+        lending.assignItem(lentLine, lentItem);
+        lending.updateRequestStatus(lentOut.id(), LendingStatus.LENT);
+        lending.createMessage(lentOut.id(), source.uid(), sourceMember.id(), "Liegt bereit", false);
+        lending.createMessage(lentOut.id(), partner.uid(), partnerMember.id(), "Danke", false);
+        itemCustodyService.lendToPartner(lentItem, partner.id());
+        borrowedGearService.handOver(
+                inventoryRepo.findItemById(lentItem).orElseThrow(), source.id(), partner.id(), lentLine);
+
+        int breathing = inventoryRepo
+                .create(partner.id(), "Atemschutz", InventoryType.INTERNAL, false)
+                .id();
+        int partnerItem = inventoryRepo
+                .createItem(breathing, "PA-7", "Pressluftatmer 7", null, null)
+                .id();
+        var borrowed = lending.createRequest(
+                source.uid(),
+                partner.uid(),
+                LocalDate.now(),
+                LocalDate.now().plusDays(3),
+                sourceMember.id(),
+                null,
+                null,
+                "Leistungsprüfung");
+        int borrowedLine = lending.addRequestItem(borrowed.id(), breathing, partnerItem, null, 1, null)
+                .id();
+        lending.assignItem(borrowedLine, partnerItem);
+        lending.updateRequestStatus(borrowed.id(), LendingStatus.LENT);
+        itemCustodyService.lendToPartner(partnerItem, source.id());
+        borrowedGearService.handOver(
+                inventoryRepo.findItemById(partnerItem).orElseThrow(), partner.id(), source.id(), borrowedLine);
+
+        String token = rawToken(exportService.createTransferToken(source.id()));
+        var importResult = importService.startRemoteImport(baseUrl, token);
+        waitForImport(importResult.stationId());
+        int destinationId = importResult.stationId();
+
+        var arrivedLent = inventoryRepo.findItemsByStation(destinationId).stream()
+                .filter(item -> "HRT-1".equals(item.internalId()))
+                .findFirst()
+                .orElseThrow();
+        assertEquals(ItemCustody.WITH_PARTNER, arrivedLent.custody());
+        assertEquals(partner.id(), arrivedLent.custodyPartnerStationId(), "the partner holding it, found by its uid");
+        assertEquals(destinationId, arrivedLent.custodyStationId(), "the lender is the station that moved");
+
+        var arrivedLentLine = lineNaming(arrivedLent.id());
+        assertNotEquals(lentLine, arrivedLentLine.id());
+        assertEquals(
+                List.of(arrivedLent.id()),
+                lending.findAssignedItems(arrivedLentLine.id()),
+                "giving it back finds the piece that arrived");
+        var arrivedLentOut =
+                lending.findRequestById(arrivedLentLine.requestId()).orElseThrow();
+        assertEquals(LendingStatus.LENT, arrivedLentOut.status());
+        assertEquals(partner.uid(), arrivedLentOut.requestingStationUid());
+        assertNull(arrivedLentOut.createdBy(), "the partner's member who asked stays with the partner");
+        assertEquals(
+                List.of("Liegt bereit"),
+                lending.findMessagesByRequest(arrivedLentOut.id()).stream()
+                        .map(LendingMessage::message)
+                        .toList(),
+                "only what the station wrote moves; the partner keeps its own messages");
+
+        var arrivedBorrowed = inventoryRepo.findBorrowedItems(destinationId).getFirst();
+        assertEquals("PA-7", arrivedBorrowed.item().internalId());
+        assertEquals(ItemOwner.PARTNER_STATION, arrivedBorrowed.item().ownerKind());
+        assertEquals(partner.id(), arrivedBorrowed.ownerStationId(), "the owner, found by its uid");
+        assertEquals(ItemCustody.AT_STATION, arrivedBorrowed.item().custody());
+        assertEquals(destinationId, arrivedBorrowed.item().custodyStationId());
+
+        var arrivedBorrowedLine =
+                lending.findItemsByRequest(arrivedBorrowed.loanRequestId()).getFirst();
+        assertEquals(arrivedBorrowed.item().loanRequestItemId(), arrivedBorrowedLine.id());
+        assertNull(arrivedBorrowedLine.itemId(), "the partner's piece is not here to be named");
+        assertNull(arrivedBorrowedLine.inventoryId());
+        assertEquals(List.of(), lending.findAssignedItems(arrivedBorrowedLine.id()));
+        var arrivedRequest =
+                lending.findRequestById(arrivedBorrowed.loanRequestId()).orElseThrow();
+        assertEquals(LendingStatus.LENT, arrivedRequest.status());
+        assertEquals(partner.uid(), arrivedRequest.owningStationUid());
+        assertNotNull(arrivedRequest.createdBy(), "the member who asked moved with the station");
+    }
+
+    private static LendingRequestItem lineNaming(int itemId) {
+        int requestId = query("SELECT request_id FROM federation_lending_request_item WHERE item_id = :item_id;")
+                .single(call().bind("item_id", itemId))
+                .map(row -> row.getInt("request_id"))
+                .first()
+                .orElseThrow();
+        return new LendingRepository()
+                .findItemsByRequest(requestId).stream()
+                        .filter(line -> Integer.valueOf(itemId).equals(line.itemId()))
+                        .findFirst()
+                        .orElseThrow();
+    }
+
     private static Document storeDocument(
             DocumentService documents,
             Station station,
@@ -901,7 +1040,7 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
      * The source's export as another instance would send it. Source and destination share one test
      * database here, so a row's public id, unique across the database, would collide with the source's
      * own row and the row would not arrive; each exported row gets a fresh one instead, as it would not
-     * collide on a database of its own. A saved filter belongs to an account, which both sides share here
+     * collide on a database of its own. A lending request's uid is unique the same way. A saved filter belongs to an account, which both sides share here
      * as well, so the source's copy is cleared once it is sent: the destination's own database would not
      * hold it, and what the account has afterwards is what arrived.
      */
@@ -918,6 +1057,9 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
                 for (Object row : rows) {
                     if (row instanceof Map<?, ?> columns && columns.containsKey("public_uid")) {
                         ((Map<String, Object>) columns).put("public_uid", UUID.randomUUID());
+                    }
+                    if ("federation_lending_request".equals(tableName) && row instanceof Map<?, ?> columns) {
+                        ((Map<String, Object>) columns).put("uid", UUID.randomUUID());
                     }
                     if ("saved_filter".equals(tableName) && row instanceof Map<?, ?> columns) {
                         clearSavedFilter(columns.get("id"));

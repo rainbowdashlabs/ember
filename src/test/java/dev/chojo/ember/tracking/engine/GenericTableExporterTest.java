@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.tracking.engine;
 
+import dev.chojo.ember.feature.federation.repository.LendingRepository;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -19,9 +20,11 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.time.LocalDate;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -93,7 +96,7 @@ class GenericTableExporterTest extends RepositoryTestBase {
                 original.outputShape(),
                 original.flatField(),
                 original.customScope(),
-                new TransferContext(TrackingStatus.TRACKED, null, List.of("station_id"), null),
+                new TransferContext(TrackingStatus.TRACKED, null, List.of("station_id"), List.of(), null),
                 original.gdprExport(),
                 original.gdprDeletion());
         var customTables = new LinkedHashMap<>(tracking.tables());
@@ -164,6 +167,49 @@ class GenericTableExporterTest extends RepositoryTestBase {
         assertEquals(2, rows.size());
         assertTrue(rows.stream().anyMatch(row -> Integer.valueOf(folder.id()).equals(row.get("folder_id"))));
         assertTrue(rows.stream().anyMatch(row -> Integer.valueOf(file.id()).equals(row.get("file_id"))));
+    }
+
+    /**
+     * A lending request belongs to both of its stations, so it goes with the one asking and with the
+     * one lending, and its lines go with it. A request between two other stations goes with neither.
+     */
+    @Test
+    void aLendingRequestGoesWithEitherOfItsStations() {
+        Station asking = stationRepo.create("ExporterAsking");
+        Station lending = stationRepo.create("ExporterLending");
+        Station other = stationRepo.create("ExporterOther");
+        var requests = new LendingRepository();
+        var request = requests.createRequest(
+                UUID.randomUUID(),
+                asking.uid(),
+                lending.uid(),
+                LocalDate.now(),
+                LocalDate.now(),
+                null,
+                null,
+                null,
+                "Übung");
+        requests.addRequestItem(request.id(), null, null, null, 2, null);
+        requests.createRequest(
+                UUID.randomUUID(), other.uid(), asking.uid(), LocalDate.now(), LocalDate.now(), null, null, null, "");
+
+        assertEquals(
+                List.of(request.id()),
+                exporter.export("federation_lending_request", lending.id(), 0, 100).stream()
+                        .map(row -> row.get("id"))
+                        .toList());
+        assertEquals(
+                2,
+                exporter.export("federation_lending_request", asking.id(), 0, 100)
+                        .size());
+        assertEquals(
+                1,
+                exporter.export("federation_lending_request_item", lending.id(), 0, 100)
+                        .size());
+        assertEquals(
+                1,
+                exporter.export("federation_lending_request_item", asking.id(), 0, 100)
+                        .size());
     }
 
     @Test

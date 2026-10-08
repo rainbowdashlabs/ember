@@ -44,9 +44,11 @@ public final class TableOrder {
      *
      * <p>Every foreign key between tracked tables takes part in the graph, so the importer has
      * the remapped ids of a referenced table in hand before it reaches the referencing one.
-     * Cycles are broken by dropping a {@code SET NULL} edge that lies on one; the caller may
-     * have to set such a column in a second pass. Anything still left over, which a healthy
-     * schema does not produce, is appended alphabetically so the output stays stable.
+     * Cycles are broken by dropping a {@code SET NULL} edge that lies on one. A cycle of keys that
+     * cannot be dropped, such as a borrowed item naming its lending line while a line names the
+     * item it asks for, leaves its tables and everything after them appended alphabetically so
+     * the output stays stable; the importer holds back each row until the row it names has
+     * arrived, see {@link WaitingRows}.
      */
     public static List<String> topological(DataTracking tracking) {
         Set<String> tracked = trackedTables(tracking);

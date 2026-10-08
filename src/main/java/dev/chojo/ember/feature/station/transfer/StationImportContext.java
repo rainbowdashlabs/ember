@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.station.transfer;
 
 import dev.chojo.ember.tracking.engine.GenericTableImporter.IdRemapper;
+import dev.chojo.ember.tracking.engine.WaitingRows;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -13,12 +14,13 @@ import java.util.UUID;
 
 /**
  * State of a single import run: the destination station, the source-to-destination id remapping
- * every table importer contributes to, and the accounts this run created. The run is executed on
- * one thread, so no synchronization is needed.
+ * every table importer contributes to, the rows still waiting for a row they name, and the accounts
+ * this run created. The run is executed on one thread, so no synchronization is needed.
  */
 public final class StationImportContext {
     private final int stationId;
     private final IdRemapper idMap;
+    private final WaitingRows waitingRows = new WaitingRows();
     private final List<NewAccountRef> newAccounts = new ArrayList<>();
 
     /**
@@ -36,6 +38,13 @@ public final class StationImportContext {
 
     public IdRemapper idMap() {
         return idMap;
+    }
+
+    /**
+     * @return the rows of this run that wait for a row they name
+     */
+    public WaitingRows waitingRows() {
+        return waitingRows;
     }
 
     /**

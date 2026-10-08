@@ -11635,11 +11635,16 @@
         "viaTable": "station",
         "viaColumn": "uid",
         "refColumn": "requesting_station_uid",
-        "distinct": false
+        "distinct": false,
+        "orRefColumn": "owning_station_uid"
       },
       "stationTransfer": {
         "status": "TRACKED",
-        "rationale": "Cross-instance lending rows live with the requesting station; scoped via requesting_station_uid against the local station's UID."
+        "optionalReferences": [
+          "created_by",
+          "event_id"
+        ],
+        "rationale": "A request moves with either of its two stations, since both keep it: the one asking and the one lending. Who wrote it and the appointment it was collected for belong to the station asking, so a request that moves with the lender arrives without them."
       },
       "gdprExport": {
         "status": "TRACKED",
@@ -11758,7 +11763,13 @@
       },
       "stationTransfer": {
         "status": "TRACKED",
-        "rationale": "Request items inherit the request's scope so the full request payload moves together."
+        "optionalReferences": [
+          "art_id",
+          "inventory_id",
+          "item_id",
+          "need_id"
+        ],
+        "rationale": "Request items inherit the request's scope so the full request payload moves together. A line names the lender's gear and the borrower's need, so on the side whose rows stay behind it arrives without them, as a request between two installations has it."
       },
       "gdprExport": {
         "status": "IGNORED",
@@ -14516,12 +14527,27 @@
           "onDelete": "SET NULL"
         }
       ],
+      "lookups": [
+        {
+          "via": "owner_station_id",
+          "pick": "uid",
+          "emitAs": "owner_station_uid"
+        },
+        {
+          "via": "custody_partner_station_id",
+          "pick": "uid",
+          "emitAs": "custody_partner_station_uid"
+        }
+      ],
       "stationTransfer": {
         "status": "TRACKED",
         "ignoredColumns": [
           "owner_cluster_id"
         ],
-        "rationale": "A station's items go with it. A station carries no association with it, so an item the association owns arrives as owned by a body that does not run on the destination, which is what an empty owner says. Items whose owner or custody names another station are left behind and counted in the log."
+        "optionalReferences": [
+          "custody_partner_station_id"
+        ],
+        "rationale": "A station's items go with it. A station carries no association with it, so an item the association owns arrives as owned by a body that does not run on the destination, which is what an empty owner says. A partner station is found again by its uid: gear lent out names the partner holding it when that partner runs on the destination too, and otherwise names none, as gear lent to another installation does. Borrowed gear needs its owner, so it is left behind and counted in the log when the owner does not run on the destination; the loan itself moves with the lending request."
       },
       "gdprExport": {
         "status": "TRACKED",
