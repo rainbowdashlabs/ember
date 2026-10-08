@@ -98,6 +98,7 @@ import dev.chojo.ember.feature.station.transfer.AccountTableImporter;
 import dev.chojo.ember.feature.station.transfer.DisabledModuleTableImporter;
 import dev.chojo.ember.feature.station.transfer.DocumentSearchTableImporter;
 import dev.chojo.ember.feature.station.transfer.ImportProgress;
+import dev.chojo.ember.feature.station.transfer.SharedStorageFiles;
 import dev.chojo.ember.feature.station.transfer.StationTableImporter;
 import dev.chojo.ember.feature.station.transfer.TransferFileImporter;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
@@ -144,6 +145,7 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.util.Base64;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -180,6 +182,7 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
             .decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNgAAIAAAUAAeImBZsAAAAASUVORK5CYII=");
 
     private static Path sharedDataRoot;
+    private static LocalStorageBackend sharedBackend;
     private static StorageService storageService;
     private static AvatarService avatarService;
     private static MediaStorageService mediaStorageService;
@@ -207,7 +210,7 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
     @BeforeAll
     static void setupTransferHarness() throws Exception {
         sharedDataRoot = Files.createTempDirectory("ember-transfer-acceptance");
-        LocalStorageBackend sharedBackend = new LocalStorageBackend(sharedDataRoot);
+        sharedBackend = new LocalStorageBackend(sharedDataRoot);
         StorageBackendResolver resolver = new StorageBackendResolver(sharedBackend);
         storageService = new StorageService(resolver, sharedBackend);
         images = new ImageVariants(storageService);
@@ -230,6 +233,7 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
                 new Api(),
                 backendImporter,
                 fileImporter,
+                new SharedStorageFiles(resolver),
                 new FederationPartnerTransferFixupService(
                         new FederationRepository(), org.mockito.Mockito.mock(FederationHttpClient.class)),
                 TestStationKeys.transfer(),
@@ -432,6 +436,94 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
         var redecrypted = StoredCredentials.S3.parse(credentialCipher.decryptToString(dst.credentials()));
         assertEquals("AKIA-source-access", redecrypted.accessKey());
         assertEquals("ssshh-source-secret", redecrypted.secretKey());
+    }
+
+    /**
+     * A station on storage of its own keeps its files there when it moves: the destination takes that
+     * storage over and copies each file inside it to the key of its row's new id, where the services read
+     * it. The harness resolves every station to one shared local backend, which stands in for that storage.
+     * Both installations share one database here, so the files are first laid out where the source would
+     * keep them on storage it shares with the destination, under the identifier the station arrives with.
+     * The source's objects stay as they were, and nothing staged is left behind.
+     */
+    @Test
+    void filesOnTakenOverStorageFollowTheirRowsNewIds() throws Exception {
+        Station source = stationRepo.create("Source TAKEN OVER");
+        configRepo.upsert(
+                source.id(),
+                new StationStorageBackendConfig.S3Variant(
+                        "https://s3.example.invalid",
+                        "us-east-1",
+                        "shared-bucket",
+                        true,
+                        Optional.empty(),
+                        "",
+                        credentialCipher.encrypt(new StoredCredentials.S3("access", "secret").toJson())));
+        Account account = accountRepo.create("taken-over@xfer.test", "Tara", "Storage", true);
+        var member = stationMemberRepo.create(source.id(), account.id());
+        byte[] png = pngBytes(64, 48);
+        var folder = knowledgeBaseRepo.createFolder(source.id(), null, "Pläne", "", member.id());
+        var wikiFile = knowledgeBaseRepo.createFile(
+                source.id(), folder.id(), "Lageplan", "", KbFileType.IMAGE, "image/png", png.length, null, member.id());
+        wikiFiles.store(source.id(), wikiFile.id(), png, "image/png");
+        var catalog = quizCatalogRepo.create(source.id(), "Geräte", "", false, CatalogMetadata.none());
+        var question = quizCatalogRepo.createQuestion(
+                catalog.id(),
+                null,
+                QuizQuestionType.TRUE_FALSE,
+                "Ist das ein Verteiler?",
+                "",
+                "uploaded",
+                1.0,
+                false,
+                "{\"correctAnswer\":true}",
+                0);
+        quizPictures.store(source.id(), question.id(), png, "image/png", 5 * 1024 * 1024);
+        byte[] quizPicture =
+                quizPictures.read(source.id(), question.id(), 0).orElseThrow().data();
+
+        UUID sharedUid = SeparateDatabaseExport.arrivingAs(source.id());
+        String leftAt = "station/" + source.uid();
+        String sharedAt = "station/" + sharedUid;
+        for (String key : sharedBackend.listByPrefix(leftAt + "/")) {
+            sharedBackend.copy(key, sharedAt + key.substring(leftAt.length()));
+        }
+        Map<String, String> sourceObjects = digests(sharedAt);
+
+        String token = rawToken(exportService.createTransferToken(source.id()));
+        var importResult = importService.startRemoteImport(baseUrl, token);
+        waitForImport(importResult.stationId());
+
+        int destinationId = importResult.stationId();
+        assertEquals(sharedUid, stationRepo.requireUid(destinationId), "the station kept its identifier");
+        var arrivedFile = knowledgeBaseRepo.findAllFiles(destinationId).getFirst();
+        assertNotEquals(wikiFile.id(), arrivedFile.id(), "the wiki file got a new id on the destination");
+        assertArrayEquals(
+                png,
+                wikiFiles.read(destinationId, arrivedFile.id()).orElseThrow().data());
+        var arrivedCatalog = quizCatalogRepo.findByStation(destinationId).getFirst();
+        var arrivedQuestion = quizCatalogRepo.findQuestions(arrivedCatalog.id()).getFirst();
+        assertNotEquals(question.id(), arrivedQuestion.id(), "the question got a new id on the destination");
+        assertArrayEquals(
+                quizPicture,
+                quizPictures
+                        .read(destinationId, arrivedQuestion.id(), 0)
+                        .orElseThrow()
+                        .data());
+
+        var afterwards = digests(sharedAt);
+        sourceObjects.forEach((key, digest) -> assertEquals(digest, afterwards.get(key), "the source keeps " + key));
+        assertEquals(List.of(), sharedBackend.listByPrefix("transfer/"), "no staged copy is left behind");
+    }
+
+    private static Map<String, String> digests(String prefix) throws IOException {
+        var out = new HashMap<String, String>();
+        for (String key : sharedBackend.listByPrefix(prefix + "/")) {
+            try (var stream = sharedBackend.read(key).orElseThrow()) {
+                out.put(key, Sha256.hex(stream.body()));
+            }
+        }
+        return out;
     }
 
     /**

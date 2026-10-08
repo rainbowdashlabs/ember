@@ -114,6 +114,7 @@ class StationTransferTest extends RepositoryTestBase {
                 new Api(),
                 null,
                 null,
+                null,
                 new FederationPartnerTransferFixupService(new FederationRepository(), null),
                 TestStationKeys.transfer(),
                 TestStationKeys.partnersLeftBehind(),

@@ -48,6 +48,16 @@ final class TransferFileKeys {
     private TransferFileKeys() {}
 
     /**
+     * Whether the files of a category can land under another key than the one they left with.
+     *
+     * @param category the category
+     * @return true when the category names its files by the id of a row
+     */
+    static boolean renumbers(StorageCategory category) {
+        return KEYED_BY_ROW_ID.containsKey(category);
+    }
+
+    /**
      * The destination key for a file listed by the source.
      *
      * @param category  the category the file belongs to

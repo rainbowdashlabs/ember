@@ -16,6 +16,8 @@ import java.util.Optional;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Where a copied file lands: under the new id of the row it belongs to, as it left when it is not named
@@ -109,6 +111,14 @@ class TransferFileKeysTest {
         assertEquals(
                 Optional.of("7-print"),
                 TransferFileKeys.destinationKey(StorageCategory.FONTS, "7-print", movedFrom("document_font", 7, 42)));
+    }
+
+    @Test
+    void onlyCategoriesNamedByRowsRenumberTheirFiles() {
+        assertTrue(TransferFileKeys.renumbers(StorageCategory.KB_FILES));
+        assertTrue(TransferFileKeys.renumbers(StorageCategory.IMAGE_KB_ICON));
+        assertFalse(TransferFileKeys.renumbers(StorageCategory.MEDIA_FILES));
+        assertFalse(TransferFileKeys.renumbers(StorageCategory.IMAGE_KB_IMAGE));
     }
 
     private static Stream<Arguments> filesNamedByRows() {

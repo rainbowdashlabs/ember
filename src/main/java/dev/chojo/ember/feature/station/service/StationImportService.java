@@ -23,6 +23,7 @@ import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.transfer.ImportProgress;
 import dev.chojo.ember.feature.station.transfer.LendingRowScope;
+import dev.chojo.ember.feature.station.transfer.SharedStorageFiles;
 import dev.chojo.ember.feature.station.transfer.StationImportContext;
 import dev.chojo.ember.feature.station.transfer.StationTableImporter;
 import dev.chojo.ember.feature.station.transfer.TableImporter;
@@ -49,6 +50,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -68,7 +70,8 @@ import static dev.chojo.ember.feature.station.transfer.WireValues.asString;
  * <p>The service owns the run itself: it creates or picks the destination station, resolves the
  * foreign-key-safe table order from the tracking metadata, and walks it. Each table is handed to
  * the {@link TableImporter} that claims it, or to {@link GenericTableImporter} when none does.
- * The file side of a remote transfer is delegated to {@link TransferFileImporter}, and every
+ * The file side of a remote transfer is delegated to {@link TransferFileImporter}, or to
+ * {@link SharedStorageFiles} when the destination takes over the source's own storage, and every
  * request to the source instance goes through a {@link TransferSourceClient}.
  */
 @Singleton
@@ -86,6 +89,7 @@ public class StationImportService {
     private final Api api;
     private final TransferBackendImporter backendImporter;
     private final TransferFileImporter fileImporter;
+    private final SharedStorageFiles sharedFiles;
     private final FederationPartnerTransferFixupService federationFixup;
     private final StationKeyTransfer keyTransfer;
     private final PartnersLeftBehind partnersLeftBehind;
@@ -109,6 +113,7 @@ public class StationImportService {
             Api api,
             TransferBackendImporter backendImporter,
             TransferFileImporter fileImporter,
+            SharedStorageFiles sharedFiles,
             FederationPartnerTransferFixupService federationFixup,
             StationKeyTransfer keyTransfer,
             PartnersLeftBehind partnersLeftBehind,
@@ -129,6 +134,7 @@ public class StationImportService {
         this.api = api;
         this.backendImporter = backendImporter;
         this.fileImporter = fileImporter;
+        this.sharedFiles = sharedFiles;
         this.federationFixup = federationFixup;
         this.keyTransfer = keyTransfer;
         this.partnersLeftBehind = partnersLeftBehind;
@@ -467,6 +473,7 @@ public class StationImportService {
                 p.stationName(),
                 tableOrder.size());
         var context = newContext(stationId, stationData);
+        SharedStorageFiles.@Nullable Run sharedStorage = null;
         try {
             int i = 0;
             for (String table : tableOrder) {
@@ -487,15 +494,18 @@ public class StationImportService {
             engine.settle(stationId, context.idMap(), context.waitingRows());
             lendingClashes.merge(context.lendingStandIns());
             relinkFolderIcons(stationId);
-            copyFiles(context, client, p);
+            sharedStorage = adoptStorage(context, client, p, stationData);
+            copyFiles(context, client, p, sharedStorage);
             federationFixup.rewriteAfterImport(stationId, p.sourceUrl());
             partnersLeftBehind.adopt(stationId, leftBehind);
             federationFixup.announceNewHostToRemotePartners(stationId, api.baseUrl());
             client.notifyComplete();
+            if (sharedStorage != null) sharedFiles.release(sharedStorage);
             p.complete();
             log.info("completed for station '{}' (id={})", p.stationName(), stationId);
         } catch (Exception e) {
             log.error("failed for station {}", stationId, e);
+            settleSharedStorage(sharedStorage, p);
             client.notifyAbort();
             removeStationMadeFor(p);
             p.fail(e.getMessage());
@@ -521,31 +531,78 @@ public class StationImportService {
     }
 
     /**
-     * Installs the source's storage backend and, when the destination did not adopt the source's
-     * remote backend, byte-copies every movable category before carrying over the avatars of the
-     * accounts this run created.
+     * Gives the source back the files a failed import copied over in the storage both share, when the
+     * import takes away the station it made. A station that was here before keeps what arrived, so only
+     * the staged copies go.
      */
-    private void copyFiles(StationImportContext context, TransferSourceClient client, ImportProgress p) {
+    private void settleSharedStorage(SharedStorageFiles.@Nullable Run sharedStorage, ImportProgress p) {
+        if (sharedStorage == null) return;
+        if (p.target() == ImportProgress.Target.NEW_STATION) {
+            sharedFiles.restore(sharedStorage);
+        } else {
+            sharedFiles.release(sharedStorage);
+        }
+    }
+
+    /**
+     * Installs the source's storage backend on the destination.
+     *
+     * @return the copy within the storage the destination took over from the source, or null when the source
+     * used local storage and its files are pulled over the wire
+     */
+    private SharedStorageFiles.@Nullable Run adoptStorage(
+            StationImportContext context,
+            TransferSourceClient client,
+            ImportProgress p,
+            @Nullable Map<String, Object> stationData) {
         int stationId = context.stationId();
         log.info("tables done, applying source storage backend");
         p.startPhase("storage_backend");
         var descriptor = client.fetchBackendDescriptor();
         boolean installedRemote = backendImporter.apply(stationId, descriptor);
-        if (installedRemote) {
-            log.info(
-                    "Imported source storage backend ({}) for station {}",
-                    descriptor.getClass().getSimpleName(),
-                    stationId);
-        }
         p.completePhase();
-        Station targetStation = stationRepository
+        if (!installedRemote) return null;
+        log.info(
+                "Imported source storage backend ({}) for station {}",
+                descriptor.getClass().getSimpleName(),
+                stationId);
+        UUID sourceUid = sourceUid(stationData)
+                .orElseThrow(() -> new IllegalStateException(
+                        "The source did not name its station, so its files cannot be found in its storage"));
+        return new SharedStorageFiles.Run(scopeOf(stationId), sourceUid);
+    }
+
+    private static Optional<UUID> sourceUid(@Nullable Map<String, Object> stationData) {
+        if (stationData == null) return Optional.empty();
+        try {
+            return Optional.of(UUID.fromString(String.valueOf(stationData.get("uid"))));
+        } catch (IllegalArgumentException e) {
+            return Optional.empty();
+        }
+    }
+
+    private StorageScope.Station scopeOf(int stationId) {
+        Station station = stationRepository
                 .findById(stationId)
                 .orElseThrow(() -> new RuntimeException("Station " + stationId + " not found after table import"));
-        StorageScope.Station scope = new StorageScope.Station(stationId, targetStation.uid());
+        return new StorageScope.Station(stationId, station.uid());
+    }
+
+    /**
+     * Copies every movable category, within the storage taken over from the source when there is one and
+     * over the wire otherwise, before carrying over the avatars of the accounts this run created.
+     */
+    private void copyFiles(
+            StationImportContext context,
+            TransferSourceClient client,
+            ImportProgress p,
+            SharedStorageFiles.@Nullable Run sharedStorage) {
+        StorageScope.Station scope = scopeOf(context.stationId());
         for (StorageCategory category : TransferFileImporter.transferrableStationCategories()) {
             p.startPhase("files_" + category.name().toLowerCase());
-            // TODO a taken-over remote backend keeps its files under the source's row ids, not the new ones
-            if (!installedRemote) {
+            if (sharedStorage != null) {
+                sharedFiles.copyCategory(sharedStorage, category, context.idMap(), p);
+            } else {
                 fileImporter.copyCategory(client, scope, category, context.idMap(), p);
             }
             p.completePhase();
