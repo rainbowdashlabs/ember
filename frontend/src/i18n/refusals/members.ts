@@ -267,4 +267,7 @@ export default {
     'M-211': GENDER_ALREADY_ASKED,
     'M-212': GENDER_NOT_FROM_CHOICE,
     'M-213': PRONOUN_TOO_LONG,
+    'M-214': 'Ein privates Tag kann niemanden auswählen, es kennzeichnet Mitglieder nur',
+    'M-215': 'Dieses Tag legt noch Zielgruppen oder Zugriffe fest und kann deshalb noch nicht privat werden',
+    'M-216': 'Ein privates Tag kann nicht in eine Gruppe umgewandelt werden',
 }

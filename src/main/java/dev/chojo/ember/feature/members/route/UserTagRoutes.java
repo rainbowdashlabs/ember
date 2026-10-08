@@ -9,11 +9,14 @@ import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.GeneralRefusal;
 import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.feature.members.entity.MemberWithName;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.members.entity.TagVisibility;
 import dev.chojo.ember.feature.members.entity.UserTag;
 import dev.chojo.ember.feature.members.service.MemberViewService;
+import dev.chojo.ember.feature.members.service.PrivateTags;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.members.service.UserTagService;
 import io.javalin.http.Context;
@@ -30,6 +33,7 @@ import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
 import java.util.List;
+import java.util.Objects;
 
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
@@ -43,12 +47,18 @@ public class UserTagRoutes implements Routes {
     private final UserTagService tagService;
     private final StationMemberService memberService;
     private final MemberViewService memberViews;
+    private final PrivateTags privateTags;
 
     @Inject
-    public UserTagRoutes(UserTagService tagService, StationMemberService memberService, MemberViewService memberViews) {
+    public UserTagRoutes(
+            UserTagService tagService,
+            StationMemberService memberService,
+            MemberViewService memberViews,
+            PrivateTags privateTags) {
         this.tagService = tagService;
         this.memberService = memberService;
         this.memberViews = memberViews;
+        this.privateTags = privateTags;
     }
 
     private static boolean isBlank(String s) {
@@ -61,6 +71,18 @@ public class UserTagRoutes implements Routes {
      */
     private void requireOwnedMember(Context ctx, int memberId) {
         requireOwnedOrNotFound(ctx, memberId, memberService::findById, StationMember::stationId);
+    }
+
+    /**
+     * Asserts the tag named in the path belongs to the caller's station and is one the caller may
+     * see. A private tag answers 404 to a caller who may not view members, the same as a tag of
+     * another station, so its existence cannot be probed.
+     */
+    private void requireVisibleTag(Context ctx, int tagId) {
+        UserTag tag = requireOwnedOrNotFound(ctx, tagId, tagService::findById, UserTag::stationId);
+        if (!privateTags.visibleTo(StationSession.from(ctx), tag)) {
+            throw GeneralRefusal.NOT_HERE_OR_NOT_YOURS.raise();
+        }
     }
 
     @Override
@@ -90,7 +112,7 @@ public class UserTagRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = UserTag[].class)))
     private void list(Context ctx) {
         StationSession session = StationSession.from(ctx);
-        ctx.json(tagService.findByStation(session.stationId()));
+        ctx.json(privateTags.visibleTo(session, tagService.findByStation(session.stationId())));
     }
 
     @OpenApi(
@@ -109,7 +131,19 @@ public class UserTagRoutes implements Routes {
         if (isBlank(request.name())) {
             throw MemberRefusal.TAG_NAME_MISSING_ON_CREATE.raise();
         }
-        ctx.status(HttpStatus.CREATED).json(tagService.create(session.stationId(), request.name()));
+        requireMayChooseVisibility(session, request);
+        ctx.status(HttpStatus.CREATED)
+                .json(tagService.create(session.stationId(), request.name(), request.color(), request.visibility()));
+    }
+
+    /**
+     * Refuses a private tag asked for by somebody who may not view members, who would lose sight of
+     * the tag the moment it was saved.
+     */
+    private void requireMayChooseVisibility(StationSession session, TagRequest request) {
+        if (request.visibility().restricted() && !privateTags.seenBy(session)) {
+            throw GeneralRefusal.ROUTE_PERMISSION_MISSING.raise();
+        }
     }
 
     @OpenApi(
@@ -126,12 +160,13 @@ public class UserTagRoutes implements Routes {
             })
     private void update(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwnedOrNotFound(ctx, id, tagService::findById, UserTag::stationId);
+        requireVisibleTag(ctx, id);
         var request = ctx.bodyAsClass(TagRequest.class);
         if (isBlank(request.name())) {
             throw MemberRefusal.TAG_NAME_MISSING_ON_CHANGE.raise();
         }
-        if (!tagService.update(id, request.name(), request.color(), request.visible(), request.position())) {
+        requireMayChooseVisibility(StationSession.from(ctx), request);
+        if (!tagService.update(id, request.name(), request.color(), request.visibility(), request.position())) {
             throw MemberRefusal.MEMBER_TAG_NOT_HERE_ON_CHANGE.raise();
         }
     }
@@ -148,7 +183,7 @@ public class UserTagRoutes implements Routes {
             })
     private void delete(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwnedOrNotFound(ctx, id, tagService::findById, UserTag::stationId);
+        requireVisibleTag(ctx, id);
         if (tagService.delete(id)) {
             ctx.status(HttpStatus.NO_CONTENT);
         } else {
@@ -165,7 +200,7 @@ public class UserTagRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberWithName[].class)))
     private void getMembers(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwnedOrNotFound(ctx, id, tagService::findById, UserTag::stationId);
+        requireVisibleTag(ctx, id);
         ctx.json(tagService.findMembers(id).stream().map(memberViews::named).toList());
     }
 
@@ -181,7 +216,7 @@ public class UserTagRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = MemberWithName[].class)))
     private void setMembers(Context ctx) {
         int tagId = pathInt(ctx, "id");
-        requireOwnedOrNotFound(ctx, tagId, tagService::findById, UserTag::stationId);
+        requireVisibleTag(ctx, tagId);
         var request = ctx.bodyAsClass(TagSetMembersRequest.class);
         List<Integer> memberIds = request.memberIds() != null ? request.memberIds() : List.of();
         tagService.setMembers(tagId, memberIds);
@@ -214,15 +249,27 @@ public class UserTagRoutes implements Routes {
             })
     private void convertToGroup(Context ctx) {
         int id = pathInt(ctx, "id");
-        requireOwnedOrNotFound(ctx, id, tagService::findById, UserTag::stationId);
+        requireVisibleTag(ctx, id);
         tagService.convertToGroup(id);
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
     /**
-     * @param color the tag's colour, or {@code null} for none
+     * @param color      the tag's colour, or {@code null} for none
+     * @param visibility who sees the tag; {@link TagVisibility#PLAIN} where the request names none
      */
-    public record TagRequest(String name, @Nullable String color, boolean visible, int position) {}
+    public record TagRequest(
+            String name, @Nullable String color, @Nullable TagVisibility visibility, int position) {
+        public TagRequest {
+            visibility = visibility != null ? visibility : TagVisibility.PLAIN;
+        }
+
+        /** Who sees the tag, {@link TagVisibility#PLAIN} where the request named none. */
+        @Override
+        public TagVisibility visibility() {
+            return Objects.requireNonNull(visibility, "the constructor fills in a missing visibility");
+        }
+    }
 
     public record TagSetMembersRequest(List<Integer> memberIds) {}
 }

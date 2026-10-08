@@ -25,6 +25,7 @@ import dev.chojo.ember.feature.board.entity.TicketPriority;
 import dev.chojo.ember.feature.board.route.BoardRouteGuards;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.members.entity.TagVisibility;
 import dev.chojo.ember.feature.members.entity.UserTag;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
@@ -75,7 +76,7 @@ class BoardServiceTest extends RepositoryTestBase {
         groupService = mock(MemberGroupService.class);
         tagService = mock(UserTagService.class);
 
-        boardService = new BoardService(boardRepo, memberService, groupService, tagService);
+        boardService = new BoardService(boardRepo, memberService, groupService, tagService, privateTags);
         var btBackend = localStorage();
         var btResolver = new StorageBackendResolver(btBackend);
         var btStorage = new StorageService(btResolver, btBackend);
@@ -430,7 +431,7 @@ class BoardServiceTest extends RepositoryTestBase {
         boardService.setViewAccess(boardId, List.of(), List.of(), List.of(77));
         when(groupService.findGroupsForMember(member.id())).thenReturn(List.of());
         when(tagService.findTagsForMember(member.id()))
-                .thenReturn(List.of(new UserTag(77, station.id(), "TestTag", null, false, 0)));
+                .thenReturn(List.of(new UserTag(77, station.id(), "TestTag", null, TagVisibility.PLAIN, 0)));
         assertTrue(boardService.canView(boardId, member.id()));
     }
 

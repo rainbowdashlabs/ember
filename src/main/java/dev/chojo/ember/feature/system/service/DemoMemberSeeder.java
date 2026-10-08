@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
 import dev.chojo.ember.feature.members.entity.PronounPreset;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.members.entity.TagVisibility;
 import dev.chojo.ember.feature.members.entity.UserTag;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.MemberGroupSetRepository;
@@ -543,9 +544,16 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
         }
 
         var tagJfw = userTagRepository.create(stationId, "JFW");
-        userTagRepository.update(tagJfw.id(), "JFW", "#FF6421", true, 10);
+        userTagRepository.update(tagJfw.id(), "JFW", "#FF6421", TagVisibility.BADGE, 10);
         for (var m : betreuerMembers) {
             userTagRepository.addMember(tagJfw.id(), m.id());
+        }
+
+        var tagFeeDue = userTagRepository.create(stationId, "Beitrag offen");
+        userTagRepository.update(tagFeeDue.id(), "Beitrag offen", null, TagVisibility.PRIVATE, 0);
+        for (int i = 0; i < 2 && i < fortgeschrittenMembers.size(); i++) {
+            userTagRepository.addMember(
+                    tagFeeDue.id(), fortgeschrittenMembers.get(i).id());
         }
 
         log.info(

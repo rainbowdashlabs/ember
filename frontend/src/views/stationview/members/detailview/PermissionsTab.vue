@@ -7,7 +7,7 @@
 import { useI18n } from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import type { Permission, MemberGroup, UserTag } from '@/api/generated/schema'
+import { TagVisibility, type Permission, type MemberGroup, type UserTag } from '@/api/generated/schema'
 
 defineProps<{
   memberUserType: string
@@ -43,7 +43,11 @@ function formatUserType(ut: string): string {
   <NeutralContainer v-if="memberTagList.length > 0" class="space-y-3">
     <SubHeader class="text-sm">{{ t('memberDetail.tags') }}</SubHeader>
     <div class="flex flex-wrap gap-2">
-      <InfoBadge v-for="tag in memberTagList" :key="tag.id">{{ tag.name }}</InfoBadge>
+      <InfoBadge v-for="tag in memberTagList" :key="tag.id">
+        <font-awesome-icon v-if="tag.visibility === TagVisibility.PRIVATE" :icon="['fas', 'lock']"
+                           :title="t('userTags.visibilities.PRIVATE.label')" class="text-xs"/>
+        {{ tag.name }}
+      </InfoBadge>
     </div>
   </NeutralContainer>
 </template>

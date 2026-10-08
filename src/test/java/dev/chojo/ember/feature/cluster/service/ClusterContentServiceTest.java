@@ -52,7 +52,7 @@ class ClusterContentServiceTest extends RepositoryTestBase {
         var searchService = new KbSearchService(knowledgeBaseRepo, stationRepo);
         var contentService = new KbContentService(
                 knowledgeBaseRepo, contentBlocks(), noCellDescriptions(), stationRepo, fileStorage, searchService);
-        var accessService = new KbAccessService(knowledgeBaseRepo, memberGroupRepo, userTagRepo);
+        var accessService = new KbAccessService(knowledgeBaseRepo, memberGroupRepo, userTagRepo, privateTags);
         var kbService = new KnowledgeBaseService(
                 knowledgeBaseRepo,
                 fileStorage,

@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {CommentResponse, MemberGroup, UserTag} from '@/api/generated/schema'
+import {TagVisibility, type CommentResponse, type MemberGroup, type UserTag} from '@/api/generated/schema'
 import type {PitchNews, PitchNewsSettings} from './pitchTypes'
 import {pitchIdentity} from './pitchMembers'
 
@@ -44,8 +44,8 @@ const GROUPS: MemberGroup[] = [
 ]
 
 const TAGS: UserTag[] = [
-    {id: 1, stationId: 'wache', name: 'Atemschutz', color: null, visible: true, position: 0},
-    {id: 2, stationId: 'wache', name: 'Fahrdienst', color: null, visible: true, position: 1},
+    {id: 1, stationId: 'wache', name: 'Atemschutz', color: null, visibility: TagVisibility.BADGE, position: 0},
+    {id: 2, stationId: 'wache', name: 'Fahrdienst', color: null, visibility: TagVisibility.BADGE, position: 1},
 ]
 
 /** What the editor panels of a post show: who may read it, whether it is public, who else gets it. */

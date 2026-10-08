@@ -9,7 +9,7 @@ import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
-import {StationPermission, type MemberWithName, type UserTag} from '@/api/generated/schema'
+import {StationPermission, TagVisibility, type MemberWithName, type UserTag} from '@/api/generated/schema'
 import {stationMembers, userTags} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {useAsyncAction} from '@/composables/useAsyncAction'
@@ -27,6 +27,7 @@ import {describeFailure} from '@/util/failure'
 const {t} = useI18n()
 const {hasPermission} = useSession()
 const canConvertToGroup = computed(() => hasPermission(StationPermission.MEMBER_MANAGE_GROUP))
+const canMakePrivate = computed(() => hasPermission(StationPermission.MEMBER_READ))
 
 const tags = ref<UserTag[]>([])
 const allMembers = ref<MemberWithName[]>([])
@@ -39,7 +40,7 @@ const showTagModal = ref(false)
 const editingTag = ref<UserTag | null>(null)
 const tagName = ref('')
 const tagColor = ref('')
-const tagVisible = ref(false)
+const tagVisibility = ref<TagVisibility>(TagVisibility.PLAIN)
 const tagPosition = ref(0)
 
 const {loading, error, failure} = useAsyncLoader(async () => {
@@ -118,7 +119,7 @@ function openCreateTag() {
   editingTag.value = null
   tagName.value = ''
   tagColor.value = ''
-  tagVisible.value = false
+  tagVisibility.value = TagVisibility.PLAIN
   tagPosition.value = 0
   showTagModal.value = true
 }
@@ -127,7 +128,7 @@ function openEditTag(tag: UserTag) {
   editingTag.value = tag
   tagName.value = tag.name ?? ''
   tagColor.value = tag.color ?? ''
-  tagVisible.value = tag.visible ?? false
+  tagVisibility.value = tag.visibility
   tagPosition.value = tag.position ?? 0
   showTagModal.value = true
 }
@@ -145,9 +146,9 @@ const {
   run: saveTag,
 } = useAsyncAction(async () => {
   if (editingTag.value) {
-    await userTags.updateTag(editingTag.value.id, {name: tagName.value, color: tagColor.value || null, visible: tagVisible.value, position: tagPosition.value})
+    await userTags.updateTag(editingTag.value.id, {name: tagName.value, color: tagColor.value || null, visibility: tagVisibility.value, position: tagPosition.value})
   } else {
-    await userTags.createTag({name: tagName.value, color: tagColor.value || undefined, visible: tagVisible.value, position: tagPosition.value})
+    await userTags.createTag({name: tagName.value, color: tagColor.value || undefined, visibility: tagVisibility.value, position: tagPosition.value})
   }
   showTagModal.value = false
 
@@ -188,7 +189,8 @@ const {
       </div>
 
       <TagFormModal v-model="showTagModal" v-model:name="tagName" v-model:color="tagColor"
-                    v-model:visible="tagVisible" :is-edit="!!editingTag" :saving="tagSaving" @save="saveTag"/>
+                    v-model:visibility="tagVisibility" :is-edit="!!editingTag" :saving="tagSaving"
+                    :can-make-private="canMakePrivate" @save="saveTag"/>
       <ConfirmDeleteModal v-model="showDeleteModal" :message="t('userTags.deleteConfirmDetail', {name: deleteTarget?.name})"
                           @confirm="confirmDelete"/>
       <TagConvertModal v-model="showConvertModal" :target="convertTarget" @confirm="confirmConvert"/>

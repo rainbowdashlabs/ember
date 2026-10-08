@@ -128,7 +128,7 @@ const {loading, failure} = useAsyncLoader(async () => {
       events.listCategories(),
       attendance.listTemplates(),
       memberGroupsApi.listGroups(),
-      userTagsApi.listTags(),
+      userTagsApi.listChoosableTags(),
     ])
     categories.value = cats
     attendanceTemplates.value = attTpls

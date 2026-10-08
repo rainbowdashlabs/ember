@@ -21,6 +21,7 @@ Wachen erstellen aus eigenen Vorlagen und denen ihres Verbands Dokumente für ih
 - **Schriften für Dokumente.** Liberation Sans, Serif und Mono bringt jede Installation mit, Briefe drucken außerdem in Libertinus Serif, New Computer Modern und DejaVu Sans Mono, und die Instanz, ein Verband und eine Wache laden eigene Schriften hoch, eine TrueType- oder OpenType-Datei pro Schnitt, deren Lizenz das Einbetten erlaubt, auf Wunsch mit einer Webfassung für den Vorlageneditor. Jede Schriftauswahl zeigt jede Schrift mit ihrer Herkunft und einer Zeile Beispieltext, der Vorlageneditor zeigt den Text eines Briefs und einzelne Wörter in den Schriften, in denen sie gedruckt werden, und die eigene Schrift einer Wache ersetzt eine gleichnamige von weiter oben.
 - **Ein Kurzprofil hinter jedem Namen.** Wer mit der Maus auf dem Namen oder Bild eines Mitglieds verweilt oder am Handy auf das Bild tippt, sieht eine kleine Karte mit Bild, Erziehungsberechtigten, verwalteten Mitgliedern, Tags und Gruppen. Erwähnungen in Kommentaren öffnen dieselbe Karte.
 - **Ein neuer Name wartet auf Bestätigung.** Ändern Mitglieder ihren eigenen Namen, gilt er erst, wenn jemand mit dem Recht, Mitgliederänderungen zu bestätigen, ihn unter Mitglieder → Änderungen freigibt. Eine Ablehnung kann eine Begründung haben, die das Mitglied in der Benachrichtigung sieht.
+- **Tags, die nur die Mitgliederverwaltung sieht.** Ein Tag kann privat sein: Nur wer Mitglieder einsehen darf, sieht es, das markierte Mitglied selbst nicht. Ein privates Tag kennzeichnet Mitglieder, legt aber keine Zielgruppe, keine Einschränkung und keinen Zugriff fest.
 
 ### Verbesserungen
 
@@ -48,6 +49,7 @@ Wachen erstellen aus eigenen Vorlagen und denen ihres Verbands Dokumente für ih
 - **Text neben einem Bild begann tiefer.** In einer Zeile von Bausteinen auf Seiten und im Editor für Seiten begann Text neben einem Bild etwas unterhalb der Oberkante des Bildes. Jetzt beginnt er auf gleicher Höhe.
 - **Die Mitgliederliste in Sichtbarkeitsfiltern war abgeschnitten.** Wo eine Einschränkung von Sichtbarkeit oder Zugriff eine Auswahl von Mitgliedern anbietet, öffnete sich die Liste nur so breit wie ihr Knopf, sodass Suche und Namen nicht zu lesen waren. Jetzt öffnet sie sich breit genug für die Namen und bleibt im Fenster.
 - **Vorschaubilder von PDFs waren verpixelt.** Die kleinen Bilder von PDFs in der Mediathek, bei Dokumenten von Mitgliedern und bei Anhängen von Terminen waren so grob, dass ihr Text nicht zu lesen war. Jetzt werden sie feiner gezeichnet und in der Größe ihrer Kachel gezeigt.
+- **Neue Tags verloren Farbe und Badge.** Ein Tag, das mit Farbe oder als Badge angelegt wurde, wurde ohne beides gespeichert, bis es bearbeitet wurde. Jetzt bleibt beides von Anfang an erhalten.
 
 ## v26.21.0
 

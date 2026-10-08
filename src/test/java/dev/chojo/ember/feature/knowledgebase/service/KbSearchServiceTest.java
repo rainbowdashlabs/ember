@@ -115,7 +115,7 @@ class KbSearchServiceTest extends RepositoryTestBase {
      */
     @Test
     void aRestrictedArticleIsNotFoundByTheWordOnlyItContains() {
-        var accessService = new KbAccessService(knowledgeBaseRepo, memberGroupRepo, userTagRepo);
+        var accessService = new KbAccessService(knowledgeBaseRepo, memberGroupRepo, userTagRepo, privateTags);
         var folder = knowledgeBaseRepo.createFolder(station.id(), null, "Leadership Only", "", member.id());
         var restricted = knowledgeBaseRepo.createFile(
                 station.id(),
@@ -161,7 +161,7 @@ class KbSearchServiceTest extends RepositoryTestBase {
      */
     @Test
     void aPageIsStillFullWhenRestrictedArticlesOutrankTheReadableOnes() {
-        var accessService = new KbAccessService(knowledgeBaseRepo, memberGroupRepo, userTagRepo);
+        var accessService = new KbAccessService(knowledgeBaseRepo, memberGroupRepo, userTagRepo, privateTags);
         var folder = knowledgeBaseRepo.createFolder(station.id(), null, "Hidden Shelf", "", member.id());
         var hidden = new java.util.ArrayList<KbFile>();
         for (int i = 0; i < KbSearchService.RESULT_LIMIT + 5; i++) {

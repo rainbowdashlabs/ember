@@ -51,6 +51,7 @@ import dev.chojo.ember.feature.federation.service.FederationHttpClient;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.members.entity.TagVisibility;
 import dev.chojo.ember.feature.members.entity.UserTag;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
@@ -136,8 +137,8 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         groupService = mock(MemberGroupService.class);
         tagService = mock(UserTagService.class);
 
-        federatedBoardService = new FederatedBoardService(federatedBoardRepo);
-        boardService = new BoardService(boardRepo, memberService, groupService, tagService);
+        federatedBoardService = new FederatedBoardService(federatedBoardRepo, privateTags);
+        boardService = new BoardService(boardRepo, memberService, groupService, tagService, privateTags);
         var resolver = new MemberNameResolver(
                 newStationMemberService(null, null),
                 accountRepo,
@@ -414,7 +415,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         accessService.setLocalViewOverride(partnerId, boardUid, new AccessData(List.of(), List.of(), List.of(77)));
         when(groupService.findGroupsForMember(memberId)).thenReturn(List.of());
         when(tagService.findTagsForMember(memberId))
-                .thenReturn(List.of(new UserTag(77, station1.id(), "TestTag", null, false, 0)));
+                .thenReturn(List.of(new UserTag(77, station1.id(), "TestTag", null, TagVisibility.PLAIN, 0)));
         assertTrue(accessService.passesLocalViewOverride(partnerId, boardUid, memberId));
     }
 
@@ -636,7 +637,7 @@ class FederatedBoardProxyTest extends RepositoryTestBase {
         accessService.setLocalEditOverride(partnerId, boardUid, new AccessData(List.of(), List.of(), List.of(77)));
         when(groupService.findGroupsForMember(memberId)).thenReturn(List.of());
         when(tagService.findTagsForMember(memberId))
-                .thenReturn(List.of(new UserTag(77, station1.id(), "EditTag", null, false, 0)));
+                .thenReturn(List.of(new UserTag(77, station1.id(), "EditTag", null, TagVisibility.PLAIN, 0)));
         assertTrue(accessService.passesLocalEditOverride(partnerId, boardUid, memberId));
         accessService.setLocalEditOverride(partnerId, boardUid, new AccessData(List.of(), List.of(), List.of()));
         reset(memberService, groupService, tagService);

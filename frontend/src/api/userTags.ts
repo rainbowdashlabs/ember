@@ -5,11 +5,19 @@
  */
 import client from './client'
 import {createCrudResource, type NoContent} from './crud'
-import type {MemberWithName, TagRequest, UserTag} from './generated/schema'
+import {TagVisibility, type MemberWithName, type TagRequest, type UserTag} from './generated/schema'
 
 const tags = createCrudResource<UserTag, TagRequest, TagRequest, UserTag, UserTag, NoContent>('/tags')
 
 export const listTags = tags.list
+
+/**
+ * The tags that may choose people, for audiences, restrictions, access rules and member lists.
+ * Private tags only label members and the server refuses them in any of these.
+ */
+export async function listChoosableTags(): Promise<UserTag[]> {
+    return (await listTags()).filter(tag => tag.visibility !== TagVisibility.PRIVATE)
+}
 export const createTag = tags.create
 export const updateTag = tags.update
 export const deleteTag = tags.remove

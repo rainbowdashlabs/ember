@@ -11,7 +11,9 @@ import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.feature.members.entity.MemberCard;
 import dev.chojo.ember.feature.members.entity.MemberCard.MemberCardLabel;
+import dev.chojo.ember.feature.members.repository.UserTagRepository;
 import dev.chojo.ember.feature.members.service.MemberCardService;
+import dev.chojo.ember.feature.members.service.PrivateTags;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -39,13 +41,14 @@ class MemberCardRoutesTest {
     @BeforeEach
     void setup() {
         cardService = mock(MemberCardService.class);
-        harness = RouteHarness.serving(new MemberCardRoutes(cardService));
+        harness =
+                RouteHarness.serving(new MemberCardRoutes(cardService, new PrivateTags(mock(UserTagRepository.class))));
     }
 
     @Test
     void anyMemberReadsTheCardWithoutAMemberPermission() {
         var identity = new MemberIdentity(UUID.randomUUID(), MEMBER_UID);
-        when(cardService.find(eq(STATION_ID), any(), eq(MEMBER_UID)))
+        when(cardService.find(eq(STATION_ID), any(), eq(MEMBER_UID), eq(false)))
                 .thenReturn(Optional.of(new MemberCard(
                         identity,
                         "Mara Nager",
@@ -66,7 +69,7 @@ class MemberCardRoutesTest {
 
     @Test
     void aUidWithoutACardIsNotFound() {
-        when(cardService.find(eq(STATION_ID), any(), eq(MEMBER_UID))).thenReturn(Optional.empty());
+        when(cardService.find(eq(STATION_ID), any(), eq(MEMBER_UID), eq(false))).thenReturn(Optional.empty());
 
         harness.run((server, client) -> assertEquals(
                 MemberRefusal.MEMBER_NOT_HERE_BY_UID,
