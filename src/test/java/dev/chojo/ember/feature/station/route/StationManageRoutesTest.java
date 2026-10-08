@@ -11,6 +11,7 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.StationRefusal;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.cluster.service.ClusterService;
+import dev.chojo.ember.feature.mail.entity.InstanceMailStation;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.mail.service.MailDashboardService;
 import dev.chojo.ember.feature.mail.service.MailLocaleService;
@@ -197,6 +198,18 @@ class StationManageRoutesTest {
         });
 
         verify(mail).updateReplyTo(STATION_ID, "neu@nord.test");
+    }
+
+    @Test
+    void theStationSeesWhetherTheInstanceCarriesItsMail() {
+        when(mail.instanceMail(STATION_ID))
+                .thenReturn(new InstanceMailStation(
+                        UUID.fromString("00000000-0000-0000-0000-000000000003"), "Nord", true, null, 20, 6));
+
+        var answer = harness.request(client -> as(client, "GET", "/station/manage/mail/instance", null));
+
+        assertEquals(20, json(answer).path("dailyLimit").asInt());
+        assertEquals(6, json(answer).path("sentToday").asInt());
     }
 
     @Test

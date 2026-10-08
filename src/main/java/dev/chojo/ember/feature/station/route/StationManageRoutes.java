@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.service.ClusterService;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
+import dev.chojo.ember.feature.mail.entity.InstanceMailStation;
 import dev.chojo.ember.feature.mail.entity.MailFallbackPayload;
 import dev.chojo.ember.feature.mail.entity.MailTestResponse;
 import dev.chojo.ember.feature.mail.entity.ProviderTestRequest;
@@ -141,6 +142,7 @@ public class StationManageRoutes implements Routes {
                 this::updateSigningSecret,
                 StationPermission.STATION_MAIL);
         routes.get(prefix + "/station/manage/mail/reply-to", this::getReplyTo, StationPermission.STATION_MAIL);
+        routes.get(prefix + "/station/manage/mail/instance", this::getInstanceMail, StationPermission.STATION_MAIL);
         routes.put(prefix + "/station/manage/mail/reply-to", this::updateReplyTo, StationPermission.STATION_MAIL);
         routes.get(
                 prefix + "/station/manage/notifications",
@@ -432,6 +434,20 @@ public class StationManageRoutes implements Routes {
      * @param secret the secret as the provider issued it, or empty to stop checking signatures
      */
     public record SigningSecretRequest(String secret) {}
+
+    /**
+     * Whether the instance carries this station's mail after its own providers, as an instance
+     * administrator granted it, with the station's daily limit there and today's use.
+     */
+    @OpenApi(
+            path = "/api/v1/station/manage/mail/instance",
+            methods = HttpMethod.GET,
+            summary = "Get whether the instance's mail providers carry the station's mail, and today's use",
+            tags = {"Station Manage"},
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = InstanceMailStation.class)))
+    private void getInstanceMail(Context ctx) {
+        ctx.json(mailSettings.instanceMail(StationSession.from(ctx).stationId()));
+    }
 
     /**
      * Where replies to the station's mail go, whichever provider carries it.

@@ -16,6 +16,7 @@ import ClearProvidersModal from '@/components/mail/ClearProvidersModal.vue'
 import MailWebhookPanel from '@/components/mail/MailWebhookPanel.vue'
 import MailProviderFreeTiers from '@/components/mail/MailProviderFreeTiers.vue'
 import NotificationSchedulePanel from './stationmailingview/NotificationSchedulePanel.vue'
+import InstanceMailStandingPanel from './stationmailingview/InstanceMailStandingPanel.vue'
 import {
   clearStationProviders,
   getStationMailDashboard,
@@ -157,6 +158,7 @@ async function test(position: number, recipient: string) {
           />
         </template>
       </MailProviderChain>
+      <InstanceMailStandingPanel/>
       <MailDashboard
           :load="getStationMailDashboard"
           :lift="liftStationBlock"

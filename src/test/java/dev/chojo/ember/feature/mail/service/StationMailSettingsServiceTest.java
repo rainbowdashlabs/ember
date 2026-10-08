@@ -7,8 +7,10 @@ package dev.chojo.ember.feature.mail.service;
 
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.api.refusal.StationRefusal;
+import dev.chojo.ember.api.refusal.SystemRefusal;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.mail.entity.InstanceMailGrant;
+import dev.chojo.ember.feature.mail.entity.InstanceMailStation;
 import dev.chojo.ember.feature.mail.entity.MailChainEntry;
 import dev.chojo.ember.feature.mail.entity.MailFallbackPayload;
 import dev.chojo.ember.feature.mail.entity.SmtpEncryption;
@@ -25,11 +27,13 @@ import org.junit.jupiter.api.Test;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -108,6 +112,18 @@ class StationMailSettingsServiceTest {
         verify(senders).updateReplyTo(3, null);
         assertEquals(StationRefusal.MAIL_REPLY_TO_NOT_AN_ADDRESS, refused.refusal());
         assertEquals("", service.replyTo(4).replyTo(), "a station named nothing");
+    }
+
+    @Test
+    void theStationSeesItsGrantAndAStationThatIsGoneIsRefused() {
+        var own = new InstanceMailStation(UUID.randomUUID(), "Nord", true, Instant.EPOCH, null, 2);
+        when(grants.station(eq(3), any())).thenReturn(Optional.of(own));
+
+        assertEquals(own, service.instanceMail(3));
+        assertEquals(
+                SystemRefusal.STATION_NOT_HERE_FOR_INSTANCE_MAIL,
+                assertThrows(RefusalResponse.class, () -> service.instanceMail(4))
+                        .refusal());
     }
 
     @Test

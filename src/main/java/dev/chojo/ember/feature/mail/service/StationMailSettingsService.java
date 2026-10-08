@@ -6,7 +6,9 @@
 package dev.chojo.ember.feature.mail.service;
 
 import dev.chojo.ember.api.refusal.StationRefusal;
+import dev.chojo.ember.api.refusal.SystemRefusal;
 import dev.chojo.ember.conf.file.elements.Api;
+import dev.chojo.ember.feature.mail.entity.InstanceMailStation;
 import dev.chojo.ember.feature.mail.entity.MailChainEntry;
 import dev.chojo.ember.feature.mail.entity.MailFallbackPayload;
 import dev.chojo.ember.feature.mail.entity.StationMailSender;
@@ -23,6 +25,7 @@ import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -31,10 +34,11 @@ import java.util.Optional;
  * How a station sends its own mail: the providers it goes out through, in order, and the address
  * those providers report back to.
  *
- * <p>A station's list is its own and never runs into the instance's: a station that has taken its
- * outgoing mail into its own hands keeps it there, rather than having its post leave under a
- * sender it did not choose. It gets a webhook address of its own for the same reason, so what it
- * hands to its provider can only ever touch its own post.
+ * <p>A station's list is its own: a station that has taken its outgoing mail into its own hands
+ * keeps it there, rather than having its post leave under a sender it did not choose. The
+ * instance's providers follow only where an instance administrator granted them, and the station
+ * can see that here but not change it. It gets a webhook address of its own for the same reason,
+ * so what it hands to its provider can only ever touch its own post.
  */
 @Singleton
 public class StationMailSettingsService {
@@ -61,6 +65,15 @@ public class StationMailSettingsService {
         this.api = api;
         this.grants = grants;
         this.senders = senders;
+    }
+
+    /**
+     * Whether the instance carries the station's mail after its own providers, with the station's
+     * daily limit there and what went out that way today.
+     */
+    public InstanceMailStation instanceMail(int stationId) {
+        return grants.station(stationId, LocalDate.now())
+                .orElseThrow(SystemRefusal.STATION_NOT_HERE_FOR_INSTANCE_MAIL::raise);
     }
 
     /**

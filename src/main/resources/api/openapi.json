@@ -42122,6 +42122,24 @@
         }
       }
     },
+    "/api/v1/station/manage/mail/instance" : {
+      "get" : {
+        "summary" : "Get whether the instance's mail providers carry the station's mail, and today's use",
+        "tags" : [ "Station Manage" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/InstanceMailStation"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/station/manage/mail/providers" : {
       "get" : {
         "summary" : "Get the station's mail providers in the order they are tried",

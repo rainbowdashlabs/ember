@@ -5862,6 +5862,21 @@ export default {
             instanceBadge: 'Instanz',
             sentByStation: '{sent} Mails dieser Wache heute',
         },
+        station: {
+            title: 'Mailanbieter der Instanz',
+            grantedBadge: 'Freigegeben',
+            granted: 'Seit {date} verschickt die Instanz die Mails dieser Wache mit, sobald die eigenen '
+                + 'Anbieter für den Tag nichts mehr übrig haben. Die Mails kommen von der Adresse der '
+                + 'Instanz, mit dem Namen der Wache als Absender.',
+            notGranted: 'Die Mailanbieter der Instanz sind für diese Wache nicht freigegeben. Das '
+                + 'entscheidet die Verwaltung der Instanz.',
+            sentOfLimit: 'Heute über die Instanz verschickt: {sent} von {limit}',
+            sentNoLimit: 'Heute über die Instanz verschickt: {sent}, kein eigenes Limit',
+            replyTo: 'Antwortadresse',
+            replyToHint: 'Antworten auf Mails der Wache gehen an diese Adresse, über welchen Anbieter '
+                + 'die Mail auch ging. Leer gehen Antworten an die Absenderadresse.',
+            replyToPlaceholder: "kontakt{'@'}wache.de",
+        },
     },
     adminSettings: {
         title: 'Einstellungen',
