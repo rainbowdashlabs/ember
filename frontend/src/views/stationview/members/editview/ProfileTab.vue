@@ -34,6 +34,12 @@ const props = defineProps<{
 
 const fields = computed(() => props.answers.fields.value)
 
+/**
+ * Whether the member has an account to write. A member that waits for somebody to link their
+ * existing account has none yet, and its name and address are not the station's to write.
+ */
+const hasAccount = computed(() => props.member.accountId > 0)
+
 const editFirstName = ref(props.member.firstName ?? '')
 const editLastName = ref(props.member.lastName ?? '')
 const editEmail = ref(props.member.email ?? '')
@@ -84,12 +90,14 @@ async function save() {
   const addressChanged = editEmail.value.trim().toLowerCase() !== (props.member.email ?? '').toLowerCase()
 
   try {
-    await members.updateAccount(props.member.accountId, {
-      email: editEmail.value,
-      username: editUsername.value,
-      firstName: editFirstName.value,
-      lastName: editLastName.value,
-    })
+    if (hasAccount.value) {
+      await members.updateAccount(props.member.accountId, {
+        email: editEmail.value,
+        username: editUsername.value,
+        firstName: editFirstName.value,
+        lastName: editLastName.value,
+      })
+    }
   } catch (e) {
     failure.value = describeFailure(e, t)
     throw e
@@ -112,7 +120,7 @@ async function save() {
     <FailureAlert :failure="failure"/>
     <Alert v-if="notice" variant="info">{{ notice }}</Alert>
 
-    <NeutralContainer class="space-y-4">
+    <NeutralContainer v-if="hasAccount" class="space-y-4">
       <SubHeader class="text-sm">{{ t('memberEdit.baseFields') }}</SubHeader>
       <div class="grid gap-4 sm:grid-cols-3">
         <div class="space-y-1">

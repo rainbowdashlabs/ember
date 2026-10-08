@@ -14,6 +14,7 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import DetailModals from './detailview/DetailModals.vue'
 import DetailHeader from './detailview/DetailHeader.vue'
 import LoadedTabs from './detailview/LoadedTabs.vue'
+import MemberLinkPanel from './detailview/MemberLinkPanel.vue'
 import { useMemberProfileFields } from './detailview/useMemberProfileFields'
 import { useMemberManagers } from './relations/useMemberManagers'
 import { useManagedMembers } from './relations/useManagedMembers'
@@ -235,6 +236,11 @@ const detailModalsProps = computed(() => ({
 
       <Spinner v-if="loading" size="lg" />
       <FailureAlert :failure="failure ?? formerFailure ?? deleteFailure"/>
+
+      <MemberLinkPanel
+        v-if="!loading && member && !member.accountId && !member.formerAt"
+        :member-id="memberId" :can-edit="canEdit"
+      />
 
       <LoadedTabs
         v-if="!loading && member"

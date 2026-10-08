@@ -45,6 +45,9 @@ onMounted(() => {
       <SidebarLink :icon="['fas', 'shield']" name="account-security" to="/account/security" @navigate="close">
         {{ t('sidebar.accountSecurity') }}
       </SidebarLink>
+      <SidebarLink :icon="['fas', 'link']" name="account-links" to="/account/links" @navigate="close">
+        {{ t('sidebar.accountLinks') }}
+      </SidebarLink>
       <SidebarLink :icon="['fas', 'shield-halved']" name="account-gdpr" to="/account/gdpr" @navigate="close">
         {{ t('sidebar.accountGdpr') }}
       </SidebarLink>

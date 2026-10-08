@@ -108,6 +108,7 @@ export const HELP_PAGES: HelpPage[] = [
     {route: 'help-attendance-report', path: '/helpcenter/station/attendance/report', i18nPrefix: ['helpCenter.attendanceReport', 'helpCenter.sample.attendance']},
     {route: 'help-attendance-session', path: '/helpcenter/station/attendance/session', i18nPrefix: 'helpCenter.attendanceSession'},
     {route: 'help-welcome', path: '/helpcenter/station/basics', i18nPrefix: 'helpCenter.welcome'},
+    {route: 'help-basics-account-links', path: '/helpcenter/station/basics/account-links', i18nPrefix: 'helpCenter.basics.accountLinks'},
     {route: 'help-basics-federation', path: '/helpcenter/station/basics/federation', i18nPrefix: 'helpCenter.basics.federation'},
     {route: 'help-basics-hosting', path: '/helpcenter/station/basics/hosting', i18nPrefix: ['helpCenter.basics.configuration', 'helpCenter.basics.hosting']},
     {route: 'help-basics-hosting-configuration', path: '/helpcenter/station/basics/hosting/configuration', i18nPrefix: 'helpCenter.basics.configuration'},

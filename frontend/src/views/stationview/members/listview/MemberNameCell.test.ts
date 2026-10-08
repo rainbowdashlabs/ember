@@ -57,4 +57,17 @@ describe('MemberNameCell', () => {
   it('says nothing where the list does not know, as on an association list', () => {
     expect(cell().find('[data-testid="member-incomplete"]').exists()).toBe(false)
   })
+
+  it('marks a member that waits for somebody to link their existing account', () => {
+    const badge = cell({accountId: null, linkStatus: 'WAITING'}).find('[data-testid="member-link-waiting"]')
+
+    expect(badge.exists()).toBe(true)
+    expect(badge.text()).toBe(deDE.memberLinks.badge.WAITING)
+  })
+
+  it('marks a declined link, and nothing once the account is linked', () => {
+    expect(cell({accountId: null, linkStatus: 'DECLINED'}).find('[data-testid="member-link-declined"]').exists())
+        .toBe(true)
+    expect(cell({accountId: 4, linkStatus: 'ACCEPTED'}).find('[data-testid^="member-link"]').exists()).toBe(false)
+  })
 })

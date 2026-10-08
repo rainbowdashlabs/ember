@@ -23,6 +23,7 @@ import dev.chojo.ember.feature.notifications.entity.StationAudience;
 import dev.chojo.ember.feature.notifications.service.Notifier;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorEvent;
 import dev.chojo.ember.feature.twofactor.service.TwoFactorAuditService;
+import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -116,8 +117,9 @@ public class LinkAnswerService {
 
     /**
      * Links the account to the member the station asked about. The member keeps whatever the station
-     * gave it, its permissions among them, which reach the account from now on. The account's own audit
-     * records it, and whoever edits members at the station is told.
+     * gave it, its permissions among them, which reach the account from now on. The answer and the link
+     * are written together or not at all. The account's own audit records it, and whoever edits members
+     * at the station is told.
      *
      * @param accountId the signed-in account
      * @param uid       the request
@@ -131,12 +133,12 @@ public class LinkAnswerService {
                 .isPresent()) {
             throw MemberRefusal.LINK_ACCOUNT_ALREADY_AT_STATION.raise();
         }
-        if (!repository.answer(request.id(), LinkAnswer.ACCEPTED)) {
-            throw MemberRefusal.LINK_REQUEST_NOT_OPEN.raise();
-        }
-        if (!memberRepository.linkAccount(request.memberId(), accountId)) {
-            throw MemberRefusal.LINK_REQUEST_NOT_OPEN.raise();
-        }
+        Transactions.run(() -> {
+            if (!repository.answer(request.id(), LinkAnswer.ACCEPTED)
+                    || !memberRepository.linkAccount(request.memberId(), accountId)) {
+                throw MemberRefusal.LINK_REQUEST_NOT_OPEN.raise();
+            }
+        });
         nameResolver.forget(request.memberId());
         auditService.recordAtStation(
                 accountId, TwoFactorEvent.ACCOUNT_LINK_ACCEPTED, request.stationId(), userAgent, country);

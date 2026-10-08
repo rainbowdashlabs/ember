@@ -44,6 +44,7 @@ const sendSetupMail = ref(true)
 const issueOneTimePassword = ref(true)
 const oneTimePassword = ref<IssuedOneTimePassword | null>(null)
 const oneTimePasswordFailure = ref<Failure | null>(null)
+const linkPending = ref(false)
 
 const {sessionInfo, hasPermission} = useSession()
 
@@ -210,6 +211,7 @@ const {running: saving, failure: createFailure, run: createAccount, clearError: 
   })
 
   accountMade = true
+  linkPending.value = invited.linkPending
 
   const membersList = await stationMembers.listMembers()
   const newMember = membersList.find(m => m.id === invited.memberId)
@@ -257,6 +259,7 @@ function startOver() {
   issueOneTimePassword.value = true
   oneTimePassword.value = null
   oneTimePasswordFailure.value = null
+  linkPending.value = false
   fieldValues.value = new Map()
   selectedGroupIds.value = new Set()
   selectedManagerIds.value = new Set()
@@ -302,6 +305,7 @@ function startOver() {
           :offer-one-time-password="offerOneTimePassword"
           :one-time-password="oneTimePassword"
           :one-time-password-failure="oneTimePasswordFailure"
+          :link-pending="linkPending"
           @next-from-identity="nextFromIdentity"
           @next-from-groups="nextFromGroups"
           @set-field-value="setFieldValue"

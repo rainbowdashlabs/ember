@@ -17,6 +17,8 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import TabBar from '@/components/navigation/TabBar.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
+import MemberLinkBadge from '@/components/accountlink/MemberLinkBadge.vue'
+import {LinkStatus} from '@/api/generated/schema'
 import {ref} from 'vue'
 
 const {t} = useI18n()
@@ -162,6 +164,22 @@ const tabs = [
 
     <HelpSection :title="t('helpCenter.membersDetail.formerTitle')">
       <p>{{ t('helpCenter.membersDetail.formerText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.membersDetail.linkTitle')">
+      <p>{{ t('helpCenter.membersDetail.linkText') }}</p>
+      <NeutralContainer class="space-y-3">
+        <div class="flex flex-wrap items-center gap-2">
+          <SubHeader>{{ t('memberLinks.title') }}</SubHeader>
+          <MemberLinkBadge :status="LinkStatus.WAITING"/>
+          <MemberLinkBadge :status="LinkStatus.DECLINED"/>
+          <MemberLinkBadge :status="LinkStatus.EXPIRED"/>
+        </div>
+        <ButtonRow>
+          <SecondaryButton :icon="['fas', 'paper-plane']">{{ t('memberLinks.sendAgain') }}</SecondaryButton>
+        </ButtonRow>
+      </NeutralContainer>
+      <p>{{ t('helpCenter.membersDetail.linkSendAgainText') }}</p>
     </HelpSection>
 
     <HelpTip>{{ t('helpCenter.membersDetail.tip') }}</HelpTip>
