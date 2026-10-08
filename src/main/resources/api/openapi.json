@@ -46122,6 +46122,9 @@
           "tosChanged" : {
             "type" : "boolean"
           },
+          "consentChanged" : {
+            "type" : "boolean"
+          },
           "privacyDiff" : {
             "type" : [ "string", "null" ]
           },
@@ -46134,6 +46137,9 @@
           "tosHtml" : {
             "type" : [ "string", "null" ]
           },
+          "consentHtml" : {
+            "type" : [ "string", "null" ]
+          },
           "currentPrivacyVersion" : {
             "type" : "string"
           },
@@ -46144,7 +46150,7 @@
             "type" : "string"
           }
         },
-        "required" : [ "privacyChanged", "tosChanged", "privacyDiff", "tosDiff", "privacyHtml", "tosHtml", "currentPrivacyVersion", "currentTosVersion", "currentConsentVersion" ]
+        "required" : [ "privacyChanged", "tosChanged", "consentChanged", "privacyDiff", "tosDiff", "privacyHtml", "tosHtml", "consentHtml", "currentPrivacyVersion", "currentTosVersion", "currentConsentVersion" ]
       },
       "ConsentStatusResponse" : {
         "type" : "object",
@@ -54727,9 +54733,18 @@
           },
           "consentVersion" : {
             "type" : "string"
+          },
+          "legacyPrivacyVersion" : {
+            "type" : "string"
+          },
+          "legacyTosVersion" : {
+            "type" : "string"
+          },
+          "legacyConsentVersion" : {
+            "type" : "string"
           }
         },
-        "required" : [ "privacyVersion", "tosVersion", "consentVersion" ]
+        "required" : [ "privacyVersion", "tosVersion", "consentVersion", "legacyPrivacyVersion", "legacyTosVersion", "legacyConsentVersion" ]
       },
       "LendingItemRequest" : {
         "type" : "object",

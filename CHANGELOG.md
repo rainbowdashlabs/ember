@@ -1,5 +1,15 @@
 # Changelog
 
+## v26.21.2
+
+A refusal of storage in the browser can be changed on the sign-in page. The privacy policy and the consent are asked again only when their text or the kinds of stored data change. Changed lines of the legal texts appear formatted.
+
+### Fixes
+
+- **Declining storage locked people out of signing in.** After declining storage once, the sign-in page showed only an error on every visit, with no way to change the choice. A button below the error now brings the choice back, and agreeing shows the sign-in form.
+- **Changes to stored browser data asked everyone again.** A change to the list of data kept in the browser asked everybody to agree again, on a page that named no change. The privacy policy and the consent now ask again only when their text or the kinds of stored data change, and the page says what changed.
+- **Changed legal texts showed formatting marks.** The page asking to agree to changed terms or a changed privacy policy listed the changed lines with their raw formatting marks, such as hash signs and asterisks. The lines now appear formatted like the text itself.
+
 ## v26.21.1
 
 Point descriptions show while grading.

@@ -109,6 +109,21 @@ class BrowserStorageServiceTest {
     }
 
     @Test
+    void theCategorySummaryNamesEveryCategoryAndNoKey() {
+        String summary = service.categorySummary("de");
+        var text = service.catalog().text();
+
+        for (var necessity : BrowserStorageEntry.Necessity.values()) {
+            assertTrue(
+                    summary.contains(text.necessity().get(necessity).heading().de()), summary);
+        }
+        for (var entry : service.catalog().entries()) {
+            assertFalse(summary.contains("`" + entry.key() + "`"), "key " + entry.key() + " in the summary");
+        }
+        assertEquals("", new BrowserStorageService((BrowserStorageCatalog) null).categorySummary("de"));
+    }
+
+    @Test
     void aCatalogMissingFromTheClasspathIsNoCatalog() {
         assertNull(BrowserStorageService.load("/no/such/catalog.json"));
     }
