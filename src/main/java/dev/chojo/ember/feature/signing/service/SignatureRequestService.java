@@ -37,6 +37,7 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.function.Supplier;
 
 /**
  * Asks for signatures on generated documents, and answers who is asked to sign what.
@@ -131,7 +132,7 @@ public class SignatureRequestService {
      */
     public SignatureRequest request(StationSession session, int generationId) {
         var generation = generationAt(session, generationId);
-        var created = Transactions.call(() -> create(session, generation));
+        var created = onceForTheDocument(() -> create(session, generation));
         notices.asked(created, requests.fieldsOf(created.id()));
         return created;
     }
@@ -169,7 +170,7 @@ public class SignatureRequestService {
             throw DocumentRefusal.SIGNING_CORRECTION_OTHER_MEMBER.raise();
         }
         int by = session.member().id();
-        var created = Transactions.call(() -> {
+        var created = onceForTheDocument(() -> {
             var held = requests.lockRequest(old.id()).orElseThrow(DocumentRefusal.SIGNING_REQUEST_NOT_FOUND::raise);
             if (held.state() == RequestState.SUPERSEDED || held.state() == RequestState.WITHDRAWN) {
                 throw DocumentRefusal.SIGNING_REQUEST_ENDED.raise();
@@ -251,9 +252,11 @@ public class SignatureRequestService {
      * @return the fields they sign or lend their account to, oldest request first
      */
     public List<PendingSignature> pendingFor(int stationId, int memberId) {
-        var wards =
-                guardianPolicy.wardsOf(memberId).stream().map(StationMember::id).toList();
-        return requests.pendingFor(stationId, memberId, wards);
+        return requests.pendingFor(stationId, memberId, wardIdsOf(memberId));
+    }
+
+    private List<Integer> wardIdsOf(int memberId) {
+        return guardianPolicy.wardsOf(memberId).stream().map(StationMember::id).toList();
     }
 
     /**
@@ -265,6 +268,34 @@ public class SignatureRequestService {
         return requests.findByUid(requestUid)
                 .filter(request -> request.stationId() == session.stationId())
                 .orElseThrow(DocumentRefusal.SIGNING_REQUEST_NOT_FOUND::raise);
+    }
+
+    /**
+     * Writes a new request in one transaction. The check that the document has no live request yet cannot
+     * see one that another manager, or a correction, is writing at the same moment; the database refuses the
+     * later of the two, and that is answered as the check would have answered it.
+     */
+    private static SignatureRequest onceForTheDocument(Supplier<SignatureRequest> creation) {
+        try {
+            return Transactions.call(creation);
+        } catch (RuntimeException e) {
+            if (SignatureRequestRepository.isSecondLiveRequest(e)) {
+                throw DocumentRefusal.SIGNING_ALREADY_REQUESTED.raise();
+            }
+            throw e;
+        }
+    }
+
+    /**
+     * Whether a field at the session's station asks its member, whatever state it is in.
+     *
+     * @param session the member
+     * @param fieldId the field
+     * @return whether it is a field of theirs, to sign themselves or for a member in their care
+     */
+    boolean asks(StationSession session, int fieldId) {
+        int me = session.member().id();
+        return requests.asks(session.stationId(), me, wardIdsOf(me), fieldId);
     }
 
     private SignatureRequest create(StationSession session, DocumentGeneration generation) {

@@ -25,6 +25,7 @@ import dev.chojo.ember.feature.signing.entity.SigningAttempt;
 import dev.chojo.ember.feature.signing.entity.SigningCircumstances;
 import dev.chojo.ember.feature.signing.entity.SigningOutcome;
 import dev.chojo.ember.feature.signing.entity.SigningPicture;
+import dev.chojo.ember.feature.signing.service.SignatureImages;
 import dev.chojo.ember.feature.signing.service.SignatureRequestService;
 import dev.chojo.ember.feature.signing.service.SigningActService;
 import dev.chojo.ember.feature.twofactor.entity.StepUpProof;
@@ -40,6 +41,10 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
@@ -64,6 +69,9 @@ import static dev.chojo.ember.api.RouteSupport.pathInt;
 @Singleton
 public class SigningRoutes implements Routes {
     private static final String PDF = "application/pdf";
+
+    /** The largest confirmation taken: the largest picture in Base64, with room for the rest of it. */
+    static final int MAX_COMPLETE_BYTES = (SignatureImages.MAX_BYTES + 2) / 3 * 4 + 64 * 1024;
 
     private final SigningActService acts;
     private final SignatureRequestService requests;
@@ -171,7 +179,7 @@ public class SigningRoutes implements Routes {
             })
     private void complete(Context ctx) {
         var session = StationSession.from(ctx);
-        var body = ctx.bodyAsClass(SigningCompleteRequest.class);
+        var body = completeBodyOf(ctx);
         String startToken = body.startToken();
         StepUpProof proof = body.proof();
         if (startToken == null || startToken.isBlank() || proof == null) {
@@ -186,6 +194,22 @@ public class SigningRoutes implements Routes {
                 pictureOf(body),
                 new SigningCircumstances(ctx.ip(), ctx.userAgent()));
         ctx.json(SigningCompleteResponse.of(outcome));
+    }
+
+    /**
+     * The confirmation as sent, read up to {@link #MAX_COMPLETE_BYTES}. The server reads a body only up to a
+     * megabyte, which a photographed signature in Base64 easily passes, so this one route reads its own up
+     * to the largest picture taken.
+     */
+    private static SigningCompleteRequest completeBodyOf(Context ctx) {
+        byte[] raw;
+        try (InputStream content = ctx.bodyInputStream()) {
+            raw = content.readNBytes(MAX_COMPLETE_BYTES + 1);
+        } catch (IOException e) {
+            throw new UncheckedIOException("The signing confirmation could not be read", e);
+        }
+        if (raw.length > MAX_COMPLETE_BYTES) throw DocumentRefusal.SIGNATURE_IMAGE_TOO_LARGE.raise();
+        return ctx.jsonMapper().fromJsonString(new String(raw, StandardCharsets.UTF_8), SigningCompleteRequest.class);
     }
 
     /** The signature picture the signer sent, or the saved one where they sent none. */

@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.entity.StationAudience;
 import dev.chojo.ember.feature.notifications.service.NotificationText;
 import dev.chojo.ember.feature.notifications.service.Notifier;
+import dev.chojo.ember.feature.signing.entity.FieldRole;
 import dev.chojo.ember.feature.signing.entity.RequestedSignature;
 import dev.chojo.ember.feature.signing.entity.SignatureRequest;
 import dev.chojo.ember.feature.signing.entity.SignerCapacity;
@@ -46,7 +47,8 @@ import java.util.Optional;
  * member and their guardians for a member's own field (a member without a login signs through a guardian's
  * account), the guardian at a place for that place's field, every guardian for a field any of them may sign,
  * the issuer for the issuer's. Each of them is notified in the app, once per field, linked to the field's
- * signing screen.
+ * signing screen. Whoever has left the station is asked nothing, nor is a guardian who no longer looks after
+ * the member, and nobody is asked about a document whose member has left.
  *
  * <p><b>By mail.</b> A signature asked for is something to act on, so the request and every reminder also go
  * out by mail through the instance-wide relay, whatever the reader chose for their digest. Mail goes to the
@@ -175,7 +177,7 @@ public class SignatureNotices {
     private void tell(SignatureRequest request, List<RequestedSignature> fields, Kind kind) {
         try {
             var station = stations.findById(request.stationId()).orElse(null);
-            if (station == null) return;
+            if (station == null || !memberStays(request)) return;
             String title = titleOf(request);
             var params = new NotificationParams.SignatureRequested(title, request.memberName());
             var home = LinkHome.station(station.uid());
@@ -217,32 +219,57 @@ public class SignatureNotices {
     }
 
     /** The members a field is shown to among their open tasks. */
-    private static Optional<StationAudience> audienceOf(RequestedSignature field) {
-        Integer signer = field.signerId();
+    private Optional<StationAudience> audienceOf(RequestedSignature field) {
         Integer member = field.memberId();
         return switch (field.role()) {
-            case PARTICIPANT -> Optional.ofNullable(signer).map(id -> StationAudience.household(List.of(id)));
-            case GUARDIAN, ISSUER -> Optional.ofNullable(signer).map(StationAudience::member);
+            case PARTICIPANT -> signerOf(field).map(signer -> StationAudience.household(List.of(signer.id())));
+            case GUARDIAN, ISSUER -> signerOf(field).map(signer -> StationAudience.member(signer.id()));
             case ANY_GUARDIAN -> Optional.ofNullable(member).map(id -> StationAudience.guardiansOf(List.of(id)));
         };
     }
 
     /** The accounts that would confirm a field's signature. */
     private List<Integer> signingAccountsOf(RequestedSignature field) {
-        Integer signer = field.signerId();
         Integer member = field.memberId();
         return switch (field.role()) {
-            case PARTICIPANT -> {
-                if (signer == null) yield List.of();
-                yield field.capacity() == SignerCapacity.ACCOUNT_HOLDER ? accountOf(signer) : guardianAccounts(signer);
-            }
-            case GUARDIAN, ISSUER -> signer == null ? List.of() : accountOf(signer);
+            case PARTICIPANT ->
+                signerOf(field)
+                        .map(signer -> field.capacity() == SignerCapacity.ACCOUNT_HOLDER
+                                ? accountOf(signer)
+                                : guardianAccounts(signer.id()))
+                        .orElse(List.of());
+            case GUARDIAN, ISSUER ->
+                signerOf(field).map(SignatureNotices::accountOf).orElse(List.of());
             case ANY_GUARDIAN -> member == null ? List.of() : guardianAccounts(member);
         };
     }
 
-    private List<Integer> accountOf(int memberId) {
-        return members.findById(memberId).map(StationMember::accountId).stream().toList();
+    /** Whether the member the document is about is still at the station. */
+    private boolean memberStays(SignatureRequest request) {
+        Integer memberId = request.memberId();
+        return memberId != null
+                && members.findById(memberId).filter(member -> !member.former()).isPresent();
+    }
+
+    /**
+     * The member a field names as its signer, while they may still sign it: still at the station, and for a
+     * guardian's field still looking after the member the document is about.
+     */
+    private Optional<StationMember> signerOf(RequestedSignature field) {
+        Integer signer = field.signerId();
+        if (signer == null) return Optional.empty();
+        if (field.role() == FieldRole.GUARDIAN) {
+            Integer ward = field.memberId();
+            if (ward == null) return Optional.empty();
+            return members.findManagers(ward).stream()
+                    .filter(guardian -> guardian.id() == signer)
+                    .findFirst();
+        }
+        return members.findById(signer).filter(member -> !member.former());
+    }
+
+    private static List<Integer> accountOf(StationMember member) {
+        return Optional.ofNullable(member.accountId()).stream().toList();
     }
 
     private List<Integer> guardianAccounts(int memberId) {

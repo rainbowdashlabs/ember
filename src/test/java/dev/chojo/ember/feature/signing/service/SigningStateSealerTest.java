@@ -23,8 +23,10 @@ import dev.chojo.ember.feature.generator.repository.DocumentTemplateRepository;
 import dev.chojo.ember.feature.generator.service.pdf.PdfFiles;
 import dev.chojo.ember.feature.generator.service.pdf.SignatureFields;
 import dev.chojo.ember.feature.mail.repository.EmailQueueRepository;
+import dev.chojo.ember.feature.mail.service.MailRecipientService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
+import dev.chojo.ember.feature.notifications.service.NotificationText;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.signing.entity.CompletedSigning;
 import dev.chojo.ember.feature.signing.entity.SealLevel;
@@ -40,6 +42,7 @@ import dev.chojo.ember.feature.signing.repository.SignatureRequestRepository;
 import dev.chojo.ember.feature.signing.repository.SigningEvidenceRepository;
 import dev.chojo.ember.feature.signing.repository.SigningKeyRepository;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
 import dev.chojo.ember.feature.storage.service.StorageService;
@@ -60,6 +63,7 @@ import org.junit.jupiter.api.io.TempDir;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.sql.SQLException;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -404,6 +408,45 @@ class SigningStateSealerTest extends RepositoryTestBase {
                     .single(call().bind("id", template))
                     .update();
         }
+    }
+
+    /**
+     * A database failure while queueing the copies fails the filing with it, so nothing of the version is
+     * kept and the act waits for the next seal. A copy that cannot be put together for any other reason is
+     * left out, and the version stays filed.
+     */
+    @Test
+    void aCopyThatFailsLeavesTheVersionFiledUnlessTheDatabaseFailed() throws IOException {
+        var signer = member("Dora", "Datenbank");
+        var request = ask(signer);
+        var evidence = sign(request, signer, "participant");
+        var failingStations = mock(StationRepository.class);
+        when(failingStations.findById(anyInt()))
+                .thenThrow(new IllegalStateException("The query failed", new SQLException("gone", "08006")))
+                .thenThrow(new IllegalStateException("The template does not render"));
+        var failingCopies = new SignedCopies(
+                TestNotices.emailService(emailQueueRepo),
+                new MailRecipientService(accountRepo, stationMemberRepo),
+                failingStations,
+                new NotificationText());
+        var sealer = new SigningStateSealer(
+                requestRepo,
+                evidenceRepo,
+                memberDocumentRepo,
+                documents,
+                sealedDocuments,
+                stationKeys,
+                assembler(SealedPdfs.noTimestamps()),
+                pdfSealer(SealedPdfs.noTimestamps()),
+                failingCopies);
+
+        assertThrows(IllegalStateException.class, () -> sealer.sealLatest(request.id()));
+        assertNull(sealedHashOf(evidence));
+        assertFalse(documentOf(request).sealed());
+
+        assertTrue(sealer.sealLatest(request.id()));
+        assertEquals(versions.current(documentOf(request).id()).orElseThrow().sha256(), sealedHashOf(evidence));
+        assertEquals(0, copiesTo(signer));
     }
 
     @Test

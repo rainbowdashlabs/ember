@@ -98,6 +98,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -126,6 +128,8 @@ class SignatureRequestServiceTest extends RepositoryTestBase {
     private static final SigningStatements STATEMENTS =
             new SigningStatements("Ich stimme zu.", "Ich bin erziehungsberechtigt und stimme zu.");
     private static final AtomicInteger NAMES = new AtomicInteger();
+    private static final String ASKED_SUBJECT = "Bitte unterschreiben: Einverstaendnis";
+    private static final String REMINDER_SUBJECT = "Erinnerung: Einverstaendnis wartet auf eine Unterschrift";
 
     @TempDir
     static Path storageRoot;
@@ -1382,6 +1386,151 @@ class SignatureRequestServiceTest extends RepositoryTestBase {
 
         assertEquals(0, remindersSent(other));
         assertEquals(0, mailsTo(settled, subject));
+    }
+
+    /**
+     * Nobody who may no longer sign a field is asked to: a guardian no longer linked to the member and a
+     * signer who left the station get neither a reminder nor a count of one, and asking again reaches
+     * neither of them.
+     */
+    @Test
+    void anUnlinkedGuardianAndASignerWhoLeftAreNeitherRemindedNorAsked() throws IOException {
+        var child = member("Udo", "Unverbunden", false);
+        var guardian = member("Uta", "Unverbunden", true);
+        var issuer = member("Ines", "Ausgetreten", true);
+        guard(guardian, child);
+        var request = requests.request(
+                managing(),
+                generated(child, plainTemplate, issuer.id(), "guardian1", "issuer")
+                        .id());
+        assertEquals(1, mailsTo(guardian, ASKED_SUBJECT));
+        assertEquals(1, mailsTo(issuer, ASKED_SUBJECT));
+        notificationRepo.acknowledgeAll(Recipient.stationMember(guardian.id()));
+        stationMemberRepo.removeManager(guardian.id(), child.id());
+        stationMemberRepo.setFormer(issuer.id(), true);
+
+        new SignatureReminders(requestRepo, notices)
+                .sweep(request.createdAt().plus(SignatureReminders.INTERVAL).plusSeconds(60));
+        notices.asked(request, requestRepo.fieldsOf(request.id()));
+
+        assertEquals(0, remindersSent(request));
+        assertEquals(0, mailsTo(guardian, REMINDER_SUBJECT));
+        assertEquals(0, mailsTo(issuer, REMINDER_SUBJECT));
+        assertEquals(1, mailsTo(guardian, ASKED_SUBJECT), "asking again does not reach the unlinked guardian");
+        assertEquals(1, mailsTo(issuer, ASKED_SUBJECT), "nor the signer who left");
+        assertEquals(List.of(), unread(guardian, NotificationType.SIGNATURE_REQUESTED));
+    }
+
+    /** Once the member a document is about has left, nobody is reminded of it any more. */
+    @Test
+    void nobodyIsRemindedOfTheDocumentOfAMemberWhoLeft() throws IOException {
+        var leaving = member("Lars", "Gegangen", true);
+        var request = requests.request(
+                managing(),
+                generated(leaving, plainTemplate, manager.id(), "participant", "issuer")
+                        .id());
+        stationMemberRepo.setFormer(leaving.id(), true);
+
+        new SignatureReminders(requestRepo, notices)
+                .sweep(request.createdAt().plus(SignatureReminders.INTERVAL).plusSeconds(60));
+
+        assertEquals(0, remindersSent(request));
+        assertEquals(0, mailsTo(leaving, REMINDER_SUBJECT));
+        assertEquals(Set.of(), askedFields(manager, NotificationType.SIGNATURE_REMINDER, request));
+    }
+
+    /**
+     * Two runs that overlap remind of a field once: each counts a reminder before sending it, and only the
+     * run whose count landed sends it. A run that read the field before the other counted it counts nothing.
+     */
+    @Test
+    void overlappingRunsRemindOfAFieldOnce() throws Exception {
+        var signer = member("Olli", "Ueberlapp", true);
+        var request = requests.request(
+                managing(),
+                generated(signer, plainTemplate, null, "participant").id());
+        var reminders = new SignatureReminders(requestRepo, notices);
+        var due = request.createdAt().plus(SignatureReminders.INTERVAL).plusSeconds(60);
+        int fieldId = fieldId(request, "participant");
+
+        var start = new CountDownLatch(1);
+        Callable<Integer> run = () -> {
+            start.await();
+            return reminders.sweep(due);
+        };
+        try (var executor = Executors.newFixedThreadPool(2)) {
+            var first = executor.submit(run);
+            var second = executor.submit(run);
+            start.countDown();
+            first.get(1, TimeUnit.MINUTES);
+            second.get(1, TimeUnit.MINUTES);
+        }
+
+        assertEquals(1, remindersSent(request));
+        assertEquals(1, mailsTo(signer, REMINDER_SUBJECT));
+        assertFalse(requestRepo.markReminded(fieldId, 0, due), "a run that read the field before counts nothing");
+        assertEquals(1, remindersSent(request));
+    }
+
+    /**
+     * Two managers asking for the signatures of one document at the same moment: the check before writing
+     * cannot see the other's request before it is committed, and the database refuses the later one as
+     * asked for already.
+     */
+    @Test
+    void askingTwiceAtTheSameMomentLeavesOneRequest() throws Exception {
+        var adult = member("Gina", "Gleichzeitig", true);
+        var generation = generated(adult, plainTemplate, null, "participant");
+
+        var refused = refusedWhileARequestIsWritten(generation, () -> requests.request(managing(), generation.id()));
+
+        assertEquals(DocumentRefusal.SIGNING_ALREADY_REQUESTED, refused.refusal());
+        assertEquals(1, liveRequestsOf(generation));
+    }
+
+    /**
+     * A correction onto a document that is asked for at the same moment is refused the same way, and the
+     * request it would have replaced stays open.
+     */
+    @Test
+    void aCorrectionRacingARequestForTheSameDocumentIsRefused() throws Exception {
+        var adult = member("Karl", "Gleichzeitig", true);
+        var old = requests.request(
+                managing(), generated(adult, plainTemplate, null, "participant").id());
+        var corrected = generated(adult, plainTemplate, null, "participant");
+
+        var refused =
+                refusedWhileARequestIsWritten(corrected, () -> requests.rectify(managing(), old.uid(), corrected.id()));
+
+        assertEquals(DocumentRefusal.SIGNING_ALREADY_REQUESTED, refused.refusal());
+        assertEquals(1, liveRequestsOf(corrected));
+        assertEquals(
+                RequestState.OPEN, requestRepo.findById(old.id()).orElseThrow().state());
+    }
+
+    /**
+     * Asks for the signatures of a document in a transaction on this thread and runs a second write for the
+     * same document on another while that transaction is still open, so the second cannot see the first
+     * request before it runs into it. Hands back the refusal the second write ended with.
+     */
+    private static RefusalResponse refusedWhileARequestIsWritten(DocumentGeneration generation, Callable<?> second)
+            throws Exception {
+        try (var executor = Executors.newSingleThreadExecutor()) {
+            var pending = Transactions.call(() -> {
+                requests.request(managing(), generation.id());
+                var running = executor.submit(second);
+                awaitALockSomebodyWaitsFor();
+                return running;
+            });
+            var failure = assertThrows(ExecutionException.class, () -> pending.get(1, TimeUnit.MINUTES));
+            return assertInstanceOf(RefusalResponse.class, failure.getCause());
+        }
+    }
+
+    private static int liveRequestsOf(DocumentGeneration generation) {
+        return count("""
+                        SELECT count(*) AS count FROM signing_request
+                        WHERE generation_id = :id AND state IN ('OPEN', 'COMPLETE');""", generation.id());
     }
 
     @Test

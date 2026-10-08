@@ -76,6 +76,9 @@ import dev.chojo.ember.feature.signing.service.TestSignatures;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.backend.local.LocalStorageBackend;
+import dev.chojo.ember.feature.storage.entity.StorageCategory;
+import dev.chojo.ember.feature.storage.entity.StorageScope;
+import dev.chojo.ember.feature.storage.entity.Variant;
 import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.feature.system.repository.ApplicationSettingRepository;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorKind;
@@ -114,6 +117,7 @@ import java.lang.reflect.Field;
 import java.net.URI;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Instant;
@@ -180,6 +184,7 @@ class SigningRoutesTest extends RepositoryTestBase {
     private static final SigningEvidenceRepository evidenceRepo = new SigningEvidenceRepository();
     private static final PasswordHasher hasher = new PasswordHasher();
 
+    private static StorageService storage;
     private static DocumentService documents;
     private static SignatureRequestService requests;
     private static SigningActService acts;
@@ -197,7 +202,8 @@ class SigningRoutesTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() throws Exception {
         var backend = new LocalStorageBackend(storageRoot);
-        documents = newDocumentService(new StorageService(new StorageBackendResolver(backend), backend));
+        storage = new StorageService(new StorageBackendResolver(backend), backend);
+        documents = newDocumentService(storage);
         var guardianPolicy = new GuardianPolicy(stationMemberRepo);
         var guards = new SigningGuards(
                 new DocumentAccessService(memberDocumentRepo, documents, guardianPolicy),
@@ -530,7 +536,7 @@ class SigningRoutesTest extends RepositoryTestBase {
                             body("{}"),
                             harness.as(signedIn(stranger, StationPermission.LOGIN))));
             assertRefused(
-                    DocumentRefusal.SIGNING_FIELD_NOT_FOUND,
+                    DocumentRefusal.SIGNING_FIELD_NOT_YOURS,
                     client.post(
                             startPath(Integer.MAX_VALUE),
                             body("{}"),
@@ -594,7 +600,7 @@ class SigningRoutesTest extends RepositoryTestBase {
             assertRefused(
                     DocumentRefusal.SIGNING_FIELD_NOT_YOURS, client.get(fieldPath(fieldId) + "/document", asStranger));
             assertRefused(
-                    DocumentRefusal.SIGNING_FIELD_NOT_FOUND, client.get(fieldPath(Integer.MAX_VALUE), asStranger));
+                    DocumentRefusal.SIGNING_FIELD_NOT_YOURS, client.get(fieldPath(Integer.MAX_VALUE), asStranger));
 
             complete(client, owner, fieldId, start(client, owner, fieldId, null), "TOTP", null, RIGHT_CODE);
 
@@ -602,6 +608,10 @@ class SigningRoutesTest extends RepositoryTestBase {
             assertRefused(DocumentRefusal.SIGNING_FIELD_NOT_OPEN, client.get(fieldPath(fieldId), asOwner));
             assertRefused(
                     DocumentRefusal.SIGNING_FIELD_NOT_OPEN, client.get(fieldPath(fieldId) + "/document", asOwner));
+            assertRefused(
+                    DocumentRefusal.SIGNING_FIELD_NOT_YOURS,
+                    client.get(fieldPath(fieldId), asStranger),
+                    "a stranger learns nothing about where the field stands");
         });
         assertEquals(FieldState.SIGNED, fieldState(request));
     }
@@ -935,6 +945,167 @@ class SigningRoutesTest extends RepositoryTestBase {
         });
     }
 
+    /**
+     * A passkey or security key answer completes only the start it answered, only where it was given on this
+     * installation's site, and only where the key checked who holds it. Each refusal spends its start and
+     * signs nothing.
+     */
+    @Test
+    void aKeyAnswersOnlyItsOwnStartOnThisSiteWithTheHolderChecked() throws IOException {
+        var signer = member("Anke", "Antwort", true);
+        TestAuthenticator key = enrolSecurityKey(signer.accountId());
+        var request = ask(signer, SignatureRole.PARTICIPANT);
+        int fieldId = fieldOf(request);
+
+        harness.run((server, client) -> {
+            JsonNode first = start(client, signer, fieldId, null);
+            JsonNode second = start(client, signer, fieldId, null);
+            assertRefused(
+                    DocumentRefusal.SIGNING_CHALLENGE_MISMATCH,
+                    complete(client, signer, fieldId, first, "SECURITY_KEY", key.sign(optionsOf(second)), null));
+
+            JsonNode elsewhere = start(client, signer, fieldId, null);
+            assertRefused(
+                    DocumentRefusal.SIGNING_FOREIGN_ORIGIN,
+                    complete(
+                            client,
+                            signer,
+                            fieldId,
+                            elsewhere,
+                            "SECURITY_KEY",
+                            givenOn(key.sign(optionsOf(elsewhere)), "https://evil.test"),
+                            null));
+
+            JsonNode unchecked = start(client, signer, fieldId, null);
+            assertRefused(
+                    DocumentRefusal.SIGNING_NOT_USER_VERIFIED,
+                    complete(
+                            client,
+                            signer,
+                            fieldId,
+                            unchecked,
+                            "SECURITY_KEY",
+                            key.sign(optionsOf(unchecked), false),
+                            null));
+        });
+        assertEquals(FieldState.OPEN, fieldState(request));
+        assertTrue(evidenceRepo.evidenceOf(request.id()).isEmpty());
+    }
+
+    /**
+     * The document is read again when the act completes: one whose file was replaced after the start is
+     * not signed, and neither is one that was deleted in between.
+     */
+    @Test
+    void aDocumentReplacedOrDeletedAfterTheStartIsNotSigned() throws IOException {
+        var signer = member("Rita", "Revision", true);
+        enrolAuthenticatorApp(signer.accountId());
+        var replaced = ask(signer, SignatureRole.PARTICIPANT);
+        var deleted = ask(signer, SignatureRole.PARTICIPANT);
+        byte[] otherFile = pdfWith("participant");
+
+        harness.run((server, client) -> {
+            JsonNode beforeReplacing = start(client, signer, fieldOf(replaced), null);
+            storage.store(
+                    new StorageScope.Station(station.id(), stationRepo.requireUid(station.id())),
+                    StorageCategory.MEMBER_DOCUMENTS,
+                    replaced.documentId() + "/file",
+                    new Variant("content"),
+                    otherFile,
+                    "application/pdf");
+            assertRefused(
+                    DocumentRefusal.SIGNING_DOCUMENT_CHANGED,
+                    complete(client, signer, fieldOf(replaced), beforeReplacing, "TOTP", null, RIGHT_CODE));
+
+            JsonNode beforeDeleting = start(client, signer, fieldOf(deleted), null);
+            documents.delete(filedDocument(deleted));
+            assertRefused(
+                    DocumentRefusal.SIGNING_DOCUMENT_GONE,
+                    complete(client, signer, fieldOf(deleted), beforeDeleting, "TOTP", null, RIGHT_CODE));
+        });
+        assertEquals(FieldState.OPEN, fieldState(replaced));
+        assertEquals(FieldState.OPEN, fieldState(deleted));
+        assertTrue(evidenceRepo.evidenceOf(replaced.id()).isEmpty());
+        assertTrue(evidenceRepo.evidenceOf(deleted.id()).isEmpty());
+    }
+
+    /**
+     * A picture past the server's usual megabyte for a body is taken, up to the largest picture; a larger
+     * picture is refused as too large, and so is a confirmation too large to read.
+     */
+    @Test
+    void aPictureIsTakenUpToTheLargestPictureAndRefusedBeyond() throws IOException {
+        var signer = member("Fritz", "Foto", true);
+        enrolAuthenticatorApp(signer.accountId());
+        var request = ask(signer, SignatureRole.PARTICIPANT);
+        int fieldId = fieldOf(request);
+        byte[] large = TestSignatures.uncompressed();
+        assertTrue(large.length > 1_000_000, "the picture alone passes the usual limit");
+
+        harness.run((server, client) -> {
+            assertRefused(
+                    DocumentRefusal.SIGNATURE_IMAGE_TOO_LARGE,
+                    complete(
+                            client,
+                            signer,
+                            fieldId,
+                            start(client, signer, fieldId, null),
+                            "TOTP",
+                            null,
+                            RIGHT_CODE,
+                            new byte[SignatureImages.MAX_BYTES + 1],
+                            false));
+            assertRefused(
+                    DocumentRefusal.SIGNATURE_IMAGE_TOO_LARGE,
+                    complete(
+                            client,
+                            signer,
+                            fieldId,
+                            start(client, signer, fieldId, null),
+                            "TOTP",
+                            null,
+                            RIGHT_CODE,
+                            new byte[SigningRoutes.MAX_COMPLETE_BYTES / 4 * 3],
+                            false));
+
+            Response signed = complete(
+                    client,
+                    signer,
+                    fieldId,
+                    start(client, signer, fieldId, null),
+                    "TOTP",
+                    null,
+                    RIGHT_CODE,
+                    large,
+                    false);
+            assertEquals(200, signed.code(), () -> signed.body().string());
+        });
+        assertEquals(FieldState.SIGNED, fieldState(request));
+        assertEquals(
+                Sha256.hex(SignatureImages.clean(large).png()),
+                evidenceRepo.marksOf(request.id()).get(fieldId).sha256());
+    }
+
+    /** The request options a start handed out for a passkey or security key. */
+    private static String optionsOf(JsonNode started) {
+        return started.path("webAuthnOptionsJson").asString();
+    }
+
+    /** A key's answer as if the browser had given it on another site. */
+    private static String givenOn(String credential, String origin) {
+        var answer = (ObjectNode) body(credential);
+        var response = (ObjectNode) answer.path("response");
+        var clientData = (ObjectNode)
+                body(new String(decode(response.path("clientDataJSON").asString()), StandardCharsets.UTF_8));
+        clientData.put("origin", origin);
+        response.put(
+                "clientDataJSON",
+                Base64.getUrlEncoder()
+                        .withoutPadding()
+                        .encodeToString(clientData.toString().getBytes(StandardCharsets.UTF_8)));
+        return answer.toString();
+    }
+
     /** An authenticator app on the account, whose current code the test's code service knows as the right one. */
     private static void enrolAuthenticatorApp(int accountId) {
         var factor = twoFactorRepo.createFactor(accountId, TwoFactorKind.TOTP, "App");
@@ -1205,5 +1376,9 @@ class SigningRoutesTest extends RepositoryTestBase {
 
     private static void assertRefused(Refusal refusal, Response response) {
         assertEquals(refusal, refusalOf(response));
+    }
+
+    private static void assertRefused(Refusal refusal, Response response, String message) {
+        assertEquals(refusal, refusalOf(response), message);
     }
 }

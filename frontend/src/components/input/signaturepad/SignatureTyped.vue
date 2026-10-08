@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {ref, watch} from 'vue'
+import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import LabelledField from '@/components/input/LabelledField.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
@@ -14,7 +14,8 @@ import TextInput from '@/components/input/text/TextInput.vue'
  * handwriting style and turned into the same kind of picture a drawn one is.
  *
  * <p>Works with the keyboard alone. The picture follows every change of the name and is shown under the
- * field, with the name as its text alternative.
+ * field, with the name as its text alternative. A name is at most {@link MAX_LENGTH} characters, which
+ * keeps the picture within the size a signature is taken at.
  */
 const emit = defineEmits<{change: [dataUrl: string | null]}>()
 
@@ -24,7 +25,10 @@ const FONT_SIZE = 64
 const PADDING = 24
 const FONT = `italic ${FONT_SIZE}px "Segoe Script", "Brush Script MT", "Snell Roundhand", "URW Chancery L", cursive`
 
+const MAX_LENGTH = 80
+
 const name = ref('')
+const typedName = computed(() => name.value.slice(0, MAX_LENGTH).trim())
 const preview = ref<string | null>(null)
 
 /** The name drawn onto a sheet just large enough for it, as a PNG, or null where it cannot be drawn. */
@@ -44,8 +48,7 @@ function picture(text: string): string | null {
   return sheet.toDataURL('image/png')
 }
 
-watch(name, (typed) => {
-  const text = typed.trim()
+watch(typedName, (text) => {
   preview.value = text ? picture(text) : null
   emit('change', preview.value)
 })
@@ -54,12 +57,12 @@ watch(name, (typed) => {
 <template>
   <div class="space-y-3">
     <LabelledField :label="t('signaturePad.typeLabel')" :help="t('signaturePad.typeHint')">
-      <TextInput v-model="name" autocomplete="name" data-testid="signature-typed-name"/>
+      <TextInput v-model="name" autocomplete="name" :maxlength="MAX_LENGTH" data-testid="signature-typed-name"/>
     </LabelledField>
     <img
         v-if="preview"
         :src="preview"
-        :alt="t('signaturePad.typedPreview', {name: name.trim()})"
+        :alt="t('signaturePad.typedPreview', {name: typedName})"
         class="block max-w-xl max-h-32 rounded border border-bg-light-accent dark:border-bg-dark-accent bg-white"
     />
   </div>

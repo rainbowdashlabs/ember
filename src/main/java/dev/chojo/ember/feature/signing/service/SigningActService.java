@@ -15,7 +15,6 @@ import dev.chojo.ember.feature.documents.service.DocumentService;
 import dev.chojo.ember.feature.signing.entity.ActPicture;
 import dev.chojo.ember.feature.signing.entity.ActPictureSource;
 import dev.chojo.ember.feature.signing.entity.DocumentToSign;
-import dev.chojo.ember.feature.signing.entity.FieldState;
 import dev.chojo.ember.feature.signing.entity.OpenSignature;
 import dev.chojo.ember.feature.signing.entity.ParkedSigningStart;
 import dev.chojo.ember.feature.signing.entity.PendingSignature;
@@ -136,18 +135,21 @@ public class SigningActService {
      * A field at the caller's station that waits for a signature the caller may give, with how they give
      * it.
      *
+     * <p>Whose the field is comes first: a field that does not ask the caller is refused the same way
+     * whether it exists or not, and whatever state it is in, so nobody learns about fields that are not
+     * theirs by trying their numbers. Only the caller's own field is told apart as no longer waiting.
+     *
      * @param session the signer
      * @param fieldId the field
      * @return the field and the signer the caller acts as
      */
     public OpenSignature requireOwnedField(StationSession session, int fieldId) {
-        PendingSignature pending = requests.findField(session.stationId(), fieldId)
-                .orElseThrow(DocumentRefusal.SIGNING_FIELD_NOT_FOUND::raise);
-        if (pending.field().state() != FieldState.OPEN) throw DocumentRefusal.SIGNING_FIELD_NOT_OPEN.raise();
-        return requestService.openFor(session).stream()
-                .filter(open -> open.pending().field().id() == fieldId)
-                .findFirst()
-                .orElseThrow(DocumentRefusal.SIGNING_FIELD_NOT_YOURS::raise);
+        var open = requestService.openFor(session).stream()
+                .filter(signature -> signature.pending().field().id() == fieldId)
+                .findFirst();
+        if (open.isPresent()) return open.get();
+        if (requestService.asks(session, fieldId)) throw DocumentRefusal.SIGNING_FIELD_NOT_OPEN.raise();
+        throw DocumentRefusal.SIGNING_FIELD_NOT_YOURS.raise();
     }
 
     /**

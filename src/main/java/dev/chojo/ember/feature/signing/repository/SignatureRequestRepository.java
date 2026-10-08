@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.signing.entity.SignatureRequest;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
+import org.postgresql.util.PSQLException;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -33,6 +34,14 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.UUID_STRING
  */
 @Singleton
 public class SignatureRequestRepository {
+    private static final String UNIQUE_VIOLATION = "23505";
+    private static final String LIVE_INDEX = "signing_request_live_idx";
+    private static final int MAX_CAUSE_DEPTH = 12;
+    private static final String ASKED_OF = """
+            ((f.role IN ('PARTICIPANT', 'ISSUER') AND f.signer_id = :member_id)
+              OR (f.role = 'GUARDIAN' AND f.signer_id = :member_id AND r.member_id = ANY (:ward_ids))
+              OR (f.role = 'ANY_GUARDIAN' AND r.member_id = ANY (:ward_ids))
+              OR (f.role = 'PARTICIPANT' AND f.signer_id = ANY (:ward_ids)))""";
 
     /**
      * Writes a request with its fields, the retention copied from the template the document came from.
@@ -106,6 +115,27 @@ public class SignatureRequestRepository {
                         SELECT 1 FROM signing_request
                         WHERE generation_id = :generation_id
                           AND state IN ('OPEN', 'COMPLETE');""", call().bind("generation_id", generationId));
+    }
+
+    /**
+     * Whether a write failed because it would have given a generated document a second request that is open
+     * or complete. The check of {@link #liveFor} cannot see a request another transaction has written but
+     * not committed yet; the database's unique index on the live request of a generated document can, and
+     * refuses the later of the two.
+     *
+     * @param failure what the write threw
+     * @return whether it is that clash
+     */
+    public static boolean isSecondLiveRequest(Throwable failure) {
+        Throwable current = failure;
+        for (int depth = 0; current != null && depth < MAX_CAUSE_DEPTH; depth++) {
+            if (current instanceof PSQLException refused && UNIQUE_VIOLATION.equals(refused.getSQLState())) {
+                var message = refused.getServerErrorMessage();
+                return message != null && LIVE_INDEX.equals(message.getConstraint());
+            }
+            current = current.getCause() == current ? null : current.getCause();
+        }
+        return false;
     }
 
     /**
@@ -265,9 +295,10 @@ public class SignatureRequestRepository {
     }
 
     /**
-     * The open fields due for a reminder: of an open request whose document is still there, asked for at
-     * least one interval ago and not reminded of within the last interval, with fewer reminders sent than
-     * the limit.
+     * The open fields due for a reminder: of an open request whose document is still there and whose member
+     * is still at the station, asked for at least one interval ago and not reminded of within the last
+     * interval, with fewer reminders sent than the limit. A field whose signer has left is not due, and
+     * neither is a guardian's field whose guardian no longer looks after the member.
      *
      * @param now          the time to measure against
      * @param interval     how long a field waits before its first reminder and between two
@@ -283,8 +314,14 @@ public class SignatureRequestRepository {
                         FROM signing_request_field f
                                  JOIN signing_request r ON r.id = f.request_id
                                  JOIN member_document d ON d.id = r.document_id
+                                 JOIN station_member m ON m.id = r.member_id AND NOT m.former
+                                 LEFT JOIN station_member s ON s.id = f.signer_id
                         WHERE r.state = 'OPEN'
                           AND f.state = 'OPEN'
+                          AND (s.id IS NULL OR NOT s.former)
+                          AND (f.role <> 'GUARDIAN'
+                            OR EXISTS (SELECT 1 FROM member_manager mm
+                                       WHERE mm.manager_id = f.signer_id AND mm.managed_id = r.member_id))
                           AND f.reminders_sent < :max_reminders
                           AND coalesce(f.reminded_at, r.created_at) <= :due_before
                         ORDER BY coalesce(f.reminded_at, r.created_at), f.id
@@ -358,16 +395,39 @@ public class SignatureRequestRepository {
                         WHERE r.station_id = :station_id
                           AND r.state = 'OPEN'
                           AND f.state = 'OPEN'
-                          AND ((f.role IN ('PARTICIPANT', 'ISSUER') AND f.signer_id = :member_id)
-                            OR (f.role = 'GUARDIAN' AND f.signer_id = :member_id AND r.member_id = ANY (:ward_ids))
-                            OR (f.role = 'ANY_GUARDIAN' AND r.member_id = ANY (:ward_ids))
-                            OR (f.role = 'PARTICIPANT' AND f.signer_id = ANY (:ward_ids)))
-                        ORDER BY r.created_at, r.id, f.id;""", SqlSupport.alias("f", RequestedSignature.COLUMNS))
+                          AND %s
+                        ORDER BY r.created_at, r.id, f.id;""", SqlSupport.alias("f", RequestedSignature.COLUMNS), ASKED_OF)
                 .single(call().bind("station_id", stationId)
                         .bind("member_id", memberId)
                         .bind("ward_ids", wardIds, PostgreSqlTypes.INTEGER))
                 .map(PendingSignature.map())
                 .all();
+    }
+
+    /**
+     * Whether a field at the station asks a member, whatever state it and its request are in, by the same
+     * rule as {@link #pendingFor}: so a member can be told that a field of theirs no longer waits, while
+     * anybody else learns nothing about it.
+     *
+     * @param stationId the station
+     * @param memberId  the member
+     * @param wardIds   the members in their care
+     * @param fieldId   the field
+     * @return whether the field asks them
+     */
+    public boolean asks(int stationId, int memberId, List<Integer> wardIds, int fieldId) {
+        return SqlSupport.exists(
+                """
+                        SELECT 1
+                        FROM signing_request_field f
+                                 JOIN signing_request r ON r.id = f.request_id
+                        WHERE r.station_id = :station_id
+                          AND f.id = :field_id
+                          AND %s;""".formatted(ASKED_OF),
+                call().bind("station_id", stationId)
+                        .bind("field_id", fieldId)
+                        .bind("member_id", memberId)
+                        .bind("ward_ids", wardIds, PostgreSqlTypes.INTEGER));
     }
 
     /**

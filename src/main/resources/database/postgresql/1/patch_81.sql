@@ -1692,3 +1692,9 @@ ALTER TABLE ember_schema.station_storage_config
 
 COMMENT ON COLUMN ember_schema.station_storage_config.shared_by_transfer IS
     'TRUE when the station took this storage over from the installation it moved here from. That installation can still keep files in the same place, which no row here names, so the storage check never deletes a file it finds no row for while this is set. Back to FALSE once the station is put on other storage.';
+
+CREATE UNIQUE INDEX IF NOT EXISTS signing_request_live_idx
+    ON ember_schema.signing_request (generation_id)
+    WHERE state IN ('OPEN', 'COMPLETE');
+COMMENT ON INDEX ember_schema.signing_request_live_idx IS
+    'A generated document has at most one request that is open or complete. Two managers asking at the same moment, or a correction racing a request, leave one of them refused.';

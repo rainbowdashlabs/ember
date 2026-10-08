@@ -12,11 +12,13 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 
+import javax.imageio.IIOImage;
 import javax.imageio.ImageIO;
+import javax.imageio.ImageWriteParam;
 
 /**
  * Pictures of signatures for tests: a stroke drawn on a transparent canvas as a browser sends it, and a
- * dark stroke on light grey paper as a photo of one would be.
+ * dark stroke on light grey paper as a photo of one would be, and a large one stored without compression.
  */
 public final class TestSignatures {
     private TestSignatures() {}
@@ -37,6 +39,33 @@ public final class TestSignatures {
         graphics.dispose();
         stroke(paper, new Color(0x20, 0x30, 0x90));
         return encode(paper, "jpg");
+    }
+
+    /**
+     * @return a black stroke on white paper of 1200 by 600 pixels, as a PNG stored without compression, so
+     *     the file is over two megabytes
+     */
+    public static byte[] uncompressed() {
+        var paper = new BufferedImage(1200, 600, BufferedImage.TYPE_INT_RGB);
+        var graphics = paper.createGraphics();
+        graphics.setColor(Color.WHITE);
+        graphics.fillRect(0, 0, 1200, 600);
+        graphics.dispose();
+        stroke(paper, Color.BLACK);
+        var writer = ImageIO.getImageWritersByFormatName("png").next();
+        var param = writer.getDefaultWriteParam();
+        param.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
+        param.setCompressionQuality(1f);
+        var out = new ByteArrayOutputStream();
+        try (var stream = ImageIO.createImageOutputStream(out)) {
+            writer.setOutput(stream);
+            writer.write(null, new IIOImage(paper, null, null), param);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        } finally {
+            writer.dispose();
+        }
+        return out.toByteArray();
     }
 
     /** @return a transparent canvas with nothing drawn on it, as a PNG */

@@ -26,6 +26,7 @@ import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.sql.SQLException;
 import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
 import java.util.List;
@@ -59,6 +60,7 @@ public class SignedCopies {
     static final int MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
 
     private static final String VERIFY_PATH = "/verify";
+    private static final int MAX_CAUSE_DEPTH = 12;
 
     private final EmailService email;
     private final MailRecipientService mailRecipients;
@@ -103,11 +105,25 @@ public class SignedCopies {
                 send(view, station, document, act, sealedSha256, attachment, tooLarge);
             }
         } catch (RuntimeException e) {
+            if (fromTheDatabase(e)) throw e;
             log.warn(
                     "Could not queue the signed copies of signing request {}",
                     view.request().uid(),
                     e);
         }
+    }
+
+    /**
+     * Whether a failure came from the database. Such a failure has already spoilt the transaction the
+     * version is filed in, so swallowing it would let the filing look done while nothing of it is kept.
+     */
+    private static boolean fromTheDatabase(Throwable failure) {
+        Throwable current = failure;
+        for (int depth = 0; current != null && depth < MAX_CAUSE_DEPTH; depth++) {
+            if (current instanceof SQLException) return true;
+            current = current.getCause() == current ? null : current.getCause();
+        }
+        return false;
     }
 
     private void send(

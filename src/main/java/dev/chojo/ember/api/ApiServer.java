@@ -226,7 +226,10 @@ public class ApiServer {
     }
 
     private static boolean isSensitivePath(String path) {
-        return path.contains("/auth/") || path.contains("/ai/") || path.contains("/admin/config/");
+        return path.contains("/auth/")
+                || path.contains("/ai/")
+                || path.contains("/admin/config/")
+                || path.contains("/signing/fields/");
     }
 
     private static String traceHeaders(Map<String, String> headers) {
