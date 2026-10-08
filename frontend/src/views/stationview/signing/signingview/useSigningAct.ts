@@ -5,7 +5,12 @@
  */
 import {computed, ref} from 'vue'
 import {StepUpProof} from '@/api/generated/schema'
-import type {SigningCompleteRequest, SigningCompleteResponse, SigningStartResponse} from '@/api/generated/schema'
+import type {
+    SignerEntryDraft,
+    SigningCompleteRequest,
+    SigningCompleteResponse,
+    SigningStartResponse,
+} from '@/api/generated/schema'
 import {completeSigning, startSigning} from '@/api/signing'
 import {getWebAuthnCredential} from '@/util/webauthn'
 import {draftBase64, type SignatureDraft} from '@/util/signatureDraft'
@@ -51,16 +56,20 @@ function markFields(choice: SigningMarkChoice): Partial<SigningCompleteRequest> 
  * new start, made in the same press that confirms, without the signer seeing it. A passkey prompt the
  * signer closes sends nothing and spends nothing.
  *
+ * <p>What the signer typed into the fields the document asks them to fill in is sent with every start, so a
+ * start made again in the press that confirms binds the same values.
+ *
  * @param fieldId the field, read at each call so a changed address is followed
+ * @param entries what the signer typed, read at each start; none where the document asks for nothing
  */
-export function useSigningAct(fieldId: () => number) {
+export function useSigningAct(fieldId: () => number, entries: () => SignerEntryDraft[] = () => []) {
     const offer = ref<SigningStartResponse | null>(null)
     const spent = ref(false)
     const outcome = ref<SigningCompleteResponse | null>(null)
 
     /** Starts the act, which tells who signs, what is bound and which proofs are taken. */
     async function prepare(): Promise<SigningStartResponse> {
-        const started = await startSigning(fieldId())
+        const started = await startSigning(fieldId(), entries())
         offer.value = started
         spent.value = false
         return started

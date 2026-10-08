@@ -12,14 +12,16 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import SigningUnavailable from './signingview/SigningUnavailable.vue'
 import SigningDocument from './signingview/SigningDocument.vue'
 import SigningStatement from './signingview/SigningStatement.vue'
+import SigningFillIns from './signingview/SigningFillIns.vue'
+import {fillInEntries, fillInsComplete, type FillInValues} from './signingview/fillIns'
 import SigningProof from './signingview/SigningProof.vue'
 import SigningMark from './signingview/SigningMark.vue'
 import SigningDone from './signingview/SigningDone.vue'
 import {useSigningAct, type SigningMarkChoice, type TypedProof} from './signingview/useSigningAct'
 import {describeSigningFailure} from './signingview/signingFailure'
 import {SignerCapacity} from '@/api/generated/schema'
-import type {OpenSignatureResponse} from '@/api/generated/schema'
-import {getSigningField} from '@/api/signing'
+import type {FillInResponse, OpenSignatureResponse} from '@/api/generated/schema'
+import {getSigningField, getSigningFillIns} from '@/api/signing'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useOwnSignature} from '@/composables/useOwnSignature'
@@ -39,6 +41,10 @@ import type {Failure} from '@/util/failure'
  * or one drawn or typed there. The saved picture is read along with the field; where it cannot be read
  * the signer simply draws one, and the proof waits until there is a picture.
  *
+ * <p>Where the document asks the signer to fill in fields of their own, such as a phone number, their
+ * inputs stand in the statement step and are read with the field. The values go with the start of the act,
+ * which binds them, so they are locked once it is started.
+ *
  * <p>The address is what a "please sign" link opens, so the page loads the field itself and says plainly
  * when it no longer waits for the reader, was never theirs, or is gone.
  */
@@ -47,20 +53,26 @@ const route = useRoute()
 const fieldId = computed(() => Number(route.params.fieldId))
 
 const field = ref<OpenSignatureResponse | null>(null)
+const fillIns = ref<FillInResponse[]>([])
+const fillInValues = ref<FillInValues>({})
 const confirmed = ref(false)
 const documentReady = ref(false)
 const announcement = ref('')
 const proofStep = ref<InstanceType<typeof SigningProof> | null>(null)
 
-const act = useSigningAct(() => fieldId.value)
+const act = useSigningAct(() => fieldId.value, () => fillInEntries(fillIns.value, fillInValues.value))
 const {imageUrl: savedSignature, loadImage: loadSavedSignature} = useOwnSignature()
 const mark = ref<SigningMarkChoice>({draft: null, useSaved: true, keep: false})
 
 const {loading, failure: loadFailure} = useAsyncLoader(async (isCurrent) => {
-  const loaded = await getSigningField(fieldId.value)
-  if (isCurrent()) field.value = loaded
+  const [loaded, asked] = await Promise.all([getSigningField(fieldId.value), getSigningFillIns(fieldId.value)])
+  if (!isCurrent()) return
+  field.value = loaded
+  fillIns.value = asked
   await loadSavedSignature().catch(() => undefined)
 })
+
+const filledIn = computed(() => fillInsComplete(fillIns.value, fillInValues.value))
 
 /**
  * Whether the act has a picture to leave in its field: the saved one, where the signer may use it and
@@ -132,8 +144,16 @@ watch(confirmed, (ticked) => {
           :failure="prepareFailure"
           :started="act.offer.value !== null"
           :document-ready="documentReady"
+          :filled-in="filledIn"
           @proceed="prepare"
-      />
+      >
+        <SigningFillIns
+            v-if="fillIns.length > 0"
+            v-model="fillInValues"
+            :fields="fillIns"
+            :locked="act.offer.value !== null"
+        />
+      </SigningStatement>
       <SigningProof
           v-if="confirmed && act.offer.value"
           ref="proofStep"

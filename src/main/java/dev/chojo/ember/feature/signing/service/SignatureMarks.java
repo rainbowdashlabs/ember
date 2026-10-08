@@ -20,6 +20,7 @@ import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotationWidget;
 import org.apache.pdfbox.pdmodel.interactive.form.PDAcroForm;
 import org.apache.pdfbox.pdmodel.interactive.form.PDField;
 import org.apache.pdfbox.pdmodel.interactive.form.PDSignatureField;
+import org.apache.pdfbox.pdmodel.interactive.form.PDTerminalField;
 import org.jspecify.annotations.Nullable;
 
 import java.awt.Color;
@@ -190,7 +191,8 @@ public final class SignatureMarks {
         }
     }
 
-    private static Optional<PDPage> pageOf(PDDocument document, PDAnnotationWidget widget) throws IOException {
+    /** The page a field's widget sits on, from the widget itself or, where it does not say, by search. */
+    static Optional<PDPage> pageOf(PDDocument document, PDAnnotationWidget widget) throws IOException {
         @Nullable PDPage page = widget.getPage();
         if (page != null) return Optional.of(page);
         for (var candidate : document.getPages()) {
@@ -201,7 +203,8 @@ public final class SignatureMarks {
         return Optional.empty();
     }
 
-    private static void remove(PDDocument document, PDAcroForm form, PDSignatureField field) {
+    /** Takes a field out of a document's form, with its widgets from every page. */
+    static void remove(PDDocument document, PDAcroForm form, PDTerminalField field) {
         try {
             for (var widget : field.getWidgets()) {
                 for (var page : document.getPages()) {

@@ -114,10 +114,10 @@ public class PdfTemplateRepository {
         query("""
                 INSERT INTO document_template_field(template_id, position, kind, page, x, y, width, height, text,
                                                     font_size, align, wrap, role, font_family, font_style,
-                                                    without_line, print_text, statement)
+                                                    without_line, print_text, statement, required, max_length)
                 VALUES (:template_id, :position, :kind, :page, :x, :y, :width, :height, :text,
                         :font_size, :align, :wrap, :role, :font_family, :font_style, :without_line, :print_text,
-                        :statement);""")
+                        :statement, :required, :max_length);""")
                 .single(call().bind("template_id", templateId)
                         .bind("position", position)
                         .bind("kind", field.kind())
@@ -135,7 +135,9 @@ public class PdfTemplateRepository {
                         .bind("font_style", Objects.requireNonNullElse(field.fontStyle(), FontStyle.REGULAR))
                         .bind("without_line", field.withoutLine())
                         .bind("print_text", field.printText())
-                        .bind("statement", field.statement()))
+                        .bind("statement", field.statement())
+                        .bind("required", field.required())
+                        .bind("max_length", field.maxLength()))
                 .insert();
     }
 

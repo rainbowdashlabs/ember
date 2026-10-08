@@ -40,7 +40,7 @@ describe('templateFamilies', () => {
         const text = {
             kind: PdfFieldKind.TEXT, rect: {page: 1, x: 0, y: 0, width: 10, height: 10}, text: 'A', fontSize: 10,
             fontFamily: 'Hausschrift', fontStyle: null, align: TextAlign.LEFT, wrap: false, role: null,
-            withoutLine: false, printText: false, statement: null,
+            withoutLine: false, printText: false, statement: null, required: false, maxLength: null,
         }
         draft.fields = [text, {...text}, {...text, fontFamily: null}, {...text, kind: PdfFieldKind.CHECK, fontFamily: 'Kreuz'}]
 

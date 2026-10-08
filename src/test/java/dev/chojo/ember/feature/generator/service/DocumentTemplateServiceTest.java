@@ -48,6 +48,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.divider;
+import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.fillIn;
 import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.image;
 import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.letter;
 import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.lined;
@@ -416,6 +417,76 @@ class DocumentTemplateServiceTest extends RepositoryTestBase {
                 .noneMatch(placeholder -> placeholder.key().startsWith("signature.")));
     }
 
+    /**
+     * A box to fill in at signing stands in the body with its signer, label, required flag and length. One
+     * without a signer or a label, with a label or length out of bounds, outside the body, or for a signer no
+     * signature line names is refused.
+     */
+    @Test
+    void aBoxToFillInBelongsToASignatureLinesSigner() {
+        var line = row(signature(SignatureRole.PARTICIPANT, ""));
+        var kept = service.create(
+                owner,
+                letter("Angaben")
+                        .body(List.of(row(fillIn(SignatureRole.PARTICIPANT, "Allergien", false, 200)), line))
+                        .build(),
+                authorId);
+
+        var box = kept.body().getFirst().cells().getFirst();
+        assertEquals(CellContentType.FILL_IN, box.contentType());
+        assertEquals(new CellConfig.FillInConfig(SignatureRole.PARTICIPANT, "Allergien", false, 200), box.config());
+        refused(
+                DocumentRefusal.DOCUMENT_TEMPLATE_FILL_IN_INCOMPLETE,
+                () -> service.create(
+                        owner,
+                        letter("Ohne")
+                                .body(List.of(row(fillIn(null, "Allergien", false, null)), line))
+                                .build(),
+                        authorId));
+        refused(
+                DocumentRefusal.DOCUMENT_TEMPLATE_FILL_IN_INCOMPLETE,
+                () -> service.create(
+                        owner,
+                        letter("Leer")
+                                .body(List.of(row(fillIn(SignatureRole.PARTICIPANT, " ", false, null)), line))
+                                .build(),
+                        authorId));
+        refused(
+                DocumentRefusal.DOCUMENT_TEMPLATE_FILL_IN_LABEL_TOO_LONG,
+                () -> service.create(
+                        owner,
+                        letter("Lang")
+                                .body(List.of(
+                                        row(fillIn(SignatureRole.PARTICIPANT, "x".repeat(101), false, null)), line))
+                                .build(),
+                        authorId));
+        refused(
+                DocumentRefusal.DOCUMENT_TEMPLATE_FILL_IN_LENGTH_OUT_OF_RANGE,
+                () -> service.create(
+                        owner,
+                        letter("Null")
+                                .body(List.of(row(fillIn(SignatureRole.PARTICIPANT, "x", false, 0)), line))
+                                .build(),
+                        authorId));
+        refused(
+                DocumentRefusal.DOCUMENT_TEMPLATE_SIGNATURE_OUTSIDE_BODY,
+                () -> service.create(
+                        owner,
+                        letter("Kopf")
+                                .header(List.of(row(fillIn(SignatureRole.PARTICIPANT, "x", false, null))))
+                                .body(List.of(line))
+                                .build(),
+                        authorId));
+        refused(
+                DocumentRefusal.DOCUMENT_TEMPLATE_FILL_IN_WITHOUT_SIGNATURE,
+                () -> service.create(
+                        owner,
+                        letter("Niemand")
+                                .body(List.of(row(fillIn(SignatureRole.GUARDIAN_1, "x", false, null)), line))
+                                .build(),
+                        authorId));
+    }
+
     /** A signature line keeps what its signer confirms, and a statement longer than one is refused. */
     @Test
     void aSignatureLineKeepsWhatItsSignerConfirms() {
@@ -723,7 +794,9 @@ class DocumentTemplateServiceTest extends RepositoryTestBase {
         var body = parts.get(1);
         assertEquals(LetterPart.BODY, body.part());
         assertEquals(3, body.maxColumns());
-        assertEquals(CellContentType.SIGNATURE, body.kinds().getLast());
+        assertEquals(
+                List.of(CellContentType.SIGNATURE, CellContentType.FILL_IN),
+                body.kinds().subList(body.kinds().size() - 2, body.kinds().size()));
     }
 
     @Test

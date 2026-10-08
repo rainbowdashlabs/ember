@@ -12,6 +12,8 @@ import dev.chojo.ember.feature.documents.entity.Document;
 import dev.chojo.ember.feature.documents.repository.DocumentRepository;
 import dev.chojo.ember.feature.documents.service.DocumentDoor;
 import dev.chojo.ember.feature.documents.service.DocumentService;
+import dev.chojo.ember.feature.generator.entity.FillInField;
+import dev.chojo.ember.feature.generator.service.pdf.FillInFields;
 import dev.chojo.ember.feature.signing.entity.ActPicture;
 import dev.chojo.ember.feature.signing.entity.ActPictureSource;
 import dev.chojo.ember.feature.signing.entity.DocumentToSign;
@@ -59,7 +61,10 @@ import java.util.Set;
  * give them ({@link SignatureRequestService#openFor}); the document is read from where it is filed and has
  * to still be the one the request froze. The provider issues the nonce and the challenge, and the start is
  * kept on the server ({@link SigningStarts}). For a passkey or security key the browser gets request
- * options built around that challenge.
+ * options built around that challenge. What the signer typed into the fields the frozen document asks them
+ * to fill in ({@link FillInFields}) is checked against those fields here ({@link SignerEntries}) and bound
+ * into the challenge with the rest; the completion takes the values from the kept start, never again from
+ * the browser.
  *
  * <p><b>Completion.</b> The start is spent first, so a refused confirmation spends it too. The request is
  * rebuilt from the field and the kept start, never from what the browser sends, and has to still yield
@@ -181,10 +186,12 @@ public class SigningActService {
      * @return the started act with what the signer is shown
      */
     public SigningAttempt start(StationSession session, OpenSignature open, @Nullable List<SignerEntryDraft> entries) {
-        List<SignerEntry> checked = SignerEntries.checked(entries);
         int fieldId = open.pending().field().id();
         Signer signer = open.signer();
-        SigningRequest request = rebuild(session, open.pending(), signer, checked);
+        byte[] content = frozenContent(session, open.pending());
+        List<SignerEntry> checked = SignerEntries.checked(
+                entries, FillInFields.forSigner(content, open.pending().field().fieldName()));
+        SigningRequest request = requestOf(session, open.pending(), signer, content, checked);
         SigningStart.InEmber started =
                 switch (provider.start(request)) {
                     case SigningStart.InEmber inEmber -> inEmber;
@@ -237,7 +244,8 @@ public class SigningActService {
         }
         PendingSignature pending = requests.findField(session.stationId(), fieldId)
                 .orElseThrow(DocumentRefusal.SIGNING_FIELD_NOT_FOUND::raise);
-        SigningRequest request = rebuild(session, pending, parked.signer(), parked.entries());
+        SigningRequest request =
+                requestOf(session, pending, parked.signer(), frozenContent(session, pending), parked.entries());
         if (!MessageDigest.isEqual(parked.challenge(), SigningChallenge.of(parked.nonce(), request))) {
             throw DocumentRefusal.SIGNING_CONTENT_DIFFERS.raise();
         }
@@ -295,15 +303,38 @@ public class SigningActService {
     }
 
     /**
-     * The request to sign, with the file the document was filed with, which has to be the one the request
-     * froze. A document sealed by an earlier act keeps that file beside its sealed versions.
+     * The fields a field's signer is asked to fill in when they sign it, as the frozen document carries
+     * them, for a field that waits for the caller.
+     *
+     * @param session the signer
+     * @param fieldId the signature field
+     * @return the fields to fill in, in the order the document lists them, none where it asks for none
      */
-    private SigningRequest rebuild(
-            StationSession session, PendingSignature pending, Signer signer, List<SignerEntry> entries) {
+    public List<FillInField> requireOwnedFillIns(StationSession session, int fieldId) {
+        PendingSignature pending = requireOwnedField(session, fieldId).pending();
+        return FillInFields.forSigner(
+                frozenContent(session, pending), pending.field().fieldName());
+    }
+
+    /**
+     * The file the document was filed with, which has to be the one the request froze. A document sealed
+     * by an earlier act keeps that file beside its sealed versions.
+     */
+    private byte[] frozenContent(StationSession session, PendingSignature pending) {
         byte[] content = documentService
                 .readUploaded(filedDocument(pending))
                 .orElseThrow(DocumentRefusal.SIGNING_DOCUMENT_GONE::raise);
         requireFrozen(session, pending, content);
+        return content;
+    }
+
+    /** The request to sign, over the frozen content. */
+    private static SigningRequest requestOf(
+            StationSession session,
+            PendingSignature pending,
+            Signer signer,
+            byte[] content,
+            List<SignerEntry> entries) {
         return new SigningRequest(
                 pending.requestUid(),
                 session.stationId(),

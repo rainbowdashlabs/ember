@@ -5,6 +5,8 @@
  */
 package dev.chojo.ember.feature.signing.service;
 
+import dev.chojo.ember.feature.generator.entity.FillInField;
+import dev.chojo.ember.feature.generator.service.pdf.FillInFields;
 import dev.chojo.ember.feature.generator.service.pdf.SignatureFields;
 import dev.chojo.ember.feature.signing.entity.ActPicture;
 import dev.chojo.ember.feature.signing.entity.ActPictureSource;
@@ -192,7 +194,9 @@ class SigningStateAssemblerTest extends RepositoryTestBase {
                     guardian.fieldName(),
                     guardian.statement(),
                     HexFormat.of().parseHex(guardian.contentSha256()),
-                    guardian.entries(),
+                    guardian.entries().stream()
+                            .map(SigningEvidenceFile.Entry::asSigned)
+                            .toList(),
                     guardian.nonce(),
                     guardian.signedAt(),
                     guardian.truncatedIp(),
@@ -318,6 +322,71 @@ class SigningStateAssemblerTest extends RepositoryTestBase {
         assertEquals(1, signatures.size(), "only the new seal, no broken one from before");
         assertTrue(signatures.getFirst().isSignatureValid());
         assertTrue(SealedPdfs.referencedDataIntact(signatures.getFirst()));
+    }
+
+    /**
+     * What a signer typed is drawn into its field on the content page before sealing, and the field is
+     * taken out; a field the signer of a signed field left empty goes too, while the field of a signer still
+     * to come stays, read only. The evidence and the record name each value with the field's label, the
+     * challenge is still recomputable from the evidence, and the sealed state validates.
+     */
+    @Test
+    void typedValuesAreDrawnBeforeSealingAndListedWithTheirLabels() throws IOException {
+        var station = station("de-DE", "Europe/Berlin");
+        byte[] frozen = contentWithFillIns();
+        var entries = List.of(new SignerEntry("fill-guardian1-0", "0171 9876543"));
+        var view = new SignatureRequestView(
+                view(station, frozen).request(),
+                view(station, frozen).fields(),
+                List.of(guardianEvidence(entries), participantEvidence()));
+
+        var assembled = assembler().assemble(view, frozen, authority, RecordTimeBasis.TIMESTAMPS_OFF);
+
+        try (var document = Loader.loadPDF(assembled.pdf())) {
+            assertTrue(text(document, 1, 1).contains("0171 9876543"), "drawn on the content page");
+            var form = document.getDocumentCatalog().getAcroForm(null);
+            assertNull(form.getField("fill-guardian1-0"), "the filled field is taken out");
+            assertNull(form.getField("fill-participant-1"), "a signed signer's empty field goes too");
+            var open = form.getField("fill-guardian2-0");
+            assertNotNull(open, "the field of a signer still to come stays");
+            assertTrue(open.isReadOnly());
+            var file = SigningEvidenceFiles.read(
+                    attachment(document).getEmbeddedFile().toByteArray());
+            var guardian = Objects.requireNonNull(file.fields().getFirst().act());
+            assertEquals(
+                    List.of(new SigningEvidenceFile.Entry("fill-guardian1-0", "0171 9876543", "Telefon im Notfall")),
+                    guardian.entries());
+            var webAuthn = Objects.requireNonNull(guardian.webAuthn());
+            assertArrayEquals(
+                    webAuthn.challenge(),
+                    SigningChallenge.of(new SigningAct(
+                            file.requestUid(),
+                            new Signer(guardian.capacity(), guardian.accountId(), guardian.memberId()),
+                            guardian.accountHolderName(),
+                            guardian.memberName(),
+                            guardian.fieldName(),
+                            guardian.statement(),
+                            HexFormat.of().parseHex(guardian.contentSha256()),
+                            guardian.entries().stream()
+                                    .map(SigningEvidenceFile.Entry::asSigned)
+                                    .toList(),
+                            guardian.nonce(),
+                            guardian.signedAt(),
+                            guardian.truncatedIp(),
+                            guardian.userAgent())),
+                    "the typed value is bound by the challenge");
+        }
+        assertTrue(recordOf(assembled).contains("Telefon im Notfall: 0171 9876543"));
+        var sealed = SealedPdfs.sealer(SealedPdfs.noTimestamps())
+                .seal(assembled.pdf(), keys.getPrivate(), List.of(authority))
+                .pdf();
+        var signature = SealedPdfs.validate(sealed, authority)
+                .getDiagnosticData()
+                .getSignatures()
+                .getFirst();
+        assertTrue(signature.isSignatureValid());
+        SigningSamples.write("fields-to-fill-in-content.pdf", frozen);
+        SigningSamples.write("fields-to-fill-in-signed.pdf", sealed);
     }
 
     @Test
@@ -528,6 +597,10 @@ class SigningStateAssemblerTest extends RepositoryTestBase {
     }
 
     private static StoredEvidence guardianEvidence() {
+        return guardianEvidence(List.of(new SignerEntry("Telefon", "0123 456")));
+    }
+
+    private static StoredEvidence guardianEvidence(List<SignerEntry> entries) {
         var act = new SigningAct(
                 REQUEST,
                 Signer.guardian(31, 7),
@@ -536,7 +609,7 @@ class SigningStateAssemblerTest extends RepositoryTestBase {
                 "guardian1",
                 GUARDIAN_STATEMENT,
                 contentSha256,
-                List.of(new SignerEntry("Telefon", "0123 456")),
+                entries,
                 new byte[32],
                 SIGNED_AT,
                 "192.168.1.0",
@@ -601,6 +674,34 @@ class SigningStateAssemblerTest extends RepositoryTestBase {
                 SignatureFields.add(document, page, new PDRectangle(72, y, 200, 40), name);
                 y += 60;
             }
+            document.save(out);
+            return out.toByteArray();
+        }
+    }
+
+    /**
+     * The content with its signature fields and three fields to fill in: one each for the first guardian,
+     * who signs, the second, who has not signed yet, and the participant, who signs and leaves it empty.
+     */
+    private static byte[] contentWithFillIns() throws IOException {
+        try (var document = Loader.loadPDF(content);
+                var out = new ByteArrayOutputStream()) {
+            var page = document.getPage(0);
+            FillInFields.add(
+                    document,
+                    page,
+                    new PDRectangle(300, 100, 200, 20),
+                    new FillInField("fill-guardian1-0", "guardian1", "Telefon im Notfall", true, 40));
+            FillInFields.add(
+                    document,
+                    page,
+                    new PDRectangle(300, 160, 200, 20),
+                    new FillInField("fill-guardian2-0", "guardian2", "Telefon im Notfall", true, 40));
+            FillInFields.add(
+                    document,
+                    page,
+                    new PDRectangle(300, 220, 200, 20),
+                    new FillInField("fill-participant-1", "participant", "Allergien", false, 500));
             document.save(out);
             return out.toByteArray();
         }

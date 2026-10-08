@@ -52,7 +52,7 @@ const style = computed(() => ({
   height: `${props.box.height}px`,
 }))
 
-const tone = computed(() => props.kind === PdfFieldKind.SIGNATURE
+const tone = computed(() => props.kind === PdfFieldKind.SIGNATURE || props.kind === PdfFieldKind.FILL_IN
     ? 'border-secondary-accent bg-secondary/10'
     : 'border-primary bg-primary/10')
 

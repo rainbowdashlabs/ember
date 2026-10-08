@@ -14,14 +14,15 @@ import {PdfFieldKind, type FontFamilyOption, type PdfField, type Placeholder} fr
 import FieldFontSettings from './FieldFontSettings.vue'
 import FieldTextLayout from './FieldTextLayout.vue'
 import PdfSignatureSettings from './PdfSignatureSettings.vue'
+import FillInSettings from '@/components/documents/FillInSettings.vue'
 import PlaceholderPopover from './placeholderpicker/PlaceholderPopover.vue'
 import {withPlaceholder} from './placeholderText'
 import type {PlaceholderChoice} from './placeholderpicker/placeholderKey'
 
 /**
  * What the chosen field does: the text it prints and how, the value whose yes ticks it, or who signs
- * in it and what goes with the signature ({@link PdfSignatureSettings}). Where it sits is set on the
- * page itself.
+ * in it and what goes with the signature ({@link PdfSignatureSettings}), or what a signer fills in when
+ * signing ({@link FillInSettings}). Where it sits is set on the page itself.
  */
 const field = defineModel<PdfField>({required: true})
 
@@ -55,6 +56,13 @@ function append(choice: PlaceholderChoice) {
     </div>
     <PdfSignatureSettings v-if="field.kind === PdfFieldKind.SIGNATURE" v-model="field" :placeholders="placeholders"
                           :legal="legal"/>
+    <FillInSettings v-else-if="field.kind === PdfFieldKind.FILL_IN"
+                    :signer="field.role" :label="field.text ?? ''" :required="field.required"
+                    :max-length="field.maxLength"
+                    @update:signer="role => field = {...field, role: role ?? null}"
+                    @update:label="text => field = {...field, text}"
+                    @update:required="required => field = {...field, required}"
+                    @update:max-length="maxLength => field = {...field, maxLength: maxLength ?? null}"/>
     <template v-else>
       <LabelledField :label="t(field.kind === PdfFieldKind.CHECK ? 'documentTemplates.checkWhen' : 'documentTemplates.fieldText')"
                      :help="t(field.kind === PdfFieldKind.CHECK ? 'documentTemplates.checkWhenHelp' : 'documentTemplates.fieldTextHelp')">

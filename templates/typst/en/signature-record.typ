@@ -111,7 +111,8 @@
 
 #let entry-rows(a) = {
   if a.entries.len() == 0 { return () }
-  ([Entries], a.entries.map(e => [#e.field: #e.value]).join(linebreak()))
+  let name(e) = if e.at("label", default: none) == none { e.field } else { e.label }
+  ([Entries], a.entries.map(e => [#name(e): #e.value]).join(linebreak()))
 }
 
 #let act-table(a) = facts(

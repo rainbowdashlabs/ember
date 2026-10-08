@@ -13,8 +13,8 @@ import {PdfFieldKind} from '@/api/generated/schema'
 import {ZOOM_STEPS, zoomStep} from './pdfZoom'
 
 /**
- * Turning the pages of the PDF, and putting a new field on the page shown: a text, a check mark, or a
- * signature field. A new field lands in the middle of the page, ready to be dragged where it belongs.
+ * Turning the pages of the PDF, and putting a new field on the page shown: a text, a check mark, a
+ * signature field, or a field a signer fills in when signing. A new field lands in the middle of the page, ready to be dragged where it belongs.
  *
  * <p>The page zooms in steps for placing a field exactly; the middle button names the zoom and brings
  * the whole page back into view.
@@ -43,6 +43,7 @@ const kinds: readonly {kind: PdfFieldKind; icon: [string, string]}[] = [
   {kind: PdfFieldKind.TEXT, icon: ['fas', 'font']},
   {kind: PdfFieldKind.CHECK, icon: ['fas', 'xmark']},
   {kind: PdfFieldKind.SIGNATURE, icon: ['fas', 'signature']},
+  {kind: PdfFieldKind.FILL_IN, icon: ['fas', 'pen-to-square']},
 ]
 </script>
 

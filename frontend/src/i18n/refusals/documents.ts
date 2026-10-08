@@ -172,4 +172,12 @@ export default {
     'D-230': 'Im selben Moment wurde ein anderer Scan dieses Dokuments abgegeben, dieser wurde deshalb nicht abgelegt',
     'D-250': 'Dieses Dokument hat keine versiegelte Fassung mit dieser Nummer',
     'D-251': 'Wähle das berichtigte Dokument, für das neu um Unterschriften gebeten wird',
+    'D-260': 'Ein Eingabefeld braucht eine Bezeichnung und die Person, die es ausfüllt',
+    'D-261': 'Die Bezeichnung eines Eingabefelds darf höchstens 100 Zeichen lang sein',
+    'D-262': 'Ein Eingabefeld fasst 1 bis 500 Zeichen',
+    'D-263': 'Ein Eingabefeld braucht ein Unterschriftsfeld derselben Person',
+    'D-264': 'Eine Person füllt höchstens 20 Eingabefelder aus',
+    'D-265': 'Dieses Feld soll beim Unterschreiben nicht von dir ausgefüllt werden',
+    'D-266': 'Ein Pflichtfeld wurde nicht ausgefüllt',
+    'D-267': 'Ein Wert ist länger, als sein Feld erlaubt',
 }

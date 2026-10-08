@@ -102,6 +102,19 @@ describe('useSigningAct', () => {
         expect(completeSigning.mock.calls.map(call => call[1].startToken)).toEqual(['first', 'second'])
     })
 
+    it('binds the same typed values into a start made again', async () => {
+        startSigning.mockResolvedValueOnce(started('first')).mockResolvedValueOnce(started('second'))
+        completeSigning.mockRejectedValueOnce(new Error('refused')).mockResolvedValueOnce({state: 'SIGNED'})
+        const entries = [{field: 'fill-participant-0', value: '0171 2345678'}]
+        const act = useSigningAct(() => 4, () => entries)
+        await act.prepare()
+
+        await expect(act.confirmWithSecret('TOTP', '111111')).rejects.toThrow('refused')
+        await act.confirmWithSecret('TOTP', '424242')
+
+        expect(startSigning.mock.calls).toEqual([[4, entries], [4, entries]])
+    })
+
     it('starts afresh when the start is about to expire', async () => {
         startSigning
             .mockResolvedValueOnce(started('stale', {expiresAt: new Date(Date.now() + 5_000).toISOString()}))

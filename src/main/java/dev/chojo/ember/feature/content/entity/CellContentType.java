@@ -52,7 +52,8 @@ public enum CellContentType {
     FORMS_CTA(CellConfig.FormsCtaConfig.class),
     CODE_BLOCK(CellConfig.CodeBlockConfig.class),
     NESTED_ROWS(CellConfig.NestedRowsConfig.class),
-    SIGNATURE(CellConfig.SignatureConfig.class);
+    SIGNATURE(CellConfig.SignatureConfig.class),
+    FILL_IN(CellConfig.FillInConfig.class);
 
     /**
      * The blocks a page may have and an article may not.
@@ -75,7 +76,7 @@ public enum CellContentType {
             PAST_EVENT_RECAP);
 
     /** The blocks only a printed letter has, which mean nothing on a screen. */
-    private static final Set<CellContentType> LETTER_ONLY = EnumSet.of(SIGNATURE);
+    private static final Set<CellContentType> LETTER_ONLY = EnumSet.of(SIGNATURE, FILL_IN);
 
     private final Class<? extends CellConfig> configClass;
     private final CellConfig emptyConfig;

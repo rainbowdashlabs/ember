@@ -83,6 +83,19 @@
   ]),
 )
 
+#let fill-in(c) = grid(
+  columns: c.fields.len() * (1fr,),
+  column-gutter: 1.2em,
+  ..c.fields.map(field => [
+    #block(below: 0.25em, text(size: 0.85em, c.label + if c.required { " *" } else { "" }))
+    #box(
+      width: 100%,
+      height: 0.8cm,
+      link(data.fillInMarker + field, box(width: 100%, height: 100%, stroke: (bottom: 0.6pt + black))),
+    )
+  ]),
+)
+
 #let gutter = 0.8em
 
 #let rows(list, max-height, gap) = for (index, r) in list.enumerate() {
@@ -110,6 +123,8 @@
         block(height: c.heightMm * 1mm)
       } else if c.kind == "signature" {
         signature(c, max-height)
+      } else if c.kind == "fillIn" {
+        fill-in(c)
       } else if c.kind == "rows" {
         rows(c.rows, max-height, gap)
       } else {

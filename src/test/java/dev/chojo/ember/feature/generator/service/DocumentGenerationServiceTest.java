@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.documents.service.DocumentService;
 import dev.chojo.ember.feature.generator.entity.DataSubject;
 import dev.chojo.ember.feature.generator.entity.DocumentLanguage;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplateDraft;
+import dev.chojo.ember.feature.generator.entity.FillInField;
 import dev.chojo.ember.feature.generator.entity.LetterContent;
 import dev.chojo.ember.feature.generator.entity.LetterPage;
 import dev.chojo.ember.feature.generator.entity.MissingValue;
@@ -32,6 +33,7 @@ import dev.chojo.ember.feature.generator.repository.PdfTemplateRepository;
 import dev.chojo.ember.feature.generator.repository.TemplateStationUseRepository;
 import dev.chojo.ember.feature.generator.service.font.DefaultFont;
 import dev.chojo.ember.feature.generator.service.font.FontLibrary;
+import dev.chojo.ember.feature.generator.service.pdf.FillInFields;
 import dev.chojo.ember.feature.generator.service.pdf.PdfStamper;
 import dev.chojo.ember.feature.generator.service.pdf.StampFonts;
 import dev.chojo.ember.feature.generator.service.pdf.TestPdfs;
@@ -82,6 +84,7 @@ import java.util.Set;
 import javax.imageio.ImageIO;
 
 import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.divider;
+import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.fillIn;
 import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.image;
 import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.letter;
 import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.lined;
@@ -602,6 +605,36 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
                 signatureFields(generation
                         .generate(as(manager), templateId, max.id(), null)
                         .documentId()));
+    }
+
+    /**
+     * A box to fill in for every guardian becomes one empty text field per guardian, each named after that
+     * guardian's signature field and carrying label, required flag and length; the label prints above the
+     * box, the marker that placed it is gone, and the letter stays PDF/A.
+     */
+    @Test
+    void aBoxToFillInBecomesATextFieldForEachOfItsSigners() throws IOException {
+        int templateId = templateOf(
+                "Notfallkontakt",
+                row(fillIn(SignatureRole.EACH_GUARDIAN, "Telefon im Notfall", true, 40)),
+                row(signature(SignatureRole.EACH_GUARDIAN, "Erziehungsberechtigte")));
+        var kim = withTwoGuardians("Pia");
+
+        byte[] pdf = fileOf(
+                generation.generate(as(manager), templateId, kim.id(), null).documentId());
+
+        assertEquals(
+                List.of(
+                        new FillInField("fill-guardian1-0", "guardian1", "Telefon im Notfall", true, 40),
+                        new FillInField("fill-guardian2-0", "guardian2", "Telefon im Notfall", true, 40)),
+                FillInFields.of(pdf));
+        try (var document = Loader.loadPDF(pdf)) {
+            assertTrue(document.getPage(0).getAnnotations().stream()
+                    .noneMatch(annotation -> annotation instanceof PDAnnotationLink));
+            String xmp = new String(document.getDocumentCatalog().getMetadata().toByteArray(), StandardCharsets.UTF_8);
+            assertTrue(xmp.contains("pdfaid:part>3<") || xmp.contains("pdfaid:part=\"3\""), xmp);
+        }
+        assertTrue(PdfText.extract(pdf).contains("Telefon im Notfall *"));
     }
 
     @Test

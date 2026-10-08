@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.documents.service.DocumentService;
 import dev.chojo.ember.feature.generator.entity.DocumentLanguage;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplateKind;
 import dev.chojo.ember.feature.generator.entity.FieldRect;
+import dev.chojo.ember.feature.generator.entity.FillInField;
 import dev.chojo.ember.feature.generator.entity.FontStyle;
 import dev.chojo.ember.feature.generator.entity.FormBinding;
 import dev.chojo.ember.feature.generator.entity.FormField;
@@ -31,7 +32,9 @@ import dev.chojo.ember.feature.generator.repository.PdfTemplateRepository;
 import dev.chojo.ember.feature.generator.repository.TemplateStationUseRepository;
 import dev.chojo.ember.feature.generator.service.DocumentTemplateService.DocumentTemplateResponse;
 import dev.chojo.ember.feature.generator.service.font.DefaultFont;
+import dev.chojo.ember.feature.generator.service.pdf.FillInFields;
 import dev.chojo.ember.feature.generator.service.pdf.PdfStamper;
+import dev.chojo.ember.feature.generator.service.pdf.SignatureFields;
 import dev.chojo.ember.feature.generator.service.pdf.StampFonts;
 import dev.chojo.ember.feature.generator.service.pdf.TestPdfs;
 import dev.chojo.ember.feature.knowledgebase.service.KbPdfPictures;
@@ -443,6 +446,96 @@ class PdfTemplateServiceTest extends RepositoryTestBase {
                 Map.of(),
                 generator.fieldStatements(Integer.MAX_VALUE, lena.id()).byField(),
                 "a template that is gone leaves every field to its default");
+    }
+
+    /**
+     * A field to fill in keeps its signer, its label, whether it is required and its length, and becomes an
+     * empty text field in the generated document named after the signature field of its signer, carrying
+     * label, required flag and length. One without a label or a signer, with a length outside 1 to 500, or
+     * for a signer without a signature field is refused.
+     */
+    @Test
+    void aFieldToFillInBecomesATextFieldOfItsSigner() throws IOException {
+        var template = uploaded("Notfall", TestPdfs.plain(1));
+        var rect = new FieldRect(1, 100, 300, 150, 20);
+        var signatureField = signature(new FieldRect(1, 100, 100, 150, 40), SignatureRole.PARTICIPANT);
+
+        var saved = withFields(
+                template,
+                request(
+                        "Notfall",
+                        null,
+                        List.of(signatureField, fillIn(rect, SignatureRole.PARTICIPANT, "  Notfallnummer ", true, 30)),
+                        List.of(),
+                        false));
+
+        var kept = saved.fields().get(1);
+        assertEquals(PdfFieldKind.FILL_IN, kept.kind());
+        assertEquals("Notfallnummer", kept.text());
+        assertEquals(SignatureRole.PARTICIPANT, kept.role());
+        assertTrue(kept.required());
+        assertEquals(30, kept.maxLength());
+
+        var filed = generation.generate(as(manager), template.id(), lena.id(), null);
+        var document = memberDocumentRepo.findById(filed.documentId()).orElseThrow();
+        byte[] pdf = documents.open(document, DocumentDoor.STATION).orElseThrow();
+        assertEquals(
+                List.of(new FillInField("fill-participant-1", "participant", "Notfallnummer", true, 30)),
+                FillInFields.of(pdf));
+        assertEquals(List.of("participant"), SignatureFields.unsigned(pdf));
+
+        refused(
+                DocumentRefusal.DOCUMENT_TEMPLATE_FILL_IN_INCOMPLETE,
+                () -> withFields(
+                        template, request("Notfall", signatureField, fillIn(rect, null, "Nummer", false, null))));
+        refused(
+                DocumentRefusal.DOCUMENT_TEMPLATE_FILL_IN_INCOMPLETE,
+                () -> withFields(
+                        template,
+                        request("Notfall", signatureField, fillIn(rect, SignatureRole.PARTICIPANT, " ", false, null))));
+        refused(
+                DocumentRefusal.DOCUMENT_TEMPLATE_FILL_IN_LABEL_TOO_LONG,
+                () -> withFields(
+                        template,
+                        request(
+                                "Notfall",
+                                signatureField,
+                                fillIn(rect, SignatureRole.PARTICIPANT, "x".repeat(101), false, null))));
+        refused(
+                DocumentRefusal.DOCUMENT_TEMPLATE_FILL_IN_LENGTH_OUT_OF_RANGE,
+                () -> withFields(
+                        template,
+                        request(
+                                "Notfall",
+                                signatureField,
+                                fillIn(rect, SignatureRole.PARTICIPANT, "Nummer", false, 501))));
+        refused(
+                DocumentRefusal.DOCUMENT_TEMPLATE_FILL_IN_WITHOUT_SIGNATURE,
+                () -> withFields(
+                        template,
+                        request(
+                                "Notfall",
+                                signatureField,
+                                fillIn(rect, SignatureRole.EACH_GUARDIAN, "Nummer", false, null))));
+    }
+
+    private static PdfField fillIn(
+            FieldRect rect, @Nullable SignatureRole role, String label, boolean required, @Nullable Integer maxLength) {
+        return new PdfField(
+                PdfFieldKind.FILL_IN,
+                rect,
+                label,
+                0,
+                TextAlign.LEFT,
+                false,
+                role,
+                null,
+                FontStyle.REGULAR,
+                false,
+                false,
+                null,
+                required,
+                maxLength);
     }
 
     private static PdfField stated(FieldRect rect, SignatureRole role, String statement) {

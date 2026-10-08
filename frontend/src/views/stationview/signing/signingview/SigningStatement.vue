@@ -20,6 +20,9 @@ import type {Failure} from '@/util/failure'
  *
  * <p>A member signing through somebody else's account is the one who reads and ticks; the holder of the
  * account only confirms afterwards. The wording follows that, so the person at the device is addressed.
+ *
+ * <p>The fields the document asks the signer to fill in stand between the statement and the box, in the
+ * default slot; the act starts only once they are filled in as they must be.
  */
 const props = defineProps<{
   field: OpenSignatureResponse
@@ -31,6 +34,8 @@ const props = defineProps<{
   started: boolean
   /** Whether the document could be opened, without which nothing is signed. */
   documentReady: boolean
+  /** Whether the fields the document asks the signer to fill in are filled in as they must be. */
+  filledIn?: boolean
 }>()
 
 const confirmed = defineModel<boolean>('confirmed', {default: false})
@@ -67,6 +72,7 @@ const confirmLabel = computed(() => props.field.capacity === SignerCapacity.MEMB
         class="border-l-4 border-primary bg-bg-light-accent/40 dark:bg-bg-dark-accent/40 rounded-r-theme px-4 py-3 whitespace-pre-line"
         data-testid="signing-statement"
     >{{ field.statement }}</blockquote>
+    <slot/>
     <FieldLabel inline :for="boxId" class="cursor-pointer">
       <CheckboxInput :id="boxId" v-model="confirmed" :aria-describedby="statementId"/>
       {{ confirmLabel }}
@@ -75,7 +81,7 @@ const confirmLabel = computed(() => props.field.capacity === SignerCapacity.MEMB
     <PrimaryButton
         v-if="!started"
         type="button"
-        :disabled="!confirmed || !documentReady || preparing"
+        :disabled="!confirmed || !documentReady || filledIn === false || preparing"
         data-testid="signing-proceed"
         @click="$emit('proceed')"
     >

@@ -53675,6 +53675,71 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/signing/fields/{fieldId}/fill-ins": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The fields the document asks the reader to fill in when they sign a field */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    fieldId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FillInResponse"][];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/signing/fields/{fieldId}/start": {
         parameters: {
             query?: never;
@@ -61050,7 +61115,7 @@ export interface components {
             /** Format: int64 */
             totalBytes: number;
         };
-        CellConfig: components["schemas"]["AccordionConfig"] | components["schemas"]["AchievementsConfig"] | components["schemas"]["AddressCardConfig"] | components["schemas"]["AudioEmbedConfig"] | components["schemas"]["BlogSignupConfig"] | components["schemas"]["CalloutConfig"] | components["schemas"]["CodeBlockConfig"] | components["schemas"]["CountdownConfig"] | components["schemas"]["DividerConfig"] | components["schemas"]["ExternalLinkCardConfig"] | components["schemas"]["FeaturedEventConfig"] | components["schemas"]["FileDownloadConfig"] | components["schemas"]["FormsCtaConfig"] | components["schemas"]["HeroBannerConfig"] | components["schemas"]["ImageConfig"] | components["schemas"]["ImageGalleryConfig"] | components["schemas"]["KbArticleConfig"] | components["schemas"]["MapConfig"] | components["schemas"]["MarkdownConfig"] | components["schemas"]["MemberListConfig"] | components["schemas"]["MemberSpotlightConfig"] | components["schemas"]["NestedRowsConfig"] | components["schemas"]["NewsTeaserConfig"] | components["schemas"]["PageLinkConfig"] | components["schemas"]["PartnerStationsConfig"] | components["schemas"]["PastEventRecapConfig"] | components["schemas"]["PdfConfig"] | components["schemas"]["PollEmbedConfig"] | components["schemas"]["QuizTeaserConfig"] | components["schemas"]["QuoteConfig"] | components["schemas"]["SignatureConfig"] | components["schemas"]["SpacerConfig"] | components["schemas"]["StatsCounterConfig"] | components["schemas"]["TabsConfig"] | components["schemas"]["UpcomingEventsConfig"] | components["schemas"]["VideoConfig"];
+        CellConfig: components["schemas"]["AccordionConfig"] | components["schemas"]["AchievementsConfig"] | components["schemas"]["AddressCardConfig"] | components["schemas"]["AudioEmbedConfig"] | components["schemas"]["BlogSignupConfig"] | components["schemas"]["CalloutConfig"] | components["schemas"]["CodeBlockConfig"] | components["schemas"]["CountdownConfig"] | components["schemas"]["DividerConfig"] | components["schemas"]["ExternalLinkCardConfig"] | components["schemas"]["FeaturedEventConfig"] | components["schemas"]["FileDownloadConfig"] | components["schemas"]["FillInConfig"] | components["schemas"]["FormsCtaConfig"] | components["schemas"]["HeroBannerConfig"] | components["schemas"]["ImageConfig"] | components["schemas"]["ImageGalleryConfig"] | components["schemas"]["KbArticleConfig"] | components["schemas"]["MapConfig"] | components["schemas"]["MarkdownConfig"] | components["schemas"]["MemberListConfig"] | components["schemas"]["MemberSpotlightConfig"] | components["schemas"]["NestedRowsConfig"] | components["schemas"]["NewsTeaserConfig"] | components["schemas"]["PageLinkConfig"] | components["schemas"]["PartnerStationsConfig"] | components["schemas"]["PastEventRecapConfig"] | components["schemas"]["PdfConfig"] | components["schemas"]["PollEmbedConfig"] | components["schemas"]["QuizTeaserConfig"] | components["schemas"]["QuoteConfig"] | components["schemas"]["SignatureConfig"] | components["schemas"]["SpacerConfig"] | components["schemas"]["StatsCounterConfig"] | components["schemas"]["TabsConfig"] | components["schemas"]["UpcomingEventsConfig"] | components["schemas"]["VideoConfig"];
         CellConfigByType: {
             ACCORDION: components["schemas"]["AccordionConfig"];
             ACHIEVEMENTS: components["schemas"]["AchievementsConfig"];
@@ -61065,6 +61130,7 @@ export interface components {
             EXTERNAL_LINK_CARD: components["schemas"]["ExternalLinkCardConfig"];
             FEATURED_EVENT: components["schemas"]["FeaturedEventConfig"];
             FILE_DOWNLOAD: components["schemas"]["FileDownloadConfig"];
+            FILL_IN: components["schemas"]["FillInConfig"];
             FORMS_CTA: components["schemas"]["FormsCtaConfig"];
             HERO_BANNER: components["schemas"]["HeroBannerConfig"];
             IMAGE: components["schemas"]["ImageConfig"];
@@ -61091,7 +61157,7 @@ export interface components {
             VIDEO: components["schemas"]["VideoConfig"];
         };
         /** @enum {string} */
-        CellContentType: "EMPTY" | "MARKDOWN" | "IMAGE" | "VIDEO" | "CALLOUT" | "QUOTE" | "DIVIDER" | "SPACER" | "ACCORDION" | "PDF" | "FILE_DOWNLOAD" | "COUNTDOWN" | "FEATURED_EVENT" | "UPCOMING_EVENTS" | "KB_ARTICLE" | "NEWS_TEASER" | "PAGE_LINK" | "MAP" | "ADDRESS_CARD" | "PARTNER_STATIONS" | "MEMBER_SPOTLIGHT" | "MEMBER_LIST_SPOTLIGHT" | "STATS_COUNTER" | "IMAGE_GALLERY" | "HERO_BANNER" | "PAST_EVENT_RECAP" | "TABS" | "ACHIEVEMENTS" | "EXTERNAL_LINK_CARD" | "BLOG_SIGNUP" | "AUDIO_EMBED" | "POLL_EMBED" | "QUIZ_TEASER" | "FORMS_CTA" | "CODE_BLOCK" | "NESTED_ROWS" | "SIGNATURE";
+        CellContentType: "EMPTY" | "MARKDOWN" | "IMAGE" | "VIDEO" | "CALLOUT" | "QUOTE" | "DIVIDER" | "SPACER" | "ACCORDION" | "PDF" | "FILE_DOWNLOAD" | "COUNTDOWN" | "FEATURED_EVENT" | "UPCOMING_EVENTS" | "KB_ARTICLE" | "NEWS_TEASER" | "PAGE_LINK" | "MAP" | "ADDRESS_CARD" | "PARTNER_STATIONS" | "MEMBER_SPOTLIGHT" | "MEMBER_LIST_SPOTLIGHT" | "STATS_COUNTER" | "IMAGE_GALLERY" | "HERO_BANNER" | "PAST_EVENT_RECAP" | "TABS" | "ACHIEVEMENTS" | "EXTERNAL_LINK_CARD" | "BLOG_SIGNUP" | "AUDIO_EMBED" | "POLL_EMBED" | "QUIZ_TEASER" | "FORMS_CTA" | "CODE_BLOCK" | "NESTED_ROWS" | "SIGNATURE" | "FILL_IN";
         CellResponse: {
             checked: boolean;
             /** Format: int32 */
@@ -63391,6 +63457,20 @@ export interface components {
             name?: string;
             /** Format: int32 */
             position?: number;
+        };
+        FillInConfig: {
+            label?: string;
+            /** Format: int32 */
+            maxLength?: number;
+            required?: boolean;
+            signer?: components["schemas"]["SignatureRole"];
+        };
+        FillInResponse: {
+            label: string;
+            /** Format: int32 */
+            maxLength: number;
+            name: string;
+            required: boolean;
         };
         FillInTheBlank: {
             answers: string[] | null;
@@ -66865,8 +66945,11 @@ export interface components {
             fontSize: number;
             fontStyle: components["schemas"]["FontStyle"] | null;
             kind: components["schemas"]["PdfFieldKind"];
+            /** Format: int32 */
+            maxLength: number | null;
             printText: boolean;
             rect: components["schemas"]["FieldRect"];
+            required: boolean;
             role: components["schemas"]["SignatureRole"] | null;
             statement: string | null;
             text: string | null;
@@ -66874,7 +66957,7 @@ export interface components {
             wrap: boolean;
         };
         /** @enum {string} */
-        PdfFieldKind: "TEXT" | "CHECK" | "SIGNATURE";
+        PdfFieldKind: "TEXT" | "CHECK" | "SIGNATURE" | "FILL_IN";
         PdfInspection: {
             formFields: components["schemas"]["FormField"][];
             pages: components["schemas"]["PdfPage"][];
@@ -71834,6 +71917,8 @@ export type FileListing = components['schemas']['FileListing'];
 export type FileResponse = components['schemas']['FileResponse'];
 export type FileStoreEntry = components['schemas']['FileStoreEntry'];
 export type FileUpdateRequest = components['schemas']['FileUpdateRequest'];
+export type FillInConfig = components['schemas']['FillInConfig'];
+export type FillInResponse = components['schemas']['FillInResponse'];
 export type FillInTheBlank = components['schemas']['FillInTheBlank'];
 export type FillInTheBlankView = components['schemas']['FillInTheBlankView'];
 export type FilterTableType = components['schemas']['FilterTableType'];
@@ -73049,6 +73134,7 @@ export const CellContentType = {
     EXTERNAL_LINK_CARD: "EXTERNAL_LINK_CARD",
     FEATURED_EVENT: "FEATURED_EVENT",
     FILE_DOWNLOAD: "FILE_DOWNLOAD",
+    FILL_IN: "FILL_IN",
     FORMS_CTA: "FORMS_CTA",
     HERO_BANNER: "HERO_BANNER",
     IMAGE: "IMAGE",
@@ -73816,6 +73902,7 @@ export const PaperState = {
 
 export const PdfFieldKind = {
     CHECK: "CHECK",
+    FILL_IN: "FILL_IN",
     SIGNATURE: "SIGNATURE",
     TEXT: "TEXT",
 } as const;

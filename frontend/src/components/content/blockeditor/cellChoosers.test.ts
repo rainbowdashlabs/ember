@@ -9,17 +9,17 @@ import {CellContentType} from '@/api/generated/schema'
 import {CHOOSER_CATEGORIES, chooserCategories} from './cellChoosers'
 
 describe('chooser categories', () => {
-    it('offer every kind but the signature line of a letter where the editor names none', () => {
+    it('offer every kind but the signature line and the box to fill in of a letter where the editor names none', () => {
         const offered = chooserCategories().flatMap(category => category.items.map(item => item.type))
         const all = CHOOSER_CATEGORIES.flatMap(category => category.items.map(item => item.type))
 
-        expect(offered).toEqual(all.filter(type => type !== CellContentType.SIGNATURE))
+        expect(offered).toEqual(all.filter(type => type !== CellContentType.SIGNATURE && type !== CellContentType.FILL_IN))
     })
 
-    it('offer the signature line where the editor names it', () => {
-        const categories = chooserCategories([CellContentType.SIGNATURE])
+    it('offer the signature line and the box to fill in where the editor names them', () => {
+        const categories = chooserCategories([CellContentType.SIGNATURE, CellContentType.FILL_IN])
 
-        expect(categories[0]?.items.map(item => item.type)).toEqual([CellContentType.SIGNATURE])
+        expect(categories[0]?.items.map(item => item.type)).toEqual([CellContentType.SIGNATURE, CellContentType.FILL_IN])
     })
 
     it('offer only the allowed kinds and leave empty categories out', () => {

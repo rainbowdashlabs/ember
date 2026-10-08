@@ -40815,6 +40815,66 @@
         } ]
       }
     },
+    "/api/v1/signing/fields/{fieldId}/fill-ins" : {
+      "get" : {
+        "summary" : "The fields the document asks the reader to fill in when they sign a field",
+        "tags" : [ "Signing" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/FillInResponse"
+                  }
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "fieldId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
     "/api/v1/signing/fields/{fieldId}/start" : {
       "post" : {
         "summary" : "Start signing a field",
@@ -49167,6 +49227,8 @@
         }, {
           "$ref" : "#/components/schemas/FileDownloadConfig"
         }, {
+          "$ref" : "#/components/schemas/FillInConfig"
+        }, {
           "$ref" : "#/components/schemas/FormsCtaConfig"
         }, {
           "$ref" : "#/components/schemas/HeroBannerConfig"
@@ -49329,13 +49391,16 @@
           },
           "SIGNATURE" : {
             "$ref" : "#/components/schemas/SignatureConfig"
+          },
+          "FILL_IN" : {
+            "$ref" : "#/components/schemas/FillInConfig"
           }
         },
-        "required" : [ "EMPTY", "MARKDOWN", "IMAGE", "VIDEO", "CALLOUT", "QUOTE", "DIVIDER", "SPACER", "ACCORDION", "PDF", "FILE_DOWNLOAD", "COUNTDOWN", "FEATURED_EVENT", "UPCOMING_EVENTS", "KB_ARTICLE", "NEWS_TEASER", "PAGE_LINK", "MAP", "ADDRESS_CARD", "PARTNER_STATIONS", "MEMBER_SPOTLIGHT", "MEMBER_LIST_SPOTLIGHT", "STATS_COUNTER", "IMAGE_GALLERY", "HERO_BANNER", "PAST_EVENT_RECAP", "TABS", "ACHIEVEMENTS", "EXTERNAL_LINK_CARD", "BLOG_SIGNUP", "AUDIO_EMBED", "POLL_EMBED", "QUIZ_TEASER", "FORMS_CTA", "CODE_BLOCK", "NESTED_ROWS", "SIGNATURE" ]
+        "required" : [ "EMPTY", "MARKDOWN", "IMAGE", "VIDEO", "CALLOUT", "QUOTE", "DIVIDER", "SPACER", "ACCORDION", "PDF", "FILE_DOWNLOAD", "COUNTDOWN", "FEATURED_EVENT", "UPCOMING_EVENTS", "KB_ARTICLE", "NEWS_TEASER", "PAGE_LINK", "MAP", "ADDRESS_CARD", "PARTNER_STATIONS", "MEMBER_SPOTLIGHT", "MEMBER_LIST_SPOTLIGHT", "STATS_COUNTER", "IMAGE_GALLERY", "HERO_BANNER", "PAST_EVENT_RECAP", "TABS", "ACHIEVEMENTS", "EXTERNAL_LINK_CARD", "BLOG_SIGNUP", "AUDIO_EMBED", "POLL_EMBED", "QUIZ_TEASER", "FORMS_CTA", "CODE_BLOCK", "NESTED_ROWS", "SIGNATURE", "FILL_IN" ]
       },
       "CellContentType" : {
         "type" : "string",
-        "enum" : [ "EMPTY", "MARKDOWN", "IMAGE", "VIDEO", "CALLOUT", "QUOTE", "DIVIDER", "SPACER", "ACCORDION", "PDF", "FILE_DOWNLOAD", "COUNTDOWN", "FEATURED_EVENT", "UPCOMING_EVENTS", "KB_ARTICLE", "NEWS_TEASER", "PAGE_LINK", "MAP", "ADDRESS_CARD", "PARTNER_STATIONS", "MEMBER_SPOTLIGHT", "MEMBER_LIST_SPOTLIGHT", "STATS_COUNTER", "IMAGE_GALLERY", "HERO_BANNER", "PAST_EVENT_RECAP", "TABS", "ACHIEVEMENTS", "EXTERNAL_LINK_CARD", "BLOG_SIGNUP", "AUDIO_EMBED", "POLL_EMBED", "QUIZ_TEASER", "FORMS_CTA", "CODE_BLOCK", "NESTED_ROWS", "SIGNATURE" ]
+        "enum" : [ "EMPTY", "MARKDOWN", "IMAGE", "VIDEO", "CALLOUT", "QUOTE", "DIVIDER", "SPACER", "ACCORDION", "PDF", "FILE_DOWNLOAD", "COUNTDOWN", "FEATURED_EVENT", "UPCOMING_EVENTS", "KB_ARTICLE", "NEWS_TEASER", "PAGE_LINK", "MAP", "ADDRESS_CARD", "PARTNER_STATIONS", "MEMBER_SPOTLIGHT", "MEMBER_LIST_SPOTLIGHT", "STATS_COUNTER", "IMAGE_GALLERY", "HERO_BANNER", "PAST_EVENT_RECAP", "TABS", "ACHIEVEMENTS", "EXTERNAL_LINK_CARD", "BLOG_SIGNUP", "AUDIO_EMBED", "POLL_EMBED", "QUIZ_TEASER", "FORMS_CTA", "CODE_BLOCK", "NESTED_ROWS", "SIGNATURE", "FILL_IN" ]
       },
       "CellResponse" : {
         "type" : "object",
@@ -55950,6 +56015,43 @@
             "format" : "int32"
           }
         }
+      },
+      "FillInConfig" : {
+        "type" : "object",
+        "properties" : {
+          "signer" : {
+            "$ref" : "#/components/schemas/SignatureRole"
+          },
+          "label" : {
+            "type" : "string"
+          },
+          "required" : {
+            "type" : "boolean"
+          },
+          "maxLength" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "FillInResponse" : {
+        "type" : "object",
+        "properties" : {
+          "name" : {
+            "type" : "string"
+          },
+          "label" : {
+            "type" : "string"
+          },
+          "required" : {
+            "type" : "boolean"
+          },
+          "maxLength" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "name", "label", "required", "maxLength" ]
       },
       "FillInTheBlank" : {
         "type" : "object",
@@ -65953,13 +66055,20 @@
           },
           "statement" : {
             "type" : [ "string", "null" ]
+          },
+          "required" : {
+            "type" : "boolean"
+          },
+          "maxLength" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
           }
         },
-        "required" : [ "kind", "rect", "text", "fontSize", "align", "wrap", "role", "fontFamily", "fontStyle", "withoutLine", "printText", "statement" ]
+        "required" : [ "kind", "rect", "text", "fontSize", "align", "wrap", "role", "fontFamily", "fontStyle", "withoutLine", "printText", "statement", "required", "maxLength" ]
       },
       "PdfFieldKind" : {
         "type" : "string",
-        "enum" : [ "TEXT", "CHECK", "SIGNATURE" ]
+        "enum" : [ "TEXT", "CHECK", "SIGNATURE", "FILL_IN" ]
       },
       "PdfInspection" : {
         "type" : "object",

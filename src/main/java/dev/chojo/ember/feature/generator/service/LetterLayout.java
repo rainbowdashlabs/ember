@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.content.entity.CellConfig;
 import dev.chojo.ember.feature.content.entity.ContentCell;
 import dev.chojo.ember.feature.content.entity.ContentRow;
 import dev.chojo.ember.feature.content.entity.ContentRows;
+import dev.chojo.ember.feature.generator.entity.FillInField;
 import dev.chojo.ember.feature.generator.entity.LetterContent;
 import dev.chojo.ember.feature.generator.entity.MemberView;
 import dev.chojo.ember.feature.generator.entity.SignatureRole;
@@ -32,7 +33,10 @@ import java.util.Objects;
  *
  * <p>A signature block holds a field for each person its signer asks to sign for the member
  * ({@link SignatureRole#fieldNames}): one field mostly, one per guardian for every guardian, and none
- * for a second guardian the member does not have, which leaves the block out.
+ * for a second guardian the member does not have, which leaves the block out. A block to fill in at
+ * signing does the same with its signer: one box for each signature field that signer has, each named
+ * after its signature field and the block's number among the letter's blocks to fill in
+ * ({@link FillInField#nameOf}), which counts every such block whether it is printed or not.
  *
  * <p>The texts are numbered in one fixed order, the header first, then the footer, then the body, each
  * top to bottom and left to right, and every text counts whether it is printed or not, the short text
@@ -77,12 +81,22 @@ final class LetterLayout {
         default Map<String, Object> signature(int index, ContentCell cell, List<String> fields) {
             return Map.of();
         }
+
+        /**
+         * @param cell   the block to fill in at signing
+         * @param fields the text fields it becomes, one per signature field of its signer, at least one
+         * @return how the boxes are drawn
+         */
+        default Map<String, Object> fillIn(ContentCell cell, List<FillInField> fields) {
+            return Map.of();
+        }
     }
 
     private final MemberView view;
     private final Blocks blocks;
     private final List<String> signatureFields = new ArrayList<>();
     private int nextText;
+    private int nextFillIn;
 
     /**
      * @param view   what of the letter the member sees
@@ -215,6 +229,10 @@ final class LetterLayout {
                 int index = nextText++;
                 yield visible ? signature(index, cell) : null;
             }
+            case FILL_IN -> {
+                int number = nextFillIn++;
+                yield visible ? fillIn(number, cell) : null;
+            }
             case NESTED_ROWS -> {
                 var nested = cell.config() instanceof CellConfig.NestedRowsConfig config
                         ? rows(ContentRows.read(config.rows()), visible)
@@ -247,6 +265,22 @@ final class LetterLayout {
         if (fields.isEmpty()) return null;
         signatureFields.addAll(fields);
         return blocks.signature(index, cell, fields);
+    }
+
+    private @Nullable Map<String, Object> fillIn(int number, ContentCell cell) {
+        if (!(cell.config() instanceof CellConfig.FillInConfig config)) return null;
+        var signer = config.signer();
+        if (signer == null) return null;
+        String label = Objects.requireNonNullElse(config.label(), "").strip();
+        var fields = signer.fieldNames(view.guardians()).stream()
+                .map(signatureField -> new FillInField(
+                        FillInField.nameOf(signatureField, number),
+                        signatureField,
+                        label,
+                        Boolean.TRUE.equals(config.required()),
+                        FillInField.effectiveMaxLength(config.maxLength())))
+                .toList();
+        return fields.isEmpty() ? null : blocks.fillIn(cell, fields);
     }
 
     private static Map<String, Object> sized(Map<String, Object> drawn, double widthPercent) {

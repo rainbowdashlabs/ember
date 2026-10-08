@@ -13,14 +13,21 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SigningStatement from '@/views/stationview/signing/signingview/SigningStatement.vue'
 import SigningProof from '@/views/stationview/signing/signingview/SigningProof.vue'
 import SigningMark from '@/views/stationview/signing/signingview/SigningMark.vue'
+import SigningFillIns from '@/views/stationview/signing/signingview/SigningFillIns.vue'
+import type {FillInValues} from '@/views/stationview/signing/signingview/fillIns'
 import type {SigningMarkChoice} from '@/views/stationview/signing/signingview/useSigningAct'
 import {FieldRole, SignerCapacity, StepUpProof} from '@/api/generated/schema'
-import type {OpenSignatureResponse, SigningStartResponse} from '@/api/generated/schema'
+import type {FillInResponse, OpenSignatureResponse, SigningStartResponse} from '@/api/generated/schema'
 
 const {t} = useI18n()
 
 const exampleConfirmed = ref(true)
 const exampleMark: SigningMarkChoice = {draft: null, useSaved: false, keep: false}
+
+const exampleFillIns = computed<FillInResponse[]>(() => [
+  {name: 'fill-guardian1-0', label: t('helpCenter.signing.exampleFillIn'), required: true, maxLength: 40},
+])
+const exampleValues = ref<FillInValues>({'fill-guardian1-0': '0171 2345678'})
 
 const exampleField = computed<OpenSignatureResponse>(() => ({
   fieldId: 0,
@@ -65,12 +72,15 @@ const exampleOffer = computed<SigningStartResponse>(() => ({
     <HelpSection :title="t('helpCenter.signing.steps')">
       <p>{{ t('helpCenter.signing.stepRead') }}</p>
       <p>{{ t('helpCenter.signing.stepConfirm') }}</p>
+      <p>{{ t('helpCenter.signing.stepFillIn') }}</p>
       <p>{{ t('helpCenter.signing.stepProve') }}</p>
       <p>{{ t('helpCenter.signing.stepMark') }}</p>
     </HelpSection>
 
     <NeutralContainer class="space-y-8">
-      <SigningStatement v-model:confirmed="exampleConfirmed" :field="exampleField" :preparing="false" :failure="null" started document-ready/>
+      <SigningStatement v-model:confirmed="exampleConfirmed" :field="exampleField" :preparing="false" :failure="null" started document-ready>
+        <SigningFillIns v-model="exampleValues" :fields="exampleFillIns" locked/>
+      </SigningStatement>
       <SigningProof :offer="exampleOffer" :busy="false" :failure="null">
         <SigningMark
             :model-value="exampleMark"

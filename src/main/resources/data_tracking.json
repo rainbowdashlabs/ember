@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:174cd4528b107b47569f249be2e9fd2defdda0610191243d3ce24ca62aada1fb",
-  "generatedAt": "2026-10-08T23:25:56Z",
+  "schemaHash": "sha256:7b8149d121f70b1ff64f057ac6a74b89254bf2030e483929cce2dce5bbbe60ce",
+  "generatedAt": "2026-10-09T00:39:55Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -7413,7 +7413,7 @@
       "description": "A template turned into a PDF for one member at a time, kept by a station (station_id) or by an association for all its stations (cluster_id). Never deleted, only archived, so every generated document keeps pointing at the template it came from."
     },
     "document_template_field": {
-      "tableHash": "sha256:6785d6c15e32bc27b2df3512b867195d45b453aff892871db9a4f948fd41f1ae",
+      "tableHash": "sha256:496cfd9482ac9c733194d67bf138704bc6508e1f2c0d116678a180bbd352e217",
       "columns": [
         {
           "name": "id",
@@ -7441,7 +7441,7 @@
           "type": "text",
           "nullable": false,
           "verified": true,
-          "description": "TEXT prints a text with placeholders, CHECK prints a cross where its text says yes, SIGNATURE becomes an empty PDF signature field named after its role."
+          "description": "TEXT prints a text with placeholders, CHECK prints a cross where its text says yes, SIGNATURE becomes an empty PDF signature field named after its role, FILL_IN becomes an empty PDF text field the signer of its role types into when signing, named fill-<signature field>-<position>."
         },
         {
           "name": "page",
@@ -7483,7 +7483,7 @@
           "type": "text",
           "nullable": true,
           "verified": true,
-          "description": "The text with placeholders written as {{key}}: printed by TEXT, deciding the cross of CHECK, and for SIGNATURE the text under the line, printed only where print_text is set. NULL for a SIGNATURE without one."
+          "description": "The text with placeholders written as {{key}}: printed by TEXT, deciding the cross of CHECK, and for SIGNATURE the text under the line, printed only where print_text is set. NULL for a SIGNATURE without one. For FILL_IN the label the signer is shown, at most 100 characters and printed nowhere."
         },
         {
           "name": "font_size",
@@ -7525,7 +7525,7 @@
           "type": "text",
           "nullable": true,
           "verified": true,
-          "description": "Who signs in a SIGNATURE field: PARTICIPANT, GUARDIAN_1, GUARDIAN_2 (left out for a member with fewer than two guardians), EACH_GUARDIAN (the box shared out into one field per guardian of the member), ANY_GUARDIAN (one field any guardian may sign) or ISSUER. NULL for every other kind."
+          "description": "Who signs in a SIGNATURE field, and for FILL_IN whose signer fills it in: PARTICIPANT, GUARDIAN_1, GUARDIAN_2 (left out for a member with fewer than two guardians), EACH_GUARDIAN (the box shared out into one field per guardian of the member), ANY_GUARDIAN (one field any guardian may sign) or ISSUER. NULL for every other kind."
         },
         {
           "name": "without_line",
@@ -7547,6 +7547,20 @@
           "nullable": true,
           "verified": true,
           "description": "For SIGNATURE: what the signer of this field confirms, shown on the signing screen and bound into the signature. Copied into each signature request when it is made, so a later change of the template never changes what a signer was asked. NULL for the default statement of the field's role in the template's language, and for every other kind."
+        },
+        {
+          "name": "required",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "For FILL_IN: true where the signer has to fill the field in to sign. FALSE for every other kind."
+        },
+        {
+          "name": "max_length",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "For FILL_IN: the most characters the typed value may have, 1 to 500. NULL for 500, and for every other kind."
         }
       ],
       "foreignKeys": [

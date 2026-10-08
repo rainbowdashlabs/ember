@@ -611,7 +611,35 @@ public enum DocumentRefusal implements Refusal {
 
     /** Signatures asked for again without naming the corrected document to ask them on. */
     SIGNING_CORRECTION_NOT_NAMED(
-            251, HttpStatus.BAD_REQUEST, "Name the corrected document the signatures are to be asked for on");
+            251, HttpStatus.BAD_REQUEST, "Name the corrected document the signatures are to be asked for on"),
+
+    /** A field to fill in at signing without a label or without the signer who fills it in. */
+    DOCUMENT_TEMPLATE_FILL_IN_INCOMPLETE(
+            260, HttpStatus.BAD_REQUEST, "A field to fill in needs a label and the signer who fills it in"),
+
+    /** The label of a field to fill in at signing, longer than a label may be. */
+    DOCUMENT_TEMPLATE_FILL_IN_LABEL_TOO_LONG(
+            261, HttpStatus.BAD_REQUEST, "The label of a field to fill in may be at most 100 characters long"),
+
+    /** A maximum length of a field to fill in outside what a field holds. */
+    DOCUMENT_TEMPLATE_FILL_IN_LENGTH_OUT_OF_RANGE(
+            262, HttpStatus.BAD_REQUEST, "A field to fill in holds 1 to 500 characters"),
+
+    /** A field to fill in for a signer the template has no signature field for. */
+    DOCUMENT_TEMPLATE_FILL_IN_WITHOUT_SIGNATURE(
+            263, HttpStatus.BAD_REQUEST, "A field to fill in needs a signature field of the same signer"),
+
+    /** More fields to fill in for one signer than one act takes. */
+    DOCUMENT_TEMPLATE_FILL_IN_TOO_MANY(264, HttpStatus.BAD_REQUEST, "One signer fills in at most 20 fields"),
+
+    /** A value typed at signing for a field the document does not ask this signer to fill in. */
+    SIGNING_ENTRY_NOT_ASKED(265, HttpStatus.BAD_REQUEST, "The document does not ask this signer to fill in that field"),
+
+    /** A field the signer has to fill in, left out at signing. */
+    SIGNING_ENTRY_REQUIRED(266, HttpStatus.BAD_REQUEST, "A field that has to be filled in was left out"),
+
+    /** A value typed at signing that is longer than its field takes. */
+    SIGNING_ENTRY_LONGER_THAN_FIELD(267, HttpStatus.BAD_REQUEST, "A value is longer than its field takes");
 
     private final Definition definition;
 

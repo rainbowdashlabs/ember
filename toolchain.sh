@@ -542,7 +542,8 @@ case "$cmd" in
         samples="$ROOT/build/signing-samples"
         rm -rf "$samples"
         EMBER_SIGNING_SAMPLES="$samples" run ./gradlew testServices --rerun \
-            --tests '*SignedDocumentMatrixTest' --tests '*IssuerSignedLettersTest' "$@"
+            --tests '*SignedDocumentMatrixTest' --tests '*IssuerSignedLettersTest' \
+            --tests '*SigningStateAssemblerTest' "$@"
         if command -v nix-shell >/dev/null 2>&1; then
             nix-shell -p verapdf --run "verapdf --flavour 3b --format text $samples/*.pdf"
         else

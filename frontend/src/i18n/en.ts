@@ -117,6 +117,11 @@ export default {
             confirmThrough: '{name} has read the document and makes this statement.',
             proceed: 'Continue to confirmation',
         },
+        fillIns: {
+            legend: 'Details to fill in',
+            hint: 'The document asks for these details. They are written into the document with the signature and cannot be changed afterwards.',
+            required: '{label} (required)',
+        },
         proof: {
             heading: '3. Confirm the signature',
             signerLine: 'Signed by {signer}, confirmed through the account of {holder}.',

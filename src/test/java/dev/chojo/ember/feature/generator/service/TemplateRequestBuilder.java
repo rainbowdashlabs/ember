@@ -153,6 +153,17 @@ public final class TemplateRequestBuilder {
         return new BlockCellRequest(0, 100.0, CellContentType.SIGNATURE.name(), below, config, null, null);
     }
 
+    /** A box the signer fills in at signing, with its label, whether it is required and its length. */
+    static BlockCellRequest fillIn(
+            @Nullable SignatureRole signer, String label, boolean required, @Nullable Integer maxLength) {
+        var config = JsonNodeFactory.instance.objectNode();
+        if (signer != null) config.put("signer", signer.name());
+        config.put("label", label);
+        config.put("required", required);
+        if (maxLength != null) config.put("maxLength", maxLength);
+        return new BlockCellRequest(0, 100.0, CellContentType.FILL_IN.name(), "", config, null, null);
+    }
+
     /** A line across the column with a label. */
     static BlockCellRequest divider(String label) {
         var config = JsonNodeFactory.instance.objectNode();

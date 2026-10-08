@@ -6,10 +6,13 @@
 package dev.chojo.ember.feature.signing.service;
 
 import dev.chojo.ember.conf.file.elements.Api;
+import dev.chojo.ember.feature.generator.entity.FillInField;
+import dev.chojo.ember.feature.generator.service.pdf.FillInFields;
 import dev.chojo.ember.feature.signing.entity.ActPicture;
 import dev.chojo.ember.feature.signing.entity.AssembledDocument;
 import dev.chojo.ember.feature.signing.entity.FieldState;
 import dev.chojo.ember.feature.signing.entity.RecordTimeBasis;
+import dev.chojo.ember.feature.signing.entity.RequestedSignature;
 import dev.chojo.ember.feature.signing.entity.SignatureMark;
 import dev.chojo.ember.feature.signing.entity.SignatureRequestView;
 import dev.chojo.ember.feature.signing.entity.SigningEvidenceFile;
@@ -44,14 +47,18 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 /**
- * Puts together the document for one signing state: the frozen content as every signer read it, with the
- * mark of each signed field drawn into that field ({@link SignatureMarks}), the {@link SignatureRecordPage}
+ * Puts together the document for one signing state: the frozen content as every signer read it, with what
+ * each signer typed into the fields they were asked to fill in drawn into those fields
+ * ({@link FilledInValues}), the mark of each signed field drawn into that field ({@link SignatureMarks}), the
+ * {@link SignatureRecordPage}
  * after its last page, and the {@link SigningEvidenceFile} attached. The result is not sealed yet; it is
  * sealed once, as a whole, and supersedes the document of the state before.
  *
@@ -163,13 +170,15 @@ public class SigningStateAssembler {
         Station station = stations.findById(request.stationId())
                 .orElseThrow(() -> new IllegalArgumentException("No station " + request.stationId()));
         Instant now = clock.instant();
-        SigningEvidenceFile evidence = SigningEvidenceFiles.of(view, pictures, now);
-        byte[] evidenceJson = SigningEvidenceFiles.write(evidence);
         String language = StationFormat.languageOf(station);
         var zone = StationFormat.timezoneOf(station);
         try (PDDocument document = Loader.loadPDF(content)) {
+            SigningEvidenceFile evidence =
+                    SigningEvidenceFiles.of(view, pictures, labelsOf(FillInFields.of(document)), now);
+            byte[] evidenceJson = SigningEvidenceFiles.write(evidence);
             int recordPage = document.getNumberOfPages() + 1;
             SignatureMarks.withoutSeals(document);
+            FilledInValues.draw(document, typedValues(view), signedFields(view));
             SignatureMarks.draw(document, marks(view, pictures, MarkCaptions.of(language, zone), recordPage));
             byte[] record = SignatureRecordPage.render(new SignatureRecordPage.Input(
                     evidence,
@@ -193,6 +202,29 @@ public class SigningStateAssembler {
             Thread.currentThread().interrupt();
             throw new IllegalStateException("Interrupted while rendering the record of request " + request.uid(), e);
         }
+    }
+
+    private static Map<String, String> labelsOf(List<FillInField> fields) {
+        var labels = new HashMap<String, String>();
+        fields.forEach(field -> labels.putIfAbsent(field.name(), field.label()));
+        return labels;
+    }
+
+    /** What every act so far typed into the document's fields, by the name of the field. */
+    private static Map<String, String> typedValues(SignatureRequestView view) {
+        var values = new HashMap<String, String>();
+        view.evidence()
+                .forEach(stored ->
+                        stored.evidence().act().entries().forEach(entry -> values.put(entry.field(), entry.value())));
+        return values;
+    }
+
+    /** The names of the signature fields a signing act filled. */
+    private static Set<String> signedFields(SignatureRequestView view) {
+        return view.fields().stream()
+                .filter(field -> field.state() == FieldState.SIGNED)
+                .map(RequestedSignature::fieldName)
+                .collect(Collectors.toSet());
     }
 
     /** The mark of every field a signing act filled, in the order the fields were asked for. */

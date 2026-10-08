@@ -11,10 +11,12 @@ import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.feature.content.entity.CellConfig;
 import dev.chojo.ember.feature.content.entity.ContentCell;
 import dev.chojo.ember.feature.generator.entity.DocumentLanguage;
+import dev.chojo.ember.feature.generator.entity.FillInField;
 import dev.chojo.ember.feature.generator.entity.LetterContent;
 import dev.chojo.ember.feature.generator.entity.MemberView;
 import dev.chojo.ember.feature.generator.entity.PlaceholderTokens;
 import dev.chojo.ember.feature.generator.service.font.FontLibrary;
+import dev.chojo.ember.feature.generator.service.pdf.FillInFields;
 import dev.chojo.ember.feature.generator.service.pdf.SignatureFields;
 import dev.chojo.ember.feature.generator.service.store.OwnerStores;
 import dev.chojo.ember.feature.knowledgebase.service.KbPdfPictures;
@@ -68,7 +70,9 @@ import java.util.Optional;
  *
  * <p>A signature block is drawn by {@code letter.typ} as an empty box on a line for each of its fields,
  * with its short text below, and {@link SignatureFields#replaceMarkers} turns each box into a real,
- * empty PDF signature field afterwards.
+ * empty PDF signature field afterwards. A block to fill in at signing is drawn as its label over a boxed
+ * line for each of its fields, and {@link FillInFields#replaceMarkers} turns each box into an empty text
+ * field the same way.
  */
 @Singleton
 public class LetterRenderer {
@@ -188,6 +192,7 @@ public class LetterRenderer {
         int logoStation = Objects.requireNonNullElse(job.stationId(), library);
         var files = new HashMap<String, byte[]>();
         var resources = new HashMap<String, String>();
+        var fillIns = new HashMap<String, FillInField>();
         var layout = new LetterLayout(job.view(), new LetterLayout.Blocks() {
                     @Override
                     public Map<String, Object> text(int index, ContentCell cell) {
@@ -204,6 +209,20 @@ public class LetterRenderer {
                         return Map.of("kind", "signature", "file", textFile(index, cell), "fields", fields);
                     }
 
+                    @Override
+                    public Map<String, Object> fillIn(ContentCell cell, List<FillInField> fields) {
+                        fields.forEach(field -> fillIns.put(field.name(), field));
+                        return Map.of(
+                                "kind",
+                                "fillIn",
+                                "label",
+                                fields.getFirst().label(),
+                                "required",
+                                fields.getFirst().required(),
+                                "fields",
+                                fields.stream().map(FillInField::name).toList());
+                    }
+
                     private String textFile(int index, ContentCell cell) {
                         String file = "block-" + index + ".typ";
                         var text = convert(library, cell.content(), "b" + index + "-");
@@ -216,6 +235,8 @@ public class LetterRenderer {
         String marker = SignatureFields.newMarker();
         var data = new LinkedHashMap<String, Object>(layout);
         data.put("signatureMarker", marker);
+        String fillInMarker = FillInFields.newMarker();
+        data.put("fillInMarker", fillInMarker);
         data.put("title", job.title());
         data.put("language", job.language().code());
         data.put(
@@ -236,7 +257,7 @@ public class LetterRenderer {
         data.put("spanFonts", typeset.spans());
         data.put("uprightFamilies", typeset.uprightFamilies());
         try {
-            return SignatureFields.replaceMarkers(
+            byte[] drawn = SignatureFields.replaceMarkers(
                     TypstCompiler.compileTemplate(
                             data,
                             "letter.typ",
@@ -247,6 +268,7 @@ public class LetterRenderer {
                             Map.of(),
                             setting.fontDirectories()),
                     marker);
+            return FillInFields.replaceMarkers(drawn, fillInMarker, fillIns);
         } catch (IOException e) {
             log.error("A letter of {} could not be rendered", job.owner(), e);
             throw DocumentRefusal.DOCUMENT_RENDER_FAILED.raise();

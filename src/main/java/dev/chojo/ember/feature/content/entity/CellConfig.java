@@ -621,6 +621,24 @@ public sealed interface CellConfig {
     }
 
     /**
+     * A box in a letter that the signer of a signature line types into when they sign, with its label
+     * printed above it. It becomes one empty text field for each signature field its signer has in the
+     * member's letter, side by side like the lines of a signature block.
+     *
+     * @param signer    who fills it in; a block without one is refused when the letter is saved
+     * @param label     what it asks for, printed above the box and shown to the signer
+     * @param required  whether the signer has to fill it in to sign
+     * @param maxLength the most characters the value may have, or null for the most any field takes
+     */
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    record FillInConfig(
+            @Nullable SignatureRole signer,
+            @Nullable String label,
+            @Nullable Boolean required,
+            @Nullable Integer maxLength)
+            implements CellConfig {}
+
+    /**
      * Cell that contains nested rows. The rows are stored opaquely as JSON nodes so the existing
      * ContentRow shape (rows of cells of … nested rows) round-trips without a dedicated record type.
      * The frontend treats this as a recursive RowEditData[].

@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {FontStyle, PdfFieldKind, TextAlign, type PdfField, type SignatureRole} from '@/api/generated/schema'
+import {FontStyle, PdfFieldKind, SignatureRole, TextAlign, type PdfField} from '@/api/generated/schema'
 import {freeSignerOf} from '@/components/documents/signers'
 import {fieldRectOf, keptOnCanvas, scaleOf, screenBoxOf, type PageGeometry, type ScreenBox} from './pdfViewport'
 
@@ -12,6 +12,7 @@ const NEW_SIZE: Readonly<Record<PdfFieldKind, {width: number; height: number}>> 
     [PdfFieldKind.TEXT]: {width: 160, height: 16},
     [PdfFieldKind.CHECK]: {width: 12, height: 12},
     [PdfFieldKind.SIGNATURE]: {width: 170, height: 40},
+    [PdfFieldKind.FILL_IN]: {width: 160, height: 18},
 }
 
 /** The text size a new text field starts at, in points. */
@@ -19,14 +20,20 @@ export const DEFAULT_FONT_SIZE = 10
 
 /** The first signer whose field asks nobody already asked to sign, or null where none is left. */
 export function freeSigner(fields: readonly PdfField[]): SignatureRole | null {
-    return freeSignerOf(fields.map(field => field.role))
+    return freeSignerOf(fields.filter(field => field.kind === PdfFieldKind.SIGNATURE).map(field => field.role))
+}
+
+/** The signer of the first signature field, who a new field to fill in goes with, or null where none is placed. */
+export function firstSigner(fields: readonly PdfField[]): SignatureRole | null {
+    return fields.find(field => field.kind === PdfFieldKind.SIGNATURE && field.role)?.role ?? null
 }
 
 /**
  * A new field in the middle of the part of the page in view, upright to the reader whichever way the
  * page is turned. Zoomed in, that is the part scrolled to, so the field lands where the reader is
  * looking rather than somewhere off screen; without a view it is the middle of the whole page. A
- * signature field takes the first signer without one.
+ * signature field takes the first signer without one, a field to fill in the signer of the first
+ * signature field, or the participant where none is placed yet.
  */
 export function newField(
     kind: PdfFieldKind,
@@ -51,13 +58,21 @@ export function newField(
         fontSize: DEFAULT_FONT_SIZE,
         align: TextAlign.LEFT,
         wrap: false,
-        role: signature ? freeSigner(fields) : null,
+        role: roleOf(kind, fields),
         fontFamily: null,
         fontStyle: FontStyle.REGULAR,
         withoutLine: false,
         printText: false,
         statement: null,
+        required: false,
+        maxLength: null,
     }
+}
+
+function roleOf(kind: PdfFieldKind, fields: readonly PdfField[]): SignatureRole | null {
+    if (kind === PdfFieldKind.SIGNATURE) return freeSigner(fields)
+    if (kind === PdfFieldKind.FILL_IN) return firstSigner(fields) ?? SignatureRole.PARTICIPANT
+    return null
 }
 
 /** A field with its box changed on the canvas, kept on the page. */

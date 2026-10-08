@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import type {
+    FillInResponse,
     ManagedRequestResponse,
     OpenSignatureResponse,
     SealVerification,
@@ -83,6 +84,17 @@ export async function verifySeals(file: File): Promise<SealVerification> {
  */
 export async function getSigningField(fieldId: number): Promise<OpenSignatureResponse> {
     const res = await client.get<OpenSignatureResponse>(`/signing/fields/${fieldId}`)
+    return res.data
+}
+
+/**
+ * The fields the document asks the reader to fill in when they sign a field, as the frozen document
+ * carries them; none where it asks for none.
+ *
+ * @param fieldId the signature field
+ */
+export async function getSigningFillIns(fieldId: number): Promise<FillInResponse[]> {
+    const res = await client.get<FillInResponse[]>(`/signing/fields/${fieldId}/fill-ins`)
     return res.data
 }
 

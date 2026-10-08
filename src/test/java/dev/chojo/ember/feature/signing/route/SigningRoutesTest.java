@@ -29,10 +29,12 @@ import dev.chojo.ember.feature.documents.service.DocumentService;
 import dev.chojo.ember.feature.generator.entity.DocumentGeneration;
 import dev.chojo.ember.feature.generator.entity.DocumentLanguage;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplateDraft;
+import dev.chojo.ember.feature.generator.entity.FillInField;
 import dev.chojo.ember.feature.generator.entity.LetterContent;
 import dev.chojo.ember.feature.generator.entity.SignatureRole;
 import dev.chojo.ember.feature.generator.repository.DocumentGenerationRepository;
 import dev.chojo.ember.feature.generator.repository.DocumentTemplateRepository;
+import dev.chojo.ember.feature.generator.service.pdf.FillInFields;
 import dev.chojo.ember.feature.generator.service.pdf.PdfFiles;
 import dev.chojo.ember.feature.generator.service.pdf.SignatureFields;
 import dev.chojo.ember.feature.mail.service.EmailService;
@@ -174,6 +176,8 @@ class SigningRoutesTest extends RepositoryTestBase {
     private static final SigningStatements STATEMENTS =
             new SigningStatements("Ich stimme zu.", "Ich bin erziehungsberechtigt und stimme zu.");
     private static final AtomicInteger NAMES = new AtomicInteger();
+    private static final String PHONE_LABEL = "Telefon";
+    private static final int PHONE_LENGTH = 30;
 
     @TempDir
     static Path storageRoot;
@@ -311,8 +315,11 @@ class SigningRoutesTest extends RepositoryTestBase {
         var request = ask(signer, SignatureRole.PARTICIPANT);
 
         harness.run((server, client) -> {
-            JsonNode started =
-                    start(client, signer, fieldOf(request), "[{\"field\":\"Telefon\",\"value\":\"0171 2345678\"}]");
+            JsonNode started = start(
+                    client,
+                    signer,
+                    fieldOf(request),
+                    "[{\"field\":\"fill-participant-0\",\"value\":\"0171 2345678\"}]");
             assertEquals(List.of("SECURITY_KEY"), texts(started.path("acceptedProofs")));
             JsonNode options =
                     body(started.path("webAuthnOptionsJson").asString()).path("publicKey");
@@ -341,7 +348,7 @@ class SigningRoutesTest extends RepositoryTestBase {
             assertArrayEquals(decode(options.path("challenge").asString()), bound.challenge());
             assertTrue(bound.userVerified());
             assertEquals(
-                    List.of(new SignerEntry("Telefon", "0171 2345678")),
+                    List.of(new SignerEntry("fill-participant-0", "0171 2345678")),
                     bound.act().entries());
         });
     }
@@ -703,33 +710,63 @@ class SigningRoutesTest extends RepositoryTestBase {
                 .allMatch(evidence -> versions.getFirst().sha256().equals(evidence.sealedSha256())));
     }
 
+    /**
+     * What a signer types is held to the fields the frozen document asks them to fill in, which the field's
+     * reader can list: a field of another signer or one the document does not have is refused, and so is a
+     * value longer than its field takes.
+     */
     @Test
     void whatASignerTypesIsCheckedBeforeTheActStarts() throws IOException {
         var signer = member("Fritz", "Feld", true);
+        var guardian = member("Grete", "Feld", true);
+        var stranger = member("Sven", "Fremd", true);
         accountRepo.createCredential(signer.accountId(), hasher.hash(PASSWORD));
-        var request = ask(signer, SignatureRole.PARTICIPANT);
+        stationMemberRepo.addManager(guardian.id(), signer.id(), manager.id());
+        var request = ask(signer, SignatureRole.PARTICIPANT, SignatureRole.GUARDIAN_1);
+        int field = fieldNamed(request, "participant");
 
         harness.run((server, client) -> {
+            JsonNode fillIns = json(
+                    client.get(fieldPath(field) + "/fill-ins", harness.as(signedIn(signer, StationPermission.LOGIN))));
+            assertEquals(1, fillIns.size(), "only the participant's own field");
+            assertEquals("fill-participant-0", fillIns.get(0).path("name").asString());
+            assertEquals(PHONE_LABEL, fillIns.get(0).path("label").asString());
+            assertFalse(fillIns.get(0).path("required").asBoolean());
+            assertEquals(PHONE_LENGTH, fillIns.get(0).path("maxLength").asInt());
+            assertRefused(
+                    DocumentRefusal.SIGNING_FIELD_NOT_YOURS,
+                    client.get(
+                            fieldPath(field) + "/fill-ins", harness.as(signedIn(stranger, StationPermission.LOGIN))));
+
+            assertRefused(
+                    DocumentRefusal.SIGNING_ENTRY_NOT_ASKED,
+                    startRaw(client, signer, field, "[{\"field\":\"fill-guardian1-0\",\"value\":\"1\"}]"));
+            assertRefused(
+                    DocumentRefusal.SIGNING_ENTRY_NOT_ASKED,
+                    startRaw(client, signer, field, "[{\"field\":\"Telefon\",\"value\":\"1\"}]"));
+            assertRefused(
+                    DocumentRefusal.SIGNING_ENTRY_LONGER_THAN_FIELD,
+                    startRaw(
+                            client,
+                            signer,
+                            field,
+                            "[{\"field\":\"fill-participant-0\",\"value\":\"" + "1".repeat(PHONE_LENGTH + 1) + "\"}]"));
             assertRefused(
                     DocumentRefusal.SIGNING_ENTRY_EMPTY,
-                    startRaw(client, signer, fieldOf(request), "[{\"field\":\"Telefon\",\"value\":\" \"}]"));
+                    startRaw(client, signer, field, "[{\"field\":\"fill-participant-0\",\"value\":\" \"}]"));
             assertRefused(
                     DocumentRefusal.SIGNING_ENTRY_TWICE,
                     startRaw(
                             client,
                             signer,
-                            fieldOf(request),
-                            "[{\"field\":\"Telefon\",\"value\":\"1\"},{\"field\":\"Telefon\",\"value\":\"2\"}]"));
+                            field,
+                            "[{\"field\":\"fill-participant-0\",\"value\":\"1\"},"
+                                    + "{\"field\":\"fill-participant-0\",\"value\":\"2\"}]"));
             assertRefused(
-                    DocumentRefusal.SIGNING_ENTRY_UNNAMED,
-                    startRaw(client, signer, fieldOf(request), "[{\"value\":\"1\"}]"));
+                    DocumentRefusal.SIGNING_ENTRY_UNNAMED, startRaw(client, signer, field, "[{\"value\":\"1\"}]"));
             assertRefused(
                     DocumentRefusal.SIGNING_ENTRY_TOO_LONG,
-                    startRaw(
-                            client,
-                            signer,
-                            fieldOf(request),
-                            "[{\"field\":\"Notiz\",\"value\":\"" + "x".repeat(501) + "\"}]"));
+                    startRaw(client, signer, field, "[{\"field\":\"Notiz\",\"value\":\"" + "x".repeat(501) + "\"}]"));
         });
     }
 
@@ -1269,6 +1306,11 @@ class SigningRoutesTest extends RepositoryTestBase {
             float x = 40;
             for (String name : fieldNames) {
                 SignatureFields.add(pdf, page, new PDRectangle(x, 60, 120, 40), name);
+                FillInFields.add(
+                        pdf,
+                        page,
+                        new PDRectangle(x, 120, 120, 20),
+                        new FillInField(FillInField.nameOf(name, 0), name, PHONE_LABEL, false, PHONE_LENGTH));
                 x += 130;
             }
             return PdfFiles.save(pdf);

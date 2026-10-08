@@ -6,8 +6,10 @@
 package dev.chojo.ember.feature.generator.service.pdf;
 
 import dev.chojo.ember.feature.generator.entity.FieldRect;
+import dev.chojo.ember.feature.generator.entity.FillInField;
 import dev.chojo.ember.feature.generator.entity.FontStyle;
 import dev.chojo.ember.feature.generator.entity.PdfField;
+import dev.chojo.ember.feature.generator.entity.PdfFieldKind;
 import dev.chojo.ember.feature.generator.entity.PdfLayout;
 import dev.chojo.ember.feature.generator.entity.SignatureRole;
 import dev.chojo.ember.feature.generator.entity.TextAlign;
@@ -32,7 +34,8 @@ import java.util.function.UnaryOperator;
 
 /**
  * Fills an uploaded PDF in place: the texts and crosses of its fields drawn onto its pages, its own
- * form fields filled and flattened, and an empty signature field for every signer the member has.
+ * form fields filled and flattened, an empty signature field for every signer the member has, and an empty
+ * text field ({@link FillInFields}) for every field such a signer is asked to fill in.
  *
  * <p>The original is opened and never written back; what comes out is a new file. Everything drawn is
  * appended to the page's content with the page's earlier state wrapped and restored first, so whatever
@@ -118,10 +121,17 @@ public class PdfStamper {
                         text.rect(),
                         new Mark.Text(text.text(), text.size(), text.align(), text.wrap(), null, FontStyle.REGULAR));
             }
-            for (var field : layout.fields()) {
+            var fillIns = new ArrayList<FillInBox>();
+            var fields = layout.fields();
+            for (int position = 0; position < fields.size(); position++) {
+                var field = fields.get(position);
                 var role = field.role();
                 if (role == null) {
                     place(byPage, field.rect(), markOf(field, fill));
+                    continue;
+                }
+                if (field.kind() == PdfFieldKind.FILL_IN) {
+                    fillIns.addAll(fillInBoxes(field, position, role.fieldNames(guardians)));
                     continue;
                 }
                 for (var box : signatureBoxes(field.rect(), role.fieldNames(guardians))) {
@@ -136,12 +146,38 @@ public class PdfStamper {
             for (var box : signatures) {
                 addSignatureField(document, box);
             }
+            for (var box : fillIns) {
+                addFillInField(document, box);
+            }
             return new Stamped(PdfFiles.save(document), List.copyOf(unprintable));
         }
     }
 
     /** One signature field with the part of its box it takes. */
     private record SignatureBox(FieldRect rect, String name) {}
+
+    /** One field to fill in with the part of its box it takes. */
+    private record FillInBox(FieldRect rect, FillInField field) {}
+
+    /**
+     * The fields to fill in that one field of the template becomes: one for each signature field of its
+     * signer, sharing the box out the way a signature field does, each named after its signature field and
+     * the template field's position.
+     */
+    private static List<FillInBox> fillInBoxes(PdfField field, int position, List<String> signatureFields) {
+        String label = Objects.requireNonNullElse(field.text(), "");
+        int maxLength = FillInField.effectiveMaxLength(field.maxLength());
+        return signatureBoxes(field.rect(), signatureFields).stream()
+                .map(box -> new FillInBox(
+                        box.rect(),
+                        new FillInField(
+                                FillInField.nameOf(box.name(), position),
+                                box.name(),
+                                label,
+                                field.required(),
+                                maxLength)))
+                .toList();
+    }
 
     /**
      * What one signer's part of a signature field prints: its text along the bottom where it is to print,
@@ -217,6 +253,7 @@ public class PdfStamper {
                         Objects.requireNonNullElse(field.fontStyle(), FontStyle.REGULAR));
             case CHECK -> YesWords.saysYes(text) ? new Mark.Cross() : new Mark.Nothing();
             case SIGNATURE -> new Mark.Line();
+            case FILL_IN -> new Mark.Nothing();
         };
     }
 
@@ -317,5 +354,13 @@ public class PdfStamper {
         PDPage page = document.getPage(rect.page() - 1);
         var area = new PDRectangle((float) rect.x(), (float) rect.y(), (float) rect.width(), (float) rect.height());
         SignatureFields.add(document, page, area, box.name());
+    }
+
+    private static void addFillInField(PDDocument document, FillInBox box) throws IOException {
+        var rect = box.rect();
+        if (rect.page() > document.getNumberOfPages()) return;
+        PDPage page = document.getPage(rect.page() - 1);
+        var area = new PDRectangle((float) rect.x(), (float) rect.y(), (float) rect.width(), (float) rect.height());
+        FillInFields.add(document, page, area, box.field());
     }
 }

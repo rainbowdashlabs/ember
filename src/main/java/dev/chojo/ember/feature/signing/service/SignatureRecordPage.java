@@ -11,7 +11,6 @@ import dev.chojo.ember.feature.signing.entity.FieldState;
 import dev.chojo.ember.feature.signing.entity.GuardianLink;
 import dev.chojo.ember.feature.signing.entity.RecordTimeBasis;
 import dev.chojo.ember.feature.signing.entity.SignerCapacity;
-import dev.chojo.ember.feature.signing.entity.SignerEntry;
 import dev.chojo.ember.feature.signing.entity.SigningEvidenceFile;
 import dev.chojo.ember.feature.twofactor.entity.CredentialKeyStamp;
 import dev.chojo.ember.feature.twofactor.entity.KeyStampKind;
@@ -296,7 +295,7 @@ public final class SignatureRecordPage {
             SignerCapacity capacity,
             @Nullable GuardianModel guardian,
             String statement,
-            List<SignerEntry> entries,
+            List<SigningEvidenceFile.Entry> entries,
             StepUpProof proof,
             boolean bound,
             @Nullable Boolean userVerified,

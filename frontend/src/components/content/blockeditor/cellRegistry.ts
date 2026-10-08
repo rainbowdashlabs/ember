@@ -37,6 +37,7 @@ import QuizTeaserCell from './cells/QuizTeaserCell.vue'
 import FormsCtaCell from './cells/FormsCtaCell.vue'
 import CodeBlockCell from './cells/CodeBlockCell.vue'
 import SignatureCell from './cells/SignatureCell.vue'
+import FillInCell from './cells/FillInCell.vue'
 import CalloutEditor from './editors/CalloutEditor.vue'
 import QuoteEditor from './editors/QuoteEditor.vue'
 import DividerEditor from './editors/DividerEditor.vue'
@@ -64,6 +65,7 @@ import PollEmbedEditor from './editors/PollEmbedEditor.vue'
 import FormsCtaEditor from './editors/FormsCtaEditor.vue'
 import CodeBlockEditor from './editors/CodeBlockEditor.vue'
 import SignatureEditor from './editors/SignatureEditor.vue'
+import FillInEditor from './editors/FillInEditor.vue'
 
 /**
  * What a cell component is handed besides its configuration, which every one of them takes.
@@ -146,6 +148,7 @@ export const LAYOUT_CELLS: Record<LayoutKindName, LayoutCell> = {
     FORMS_CTA: {render: part(FormsCtaCell, 'stationUid'), editor: part(FormsCtaEditor)},
     CODE_BLOCK: {render: part(CodeBlockCell, 'content'), editor: part(CodeBlockEditor, 'content')},
     SIGNATURE: {render: part(SignatureCell, 'content'), editor: part(SignatureEditor, 'content')},
+    FILL_IN: {render: part(FillInCell), editor: part(FillInEditor)},
 }
 
 /**

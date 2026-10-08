@@ -88,7 +88,8 @@ public record SigningEvidenceFile(
      * @param fieldName         the signature field the act filled
      * @param statement         the statement the signer confirmed, exactly as shown
      * @param contentSha256     SHA-256 of the content the signer read, lower-case hexadecimal
-     * @param entries           what the signer typed, in the order the challenge took it
+     * @param entries           what the signer typed into the fields the document asked them to fill in, in
+     *                          the order the challenge took it
      * @param nonce             the nonce issued when the act started
      * @param signedAt          when the act was accepted, by the server's clock
      * @param truncatedIp       the client's address with its host part zeroed, or null
@@ -112,7 +113,7 @@ public record SigningEvidenceFile(
             String fieldName,
             String statement,
             String contentSha256,
-            List<SignerEntry> entries,
+            List<Entry> entries,
             byte[] nonce,
             Instant signedAt,
             @Nullable String truncatedIp,
@@ -120,6 +121,24 @@ public record SigningEvidenceFile(
             @Nullable GuardianLink guardianLink,
             @Nullable WebAuthn webAuthn,
             @Nullable Picture picture) {}
+
+    /**
+     * A value the signer typed into a field of the document. The challenge covers the field's name and the
+     * value; the label is the field's own, read from the content the signer bound to, so it is covered by the
+     * content's hash.
+     *
+     * @param field the name of the field in the document
+     * @param value what the signer typed, exactly as typed
+     * @param label what the field asked for, or null where the content has no such field
+     */
+    public record Entry(
+            String field, String value, @Nullable String label) {
+
+        /** @return the entry as the challenge took it */
+        public SignerEntry asSigned() {
+            return new SignerEntry(field, value);
+        }
+    }
 
     /**
      * The signature picture an act left in its field. The picture is not in the file, only its hash: the

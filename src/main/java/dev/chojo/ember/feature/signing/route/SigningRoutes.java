@@ -13,6 +13,7 @@ import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.feature.account.service.AuthRateLimiter;
+import dev.chojo.ember.feature.generator.entity.FillInField;
 import dev.chojo.ember.feature.signing.entity.FieldRole;
 import dev.chojo.ember.feature.signing.entity.FieldState;
 import dev.chojo.ember.feature.signing.entity.OpenSignature;
@@ -89,6 +90,7 @@ public class SigningRoutes implements Routes {
         routes.get(prefix + "/signing/open", this::open, StationPermission.LOGIN);
         routes.get(prefix + "/signing/fields/{fieldId}", this::field, StationPermission.LOGIN);
         routes.get(prefix + "/signing/fields/{fieldId}/document", this::document, StationPermission.LOGIN);
+        routes.get(prefix + "/signing/fields/{fieldId}/fill-ins", this::fillIns, StationPermission.LOGIN);
         routes.post(prefix + "/signing/fields/{fieldId}/start", this::start, StationPermission.LOGIN);
         routes.post(prefix + "/signing/fields/{fieldId}/complete", this::complete, StationPermission.LOGIN);
     }
@@ -140,6 +142,25 @@ public class SigningRoutes implements Routes {
         var session = StationSession.from(ctx);
         var document = acts.requireOwnedFieldDocument(session, pathInt(ctx, "fieldId"));
         FileResponse.send(ctx, PDF, document.fileName(), document.pdf());
+    }
+
+    @OpenApi(
+            path = "/api/v1/signing/fields/{fieldId}/fill-ins",
+            methods = HttpMethod.GET,
+            summary = "The fields the document asks the reader to fill in when they sign a field",
+            tags = {"Signing"},
+            pathParams = @OpenApiParam(name = "fieldId", type = Integer.class, required = true),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = FillInResponse[].class)),
+                @OpenApiResponse(status = "403", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "409", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void fillIns(Context ctx) {
+        var session = StationSession.from(ctx);
+        ctx.json(acts.requireOwnedFillIns(session, pathInt(ctx, "fieldId")).stream()
+                .map(FillInResponse::of)
+                .toList());
     }
 
     @OpenApi(
@@ -277,6 +298,20 @@ public class SigningRoutes implements Routes {
                     open.signer().memberId(),
                     field.signerName(),
                     field.statement());
+        }
+    }
+
+    /**
+     * A field the document asks the signer to fill in when they sign.
+     *
+     * @param name      the name to send its value under
+     * @param label     what it asks for
+     * @param required  whether it has to be filled in to sign
+     * @param maxLength the most characters the value may have
+     */
+    public record FillInResponse(String name, String label, boolean required, int maxLength) {
+        static FillInResponse of(FillInField field) {
+            return new FillInResponse(field.name(), field.label(), field.required(), field.maxLength());
         }
     }
 

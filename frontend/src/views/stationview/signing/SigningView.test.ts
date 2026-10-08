@@ -14,9 +14,11 @@ const getSigningDocument = vi.hoisted(() => vi.fn())
 const startSigning = vi.hoisted(() => vi.fn())
 const completeSigning = vi.hoisted(() => vi.fn())
 const getSignatureImage = vi.hoisted(() => vi.fn())
+const getSigningFillIns = vi.hoisted(() => vi.fn())
 
 vi.mock('@/api/signing', () => ({
     getSigningField,
+    getSigningFillIns,
     getSigningDocument,
     startSigning,
     completeSigning,
@@ -119,6 +121,31 @@ describe('SigningView', () => {
         startSigning.mockResolvedValue(started())
         completeSigning.mockResolvedValue(signed())
         getSignatureImage.mockResolvedValue(new Blob(['png'], {type: 'image/png'}))
+        getSigningFillIns.mockResolvedValue([])
+    })
+
+    it('asks for the fields to fill in, waits for the required ones and binds what was typed', async () => {
+        getSigningFillIns.mockResolvedValue([
+            {name: 'fill-guardian1-0', label: 'Telefon im Notfall', required: true, maxLength: 30},
+            {name: 'fill-guardian1-1', label: 'Allergien', required: false, maxLength: 500},
+        ])
+        const view = await open()
+
+        const group = view.get('[data-testid="signing-fill-ins"]')
+        expect(group.element.tagName).toBe('FIELDSET')
+        const phone = view.get('[data-testid="signing-fill-in-fill-guardian1-0"]')
+        expect(phone.attributes('aria-required')).toBe('true')
+        expect(phone.attributes('maxlength')).toBe('30')
+        expect(view.get(`label[for="${phone.attributes('id')}"]`).text()).toBe('Telefon im Notfall (Pflichtangabe)')
+        await view.get('input[type="checkbox"]').setValue(true)
+        expect(view.get('[data-testid="signing-proceed"]').attributes('disabled')).toBeDefined()
+
+        await phone.setValue('0171 2345678')
+        await tickAndProceed(view)
+
+        expect(startSigning).toHaveBeenCalledWith(7, [{field: 'fill-guardian1-0', value: '0171 2345678'}])
+        expect(view.get('[data-testid="signing-fill-in-fill-guardian1-0"]').attributes('disabled')).toBeDefined()
+        view.unmount()
     })
 
     it('signs with the saved signature picture unless the signer draws a new one', async () => {
@@ -189,7 +216,7 @@ describe('SigningView', () => {
 
         await tickAndProceed(view)
 
-        expect(startSigning).toHaveBeenCalledWith(7)
+        expect(startSigning).toHaveBeenCalledWith(7, [])
         const proof = view.get('[data-testid="signing-proof"]')
         expect(proof.text()).toContain('Es unterschreibt Jana Beispiel, bestätigt über das Konto von Jana Beispiel.')
         expect(proof.text()).toContain('Code aus deiner Authenticator-App')

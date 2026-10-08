@@ -1172,6 +1172,10 @@ volumes:
             steps: 'Drei Schritte',
             stepRead: '1. Dokument lesen - Die Seite zeigt genau die Datei, die du unterschreibst. Du kannst sie auch speichern oder im PDF-Betrachter deines Browsers öffnen.',
             stepConfirm: '2. Erklärung bestätigen - Lies die Erklärung und setze den Haken, wenn du sie abgibst. Erst dann geht es weiter.',
+            stepFillIn: 'Bittet das Dokument um eigene Angaben, etwa eine Telefonnummer für den Notfall, stehen die Felder dafür bei der Erklärung. '
+                + 'Pflichtangaben musst du ausfüllen, bevor es weitergeht. Was du einträgst, schreibt Ember mit deiner Unterschrift in das Dokument, '
+                + 'es steht im Signaturnachweis und ist danach nicht mehr zu ändern.',
+            exampleFillIn: 'Telefon im Notfall',
             stepProve: '3. Unterschrift bestätigen - Bestätige mit einem Nachweis aus deinem Konto. Erst damit ist das Dokument unterschrieben.',
             stepMark: 'Vor dem Nachweis wählst du die Unterschrift, die in dein Feld kommt. Hast du eine gespeichert, nimmt Ember sie. Sonst zeichnest du eine oder tippst deinen Namen. Darunter stehen dein Name, das Datum und die Seite mit dem Nachweis.',
             exampleTitle: 'Einverständnis Zeltlager',
@@ -2053,6 +2057,13 @@ volumes:
                 + 'der Bestätigung und wird mit unterschrieben. Ohne eigene Erklärung gilt die übliche in der Sprache '
                 + 'der Vorlage: Erziehungsberechtigte erklären dabei mit Namen des Mitglieds, dass sie '
                 + 'erziehungsberechtigt sind.',
+            fillInText: 'Ein Feld zum Ausfüllen (im Brief ein Baustein, im PDF eine Feldart) fragt die unterschreibende '
+                + 'Person nach eigenen Angaben, etwa einer Telefonnummer für den Notfall. Du gibst ihm eine Bezeichnung, '
+                + 'wählst, wer es ausfüllt, und legst fest, ob es Pflicht ist und wie viele Zeichen es fasst. Die Person '
+                + 'füllt es beim Unterschreiben aus, Ember schreibt den Wert vor dem Versiegeln an seine Stelle und nennt '
+                + 'ihn im Signaturnachweis. Gilt es für alle Erziehungsberechtigten, füllt jede ihr eigenes aus. Die '
+                + 'Vorlage braucht dafür ein Unterschriftsfeld derselben Person. Unterschreibt jemand auf Papier, '
+                + 'bleibt das Feld zum Ausfüllen von Hand.',
             signatureRequestText: 'Erstellen allein bittet niemanden um eine Unterschrift. Nach dem Erstellen zeigt '
                 + 'Ember, wer welches Feld unterschreiben soll, und fordert die Unterschriften auf Knopfdruck an. '
                 + 'Das geht auch später mit einem Klick auf das Dokument in der Liste der erstellten Dokumente.',

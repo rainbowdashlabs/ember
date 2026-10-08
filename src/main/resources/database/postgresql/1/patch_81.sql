@@ -1745,3 +1745,29 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_station_member_station_account
 
 COMMENT ON INDEX ember_schema.uq_station_member_station_account IS
     'An account is at most one member of a station, former members included, so two answers or joins arriving at once cannot give it a second one.';
+
+ALTER TABLE ember_schema.document_template_field
+    DROP CONSTRAINT document_template_field_kind_check,
+    ADD CONSTRAINT document_template_field_kind_check CHECK (kind IN ('TEXT', 'CHECK', 'SIGNATURE', 'FILL_IN')),
+    DROP CONSTRAINT document_template_field_check,
+    ADD CONSTRAINT document_template_field_role_kind_check CHECK ((kind IN ('SIGNATURE', 'FILL_IN')) = (role IS NOT NULL)),
+    ADD COLUMN required BOOLEAN NOT NULL DEFAULT FALSE,
+    ADD COLUMN max_length INTEGER NULL,
+    ADD CONSTRAINT document_template_field_fill_in_check CHECK (
+        kind = 'FILL_IN' OR (NOT required AND max_length IS NULL)),
+    ADD CONSTRAINT document_template_field_max_length_check CHECK (max_length IS NULL OR max_length BETWEEN 1 AND 500);
+
+COMMENT ON COLUMN ember_schema.document_template_field.kind IS
+    'TEXT prints a text with placeholders, CHECK prints a cross where its text says yes, SIGNATURE becomes an empty PDF signature field named after its role, FILL_IN becomes an empty PDF text field the signer of its role types into when signing, named fill-<signature field>-<position>.';
+COMMENT ON COLUMN ember_schema.document_template_field.text IS
+    'The text with placeholders written as {{key}}: printed by TEXT, deciding the cross of CHECK, and for SIGNATURE the text under the line, printed only where print_text is set. NULL for a SIGNATURE without one. For FILL_IN the label the signer is shown, at most 100 characters and printed nowhere.';
+COMMENT ON COLUMN ember_schema.document_template_field.role IS
+    'Who signs in a SIGNATURE field, and for FILL_IN whose signer fills it in: PARTICIPANT, GUARDIAN_1, GUARDIAN_2 (left out for a member with fewer than two guardians), EACH_GUARDIAN (the box shared out into one field per guardian of the member), ANY_GUARDIAN (one field any guardian may sign) or ISSUER. NULL for every other kind.';
+COMMENT ON COLUMN ember_schema.document_template_field.required IS
+    'For FILL_IN: true where the signer has to fill the field in to sign. FALSE for every other kind.';
+COMMENT ON COLUMN ember_schema.document_template_field.max_length IS
+    'For FILL_IN: the most characters the typed value may have, 1 to 500. NULL for 500, and for every other kind.';
+COMMENT ON CONSTRAINT document_template_field_role_kind_check ON ember_schema.document_template_field IS
+    'A signature field and a field to fill in name a signer, no other field does.';
+COMMENT ON CONSTRAINT document_template_field_fill_in_check ON ember_schema.document_template_field IS
+    'Only a field to fill in can be required or limit its length.';
