@@ -5,6 +5,29 @@
  */
 import {test, expect, clusterAccountWith, clusterHeaders, clusterPage, theSeededCluster} from './fixtures/auth'
 import {ownCluster} from './fixtures/cluster'
+import {must} from './fixtures/must'
+import {demoSignIn, sessionHeaders} from './fixtures/session'
+import type {Browser} from '@playwright/test'
+
+/**
+ * Signs in as the account behind the address and accepts the request the named station sent it.
+ *
+ * @param browser     to open the person's own context with
+ * @param email       the address the account signs in with
+ * @param stationName the station whose request is accepted
+ */
+async function acceptLinkRequest(browser: Browser, email: string, stationName: string): Promise<void> {
+    const context = await browser.newContext()
+    const session = await demoSignIn(context.request, email)
+    const headers = sessionHeaders(session)
+    const waiting = await context.request.get('/api/v1/account/link-requests', {headers})
+    expect(waiting.ok(), `the person sees what waits for them (${await waiting.text()})`).toBeTruthy()
+    const prompt = must((await waiting.json() as {uid: string; stationName: string}[])
+        .find(candidate => candidate.stationName === stationName), `the request of ${stationName}`)
+    const accepted = await context.request.post(`/api/v1/account/link-requests/${prompt.uid}/accept`, {headers})
+    expect(accepted.ok(), `the person accepted (${await accepted.text()})`).toBeTruthy()
+    await context.close()
+}
 
 /**
  * The two lists an association keeps of people, and the screen behind one of them.
@@ -74,6 +97,9 @@ test.describe('Cluster member screens', () => {
      * word. And the search returns one row per membership, so somebody at two stations of the
      * association was two rows that never said they were the same person.
      *
+     * Taking somebody on whose address already has an account only asks that account to be linked, so
+     * the person accepts the second station's request before both rows are the same person.
+     *
      * The narrowing is retried until the screen says so rather than until the box holds the value: the
      * page is server rendered, and a change fired before Vue is listening sets the box and nothing else.
      * Each attempt goes back through "every station" first, because picking a value the box already
@@ -95,6 +121,7 @@ test.describe('Cluster member screens', () => {
                     {headers: own.headers, data: {firstName: 'Erika', lastName: surname, email}})
                 expect(taken.ok(), `they were taken on (${await taken.text()})`).toBeTruthy()
             }
+            await acceptLinkRequest(browser, email, `${own.name} Zweite`)
 
             await page.goto('/cluster/members')
             await page.evaluate(uid => window.localStorage.setItem('cluster_id', uid), own.uid)
