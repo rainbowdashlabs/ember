@@ -8,6 +8,9 @@ package dev.chojo.ember.feature.station.service;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.conf.file.elements.Api;
+import dev.chojo.ember.feature.accountlink.entity.LinkOrigin;
+import dev.chojo.ember.feature.accountlink.repository.AccountLinkRepository;
+import dev.chojo.ember.feature.accountlink.service.TestAccountLinks;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.federation.entity.LendingMessage;
@@ -57,6 +60,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -125,11 +129,12 @@ class StationTransferTest extends RepositoryTestBase {
                 stationImporter,
                 Set.of(
                         stationImporter,
-                        new AccountTableImporter(accountRepo),
+                        new AccountTableImporter(accountRepo, stationMemberRepo),
                         new AccountCredentialTableImporter(accountRepo, passkeyModeService),
                         new DisabledModuleTableImporter(stationRepo)),
                 accountRepo,
                 org.mockito.Mockito.mock(dev.chojo.ember.feature.account.service.AuthService.class),
+                TestAccountLinks.importedLinks(accountRepo, stationRepo, stationMemberRepo),
                 new TaskScheduler());
 
         var station = stationRepo.create("Jugendfeuerwehr Musterstadt");
@@ -506,12 +511,13 @@ class StationTransferTest extends RepositoryTestBase {
     }
 
     /**
-     * A minimal bundle whose account carries the same email but a different name and hash; the import
-     * must not overwrite the existing account.
+     * A minimal bundle whose account carries the same email but a different name and hash. The import
+     * changes nothing on the existing account and does not attach it: the member arrives without an
+     * account, and the owner is asked to link it.
      */
     @Test
     @Order(30)
-    void importLinksExistingAccountsByEmail() {
+    void anAccountFoundByEmailIsAskedForAndLeftAsItWas() {
         String email = "linked-import@example.com";
         var existingAccount = accountRepo.create(email, "Existing", "User", true);
         accountRepo.createCredential(existingAccount.id(), "$bcrypt$target-original");
@@ -548,9 +554,22 @@ class StationTransferTest extends RepositoryTestBase {
         assertEquals("User", account.lastName(), "account last name must not be overwritten");
         var cred = accountRepo.findCredential(existingAccount.id()).orElseThrow();
         assertEquals("$bcrypt$target-original", cred.passwordHash(), "existing credential must be preserved");
+        assertFalse(
+                accountRepo.isUnconfirmed(existingAccount.id()), "an account found here was not made by the import");
+        assertEquals(
+                List.of(),
+                stationMemberRepo.findAllByAccountId(existingAccount.id()),
+                "the account is attached nowhere");
 
-        var linkedMember = stationMemberRepo.findByStationAndAccount(result.stationId(), existingAccount.id());
-        assertTrue(linkedMember.isPresent(), "member should be linked to existing account");
+        var arrived = stationMemberRepo.findByStation(result.stationId());
+        assertEquals(1, arrived.size());
+        assertNull(arrived.getFirst().accountId(), "the member waits without the account");
+        var request = new AccountLinkRepository()
+                .findUnansweredForMember(arrived.getFirst().id())
+                .orElseThrow();
+        assertEquals(existingAccount.id(), request.accountId());
+        assertEquals(LinkOrigin.IMPORT, request.origin());
+        assertNull(request.createdBy());
 
         stationRepo.delete(result.stationId());
         accountRepo.delete(existingAccount.id());

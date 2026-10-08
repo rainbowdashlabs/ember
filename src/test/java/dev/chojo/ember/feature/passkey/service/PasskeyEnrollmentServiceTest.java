@@ -193,6 +193,41 @@ class PasskeyEnrollmentServiceTest extends RepositoryTestBase {
         }
     }
 
+    /**
+     * A passkey made through the setup mail proves the address, so it confirms an account a station
+     * import created. One made from a code shown in the room proves nothing about the address.
+     */
+    @Test
+    void aPasskeyThroughTheSetupMailConfirmsAnImportedAccount() {
+        int accountId = newAccount();
+        accountRepo.markUnconfirmed(accountId);
+        var authenticator = new TestAuthenticator();
+
+        String code = service.issueCode(accountId, PasskeyEnrollmentService.QR_TTL);
+        var inTheRoom = service.begin(code).orElseThrow();
+        assertTrue(service.finish(
+                code, inTheRoom.challengeToken(), authenticator.register(inTheRoom.optionsJson()), "DE"));
+        assertTrue(accountRepo.isUnconfirmed(accountId));
+
+        accountRepo.createToken(
+                accountId,
+                "confirming-setup-" + accountId,
+                TokenType.SET_PASSWORD,
+                Instant.now().plus(Duration.ofHours(1)));
+        when(modeService.effectiveMode()).thenReturn(PasskeySettings.Mode.PASSWORDLESS);
+        try {
+            var throughTheMail = service.begin("confirming-setup-" + accountId).orElseThrow();
+            assertTrue(service.finish(
+                    "confirming-setup-" + accountId,
+                    throughTheMail.challengeToken(),
+                    new TestAuthenticator().register(throughTheMail.optionsJson()),
+                    "DE"));
+        } finally {
+            when(modeService.effectiveMode()).thenReturn(PasskeySettings.Mode.OPTIONAL);
+        }
+        assertFalse(accountRepo.isUnconfirmed(accountId));
+    }
+
     @Test
     void theQrIssueTellsWhoeverMailAboutTheAccountReaches() {
         int accountId = newAccount();

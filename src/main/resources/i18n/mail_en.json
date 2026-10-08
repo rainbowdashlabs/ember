@@ -27,7 +27,8 @@
     "passkey-code-issued": "A passkey code for {name} was issued",
     "signature-requested": "Signature requested: {documentTitle}",
     "signature-reminder": "Reminder: {documentTitle} is waiting for a signature",
-    "signed-copy": "Signed copy: {documentTitle}"
+    "signed-copy": "Signed copy: {documentTitle}",
+    "account-link-request": "{stationName} asks to link your account"
   },
   "body": {
     "twoFactorReset.defaultActor": "an administrator"

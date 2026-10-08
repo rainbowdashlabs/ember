@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.station.service;
 
 import dev.chojo.ember.conf.file.elements.Api;
+import dev.chojo.ember.feature.accountlink.service.TestAccountLinks;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.repository.LendingRepository;
 import dev.chojo.ember.feature.federation.service.FederationPartnerTransferFixupService;
@@ -87,11 +88,12 @@ class AllTrackedTablesTransferTest extends RepositoryTestBase {
                 stationImporter,
                 Set.of(
                         stationImporter,
-                        new AccountTableImporter(accountRepo),
+                        new AccountTableImporter(accountRepo, stationMemberRepo),
                         new AccountCredentialTableImporter(accountRepo, passkeyModeService),
                         new DisabledModuleTableImporter(stationRepo)),
                 accountRepo,
                 org.mockito.Mockito.mock(dev.chojo.ember.feature.account.service.AuthService.class),
+                TestAccountLinks.importedLinks(accountRepo, stationRepo, stationMemberRepo),
                 new TaskScheduler());
     }
 

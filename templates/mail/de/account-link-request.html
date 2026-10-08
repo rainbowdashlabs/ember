@@ -1,0 +1,8 @@
+{% extends '_layout.html' %}
+{% block body %}
+      <h2>Hallo {{ name }},</h2>
+      <p><strong>{{ stationName }}</strong> möchte dein Konto mit dem Mitglied <strong>{{ memberName }}</strong> verknüpfen.</p>
+      <p>Erst wenn du zustimmst, kann die Wache dein Konto erreichen. Melde dich an, um zuzustimmen oder abzulehnen. Der Link allein stimmt nichts zu.</p>
+      <div class="btn-wrap"><a class="btn" href="{{ url }}">Anfrage ansehen</a></div>
+      <p class="hint">Ohne Antwort verfällt die Anfrage nach 30 Tagen. Wenn du die Wache nicht kennst, lehne sie ab.</p>
+{% endblock %}

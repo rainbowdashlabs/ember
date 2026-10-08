@@ -18,6 +18,7 @@ import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.service.AvatarService;
+import dev.chojo.ember.feature.accountlink.service.TestAccountLinks;
 import dev.chojo.ember.feature.board.entity.TicketPriority;
 import dev.chojo.ember.feature.board.service.BoardAttachmentService;
 import dev.chojo.ember.feature.documents.entity.Document;
@@ -245,12 +246,13 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
                 stationImporter,
                 Set.of(
                         stationImporter,
-                        new AccountTableImporter(accountRepo),
+                        new AccountTableImporter(accountRepo, stationMemberRepo),
                         new AccountCredentialTableImporter(accountRepo, passkeyModeService),
                         new DisabledModuleTableImporter(stationRepo),
                         new DocumentSearchTableImporter(documents)),
                 accountRepo,
                 org.mockito.Mockito.mock(dev.chojo.ember.feature.account.service.AuthService.class),
+                TestAccountLinks.importedLinks(accountRepo, stationRepo, stationMemberRepo),
                 new TaskScheduler());
 
         var transferRoutes = new TransferRoutes(
@@ -714,8 +716,8 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
         waitForImport(importResult.stationId());
 
         int destinationMember = stationMemberRepo
-                .findByStationAndAccount(importResult.stationId(), account.id())
-                .orElseThrow()
+                .findByStation(importResult.stationId())
+                .getFirst()
                 .id();
         var arrived = memberDocumentRepo.findByMember(importResult.stationId(), destinationMember, true).stream()
                 .collect(Collectors.toMap(Document::title, document -> document));
@@ -978,11 +980,11 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
         assertEquals(List.of(arrivedGroup.id()), preset.groupIds(), "the preset names the group that arrived");
 
         assertEquals(
-                List.of("Nur Atemschutz"),
+                List.of(),
                 savedFilterRepo.findByAccountAndTable(account.id(), FilterTableType.MEMBERS).stream()
                         .map(SavedFilter::name)
                         .toList(),
-                "the filter was cleared at the source when it was sent, so it is the one that arrived");
+                "the account was found here by its address, so nothing of the bundle reaches it");
 
         var changes = profileFieldChangeRepo.findByStation(destinationId, 10, 0);
         assertEquals(1, changes.size());

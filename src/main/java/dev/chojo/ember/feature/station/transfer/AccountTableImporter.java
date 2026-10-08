@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.station.transfer;
 
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -28,15 +29,21 @@ import static dev.chojo.ember.feature.station.transfer.WireValues.asUuid;
  *
  * <p>Matching rules:
  * <ul>
- *   <li>A row whose source {@code email} is non-blank and already exists on the destination
- *       reuses that destination account - this is the "same human, different instance" merge
- *       case. The destination keeps its own UID.</li>
+ *   <li>A row whose source {@code email} is non-blank and already belongs to a member of the
+ *       destination station maps to that account, which the station already reaches.</li>
+ *   <li>A row whose source {@code email} belongs to any other account here does not map at all. The
+ *       bundle comes from whoever runs the source and may name anybody's address, so that account is
+ *       never attached to anything: its members arrive without an account, the rows that hang off the
+ *       account itself are left behind, and the person is asked to link it
+ *       ({@link StationImportContext#accountFound}).</li>
  *   <li>Every other row (blank email, or non-blank email with no destination match) creates a
  *       fresh destination account. Blank-email rows are intentional in this product - youth
- *       too young to have an address still need a member record.</li>
+ *       too young to have an address still need a member record. A created account counts as
+ *       unconfirmed until its owner sets a password or passkey through a link sent to its address,
+ *       so a bundle cannot plant an account under somebody else's address and then reset it.</li>
  * </ul>
  *
- * <p>Every account a row arrives as, found or created, is marked as arrived with the run: the rows
+ * <p>Every account a row arrives as, mapped or created, is marked as arrived with the run: the rows
  * that name an account by its address or uid may name these, and the accounts of the station's own
  * members, but no other account here.
  *
@@ -54,10 +61,12 @@ import static dev.chojo.ember.feature.station.transfer.WireValues.asUuid;
 public class AccountTableImporter implements TableImporter {
     private static final Logger log = LoggerFactory.getLogger(AccountTableImporter.class);
     private final AccountRepository accountRepository;
+    private final StationMemberRepository memberRepository;
 
     @Inject
-    public AccountTableImporter(AccountRepository accountRepository) {
+    public AccountTableImporter(AccountRepository accountRepository, StationMemberRepository memberRepository) {
         this.accountRepository = accountRepository;
+        this.memberRepository = memberRepository;
     }
 
     @Override
@@ -76,6 +85,13 @@ public class AccountTableImporter implements TableImporter {
             String storedEmail = hasEmail ? rawEmail : null;
             int targetId;
             var existing = hasEmail ? accountRepository.findByEmail(rawEmail) : Optional.<Account>empty();
+            if (existing.isPresent() && rawEmail != null && !isMemberHere(context, existing.get())) {
+                context.accountFound(rawEmail, existing.get().id());
+                log.info(
+                        "Account {} found here by the address of a bundle row; its members arrive without it and its owner is asked",
+                        existing.get().id());
+                continue;
+            }
             if (existing.isPresent()) {
                 targetId = existing.get().id();
             } else {
@@ -84,6 +100,7 @@ public class AccountTableImporter implements TableImporter {
                 var newAccount = accountRepository.create(storedEmail, first, last, true, context.stationId());
                 targetId = newAccount.id();
                 context.accountCreated(targetId);
+                accountRepository.markUnconfirmed(targetId);
                 UUID sourceUid = asUuid(row.get("uid"));
                 UUID destinationUid = newAccount.uid();
                 if (sourceUid != null && !sourceUid.equals(destinationUid)) {
@@ -107,6 +124,12 @@ public class AccountTableImporter implements TableImporter {
             if (sourceId != null) context.idMap().put("account", sourceId, targetId);
         }
         return created;
+    }
+
+    private boolean isMemberHere(StationImportContext context, Account account) {
+        return memberRepository
+                .findByStationAndAccount(context.stationId(), account.id())
+                .isPresent();
     }
 
     /**

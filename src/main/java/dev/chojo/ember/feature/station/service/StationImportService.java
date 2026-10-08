@@ -22,6 +22,7 @@ import dev.chojo.ember.feature.quiz.service.StationAiKeyTransfer;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.transfer.ImportProgress;
+import dev.chojo.ember.feature.station.transfer.ImportedAccountLinks;
 import dev.chojo.ember.feature.station.transfer.LendingRowScope;
 import dev.chojo.ember.feature.station.transfer.SharedStorageFiles;
 import dev.chojo.ember.feature.station.transfer.StationImportContext;
@@ -102,6 +103,7 @@ public class StationImportService {
     private final GenericTableImporter engine;
     private final List<String> tableOrder;
     private final DataTracking tracking;
+    private final ImportedAccountLinks importedLinks;
 
     private final ConcurrentHashMap<Integer, ImportProgress> activeImports = new ConcurrentHashMap<>();
     private final SerialLane importLane;
@@ -125,8 +127,10 @@ public class StationImportService {
             Set<TableImporter> importers,
             AccountRepository accountRepository,
             AuthService authService,
+            ImportedAccountLinks importedLinks,
             TaskScheduler scheduler) {
         this.importLane = scheduler.lane("station-import");
+        this.importedLinks = importedLinks;
         this.accountRepository = accountRepository;
         this.authService = authService;
         this.stationRepository = stationRepository;
@@ -427,6 +431,7 @@ public class StationImportService {
         lendingClashes.merge(context.lendingStandIns());
         relinkFolderIcons(context.stationId());
         assignDefaultOwnerIfNeeded(context.stationId());
+        importedLinks.ask(context);
         return total;
     }
 
@@ -494,6 +499,7 @@ public class StationImportService {
             engine.settle(stationId, context.idMap(), context.waitingRows());
             lendingClashes.merge(context.lendingStandIns());
             relinkFolderIcons(stationId);
+            importedLinks.ask(context);
             sharedStorage = adoptStorage(context, client, p, stationData);
             copyFiles(context, client, p, sharedStorage);
             federationFixup.rewriteAfterImport(stationId, p.sourceUrl());
@@ -671,7 +677,8 @@ public class StationImportService {
      * were waiting for what this payload brought. Lending requests and their messages arrive only where
      * they are the imported station's ({@link LendingRowScope}). A lending request whose uid the
      * partner's copy here already carries arrives under a stand-in and is merged into that copy once the
-     * run has settled.
+     * run has settled. Members whose account the run found here by its address are noted, so their
+     * owners can be asked once the run has settled ({@link ImportedAccountLinks}).
      */
     @SuppressWarnings("unchecked")
     private int importTable(StationImportContext context, String table, Object payload) {
@@ -687,6 +694,7 @@ public class StationImportService {
                     LendingRowScope.requests(context, importedUid, rows), context.lendingStandIns());
         }
         if (LENDING_MESSAGES.equals(table)) rows = LendingRowScope.messages(context, rows);
+        if (ImportedAccountLinks.isMembers(table)) importedLinks.note(context, rows);
         int imported = engine.importRows(context.stationId(), table, rows, context.idMap(), context.waitingRows());
         return imported + engine.admitWaiting(context.stationId(), context.idMap(), context.waitingRows());
     }

@@ -618,6 +618,27 @@ public class EmailService implements TaskSource {
                 loadTemplate("managed-login-revoked.html", locale, vars));
     }
 
+    /**
+     * Asks the owner of an account whether a station may link it to one of its members. The link only
+     * opens the question once they are signed in to that account; answering happens there, never by
+     * following the link alone.
+     *
+     * @param stationName the station that asks
+     * @param memberName  the member the account would be linked to
+     * @param token       the token the link carries
+     */
+    public void sendAccountLinkRequest(
+            String email, String name, String stationName, String memberName, String token, String locale) {
+        var vars = baseVars(name, null);
+        vars.put("stationName", stationName);
+        vars.put("memberName", memberName);
+        vars.put("url", api.baseUrl() + "/account/link/" + token);
+        enqueueGlobal(
+                email,
+                subject("account-link-request", locale, stationPlaceholders(stationName)),
+                loadTemplate("account-link-request.html", locale, vars));
+    }
+
     public void sendPasswordResetEmail(String email, String name, String token, String locale) {
         String url = api.baseUrl() + "/reset-password?token=" + token;
         var vars = baseVars(name, null);

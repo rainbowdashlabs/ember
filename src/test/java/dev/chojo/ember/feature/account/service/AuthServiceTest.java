@@ -278,6 +278,35 @@ class AuthServiceTest extends RepositoryTestBase {
         accountRepo.delete(account2.id());
     }
 
+    /**
+     * An account a station import created waits for its owner. The setup and reset links went to its
+     * address, so setting a password through one confirms it; the forced change that follows signing
+     * in with an imported password proves nothing about the address and leaves it waiting.
+     */
+    @Test
+    @Order(17)
+    void aLinkToTheAddressConfirmsAnImportedAccountAndAForcedChangeDoesNot() {
+        var imported = accountRepo.create("imported-confirm@test.com", "IC", "User");
+        accountRepo.markUnconfirmed(imported.id());
+        accountRepo.createToken(
+                imported.id(),
+                "forced-change-token",
+                TokenType.FORCE_PASSWORD_CHANGE,
+                Instant.now().plusSeconds(600));
+        assertEquals(AuthService.SetPasswordOutcome.OK, service.setPassword("forced-change-token", "ForcedChange123!"));
+        assertTrue(accountRepo.isUnconfirmed(imported.id()));
+
+        accountRepo.createToken(
+                imported.id(),
+                "confirming-reset-token",
+                TokenType.RESET_PASSWORD,
+                Instant.now().plusSeconds(600));
+        assertEquals(
+                AuthService.SetPasswordOutcome.OK, service.setPassword("confirming-reset-token", "ConfirmedPass123!"));
+        assertFalse(accountRepo.isUnconfirmed(imported.id()));
+        accountRepo.delete(imported.id());
+    }
+
     @Test
     @Order(17)
     void setPasswordRejectsTooShort() {

@@ -280,7 +280,9 @@ public class AuthService {
      * switching it off recoverable. On a passwordless instance no path may mint a password: the
      * refusal keys on the mode, so a legacy member still rotates the password they hold, while an
      * account that never had one is onboarded again instead. The token type that triggered the
-     * rotation is logged so operators can correlate the flow without an audit table.
+     * rotation is logged so operators can correlate the flow without an audit table. A setup or reset
+     * link went to the account's address, so following it confirms an account a station import
+     * created; the forced change after signing in proves nothing about the address and does not.
      *
      * @param token    the password setup or reset token
      * @param password the new plaintext password
@@ -338,6 +340,9 @@ public class AuthService {
         }
 
         invalidateAfterPasswordRotation(accountToken.accountId(), null);
+        if (type != TokenType.FORCE_PASSWORD_CHANGE && accountRepository.confirm(accountToken.accountId())) {
+            log.info("Account {} confirmed by its owner through a {} link", accountToken.accountId(), type);
+        }
         notifyPasswordChanged(account.get());
         log.info("Password set via {} for account {}", type, accountToken.accountId());
         return SetPasswordOutcome.OK;

@@ -27,7 +27,8 @@
     "passkey-code-issued": "Ein Passkey-Code für {name} wurde ausgestellt",
     "signature-requested": "Bitte unterschreiben: {documentTitle}",
     "signature-reminder": "Erinnerung: {documentTitle} wartet auf eine Unterschrift",
-    "signed-copy": "Kopie mit Unterschrift: {documentTitle}"
+    "signed-copy": "Kopie mit Unterschrift: {documentTitle}",
+    "account-link-request": "{stationName} möchte dein Konto verknüpfen"
   },
   "body": {
     "twoFactorReset.defaultActor": "einem Administrator"
