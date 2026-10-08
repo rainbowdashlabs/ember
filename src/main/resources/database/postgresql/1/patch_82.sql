@@ -720,3 +720,68 @@ COMMENT ON COLUMN ember_schema.email_queue_attachment.email_id IS 'The queued em
 COMMENT ON COLUMN ember_schema.email_queue_attachment.file_name IS 'The name the file carries in the email.';
 COMMENT ON COLUMN ember_schema.email_queue_attachment.content_type IS 'The media type of the file, such as application/pdf.';
 COMMENT ON COLUMN ember_schema.email_queue_attachment.content IS 'The file itself.';
+
+CREATE TABLE IF NOT EXISTS ember_schema.event_document_submission
+(
+    id            SERIAL PRIMARY KEY,
+    station_id    INTEGER     NOT NULL REFERENCES ember_schema.station (id) ON DELETE CASCADE,
+    event_id      INTEGER     NOT NULL REFERENCES ember_schema.station_event (id) ON DELETE CASCADE,
+    event_date    DATE        NOT NULL,
+    template_id   INTEGER     NOT NULL REFERENCES ember_schema.document_template (id) ON DELETE CASCADE,
+    member_id     INTEGER     NOT NULL REFERENCES ember_schema.station_member (id) ON DELETE CASCADE,
+    document_id   INTEGER     NOT NULL REFERENCES ember_schema.member_document (id) ON DELETE CASCADE,
+    state         TEXT        NOT NULL DEFAULT 'SUBMITTED' CHECK (state IN ('SUBMITTED', 'CONFIRMED', 'REJECTED')),
+    submitted_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    submitted_by  INTEGER     NULL REFERENCES ember_schema.station_member (id) ON DELETE SET NULL,
+    reviewed_at   TIMESTAMPTZ NULL,
+    reviewed_by   INTEGER     NULL REFERENCES ember_schema.station_member (id) ON DELETE SET NULL,
+    reject_reason TEXT        NULL,
+    CONSTRAINT event_document_submission_reviewed CHECK ((state = 'SUBMITTED') = (reviewed_at IS NULL)),
+    CONSTRAINT event_document_submission_reason CHECK ((state = 'REJECTED') = (reject_reason IS NOT NULL))
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_event_document_submission_standing
+    ON ember_schema.event_document_submission (event_id, event_date, template_id, member_id)
+    WHERE state <> 'REJECTED';
+CREATE INDEX IF NOT EXISTS idx_event_document_submission_station
+    ON ember_schema.event_document_submission (station_id);
+CREATE INDEX IF NOT EXISTS idx_event_document_submission_template
+    ON ember_schema.event_document_submission (template_id);
+CREATE INDEX IF NOT EXISTS idx_event_document_submission_member
+    ON ember_schema.event_document_submission (member_id);
+CREATE INDEX IF NOT EXISTS idx_event_document_submission_document
+    ON ember_schema.event_document_submission (document_id);
+CREATE INDEX IF NOT EXISTS idx_event_document_submission_submitted_by
+    ON ember_schema.event_document_submission (submitted_by);
+CREATE INDEX IF NOT EXISTS idx_event_document_submission_reviewed_by
+    ON ember_schema.event_document_submission (reviewed_by);
+
+COMMENT ON TABLE ember_schema.event_document_submission IS
+    'A signed paper copy of a document an appointment asks for, scanned and handed in for one participant and one date of the appointment. The scan is filed in the participant''s documents. It waits until somebody who manages the registrations confirms or turns it down; one handed in by such a manager is confirmed at once. A turned-down scan stays as history and a new one can be handed in.';
+COMMENT ON COLUMN ember_schema.event_document_submission.id IS 'Auto-generated primary key.';
+COMMENT ON COLUMN ember_schema.event_document_submission.station_id IS 'The station of the appointment.';
+COMMENT ON COLUMN ember_schema.event_document_submission.event_id IS 'The appointment that asks for the document.';
+COMMENT ON COLUMN ember_schema.event_document_submission.event_date IS
+    'The day of the appointment the scan is for, which tells the dates of a repeating appointment apart.';
+COMMENT ON COLUMN ember_schema.event_document_submission.template_id IS
+    'The document template the appointment asks for and whose signed copy was scanned.';
+COMMENT ON COLUMN ember_schema.event_document_submission.member_id IS 'The participant the signed copy is for.';
+COMMENT ON COLUMN ember_schema.event_document_submission.document_id IS
+    'The scan, filed in the participant''s documents. Deleting the scan removes the submission with it, which opens the requirement again.';
+COMMENT ON COLUMN ember_schema.event_document_submission.state IS
+    'SUBMITTED while it waits for a manager, CONFIRMED once a manager confirmed it as the signed paper copy, REJECTED once a manager turned it down.';
+COMMENT ON COLUMN ember_schema.event_document_submission.submitted_at IS 'When the scan was handed in.';
+COMMENT ON COLUMN ember_schema.event_document_submission.submitted_by IS
+    'The member who handed the scan in: the participant, a guardian or a manager. NULL once they are gone.';
+COMMENT ON COLUMN ember_schema.event_document_submission.reviewed_at IS
+    'When the scan was confirmed or turned down. NULL while it waits.';
+COMMENT ON COLUMN ember_schema.event_document_submission.reviewed_by IS
+    'The manager who confirmed or turned down the scan. NULL while it waits, and once they are gone.';
+COMMENT ON COLUMN ember_schema.event_document_submission.reject_reason IS
+    'Why the scan was turned down, as the manager wrote it and the participant was told. NULL unless it was turned down.';
+COMMENT ON CONSTRAINT event_document_submission_reviewed ON ember_schema.event_document_submission IS
+    'A scan has a review time exactly when it no longer waits.';
+COMMENT ON CONSTRAINT event_document_submission_reason ON ember_schema.event_document_submission IS
+    'A scan carries a reason exactly when it was turned down.';
+COMMENT ON INDEX ember_schema.uq_event_document_submission_standing IS
+    'At most one scan per participant, document and date waits or is confirmed; turned-down ones are kept beside it.';

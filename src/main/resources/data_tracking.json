@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:80008e845bb109460c3c7cf62dc7ffe9d29feb397fd49ce8d51cc4d531d8dad3",
-  "generatedAt": "2026-10-08T15:35:31Z",
+  "schemaHash": "sha256:2e0b6d266ce8876a67319a5ccb20442f802d9ce401fca6cf007d4021fe77e137",
+  "generatedAt": "2026-10-08T15:58:55Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -8742,6 +8742,187 @@
         "reason": "Event structure/template data, not per-member"
       },
       "description": "A document template an appointment or an appointment template names as a document to bring. Every registered participant gets a copy filled with their data. An appointment made from a template starts with the template's list."
+    },
+    "event_document_submission": {
+      "tableHash": "sha256:2a7138652458eb7e99350fc84a700ef01cde53c4abe815ed27590e14fd2248d0",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Auto-generated primary key."
+        },
+        {
+          "name": "station_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The station of the appointment."
+        },
+        {
+          "name": "event_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The appointment that asks for the document."
+        },
+        {
+          "name": "event_date",
+          "type": "date",
+          "nullable": false,
+          "verified": true,
+          "description": "The day of the appointment the scan is for, which tells the dates of a repeating appointment apart."
+        },
+        {
+          "name": "template_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The document template the appointment asks for and whose signed copy was scanned."
+        },
+        {
+          "name": "member_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The participant the signed copy is for."
+        },
+        {
+          "name": "document_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The scan, filed in the participant's documents. Deleting the scan removes the submission with it, which opens the requirement again."
+        },
+        {
+          "name": "state",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "SUBMITTED while it waits for a manager, CONFIRMED once a manager confirmed it as the signed paper copy, REJECTED once a manager turned it down."
+        },
+        {
+          "name": "submitted_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the scan was handed in."
+        },
+        {
+          "name": "submitted_by",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The member who handed the scan in: the participant, a guardian or a manager. NULL once they are gone."
+        },
+        {
+          "name": "reviewed_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When the scan was confirmed or turned down. NULL while it waits."
+        },
+        {
+          "name": "reviewed_by",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The manager who confirmed or turned down the scan. NULL while it waits, and once they are gone."
+        },
+        {
+          "name": "reject_reason",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "Why the scan was turned down, as the manager wrote it and the participant was told. NULL unless it was turned down."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "document_id",
+          "refTable": "member_document",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "event_id",
+          "refTable": "station_event",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "member_id",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "reviewed_by",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
+        {
+          "column": "station_id",
+          "refTable": "station",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "submitted_by",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
+        {
+          "column": "template_id",
+          "refTable": "document_template",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED"
+      },
+      "gdprExport": {
+        "status": "TRACKED",
+        "identityColumns": [
+          {
+            "type": "MEMBER_ID",
+            "column": "member_id"
+          },
+          {
+            "type": "MEMBER_ID",
+            "column": "submitted_by"
+          },
+          {
+            "type": "MEMBER_ID",
+            "column": "reviewed_by"
+          }
+        ]
+      },
+      "gdprDeletion": {
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "member_id",
+            "strategy": "CASCADE",
+            "reason": "FK ON DELETE CASCADE removes the participant's submissions with them; the scans follow the member documents' own rules"
+          },
+          {
+            "column": "submitted_by",
+            "strategy": "NULL",
+            "reason": "FK ON DELETE SET NULL keeps the participant's submission, who handed it in unlinked"
+          },
+          {
+            "column": "reviewed_by",
+            "strategy": "NULL",
+            "reason": "FK ON DELETE SET NULL keeps the participant's submission, who reviewed it unlinked"
+          }
+        ]
+      },
+      "description": "A signed paper copy of a document an appointment asks for, scanned and handed in for one participant and one date of the appointment. The scan is filed in the participant's documents. It waits until somebody who manages the registrations confirms or turns it down; one handed in by such a manager is confirmed at once. A turned-down scan stays as history and a new one can be handed in."
     },
     "event_equipment_handover": {
       "feature": "events",

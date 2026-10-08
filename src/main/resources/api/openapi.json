@@ -18884,6 +18884,153 @@
         }
       }
     },
+    "/api/v1/events/{id}/document-scans/{submissionId}/confirm" : {
+      "post" : {
+        "summary" : "Confirm a scan handed in as the participant's signed paper copy",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PaperSubmission"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "submissionId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/events/{id}/document-scans/{submissionId}/content" : {
+      "get" : {
+        "summary" : "The scan handed in, for whoever manages the registrations to check it",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "submissionId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/events/{id}/document-scans/{submissionId}/reject" : {
+      "post" : {
+        "summary" : "Turn a scan handed in down with a reason, which opens the document again",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PaperSubmission"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "submissionId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ScanRejectRequest"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/events/{id}/documents-to-bring" : {
       "get" : {
         "summary" : "The documents an appointment asks for on a date, the reader's own copies and, for whoever manages the registrations, every participant's",
@@ -18945,6 +19092,76 @@
           },
           "403" : {
             "description" : "Forbidden",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "templateId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "memberId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "date",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ]
+      }
+    },
+    "/api/v1/events/{id}/documents-to-bring/{templateId}/members/{memberId}/scan" : {
+      "post" : {
+        "summary" : "Hand in the scan of a participant's signed paper copy of a document the appointment asks for",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PaperSubmission"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -63321,7 +63538,7 @@
       },
       "NotificationType" : {
         "type" : "string",
-        "enum" : [ "NEW_NEWS", "NEWS_COMMENT", "COMMENT_MENTION", "EVENT_REGISTRATION_STATUS", "MOVEMENT_ADVANCED", "MOVEMENT_RAISED", "MOVEMENT_DECLINED", "MOVEMENT_CANCELLED", "NEW_EVENT", "NEW_EVENTS_BATCH", "MEMBER_ADDED_TO_GROUP", "PROFILE_FIELD_CHANGED", "PROCUREMENT_REQUESTED", "PROCUREMENT_FULFILLED", "NEW_FORM", "LOST_AND_FOUND_NEW", "LOST_AND_FOUND_CLAIMED", "WAITLIST_NEW_ENTRY", "LENDING_NEW_REQUEST", "LENDING_STATUS_CHANGE", "LENDING_NEW_MESSAGE", "BOARD_TICKET_UPDATE", "REGISTRATION_DEADLINE_EXPIRED", "EVENT_CANCELLED", "EVENT_REMINDER", "REGISTRATION_CLOSING", "REGISTRATION_ANSWER_MISSING", "EVENT_DATE_DROPPED", "EVENT_MOVED", "EVENT_DATE_RESTORED", "PROCEDURE_ASSIGNED", "PROCEDURE_RESOLVED", "PROCEDURE_REOPENED", "PROCEDURE_ITEM_CHECKED", "SELF_CHECK_ASSIGNED", "SELF_CHECK_SUBMITTED", "SELF_CHECK_ROW_REFUSED", "WAITLIST_PUBLIC_REGISTRATION", "WAITLIST_INVITATION_ANSWERED", "STORAGE_WARNING", "MAILBOX_SUSPENDED", "MAIL_IMPORT_UNBOUND", "CLUSTER_APPLICATION_SUBMITTED", "CLUSTER_APPLICATION_APPROVED", "CLUSTER_APPLICATION_DENIED", "CLUSTER_APPLICATION_WITHDRAWN", "CLUSTER_STATION_RELEASED", "CLUSTER_MODULE_DENIED", "CLUSTER_ITEM_ISSUED", "CLUSTER_ITEM_LOST", "CLUSTER_QUOTA_CHANGED", "CLUSTER_MEMBER_ROLE_CHANGED", "CLUSTER_FIELD_VALUE_CHANGED", "EXPIRY_REMINDER", "FEDERATION_REQUEST_RECEIVED", "FEDERATION_REQUEST_ACCEPTED", "FEDERATION_REQUEST_DECLINED", "NAME_CHANGE_REQUESTED", "NAME_CHANGE_APPROVED", "NAME_CHANGE_DENIED", "SIGNATURE_REQUESTED", "SIGNATURE_REMINDER", "DOCUMENT_SIGNED" ]
+        "enum" : [ "NEW_NEWS", "NEWS_COMMENT", "COMMENT_MENTION", "EVENT_REGISTRATION_STATUS", "MOVEMENT_ADVANCED", "MOVEMENT_RAISED", "MOVEMENT_DECLINED", "MOVEMENT_CANCELLED", "NEW_EVENT", "NEW_EVENTS_BATCH", "MEMBER_ADDED_TO_GROUP", "PROFILE_FIELD_CHANGED", "PROCUREMENT_REQUESTED", "PROCUREMENT_FULFILLED", "NEW_FORM", "LOST_AND_FOUND_NEW", "LOST_AND_FOUND_CLAIMED", "WAITLIST_NEW_ENTRY", "LENDING_NEW_REQUEST", "LENDING_STATUS_CHANGE", "LENDING_NEW_MESSAGE", "BOARD_TICKET_UPDATE", "REGISTRATION_DEADLINE_EXPIRED", "EVENT_CANCELLED", "EVENT_REMINDER", "REGISTRATION_CLOSING", "REGISTRATION_ANSWER_MISSING", "EVENT_DATE_DROPPED", "EVENT_MOVED", "EVENT_DATE_RESTORED", "PROCEDURE_ASSIGNED", "PROCEDURE_RESOLVED", "PROCEDURE_REOPENED", "PROCEDURE_ITEM_CHECKED", "SELF_CHECK_ASSIGNED", "SELF_CHECK_SUBMITTED", "SELF_CHECK_ROW_REFUSED", "WAITLIST_PUBLIC_REGISTRATION", "WAITLIST_INVITATION_ANSWERED", "STORAGE_WARNING", "MAILBOX_SUSPENDED", "MAIL_IMPORT_UNBOUND", "CLUSTER_APPLICATION_SUBMITTED", "CLUSTER_APPLICATION_APPROVED", "CLUSTER_APPLICATION_DENIED", "CLUSTER_APPLICATION_WITHDRAWN", "CLUSTER_STATION_RELEASED", "CLUSTER_MODULE_DENIED", "CLUSTER_ITEM_ISSUED", "CLUSTER_ITEM_LOST", "CLUSTER_QUOTA_CHANGED", "CLUSTER_MEMBER_ROLE_CHANGED", "CLUSTER_FIELD_VALUE_CHANGED", "EXPIRY_REMINDER", "FEDERATION_REQUEST_RECEIVED", "FEDERATION_REQUEST_ACCEPTED", "FEDERATION_REQUEST_DECLINED", "NAME_CHANGE_REQUESTED", "NAME_CHANGE_APPROVED", "NAME_CHANGE_DENIED", "SIGNATURE_REQUESTED", "SIGNATURE_REMINDER", "DOCUMENT_SIGNED", "DOCUMENT_SCAN_REJECTED" ]
       },
       "NumberConfig" : {
         "type" : "object",
@@ -64003,6 +64220,55 @@
             "type" : "string"
           }
         }
+      },
+      "PaperState" : {
+        "type" : "string",
+        "enum" : [ "SUBMITTED", "CONFIRMED", "REJECTED" ]
+      },
+      "PaperSubmission" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "eventId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "eventDate" : {
+            "$ref" : "#/components/schemas/LocalDate"
+          },
+          "templateId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "memberId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "documentId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "state" : {
+            "$ref" : "#/components/schemas/PaperState"
+          },
+          "submittedAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "reviewedAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "rejectReason" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "id", "eventId", "eventDate", "templateId", "memberId", "documentId", "state", "submittedAt", "reviewedAt", "rejectReason" ]
       },
       "ParseResult" : {
         "type" : "object",
@@ -68921,9 +69187,16 @@
           },
           "outdated" : {
             "type" : "boolean"
+          },
+          "paper" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/PaperSubmission"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
-        "required" : [ "templateId", "name", "status", "documentId", "generatedAt", "outdated" ]
+        "required" : [ "templateId", "name", "status", "documentId", "generatedAt", "outdated", "paper" ]
       },
       "RequiredInventoryItem" : {
         "type" : "object",
@@ -70059,6 +70332,14 @@
           }
         },
         "required" : [ "id", "accountId", "tableType", "name", "filterData", "position" ]
+      },
+      "ScanRejectRequest" : {
+        "type" : "object",
+        "properties" : {
+          "reason" : {
+            "type" : [ "string", "null" ]
+          }
+        }
       },
       "ScheduleMode" : {
         "type" : "string",

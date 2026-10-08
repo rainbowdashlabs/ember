@@ -224,7 +224,7 @@ public class AppointmentDocumentRoutes implements Routes {
     }
 
     /** The date of the appointment the documents are for, which every request about them names. */
-    private static LocalDate date(Context ctx) {
+    static LocalDate date(Context ctx) {
         String value = ctx.queryParam("date");
         if (value == null || value.isBlank()) throw EventRefusal.EVENT_DOCUMENTS_DATE_MISSING.raise();
         try {

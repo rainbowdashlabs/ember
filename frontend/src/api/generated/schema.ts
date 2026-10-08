@@ -22506,6 +22506,161 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/{id}/document-scans/{submissionId}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm a scan handed in as the participant's signed paper copy */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                    submissionId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PaperSubmission"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/{id}/document-scans/{submissionId}/content": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The scan handed in, for whoever manages the registrations to check it */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                    submissionId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/{id}/document-scans/{submissionId}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Turn a scan handed in down with a reason, which opens the document again */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                    submissionId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ScanRejectRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PaperSubmission"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/{id}/documents-to-bring": {
         parameters: {
             query?: never;
@@ -22591,6 +22746,66 @@ export interface paths {
                 };
                 /** @description Forbidden */
                 403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/{id}/documents-to-bring/{templateId}/members/{memberId}/scan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Hand in the scan of a participant's signed paper copy of a document the appointment asks for */
+        post: {
+            parameters: {
+                query: {
+                    date: string;
+                };
+                header?: never;
+                path: {
+                    id: number;
+                    memberId: number;
+                    templateId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PaperSubmission"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -64990,7 +65205,7 @@ export interface components {
             feed: boolean;
         };
         /** @enum {string} */
-        NotificationType: "NEW_NEWS" | "NEWS_COMMENT" | "COMMENT_MENTION" | "EVENT_REGISTRATION_STATUS" | "MOVEMENT_ADVANCED" | "MOVEMENT_RAISED" | "MOVEMENT_DECLINED" | "MOVEMENT_CANCELLED" | "NEW_EVENT" | "NEW_EVENTS_BATCH" | "MEMBER_ADDED_TO_GROUP" | "PROFILE_FIELD_CHANGED" | "PROCUREMENT_REQUESTED" | "PROCUREMENT_FULFILLED" | "NEW_FORM" | "LOST_AND_FOUND_NEW" | "LOST_AND_FOUND_CLAIMED" | "WAITLIST_NEW_ENTRY" | "LENDING_NEW_REQUEST" | "LENDING_STATUS_CHANGE" | "LENDING_NEW_MESSAGE" | "BOARD_TICKET_UPDATE" | "REGISTRATION_DEADLINE_EXPIRED" | "EVENT_CANCELLED" | "EVENT_REMINDER" | "REGISTRATION_CLOSING" | "REGISTRATION_ANSWER_MISSING" | "EVENT_DATE_DROPPED" | "EVENT_MOVED" | "EVENT_DATE_RESTORED" | "PROCEDURE_ASSIGNED" | "PROCEDURE_RESOLVED" | "PROCEDURE_REOPENED" | "PROCEDURE_ITEM_CHECKED" | "SELF_CHECK_ASSIGNED" | "SELF_CHECK_SUBMITTED" | "SELF_CHECK_ROW_REFUSED" | "WAITLIST_PUBLIC_REGISTRATION" | "WAITLIST_INVITATION_ANSWERED" | "STORAGE_WARNING" | "MAILBOX_SUSPENDED" | "MAIL_IMPORT_UNBOUND" | "CLUSTER_APPLICATION_SUBMITTED" | "CLUSTER_APPLICATION_APPROVED" | "CLUSTER_APPLICATION_DENIED" | "CLUSTER_APPLICATION_WITHDRAWN" | "CLUSTER_STATION_RELEASED" | "CLUSTER_MODULE_DENIED" | "CLUSTER_ITEM_ISSUED" | "CLUSTER_ITEM_LOST" | "CLUSTER_QUOTA_CHANGED" | "CLUSTER_MEMBER_ROLE_CHANGED" | "CLUSTER_FIELD_VALUE_CHANGED" | "EXPIRY_REMINDER" | "FEDERATION_REQUEST_RECEIVED" | "FEDERATION_REQUEST_ACCEPTED" | "FEDERATION_REQUEST_DECLINED" | "NAME_CHANGE_REQUESTED" | "NAME_CHANGE_APPROVED" | "NAME_CHANGE_DENIED" | "SIGNATURE_REQUESTED" | "SIGNATURE_REMINDER" | "DOCUMENT_SIGNED";
+        NotificationType: "NEW_NEWS" | "NEWS_COMMENT" | "COMMENT_MENTION" | "EVENT_REGISTRATION_STATUS" | "MOVEMENT_ADVANCED" | "MOVEMENT_RAISED" | "MOVEMENT_DECLINED" | "MOVEMENT_CANCELLED" | "NEW_EVENT" | "NEW_EVENTS_BATCH" | "MEMBER_ADDED_TO_GROUP" | "PROFILE_FIELD_CHANGED" | "PROCUREMENT_REQUESTED" | "PROCUREMENT_FULFILLED" | "NEW_FORM" | "LOST_AND_FOUND_NEW" | "LOST_AND_FOUND_CLAIMED" | "WAITLIST_NEW_ENTRY" | "LENDING_NEW_REQUEST" | "LENDING_STATUS_CHANGE" | "LENDING_NEW_MESSAGE" | "BOARD_TICKET_UPDATE" | "REGISTRATION_DEADLINE_EXPIRED" | "EVENT_CANCELLED" | "EVENT_REMINDER" | "REGISTRATION_CLOSING" | "REGISTRATION_ANSWER_MISSING" | "EVENT_DATE_DROPPED" | "EVENT_MOVED" | "EVENT_DATE_RESTORED" | "PROCEDURE_ASSIGNED" | "PROCEDURE_RESOLVED" | "PROCEDURE_REOPENED" | "PROCEDURE_ITEM_CHECKED" | "SELF_CHECK_ASSIGNED" | "SELF_CHECK_SUBMITTED" | "SELF_CHECK_ROW_REFUSED" | "WAITLIST_PUBLIC_REGISTRATION" | "WAITLIST_INVITATION_ANSWERED" | "STORAGE_WARNING" | "MAILBOX_SUSPENDED" | "MAIL_IMPORT_UNBOUND" | "CLUSTER_APPLICATION_SUBMITTED" | "CLUSTER_APPLICATION_APPROVED" | "CLUSTER_APPLICATION_DENIED" | "CLUSTER_APPLICATION_WITHDRAWN" | "CLUSTER_STATION_RELEASED" | "CLUSTER_MODULE_DENIED" | "CLUSTER_ITEM_ISSUED" | "CLUSTER_ITEM_LOST" | "CLUSTER_QUOTA_CHANGED" | "CLUSTER_MEMBER_ROLE_CHANGED" | "CLUSTER_FIELD_VALUE_CHANGED" | "EXPIRY_REMINDER" | "FEDERATION_REQUEST_RECEIVED" | "FEDERATION_REQUEST_ACCEPTED" | "FEDERATION_REQUEST_DECLINED" | "NAME_CHANGE_REQUESTED" | "NAME_CHANGE_APPROVED" | "NAME_CHANGE_DENIED" | "SIGNATURE_REQUESTED" | "SIGNATURE_REMINDER" | "DOCUMENT_SIGNED" | "DOCUMENT_SCAN_REJECTED";
         NumberConfig: {
             /**
              * @description discriminator enum property added by openapi-typescript
@@ -65227,6 +65442,25 @@ export interface components {
             stationSignature?: string;
             /** Format: uuid */
             targetStationUid?: string;
+        };
+        /** @enum {string} */
+        PaperState: "SUBMITTED" | "CONFIRMED" | "REJECTED";
+        PaperSubmission: {
+            /** Format: int32 */
+            documentId: number;
+            eventDate: components["schemas"]["LocalDate"];
+            /** Format: int32 */
+            eventId: number;
+            /** Format: int32 */
+            id: number;
+            /** Format: int32 */
+            memberId: number;
+            rejectReason: string | null;
+            reviewedAt: components["schemas"]["Instant"] | null;
+            state: components["schemas"]["PaperState"];
+            submittedAt: components["schemas"]["Instant"];
+            /** Format: int32 */
+            templateId: number;
         };
         ParseResult: {
             headers: string[];
@@ -66897,6 +67131,7 @@ export interface components {
             generatedAt: components["schemas"]["Instant"] | null;
             name: string;
             outdated: boolean;
+            paper: components["schemas"]["PaperSubmission"] | null;
             status: components["schemas"]["RequirementStatus"];
             /** Format: int32 */
             templateId: number;
@@ -67272,6 +67507,9 @@ export interface components {
         SavePresetRequest: {
             columns?: components["schemas"]["MemberTableColumn"][];
             name?: string;
+        };
+        ScanRejectRequest: {
+            reason?: string | null;
         };
         /** @enum {string} */
         ScheduleMode: "FIXED_DELAY" | "FIXED_RATE" | "ONCE";
@@ -70667,6 +70905,8 @@ export type PairRequestRefusal = components['schemas']['PairRequestRefusal'];
 export type PairRequestResponse = components['schemas']['PairRequestResponse'];
 export type PairRequestStatus = components['schemas']['PairRequestStatus'];
 export type PairRequestStatusQuery = components['schemas']['PairRequestStatusQuery'];
+export type PaperState = components['schemas']['PaperState'];
+export type PaperSubmission = components['schemas']['PaperSubmission'];
 export type ParseResult = components['schemas']['ParseResult'];
 export type ParticipantDocuments = components['schemas']['ParticipantDocuments'];
 export type PartnerEventDetail = components['schemas']['PartnerEventDetail'];
@@ -70935,6 +71175,7 @@ export type SaveBlocksRequest = components['schemas']['SaveBlocksRequest'];
 export type SavedFilter = components['schemas']['SavedFilter'];
 export type SavePageRequest = components['schemas']['SavePageRequest'];
 export type SavePresetRequest = components['schemas']['SavePresetRequest'];
+export type ScanRejectRequest = components['schemas']['ScanRejectRequest'];
 export type ScheduleMode = components['schemas']['ScheduleMode'];
 export type Scope = components['schemas']['Scope'];
 export type SealCheck = components['schemas']['SealCheck'];
@@ -72025,6 +72266,7 @@ export const NotificationType = {
     CLUSTER_QUOTA_CHANGED: "CLUSTER_QUOTA_CHANGED",
     CLUSTER_STATION_RELEASED: "CLUSTER_STATION_RELEASED",
     COMMENT_MENTION: "COMMENT_MENTION",
+    DOCUMENT_SCAN_REJECTED: "DOCUMENT_SCAN_REJECTED",
     DOCUMENT_SIGNED: "DOCUMENT_SIGNED",
     EVENT_CANCELLED: "EVENT_CANCELLED",
     EVENT_DATE_DROPPED: "EVENT_DATE_DROPPED",
@@ -72140,6 +72382,12 @@ export const PairRequestStatus = {
     ACCEPTED: "ACCEPTED",
     DECLINED: "DECLINED",
     PENDING: "PENDING",
+} as const;
+
+export const PaperState = {
+    CONFIRMED: "CONFIRMED",
+    REJECTED: "REJECTED",
+    SUBMITTED: "SUBMITTED",
 } as const;
 
 export const PdfFieldKind = {

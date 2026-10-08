@@ -188,7 +188,8 @@
     "NAME_CHANGE_DENIED": "New name declined",
     "SIGNATURE_REQUESTED": "Signature requested: {documentTitle} - {memberName}",
     "SIGNATURE_REMINDER": "Signature still missing: {documentTitle} - {memberName}",
-    "DOCUMENT_SIGNED": "Signed: {documentTitle} - {signerName}"
+    "DOCUMENT_SIGNED": "Signed: {documentTitle} - {signerName}",
+    "DOCUMENT_SCAN_REJECTED": "Scan declined: {documentName} - {memberName}"
   },
   "digest": {
     "subject.one": "{stationName}: 1 new notification",
@@ -257,7 +258,8 @@
     "NAME_CHANGE_DENIED": "Name Change",
     "SIGNATURE_REQUESTED": "Signature",
     "SIGNATURE_REMINDER": "Signature",
-    "DOCUMENT_SIGNED": "Signature"
+    "DOCUMENT_SIGNED": "Signature",
+    "DOCUMENT_SCAN_REJECTED": "Documents to Bring"
   },
   "message": {
     "notification.newNews": "{title} - by {author}",
@@ -338,6 +340,7 @@
     "notification.signatureRequested": "{documentTitle} for {memberName} is waiting for a signature",
     "notification.signatureReminder": "{documentTitle} for {memberName} is still waiting for a signature",
     "notification.documentSigned": "{signerName} signed {documentTitle}",
-    "notification.documentSigned.FOR_MEMBER": "{signerName} signed {documentTitle} for {memberName}"
+    "notification.documentSigned.FOR_MEMBER": "{signerName} signed {documentTitle} for {memberName}",
+    "notification.documentScanRejected": "The scan of {documentName} for {memberName} for {eventName} on {eventDate} was declined: {reason}"
   }
 }

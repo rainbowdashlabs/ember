@@ -538,7 +538,23 @@ public enum DocumentRefusal implements Refusal {
     SIGNING_STARTS_TOO_MANY(
             169,
             HttpStatus.TOO_MANY_REQUESTS,
-            "Too many signing attempts are open at once, finish one or wait a few minutes");
+            "Too many signing attempts are open at once, finish one or wait a few minutes"),
+
+    /** A scan of a signed copy that was not handed in for this appointment of the station. */
+    DOCUMENT_SCAN_NOT_FOUND(170, HttpStatus.NOT_FOUND, "This scan was not handed in for this appointment"),
+
+    /** A scan confirmed or turned down that was already decided. */
+    DOCUMENT_SCAN_NOT_WAITING(171, HttpStatus.CONFLICT, "This scan was already confirmed or turned down"),
+
+    /** A scan handed in for a document whose signed paper copy was already confirmed. */
+    DOCUMENT_SCAN_ALREADY_CONFIRMED(
+            172, HttpStatus.CONFLICT, "The signed copy of this document was already confirmed, so no scan was taken"),
+
+    /** A scan turned down without saying why. */
+    DOCUMENT_SCAN_REASON_MISSING(173, HttpStatus.BAD_REQUEST, "Say briefly why the scan is turned down"),
+
+    /** A reason for turning a scan down that is longer than the participant is shown. */
+    DOCUMENT_SCAN_REASON_TOO_LONG(174, HttpStatus.BAD_REQUEST, "The reason may be at most 300 characters long");
 
     private final Definition definition;
 

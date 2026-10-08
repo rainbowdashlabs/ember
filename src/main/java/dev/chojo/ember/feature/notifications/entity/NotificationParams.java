@@ -387,4 +387,18 @@ public sealed interface NotificationParams {
             return memberName == null ? null : "FOR_MEMBER";
         }
     }
+
+    /**
+     * The scan of a signed paper copy handed in for a document an appointment asks for was turned down,
+     * so the document is open again.
+     *
+     * @param documentName the document asked for
+     * @param memberName   the participant the scan was for
+     * @param eventName    the appointment
+     * @param eventDate    the date of the appointment
+     * @param reason       why it was turned down
+     */
+    record DocumentScanRejected(
+            String documentName, String memberName, String eventName, LocalDate eventDate, String reason)
+            implements NotificationParams {}
 }

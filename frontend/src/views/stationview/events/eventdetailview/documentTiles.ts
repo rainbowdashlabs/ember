@@ -5,6 +5,9 @@
  */
 import type {AppointmentDocuments, ParticipantDocuments, RequiredDocumentStatus, RequiredTemplate} from '@/api/generated/schema'
 
+/** What a scan of a signed paper copy may be: a PDF or a photo. */
+export const SCAN_TYPES = 'application/pdf,image/*'
+
 /** One participant's copy of one document. */
 export interface ParticipantCopy {
     memberId: number

@@ -23,8 +23,9 @@ import DocumentToBringTile from './DocumentToBringTile.vue'
  * of its first page. Everyone who sees the appointment sees them. The reader and every member in their
  * care who takes part (on an appointment without registrations: all of them) download a copy filled
  * with the participant's data to print and sign; getting it the first time files it in the
- * participant's documents. An event manager opens from each tile where every participant stands.
- * Nothing shows where the appointment asks for nothing.
+ * participant's documents. Instead of bringing the signed paper, they may hand in its scan here, which
+ * waits for an event manager to confirm it. An event manager opens from each tile where every
+ * participant stands. Nothing shows where the appointment asks for nothing.
  */
 const props = defineProps<{
   eventId: number
@@ -48,6 +49,15 @@ const fetching = useAsyncAction(async (copy: ParticipantCopy) => {
   await reload()
 })
 
+const handingIn = useAsyncAction(async (copy: ParticipantCopy, file: File) => {
+  const target = {eventId: props.eventId, date: props.date, templateId: copy.document.templateId, memberId: copy.memberId}
+  await appointmentDocuments.submitScan(target, file, t('events.documents.scanTitle', {name: copy.document.name}))
+  await reload()
+})
+
+const busy = computed(() => fetching.running.value || handingIn.running.value)
+const actionFailure = computed(() => fetching.failure.value ?? handingIn.failure.value)
+
 watch(() => [props.eventId, props.date], reload, {immediate: true})
 </script>
 
@@ -57,10 +67,11 @@ watch(() => [props.eventId, props.date], reload, {immediate: true})
     <MutedText size="sm" tag="p">
       {{ takesPart ? t('events.documents.toBringHint') : t('events.documents.toBringOthersHint') }}
     </MutedText>
-    <FailureAlert :failure="failure ?? fetching.failure.value"/>
+    <FailureAlert :failure="failure ?? actionFailure"/>
     <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      <DocumentToBringTile v-for="tile in tiles" :key="tile.template.templateId" :event-id="eventId" :tile="tile"
-                           :busy="fetching.running.value" @fetch="fetching.run"/>
+      <DocumentToBringTile v-for="tile in tiles" :key="tile.template.templateId" :event-id="eventId" :date="date"
+                           :tile="tile" :busy="busy" :on-changed="reload" @fetch="fetching.run"
+                           @hand-in="handingIn.run"/>
     </div>
   </NeutralContainer>
 </template>

@@ -17,17 +17,22 @@ import type {DocumentTile, ParticipantCopy} from './documentTiles'
 
 /**
  * One document an appointment asks for: a picture of its first page, which opens large, its name,
- * and a download per participant the reader acts for. An event manager also gets a button showing
- * where every participant stands with it.
+ * and a download and a scan hand-in per participant the reader acts for. An event manager also gets a
+ * button showing where every participant stands with it, where scans are checked.
  */
 const props = defineProps<{
   eventId: number
+  /** The date of the appointment on screen. */
+  date: string
   tile: DocumentTile
   busy: boolean
+  /** Called once a scan was confirmed, turned down or handed in from the overview. */
+  onChanged: () => void
 }>()
 
 const emit = defineEmits<{
   fetch: [copy: ParticipantCopy]
+  handIn: [copy: ParticipantCopy, file: File]
 }>()
 
 const TILE_PICTURE_SIZE = 512
@@ -51,10 +56,12 @@ const showingStatus = ref(false)
                     data-testid="document-to-bring-status" @click="showingStatus = true"/>
       </div>
       <DocumentDownload v-for="copy in props.tile.own" :key="copy.memberId" :copy="copy"
-                        :named="props.tile.own.length > 1" :busy="busy" @fetch="emit('fetch', copy)"/>
+                        :named="props.tile.own.length > 1" :busy="busy" @fetch="emit('fetch', copy)"
+                        @hand-in="file => emit('handIn', copy, file)"/>
     </div>
     <DocumentPictureModal v-if="enlarged" v-model="enlarged" :event-id="eventId" :template="props.tile.template"/>
     <ParticipantStatusModal v-if="showingStatus && props.tile.participants" v-model="showingStatus"
-                            :title="props.tile.template.name" :participants="props.tile.participants"/>
+                            :event-id="eventId" :date="date" :template="props.tile.template"
+                            :participants="props.tile.participants" :on-changed="onChanged"/>
   </article>
 </template>

@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.generator.entity.RequiredTemplate;
 import dev.chojo.ember.feature.generator.entity.RequirementStatus;
 import dev.chojo.ember.feature.generator.entity.TemplateSort;
 import dev.chojo.ember.feature.generator.repository.EventRequirementRepository;
+import dev.chojo.ember.feature.generator.repository.PaperSubmissionRepository;
 import dev.chojo.ember.feature.generator.service.AppointmentDocumentService.ParticipantDocuments;
 import dev.chojo.ember.feature.generator.service.DocumentTemplateService.DocumentTemplateSummary;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -88,6 +89,7 @@ class AppointmentDocumentServiceTest extends GeneratorTestBase {
         requirements = new EventRequirementService(repository, wiring.templates());
         appointments = new AppointmentDocumentService(
                 repository,
+                new PaperSubmissionRepository(),
                 wiring.templates(),
                 wiring.generator(),
                 wiring.generation(),

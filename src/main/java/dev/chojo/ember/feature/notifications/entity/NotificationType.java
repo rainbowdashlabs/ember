@@ -86,7 +86,8 @@ public enum NotificationType {
     NAME_CHANGE_DENIED(NotificationParams.NameChangeDenied.class, "notification.nameChangeDenied"),
     SIGNATURE_REQUESTED(NotificationParams.SignatureRequested.class, "notification.signatureRequested"),
     SIGNATURE_REMINDER(NotificationParams.SignatureRequested.class, "notification.signatureReminder"),
-    DOCUMENT_SIGNED(NotificationParams.DocumentSigned.class, "notification.documentSigned");
+    DOCUMENT_SIGNED(NotificationParams.DocumentSigned.class, "notification.documentSigned"),
+    DOCUMENT_SCAN_REJECTED(NotificationParams.DocumentScanRejected.class, "notification.documentScanRejected");
 
     private final Class<? extends NotificationParams> paramsType;
     private final String localeKey;

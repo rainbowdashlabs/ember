@@ -12,12 +12,15 @@ import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
+import dev.chojo.ember.feature.generator.entity.DocumentTemplate;
 import dev.chojo.ember.feature.generator.entity.GenerationContext;
 import dev.chojo.ember.feature.generator.entity.GenerationOrigin;
+import dev.chojo.ember.feature.generator.entity.PaperSubmission;
 import dev.chojo.ember.feature.generator.entity.RequiredTemplate;
 import dev.chojo.ember.feature.generator.entity.RequirementGeneration;
 import dev.chojo.ember.feature.generator.entity.RequirementStatus;
 import dev.chojo.ember.feature.generator.repository.EventRequirementRepository;
+import dev.chojo.ember.feature.generator.repository.PaperSubmissionRepository;
 import dev.chojo.ember.feature.generator.service.DocumentGenerationService.GeneratedDocumentResponse;
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
@@ -45,12 +48,14 @@ import java.util.Set;
  * issued by the template's issuer at the station.
  *
  * <p>The status per participant and document is what the signing of these documents builds on later:
- * for now a copy is generated or it is not, and a copy from an older version of the template is marked
- * as such so a new one can be generated.
+ * a copy is generated or it is not, and a copy from an older version of the template is marked as such
+ * so a new one can be generated. Beside it stands the latest scan of a signed paper copy handed in for
+ * it, whether it waits, was confirmed or was turned down.
  */
 @Singleton
 public class AppointmentDocumentService {
     private final EventRequirementRepository requirements;
+    private final PaperSubmissionRepository submissions;
     private final DocumentTemplateService templates;
     private final DocumentGeneratorService generator;
     private final DocumentGenerationService generation;
@@ -64,6 +69,7 @@ public class AppointmentDocumentService {
     @Inject
     public AppointmentDocumentService(
             EventRequirementRepository requirements,
+            PaperSubmissionRepository submissions,
             DocumentTemplateService templates,
             DocumentGeneratorService generator,
             DocumentGenerationService generation,
@@ -75,6 +81,7 @@ public class AppointmentDocumentService {
             EventRestrictionService audience) {
         this.audience = audience;
         this.requirements = requirements;
+        this.submissions = submissions;
         this.templates = templates;
         this.generator = generator;
         this.generation = generation;
@@ -94,6 +101,8 @@ public class AppointmentDocumentService {
      * @param documentId  the copy filed with the participant, or null
      * @param generatedAt when that copy was generated, or null
      * @param outdated    whether the template changed since that copy was generated
+     * @param paper       the latest scan of a signed paper copy handed in for the participant, or null
+     *                    where none was
      */
     public record RequiredDocumentStatus(
             int templateId,
@@ -101,7 +110,8 @@ public class AppointmentDocumentService {
             RequirementStatus status,
             @Nullable Integer documentId,
             @Nullable Instant generatedAt,
-            boolean outdated) {}
+            boolean outdated,
+            @Nullable PaperSubmission paper) {}
 
     /**
      * The documents one participant is asked to bring.
@@ -154,11 +164,45 @@ public class AppointmentDocumentService {
         }
         var asked = new LinkedHashSet<>(own);
         if (overview) asked.addAll(everyone);
-        var copies = asked.isEmpty() ? List.<RequirementGeneration>of() : requirements.latest(event.id(), date, asked);
+        var copies = asked.isEmpty()
+                ? new Copies(List.of(), List.of())
+                : new Copies(requirements.latest(event.id(), date, asked), submissions.latest(event.id(), date, asked));
         return new AppointmentDocuments(
                 required,
                 participantsOf(own, required, copies),
                 overview ? participantsOf(everyone, required, copies) : null);
+    }
+
+    /** The generated copies and the scans handed in, for the participants asked about. */
+    private record Copies(List<RequirementGeneration> generated, List<PaperSubmission> scans) {}
+
+    /**
+     * Refuses a scan to be handed in for a member by somebody who may not: the reader has to act for
+     * the member, or manage the registrations, and the member has to take part on the date.
+     *
+     * @param session  the reader
+     * @param event    the appointment, already checked to be one the reader may see
+     * @param date     the date of the appointment
+     * @param memberId the participant
+     * @param manages  whether the reader manages the registrations of the station
+     */
+    void requireMayHandIn(StationSession session, StationEvent event, LocalDate date, int memberId, boolean manages) {
+        boolean actsFor = manages || guardians.mayActFor(session.user(), memberId);
+        if (!actsFor || !takesPart(event, date, memberId)) {
+            throw DocumentRefusal.DOCUMENT_REQUIREMENT_NOT_YOURS.raise();
+        }
+    }
+
+    /**
+     * @param stationId  the station
+     * @param eventId    the appointment
+     * @param templateId the template
+     * @return the template, refusing one the appointment does not ask for
+     */
+    DocumentTemplate requireAsked(int stationId, int eventId, int templateId) {
+        boolean required = inUse(eventId).stream().anyMatch(template -> template.templateId() == templateId);
+        if (!required) throw DocumentRefusal.DOCUMENT_REQUIREMENT_NOT_REQUIRED.raise();
+        return templates.requireInUse(stationId, templateId);
     }
 
     /**
@@ -181,7 +225,7 @@ public class AppointmentDocumentService {
     }
 
     private List<ParticipantDocuments> participantsOf(
-            Collection<Integer> memberIds, List<RequiredTemplate> required, List<RequirementGeneration> copies) {
+            Collection<Integer> memberIds, List<RequiredTemplate> required, Copies copies) {
         return memberIds.stream()
                 .map(memberId -> new ParticipantDocuments(
                         memberId, names.identified(memberId), statuses(required, copies, memberId)))
@@ -200,12 +244,8 @@ public class AppointmentDocumentService {
      */
     public GeneratedDocumentResponse generate(
             StationSession session, StationEvent event, LocalDate date, int templateId, int memberId) {
-        if (!guardians.mayActFor(session.user(), memberId) || !takesPart(event, date, memberId)) {
-            throw DocumentRefusal.DOCUMENT_REQUIREMENT_NOT_YOURS.raise();
-        }
-        boolean required = inUse(event.id()).stream().anyMatch(template -> template.templateId() == templateId);
-        if (!required) throw DocumentRefusal.DOCUMENT_REQUIREMENT_NOT_REQUIRED.raise();
-        var template = templates.requireInUse(session.stationId(), templateId);
+        requireMayHandIn(session, event, date, memberId, false);
+        var template = requireAsked(session.stationId(), event.id(), templateId);
         var context = new GenerationContext(
                 session.member().id(), facts(event, date), issuers.ofTemplate(template, session.stationId()));
         var prepared = generator.prepare(template, memberId, context);
@@ -219,23 +259,28 @@ public class AppointmentDocumentService {
                 .toList();
     }
 
-    private static List<RequiredDocumentStatus> statuses(
-            List<RequiredTemplate> required, List<RequirementGeneration> copies, int memberId) {
+    private static List<RequiredDocumentStatus> statuses(List<RequiredTemplate> required, Copies copies, int memberId) {
         return required.stream()
                 .map(template -> status(
                         template,
-                        copies.stream()
+                        copies.generated().stream()
                                 .filter(copy ->
                                         copy.memberId() == memberId && copy.templateId() == template.templateId())
+                                .findFirst()
+                                .orElse(null),
+                        copies.scans().stream()
+                                .filter(scan ->
+                                        scan.memberId() == memberId && scan.templateId() == template.templateId())
                                 .findFirst()
                                 .orElse(null)))
                 .toList();
     }
 
-    private static RequiredDocumentStatus status(RequiredTemplate template, @Nullable RequirementGeneration copy) {
+    private static RequiredDocumentStatus status(
+            RequiredTemplate template, @Nullable RequirementGeneration copy, @Nullable PaperSubmission scan) {
         if (copy == null) {
             return new RequiredDocumentStatus(
-                    template.templateId(), template.name(), RequirementStatus.NOT_GENERATED, null, null, false);
+                    template.templateId(), template.name(), RequirementStatus.NOT_GENERATED, null, null, false, scan);
         }
         return new RequiredDocumentStatus(
                 template.templateId(),
@@ -243,7 +288,8 @@ public class AppointmentDocumentService {
                 RequirementStatus.GENERATED,
                 copy.documentId(),
                 copy.generatedAt(),
-                copy.templateVersion() < template.version());
+                copy.templateVersion() < template.version(),
+                scan);
     }
 
     /** What a document says about the appointment on the date: its name, its times and its place. */

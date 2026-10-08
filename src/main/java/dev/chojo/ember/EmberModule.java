@@ -174,6 +174,7 @@ import dev.chojo.ember.feature.generator.route.DocumentGenerationRoutes;
 import dev.chojo.ember.feature.generator.route.DocumentTemplateRoutes;
 import dev.chojo.ember.feature.generator.route.GenerationJobRoutes;
 import dev.chojo.ember.feature.generator.route.GenerationLogRoutes;
+import dev.chojo.ember.feature.generator.route.PaperSubmissionRoutes;
 import dev.chojo.ember.feature.generator.route.TemplatePictureRoutes;
 import dev.chojo.ember.feature.generator.service.GenerationJobRunner;
 import dev.chojo.ember.feature.generator.service.font.DefaultFont;
@@ -461,6 +462,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(GenerationJobRoutes.class);
         routesBinder.addBinding().to(GenerationLogRoutes.class);
         routesBinder.addBinding().to(AppointmentDocumentRoutes.class);
+        routesBinder.addBinding().to(PaperSubmissionRoutes.class);
         routesBinder.addBinding().to(AssociationDocumentTemplateRoutes.class);
         routesBinder.addBinding().to(MailImportRoutes.class);
         routesBinder.addBinding().to(AdminMonitoringCountRoutes.class);

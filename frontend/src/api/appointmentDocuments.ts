@@ -4,8 +4,15 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
+import {uploadFile} from './upload'
 import type {TemplatePages} from './documentTemplates'
-import type {AppointmentDocuments, GeneratedDocumentResponse, RequiredTemplate, TemplatePage} from '@/api/generated/schema'
+import type {
+    AppointmentDocuments,
+    GeneratedDocumentResponse,
+    PaperSubmission,
+    RequiredTemplate,
+    TemplatePage,
+} from '@/api/generated/schema'
 
 /** Who asks for documents to bring: an appointment or an appointment template, by id. */
 export interface RequirementOwner {
@@ -55,5 +62,41 @@ export async function generateToBring(
 ): Promise<GeneratedDocumentResponse> {
     const res = await client.post<GeneratedDocumentResponse>(
         `/events/${eventId}/documents-to-bring/${templateId}/members/${memberId}`, null, {params: {date}})
+    return res.data
+}
+
+/** What a scan of a signed paper copy is handed in for: one participant's document on one date. */
+export interface ScanTarget {
+    eventId: number
+    date: string
+    templateId: number
+    memberId: number
+}
+
+/**
+ * Hands in the scan of a participant's signed paper copy and files it in their documents. One handed in
+ * by a manager of the registrations counts as confirmed at once.
+ */
+export async function submitScan(target: ScanTarget, file: File, title: string): Promise<PaperSubmission> {
+    const date = encodeURIComponent(target.date)
+    return uploadFile<PaperSubmission>(
+        `/events/${target.eventId}/documents-to-bring/${target.templateId}/members/${target.memberId}/scan?date=${date}`,
+        {file, title})
+}
+
+/** Where a scan handed in is served, for whoever manages the registrations. */
+export function scanContentUrl(eventId: number, submissionId: number): string {
+    return `/events/${eventId}/document-scans/${submissionId}/content`
+}
+
+/** Confirms a scan handed in as the participant's signed paper copy. */
+export async function confirmScan(eventId: number, submissionId: number): Promise<PaperSubmission> {
+    const res = await client.post<PaperSubmission>(`/events/${eventId}/document-scans/${submissionId}/confirm`)
+    return res.data
+}
+
+/** Turns a scan handed in down; the participant and their guardians are told the reason. */
+export async function rejectScan(eventId: number, submissionId: number, reason: string): Promise<PaperSubmission> {
+    const res = await client.post<PaperSubmission>(`/events/${eventId}/document-scans/${submissionId}/reject`, {reason})
     return res.data
 }

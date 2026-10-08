@@ -81,6 +81,7 @@ const typeIcons: Partial<Record<NotificationType, string>> = {
   SIGNATURE_REQUESTED: 'file-signature',
   SIGNATURE_REMINDER: 'file-signature',
   DOCUMENT_SIGNED: 'file-signature',
+  DOCUMENT_SCAN_REJECTED: 'file-signature',
 }
 
 /** A day as the database writes one, which is not how anybody here reads one. */

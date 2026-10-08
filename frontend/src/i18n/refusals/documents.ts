@@ -152,4 +152,9 @@ export default {
     'D-167': 'Beim Unterschreiben lassen sich höchstens 20 Felder ausfüllen',
     'D-168': 'Gerade werden zu viele Dokumente geprüft, versuche es gleich noch einmal',
     'D-169': 'Zu viele Unterschriften sind gerade angefangen. Schließe eine ab oder warte ein paar Minuten',
+    'D-170': 'Dieser Scan wurde nicht für diesen Termin eingereicht',
+    'D-171': 'Dieser Scan wurde bereits bestätigt oder abgelehnt',
+    'D-172': 'Das unterschriebene Exemplar dieses Dokuments ist bereits bestätigt, der Scan wurde nicht übernommen',
+    'D-173': 'Gib kurz an, warum der Scan abgelehnt wird',
+    'D-174': 'Der Grund darf höchstens 300 Zeichen lang sein',
 }
