@@ -45,7 +45,8 @@ public class TransferBackendImporter {
     /**
      * Applies the descriptor against {@code stationId}. {@link TransferBackendDescriptor.Local}
      * drops any existing override so future uploads route to the destination's instance
-     * default; the other variants re-encrypt credentials and upsert the override row.
+     * default; the other variants re-encrypt credentials and upsert the override row, marked as
+     * storage the station shares with the installation it came from.
      *
      * @return {@code true} when a remote backend was installed (caller copies the files within
      * that storage), {@code false} when the source used LOCAL storage (caller pulls the bytes
@@ -59,17 +60,17 @@ public class TransferBackendImporter {
                 return false;
             }
             case TransferBackendDescriptor.S3 v -> {
-                configRepository.upsert(stationId, toS3Variant(v));
+                configRepository.adoptFromTransfer(stationId, toS3Variant(v));
                 resolver.invalidateStation(stationId);
                 return true;
             }
             case TransferBackendDescriptor.Smb v -> {
-                configRepository.upsert(stationId, toSmbVariant(v));
+                configRepository.adoptFromTransfer(stationId, toSmbVariant(v));
                 resolver.invalidateStation(stationId);
                 return true;
             }
             case TransferBackendDescriptor.Sftp v -> {
-                configRepository.upsert(stationId, toSftpVariant(v));
+                configRepository.adoptFromTransfer(stationId, toSftpVariant(v));
                 resolver.invalidateStation(stationId);
                 return true;
             }

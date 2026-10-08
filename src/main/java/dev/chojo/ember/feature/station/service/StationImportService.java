@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.knowledgebase.service.KbIconService;
 import dev.chojo.ember.feature.quiz.service.StationAiKeyTransfer;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.station.transfer.ActiveImports;
 import dev.chojo.ember.feature.station.transfer.ImportProgress;
 import dev.chojo.ember.feature.station.transfer.ImportedAccountLinks;
 import dev.chojo.ember.feature.station.transfer.LendingRowScope;
@@ -54,7 +55,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -107,7 +107,7 @@ public class StationImportService {
     private final DataTracking tracking;
     private final ImportedAccountLinks importedLinks;
 
-    private final ConcurrentHashMap<Integer, ImportProgress> activeImports = new ConcurrentHashMap<>();
+    private final ActiveImports activeImports;
     private final SerialLane importLane;
 
     @Inject
@@ -131,8 +131,10 @@ public class StationImportService {
             AccountRepository accountRepository,
             AuthService authService,
             ImportedAccountLinks importedLinks,
+            ActiveImports activeImports,
             TaskScheduler scheduler) {
         this.importLane = scheduler.lane("station-import");
+        this.activeImports = activeImports;
         this.importedLinks = importedLinks;
         this.accountRepository = accountRepository;
         this.authService = authService;
@@ -231,7 +233,7 @@ public class StationImportService {
      * @param stationId the destination station
      * @return the progress, or {@code null} when no import ran for that station
      */
-    public ImportProgress getProgress(int stationId) {
+    public @Nullable ImportProgress getProgress(int stationId) {
         return activeImports.get(stationId);
     }
 
@@ -245,10 +247,7 @@ public class StationImportService {
      * @return the progress, or {@code null}
      */
     public @Nullable ImportProgress getProgressByUid(UUID stationUid) {
-        for (var progress : activeImports.values()) {
-            if (stationUid.equals(progress.stationUid())) return progress;
-        }
-        return null;
+        return activeImports.byUid(stationUid);
     }
 
     /**
@@ -286,7 +285,7 @@ public class StationImportService {
                 stationRepository.findById(stationId).map(Station::uid).orElse(station.uid());
         var progress = new ImportProgress(
                 stationId, currentUid, stationName, buildPhases(), baseUrl, token, ImportProgress.Target.NEW_STATION);
-        activeImports.put(stationId, progress);
+        activeImports.start(progress);
         var leftBehind = PartnersLeftBehind.read(stationPage);
         importLane.submit(() -> runRemoteImport(stationId, stationData, leftBehind, client, progress));
         return new ImportResult(stationId, stationName, 0);
@@ -324,7 +323,7 @@ public class StationImportService {
                 baseUrl,
                 token,
                 ImportProgress.Target.EXISTING_STATION);
-        activeImports.put(stationId, progress);
+        activeImports.start(progress);
         var leftBehind = PartnersLeftBehind.read(stationPage);
         importLane.submit(() -> runRemoteImport(stationId, stationData, leftBehind, client, progress));
     }
@@ -355,7 +354,7 @@ public class StationImportService {
         } catch (Exception ignored) {
             log.info("Station {} already gone before retry", failed.stationId());
         }
-        activeImports.remove(failed.stationId());
+        activeImports.forget(failed.stationId());
         return startRemoteImport(failed.sourceUrl(), failed.token());
     }
 
@@ -519,7 +518,7 @@ public class StationImportService {
             partnersLeftBehind.adopt(stationId, leftBehind);
             federationFixup.announceNewHostToRemotePartners(stationId, api.baseUrl());
             client.notifyComplete();
-            if (sharedStorage != null) sharedFiles.release(sharedStorage);
+            releaseStaging(sharedStorage);
             p.complete();
             log.info("completed for station '{}' (id={})", p.stationName(), stationId);
         } catch (Exception e) {
@@ -550,16 +549,35 @@ public class StationImportService {
     }
 
     /**
+     * Removes the staged copies of an import that finished. Every file already lies under its new key and
+     * the source has been told the move is complete, so copies left behind fail neither: they are reported
+     * as an error naming where they lie, and no later move reads them, since each move stages apart.
+     */
+    private void releaseStaging(SharedStorageFiles.@Nullable Run sharedStorage) {
+        if (sharedStorage == null) return;
+        try {
+            sharedFiles.release(sharedStorage);
+        } catch (RuntimeException e) {
+            log.error("The import finished but its staged copies stay in the shared storage", e);
+        }
+    }
+
+    /**
      * Gives the source back the files a failed import copied over in the storage both share, when the
      * import takes away the station it made. A station that was here before keeps what arrived, so only
-     * the staged copies go.
+     * the staged copies go. When that fails it is reported as an error, and the source is still told and the
+     * station still taken away.
      */
     private void settleSharedStorage(SharedStorageFiles.@Nullable Run sharedStorage, ImportProgress p) {
         if (sharedStorage == null) return;
-        if (p.target() == ImportProgress.Target.NEW_STATION) {
-            sharedFiles.restore(sharedStorage);
-        } else {
-            sharedFiles.release(sharedStorage);
+        try {
+            if (p.target() == ImportProgress.Target.NEW_STATION) {
+                sharedFiles.restore(sharedStorage);
+            } else {
+                sharedFiles.release(sharedStorage);
+            }
+        } catch (RuntimeException e) {
+            log.error("The files of the failed import into station {} could not be settled", p.stationId(), e);
         }
     }
 
@@ -588,7 +606,7 @@ public class StationImportService {
         UUID sourceUid = StationTableImporter.sourceUid(stationData)
                 .orElseThrow(() -> new IllegalStateException(
                         "The source did not name its station, so its files cannot be found in its storage"));
-        return new SharedStorageFiles.Run(scopeOf(stationId), sourceUid);
+        return SharedStorageFiles.Run.forTransfer(scopeOf(stationId), sourceUid, p.token());
     }
 
     /**

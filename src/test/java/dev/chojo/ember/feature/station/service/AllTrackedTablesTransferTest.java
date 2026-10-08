@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.transfer.AccountCredentialTableImporter;
 import dev.chojo.ember.feature.station.transfer.AccountTableImporter;
+import dev.chojo.ember.feature.station.transfer.ActiveImports;
 import dev.chojo.ember.feature.station.transfer.DisabledModuleTableImporter;
 import dev.chojo.ember.feature.station.transfer.StationTableImporter;
 import dev.chojo.ember.feature.station.transfer.TransferPace;
@@ -95,6 +96,7 @@ class AllTrackedTablesTransferTest extends RepositoryTestBase {
                 accountRepo,
                 org.mockito.Mockito.mock(dev.chojo.ember.feature.account.service.AuthService.class),
                 TestAccountLinks.importedLinks(accountRepo, stationRepo, stationMemberRepo),
+                new ActiveImports(),
                 new TaskScheduler());
     }
 

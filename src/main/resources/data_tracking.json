@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:0e9d5eb464b49cb58b02ee98174deae7bd87fed6d441f14cb9435567966ca22f",
-  "generatedAt": "2026-10-08T21:31:30Z",
+  "schemaHash": "sha256:52379e9ec37732ea85ed70b044e647ceec032c221a45b265925cefa719672a9a",
+  "generatedAt": "2026-10-08T23:14:16Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -26493,7 +26493,7 @@
     "station_storage_config": {
       "feature": "storage",
       "scope": "STATION",
-      "tableHash": "sha256:24fda8da3a5f1bcb9408a400c0f25dff553171e7eb6859431e59ae49fd97ffbe",
+      "tableHash": "sha256:e535d93f4ba05a05a781ec034cb62e68126946b8b2074d757df8fa81ed98da6d",
       "columns": [
         {
           "name": "station_id",
@@ -26526,6 +26526,13 @@
           "type": "timestamptz",
           "nullable": false,
           "verified": true
+        },
+        {
+          "name": "shared_by_transfer",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "TRUE when the station took this storage over from the installation it moved here from. That installation can still keep files in the same place, which no row here names, so the storage check never deletes a file it finds no row for while this is set. Back to FALSE once the station is put on other storage."
         }
       ],
       "foreignKeys": [

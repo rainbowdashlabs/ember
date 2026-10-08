@@ -36,17 +36,20 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
 /**
  * Files copied inside storage the destination took over: each lands under its row's new id although the
- * ids of both sides overlap, a retry copies what the source held whatever ids it hands out, and the source
- * gets its files back when the import fails. Run against the local disk and an S3 server.
+ * ids of both sides overlap, a retry copies what the source held whatever ids it hands out, a later move
+ * never reads what an earlier one left staged, and the source gets its files back when the import fails.
+ * Run against the local disk and an S3 server.
  */
 @Tag("storage")
 class SharedStorageFilesTest {
@@ -157,6 +160,68 @@ class SharedStorageFilesTest {
         assertFalse(fixture.backend().exists(fixture.run().marker(WIKI)));
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"local", "s3"})
+    void aLaterMoveNeverReadsWhatAnEarlierOneLeftStaged(String kind) {
+        var fixture = new Fixture(backend(kind));
+        fixture.failOnDelete("transfer/");
+        fixture.files().copyCategory(fixture.run(), WIKI, renumbered(1, 2, 2, 3, 3, 1), fixture.progress());
+
+        assertThrows(StorageException.class, () -> fixture.files().release(fixture.run()));
+        List<String> leftBehind = fixture.staged();
+        assertFalse(leftBehind.isEmpty(), "the copies that could not be removed are still there");
+        fixture.heal();
+        fixture.files().copyCategory(fixture.laterMove(), WIKI, renumbered(1, 1, 2, 2, 3, 3), fixture.progress());
+        fixture.files().release(fixture.laterMove());
+
+        assertEquals(Map.of(1, "three", 2, "one", 3, "two"), fixture.wikiFiles());
+        assertEquals(leftBehind, fixture.staged(), "only what the earlier move left stays");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"local", "s3"})
+    void aRestoreThatCannotFinishThrowsAndKeepsTheStagedCopies(String kind) {
+        var fixture = new Fixture(backend(kind));
+        fixture.files().copyCategory(fixture.run(), WIKI, renumbered(1, 2, 2, 4, 3, 1), fixture.progress());
+        fixture.failOnCopy(fixture.wikiBase(), 1);
+
+        assertThrows(StorageException.class, () -> fixture.files().restore(fixture.run()));
+        assertFalse(fixture.staged().isEmpty(), "a retry still finds the staged copies");
+        fixture.files().restore(fixture.run());
+
+        assertEquals(SOURCE, fixture.wikiFiles());
+        assertEquals(List.of(), fixture.staged());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"local", "s3"})
+    void aFailedImportUnderANewIdentifierLeavesNoCopies(String kind) {
+        var fixture = new Fixture(backend(kind), false);
+        fixture.store(fixture.sourceBase(MEDIA) + "/abc/orig.png", "picture");
+        fixture.files().copyCategory(fixture.run(), WIKI, renumbered(1, 2, 2, 3, 3, 1), fixture.progress());
+        fixture.files().copyCategory(fixture.run(), MEDIA, renumbered(), fixture.progress());
+
+        fixture.files().restore(fixture.run());
+
+        assertEquals(
+                List.of(),
+                fixture.backend().listByPrefix(fixture.run().destination().prefix() + "/"));
+        assertEquals(SOURCE, fixture.wikiFiles());
+        assertEquals("picture", fixture.read(fixture.sourceBase(MEDIA) + "/abc/orig.png"));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"local", "s3"})
+    void copiesThatCannotBeRemovedAreNamed(String kind) {
+        var fixture = new Fixture(backend(kind), false);
+        fixture.files().copyCategory(fixture.run(), WIKI, renumbered(1, 2, 2, 3, 3, 1), fixture.progress());
+        fixture.failOnDelete(fixture.run().destination().prefix());
+
+        var error = assertThrows(StorageException.class, () -> fixture.files().restore(fixture.run()));
+
+        assertTrue(error.getMessage().contains(fixture.run().destination().prefix()), error.getMessage());
+    }
+
     private static StorageBackend backend(String kind) {
         return switch (kind) {
             case "local" -> local();
@@ -219,8 +284,8 @@ class SharedStorageFilesTest {
          */
         Fixture(StorageBackend backend, boolean keepsIdentifier) {
             this.backend = spy(backend);
-            this.run = new SharedStorageFiles.Run(
-                    new StorageScope.Station(1, keepsIdentifier ? sourceUid : UUID.randomUUID()), sourceUid);
+            this.run = SharedStorageFiles.Run.forTransfer(
+                    new StorageScope.Station(1, keepsIdentifier ? sourceUid : UUID.randomUUID()), sourceUid, "first");
             var resolver = mock(StorageBackendResolver.class);
             when(resolver.forScope(any(), any())).thenReturn(this.backend);
             this.files = new SharedStorageFiles(resolver);
@@ -233,6 +298,11 @@ class SharedStorageFilesTest {
 
         SharedStorageFiles.Run run() {
             return run;
+        }
+
+        /** A later move of the same station, under a transfer token of its own, onto the same storage. */
+        SharedStorageFiles.Run laterMove() {
+            return SharedStorageFiles.Run.forTransfer(run.destination(), sourceUid, "later");
         }
 
         SharedStorageFiles files() {
@@ -291,6 +361,22 @@ class SharedStorageFilesTest {
                     })
                     .when(backend)
                     .copy(anyString(), anyString());
+        }
+
+        /** Lets every removal of a key under {@code prefix} fail, as a storage that refuses deletes. */
+        void failOnDelete(String prefix) {
+            doAnswer(call -> {
+                        String key = call.getArgument(0);
+                        if (key.startsWith(prefix)) throw new StorageException("the storage refused the delete");
+                        return call.callRealMethod();
+                    })
+                    .when(backend)
+                    .delete(anyString());
+        }
+
+        /** Lets the storage work normally again. */
+        void heal() {
+            reset(backend);
         }
     }
 }

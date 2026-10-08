@@ -7,8 +7,10 @@ package dev.chojo.ember.feature.storage.service;
 
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.station.transfer.ActiveImports;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageScope;
+import dev.chojo.ember.feature.storage.repository.StationStorageConfigRepository;
 import dev.chojo.ember.feature.storage.repository.StorageUsageRepository;
 import dev.chojo.ember.lifecycle.Schedule;
 import dev.chojo.ember.lifecycle.ScheduledTask;
@@ -49,6 +51,8 @@ public class StorageReconciliationService implements TaskSource {
     private final StorageUsageRepository usageRepository;
     private final StationRepository stationRepository;
     private final StorageService storage;
+    private final StationStorageConfigRepository configRepository;
+    private final ActiveImports activeImports;
     private final Duration reconciliationInterval;
 
     @Inject
@@ -56,10 +60,14 @@ public class StorageReconciliationService implements TaskSource {
             StorageUsageRepository usageRepository,
             StationRepository stationRepository,
             StorageService storage,
+            StationStorageConfigRepository configRepository,
+            ActiveImports activeImports,
             Storage storageConfig) {
         this.usageRepository = usageRepository;
         this.stationRepository = stationRepository;
         this.storage = storage;
+        this.configRepository = configRepository;
+        this.activeImports = activeImports;
         this.reconciliationInterval = Duration.ofHours(storageConfig.reconciliationIntervalHours());
     }
 
@@ -76,6 +84,19 @@ public class StorageReconciliationService implements TaskSource {
         }
     }
 
+    /**
+     * Corrects one station's usage counters and removes the files no row of it names.
+     *
+     * <p>A station a transfer holds is left alone: one that moved away, one being handed over while
+     * its transfer token is open, and one an import is still writing into. Their rows and the files
+     * in their place do not belong together then, since the other installation writes there too or
+     * the rows have not all arrived. A station standing on storage it took over from the installation
+     * it moved here from has its counters corrected but never loses a file, since the files there
+     * that no row here names can still be that installation's. Both are asked again before every
+     * category, so a transfer that begins while the station is being reconciled stops it there.
+     *
+     * @param stationId the station to reconcile
+     */
     public void reconcileStation(int stationId) {
         try {
             UUID stationUid = stationRepository.resolveUid(stationId);
@@ -85,8 +106,12 @@ public class StorageReconciliationService implements TaskSource {
             }
             var scope = new StorageScope.Station(stationId, stationUid);
             for (StorageCategory category : STATION_CATEGORIES) {
+                if (heldByTransfer(stationId)) {
+                    log.info("Skipping reconciliation for station {}, which a transfer holds", stationId);
+                    return;
+                }
                 try {
-                    reconcileCategory(stationId, scope, category);
+                    reconcileCategory(stationId, scope, category, !configRepository.isSharedByTransfer(stationId));
                 } catch (Exception e) {
                     log.error("Error reconciling category {} for station {}", category, stationId, e);
                 }
@@ -97,8 +122,21 @@ public class StorageReconciliationService implements TaskSource {
         }
     }
 
-    private void reconcileCategory(int stationId, StorageScope.Station scope, StorageCategory category) {
-        deleteOrphans(stationId, scope, category);
+    private boolean heldByTransfer(int stationId) {
+        if (activeImports.isUnderway(stationId)) return true;
+        return query("""
+                        SELECT moved_away_at IS NOT NULL OR read_only_for_transfer AS held
+                          FROM station
+                         WHERE id = :station_id;""")
+                .single(call().bind("station_id", stationId))
+                .map(row -> row.getBoolean("held"))
+                .first()
+                .orElse(true);
+    }
+
+    private void reconcileCategory(
+            int stationId, StorageScope.Station scope, StorageCategory category, boolean mayDelete) {
+        if (mayDelete) deleteOrphans(stationId, scope, category);
         if (!category.tracksUsage()) return;
         long totalBytes = storage.sumSize(scope, category);
         int fileCount = storage.listKeys(scope, category, "").size();

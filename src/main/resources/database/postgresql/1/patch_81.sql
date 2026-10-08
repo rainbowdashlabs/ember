@@ -1685,3 +1685,10 @@ ALTER TYPE ember_schema.two_factor_event ADD VALUE IF NOT EXISTS 'ACCOUNT_LINK_A
 
 COMMENT ON COLUMN ember_schema.account_2fa_audit.station_id IS
     'The station whose administration acted, for an event a station administrator caused, and the station the account was linked to for ACCOUNT_LINK_ACCEPTED. NULL for everything else done by the account itself or by an instance administrator.';
+
+
+ALTER TABLE ember_schema.station_storage_config
+    ADD COLUMN shared_by_transfer BOOLEAN NOT NULL DEFAULT FALSE;
+
+COMMENT ON COLUMN ember_schema.station_storage_config.shared_by_transfer IS
+    'TRUE when the station took this storage over from the installation it moved here from. That installation can still keep files in the same place, which no row here names, so the storage check never deletes a file it finds no row for while this is set. Back to FALSE once the station is put on other storage.';

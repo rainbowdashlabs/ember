@@ -7,6 +7,8 @@ package dev.chojo.ember.feature.storage.service;
 
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.station.transfer.ActiveImports;
+import dev.chojo.ember.feature.storage.repository.StationStorageConfigRepository;
 import dev.chojo.ember.feature.storage.repository.StorageUsageRepository;
 import dev.chojo.ember.lifecycle.Schedule;
 import org.junit.jupiter.api.Test;
@@ -27,6 +29,8 @@ class StorageTasksTest {
                 mock(StorageUsageRepository.class),
                 mock(StationRepository.class),
                 mock(StorageService.class),
+                mock(StationStorageConfigRepository.class),
+                new ActiveImports(),
                 new Storage()));
         doNothing().when(reconciliation).reconcileAll();
         var task = reconciliation.scheduledTasks().getFirst();

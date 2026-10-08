@@ -95,6 +95,7 @@ import dev.chojo.ember.feature.station.service.StationImportService;
 import dev.chojo.ember.feature.station.service.StationTransferService;
 import dev.chojo.ember.feature.station.transfer.AccountCredentialTableImporter;
 import dev.chojo.ember.feature.station.transfer.AccountTableImporter;
+import dev.chojo.ember.feature.station.transfer.ActiveImports;
 import dev.chojo.ember.feature.station.transfer.DisabledModuleTableImporter;
 import dev.chojo.ember.feature.station.transfer.DocumentSearchTableImporter;
 import dev.chojo.ember.feature.station.transfer.ImportProgress;
@@ -254,6 +255,7 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
                 accountRepo,
                 org.mockito.Mockito.mock(dev.chojo.ember.feature.account.service.AuthService.class),
                 TestAccountLinks.importedLinks(accountRepo, stationRepo, stationMemberRepo),
+                new ActiveImports(),
                 new TaskScheduler());
 
         var transferRoutes = new TransferRoutes(
@@ -517,6 +519,8 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
         var afterwards = digests(sharedAt);
         sourceObjects.forEach((key, digest) -> assertEquals(digest, afterwards.get(key), "the source keeps " + key));
         assertEquals(List.of(), sharedBackend.listByPrefix("transfer/"), "no staged copy is left behind");
+        assertTrue(configRepo.isSharedByTransfer(destinationId), "the storage is known to be shared with the source");
+        assertFalse(configRepo.isSharedByTransfer(source.id()), "the source's own storage is its own");
     }
 
     private static Map<String, String> digests(String prefix) throws IOException {
