@@ -6,6 +6,7 @@
 package dev.chojo.ember.tracking;
 
 import dev.chojo.ember.repository.RepositoryTestBase;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -14,6 +15,8 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
@@ -255,6 +258,65 @@ class DataTrackingTest extends RepositoryTestBase {
                     + String.join("\n  ", dangling)
                     + "\n\nName the column the table really carries, or drop the rule.");
         }
+    }
+
+    /**
+     * Every reference a transferred row carries can be followed on the destination. The import moves a
+     * foreign key to the id its row got there, or finds the row again by a lookup, and a row whose key it
+     * can do neither for is not imported. Two kinds of key can never be followed: a key into a table whose
+     * rows travel without their ids, such as accounts, and a key that cannot be empty into a table that
+     * does not travel at all, which leaves every row behind. Such a key needs a lookup, or stays behind in
+     * {@code ignoredColumns}. An array of ids is moved the same way, so it has to name a table whose ids
+     * travel.
+     */
+    @Test
+    void everyTransferredReferenceCanBeFollowed() {
+        List<String> unfollowable = new ArrayList<>();
+        for (var entry : tracking.tables().entrySet()) {
+            var table = entry.getValue();
+            if (!transferred(table)) continue;
+            var ignored = Set.copyOf(table.stationTransfer().ignoredColumns());
+            var lookedUp = Objects.requireNonNullElse(table.lookups(), List.<Lookup>of()).stream()
+                    .map(Lookup::via)
+                    .collect(Collectors.toSet());
+            var nullable = table.columns().stream()
+                    .filter(ColumnEntry::nullable)
+                    .map(ColumnEntry::name)
+                    .collect(Collectors.toSet());
+            for (var fk : table.foreignKeys()) {
+                String column = fk.column();
+                if ("station_id".equals(column) || ignored.contains(column) || lookedUp.contains(column)) continue;
+                var referenced = tracking.tables().get(fk.refTable());
+                String at = entry.getKey() + "." + column + " -> " + fk.refTable();
+                if (transferred(referenced) && !idsTravel(referenced)) {
+                    unfollowable.add(at + " (its rows travel without their ids)");
+                } else if (!transferred(referenced) && !nullable.contains(column)) {
+                    unfollowable.add(at + " (does not travel, so no row would arrive)");
+                }
+            }
+            for (var reference : Objects.requireNonNullElse(table.arrayReferences(), List.<ArrayReference>of())) {
+                var referenced = tracking.tables().get(reference.refTable());
+                if (!transferred(referenced) || !idsTravel(referenced)) {
+                    unfollowable.add(entry.getKey() + "." + reference.column() + "[] -> " + reference.refTable()
+                            + " (its ids do not travel)");
+                }
+            }
+        }
+        if (!unfollowable.isEmpty()) {
+            fail("These references cannot be followed by a station transfer (" + unfollowable.size() + " total):\n  "
+                    + String.join("\n  ", unfollowable)
+                    + "\n\nAdd a lookup that finds the row again, or leave the column behind in ignoredColumns.");
+        }
+    }
+
+    private static boolean transferred(@Nullable TableEntry table) {
+        return table != null
+                && table.stationTransfer() != null
+                && table.stationTransfer().status() == TrackingStatus.TRACKED;
+    }
+
+    private static boolean idsTravel(TableEntry table) {
+        return !table.stationTransfer().ignoredColumns().contains("id");
     }
 
     @Test

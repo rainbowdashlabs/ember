@@ -26,7 +26,7 @@ import java.util.List;
  * A template as the editor sends it, built up in a test from what the test is about, everything else
  * left out.
  */
-final class TemplateRequestBuilder {
+public final class TemplateRequestBuilder {
     private @Nullable DocumentTemplateKind kind;
     private final @Nullable String name;
     private @Nullable String titlePattern;
@@ -59,12 +59,12 @@ final class TemplateRequestBuilder {
     }
 
     /** A letter of the given name whose body is one text per row. */
-    static TemplateRequestBuilder letter(@Nullable String name, String... texts) {
+    public static TemplateRequestBuilder letter(@Nullable String name, String... texts) {
         return letter(name).body(rowsOf(texts));
     }
 
     /** A PDF template of the given name, holding no fields yet. */
-    static TemplateRequestBuilder pdf(String name) {
+    public static TemplateRequestBuilder pdf(String name) {
         var builder = new TemplateRequestBuilder(name);
         builder.kind = DocumentTemplateKind.PDF;
         return builder;
@@ -173,7 +173,7 @@ final class TemplateRequestBuilder {
         return this;
     }
 
-    TemplateRequestBuilder tags(List<String> tags) {
+    public TemplateRequestBuilder tags(List<String> tags) {
         this.tags = tags;
         return this;
     }
@@ -254,7 +254,7 @@ final class TemplateRequestBuilder {
         return this;
     }
 
-    DocumentTemplateRequest build() {
+    public DocumentTemplateRequest build() {
         return new DocumentTemplateRequest(
                 kind,
                 name,

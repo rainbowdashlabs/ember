@@ -6,6 +6,7 @@
 package dev.chojo.ember.tracking.engine;
 
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
+import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import dev.chojo.ember.tracking.DataTracking;
@@ -134,6 +135,35 @@ class GenericTableExporterTest extends RepositoryTestBase {
             assertTrue(row.containsKey("station_name"), "lookup should add 'station_name' field");
             assertEquals("ExporterTestStation", row.get("station_name"));
         }
+    }
+
+    /**
+     * A visibility override names a folder or a file. Both reach the station, each through its own
+     * reference, and another station's override reaches neither.
+     */
+    @Test
+    void aRowNamingEitherOfTwoParentsIsReachedThroughEither() {
+        Station elsewhere = stationRepo.create("ExporterOtherStation");
+        int author = stationMemberRepo
+                .create(
+                        station.id(),
+                        accountRepo
+                                .create("kb-export@test.com", "Kim", "Wiki", true)
+                                .id())
+                .id();
+        var folder = knowledgeBaseRepo.createFolder(station.id(), null, "Handbuch", "", author);
+        var file = knowledgeBaseRepo.createFile(
+                station.id(), folder.id(), "Lageplan", "", KbFileType.TEXT, "text/plain", 1, null, author);
+        var otherFolder = knowledgeBaseRepo.createFolder(elsewhere.id(), null, "Fremd", "", author);
+        knowledgeBaseRepo.setPublicVisibility(folder.id(), null, true);
+        knowledgeBaseRepo.setPublicVisibility(null, file.id(), false);
+        knowledgeBaseRepo.setPublicVisibility(otherFolder.id(), null, true);
+
+        var rows = exporter.export("kb_public_visibility", station.id(), 0, 100);
+
+        assertEquals(2, rows.size());
+        assertTrue(rows.stream().anyMatch(row -> Integer.valueOf(folder.id()).equals(row.get("folder_id"))));
+        assertTrue(rows.stream().anyMatch(row -> Integer.valueOf(file.id()).equals(row.get("file_id"))));
     }
 
     @Test

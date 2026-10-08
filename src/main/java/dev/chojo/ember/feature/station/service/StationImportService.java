@@ -541,6 +541,11 @@ public class StationImportService {
         }
     }
 
+    /**
+     * Pulls a table page by page until the source sends a short one. The page the source sent decides
+     * this, not the rows written from it: rows left behind and accounts merged into existing ones count
+     * as fewer, and must not end the table early.
+     */
     private void fetchAndImportPaginated(StationImportContext context, String table, TransferSourceClient client) {
         OutputShape shape = shapeOf(table);
         int offset = 0;
@@ -548,9 +553,9 @@ public class StationImportService {
             var page = client.fetchPage(table, offset, PAGE_SIZE);
             Object payload = page.get(table);
             if (payload == null) return;
-            int imported = importTable(context, table, payload);
+            importTable(context, table, payload);
             if (shape != OutputShape.ROWS) return;
-            if (imported < PAGE_SIZE) return;
+            if (!(payload instanceof List<?> rows) || rows.size() < PAGE_SIZE) return;
             offset += PAGE_SIZE;
         }
     }

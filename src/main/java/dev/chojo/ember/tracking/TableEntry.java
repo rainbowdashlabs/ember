@@ -21,7 +21,10 @@ import java.util.List;
  * @param lookups         join-flattened fields the export engine should add to each row by following a
  *                        foreign key to another table; empty when no lookups are configured, and then
  *                        left out of the file
- * @param outputShape     how rows are emitted on the wire ({@code ROWS} by default, {@code SINGLE} for
+ * @param arrayReferences array columns whose elements are ids of rows in another table, which a station
+ *                        transfer moves to the ids those rows get on the destination; empty when the
+ *                        table has none, and then left out of the file
+ * @param outputShape    how rows are emitted on the wire ({@code ROWS} by default, {@code SINGLE} for
  *                        one-row-per-station tables, {@code FLAT} for single-column lists)
  * @param flatField       column name to extract when {@code outputShape == FLAT}
  * @param customScope     override for tables that aren't directly scoped by an outgoing FK chain;
@@ -47,6 +50,9 @@ public record TableEntry(
         @JsonInclude(JsonInclude.Include.NON_EMPTY) @Nullable
         List<Lookup> lookups,
 
+        @JsonInclude(JsonInclude.Include.NON_EMPTY) @Nullable
+        List<ArrayReference> arrayReferences,
+
         @Nullable OutputShape outputShape,
         @Nullable String flatField,
         @Nullable CustomScope customScope,
@@ -59,6 +65,7 @@ public record TableEntry(
         columns = columns == null ? List.of() : columns;
         foreignKeys = foreignKeys == null ? List.of() : foreignKeys;
         lookups = lookups == null ? List.of() : lookups;
+        arrayReferences = arrayReferences == null ? List.of() : arrayReferences;
     }
 
     /**
@@ -84,6 +91,7 @@ public record TableEntry(
                 columns,
                 foreignKeys,
                 lookups,
+                List.of(),
                 outputShape,
                 flatField,
                 customScope,
@@ -101,6 +109,7 @@ public record TableEntry(
                 newColumns,
                 foreignKeys,
                 lookups,
+                arrayReferences,
                 outputShape,
                 flatField,
                 customScope,
@@ -118,6 +127,7 @@ public record TableEntry(
                 columns,
                 foreignKeys,
                 lookups,
+                arrayReferences,
                 outputShape,
                 flatField,
                 customScope,

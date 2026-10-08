@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.tracking.engine;
 
+import dev.chojo.ember.tracking.ArrayReference;
 import dev.chojo.ember.tracking.CustomScope;
 import dev.chojo.ember.tracking.DataTracking;
 import dev.chojo.ember.tracking.ForeignKey;
@@ -16,6 +17,7 @@ import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
@@ -86,6 +88,10 @@ public final class TableOrder {
      * Records that {@code name} depends on every other tracked table one of its foreign keys
      * points at. A self-reference is no dependency. A {@code SET NULL} key is also noted in
      * {@code softEdges}, because that edge is the one that may be dropped to break a cycle.
+     *
+     * <p>An {@link ArrayReference} is a dependency like a foreign key, since its elements are
+     * remapped the same way. The database lets a referenced row go without touching the array, so
+     * it is soft as well.
      */
     private static void addForeignKeyEdges(
             DataTracking tracking,
@@ -93,7 +99,15 @@ public final class TableOrder {
             Set<String> tracked,
             Map<String, Set<String>> dependsOn,
             Map<String, Set<String>> softEdges) {
-        for (ForeignKey fk : tracking.tables().get(name).foreignKeys()) {
+        var table = tracking.tables().get(name);
+        for (ArrayReference reference :
+                Objects.requireNonNullElse(table.arrayReferences(), List.<ArrayReference>of())) {
+            String ref = reference.refTable();
+            if (ref.equals(name) || !tracked.contains(ref)) continue;
+            dependsOn.get(name).add(ref);
+            softEdges.get(name).add(ref);
+        }
+        for (ForeignKey fk : table.foreignKeys()) {
             String ref = fk.refTable();
             if (ref == null || ref.equals(name) || !tracked.contains(ref)) continue;
             dependsOn.get(name).add(ref);

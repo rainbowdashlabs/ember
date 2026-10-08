@@ -45136,6 +45136,18 @@
         },
         "required" : [ "accountId", "name" ]
       },
+      "ArrayReference" : {
+        "type" : "object",
+        "properties" : {
+          "column" : {
+            "type" : "string"
+          },
+          "refTable" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "column", "refTable" ]
+      },
       "ArtAssignRequest" : {
         "type" : "object",
         "properties" : {
@@ -73351,6 +73363,12 @@
             "type" : "array",
             "items" : {
               "$ref" : "#/components/schemas/Lookup"
+            }
+          },
+          "arrayReferences" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ArrayReference"
             }
           },
           "outputShape" : {

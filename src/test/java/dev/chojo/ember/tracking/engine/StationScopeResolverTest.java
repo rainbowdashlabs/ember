@@ -10,6 +10,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -64,5 +65,33 @@ class StationScopeResolverTest {
     @Test
     void unknownTableYieldsEmpty() {
         assertTrue(resolver.resolve("not_a_real_table").isEmpty());
+        assertTrue(resolver.resolveAll("not_a_real_table").isEmpty());
+    }
+
+    /**
+     * A restriction names a group or a user type. Scoped through the group, every restriction by user
+     * type would be lost, so the path runs through the template, which every restriction names.
+     */
+    @Test
+    void aColumnThatMayBeEmptyIsNotJoinedThroughWhileAnotherPathExists() {
+        var path = resolver.resolve("event_template_restriction").orElseThrow();
+        assertEquals("template_id", path.joins().getFirst().fk().column());
+
+        var change = resolver.resolveAll("profile_field_change");
+        assertEquals(1, change.size());
+        assertEquals("member_id", change.getFirst().joins().getFirst().fk().column());
+    }
+
+    /**
+     * A wiki grant names a folder or a file, either of which may be empty, so it takes one path per
+     * foreign key and a grant belongs to the station any of them reaches.
+     */
+    @Test
+    void aTableWhosePathsAllMayBeEmptyTakesOnePathPerForeignKey() {
+        var paths = resolver.resolveAll("kb_access_grant");
+        var firstHops = paths.stream()
+                .map(path -> path.joins().getFirst().fk().column())
+                .toList();
+        assertTrue(firstHops.containsAll(List.of("folder_id", "file_id")), firstHops.toString());
     }
 }

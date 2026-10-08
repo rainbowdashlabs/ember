@@ -146,6 +146,8 @@ public final class GenericGdprExporter {
                         String typeName = meta.getColumnTypeName(i);
                         if ("jsonb".equals(typeName) || "json".equals(typeName)) {
                             out.put(meta.getColumnLabel(i), row.getString(i));
+                        } else if (ArrayValues.isArray(typeName)) {
+                            out.put(meta.getColumnLabel(i), ArrayValues.read(row.getArray(i)));
                         } else {
                             out.put(meta.getColumnLabel(i), row.getObject(i));
                         }

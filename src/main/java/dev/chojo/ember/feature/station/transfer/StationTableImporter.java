@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.tracking.ColumnEntry;
 import dev.chojo.ember.tracking.DataTracking;
 import dev.chojo.ember.tracking.DataTrackingLoader;
+import dev.chojo.ember.tracking.engine.ArrayValues;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -89,6 +90,10 @@ public class StationTableImporter implements TableImporter {
         for (var e : updates.entrySet()) {
             String type = columnType(columns, e.getKey());
             Object val = e.getValue();
+            if (type != null && ArrayValues.isArray(type)) {
+                c = ArrayValues.bind(c, e.getKey(), val, type);
+                continue;
+            }
             c = switch (type == null ? "" : type) {
                 case "bytea" ->
                     c.bind(

@@ -1349,6 +1349,12 @@
           "onDelete": "CASCADE"
         }
       ],
+      "arrayReferences": [
+        {
+          "column": "group_ids",
+          "refTable": "member_group"
+        }
+      ],
       "stationTransfer": {
         "status": "TRACKED",
         "ignoredColumns": [
@@ -7071,7 +7077,11 @@
       ],
       "stationTransfer": {
         "status": "TRACKED",
-        "rationale": "A station's own templates (station_id) go with it; an association's templates (cluster_id) stay with the association, and documents a station generated from them keep their files but lose their log entry on the way. Placeholders of profile questions name the question by its id inside the texts, which a transfer does not rewrite; they print as gaps until the template is saved again with the questions picked anew."
+        "ignoredColumns": [
+          "created_by",
+          "updated_by"
+        ],
+        "rationale": "A station's own templates (station_id) go with it; an association's templates (cluster_id) stay with the association, and documents a station generated from them keep their files but lose their log entry on the way. Who created and last changed a template stays behind: accounts travel without their ids, so the reference could not be resolved and would cost the template. Placeholders of profile questions name the question by its id inside the texts, which a transfer does not rewrite; they print as gaps until the template is saved again with the questions picked anew."
       },
       "gdprExport": {
         "status": "TRACKED",
@@ -7489,7 +7499,11 @@
         }
       ],
       "stationTransfer": {
-        "status": "TRACKED"
+        "status": "TRACKED",
+        "ignoredColumns": [
+          "uploaded_by"
+        ],
+        "rationale": "The PDFs of a station's templates and their files go with it. Who uploaded one stays behind: accounts travel without their ids, so the reference could not be resolved and would cost the PDF."
       },
       "gdprExport": {
         "status": "TRACKED",
@@ -9428,9 +9442,7 @@
       ],
       "stationTransfer": {
         "status": "TRACKED",
-        "ignoredColumns": [
-          "id"
-        ]
+        "rationale": "A registration keeps its id on the wire so the answers to the event's registration questions find it on the destination."
       },
       "gdprExport": {
         "status": "TRACKED",
@@ -14498,7 +14510,11 @@
         }
       ],
       "stationTransfer": {
-        "status": "TRACKED"
+        "status": "TRACKED",
+        "ignoredColumns": [
+          "owner_cluster_id"
+        ],
+        "rationale": "A station's items go with it. A station carries no association with it, so an item the association owns arrives as owned by a body that does not run on the destination, which is what an empty owner says. Items whose owner or custody names another station are left behind and counted in the log."
       },
       "gdprExport": {
         "status": "TRACKED",
@@ -18069,7 +18085,11 @@
         }
       ],
       "stationTransfer": {
-        "status": "TRACKED"
+        "status": "TRACKED",
+        "ignoredColumns": [
+          "mailbox_id"
+        ],
+        "rationale": "Where a document came from goes with the document. Mailboxes are set up again after a transfer, so the origin arrives without its mailbox, as it would after the mailbox was removed."
       },
       "gdprExport": {
         "status": "IGNORED",
@@ -18566,9 +18586,19 @@
           "onDelete": "CASCADE"
         }
       ],
+      "lookups": [
+        {
+          "via": "permission_id",
+          "pick": "name",
+          "emitAs": "permission_name"
+        }
+      ],
       "stationTransfer": {
         "status": "TRACKED",
-        "rationale": "Belongs in station transfer; handler in StationExportService/StationImportService not yet implemented"
+        "ignoredColumns": [
+          "permission_id"
+        ],
+        "rationale": "A group keeps the permissions it grants. The permission catalog is seeded on every instance under ids of its own, so a permission travels by its name."
       },
       "gdprExport": {
         "status": "IGNORED",
@@ -21165,7 +21195,10 @@
       ],
       "stationTransfer": {
         "status": "TRACKED",
-        "rationale": "Belongs in station transfer; handler in StationExportService/StationImportService not yet implemented"
+        "ignoredColumns": [
+          "changed_by_account_id"
+        ],
+        "rationale": "The history of a station's members goes with them. Which association manager made a change stays behind, as the deletion of that account would leave it: accounts travel without their ids, and the reference would otherwise cost the entry. Changes to the association's own fields stay behind with those fields and their answers, and are counted in the log."
       },
       "gdprExport": {
         "status": "TRACKED",
@@ -22663,6 +22696,18 @@
           "onDelete": "CASCADE"
         }
       ],
+      "lookups": [
+        {
+          "via": "account_id",
+          "pick": "email",
+          "emitAs": "account_email"
+        },
+        {
+          "via": "account_id",
+          "pick": "uid",
+          "emitAs": "account_uid"
+        }
+      ],
       "customScope": {
         "viaTable": "station_member",
         "viaColumn": "account_id",
@@ -22671,7 +22716,10 @@
       },
       "stationTransfer": {
         "status": "TRACKED",
-        "rationale": "Per-account saved filter presets; reached via station_member with customScope so a transferred station's members keep their personal filters."
+        "ignoredColumns": [
+          "account_id"
+        ],
+        "rationale": "Per-account saved filter presets; reached via station_member with customScope so a transferred station's members keep their personal filters. Accounts travel without their ids, so the owner is found again by email or uid, the same way a member finds its account; a filter whose owner is found nowhere is left behind and logged."
       },
       "gdprExport": {
         "status": "TRACKED",

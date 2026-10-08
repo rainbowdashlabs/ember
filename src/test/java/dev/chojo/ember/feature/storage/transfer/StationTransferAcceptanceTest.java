@@ -9,6 +9,8 @@ import dev.chojo.ember.api.ApiJsonMapper;
 import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.TestUploads;
+import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.event.DomainEventBus;
@@ -27,9 +29,19 @@ import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationPartnerTransferFixupService;
 import dev.chojo.ember.feature.generator.entity.FontStyle;
 import dev.chojo.ember.feature.generator.repository.DocumentFontRepository;
+import dev.chojo.ember.feature.generator.repository.DocumentTemplateRepository;
+import dev.chojo.ember.feature.generator.repository.PdfTemplateRepository;
+import dev.chojo.ember.feature.generator.repository.TemplateStationUseRepository;
+import dev.chojo.ember.feature.generator.service.DocumentIssuerService;
+import dev.chojo.ember.feature.generator.service.DocumentTemplateService;
+import dev.chojo.ember.feature.generator.service.LetterChecks;
+import dev.chojo.ember.feature.generator.service.PdfTemplateService;
+import dev.chojo.ember.feature.generator.service.TemplateChecks;
+import dev.chojo.ember.feature.generator.service.TemplateRequestBuilder;
 import dev.chojo.ember.feature.generator.service.font.DocumentFontService;
 import dev.chojo.ember.feature.generator.service.font.FontLibrary;
 import dev.chojo.ember.feature.generator.service.font.TestFonts;
+import dev.chojo.ember.feature.generator.service.pdf.TestPdfs;
 import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.knowledgebase.service.KbFilePictureService;
 import dev.chojo.ember.feature.knowledgebase.service.KbFileStorageService;
@@ -38,8 +50,16 @@ import dev.chojo.ember.feature.knowledgebase.service.TextCompressionPolicy;
 import dev.chojo.ember.feature.media.entity.MediaContent;
 import dev.chojo.ember.feature.media.image.ImageProfile;
 import dev.chojo.ember.feature.media.service.ImageVariants;
+import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.media.service.MediaStorageService;
+import dev.chojo.ember.feature.members.entity.FieldOrigin;
+import dev.chojo.ember.feature.members.entity.FilterTableType;
+import dev.chojo.ember.feature.members.entity.Permission;
+import dev.chojo.ember.feature.members.entity.ProfileAuthor;
+import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
+import dev.chojo.ember.feature.members.entity.SavedFilter;
 import dev.chojo.ember.feature.members.route.TransferRoutes;
+import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.quiz.entity.AiVendor;
 import dev.chojo.ember.feature.quiz.entity.CatalogMetadata;
 import dev.chojo.ember.feature.quiz.entity.QuizQuestionType;
@@ -110,6 +130,8 @@ import java.util.stream.Collectors;
 
 import javax.imageio.ImageIO;
 
+import static de.chojo.sadu.queries.api.call.Call.call;
+import static de.chojo.sadu.queries.api.query.Query.query;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -147,6 +169,8 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
     private static DocumentFontService fonts;
     private static BoardAttachmentService boardAttachments;
     private static QuizQuestionImageService quizPictures;
+    private static DocumentTemplateService templates;
+    private static PdfTemplateService pdfTemplates;
 
     private static StationExportService exportService;
     private static StationImportService importService;
@@ -238,6 +262,29 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
                 fontLibrary,
                 storageService,
                 new StorageQuotaService(storageUsageRepo, new Storage(), new DomainEventBus(Set.of())));
+        setupTemplates();
+    }
+
+    /** The document templates of a station, with the PDFs PDF templates fill, over the harness's storage. */
+    private static void setupTemplates() {
+        var templateRepository = new DocumentTemplateRepository();
+        var pdfRepository = new PdfTemplateRepository();
+        var uses = new TemplateStationUseRepository();
+        var catalogue = newPlaceholderCatalogue();
+        var issuers = new DocumentIssuerService(stationMemberRepo, uses);
+        var checks = new TemplateChecks(
+                templateRepository,
+                pdfRepository,
+                new LetterChecks(contentBlocks(), org.mockito.Mockito.mock(MediaLibraryService.class)),
+                stationRepo,
+                catalogue,
+                fontLibrary,
+                newOwnerStores(),
+                issuers);
+        templates = new DocumentTemplateService(
+                templateRepository, pdfRepository, uses, checks, restrictionService, catalogue, newOwnerStores());
+        pdfTemplates = new PdfTemplateService(
+                templates, templateRepository, pdfRepository, newDocumentIntake(), storageService, newOwnerStores());
     }
 
     @AfterAll
@@ -652,6 +699,110 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
                         .data());
     }
 
+    /**
+     * A letter template arrives with its tags and its text, and a PDF template with the PDF it fills,
+     * which reads back through the template under its new id. Who wrote them stays behind with the
+     * account ids that do not travel, and costs neither template.
+     */
+    @Test
+    void documentTemplatesArriveWithTheirTagsAndTheirPdf() throws Exception {
+        Station source = stationRepo.create("Source TEMPLATES");
+        Account author = accountRepo.create("templates@xfer.test", "Tara", "Template", true);
+        stationMemberRepo.create(source.id(), author.id());
+        var owner = new Owner.Station(source.id());
+        var letter = templates.create(
+                owner,
+                TemplateRequestBuilder.letter("Bescheinigung", "Hiermit wird bescheinigt", "{{member.fullName}}")
+                        .tags(List.of("Ausbildung", "Nachweis"))
+                        .build(),
+                author.id());
+        var pdf = templates.create(owner, TemplateRequestBuilder.pdf("Formular").build(), author.id());
+        byte[] form = TestPdfs.withForm();
+        pdfTemplates.upload(owner, pdf.id(), TestUploads.of("formular.pdf", "application/pdf", form), author.id());
+
+        String token = rawToken(exportService.createTransferToken(source.id()));
+        var importResult = importService.startRemoteImport(baseUrl, token);
+        waitForImport(importResult.stationId());
+
+        var destination = new Owner.Station(importResult.stationId());
+        var arrived = templates.list(destination, false).stream()
+                .collect(Collectors.toMap(
+                        DocumentTemplateService.DocumentTemplateSummary::name,
+                        DocumentTemplateService.DocumentTemplateSummary::id));
+        assertEquals(Set.of("Bescheinigung", "Formular"), arrived.keySet());
+
+        var arrivedLetter = templates.detail(destination, arrived.get("Bescheinigung"));
+        assertNotEquals(letter.id(), arrivedLetter.id(), "the letter got a new id on the destination");
+        assertEquals(List.of("Ausbildung", "Nachweis"), arrivedLetter.tags());
+        assertEquals(letter.body(), arrivedLetter.body());
+
+        var arrivedPdf = pdfTemplates
+                .current(destination, arrived.get("Formular"))
+                .orElseThrow(() -> new AssertionError("the PDF template arrived without its PDF"));
+        assertEquals("formular.pdf", arrivedPdf.fileName());
+        assertArrayEquals(form, arrivedPdf.data());
+    }
+
+    /**
+     * What a station has set up around its members arrives pointing at the rows they got on the
+     * destination: a saved report with its user types and groups, a group with its permissions, a
+     * member's saved filter, and a change to a profile answer made by somebody known by their account
+     * only.
+     */
+    @Test
+    void settingsAndHistoryArriveWithTheirStation() throws Exception {
+        Station source = stationRepo.create("Source SETTINGS");
+        Account account = accountRepo.create("settings@xfer.test", "Sven", "Settings", true);
+        Account manager = accountRepo.create("settings-manager@xfer.test", "Maren", "Manager", true);
+        var member = stationMemberRepo.create(source.id(), account.id());
+        int group = memberGroupRepo.create(source.id(), "Atemschutz").id();
+        var permission = stationMemberRepo
+                .findPermissionByName(StationPermission.ATTENDANCE_MANAGER)
+                .orElseThrow();
+        memberGroupRepo.addGroupPermission(group, permission.id());
+        attendanceRepo.createPreset(
+                source.id(),
+                "Atemschutz im Monat",
+                List.of(StationUserType.MEMBER, StationUserType.TEAM),
+                List.of(group),
+                "month",
+                "exact");
+        savedFilterRepo.create(account.id(), FilterTableType.MEMBERS, "Nur Atemschutz", "{\"groups\":[]}", 0);
+        int field = profileFieldRepo
+                .create(source.id(), "Führerschein", FieldType.TEXT, ProfileFieldConfig.empty(), false, false, null)
+                .id();
+        profileFieldChangeRepo.create(
+                FieldOrigin.STATION, field, member.id(), "\"B\"", "\"C\"", ProfileAuthor.account(manager.id()), false);
+
+        String token = rawToken(exportService.createTransferToken(source.id()));
+        var importResult = importService.startRemoteImport(baseUrl, token);
+        waitForImport(importResult.stationId());
+
+        int destinationId = importResult.stationId();
+        var arrivedGroup = memberGroupRepo.findByStation(destinationId).getFirst();
+        assertNotEquals(group, arrivedGroup.id(), "the group got a new id on the destination");
+        assertEquals(
+                List.of(StationPermission.ATTENDANCE_MANAGER),
+                memberGroupRepo.findGroupPermissions(arrivedGroup.id()).stream()
+                        .map(Permission::permission)
+                        .toList());
+
+        var preset = attendanceRepo.findPresets(destinationId).getFirst();
+        assertEquals(List.of(StationUserType.MEMBER, StationUserType.TEAM), preset.userTypes());
+        assertEquals(List.of(arrivedGroup.id()), preset.groupIds(), "the preset names the group that arrived");
+
+        assertEquals(
+                List.of("Nur Atemschutz"),
+                savedFilterRepo.findByAccountAndTable(account.id(), FilterTableType.MEMBERS).stream()
+                        .map(SavedFilter::name)
+                        .toList(),
+                "the filter was cleared at the source when it was sent, so it is the one that arrived");
+
+        var changes = profileFieldChangeRepo.findByStation(destinationId, 10, 0);
+        assertEquals(1, changes.size());
+        assertEquals("\"C\"", changes.getFirst().newValue());
+    }
+
     private static Document storeDocument(
             DocumentService documents,
             Station station,
@@ -750,7 +901,9 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
      * The source's export as another instance would send it. Source and destination share one test
      * database here, so a row's public id, unique across the database, would collide with the source's
      * own row and the row would not arrive; each exported row gets a fresh one instead, as it would not
-     * collide on a database of its own.
+     * collide on a database of its own. A saved filter belongs to an account, which both sides share here
+     * as well, so the source's copy is cleared once it is sent: the destination's own database would not
+     * hold it, and what the account has afterwards is what arrived.
      */
     private static final class SeparateDatabaseExport extends StationExportService {
         SeparateDatabaseExport() {
@@ -766,9 +919,18 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
                     if (row instanceof Map<?, ?> columns && columns.containsKey("public_uid")) {
                         ((Map<String, Object>) columns).put("public_uid", UUID.randomUUID());
                     }
+                    if ("saved_filter".equals(tableName) && row instanceof Map<?, ?> columns) {
+                        clearSavedFilter(columns.get("id"));
+                    }
                 }
             }
             return page;
+        }
+
+        private static void clearSavedFilter(Object id) {
+            query("DELETE FROM saved_filter WHERE id = :id;")
+                    .single(call().bind("id", ((Number) id).intValue()))
+                    .update();
         }
     }
 

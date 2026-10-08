@@ -117,42 +117,48 @@ public final class GenericTableExporter {
         return t;
     }
 
+    /**
+     * The page query for a table scoped through its foreign keys. A single path is joined in; several
+     * paths, one per column that may be empty, are each joined in on the side and a row is the station's
+     * when any of them reaches it.
+     */
     private String buildDirectScopeSql(String tableName, List<String> columns, LookupSql lookups) {
-        var scope = scopeResolver
-                .resolve(tableName)
-                .orElseThrow(() ->
-                        new IllegalStateException("No station scope path could be derived for table " + tableName));
+        var scopes = scopeResolver.resolveAll(tableName);
+        if (scopes.isEmpty()) {
+            throw new IllegalStateException("No station scope path could be derived for table " + tableName);
+        }
+        String joinKind = scopes.size() == 1 ? " JOIN " : " LEFT JOIN ";
 
         var sb = new StringBuilder("SELECT ");
         appendSelect(sb, columns, lookups);
         sb.append(" FROM ").append(tableName).append(" t");
 
-        Map<String, String> tableAlias = new LinkedHashMap<>();
-        tableAlias.put(tableName, "t");
+        List<String> conditions = new ArrayList<>();
         int aliasIdx = 0;
-        for (var join : scope.joins()) {
-            String fromAlias = tableAlias.get(join.from());
-            String newAlias = "s" + aliasIdx++;
-            tableAlias.put(join.fk().refTable(), newAlias);
-            sb.append(" JOIN ")
-                    .append(join.fk().refTable())
-                    .append(' ')
-                    .append(newAlias)
-                    .append(" ON ")
-                    .append(fromAlias)
-                    .append('.')
-                    .append(join.fk().column())
-                    .append(" = ")
-                    .append(newAlias)
-                    .append('.')
-                    .append(join.fk().refColumn());
+        for (var scope : scopes) {
+            Map<String, String> tableAlias = new LinkedHashMap<>();
+            tableAlias.put(tableName, "t");
+            for (var join : scope.joins()) {
+                String fromAlias = tableAlias.get(join.from());
+                String newAlias = "s" + aliasIdx++;
+                tableAlias.put(join.fk().refTable(), newAlias);
+                sb.append(joinKind)
+                        .append(join.fk().refTable())
+                        .append(' ')
+                        .append(newAlias)
+                        .append(" ON ")
+                        .append(fromAlias)
+                        .append('.')
+                        .append(join.fk().column())
+                        .append(" = ")
+                        .append(newAlias)
+                        .append('.')
+                        .append(join.fk().refColumn());
+            }
+            conditions.add(tableAlias.get(scope.terminalTable()) + "." + scope.scopeColumn() + " = :stationId");
         }
         lookups.appendJoins(sb);
-        sb.append(" WHERE ")
-                .append(tableAlias.get(scope.terminalTable()))
-                .append('.')
-                .append(scope.scopeColumn())
-                .append(" = :stationId");
+        sb.append(" WHERE (").append(String.join(" OR ", conditions)).append(')');
         appendOrderAndPagination(sb, columns);
         return sb.toString();
     }
@@ -239,6 +245,7 @@ public final class GenericTableExporter {
      * <p>Timestamps travel as epoch milliseconds, which the importer already reads and which avoids the
      * parsing edge cases of a string format. They are read through the value converter rather than the
      * driver's own date mapping, which is not the same across every driver version shipped against.
+     * Arrays travel as the list of their elements, see {@link ArrayValues}.
      */
     private List<Map<String, Object>> runQuery(String sql, int stationId, int offset, int limit) {
         var queryObj = query(sql)
@@ -260,6 +267,8 @@ public final class GenericTableExporter {
                                 || "timestamp without time zone".equals(typeName)) {
                             Instant instant = row.get(i, StandardValueConverter.INSTANT_TIMESTAMP);
                             out.put(label, instant == null ? null : instant.toEpochMilli());
+                        } else if (ArrayValues.isArray(typeName)) {
+                            out.put(label, ArrayValues.read(row.getArray(i)));
                         } else {
                             out.put(label, row.getObject(i));
                         }

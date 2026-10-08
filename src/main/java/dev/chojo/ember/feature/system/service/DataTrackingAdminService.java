@@ -156,6 +156,7 @@ public class DataTrackingAdminService {
                 newColumns,
                 existing.foreignKeys(),
                 existing.lookups(),
+                existing.arrayReferences(),
                 existing.outputShape(),
                 existing.flatField(),
                 existing.customScope(),

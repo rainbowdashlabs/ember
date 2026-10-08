@@ -7,18 +7,24 @@ package dev.chojo.ember.tracking.engine;
 
 import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
+import dev.chojo.ember.tracking.ArrayReference;
 import dev.chojo.ember.tracking.ColumnEntry;
 import dev.chojo.ember.tracking.DataTracking;
 import dev.chojo.ember.tracking.ForeignKey;
 import dev.chojo.ember.tracking.Lookup;
 import dev.chojo.ember.tracking.TableEntry;
 import org.jspecify.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Base64;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
@@ -36,14 +42,16 @@ import static de.chojo.sadu.queries.api.query.Query.query;
  *       by the referenced table name.</li>
  *   <li>{@link Lookup}-emitted fields (e.g. {@code account_email}) are resolved back into
  *       FK target IDs by querying the referenced table.</li>
+ *   <li>The elements of an {@link ArrayReference} column are remapped like a foreign key.</li>
  *   <li>Other non-ignored columns are bound as-is, with {@code jsonb}/{@code uuid}/
- *       {@code timestamptz}/{@code bytea} bindings inferred from {@link ColumnEntry#type()}.</li>
+ *       {@code timestamptz}/{@code bytea}/array bindings inferred from {@link ColumnEntry#type()}.</li>
  *   <li>Tables with an {@code id} integer PK use {@code RETURNING id} so the
  *       source → target mapping is tracked for downstream tables. Tables without one (junction
  *       tables) insert with {@code ON CONFLICT DO NOTHING}.</li>
  * </ul>
  */
 public final class GenericTableImporter {
+    private static final Logger log = LoggerFactory.getLogger(GenericTableImporter.class);
 
     private final DataTracking tracking;
 
@@ -176,11 +184,12 @@ public final class GenericTableImporter {
 
     /**
      * Binds one non-null value by its column type. A uuid or jsonb value is bound as a string; its
-     * cast lives in the SQL.
+     * cast lives in the SQL. An array is bound as an SQL array of its element type.
      */
     private static Call bindOne(Call c, String name, BoundValue bv) {
         Object val = bv.value();
         String type = bv.type();
+        if (ArrayValues.isArray(type)) return ArrayValues.bind(c, name, val, type);
         return switch (type == null ? "" : type) {
             case "timestamptz", "timestamp" -> c.bind(name, asInstant(val), StandardValueConverter.INSTANT_TIMESTAMP);
             case "bytea" -> c.bind(name, asBytes(val));
@@ -244,19 +253,27 @@ public final class GenericTableImporter {
     /**
      * Imports the given rows for {@code tableName}.
      *
-     * @return number of rows actually inserted (rows whose FK remap could not be resolved are skipped)
+     * <p>A row whose foreign key names a row that did not arrive is not imported, since it would point
+     * at whatever row holds that id here. Such rows are counted and named in the log once per call,
+     * together with the references that arrive empty and the array elements that are left out, so a
+     * reference the tracking file cannot follow shows up rather than costing rows unseen.
+     *
+     * @return number of rows written (rows whose FK remap could not be resolved are not)
      */
     public int importRows(int stationId, String tableName, List<Map<String, Object>> rows, IdRemapper idMap) {
         TableEntry table = tableEntry(tableName);
         Set<String> ignored = Set.copyOf(table.stationTransfer().ignoredColumns());
         boolean hasIdPk = hasIntegerIdPk(table);
+        var losses = new ImportLosses(tableName);
 
         int imported = 0;
         for (Map<String, Object> row : rows) {
             Integer sourceId = toInteger(row.get("id"));
             Map<String, BoundValue> bind = new LinkedHashMap<>();
 
-            if (!tryBindRow(table, tableName, row, stationId, ignored, idMap, bind)) {
+            ForeignKey unresolved = bindRow(table, row, stationId, ignored, idMap, bind, losses);
+            if (unresolved != null) {
+                losses.rowLeftBehind(unresolved);
                 continue;
             }
 
@@ -269,6 +286,7 @@ public final class GenericTableImporter {
             }
             imported++;
         }
+        losses.report();
         return imported;
     }
 
@@ -279,26 +297,29 @@ public final class GenericTableImporter {
     }
 
     /**
-     * Populates {@code bind} for the given row. Returns {@code false} when a required FK can't be
-     * remapped, signalling the caller to skip this row.
+     * Populates {@code bind} for the given row.
      *
      * <p>The station id comes from the import, not the row. Foreign keys are remapped through
      * {@code idMap}, falling back to a lookup-emitted value (such as an account's email) before the
      * row is given up. A foreign key whose own column is ignored is then resolved from the lookup
-     * field that carries its key. Everything else is copied as it stands.
+     * field that carries its key. The elements of an array that names rows of another table are moved
+     * to the ids those rows got here. Everything else is copied as it stands.
      *
      * <p>A null source value leaves its column out of the insert, so the database fills in null or
      * the column default. Binding a typed null through JDBC would arrive as varchar, which the
      * database rejects against integer, jsonb and uuid columns.
+     *
+     * @return the foreign key that could not be remapped, which leaves the row behind, or null when the
+     * row is bound
      */
-    private boolean tryBindRow(
+    private @Nullable ForeignKey bindRow(
             TableEntry table,
-            String tableName,
             Map<String, Object> row,
             int stationId,
             Set<String> ignored,
             IdRemapper idMap,
-            Map<String, BoundValue> bind) {
+            Map<String, BoundValue> bind,
+            ImportLosses losses) {
         ColumnEntry stationIdCol = findColumn(table, "station_id");
         if (stationIdCol != null) {
             bind.put("station_id", new BoundValue(stationId, "int4"));
@@ -317,21 +338,13 @@ public final class GenericTableImporter {
                     bind.put(fk.column(), new BoundValue(viaLookup, "int4"));
                     continue;
                 }
-                return false;
+                return fk;
             }
             bind.put(fk.column(), new BoundValue(mapped, "int4"));
         }
 
-        for (Lookup lk : LookupSql.lookupsOf(table)) {
-            if (bind.containsKey(lk.via())) continue;
-            Object pickedValue = row.get(lk.emitAs());
-            if (pickedValue == null) continue;
-            ForeignKey fk = table.foreignKeyFor(lk.via());
-            Integer resolvedId = resolveByColumn(fk.refTable(), lk.pick(), pickedValue);
-            if (resolvedId != null) {
-                bind.put(lk.via(), new BoundValue(resolvedId, "int4"));
-            }
-        }
+        ForeignKey unresolvedLookup = bindLookups(table, row, bind, losses);
+        if (unresolvedLookup != null) return unresolvedLookup;
 
         for (ColumnEntry col : table.columns()) {
             String name = col.name();
@@ -344,7 +357,65 @@ public final class GenericTableImporter {
             if (val == null) continue;
             bind.put(name, new BoundValue(val, col.type()));
         }
-        return true;
+        remapArrays(table, idMap, bind, losses);
+        return null;
+    }
+
+    /**
+     * Resolves every foreign key the row carries by a lookup rather than by its id, such as an account
+     * by its email or uid. A key none of whose lookups finds a row here leaves the row behind where the
+     * column cannot be empty, and otherwise arrives empty, which is counted where the row carried a
+     * value to look for.
+     *
+     * @return the foreign key that leaves the row behind, or null when the row can be written
+     */
+    private @Nullable ForeignKey bindLookups(
+            TableEntry table, Map<String, Object> row, Map<String, BoundValue> bind, ImportLosses losses) {
+        Map<String, ForeignKey> followed = new LinkedHashMap<>();
+        Set<String> carried = new HashSet<>();
+        for (Lookup lk : LookupSql.lookupsOf(table)) {
+            ForeignKey fk = table.foreignKeyFor(lk.via());
+            followed.put(lk.via(), fk);
+            if (bind.containsKey(lk.via())) continue;
+            Object pickedValue = row.get(lk.emitAs());
+            if (pickedValue == null) continue;
+            carried.add(lk.via());
+            Integer resolvedId = resolveByColumn(fk.refTable(), lk.pick(), pickedValue);
+            if (resolvedId != null) {
+                bind.put(lk.via(), new BoundValue(resolvedId, "int4"));
+            }
+        }
+        for (ForeignKey fk : followed.values()) {
+            if (bind.containsKey(fk.column())) continue;
+            ColumnEntry column = findColumn(table, fk.column());
+            if (column != null && !column.nullable()) return fk;
+            if (carried.contains(fk.column())) losses.lookupUnresolved(fk);
+        }
+        return null;
+    }
+
+    /**
+     * Moves the elements of every array that names rows of another table to the ids those rows got
+     * here, leaving out and counting the elements whose row did not arrive.
+     */
+    private static void remapArrays(
+            TableEntry table, IdRemapper idMap, Map<String, BoundValue> bind, ImportLosses losses) {
+        for (ArrayReference reference :
+                Objects.requireNonNullElse(table.arrayReferences(), List.<ArrayReference>of())) {
+            BoundValue bound = bind.get(reference.column());
+            if (bound == null) continue;
+            List<Integer> mapped = new ArrayList<>();
+            for (Object element : ArrayValues.elements(bound.value())) {
+                Integer source = element == null ? null : toInteger(element);
+                Integer target = source == null ? null : idMap.get(reference.refTable(), source);
+                if (target == null) {
+                    losses.elementLeftOut(reference);
+                } else {
+                    mapped.add(target);
+                }
+            }
+            bind.put(reference.column(), new BoundValue(mapped, bound.type()));
+        }
     }
 
     private @Nullable Integer tryResolveViaLookup(TableEntry table, String fkColumn, Map<String, Object> row) {
@@ -363,6 +434,46 @@ public final class GenericTableImporter {
      * Holds a value with its declared PG type so the binder can pick the right converter/cast.
      */
     private record BoundValue(Object value, String type) {}
+
+    /**
+     * What one call of the import could not carry over, counted per column and written to the log
+     * once at its end.
+     */
+    private static final class ImportLosses {
+        private final String table;
+        private final Map<String, Integer> rowsLeftBehind = new LinkedHashMap<>();
+        private final Map<String, Integer> emptyReferences = new LinkedHashMap<>();
+        private final Map<String, Integer> elementsLeftOut = new LinkedHashMap<>();
+
+        ImportLosses(String table) {
+            this.table = table;
+        }
+
+        void rowLeftBehind(ForeignKey fk) {
+            rowsLeftBehind.merge(describe(fk.column(), fk.refTable()), 1, Integer::sum);
+        }
+
+        void lookupUnresolved(ForeignKey fk) {
+            emptyReferences.merge(describe(fk.column(), fk.refTable()), 1, Integer::sum);
+        }
+
+        void elementLeftOut(ArrayReference reference) {
+            elementsLeftOut.merge(describe(reference.column(), reference.refTable()), 1, Integer::sum);
+        }
+
+        void report() {
+            rowsLeftBehind.forEach((reference, count) ->
+                    log.warn("{}: {} row(s) not imported, their {} row did not arrive", table, count, reference));
+            emptyReferences.forEach((reference, count) -> log.warn(
+                    "{}: {} row(s) arrive without their {}, no such row was found here", table, count, reference));
+            elementsLeftOut.forEach((reference, count) ->
+                    log.warn("{}: {} element(s) left out, their {} row did not arrive", table, count, reference));
+        }
+
+        private static String describe(String column, String refTable) {
+            return column + " -> " + refTable;
+        }
+    }
 
     /**
      * Tracks source-table-id → target-table-id mappings keyed by table name. The exporter never

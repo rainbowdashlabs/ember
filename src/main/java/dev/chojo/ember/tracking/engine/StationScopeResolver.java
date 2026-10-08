@@ -89,10 +89,61 @@ public final class StationScopeResolver {
     }
 
     /**
+     * Whether a column of the table can be empty. Joining through an empty column drops the row.
+     */
+    private static boolean isNullable(TableEntry table, String column) {
+        for (var c : table.columns()) {
+            if (column.equals(c.name())) return c.nullable();
+        }
+        return true;
+    }
+
+    /**
      * Returns the shortest path from {@code tableName} to a row identifying its owning station,
      * or empty when no such path exists.
+     *
+     * <p>A path through columns that cannot be empty is taken over a shorter one through a column that
+     * can. Joining through an empty column drops the row, so a table scoped by such a column would lose
+     * every row that leaves it empty, such as a restriction that names a user type instead of a group.
      */
     public Optional<ScopePath> resolve(String tableName) {
+        return search(tableName, true).or(() -> search(tableName, false));
+    }
+
+    /**
+     * The paths that together reach every row of {@code tableName} at its owning station. One path
+     * through columns that cannot be empty reaches every row. A table whose every path runs through a
+     * column that can be empty, such as a grant that names either a folder or a file, takes one path
+     * per foreign key, and a row belongs to the station any of them reaches.
+     *
+     * @param tableName the table
+     * @return the paths, empty when the table is unknown or reaches no station
+     */
+    public List<ScopePath> resolveAll(String tableName) {
+        var strict = search(tableName, true);
+        if (strict.isPresent()) return List.of(strict.get());
+        var table = tracking.tables().get(tableName);
+        if (table == null) return List.of();
+        List<ScopePath> paths = new ArrayList<>();
+        for (ForeignKey fk : table.foreignKeys()) {
+            if (isSoftReference(fk) || tableName.equals(fk.refTable())) continue;
+            var first = new Join(tableName, fk);
+            resolve(fk.refTable()).ifPresent(rest -> {
+                List<Join> joins = new ArrayList<>();
+                joins.add(first);
+                joins.addAll(rest.joins());
+                paths.add(new ScopePath(rest.terminalTable(), rest.scopeColumn(), List.copyOf(joins)));
+            });
+        }
+        return List.copyOf(paths);
+    }
+
+    /**
+     * The shortest path from {@code tableName} to a row identifying its owning station.
+     *
+     * @param strict whether only columns that cannot be empty may be joined through
+     */
+    private Optional<ScopePath> search(String tableName, boolean strict) {
         var table = tracking.tables().get(tableName);
         if (table == null) return Optional.empty();
 
@@ -118,6 +169,7 @@ public final class StationScopeResolver {
                 String ref = fk.refTable();
                 if (ref == null || visited.contains(ref)) continue;
                 if (isSoftReference(fk)) continue;
+                if (strict && isNullable(entry, fk.column())) continue;
                 visited.add(ref);
                 predecessors.put(ref, new Step(current, fk));
 

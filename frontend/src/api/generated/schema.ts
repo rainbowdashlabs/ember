@@ -58467,6 +58467,10 @@ export interface components {
             accountId: number;
             name: string;
         };
+        ArrayReference: {
+            column: string;
+            refTable: string;
+        };
         ArtAssignRequest: {
             /** Format: int32 */
             artId?: number | null;
@@ -68173,6 +68177,7 @@ export interface components {
             questions: components["schemas"]["QuestionColumn"][];
         };
         TableEntry: {
+            arrayReferences?: components["schemas"]["ArrayReference"][];
             columns: components["schemas"]["ColumnEntry"][];
             customScope?: components["schemas"]["CustomScope"];
             description?: string;
@@ -69359,6 +69364,7 @@ export type AppointmentField = components['schemas']['AppointmentField'];
 export type AppointmentTemplateField = components['schemas']['AppointmentTemplateField'];
 export type AppointRequest = components['schemas']['AppointRequest'];
 export type ApprovalCandidate = components['schemas']['ApprovalCandidate'];
+export type ArrayReference = components['schemas']['ArrayReference'];
 export type ArtAssignRequest = components['schemas']['ArtAssignRequest'];
 export type ArtMergeRequest = components['schemas']['ArtMergeRequest'];
 export type ArtRequest = components['schemas']['ArtRequest'];
