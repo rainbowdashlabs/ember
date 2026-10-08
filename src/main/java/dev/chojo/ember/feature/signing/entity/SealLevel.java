@@ -17,5 +17,10 @@ public enum SealLevel {
      * Sealed with a timestamp and the material to check it later without asking anyone: every
      * certificate of the seal and of the timestamp, with revocation data for each one that needs it.
      */
-    BASELINE_LT
+    BASELINE_LT,
+    /**
+     * Long term material as for {@link #BASELINE_LT}, covered by a later document timestamp that keeps the
+     * earlier ones provable after their certificates run out.
+     */
+    BASELINE_LTA
 }

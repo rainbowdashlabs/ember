@@ -30,7 +30,8 @@ public class Signing {
      * document. Ember also fetches the timestamp services' public revocation lists and asks their
      * status responders (OCSP) about their certificates, which sends nothing but a certificate's
      * serial number and carries no data from the document. When no service answers, the seal is made
-     * without a timestamp instead of failing.
+     * without a timestamp instead of failing; for a signed document, an hourly job adds the timestamp once a
+     * service answers again, filed as a new version of the document.
      * Switched off, nothing leaves the installation and the time of a seal is only this server's
      * clock, which is the right setting for an installation without outbound access.
      */
@@ -68,8 +69,27 @@ public class Signing {
      */
     private Map<String, String> timestampRoots = Collections.emptyMap();
 
+    /**
+     * Whether Ember renews the timestamps of sealed documents before they run out (PAdES {@code BASELINE-LTA}).
+     *
+     * <p>A timestamp proves the time of a seal only while the certificates of its timestamp service are
+     * valid, usually about ten years. Switched on, a daily job looks for sealed documents whose newest
+     * timestamp rests on a certificate that ends within half a year, adds the current validation material
+     * and a new timestamp over the whole document, and files the result as a new version beside the old
+     * one. Each renewal sends one more hash to a timestamp service. It is an operational duty that only
+     * helps while it keeps running for as long as the documents are kept, which is why it is off by default.
+     * It needs {@link #timestamps}; without them nothing is renewed.
+     */
+    @Overwrite(env = @Env)
+    private boolean archiveTimestamps = false;
+
     public boolean timestamps() {
         return timestamps;
+    }
+
+    /** @return whether the timestamps of sealed documents are renewed before they run out */
+    public boolean archiveTimestamps() {
+        return archiveTimestamps;
     }
 
     /** @return the configured services in order, blank entries left out */
@@ -92,6 +112,6 @@ public class Signing {
     @Override
     public String toString() {
         return "Signing{timestamps=" + timestamps + ", timestampUrls=" + timestampUrls + ", timestampRoots="
-                + timestampRoots + '}';
+                + timestampRoots + ", archiveTimestamps=" + archiveTimestamps + '}';
     }
 }

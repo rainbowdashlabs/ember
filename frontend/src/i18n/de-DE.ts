@@ -2522,6 +2522,7 @@ export default {
             BASELINE_B: 'Siegel ohne Zeitstempel',
             BASELINE_T: 'Siegel mit Zeitstempel',
             BASELINE_LT: 'Siegel mit Zeitstempel, offline prüfbar',
+            BASELINE_LTA: 'Siegel mit erneuertem Zeitstempel, offline prüfbar',
         },
     },
     documentFonts: {

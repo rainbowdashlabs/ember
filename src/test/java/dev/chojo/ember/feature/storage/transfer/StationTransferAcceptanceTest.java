@@ -1336,7 +1336,7 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
         for (byte[] file : files) {
             String sha256 = Sha256.hex(file);
             versions.supersedeCurrent(document.id());
-            versions.add(document.id(), sha256, file.length, SealLevel.BASELINE_B, null);
+            versions.add(document.id(), sha256, file.length, SealLevel.BASELINE_B, null, null);
             storageService.store(
                     scope,
                     StorageCategory.MEMBER_DOCUMENTS,

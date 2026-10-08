@@ -70810,7 +70810,7 @@
       },
       "SealLevel" : {
         "type" : "string",
-        "enum" : [ "BASELINE_B", "BASELINE_T", "BASELINE_LT" ]
+        "enum" : [ "BASELINE_B", "BASELINE_T", "BASELINE_LT", "BASELINE_LTA" ]
       },
       "SealVerification" : {
         "type" : "object",

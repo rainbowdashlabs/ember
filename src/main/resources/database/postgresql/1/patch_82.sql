@@ -907,3 +907,36 @@ ALTER TABLE ember_schema.document_template_field
 
 COMMENT ON COLUMN ember_schema.document_template_field.statement IS
     'For SIGNATURE: what the signer of this field confirms, shown on the signing screen and bound into the signature. Copied into each signature request when it is made, so a later change of the template never changes what a signer was asked. NULL for the default statement of the field''s role in the template''s language, and for every other kind.';
+
+ALTER TABLE ember_schema.member_document_version
+    DROP CONSTRAINT member_document_version_seal_level_check,
+    ADD CONSTRAINT member_document_version_seal_level_check
+        CHECK (seal_level IN ('BASELINE_B', 'BASELINE_T', 'BASELINE_LT', 'BASELINE_LTA')),
+    ADD COLUMN timestamp_valid_until TIMESTAMPTZ NULL,
+    ADD CONSTRAINT member_document_version_timestamp_end CHECK ((timestamped_by IS NULL) = (timestamp_valid_until IS NULL));
+
+CREATE INDEX IF NOT EXISTS member_document_version_timestamp_end_idx
+    ON ember_schema.member_document_version (timestamp_valid_until)
+    WHERE superseded_at IS NULL;
+
+COMMENT ON COLUMN ember_schema.member_document_version.seal_level
+    IS 'The PAdES baseline level the seal reached: BASELINE_B without a timestamp, BASELINE_T with one, BASELINE_LT with the timestamp and the material to check both offline, BASELINE_LTA with that material covered by a later document timestamp that renews the earlier ones.';
+COMMENT ON COLUMN ember_schema.member_document_version.timestamped_by
+    IS 'The address of the timestamp service whose newest timestamp the file carries; null for a seal without a timestamp.';
+COMMENT ON COLUMN ember_schema.member_document_version.timestamp_valid_until
+    IS 'The earliest end of validity among the certificates the newest timestamp of the file rests on: the timestamp service''s certificates and the root pinned for it. Before then a later timestamp has to cover it, which the renewal of timestamps adds as a new version when the operator switched it on. Null for a seal without a timestamp.';
+COMMENT ON CONSTRAINT member_document_version_seal_level_check ON ember_schema.member_document_version
+    IS 'The PAdES baseline levels Ember seals at.';
+COMMENT ON CONSTRAINT member_document_version_timestamp_end ON ember_schema.member_document_version
+    IS 'The end of the newest timestamp is known exactly when the file carries a timestamp.';
+COMMENT ON INDEX ember_schema.member_document_version_timestamp_end_idx
+    IS 'Finds the current versions whose newest timestamp is about to end, for the renewal of timestamps.';
+
+DROP TRIGGER member_document_version_stays ON ember_schema.member_document_version;
+
+CREATE TRIGGER member_document_version_stays
+    BEFORE UPDATE OF document_id, version, sha256, size_bytes, seal_level, timestamped_by, timestamp_valid_until,
+        sealed_at
+    ON ember_schema.member_document_version
+    FOR EACH ROW
+EXECUTE FUNCTION ember_schema.member_document_refuse_sealed_change();

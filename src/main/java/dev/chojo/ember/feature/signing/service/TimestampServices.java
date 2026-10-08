@@ -191,6 +191,7 @@ public class TimestampServices {
         private final Duration timeout;
         private final long deadline;
         private @Nullable String answeredBy;
+        private @Nullable Instant validUntil;
 
         private Round(List<Service> services, Duration timeout, Duration budget) {
             this.services = services;
@@ -209,6 +210,7 @@ public class TimestampServices {
                 try {
                     var timestamp = source(url).getTimeStampResponse(digestAlgorithm, digest);
                     TimestampTrust.requireChainsTo(timestamp.getBytes(), service.root());
+                    validUntil = TimestampTrust.validUntil(timestamp.getBytes(), service.root());
                     answeredBy = url;
                     log.info("Timestamp service {} stamped a seal", url);
                     return timestamp;
@@ -223,6 +225,15 @@ public class TimestampServices {
         @Nullable
         String answeredBy() {
             return answeredBy;
+        }
+
+        /**
+         * @return the earliest end of validity among the certificates the last timestamp rests on, after which
+         *     a later timestamp has to cover it, or null when no service gave one
+         */
+        @Nullable
+        Instant validUntil() {
+            return validUntil;
         }
 
         /** @return a source that fetches the revocation lists a certificate names, within this round's budget */

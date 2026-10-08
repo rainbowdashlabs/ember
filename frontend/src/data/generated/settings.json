@@ -650,4 +650,8 @@
   "configKey" : "signing.timestampRoots",
   "env" : null,
   "default" : "{}"
+}, {
+  "configKey" : "signing.archiveTimestamps",
+  "env" : "SIGNING_ARCHIVETIMESTAMPS",
+  "default" : "false"
 } ]

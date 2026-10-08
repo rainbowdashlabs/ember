@@ -23,7 +23,9 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param sha256        SHA-256 of the sealed file, lower-case hexadecimal
  * @param sizeBytes     how large the sealed file is
  * @param sealLevel     the level its seal reached
- * @param timestampedBy the timestamp service whose timestamp it carries, or null when it carries none
+ * @param timestampedBy the timestamp service whose newest timestamp it carries, or null when it carries none
+ * @param timestampValidUntil the earliest end of validity among the certificates its newest timestamp rests
+ *                      on, or null when it carries no timestamp
  * @param sealedAt      when it was filed
  * @param supersededAt  when a later version took its place, or null while it is the current one
  */
@@ -35,6 +37,7 @@ public record SealedVersion(
         long sizeBytes,
         SealLevel sealLevel,
         @Nullable String timestampedBy,
+        @Nullable Instant timestampValidUntil,
         Instant sealedAt,
         @Nullable Instant supersededAt) {
 
@@ -53,6 +56,7 @@ public record SealedVersion(
                 row.getLong("size_bytes"),
                 row.getEnum("seal_level", SealLevel.class),
                 row.getString("timestamped_by"),
+                row.get("timestamp_valid_until", INSTANT_TIMESTAMP),
                 row.get("sealed_at", INSTANT_TIMESTAMP),
                 row.get("superseded_at", INSTANT_TIMESTAMP));
     }

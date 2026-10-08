@@ -79,7 +79,7 @@ public class SealedDocumentService {
                     filing.uploader(),
                     filing.memberIds());
             documents.seal(created.id());
-            versions.add(created.id(), sha256, pdf.length, sealed.level(), sealed.timestampedBy());
+            addVersion(created.id(), sha256, sealed);
             documents.setTags(created.id(), stationId, filing.tags());
             documentService.storeSealed(stationId, sha256, pdf);
             return created;
@@ -114,7 +114,7 @@ public class SealedDocumentService {
             if (current.sha256().equals(sha256)) return false;
             if (current.version() != basedOn) throw DocumentRefusal.DOCUMENT_SEALED_VERSION_OUTDATED.raise();
             versions.supersedeCurrent(document.id());
-            versions.add(document.id(), sha256, pdf.length, sealed.level(), sealed.timestampedBy());
+            addVersion(document.id(), sha256, sealed);
             documents.setSize(document.id(), pdf.length);
             documentService.storeSealed(document.stationId(), sha256, pdf);
             return true;
@@ -153,7 +153,7 @@ public class SealedDocumentService {
             if (current.isPresent() && current.get().sha256().equals(sha256)) return false;
             if (!locked.sealed()) documents.seal(document.id());
             versions.supersedeCurrent(document.id());
-            var version = versions.add(document.id(), sha256, pdf.length, sealed.level(), sealed.timestampedBy());
+            var version = addVersion(document.id(), sha256, sealed);
             documents.setSize(document.id(), pdf.length);
             documentService.storeSealed(document.stationId(), sha256, pdf);
             log.info("Filed sealed version {} of document {} ({})", version.version(), document.id(), sealed.level());
@@ -161,6 +161,38 @@ public class SealedDocumentService {
         });
         if (added) documentService.describe(document, pdf);
         return added;
+    }
+
+    /**
+     * Files a sealed file that only adds to a version, such as a later timestamp over it, as the document's
+     * current version through {@link #fileVersion}, but only while that version is still the current one.
+     * A version filed in the meantime carries something the file does not, so the file is dropped instead of
+     * superseding it.
+     *
+     * @param document the sealed document
+     * @param basedOn  the version the file adds to
+     * @param sealed   the new sealed file
+     * @return whether it was filed
+     */
+    public boolean fileOnto(Document document, SealedVersion basedOn, SealedDocument sealed) {
+        return Transactions.call(() -> {
+            documents
+                    .lock(document.id())
+                    .orElseThrow(() -> new IllegalArgumentException("No document " + document.id()));
+            var current = versions.current(document.id());
+            if (current.isEmpty() || current.get().id() != basedOn.id()) return false;
+            return fileVersion(document, sealed);
+        });
+    }
+
+    private SealedVersion addVersion(int documentId, String sha256, SealedDocument sealed) {
+        return versions.add(
+                documentId,
+                sha256,
+                sealed.pdf().length,
+                sealed.level(),
+                sealed.timestampedBy(),
+                sealed.timestampValidUntil());
     }
 
     /**

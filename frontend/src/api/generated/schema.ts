@@ -67975,7 +67975,7 @@ export interface components {
             version: number;
         };
         /** @enum {string} */
-        SealLevel: "BASELINE_B" | "BASELINE_T" | "BASELINE_LT";
+        SealLevel: "BASELINE_B" | "BASELINE_T" | "BASELINE_LT" | "BASELINE_LTA";
         SealVerification: {
             document: components["schemas"]["HeldCopy"];
             documentTimestamps: components["schemas"]["DocumentTimestampCheck"][];
@@ -73050,6 +73050,7 @@ export const Scope = {
 export const SealLevel = {
     BASELINE_B: "BASELINE_B",
     BASELINE_LT: "BASELINE_LT",
+    BASELINE_LTA: "BASELINE_LTA",
     BASELINE_T: "BASELINE_T",
 } as const;
 

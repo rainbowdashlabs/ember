@@ -304,6 +304,7 @@ import dev.chojo.ember.feature.signing.service.CredentialKeyStamps;
 import dev.chojo.ember.feature.signing.service.DocumentStatements;
 import dev.chojo.ember.feature.signing.service.InEmberSignatureProvider;
 import dev.chojo.ember.feature.signing.service.IssuedLetterSigner;
+import dev.chojo.ember.feature.signing.service.SealedVersionTimestamps;
 import dev.chojo.ember.feature.signing.service.SignatureProvider;
 import dev.chojo.ember.feature.signing.service.SignatureReminders;
 import dev.chojo.ember.feature.signing.service.SignatureRetentionSweeper;
@@ -800,6 +801,7 @@ public class EmberModule extends AbstractModule {
         taskSources.addBinding().to(GenerationJobRunner.class);
         taskSources.addBinding().to(SignatureRetentionSweeper.class);
         taskSources.addBinding().to(SigningStateSweeper.class);
+        taskSources.addBinding().to(SealedVersionTimestamps.class);
         taskSources.addBinding().to(SignatureReminders.class);
         taskSources.addBinding().to(CredentialKeyStamps.class);
 

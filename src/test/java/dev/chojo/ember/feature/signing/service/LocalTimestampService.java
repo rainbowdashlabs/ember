@@ -85,6 +85,8 @@ final class LocalTimestampService implements AutoCloseable {
     private static final String TIMESTAMP_PATH = "/tsr";
     private static final String LIST_PATH = "/crl";
     private static final String STATUS_PATH = "/ocsp";
+    private static final Duration CERTIFICATE_VALIDITY = Duration.ofDays(30);
+    private static final Duration ROOT_VALIDITY = Duration.ofDays(3650);
     private static final X500Name ROOT_NAME = new X500Name("CN=Ember test timestamp root");
     private static final KeyPair ROOT_KEYS = keyPair();
     private static final X509Certificate ROOT = root(ROOT_NAME, ROOT_KEYS);
@@ -108,6 +110,17 @@ final class LocalTimestampService implements AutoCloseable {
     /** @return a running service on a free loopback port that serves its own revocation list */
     static LocalTimestampService start() throws IOException {
         return start(Duration.ZERO, port -> new Names(List.of(urlOf(port, LIST_PATH)), null));
+    }
+
+    /**
+     * A service whose timestamp certificate is valid for the given time from now on instead of 30 days, so
+     * its timestamps rest on a certificate that ends later or sooner than those of another service.
+     *
+     * @param validity how long its certificate stays valid
+     * @return a running service on a free loopback port that serves its own revocation list
+     */
+    static LocalTimestampService lastingFor(Duration validity) throws IOException {
+        return start(Duration.ZERO, validity, port -> new Names(List.of(urlOf(port, LIST_PATH)), null));
     }
 
     /**
@@ -234,7 +247,7 @@ final class LocalTimestampService implements AutoCloseable {
                             urlOf(server.getAddress().getPort(), LIST_PATH)))),
                     null,
                     null);
-            var builder = validFromYesterday(new X500Name("CN=" + commonName), ROOT_NAME, keys)
+            var builder = validFromYesterday(new X500Name("CN=" + commonName), ROOT_NAME, keys, CERTIFICATE_VALIDITY)
                     .addExtension(Extension.basicConstraints, true, new BasicConstraints(false))
                     .addExtension(
                             Extension.keyUsage, true, new KeyUsage(KeyUsage.digitalSignature | KeyUsage.nonRepudiation))
@@ -284,9 +297,14 @@ final class LocalTimestampService implements AutoCloseable {
     }
 
     private static LocalTimestampService start(Duration delay, IntFunction<Names> names) throws IOException {
+        return start(delay, CERTIFICATE_VALIDITY, names);
+    }
+
+    private static LocalTimestampService start(Duration delay, Duration validity, IntFunction<Names> names)
+            throws IOException {
         var service = new LocalTimestampService(loopbackServer(), delay);
         service.certificate =
-                certificate(names.apply(service.server.getAddress().getPort()));
+                certificate(names.apply(service.server.getAddress().getPort()), validity);
         service.server.createContext(TIMESTAMP_PATH, service::answer);
         service.server.createContext(LIST_PATH, service::list);
         service.server.createContext(STATUS_PATH, service::status);
@@ -400,7 +418,7 @@ final class LocalTimestampService implements AutoCloseable {
     private static X509Certificate root(X500Name name, KeyPair keys) {
         try {
             var extensions = new JcaX509ExtensionUtils();
-            var builder = validFromYesterday(name, name, keys)
+            var builder = validFromYesterday(name, name, keys, ROOT_VALIDITY)
                     .addExtension(Extension.basicConstraints, true, new BasicConstraints(true))
                     .addExtension(Extension.keyUsage, true, new KeyUsage(KeyUsage.keyCertSign | KeyUsage.cRLSign))
                     .addExtension(
@@ -413,7 +431,7 @@ final class LocalTimestampService implements AutoCloseable {
         }
     }
 
-    private static X509Certificate certificate(Names names) {
+    private static X509Certificate certificate(Names names, Duration validity) {
         try {
             var extensions = new JcaX509ExtensionUtils();
             var points = names.lists().stream()
@@ -423,7 +441,7 @@ final class LocalTimestampService implements AutoCloseable {
                             null,
                             null))
                     .toArray(DistributionPoint[]::new);
-            var builder = validFromYesterday(new X500Name("CN=Ember test timestamp service"), ROOT_NAME, KEYS)
+            var builder = validFromYesterday(new X500Name("CN=Ember test timestamp service"), ROOT_NAME, KEYS, validity)
                     .addExtension(Extension.basicConstraints, true, new BasicConstraints(false))
                     .addExtension(
                             Extension.keyUsage, true, new KeyUsage(KeyUsage.digitalSignature | KeyUsage.nonRepudiation))
@@ -450,13 +468,14 @@ final class LocalTimestampService implements AutoCloseable {
         }
     }
 
-    private static X509v3CertificateBuilder validFromYesterday(X500Name subject, X500Name issuer, KeyPair keys) {
+    private static X509v3CertificateBuilder validFromYesterday(
+            X500Name subject, X500Name issuer, KeyPair keys, Duration validity) {
         var now = Instant.now();
         return new JcaX509v3CertificateBuilder(
                 issuer,
                 BigInteger.valueOf(System.nanoTime()).abs(),
                 Date.from(now.minus(Duration.ofDays(1))),
-                Date.from(now.plus(Duration.ofDays(30))),
+                Date.from(now.plus(validity)),
                 subject,
                 keys.getPublic());
     }

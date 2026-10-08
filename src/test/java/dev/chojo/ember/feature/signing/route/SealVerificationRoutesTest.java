@@ -399,7 +399,12 @@ class SealVerificationRoutesTest extends RepositoryTestBase {
                 List.of(member));
         memberDocumentRepo.seal(document.id());
         versions.add(
-                document.id(), Sha256.hex(sealed.pdf()), sealed.pdf().length, sealed.level(), sealed.timestampedBy());
+                document.id(),
+                Sha256.hex(sealed.pdf()),
+                sealed.pdf().length,
+                sealed.level(),
+                sealed.timestampedBy(),
+                sealed.timestampValidUntil());
     }
 
     private Station station(String name) {

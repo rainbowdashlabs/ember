@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:67b3ebc7d6574d8b8ea0224853e1773e51557e6ab8c6ef493c7c8767e59b36da",
-  "generatedAt": "2026-10-08T20:01:00Z",
+  "schemaHash": "sha256:9902da6ba2e11c2946521c81cc4a98709976b95f88126347d31fe85075331046",
+  "generatedAt": "2026-10-08T20:06:36Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -18820,7 +18820,7 @@
     "member_document_version": {
       "feature": "members",
       "scope": "STATION",
-      "tableHash": "sha256:c4d8cae334c4021353b47a6bfe2e949c67567be8fc71f7bd2269eae05eb3bf58",
+      "tableHash": "sha256:b744946b4c0fd0e56c1ec4cff5dcc73620b3634a6731ca73e18edeaf554814a8",
       "columns": [
         {
           "name": "id",
@@ -18862,14 +18862,14 @@
           "type": "text",
           "nullable": false,
           "verified": true,
-          "description": "The PAdES baseline level the seal reached: BASELINE_B without a timestamp, BASELINE_T with one, BASELINE_LT with the timestamp and the material to check both offline."
+          "description": "The PAdES baseline level the seal reached: BASELINE_B without a timestamp, BASELINE_T with one, BASELINE_LT with the timestamp and the material to check both offline, BASELINE_LTA with that material covered by a later document timestamp that renews the earlier ones."
         },
         {
           "name": "timestamped_by",
           "type": "text",
           "nullable": true,
           "verified": true,
-          "description": "The address of the timestamp service whose timestamp the file carries; null for a seal without a timestamp."
+          "description": "The address of the timestamp service whose newest timestamp the file carries; null for a seal without a timestamp."
         },
         {
           "name": "sealed_at",
@@ -18884,6 +18884,13 @@
           "nullable": true,
           "verified": true,
           "description": "When a later version took its place; null for the current version. A superseded version stays stored."
+        },
+        {
+          "name": "timestamp_valid_until",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "The earliest end of validity among the certificates the newest timestamp of the file rests on: the timestamp service's certificates and the root pinned for it. Before then a later timestamp has to cover it, which the renewal of timestamps adds as a new version when the operator switched it on. Null for a seal without a timestamp."
         }
       ],
       "foreignKeys": [

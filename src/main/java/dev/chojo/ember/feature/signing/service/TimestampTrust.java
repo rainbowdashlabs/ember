@@ -23,6 +23,7 @@ import java.security.cert.PKIXBuilderParameters;
 import java.security.cert.TrustAnchor;
 import java.security.cert.X509CertSelector;
 import java.security.cert.X509Certificate;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -59,6 +60,30 @@ final class TimestampTrust {
         } catch (TSPException | CMSException | IOException | OperatorCreationException | GeneralSecurityException e) {
             throw new UntrustedTimestampException(
                     "The timestamp does not chain to the pinned root: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * When a timestamp stops proving anything on its own: the earliest end of validity among the
+     * certificates it rests on, the ones the token carries and the root pinned for its service. Before
+     * then a later timestamp has to cover it.
+     *
+     * @param token the timestamp token, a DER encoded CMS signed data, already checked to chain to the root
+     * @param root  the root pinned for the service that gave it
+     * @return the earliest end of validity
+     * @throws UntrustedTimestampException when the token cannot be read
+     */
+    static Instant validUntil(byte[] token, X509Certificate root) {
+        try {
+            var timestamp = new TimeStampToken(new CMSSignedData(token));
+            var earliest = root.getNotAfter().toInstant();
+            for (var certificate : certificatesOf(timestamp)) {
+                var end = certificate.getNotAfter().toInstant();
+                if (end.isBefore(earliest)) earliest = end;
+            }
+            return earliest;
+        } catch (TSPException | CMSException | IOException | GeneralSecurityException e) {
+            throw new UntrustedTimestampException("The timestamp's certificates cannot be read: " + e.getMessage(), e);
         }
     }
 

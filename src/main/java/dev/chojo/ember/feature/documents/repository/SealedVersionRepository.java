@@ -10,11 +10,13 @@ import dev.chojo.ember.feature.signing.entity.SealLevel;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
+import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
 /**
  * The sealed versions of sealed documents. A version is only ever added and, once a later one takes its
@@ -24,7 +26,15 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 public class SealedVersionRepository {
 
     private static final String COLUMNS = """
-            id, document_id, version, sha256, size_bytes, seal_level, timestamped_by, sealed_at, superseded_at""";
+            id, document_id, version, sha256, size_bytes, seal_level, timestamped_by, timestamp_valid_until, sealed_at,
+            superseded_at""";
+
+    private static final String STATION_HERE = """
+            NOT EXISTS (SELECT 1
+                        FROM member_document d
+                                 JOIN station s ON s.id = d.station_id
+                        WHERE d.id = member_document_version.document_id
+                          AND s.moved_away_at IS NOT NULL)""";
 
     /**
      * Adds a version as the document's current one, numbered one above its highest. Whatever was current
@@ -34,16 +44,23 @@ public class SealedVersionRepository {
      * @param sha256        SHA-256 of the sealed file, lower-case hexadecimal
      * @param sizeBytes     how large the sealed file is
      * @param sealLevel     the level its seal reached
-     * @param timestampedBy the timestamp service whose timestamp it carries, or null
+     * @param timestampedBy the timestamp service whose newest timestamp it carries, or null
+     * @param timestampValidUntil when the certificates its newest timestamp rests on start running out, or null
+     *                      without a timestamp
      * @return the version as it was written
      */
     public SealedVersion add(
-            int documentId, String sha256, long sizeBytes, SealLevel sealLevel, @Nullable String timestampedBy) {
+            int documentId,
+            String sha256,
+            long sizeBytes,
+            SealLevel sealLevel,
+            @Nullable String timestampedBy,
+            @Nullable Instant timestampValidUntil) {
         return query("""
                         INSERT INTO member_document_version(document_id, version, sha256, size_bytes, seal_level,
-                                                            timestamped_by)
+                                                            timestamped_by, timestamp_valid_until)
                         SELECT :document_id, coalesce(max(version), 0) + 1, :content_hash, :size_bytes, :seal_level,
-                               :timestamped_by
+                               :timestamped_by, :timestamp_valid_until
                         FROM member_document_version
                         WHERE document_id = :document_id
                         RETURNING %s;""", COLUMNS)
@@ -51,10 +68,52 @@ public class SealedVersionRepository {
                         .bind("content_hash", sha256)
                         .bind("size_bytes", sizeBytes)
                         .bind("seal_level", sealLevel)
-                        .bind("timestamped_by", timestampedBy))
+                        .bind("timestamped_by", timestampedBy)
+                        .bind("timestamp_valid_until", timestampValidUntil, INSTANT_TIMESTAMP))
                 .map(SealedVersion.map())
                 .first()
                 .orElseThrow();
+    }
+
+    /**
+     * Current versions sealed without a timestamp, oldest first, of stations that run here. A version of a
+     * station that moved away stays as it is, since the station's documents live on elsewhere.
+     *
+     * @param limit how many at most
+     * @return the versions
+     */
+    public List<SealedVersion> currentWithoutTimestamp(int limit) {
+        return query("""
+                        SELECT %s FROM member_document_version
+                        WHERE superseded_at IS NULL
+                          AND seal_level = 'BASELINE_B'
+                          AND %s
+                        ORDER BY sealed_at, id
+                        LIMIT :limit;""", COLUMNS, STATION_HERE)
+                .single(call().bind("limit", limit))
+                .map(SealedVersion.map())
+                .all();
+    }
+
+    /**
+     * Current versions whose newest timestamp rests on a certificate that ends before the given time, the
+     * soonest first, of stations that run here.
+     *
+     * @param before the time the certificates have to outlast
+     * @param limit  how many at most
+     * @return the versions
+     */
+    public List<SealedVersion> currentWithTimestampEndingBefore(Instant before, int limit) {
+        return query("""
+                        SELECT %s FROM member_document_version
+                        WHERE superseded_at IS NULL
+                          AND timestamp_valid_until < :before
+                          AND %s
+                        ORDER BY timestamp_valid_until, id
+                        LIMIT :limit;""", COLUMNS, STATION_HERE)
+                .single(call().bind("before", before, INSTANT_TIMESTAMP).bind("limit", limit))
+                .map(SealedVersion.map())
+                .all();
     }
 
     /**

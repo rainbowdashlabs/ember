@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.signing.service;
 
+import dev.chojo.ember.feature.signing.entity.SealLevel;
 import dev.chojo.ember.feature.signing.entity.SealedDocument;
 import eu.europa.esig.dss.alert.LogOnStatusAlert;
 import eu.europa.esig.dss.alert.SilentOnStatusAlert;
@@ -37,6 +38,7 @@ import java.security.Signature;
 import java.security.cert.X509Certificate;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * Seals PDF documents as PAdES {@code BASELINE-LT} with a key it is handed, or as far towards it as
@@ -56,7 +58,8 @@ import java.util.Objects;
  * <p>Each step that cannot be completed leaves the seal one level lower instead of failing, and the
  * result says which level it reached: without a timestamp it is {@code BASELINE-B}, and with a
  * timestamp whose revocation data could not be fetched it is {@code BASELINE-T}. {@link #lift} takes
- * such a document further later.
+ * such a document further later, and {@link #renew} covers its timestamps with a new one before their
+ * certificates run out ({@code BASELINE-LTA}).
  *
  * <p>A station key its authority's list names as revoked cannot seal: DSS checks the signing
  * certificate against that list before signing and refuses.
@@ -141,8 +144,8 @@ public class PdfSealer {
      *
      * <p>Each addition goes into a revision of its own, so the bytes the earlier seals cover stay as
      * they are and every one of them stays valid. Meant for documents sealed while no timestamp
-     * service answered or their revocation data could not be fetched; nothing calls it yet. A document
-     * that already carries a timestamp gets one more.
+     * service answered ({@link SealedVersionTimestamps}). A document that already carries a timestamp
+     * gets one more.
      *
      * @param sealed a document holding at least one seal
      * @return the document with what could be added, or the document unchanged at {@code BASELINE-B}
@@ -161,13 +164,55 @@ public class PdfSealer {
         return withValidationMaterial(stamped, round.get());
     }
 
+    /**
+     * Renews the timestamps of a sealed document before the certificates of its newest one run out
+     * ({@code BASELINE-LTA}): adds the current validation material of every seal and timestamp it holds,
+     * then a document timestamp over all of it, then the validation material of that timestamp.
+     *
+     * <p>Each addition goes into a revision of its own, so every earlier seal and timestamp stays valid,
+     * and the new timestamp proves that they and their validation material existed while they could
+     * still be checked. Material that cannot be had is left out, as when sealing; the next renewal adds
+     * it. All outside calls share one {@link TimestampServices#BUDGET}.
+     *
+     * @param sealed a document holding at least one seal with a timestamp
+     * @param level  the level the document reached so far
+     * @return the renewed document, at {@code BASELINE-LTA} where the new timestamp covers validation
+     *     material, or empty when timestamps are off or no service gave a timestamp
+     */
+    public Optional<SealedDocument> renew(byte[] sealed, SealLevel level) {
+        var round = timestamps.round();
+        if (round.isEmpty()) return Optional.empty();
+        var refreshed = withCurrentValidationMaterial(sealed, round.get());
+        boolean coversMaterial = refreshed.isPresent() || level.compareTo(SealLevel.BASELINE_LT) >= 0;
+        byte[] archived;
+        try {
+            archived = documentTimestamped(refreshed.orElse(sealed), round.get());
+        } catch (DSSException e) {
+            log.warn("Could not renew the timestamps of a sealed document: {}", e.getMessage());
+            return Optional.empty();
+        }
+        var renewed = withValidationMaterial(archived, round.get());
+        return Optional.of(coversMaterial ? renewed.archived() : renewed);
+    }
+
+    private Optional<byte[]> withCurrentValidationMaterial(byte[] sealed, TimestampServices.Round round) {
+        try {
+            return Optional.of(extend(sealed, SignatureLevel.PAdES_BASELINE_LT, round));
+        } catch (DSSException | AlertException e) {
+            log.warn("Renewing a sealed document without fresh validation material: {}", e.getMessage());
+            return Optional.empty();
+        }
+    }
+
     private SealedDocument withValidationMaterial(byte[] stamped, TimestampServices.Round round) {
         var stampedBy = answeredBy(round);
+        var validUntil = Objects.requireNonNull(round.validUntil(), "A timestamp was embedded, so it has an end");
         try {
-            return SealedDocument.longTerm(extend(stamped, SignatureLevel.PAdES_BASELINE_LT, round), stampedBy);
+            return SealedDocument.longTerm(
+                    extend(stamped, SignatureLevel.PAdES_BASELINE_LT, round), stampedBy, validUntil);
         } catch (DSSException | AlertException e) {
             log.warn("Sealed a document with a timestamp but without its validation material: {}", e.getMessage());
-            return SealedDocument.timestamped(stamped, stampedBy);
+            return SealedDocument.timestamped(stamped, stampedBy, validUntil);
         }
     }
 
