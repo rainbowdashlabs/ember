@@ -12,15 +12,18 @@ import dev.chojo.ember.feature.signing.entity.CertificateFacts;
 import dev.chojo.ember.feature.signing.entity.DocumentTimestampCheck;
 import dev.chojo.ember.feature.signing.entity.HeldCopy;
 import dev.chojo.ember.feature.signing.entity.PadesLevel;
+import dev.chojo.ember.feature.signing.entity.PinnedAuthority;
 import dev.chojo.ember.feature.signing.entity.RevocationReason;
 import dev.chojo.ember.feature.signing.entity.RevocationStatus;
 import dev.chojo.ember.feature.signing.entity.SealCheck;
 import dev.chojo.ember.feature.signing.entity.SealVerification;
+import dev.chojo.ember.feature.signing.entity.SealingPartner;
 import dev.chojo.ember.feature.signing.entity.SignerRevocation;
 import dev.chojo.ember.feature.signing.entity.StoredAuthorityCertificate;
 import dev.chojo.ember.feature.signing.entity.TimestampCheck;
 import dev.chojo.ember.feature.signing.entity.ValidationIndication;
 import dev.chojo.ember.feature.signing.entity.ValidationSubIndication;
+import dev.chojo.ember.feature.signing.repository.PartnerAuthorityRepository;
 import dev.chojo.ember.feature.signing.repository.SigningKeyRepository;
 import dev.chojo.ember.util.Sha256;
 import eu.europa.esig.dss.diagnostic.AbstractTokenProxy;
@@ -58,11 +61,15 @@ import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -73,22 +80,30 @@ import javax.security.auth.x500.X500Principal;
  * Checks the seals and timestamps of a PDF somebody holds, against this installation's authorities, and
  * says whether the installation holds exactly that file.
  *
- * <p><b>Trust.</b> The EU DSS validator runs with exactly two kinds of trusted certificates: every
- * authority of this installation, active and retired, and every timestamp root the installation pins
- * (the shipped ones and the operator's, whether their service is asked today or not). A pinned timestamp
+ * <p><b>Trust.</b> The EU DSS validator runs with exactly three kinds of trusted certificates: every
+ * authority of this installation, active and retired, every authority pinned for a federation partner of
+ * a station here ({@link PartnerAuthorities}), and every timestamp root the installation pins (the
+ * shipped ones and the operator's, whether their service is asked today or not). A pinned timestamp
  * root may issue signing certificates for others too, so the validator alone could pass a stranger's
  * seal. DSS has no trust anchor scoped to timestamps short of trusted lists with service types and a
  * policy of its own, and validating signatures without the timestamp roots would drop the proof of
  * existence their timestamps give (a key revoked after a timestamped seal would no longer pass). So the
- * validator runs once, and a signature whose chain does not end in one of the installation's authorities
- * never passes: unless the validator found it failed, it reads {@code INDETERMINATE} /
- * {@code NOT_ISSUED_HERE}, with the validator's own verdict beside it.
+ * validator runs once, and a signature that is neither issued here nor a partner's never passes: unless
+ * the validator found it failed, it reads {@code INDETERMINATE} / {@code NOT_ISSUED_HERE}, with the
+ * validator's own verdict beside it.
+ *
+ * <p><b>Partners.</b> A seal is a partner's only when its chain ends in an authority pinned for a
+ * partnership with a station and its certificate names that very station; a partner's authority vouches
+ * for no other station of that installation. Such a seal is answered with the partner beside the verdict
+ * and never as issued here, so a reader is always told whose seal it is. A document a partner sends is
+ * checked by {@link PartnerSealValidator}, against that partner's authorities alone.
  *
  * <p><b>Offline.</b> Nothing is fetched. The verifier is built without online sources and without an
  * AIA source; the revocation data is what the document carries plus the current list of each of the
  * installation's authorities, read from the database (and signed anew there when it is older than a
- * day, as for any reader of the published list). A list that cannot be signed because the authority's
- * key does not open is left out, and the signer's revocation status then says unknown.
+ * day, as for any reader of the published list), and the last list taken in for each partner authority.
+ * A list that cannot be signed because the authority's key does not open is left out, and the signer's
+ * revocation status then says unknown.
  *
  * <p><b>What is answered.</b> Small records of what a reader can check themselves: certificates by
  * subject, serial number and fingerprint, the validator's indications, levels and times. Nothing of the
@@ -125,6 +140,7 @@ public class SealVerifier {
     private final SigningKeyRepository keys;
     private final StationKeyRevocations revocations;
     private final SealedVersionRepository versions;
+    private final PartnerAuthorityRepository partnerPins;
     private final List<X509Certificate> timestampRoots;
     private final Set<String> timestampFingerprints;
     private final Semaphore slots;
@@ -136,6 +152,7 @@ public class SealVerifier {
      * @param keys        the installation's authorities
      * @param revocations hands out each authority's current revocation list
      * @param versions    the sealed versions of member documents, matched by their SHA-256
+     * @param partnerPins the authorities pinned for federation partners
      * @param config      the signing configuration, for the operator's timestamp roots
      */
     @Inject
@@ -143,8 +160,9 @@ public class SealVerifier {
             SigningKeyRepository keys,
             StationKeyRevocations revocations,
             SealedVersionRepository versions,
+            PartnerAuthorityRepository partnerPins,
             Signing config) {
-        this(keys, revocations, versions, TimestampRoots.all(config.timestampRoots()));
+        this(keys, revocations, versions, partnerPins, TimestampRoots.all(config.timestampRoots()));
     }
 
     /**
@@ -153,14 +171,16 @@ public class SealVerifier {
      * @param keys           the installation's authorities
      * @param revocations    hands out each authority's current revocation list
      * @param versions       the sealed versions of member documents, matched by their SHA-256
+     * @param partnerPins    the authorities pinned for federation partners
      * @param timestampRoots the roots a timestamp has to chain to
      */
     public SealVerifier(
             SigningKeyRepository keys,
             StationKeyRevocations revocations,
             SealedVersionRepository versions,
+            PartnerAuthorityRepository partnerPins,
             List<X509Certificate> timestampRoots) {
-        this(keys, revocations, versions, timestampRoots, new Semaphore(CONCURRENT_CHECKS), QUEUE_TIME);
+        this(keys, revocations, versions, partnerPins, timestampRoots, new Semaphore(CONCURRENT_CHECKS), QUEUE_TIME);
     }
 
     /**
@@ -169,6 +189,7 @@ public class SealVerifier {
      * @param keys           the installation's authorities
      * @param revocations    hands out each authority's current revocation list
      * @param versions       the sealed versions of member documents, matched by their SHA-256
+     * @param partnerPins    the authorities pinned for federation partners
      * @param timestampRoots the roots a timestamp has to chain to
      * @param slots          the checks that may run at once
      * @param queueTime      how long a check waits for a slot
@@ -177,12 +198,14 @@ public class SealVerifier {
             SigningKeyRepository keys,
             StationKeyRevocations revocations,
             SealedVersionRepository versions,
+            PartnerAuthorityRepository partnerPins,
             List<X509Certificate> timestampRoots,
             Semaphore slots,
             Duration queueTime) {
         this.keys = keys;
         this.revocations = revocations;
         this.versions = versions;
+        this.partnerPins = partnerPins;
         this.timestampRoots = List.copyOf(timestampRoots);
         this.timestampFingerprints = fingerprints(this.timestampRoots);
         this.slots = slots;
@@ -221,11 +244,105 @@ public class SealVerifier {
         if (!startsLikeAPdf(pdf)) throw DocumentRefusal.SEAL_CHECK_NOT_A_PDF.raise();
         if (!acquireSlot()) throw DocumentRefusal.SEAL_CHECKS_BUSY.raise();
         try {
-            var checked = checked(pdf, installationAuthorities());
+            var here = installationAuthorities();
+            var authorities = new ArrayList<>(here);
+            authorities.addAll(partnerAuthorities(partnerPins.allPinned(), fingerprintsOf(here)));
+            var checked = checked(pdf, authorities);
             return new SealVerification(held(pdf), checked.signatures(), checked.documentTimestamps());
         } finally {
             slots.release();
         }
+    }
+
+    /**
+     * Checks a file a federation partner sent, against the given authorities of that partner alone. No slot
+     * is taken: the file comes from a partner, not from anybody.
+     *
+     * @param pdf         the file's bytes
+     * @param authorities the partner's authorities, each naming the partner
+     * @return what the check found; a seal is recognised only as that partner's
+     * @throws dev.chojo.ember.api.refusal.RefusalResponse when it is larger than {@link #MAX_BYTES} or is no
+     *                                                     PDF that can be read
+     */
+    SealVerification verifyFromPartner(byte[] pdf, List<Authority> authorities) {
+        if (pdf.length > MAX_BYTES) throw DocumentRefusal.SEAL_CHECK_TOO_LARGE.raise();
+        if (!startsLikeAPdf(pdf)) throw DocumentRefusal.SEAL_CHECK_NOT_A_PDF.raise();
+        var checked = checked(pdf, authorities);
+        return new SealVerification(held(pdf), checked.signatures(), checked.documentTimestamps());
+    }
+
+    /**
+     * A partner's pinned authorities, as a check of what it sent needs them.
+     *
+     * @param partner the partner station
+     * @param pins    the authorities pinned for the partnership
+     * @return one authority per pin, naming the partner
+     */
+    static List<Authority> partnerAuthorities(SealingPartner partner, List<PinnedAuthority> pins) {
+        return pins.stream()
+                .map(pin -> new Authority(
+                        SigningCertificates.certificateOf(pin.certificate()),
+                        PublishedCertificates.fingerprintOf(pin.certificate()),
+                        pin.revocationList(),
+                        false,
+                        List.of(partner)))
+                .toList();
+    }
+
+    /**
+     * This installation's own authorities as a partner's, for a partner on a pair a cluster made, which
+     * runs here by definition and seals under the same authorities.
+     *
+     * @param partner the partner station
+     * @return the installation's authorities, naming the partner
+     */
+    List<Authority> installationAuthoritiesOf(SealingPartner partner) {
+        return installationAuthorities().stream()
+                .map(authority -> new Authority(
+                        authority.certificate(),
+                        authority.fingerprint(),
+                        authority.listBytes(),
+                        true,
+                        List.of(partner)))
+                .toList();
+    }
+
+    /**
+     * Every authority pinned for any partnership here, once each, naming every partner station it was pinned
+     * for, with the newest revocation list any of them took in. An authority of this installation itself is
+     * left out, since it answers as issued here.
+     */
+    private static List<Authority> partnerAuthorities(List<PinnedAuthority> pins, Set<String> here) {
+        var byCertificate = new LinkedHashMap<String, List<PinnedAuthority>>();
+        pins.forEach(pin -> byCertificate
+                .computeIfAbsent(pin.sha256(), sha256 -> new ArrayList<>())
+                .add(pin));
+        var authorities = new ArrayList<Authority>();
+        for (var same : byCertificate.values()) {
+            var der = same.getFirst().certificate();
+            var fingerprint = PublishedCertificates.fingerprintOf(der);
+            if (here.contains(fingerprint)) continue;
+            authorities.add(new Authority(
+                    SigningCertificates.certificateOf(der),
+                    fingerprint,
+                    newestList(same),
+                    false,
+                    same.stream().map(PinnedAuthority::partner).distinct().toList()));
+        }
+        return authorities;
+    }
+
+    private static byte @Nullable [] newestList(List<PinnedAuthority> pins) {
+        return pins.stream()
+                .filter(pin -> pin.revocationList() != null)
+                .max(Comparator.comparing(
+                        PinnedAuthority::revocationNextUpdate, Comparator.nullsFirst(Comparator.naturalOrder())))
+                .map(PinnedAuthority::revocationList)
+                .orElse(null);
+    }
+
+    private static Set<String> fingerprintsOf(List<Authority> authorities) {
+        return authorities.stream().map(Authority::fingerprint).collect(Collectors.toUnmodifiableSet());
     }
 
     private boolean acquireSlot() {
@@ -273,7 +390,9 @@ public class SealVerifier {
         return new Authority(
                 SigningCertificates.certificateOf(stored.certificate()),
                 PublishedCertificates.fingerprintOf(stored.certificate()),
-                currentList(stored.serialNumber()));
+                currentList(stored.serialNumber()),
+                true,
+                List.of());
     }
 
     private byte @Nullable [] currentList(String serialNumber) {
@@ -345,17 +464,35 @@ public class SealVerifier {
     }
 
     /**
-     * One of this installation's authorities, as a check needs it.
+     * An authority a check trusts: one of this installation's or one pinned for federation partners.
      *
      * @param certificate its certificate
      * @param fingerprint the certificate's SHA-256 fingerprint
      * @param listBytes   its current revocation list, DER encoded, or null when none could be had
+     * @param here        whether it is one of this installation's authorities
+     * @param partners    the partner stations it was pinned for, whose seals under it are recognised as
+     *                    theirs; empty for an authority of this installation in the public check
      */
-    record Authority(X509Certificate certificate, String fingerprint, byte @Nullable [] listBytes) {
+    record Authority(
+            X509Certificate certificate,
+            String fingerprint,
+            byte @Nullable [] listBytes,
+            boolean here,
+            List<SealingPartner> partners) {
 
         /** @return its current revocation list, DER encoded, when one could be had */
         Optional<byte[]> revocationList() {
             return Optional.ofNullable(listBytes);
+        }
+
+        /**
+         * @param signerUid the station the signer's certificate names
+         * @return the partner it was pinned for that is that station
+         */
+        Optional<SealingPartner> partnerNamed(UUID signerUid) {
+            return partners.stream()
+                    .filter(partner -> partner.stationUid().equals(signerUid))
+                    .findFirst();
         }
     }
 
@@ -364,7 +501,7 @@ public class SealVerifier {
      *
      * @param fileLength           the file's length, to tell whether a revision runs to its end
      * @param reports              the validator's reports
-     * @param authorities          the installation's authorities
+     * @param authorities          the authorities the check trusted
      * @param timestampFingerprints the fingerprints of the pinned timestamp roots
      */
     private record Reading(
@@ -376,15 +513,18 @@ public class SealVerifier {
             var issuer = chain.size() > 1 ? facts(chain.get(1)) : null;
             var issuing = issuer == null ? Optional.<Authority>empty() : authorityBy(issuer.sha256Fingerprint());
             var simple = reports.getSimpleReport();
-            boolean issuedHere = endsIn(
-                    chain, authorities.stream().map(Authority::fingerprint).collect(Collectors.toSet()));
+            var anchor = chain.isEmpty() ? Optional.<Authority>empty() : anchorOf(chain.getLast());
+            boolean issuedHere = anchor.map(Authority::here).orElse(false);
+            var signerUid = stationUidOf(signature.getSigningCertificate());
+            var partner = anchor.flatMap(authority -> signerUid.flatMap(authority::partnerNamed));
             var validatorIndication = indication(simple.getIndication(signature.getId()));
             var validatorSubIndication = subIndication(simple.getSubIndication(signature.getId()));
-            boolean answerAsGiven = issuedHere || failed(validatorIndication);
+            boolean answerAsGiven = issuedHere || partner.isPresent() || failed(validatorIndication);
             return new SealCheck(
                     signer,
                     issuer,
                     issuedHere,
+                    partner.orElse(null),
                     answerAsGiven ? validatorIndication : ValidationIndication.INDETERMINATE,
                     answerAsGiven ? validatorSubIndication : ValidationSubIndication.NOT_ISSUED_HERE,
                     validatorIndication,
@@ -442,6 +582,11 @@ public class SealVerifier {
                     .findFirst();
         }
 
+        private Optional<Authority> anchorOf(CertificateWrapper last) {
+            var facts = facts(last);
+            return facts == null ? Optional.empty() : authorityBy(facts.sha256Fingerprint());
+        }
+
         private boolean coversWholeFile(@Nullable PDFRevisionWrapper revision) {
             if (revision == null) return false;
             var range = revision.getSignatureByteRange();
@@ -487,6 +632,12 @@ public class SealVerifier {
                 certificate.getSubjectX500Principal().getName(X500Principal.RFC2253),
                 SigningCertificates.serialOf(certificate),
                 PublishedCertificates.fingerprintOf(der));
+    }
+
+    private static Optional<UUID> stationUidOf(@Nullable CertificateWrapper wrapper) {
+        var der = wrapper == null ? null : wrapper.getBinaries();
+        if (der == null) return Optional.empty();
+        return SigningCertificates.stationUidOf(SigningCertificates.certificateOf(der));
     }
 
     private static boolean failed(ValidationIndication indication) {

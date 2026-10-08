@@ -940,3 +940,52 @@ CREATE TRIGGER member_document_version_stays
     ON ember_schema.member_document_version
     FOR EACH ROW
 EXECUTE FUNCTION ember_schema.member_document_refuse_sealed_change();
+
+CREATE TABLE IF NOT EXISTS ember_schema.federation_partner_signing_ca
+(
+    id               SERIAL PRIMARY KEY,
+    partner_id       INTEGER     NOT NULL REFERENCES ember_schema.federation_partner (id) ON DELETE CASCADE,
+    sha256           TEXT        NOT NULL CHECK (sha256 ~ '^[0-9a-f]{64}$'),
+    certificate      BYTEA       NOT NULL,
+    active           BOOLEAN     NOT NULL,
+    pin_kind         TEXT        NOT NULL CHECK (pin_kind IN ('FIRST_FETCH', 'ANNOUNCED')),
+    pinned_at        TIMESTAMPTZ NOT NULL,
+    pinned_statement TEXT        NOT NULL,
+    pinned_signature TEXT        NOT NULL,
+    last_listed_at   TIMESTAMPTZ NOT NULL,
+    crl              BYTEA       NULL,
+    crl_this_update  TIMESTAMPTZ NULL,
+    crl_next_update  TIMESTAMPTZ NULL,
+    CONSTRAINT federation_partner_signing_ca_pin UNIQUE (partner_id, sha256),
+    CONSTRAINT federation_partner_signing_ca_crl CHECK (num_nonnulls(crl, crl_this_update, crl_next_update) IN (0, 3))
+);
+
+COMMENT ON TABLE ember_schema.federation_partner_signing_ca IS
+    'The signing authorities of a federation partner''s installation, pinned to the partnership, so documents the partner seals and sends can be checked against them. One row per partnership and authority. An authority is only pinned from a statement the partner station signed with its federation key, made against a fresh challenge, so nobody between the two installations can swap one in. A pin is never dropped by a later statement: documents sealed under an authority the partner gave up keep being checked against it. Goes with the partnership.';
+COMMENT ON COLUMN ember_schema.federation_partner_signing_ca.id IS 'Primary key.';
+COMMENT ON COLUMN ember_schema.federation_partner_signing_ca.partner_id IS
+    'The partnership the authority is pinned to, the row of the station that checks the partner''s documents.';
+COMMENT ON COLUMN ember_schema.federation_partner_signing_ca.sha256 IS
+    'SHA-256 of the authority''s certificate, lower-case hexadecimal.';
+COMMENT ON COLUMN ember_schema.federation_partner_signing_ca.certificate IS 'The authority''s certificate, DER encoded.';
+COMMENT ON COLUMN ember_schema.federation_partner_signing_ca.active IS
+    'Whether the partner last stated it as the authority that issues new station certificates; false once retired or given up there.';
+COMMENT ON COLUMN ember_schema.federation_partner_signing_ca.pin_kind IS
+    'How it came to be pinned: FIRST_FETCH with the first statement taken from the partner, ANNOUNCED with a later one, after the partner''s installation renewed or re-issued its authority.';
+COMMENT ON COLUMN ember_schema.federation_partner_signing_ca.pinned_at IS 'When it was pinned.';
+COMMENT ON COLUMN ember_schema.federation_partner_signing_ca.pinned_statement IS
+    'The text of the partner''s statement that pinned it, exactly as its signature covers it, as proof of where the pin came from.';
+COMMENT ON COLUMN ember_schema.federation_partner_signing_ca.pinned_signature IS
+    'The partner station''s Base64 signature over that statement, made with its federation key.';
+COMMENT ON COLUMN ember_schema.federation_partner_signing_ca.last_listed_at IS
+    'When a statement of the partner last named it.';
+COMMENT ON COLUMN ember_schema.federation_partner_signing_ca.crl IS
+    'The newest revocation list of the authority taken in, DER encoded and checked against the authority''s certificate. NULL while the partner stated none.';
+COMMENT ON COLUMN ember_schema.federation_partner_signing_ca.crl_this_update IS
+    'When that list was issued; a list older than the stored one is never taken. NULL while none was taken.';
+COMMENT ON COLUMN ember_schema.federation_partner_signing_ca.crl_next_update IS
+    'When that list says the next one is due; past it the partner is asked again before a check. NULL while none was taken.';
+COMMENT ON CONSTRAINT federation_partner_signing_ca_pin ON ember_schema.federation_partner_signing_ca IS
+    'An authority is pinned once per partnership.';
+COMMENT ON CONSTRAINT federation_partner_signing_ca_crl ON ember_schema.federation_partner_signing_ca IS
+    'A revocation list is stored together with its two dates or not at all.';

@@ -58,6 +58,7 @@ function exampleSeal(changes: Partial<SealCheck>): SealCheck {
     },
     issuer: STATION_CA,
     issuedHere: true,
+    partner: null,
     indication: ValidationIndication.TOTAL_PASSED,
     subIndication: null,
     validatorIndication: ValidationIndication.TOTAL_PASSED,

@@ -43,6 +43,22 @@ describe('SealVerificationResult', () => {
         expect(view.get('[data-testid="seal-revocation"]').text()).toBe('Nicht gesperrt.')
     })
 
+    it('says a passed seal of a federation partner is the partner\'s, by name, with its key', () => {
+        const view = show(createSealVerification({
+            signatures: [createSealCheck({
+                issuedHere: false,
+                partner: {stationUid: '5d1c2b7e-8a4f-4e61-b3d0-9c2a7f6e1b84', name: 'Jugendfeuerwehr Nordstadt'},
+            })],
+        }))
+
+        expect(verdicts(view)).toEqual(['sealedByPartner'])
+        const card = view.get('[data-testid="seal-check"]').text()
+        expect(card).toContain('Von Jugendfeuerwehr Nordstadt versiegelt und unverändert')
+        expect(card).toContain('nicht diese Installation')
+        expect(card).not.toContain('Von dieser Installation versiegelt')
+        expect(view.get('[data-testid="seal-revocation"]').text()).toBe('Nicht gesperrt.')
+    })
+
     it('says a seal whose bytes changed is altered', () => {
         const view = show(createSealVerification({
             signatures: [createSealCheck({

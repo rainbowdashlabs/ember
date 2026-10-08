@@ -67955,6 +67955,7 @@ export interface components {
             issuer: components["schemas"]["CertificateFacts"] | null;
             level: components["schemas"]["PadesLevel"];
             modifiedAfterSealing: boolean;
+            partner: components["schemas"]["SealingPartner"] | null;
             revocation: components["schemas"]["SignerRevocation"];
             signer: components["schemas"]["CertificateFacts"] | null;
             signingTime: components["schemas"]["Instant"] | null;
@@ -67973,6 +67974,11 @@ export interface components {
             timestampedBy: string | null;
             /** Format: int32 */
             version: number;
+        };
+        SealingPartner: {
+            name: string | null;
+            /** Format: uuid */
+            stationUid: string;
         };
         /** @enum {string} */
         SealLevel: "BASELINE_B" | "BASELINE_T" | "BASELINE_LT" | "BASELINE_LTA";
@@ -71658,6 +71664,7 @@ export type ScheduleMode = components['schemas']['ScheduleMode'];
 export type Scope = components['schemas']['Scope'];
 export type SealCheck = components['schemas']['SealCheck'];
 export type SealedVersionResponse = components['schemas']['SealedVersionResponse'];
+export type SealingPartner = components['schemas']['SealingPartner'];
 export type SealLevel = components['schemas']['SealLevel'];
 export type SealVerification = components['schemas']['SealVerification'];
 export type SearchResultItem = components['schemas']['SearchResultItem'];

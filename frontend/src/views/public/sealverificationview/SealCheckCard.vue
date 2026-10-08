@@ -16,7 +16,7 @@ import MutedText from '@/components/typography/MutedText.vue'
 import type {SealCheck} from '@/api/generated/schema'
 import SealCheckDetails from './SealCheckDetails.vue'
 import SealCheckFacts from './SealCheckFacts.vue'
-import {verdictOf, type SealVerdict} from './sealVerdict'
+import {partnerName, verdictOf, type SealVerdict} from './sealVerdict'
 
 /**
  * One seal found in the checked file: its verdict first, in one line a reader without any knowledge
@@ -36,6 +36,7 @@ interface VerdictLook {
 
 const LOOKS: Record<SealVerdict, VerdictLook> = {
   sealedHere: {container: SuccessContainer, icon: ['fas', 'circle-check'], tone: 'text-success-badge'},
+  sealedByPartner: {container: SuccessContainer, icon: ['fas', 'handshake'], tone: 'text-success-badge'},
   altered: {container: ErrorContainer, icon: ['fas', 'circle-xmark'], tone: 'text-error-badge'},
   modifiedAfterSealing: {container: ErrorContainer, icon: ['fas', 'triangle-exclamation'], tone: 'text-warning-badge'},
   notIssuedHere: {container: InfoContainer, icon: ['fas', 'ban'], tone: 'text-info-badge'},
@@ -45,6 +46,7 @@ const LOOKS: Record<SealVerdict, VerdictLook> = {
 
 const verdict = computed(() => verdictOf(props.check))
 const look = computed(() => LOOKS[verdict.value])
+const named = computed(() => ({partner: partnerName(props.check) ?? t('common.unknown')}))
 </script>
 
 <template>
@@ -52,8 +54,8 @@ const look = computed(() => LOOKS[verdict.value])
     <div class="flex items-start gap-3">
       <AppIcon :icon="look.icon" :class="look.tone" class="mt-1 text-xl shrink-0"/>
       <div class="space-y-1">
-        <SubHeader>{{ t(`sealVerification.verdict.${verdict}.title`) }}</SubHeader>
-        <MutedText tag="p" size="sm">{{ t(`sealVerification.verdict.${verdict}.text`) }}</MutedText>
+        <SubHeader>{{ t(`sealVerification.verdict.${verdict}.title`, named) }}</SubHeader>
+        <MutedText tag="p" size="sm">{{ t(`sealVerification.verdict.${verdict}.text`, named) }}</MutedText>
       </div>
     </div>
     <SealCheckFacts :check="check"/>

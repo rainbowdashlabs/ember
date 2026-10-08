@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:9902da6ba2e11c2946521c81cc4a98709976b95f88126347d31fe85075331046",
-  "generatedAt": "2026-10-08T20:06:36Z",
+  "schemaHash": "sha256:fd60e9b542f63a05a56967d51b38b5ab936d5224e1a56841c6542db635151ae5",
+  "generatedAt": "2026-10-08T20:09:53Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -12606,6 +12606,125 @@
         "reason": "Federation metadata, no personal data"
       },
       "description": "Federation partnerships between stations (local or cross-instance)."
+    },
+    "federation_partner_signing_ca": {
+      "feature": "signing",
+      "scope": "STATION",
+      "tableHash": "sha256:d2ad95fc2b27e0c3f66b9b7084d8d31453531e5e31715cff3a1d04859b5fdf20",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Primary key."
+        },
+        {
+          "name": "partner_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The partnership the authority is pinned to, the row of the station that checks the partner's documents."
+        },
+        {
+          "name": "sha256",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "SHA-256 of the authority's certificate, lower-case hexadecimal."
+        },
+        {
+          "name": "certificate",
+          "type": "bytea",
+          "nullable": false,
+          "verified": true,
+          "description": "The authority's certificate, DER encoded."
+        },
+        {
+          "name": "active",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether the partner last stated it as the authority that issues new station certificates; false once retired or given up there."
+        },
+        {
+          "name": "pin_kind",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "How it came to be pinned: FIRST_FETCH with the first statement taken from the partner, ANNOUNCED with a later one, after the partner's installation renewed or re-issued its authority."
+        },
+        {
+          "name": "pinned_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When it was pinned."
+        },
+        {
+          "name": "pinned_statement",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The text of the partner's statement that pinned it, exactly as its signature covers it, as proof of where the pin came from."
+        },
+        {
+          "name": "pinned_signature",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The partner station's Base64 signature over that statement, made with its federation key."
+        },
+        {
+          "name": "last_listed_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When a statement of the partner last named it."
+        },
+        {
+          "name": "crl",
+          "type": "bytea",
+          "nullable": true,
+          "verified": true,
+          "description": "The newest revocation list of the authority taken in, DER encoded and checked against the authority's certificate. NULL while the partner stated none."
+        },
+        {
+          "name": "crl_this_update",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When that list was issued; a list older than the stored one is never taken. NULL while none was taken."
+        },
+        {
+          "name": "crl_next_update",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When that list says the next one is due; past it the partner is asked again before a check. NULL while none was taken."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "partner_id",
+          "refTable": "federation_partner",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "A cache of the partners' authorities, not the station's own state. After a move the station asks each partner again over the partnership's federation key, which moves with the station, and pins what the partner states then."
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Certificates and revocation lists of partner installations, not personal data."
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Certificates and revocation lists of partner installations, not personal data. Removed with the partnership."
+      },
+      "description": "The signing authorities of a federation partner's installation, pinned to the partnership, so documents the partner seals and sends can be checked against them. One row per partnership and authority. An authority is only pinned from a statement the partner station signed with its federation key, made against a fresh challenge, so nobody between the two installations can swap one in. A pin is never dropped by a later statement: documents sealed under an authority the partner gave up keep being checked against it. Goes with the partnership."
     },
     "federation_protocol_share": {
       "feature": "federation",

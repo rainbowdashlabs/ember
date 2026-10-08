@@ -39,6 +39,7 @@ import dev.chojo.ember.feature.signing.entity.SigningEvidenceFile;
 import dev.chojo.ember.feature.signing.entity.SigningStatements;
 import dev.chojo.ember.feature.signing.entity.ValidationIndication;
 import dev.chojo.ember.feature.signing.entity.ValidationSubIndication;
+import dev.chojo.ember.feature.signing.repository.PartnerAuthorityRepository;
 import dev.chojo.ember.feature.signing.repository.SignatureRequestRepository;
 import dev.chojo.ember.feature.signing.repository.SigningEvidenceRepository;
 import dev.chojo.ember.feature.signing.repository.SigningKeyRepository;
@@ -163,6 +164,7 @@ class SignedDocumentMatrixTest extends RepositoryTestBase {
                 keyRepo,
                 new StationKeyRevocations(keyRepo, new RevocationLists(), wrap),
                 versions,
+                new PartnerAuthorityRepository(),
                 List.of(LocalTimestampService.root()));
         loginPermission = stationMemberRepo
                 .findPermissionByName(StationPermission.LOGIN)

@@ -12,8 +12,8 @@ import {certificateName, provingTimestamp, revokedAfterTimestamp} from './sealVe
 
 /**
  * Who sealed, when, which timestamp backs it and whether the key has since been revoked, in plain
- * words. The revocation is only said for a seal of this installation, the one place its lists speak
- * for.
+ * words. The revocation is only said for a seal of this installation, whose lists it holds, and for a
+ * seal of a federation partner, whose lists it takes in with the partner's authorities.
  */
 const props = defineProps<{
   check: SealCheck
@@ -54,7 +54,7 @@ const revocationText = computed(() => {
     <dd>{{ check.signingTime ? t('sealVerification.facts.sealedAtClock', {time: formatDateTime(check.signingTime)}) : t('common.unknown') }}</dd>
     <dt class="text-(--text-muted)">{{ t('sealVerification.facts.timestamp') }}</dt>
     <dd>{{ stampText }}</dd>
-    <template v-if="check.issuedHere">
+    <template v-if="check.issuedHere || check.partner">
       <dt class="text-(--text-muted)">{{ t('sealVerification.facts.key') }}</dt>
       <dd data-testid="seal-revocation">{{ revocationText }}</dd>
     </template>

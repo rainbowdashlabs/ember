@@ -17,13 +17,22 @@ import {
  * The one answer a reader gets about a seal before any detail.
  *
  * - `sealedHere`: sealed by a station of this installation, and the sealed content is unchanged
+ * - `sealedByPartner`: sealed by a federation partner of a station here, whose authority this
+ *   installation pinned, and the sealed content is unchanged
  * - `altered`: the sealed content no longer matches its seal
  * - `modifiedAfterSealing`: the sealed content is unchanged, but the file was changed after sealing
  * - `notIssuedHere`: somebody else's seal, which this installation cannot vouch for
  * - `invalid`: the seal failed for another reason than a change, such as its certificate
  * - `unclear`: none of the above could be settled
  */
-export type SealVerdict = 'sealedHere' | 'altered' | 'modifiedAfterSealing' | 'notIssuedHere' | 'invalid' | 'unclear'
+export type SealVerdict =
+    | 'sealedHere'
+    | 'sealedByPartner'
+    | 'altered'
+    | 'modifiedAfterSealing'
+    | 'notIssuedHere'
+    | 'invalid'
+    | 'unclear'
 
 const FAILED: ReadonlySet<ValidationIndication> = new Set([ValidationIndication.TOTAL_FAILED, ValidationIndication.FAILED])
 const PASSED: ReadonlySet<ValidationIndication> = new Set([ValidationIndication.TOTAL_PASSED, ValidationIndication.PASSED])
@@ -45,8 +54,9 @@ const LONG_TERM: ReadonlySet<PadesLevel> = new Set([PadesLevel.BASELINE_LT, Pade
  * whatever else is unclear. A change made to the file after sealing comes next, since the sealed part may
  * still be fine while what the reader sees is not what was sealed. Only a broken content, signature value
  * or file structure reads as altered; a seal that fails for any other reason reads as invalid. A
- * stranger's seal is never called valid here, since the server already refuses to pass one, and only a
- * passed seal of this installation reads as sealed here.
+ * stranger's seal is never called valid here, since the server already refuses to pass one. Only a
+ * passed seal of this installation reads as sealed here, and a passed seal of a federation partner says
+ * so in its own words, never as sealed here.
  *
  * @param check the server's answer for one signature
  */
@@ -58,7 +68,19 @@ export function verdictOf(check: SealCheck): SealVerdict {
     if (check.subIndication === ValidationSubIndication.NOT_ISSUED_HERE) return 'notIssuedHere'
     if (failed) return 'invalid'
     if (check.issuedHere && PASSED.has(check.indication)) return 'sealedHere'
+    if (check.partner && PASSED.has(check.indication)) return 'sealedByPartner'
     return 'unclear'
+}
+
+/**
+ * The name of the partner station whose seal it is: the name its partnership knows it by, else the
+ * name its certificate carries.
+ *
+ * @param check the server's answer for one signature
+ */
+export function partnerName(check: SealCheck): string | null {
+    if (!check.partner) return null
+    return check.partner.name ?? certificateName(check.signer)
 }
 
 /**

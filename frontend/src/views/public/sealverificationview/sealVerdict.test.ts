@@ -17,6 +17,7 @@ import {createSealCheck, createTimestampCheck} from '@/test/mocks/sealVerificati
 import {
     certificateName,
     isLongTerm,
+    partnerName,
     provingTimestamp,
     revokedAfterTimestamp,
     subjectAttribute,
@@ -30,6 +31,27 @@ import {
 describe('verdictOf', () => {
     it('calls a passed seal of this installation sealed here', () => {
         expect(verdictOf(createSealCheck())).toBe('sealedHere')
+    })
+
+    it('calls a passed seal of a federation partner sealed by the partner, never sealed here', () => {
+        const partnerSeal = createSealCheck({
+            issuedHere: false,
+            partner: {stationUid: '5d1c2b7e-8a4f-4e61-b3d0-9c2a7f6e1b84', name: 'Jugendfeuerwehr Nordstadt'},
+        })
+
+        expect(verdictOf(partnerSeal)).toBe('sealedByPartner')
+        expect(partnerName(partnerSeal)).toBe('Jugendfeuerwehr Nordstadt')
+    })
+
+    it('names a partner without a known name by its certificate, and no partner for any other seal', () => {
+        const unnamed = createSealCheck({
+            issuedHere: false,
+            partner: {stationUid: '5d1c2b7e-8a4f-4e61-b3d0-9c2a7f6e1b84', name: null},
+        })
+
+        expect(partnerName(unnamed)).toBe('Jugendfeuerwehr Musterstadt')
+        expect(partnerName(createSealCheck())).toBeNull()
+        expect(verdictOf({...unnamed, indication: ValidationIndication.INDETERMINATE})).toBe('unclear')
     })
 
     it('calls a seal whose bytes changed altered, whoever made it', () => {

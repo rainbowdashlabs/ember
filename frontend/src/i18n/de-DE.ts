@@ -10643,6 +10643,10 @@ export default {
                 title: 'Von dieser Installation versiegelt und unverändert',
                 text: 'Eine Wache dieser Installation hat das Dokument versiegelt. Der versiegelte Inhalt ist seitdem unverändert.',
             },
+            sealedByPartner: {
+                title: 'Von {partner} versiegelt und unverändert',
+                text: 'Diese Partnerwache einer anderen Installation hat das Dokument versiegelt, nicht diese Installation. Ihre Zertifizierungsstelle ist hier aus der Partnerschaft bekannt. Der versiegelte Inhalt ist seitdem unverändert.',
+            },
             altered: {
                 title: 'Verändert seit dem Versiegeln',
                 text: 'Die Datei passt nicht mehr zu ihrem Siegel. Der versiegelte Inhalt wurde verändert oder die Datei ist beschädigt.',

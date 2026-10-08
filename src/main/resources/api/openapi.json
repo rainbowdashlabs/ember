@@ -70757,6 +70757,13 @@
           "issuedHere" : {
             "type" : "boolean"
           },
+          "partner" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/SealingPartner"
+            }, {
+              "type" : "null"
+            } ]
+          },
           "indication" : {
             "$ref" : "#/components/schemas/ValidationIndication"
           },
@@ -70806,7 +70813,7 @@
             }
           }
         },
-        "required" : [ "signer", "issuer", "issuedHere", "indication", "subIndication", "validatorIndication", "validatorSubIndication", "level", "signingTime", "intact", "coversWholeFile", "modifiedAfterSealing", "revocation", "timestamps" ]
+        "required" : [ "signer", "issuer", "issuedHere", "partner", "indication", "subIndication", "validatorIndication", "validatorSubIndication", "level", "signingTime", "intact", "coversWholeFile", "modifiedAfterSealing", "revocation", "timestamps" ]
       },
       "SealLevel" : {
         "type" : "string",
@@ -70865,6 +70872,19 @@
           }
         },
         "required" : [ "version", "sha256", "sizeBytes", "sealLevel", "timestampedBy", "sealedAt", "supersededAt" ]
+      },
+      "SealingPartner" : {
+        "type" : "object",
+        "properties" : {
+          "stationUid" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "name" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "stationUid", "name" ]
       },
       "SearchResultItem" : {
         "type" : "object",

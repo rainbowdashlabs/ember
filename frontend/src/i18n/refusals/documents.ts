@@ -167,4 +167,6 @@ export default {
     'D-182': 'Es ist keine Unterschrift gespeichert, zeichne eine zum Unterschreiben',
     'D-183': 'Eine Erklärung zum Unterschreiben darf höchstens 500 Zeichen lang sein',
     'D-184': 'Unterschriebene Dokumente lassen sich 0 bis 240 Monate nach dem Austritt aufbewahren',
+    'D-190': 'Die Zertifizierungsstellen werden nur gegen eine frische Prüfzahl genannt',
+    'D-191': 'Diese Wache hat keinen Föderationsschlüssel, um ihre Zertifizierungsstellen zu bestätigen',
 }

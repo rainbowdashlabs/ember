@@ -590,7 +590,15 @@ public enum DocumentRefusal implements Refusal {
 
     /** A retention period for signed documents outside the months a template may keep them. */
     DOCUMENT_TEMPLATE_RETENTION_OUT_OF_RANGE(
-            184, HttpStatus.BAD_REQUEST, "Signed documents are kept for 0 to 240 months after the member left");
+            184, HttpStatus.BAD_REQUEST, "Signed documents are kept for 0 to 240 months after the member left"),
+
+    /** A partner asking for the signing authorities without a challenge of 32 bytes in hexadecimal. */
+    AUTHORITY_CHALLENGE_MALFORMED(
+            190, HttpStatus.BAD_REQUEST, "The signing authorities are only stated against a fresh challenge"),
+
+    /** A partner asking a station for its signing authorities that has no federation key to sign them with. */
+    AUTHORITIES_CANNOT_BE_VOUCHED_FOR(
+            191, HttpStatus.CONFLICT, "This station has no federation key to vouch for its signing authorities");
 
     private final Definition definition;
 

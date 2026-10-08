@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.documents.repository.SealedVersionRepository;
 import dev.chojo.ember.feature.signing.entity.RevocationReason;
 import dev.chojo.ember.feature.signing.entity.SealedDocument;
 import dev.chojo.ember.feature.signing.entity.SealingKey;
+import dev.chojo.ember.feature.signing.repository.PartnerAuthorityRepository;
 import dev.chojo.ember.feature.signing.repository.SigningKeyRepository;
 import dev.chojo.ember.feature.signing.service.PublishedCertificates;
 import dev.chojo.ember.feature.signing.service.RevocationLists;
@@ -84,8 +85,8 @@ class SealVerificationRoutesTest extends RepositoryTestBase {
     private final StationKeyRevocations revocations =
             new StationKeyRevocations(repository, new RevocationLists(), wrap);
     private final SealedVersionRepository versions = new SealedVersionRepository();
-    private final SealVerifier verifier =
-            new SealVerifier(repository, revocations, versions, List.of(TestSealing.timestampRoot()));
+    private final SealVerifier verifier = new SealVerifier(
+            repository, revocations, versions, new PartnerAuthorityRepository(), List.of(TestSealing.timestampRoot()));
     private final RouteHarness harness = RouteHarness.serving(
             new PublicSigningRoutes(new PublishedCertificates(repository, revocations, stationRepo), verifier));
     private final List<Integer> stations = new ArrayList<>();

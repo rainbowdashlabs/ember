@@ -6,8 +6,10 @@
 package dev.chojo.ember.feature.signing.service;
 
 import jakarta.inject.Singleton;
+import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x500.X500NameBuilder;
 import org.bouncycastle.asn1.x500.style.BCStyle;
+import org.bouncycastle.asn1.x500.style.IETFUtils;
 import org.bouncycastle.asn1.x509.BasicConstraints;
 import org.bouncycastle.asn1.x509.CRLDistPoint;
 import org.bouncycastle.asn1.x509.DistributionPoint;
@@ -190,6 +192,24 @@ public class SigningCertificates {
      */
     public static String serialOf(X509Certificate certificate) {
         return certificate.getSerialNumber().toString(16);
+    }
+
+    /**
+     * The station a station certificate names by its {@code UID}, whichever installation issued it.
+     *
+     * @param certificate a certificate
+     * @return the station's uid, or empty when the subject names none or more than one
+     */
+    public static Optional<UUID> stationUidOf(X509Certificate certificate) {
+        var names = X500Name.getInstance(certificate.getSubjectX500Principal().getEncoded())
+                .getRDNs(BCStyle.UID);
+        if (names.length != 1 || names[0].isMultiValued()) return Optional.empty();
+        try {
+            return Optional.of(
+                    UUID.fromString(IETFUtils.valueToString(names[0].getFirst().getValue())));
+        } catch (IllegalArgumentException e) {
+            return Optional.empty();
+        }
     }
 
     /**

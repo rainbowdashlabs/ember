@@ -43,6 +43,7 @@ export function createSealCheck(overrides: Partial<SealCheck> = {}): SealCheck {
             sha256Fingerprint: '3A:7F:12:C4:9B:E0:55:D1:08:6A:F3:2C:91:BE:47:0D:E2:19:84:5B:C7:3F:A0:6E:D8:21:9C:44:F5:0B:7A:13',
         },
         issuedHere: true,
+        partner: null,
         indication: ValidationIndication.TOTAL_PASSED,
         subIndication: null,
         validatorIndication: ValidationIndication.TOTAL_PASSED,

@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.documents.service.DocumentService;
 import dev.chojo.ember.feature.documents.service.SealedDocumentService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.signing.repository.IssuerSignatureRepository;
+import dev.chojo.ember.feature.signing.repository.PartnerAuthorityRepository;
 import dev.chojo.ember.feature.signing.repository.SignatureRequestRepository;
 import dev.chojo.ember.feature.signing.repository.SigningEvidenceRepository;
 import dev.chojo.ember.feature.signing.repository.SigningKeyRepository;
@@ -154,6 +155,7 @@ public final class TestSealing implements AutoCloseable {
                 keys,
                 new StationKeyRevocations(keys, new RevocationLists(), wrap),
                 new SealedVersionRepository(),
+                new PartnerAuthorityRepository(),
                 List.of(timestampRoot()));
     }
 

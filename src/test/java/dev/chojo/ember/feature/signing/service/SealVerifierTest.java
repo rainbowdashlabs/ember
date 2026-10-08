@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.signing.entity.PadesLevel;
 import dev.chojo.ember.feature.signing.entity.RevocationStatus;
 import dev.chojo.ember.feature.signing.entity.ValidationIndication;
 import dev.chojo.ember.feature.signing.entity.ValidationSubIndication;
+import dev.chojo.ember.feature.signing.repository.PartnerAuthorityRepository;
 import dev.chojo.ember.feature.signing.repository.SigningKeyRepository;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import eu.europa.esig.dss.enumerations.Indication;
@@ -56,6 +57,7 @@ class SealVerifierTest extends RepositoryTestBase {
             repository,
             new StationKeyRevocations(repository, new RevocationLists(), wrap),
             new SealedVersionRepository(),
+            new PartnerAuthorityRepository(),
             List.of());
 
     @BeforeEach
@@ -105,6 +107,7 @@ class SealVerifierTest extends RepositoryTestBase {
                 repository,
                 new StationKeyRevocations(repository, new RevocationLists(), otherSecret),
                 new SealedVersionRepository(),
+                new PartnerAuthorityRepository(),
                 List.of());
 
         var check = withoutList.verify(sealed).signatures().getFirst();
@@ -140,6 +143,7 @@ class SealVerifierTest extends RepositoryTestBase {
                         repository,
                         new StationKeyRevocations(repository, new RevocationLists(), wrap),
                         new SealedVersionRepository(),
+                        new PartnerAuthorityRepository(),
                         List.of(),
                         slots,
                         Duration.ZERO) {
@@ -170,6 +174,7 @@ class SealVerifierTest extends RepositoryTestBase {
                 repository,
                 new StationKeyRevocations(repository, new RevocationLists(), wrap),
                 new SealedVersionRepository(),
+                new PartnerAuthorityRepository(),
                 List.of(),
                 slots,
                 queueTime);
