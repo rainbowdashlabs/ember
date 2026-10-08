@@ -24,6 +24,7 @@ import dev.chojo.ember.feature.form.service.FormResponseExportService;
 import dev.chojo.ember.feature.form.service.FormResultGrouping;
 import dev.chojo.ember.feature.form.service.FormService;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
@@ -98,7 +99,7 @@ class FormDraftRouteTest extends RepositoryTestBase {
         stationMemberRepo.addManager(guardian.id(), child.id());
         harness = RouteHarness.serving(new FormRoutes(
                         formService,
-                        new FormDirectoryService(formService),
+                        new FormDirectoryService(formService, mock(StationMemberRepository.class)),
                         new GuardianPolicy(stationMemberRepo),
                         assembler,
                         mock(FormResponseExportService.class),

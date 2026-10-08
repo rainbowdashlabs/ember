@@ -1,5 +1,13 @@
 # Änderungsprotokoll
 
+## v26.21.5
+
+Die Umfrageliste zeigt für jede Person, für die eine Umfrage ausgefüllt werden kann, ob schon eine Antwort vorliegt.
+
+### Fehlerbehebungen
+
+- **Erziehungsberechtigte sahen nicht, für wen eine Umfrage schon ausgefüllt war.** Die Umfrageliste zeigte pro Umfrage nur einen Button, der sich allein nach der eigenen Antwort richtete, sodass eine Antwort für ein verwaltetes Mitglied nicht zu sehen war. Jede Umfrage hat jetzt eine Zeile pro Person, für die sie ausgefüllt werden kann, mit dem Stand der Antwort und einem Button zum Ausfüllen oder Ändern.
+
 ## v26.21.4
 
 E-Mail-Adressen werden bei der Anmeldung und beim Zurücksetzen des Passworts unabhängig von Groß- und Kleinschreibung erkannt.

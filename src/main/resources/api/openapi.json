@@ -51398,14 +51398,20 @@
             "type" : "integer",
             "format" : "int32"
           },
-          "hasResponded" : {
+          "allowEdit" : {
             "type" : "boolean"
+          },
+          "respondents" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/FormRespondent"
+            }
           },
           "restricted" : {
             "type" : "boolean"
           }
         },
-        "required" : [ "id", "stationId", "title", "description", "status", "startAt", "endAt", "responseCount", "hasResponded", "restricted" ]
+        "required" : [ "id", "stationId", "title", "description", "status", "startAt", "endAt", "responseCount", "allowEdit", "respondents", "restricted" ]
       },
       "FormPage" : {
         "type" : "object",
@@ -51726,6 +51732,25 @@
             "type" : [ "string", "null" ]
           }
         }
+      },
+      "FormRespondent" : {
+        "type" : "object",
+        "properties" : {
+          "memberId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "self" : {
+            "type" : "boolean"
+          },
+          "hasResponded" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "memberId", "name", "self", "hasResponded" ]
       },
       "FormResponse" : {
         "type" : "object",

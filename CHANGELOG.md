@@ -1,5 +1,13 @@
 # Changelog
 
+## v26.21.5
+
+The forms list shows, for each person a form can be filled in for, whether an answer is already on file.
+
+### Fixes
+
+- **Guardians could not see which forms were filled in for whom.** The forms list showed one button per form, based only on the guardian's own answer, so an answer given for a member in their care did not show. Each form now has a line per person it can be filled in for, with whether that person has answered and a button to fill in or change their answer.
+
 ## v26.21.4
 
 Email addresses are recognised regardless of capital letters when signing in and when asking for a new password.

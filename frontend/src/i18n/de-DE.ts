@@ -7251,6 +7251,11 @@ export default {
         openlyAddressedHint: 'Das Formular hat eine eigene Adresse, unter der es jeder öffnen kann. Das braucht es, wenn es auf einer öffentlichen Seite eingebunden ist.',
         unlistedHint: 'Das Formular ist nur über den Link erreichbar, mit dem du es verschickst. Ein neuer Link beendet jeden Weg hinein, der bisher vergeben wurde. Eingebunden auf einer öffentlichen Seite funktioniert es so nicht.',
         editResponse: 'Antwort bearbeiten',
+        respondent: {
+            self: 'Ich ({name})',
+            answered: 'Beantwortet',
+            pending: 'Noch offen',
+        },
         submit: 'Absenden',
         update: 'Aktualisieren',
         confirmPublish: 'Möchtest du die Umfrage veröffentlichen? Alle berechtigten Mitglieder werden benachrichtigt.',

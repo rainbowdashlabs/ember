@@ -96,6 +96,18 @@ const fillTargetOptions = computed(() => {
 
 const effectiveMemberId = computed(() => selectedMemberId.value)
 
+/**
+ * Whom the form opens for: the member in the reader's care the list asked for, where the form is put
+ * to them, otherwise the reader themselves, and failing that the first member in their care it is
+ * put to.
+ */
+function initialMemberId(): number | null {
+  const requested = Number(route.query.member)
+  if (eligibleManagedMembers.value.some(m => m.id === requested)) return requested
+  if (canFillForSelf.value) return null
+  return eligibleManagedMembers.value[0]?.id ?? null
+}
+
 const draft = useServerDraft(formId, effectiveMemberId, questions, answers, walk)
 const baseline = useAnswerBaseline(answers, walk.path)
 
@@ -177,12 +189,7 @@ const { loading, failure, reload } = useAsyncLoader(async () => {
   questions.value = presentQuestions(qs, f.shuffleQuestions)
   pages.value = formPages
 
-  const firstManaged = eligibleManagedMembers.value[0]
-  if (canFillForSelf.value) {
-    selectedMemberId.value = null
-  } else if (firstManaged) {
-    selectedMemberId.value = firstManaged.id
-  }
+  selectedMemberId.value = initialMemberId()
 
   await loadExistingResponse()
 }, { autoLoad: false })
