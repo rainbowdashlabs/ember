@@ -400,7 +400,40 @@ public enum DocumentRefusal implements Refusal {
     SEAL_CHECK_NOT_A_PDF(132, HttpStatus.UNSUPPORTED_MEDIA_TYPE, "The file is not a PDF that can be read"),
 
     /** A file sent for a seal check whose upload broke off before it was complete. */
-    SEAL_CHECK_NOT_RECEIVED(133, HttpStatus.BAD_REQUEST, "The file did not arrive completely, so it was not checked");
+    SEAL_CHECK_NOT_RECEIVED(133, HttpStatus.BAD_REQUEST, "The file did not arrive completely, so it was not checked"),
+
+    /** A signing act asked of an account that has no proof a signature could be confirmed with. */
+    SIGNING_NO_PROOF(
+            134,
+            HttpStatus.FORBIDDEN,
+            "This account has nothing to confirm a signature with: no passkey, security key, authenticator app or password"),
+
+    /** A signature confirmed with a proof signing does not take, or one the account does not have. */
+    SIGNING_PROOF_NOT_ACCEPTED(135, HttpStatus.FORBIDDEN, "A signature cannot be confirmed this way"),
+
+    /** A passkey or security key answer that signed another challenge than this act's. */
+    SIGNING_CHALLENGE_MISMATCH(
+            136, HttpStatus.BAD_REQUEST, "The confirmation belongs to another document or another signing attempt"),
+
+    /** A passkey or security key answer that is not the answer to a request for confirmation. */
+    SIGNING_NOT_AN_ASSERTION(
+            137,
+            HttpStatus.BAD_REQUEST,
+            "The confirmation is not the answer a passkey or security key gives when asked to confirm"),
+
+    /** A passkey or security key answer given on another site than this installation. */
+    SIGNING_FOREIGN_ORIGIN(
+            138, HttpStatus.BAD_REQUEST, "The confirmation was given on another site than this installation"),
+
+    /** A passkey or security key answer without the authenticator checking who holds it. */
+    SIGNING_NOT_USER_VERIFIED(
+            139,
+            HttpStatus.FORBIDDEN,
+            "The passkey or security key did not check who is holding it, so it cannot confirm a signature"),
+
+    /** A passkey or security key answer that does not verify against a credential of the account. */
+    SIGNING_ASSERTION_INVALID(
+            140, HttpStatus.BAD_REQUEST, "The confirmation of the passkey or security key could not be verified");
 
     private final Definition definition;
 

@@ -113,4 +113,13 @@ export default {
     'D-131': 'Eine Datei zum Prüfen darf höchstens 25 MB groß sein',
     'D-132': 'Die Datei ist kein lesbares PDF',
     'D-133': 'Die Datei kam nicht vollständig an und wurde deshalb nicht geprüft',
+    'D-134':
+        'Für dieses Konto gibt es nichts, womit sich eine Unterschrift bestätigen ließe: keinen Passkey, keinen Sicherheitsschlüssel, keine Authenticator-App und kein Passwort',
+    'D-135': 'Auf diese Weise lässt sich eine Unterschrift nicht bestätigen',
+    'D-136': 'Die Bestätigung gehört zu einem anderen Dokument oder einem anderen Unterschriftsversuch',
+    'D-137': 'Die Bestätigung ist nicht die Antwort, die ein Passkey oder Sicherheitsschlüssel auf eine Bitte um Bestätigung gibt',
+    'D-138': 'Die Bestätigung wurde auf einer anderen Seite als dieser Installation gegeben',
+    'D-139':
+        'Der Passkey oder Sicherheitsschlüssel hat nicht geprüft, wer ihn hält, deshalb kann er keine Unterschrift bestätigen',
+    'D-140': 'Die Bestätigung des Passkeys oder Sicherheitsschlüssels ließ sich nicht prüfen',
 }

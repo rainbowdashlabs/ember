@@ -294,6 +294,8 @@ import dev.chojo.ember.feature.quiz.route.QuizTestRoutes;
 import dev.chojo.ember.feature.quiz.route.RemoteQuizRoutes;
 import dev.chojo.ember.feature.quiz.service.QuizFederationService;
 import dev.chojo.ember.feature.signing.route.PublicSigningRoutes;
+import dev.chojo.ember.feature.signing.service.InEmberSignatureProvider;
+import dev.chojo.ember.feature.signing.service.SignatureProvider;
 import dev.chojo.ember.feature.station.route.DiscoveryRoutes;
 import dev.chojo.ember.feature.station.route.FirstStationRoutes;
 import dev.chojo.ember.feature.station.route.PublicStationRoutes;
@@ -460,6 +462,7 @@ public class EmberModule extends AbstractModule {
         bind(MailFilingService.MemberNaming.class).to(StationMemberNaming.class);
         bind(MemberEligibility.class).to(StationMemberEligibility.class);
         bind(CellDescriptions.PageAddressing.class).to(StationPageAddressing.class);
+        bind(SignatureProvider.class).to(InEmberSignatureProvider.class);
         Multibinder<BlockReferences> blockReferencesBinder = Multibinder.newSetBinder(binder(), BlockReferences.class);
         blockReferencesBinder.addBinding().to(NewsBlockReferences.class);
         blockReferencesBinder.addBinding().to(EventBlockReferences.class);
