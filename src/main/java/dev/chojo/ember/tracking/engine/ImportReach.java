@@ -23,10 +23,10 @@ import static de.chojo.sadu.queries.api.call.Call.call;
  * it:
  * <ul>
  *   <li>A station is found only while it runs here, and only where it is the imported station itself or
- *       one of its partners: a station that keeps a partnership with the imported station's uid that is
- *       no longer a pending request. That partnership is the partner's own row, which no bundle writes,
- *       and a pending one may have been asked for by anybody. The copy a station left behind when it
- *       moved away carries the same uid and is never found.</li>
+ *       one of its partners: a station that keeps an active partnership with the imported station's uid.
+ *       That partnership is the partner's own row, which no bundle writes. A pending one may have been
+ *       asked for by anybody, and a suspended one is one the partner stopped trusting. The copy a
+ *       station left behind when it moved away carries the same uid and is never found.</li>
  *   <li>An account is found only where it arrived with the run or belongs to a member of the imported
  *       station.</li>
  * </ul>
@@ -46,7 +46,7 @@ public final class ImportReach {
                                  JOIN station imported ON imported.id = :import_station_id
                         WHERE p.station_id = t.id
                           AND p.partner_station_id = imported.uid
-                          AND p.status <> 'PENDING'))""";
+                          AND p.status = 'ACTIVE'))""";
 
     private ImportReach() {}
 

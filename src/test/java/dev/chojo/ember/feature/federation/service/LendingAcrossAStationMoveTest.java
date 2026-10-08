@@ -104,7 +104,7 @@ class LendingAcrossAStationMoveTest extends RepositoryTestBase {
         partners = new PartnersLeftBehind(federationRepo, stationRepo, keys);
         switchover = new MovedStationSwitchover(
                 federationRepo,
-                new FederationPartnerTransferFixupService(federationRepo, mock(FederationHttpClient.class)),
+                TestStationKeys.partnerFixup(federationRepo, mock(FederationHttpClient.class)),
                 keys,
                 requests,
                 inventoryRepo);

@@ -39,7 +39,6 @@ import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.repository.LendingRepository;
 import dev.chojo.ember.feature.federation.service.FederationHttpClient;
-import dev.chojo.ember.feature.federation.service.FederationPartnerTransferFixupService;
 import dev.chojo.ember.feature.federation.service.LendingUidClashes;
 import dev.chojo.ember.feature.federation.service.MovedStationSwitchover;
 import dev.chojo.ember.feature.federation.service.PartnersLeftBehind;
@@ -236,7 +235,7 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
                 backendImporter,
                 fileImporter,
                 new SharedStorageFiles(resolver),
-                new FederationPartnerTransferFixupService(
+                TestStationKeys.partnerFixup(
                         new FederationRepository(), org.mockito.Mockito.mock(FederationHttpClient.class)),
                 TestStationKeys.transfer(),
                 TestStationKeys.partnersLeftBehind(),
@@ -265,7 +264,7 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
                         exportService,
                         new MovedStationSwitchover(
                                 new FederationRepository(),
-                                new FederationPartnerTransferFixupService(new FederationRepository(), null),
+                                TestStationKeys.partnerFixup(new FederationRepository(), null),
                                 TestStationKeys.store(),
                                 new LendingRepository(),
                                 inventoryRepo)));
@@ -570,14 +569,18 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
 
     /**
      * An import into a station that was here before fails halfway, here because the one-shot backend
-     * descriptor was already spent. The station stays with everything it had, and the failed import
-     * cannot be retried, since a retry starts by deleting the station of the failed run.
+     * descriptor was already spent. The station stays with everything it had, its uid and its key
+     * included, and the failed import cannot be retried, since a retry starts by deleting the station
+     * of the failed run.
      */
     @Test
     void aFailedImportIntoAStationLeavesThatStationStanding() throws Exception {
+        var keys = TestStationKeys.store();
         Station source = stationRepo.create("Source FAILING INTO");
+        keys.ensurePublicKey(source.id());
         memberGroupRepo.create(source.id(), "Mitgebracht");
         Station target = stationRepo.create("Target FAILING INTO");
+        String targetKey = keys.ensurePublicKey(target.id());
         memberGroupRepo.create(target.id(), "Schon da");
         String token = rawToken(exportService.createTransferToken(source.id()));
         spendBackendDescriptor(token);
@@ -587,6 +590,11 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
 
         assertEquals(ImportProgress.Target.EXISTING_STATION, failed.target());
         assertTrue(stationRepo.findById(target.id()).isPresent(), "the station that was here stays");
+        assertEquals(
+                target.uid(),
+                stationRepo.findById(target.id()).orElseThrow().uid(),
+                "the station keeps its own uid, nobody here carrying the one the source named");
+        assertEquals(targetKey, TestStationKeys.store().ensurePublicKey(target.id()), "and its own key");
         assertTrue(
                 memberGroupRepo.findByStation(target.id()).stream().anyMatch(group -> "Schon da".equals(group.name())));
         var refusal = assertThrows(RefusalResponse.class, () -> importService.retryFailedImport(failed.stationUid()));

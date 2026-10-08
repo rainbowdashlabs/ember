@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.federation.service;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import dev.chojo.ember.util.TestStationKeys;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -42,7 +43,7 @@ class FederationPartnerTransferFlipServiceTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         federationRepo = new FederationRepository();
-        service = new FederationPartnerTransferFixupService(federationRepo, mock(FederationHttpClient.class));
+        service = TestStationKeys.partnerFixup(federationRepo, mock(FederationHttpClient.class));
         stayed = stationRepo.create("FlipStationStayed");
         departed = stationRepo.create("FlipStationDeparted");
         departedToo = stationRepo.create("FlipStationDepartedToo");

@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -678,6 +679,18 @@ public final class GenericTableImporter {
 
         public Optional<Integer> find(String table, int sourceId) {
             return Optional.ofNullable(get(table, sourceId));
+        }
+
+        /**
+         * The source id of every row of a table that arrived with one, by its id here.
+         *
+         * @param table the table
+         * @return each row's source id, keyed by the row's id here
+         */
+        public Map<Integer, Integer> sourceIds(String table) {
+            var inverse = new HashMap<Integer, Integer>();
+            maps.getOrDefault(table, Map.of()).forEach((sourceId, targetId) -> inverse.put(targetId, sourceId));
+            return inverse;
         }
     }
 }

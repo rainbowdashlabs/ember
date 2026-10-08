@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.federation.service;
 
 import dev.chojo.ember.feature.federation.entity.LendingRequest;
+import dev.chojo.ember.feature.federation.entity.LendingRequestItem;
 import dev.chojo.ember.feature.federation.repository.LendingRepository;
 import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Inject;
@@ -15,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -71,10 +73,14 @@ public class LendingUidClashes {
     /**
      * Merges every request that arrived under a stand-in into the copy its partner keeps here.
      *
-     * @param standIns each stand-in with the uid it stands in for
+     * <p>The arrived lines are put in the order they had at the source, by their source ids: the run
+     * writes a line only once what it names has arrived, so their ids here need not keep that order.
+     *
+     * @param standIns      each stand-in with the uid it stands in for
+     * @param sourceLineIds the source id of each arrived line, keyed by the line's id here
      * @return how many requests were merged
      */
-    public int merge(Map<UUID, UUID> standIns) {
+    public int merge(Map<UUID, UUID> standIns, Map<Integer, Integer> sourceLineIds) {
         int merged = 0;
         for (var standIn : standIns.entrySet()) {
             var arrived = repository.findRequestByUid(standIn.getKey()).orElse(null);
@@ -87,14 +93,18 @@ public class LendingUidClashes {
                         standIn.getKey());
                 continue;
             }
-            Transactions.run(() -> join(arrived, kept));
+            Transactions.run(() -> join(arrived, kept, sourceLineIds));
             merged++;
         }
         return merged;
     }
 
-    private void join(LendingRequest arrived, LendingRequest kept) {
-        var arrivedLines = repository.findItemsByRequest(arrived.id());
+    private void join(LendingRequest arrived, LendingRequest kept, Map<Integer, Integer> sourceLineIds) {
+        var arrivedLines = repository.findItemsByRequest(arrived.id()).stream()
+                .sorted(Comparator.comparingInt(
+                                (LendingRequestItem line) -> sourceLineIds.getOrDefault(line.id(), Integer.MAX_VALUE))
+                        .thenComparingInt(LendingRequestItem::id))
+                .toList();
         var keptLines = repository.findItemsByRequest(kept.id());
         int joined = Math.min(arrivedLines.size(), keptLines.size());
         for (int position = 0; position < arrivedLines.size(); position++) {

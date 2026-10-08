@@ -7,6 +7,8 @@ package dev.chojo.ember.feature.station.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.RefusalResponse;
+import dev.chojo.ember.api.refusal.StationRefusal;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.accountlink.entity.LinkOrigin;
 import dev.chojo.ember.feature.accountlink.repository.AccountLinkRepository;
@@ -17,7 +19,6 @@ import dev.chojo.ember.feature.federation.entity.LendingMessage;
 import dev.chojo.ember.feature.federation.entity.LendingRequest;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.repository.LendingRepository;
-import dev.chojo.ember.feature.federation.service.FederationPartnerTransferFixupService;
 import dev.chojo.ember.feature.federation.service.LendingUidClashes;
 import dev.chojo.ember.feature.form.entity.FormPurpose;
 import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
@@ -65,6 +66,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -120,7 +122,7 @@ class StationTransferTest extends RepositoryTestBase {
                 null,
                 null,
                 null,
-                new FederationPartnerTransferFixupService(new FederationRepository(), null),
+                TestStationKeys.partnerFixup(new FederationRepository(), null),
                 TestStationKeys.transfer(),
                 TestStationKeys.partnersLeftBehind(),
                 new LendingUidClashes(new LendingRepository()),
@@ -777,5 +779,65 @@ class StationTransferTest extends RepositoryTestBase {
         assertTrue(stationMemberRepo.findByStation(result.stationId()).isEmpty());
 
         stationRepo.delete(result.stationId());
+    }
+
+    /**
+     * A station the import creates takes the uid its source gave it, nobody here carrying it, so its
+     * partners find it under the identity they know.
+     */
+    @Test
+    @Order(41)
+    void aNewStationTakesTheUidOfItsSource() {
+        UUID sourceUid = UUID.randomUUID();
+
+        var result = importService.importStation(stationBundle("Arriving With Its Uid", sourceUid));
+
+        assertEquals(sourceUid, stationRepo.requireUid(result.stationId()));
+        stationRepo.delete(result.stationId());
+    }
+
+    /**
+     * A station merged into keeps its own uid, under which its files are kept and its partners know
+     * it, even where nobody here carries the uid the bundle names.
+     */
+    @Test
+    @Order(42)
+    void aStationImportedIntoKeepsItsOwnUid() {
+        var target = stationRepo.create("Keeps Its Uid");
+        UUID claimed = UUID.randomUUID();
+
+        importService.importStationInto(target.id(), stationBundle("Claims Another Uid", claimed));
+
+        assertEquals(
+                target.uid(), stationRepo.findById(target.id()).orElseThrow().uid());
+        assertTrue(stationRepo.findByUid(claimed).isEmpty(), "no station here took the uid the bundle named");
+        stationRepo.delete(target.id());
+    }
+
+    /**
+     * A station coming back to the installation it once moved away from finds the copy it left here
+     * still holding its uid. The import is refused rather than giving it a fresh uid none of its
+     * partners knows, and no station is made.
+     */
+    @Test
+    @Order(43)
+    void aStationComingBackWhileItsCopyIsHereIsRefused() {
+        var leftBehind = stationRepo.create("Moved Away Once");
+        stationRepo.markMovedAway(leftBehind.id(), "https://elsewhere.example");
+
+        var refusal = assertThrows(
+                RefusalResponse.class,
+                () -> importService.importStation(stationBundle("Coming Back", leftBehind.uid())));
+
+        assertEquals(StationRefusal.STATION_IMPORT_MOVED_AWAY_COPY_HERE, refusal.refusal());
+        assertTrue(stationRepo.findAll().stream().noneMatch(station -> "Coming Back".equals(station.name())));
+        stationRepo.delete(leftBehind.id());
+    }
+
+    private static Map<String, Object> stationBundle(String name, UUID uid) {
+        var station = new HashMap<String, Object>();
+        station.put("name", name);
+        station.put("uid", uid.toString());
+        return Map.of("station", station);
     }
 }

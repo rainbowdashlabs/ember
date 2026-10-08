@@ -94,4 +94,6 @@ export default {
     'S-072': MEMBER_NOT_HERE,
     'S-073': STATION_NOT_HERE,
     'S-074': 'Ein Import in eine bestehende Wache lässt sich hier nicht wiederholen, weil dafür die Wache entfernt würde',
+    'S-080': 'Diese Wache ist auf eine andere Instanz umgezogen',
+    'S-081': 'Die Kopie, die diese Wache bei ihrem Umzug hier zurückgelassen hat, ist noch da, es wurde nichts übernommen. Lösch zuerst diese Kopie',
 }

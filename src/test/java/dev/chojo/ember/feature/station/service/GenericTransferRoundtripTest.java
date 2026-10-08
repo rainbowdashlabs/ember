@@ -12,7 +12,6 @@ import dev.chojo.ember.feature.federation.entity.LendingMessage;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.repository.LendingRepository;
-import dev.chojo.ember.feature.federation.service.FederationPartnerTransferFixupService;
 import dev.chojo.ember.feature.federation.service.LendingUidClashes;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.station.entity.StationModule;
@@ -71,7 +70,7 @@ class GenericTransferRoundtripTest extends RepositoryTestBase {
                 null,
                 null,
                 null,
-                new FederationPartnerTransferFixupService(new FederationRepository(), null),
+                TestStationKeys.partnerFixup(new FederationRepository(), null),
                 TestStationKeys.transfer(),
                 TestStationKeys.partnersLeftBehind(),
                 new LendingUidClashes(new LendingRepository()),

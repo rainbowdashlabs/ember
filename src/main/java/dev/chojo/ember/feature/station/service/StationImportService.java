@@ -52,7 +52,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -83,6 +82,7 @@ public class StationImportService {
     private static final int PAGE_SIZE = 500;
     private static final String LENDING_REQUESTS = "federation_lending_request";
     private static final String LENDING_MESSAGES = "federation_lending_message";
+    private static final String LENDING_LINES = "federation_lending_request_item";
 
     private final AccountRepository accountRepository;
     private final AuthService authService;
@@ -186,10 +186,12 @@ public class StationImportService {
      */
     public ImportResult importStation(Map<String, Object> bundle) {
         Map<String, Object> stationData = asMap(bundle.get("station"));
+        refuseWhileItsMovedAwayCopyIsHere(stationData);
         String name = stationData == null ? "Imported Station" : asString(stationData.get("name"), "Imported Station");
         Station station = stationRepository.create(name);
         int stationId = station.id();
         stationImporter.applyFields(stationId, stationData);
+        stationImporter.adoptSourceUid(stationId, stationData);
         var context = newContext(stationId, stationData);
         int total = 1 + runImport(context, bundle);
         log.info("Station import complete: created station id={} ('{}'), {} rows imported", stationId, name, total);
@@ -199,7 +201,7 @@ public class StationImportService {
     /**
      * Synchronously merges a bundle into an existing station. The station's own settings get
      * applied (timezone, locale, themes, public toggles); all other TRACKED tables are inserted
-     * alongside the station's existing data.
+     * alongside the station's existing data. The station keeps its own uid.
      *
      * <p>A cluster's home station is refused: it holds what its cluster owns, and a merge would hand
      * that cluster content nobody gave it.
@@ -270,11 +272,13 @@ public class StationImportService {
         if (stationData == null) {
             throw StationRefusal.STATION_IMPORT_SOURCE_HAS_NO_STATION.raise();
         }
+        refuseWhileItsMovedAwayCopyIsHere(stationData);
 
         String stationName = asString(stationData.get("name"), "Imported Station");
         Station station = stationRepository.create(stationName);
         int stationId = station.id();
         stationImporter.applyFields(stationId, stationData);
+        stationImporter.adoptSourceUid(stationId, stationData);
         keyTransfer.adopt(stationId, stationPage, stationData, token);
         aiKeyTransfer.adopt(stationId, stationPage, token);
 
@@ -291,6 +295,10 @@ public class StationImportService {
     /**
      * Pulls a station bundle from a remote Ember instance and merges it INTO an existing station.
      *
+     * <p>The station keeps its identity: its uid, under which its files are kept and its partners
+     * know it, and the federation key its partners verify it by. Neither the source's uid nor its key
+     * would make it the station the bundle came from, they would only cut it off from its own.
+     *
      * @param stationId the station to merge into
      * @param sourceUrl the source instance's base URL
      * @param token     the transfer token issued by the source
@@ -303,10 +311,7 @@ public class StationImportService {
 
         Map<String, Object> stationPage = fetchStationPage(client);
         Map<String, Object> stationData = asMap(stationPage.get("station"));
-        if (stationData != null) {
-            stationImporter.applyFields(stationId, stationData);
-            keyTransfer.adopt(stationId, stationPage, stationData, token);
-        }
+        if (stationData != null) stationImporter.applyFields(stationId, stationData);
         aiKeyTransfer.adopt(stationId, stationPage, token);
 
         Station target =
@@ -432,11 +437,15 @@ public class StationImportService {
             total += importTable(context, table, payload);
         }
         total += engine.settle(context.stationId(), context.idMap(), context.waitingRows());
-        lendingClashes.merge(context.lendingStandIns());
+        mergeLendingClashes(context);
         relinkFolderIcons(context.stationId());
         assignDefaultOwnerIfNeeded(context.stationId());
         importedLinks.ask(context);
         return total;
+    }
+
+    private void mergeLendingClashes(StationImportContext context) {
+        lendingClashes.merge(context.lendingStandIns(), context.idMap().sourceIds(LENDING_LINES));
     }
 
     /**
@@ -501,7 +510,7 @@ public class StationImportService {
                 p.completePhase();
             }
             engine.settle(stationId, context.idMap(), context.waitingRows());
-            lendingClashes.merge(context.lendingStandIns());
+            mergeLendingClashes(context);
             relinkFolderIcons(stationId);
             importedLinks.ask(context);
             sharedStorage = adoptStorage(context, client, p, stationData);
@@ -576,19 +585,23 @@ public class StationImportService {
                 "Imported source storage backend ({}) for station {}",
                 descriptor.getClass().getSimpleName(),
                 stationId);
-        UUID sourceUid = sourceUid(stationData)
+        UUID sourceUid = StationTableImporter.sourceUid(stationData)
                 .orElseThrow(() -> new IllegalStateException(
                         "The source did not name its station, so its files cannot be found in its storage"));
         return new SharedStorageFiles.Run(scopeOf(stationId), sourceUid);
     }
 
-    private static Optional<UUID> sourceUid(@Nullable Map<String, Object> stationData) {
-        if (stationData == null) return Optional.empty();
-        try {
-            return Optional.of(UUID.fromString(String.valueOf(stationData.get("uid"))));
-        } catch (IllegalArgumentException e) {
-            return Optional.empty();
-        }
+    /**
+     * Refuses to bring a station back to the installation that still keeps the copy it left when it
+     * moved away. The copy holds its uid, so the station would arrive under a fresh one that none of
+     * its partners knows.
+     */
+    private void refuseWhileItsMovedAwayCopyIsHere(@Nullable Map<String, Object> stationData) {
+        boolean copyHere = StationTableImporter.sourceUid(stationData)
+                .flatMap(stationRepository::resolveId)
+                .flatMap(stationRepository::movedAway)
+                .isPresent();
+        if (copyHere) throw StationRefusal.STATION_IMPORT_MOVED_AWAY_COPY_HERE.raise();
     }
 
     private StorageScope.Station scopeOf(int stationId) {

@@ -6,6 +6,7 @@
 package dev.chojo.ember.tracking.engine;
 
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.repository.LendingRepository;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
@@ -390,6 +391,31 @@ class GenericTableImporterTest extends RepositoryTestBase {
                 "neither a stranger nor a station that only asked to pair is named");
     }
 
+    /** A partnership the partner suspended is one it stopped trusting, and lets no import name it. */
+    @Test
+    void aLentPieceNamesNoStationWhosePartnershipIsSuspended() {
+        Station source = stationRepo.create("Uid Suspended Source");
+        Station partner = stationRepo.create("Uid Suspended Partner");
+        Station destination = stationRepo.create("Uid Suspended Destination");
+        int radios = inventoryRepo
+                .create(source.id(), "Funk", InventoryType.INTERNAL, false)
+                .id();
+        int item = inventoryRepo
+                .createItem(radios, "HRT-8", "Handfunkgerät 8", null, null)
+                .id();
+        itemCustodyService.lendToPartner(item, partner.id());
+        var federation = new FederationRepository();
+        federation.updatePartnerStatus(partnership(partner, destination), FederationPartner.FederationStatus.SUSPENDED);
+        var idMap = new IdRemapper();
+        idMap.put("station", source.id(), destination.id());
+        importer.importRows(destination.id(), "inventory", rowsOf("inventory", source), idMap);
+
+        assertEquals(
+                1, importer.importRows(destination.id(), "inventory_item", rowsOf("inventory_item", source), idMap));
+
+        assertNull(inventoryRepo.findItemsByStation(destination.id()).getFirst().custodyPartnerStationId());
+    }
+
     @Test
     void aBorrowedPieceFindsItsOwnerHereByItsUid() {
         var borrowing = borrowFromOwner("Here");
@@ -499,11 +525,16 @@ class GenericTableImporterTest extends RepositoryTestBase {
         }
     }
 
-    /** The partner's own, active partnership with the imported station, which lets the import name it. */
-    private static void partnership(Station partner, Station imported) {
+    /**
+     * The partner's own, active partnership with the imported station, which lets the import name it.
+     *
+     * @return the partnership's id
+     */
+    private static int partnership(Station partner, Station imported) {
         var federation = new FederationRepository();
         var row = federation.createPartner(partner.id(), imported.uid(), null, null, null);
         federation.activatePartner(row.id(), "key");
+        return row.id();
     }
 
     /** A partnership the station asked for that is still pending, which no import may rely on. */

@@ -1503,4 +1503,45 @@ class LendingServiceTest extends RepositoryTestBase {
                         eq(stationA.id()));
         federationRepo.deletePartner(row.id());
     }
+
+    /**
+     * A piece the partner listed without a name is written down under the label of its line, so the
+     * hand-over the request already moved to arrives with its gear.
+     */
+    @Test
+    @Order(606)
+    void gearHandedOverWithoutANameTakesTheLabelOfItsLine() {
+        UUID elsewhere = UUID.randomUUID();
+        var row = partnerElsewhere(elsewhere);
+        UUID uid = UUID.randomUUID();
+        var request = lendingRepo.createRequest(
+                uid,
+                stationA.uid(),
+                elsewhere,
+                LocalDate.now(),
+                LocalDate.now().plusDays(3),
+                memberA.id(),
+                null,
+                null,
+                "Übung");
+        lendingRepo.addRequestItem(request.id(), null, null, null, 1, null);
+        lendingRepo.labelItems(request.id(), List.of("Leiter"));
+
+        service.serveStatus(
+                new ServingPartner(row, elsewhere),
+                uid,
+                new RemoteLendingRoutes.RemoteLendingStatus(
+                        LendingStatus.LENT, null, List.of(new RemoteLendingRoutes.RemoteLendingPiece(0, "L-9", null))));
+
+        var borrowed = inventoryRepo.findBorrowedItems(stationA.id()).stream()
+                .filter(piece -> piece.loanRequestId() == request.id())
+                .toList();
+        assertEquals(
+                List.of("Leiter"),
+                borrowed.stream().map(piece -> piece.item().name()).toList());
+        assertEquals(
+                LendingStatus.LENT,
+                lendingRepo.findRequestById(request.id()).orElseThrow().status());
+        federationRepo.deletePartner(row.id());
+    }
 }

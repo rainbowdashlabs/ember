@@ -158,9 +158,10 @@ public class RemoteLendingRoutes implements Routes {
      * @param line       the position of the line it was lent on, counted from 0 in line order, which
      *                   both copies of a request share
      * @param internalId the piece's identifier, or {@code null}
-     * @param name       the piece's name
+     * @param name       the piece's name, or {@code null} where the lending station sent none
      */
-    public record RemoteLendingPiece(int line, @Nullable String internalId, String name) {}
+    public record RemoteLendingPiece(
+            int line, @Nullable String internalId, @Nullable String name) {}
 
     /**
      * Word that a message was written on a request, so the other station's managers hear of it.

@@ -307,7 +307,20 @@ public enum StationRefusal implements Refusal {
     STATION_IMPORT_INTO_NOT_RETRIED(
             74,
             HttpStatus.CONFLICT,
-            "An import into an existing station cannot be tried again here, since that would remove the station");
+            "An import into an existing station cannot be tried again here, since that would remove the station"),
+
+    /**
+     * A partner's request to a station that moved to another installation, reaching the copy it left
+     * here. The detail names the installation it moved to, where one is known.
+     */
+    STATION_MOVED_AWAY(80, HttpStatus.GONE, "This station has moved to another installation"),
+
+    /** A station brought back to the installation that still holds the copy it left when it moved away. */
+    STATION_IMPORT_MOVED_AWAY_COPY_HERE(
+            81,
+            HttpStatus.CONFLICT,
+            "The copy this station left here when it moved away is still here, so nothing was imported. "
+                    + "Delete that copy first");
 
     private final Definition definition;
 

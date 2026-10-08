@@ -736,7 +736,8 @@ public class LendingService implements FederationServer {
     /**
      * Writes down the gear a lending station on another instance handed over, at the borrowing
      * station of this instance. The pieces name their line by its position, which both copies of
-     * a request share.
+     * a request share. A piece the lending station listed without a name is written down under the
+     * label of its line, since every piece here has a name and the request has already moved on.
      *
      * @param request the borrowing station's copy of the request
      * @param pieces  what the lending station listed
@@ -748,8 +749,11 @@ public class LendingService implements FederationServer {
         var byLine = new LinkedHashMap<Integer, List<BorrowedPiece>>();
         for (var piece : pieces) {
             if (piece.line() < 0 || piece.line() >= lines.size()) continue;
+            String sent = piece.name();
+            String name =
+                    sent == null || sent.isBlank() ? lines.get(piece.line()).label() : sent;
             byLine.computeIfAbsent(piece.line(), line -> new ArrayList<>())
-                    .add(BorrowedPiece.named(piece.internalId(), piece.name()));
+                    .add(BorrowedPiece.named(piece.internalId(), name));
         }
         byLine.forEach((position, linePieces) -> borrowedGearService.handOver(
                 linePieces,

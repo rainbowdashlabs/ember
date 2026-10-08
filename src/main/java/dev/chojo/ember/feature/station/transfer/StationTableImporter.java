@@ -23,6 +23,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
@@ -73,6 +74,9 @@ public class StationTableImporter implements TableImporter {
      * Performs a single UPDATE keyed by the tracked column list, so any column added to the
      * station SELECTED set automatically flows through here.
      *
+     * <p>The station's uid is not among them: it is its identity, which only a station the import
+     * creates takes over ({@link #adoptSourceUid(int, Map)}).
+     *
      * @param stationId   the destination station
      * @param stationData the station payload from the bundle, or {@code null} when absent
      */
@@ -108,8 +112,6 @@ public class StationTableImporter implements TableImporter {
             };
         }
         query(buildUpdateStatement(updates.keySet(), columns)).single(c).update();
-
-        applySourceUid(stationId, stationData.get("uid"));
     }
 
     /**
@@ -148,19 +150,38 @@ public class StationTableImporter implements TableImporter {
     }
 
     /**
-     * Preserves the source UUID so federation pairing codes still work. If the UID already exists
-     * on the target instance (e.g. when running source and target in the same database during
-     * tests, or when an earlier import already claimed it), the freshly generated target UID is
-     * kept.
+     * Gives a station the import just created the uid it had at its source, so its partners find it
+     * under the identity they know. A station that was here before keeps its own: it is not the
+     * station the bundle came from, and its files and partnerships hang on its uid.
+     *
+     * <p>If the uid already exists here (e.g. when running source and target in the same database
+     * during tests, or when an earlier import already claimed it), the freshly generated uid is kept.
+     *
+     * @param stationId   the station the import created
+     * @param stationData the station payload from the bundle, or {@code null} when absent
      */
-    private void applySourceUid(int stationId, Object uid) {
-        if (uid == null) return;
+    public void adoptSourceUid(int stationId, @Nullable Map<String, Object> stationData) {
+        sourceUid(stationData).ifPresent(uid -> {
+            try {
+                stationRepository.updateUid(stationId, uid);
+            } catch (RuntimeException e) {
+                log.warn("Could not apply source UID {} (likely already in use); keeping the target's UID", uid);
+            }
+        });
+    }
+
+    /**
+     * The uid a station payload names, where it names a valid one.
+     *
+     * @param stationData the station payload from the bundle, or {@code null} when absent
+     * @return the uid, or empty
+     */
+    public static Optional<UUID> sourceUid(@Nullable Map<String, Object> stationData) {
+        if (stationData == null) return Optional.empty();
         try {
-            stationRepository.updateUid(stationId, UUID.fromString(uid.toString()));
+            return Optional.of(UUID.fromString(String.valueOf(stationData.get("uid"))));
         } catch (IllegalArgumentException e) {
-            log.warn("Invalid station UID in import payload, keeping target UID");
-        } catch (RuntimeException e) {
-            log.warn("Could not apply source UID {} (likely already in use); keeping the target's UID", uid);
+            return Optional.empty();
         }
     }
 }

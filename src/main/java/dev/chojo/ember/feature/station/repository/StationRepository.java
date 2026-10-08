@@ -11,6 +11,7 @@ import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.feature.cluster.entity.StationKind;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
+import dev.chojo.ember.feature.station.entity.MovedAway;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
@@ -155,6 +156,19 @@ public class StationRepository {
         return query("SELECT %s FROM station WHERE uid = :uid::UUID AND moved_away_at IS NULL;", STATION_COLUMNS)
                 .single(call().bind("uid", uid, StandardValueConverter.UUID_STRING))
                 .map(Station.map())
+                .first();
+    }
+
+    /**
+     * Whether a station is only the copy left here when it moved to another installation, and where to.
+     *
+     * @param stationId the station
+     * @return the move, or empty when the station runs here
+     */
+    public Optional<MovedAway> movedAway(int stationId) {
+        return query("SELECT moved_away_at, moved_to FROM station WHERE id = :id AND moved_away_at IS NOT NULL;")
+                .single(call().bind("id", stationId))
+                .map(row -> new MovedAway(row.get("moved_away_at", INSTANT_TIMESTAMP), row.getString("moved_to")))
                 .first();
     }
 
