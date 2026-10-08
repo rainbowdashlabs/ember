@@ -48,6 +48,7 @@ Wachen erstellen aus eigenen Vorlagen und denen ihres Verbands Dokumente für ih
 - **Text neben einem Bild begann tiefer.** In einer Zeile von Bausteinen auf Seiten und im Editor für Seiten begann Text neben einem Bild etwas unterhalb der Oberkante des Bildes. Jetzt beginnt er auf gleicher Höhe.
 - **Die Mitgliederliste in Sichtbarkeitsfiltern war abgeschnitten.** Wo eine Einschränkung von Sichtbarkeit oder Zugriff eine Auswahl von Mitgliedern anbietet, öffnete sich die Liste nur so breit wie ihr Knopf, sodass Suche und Namen nicht zu lesen waren. Jetzt öffnet sie sich breit genug für die Namen und bleibt im Fenster.
 - **Vorschaubilder von PDFs waren verpixelt.** Die kleinen Bilder von PDFs in der Mediathek, bei Dokumenten von Mitgliedern und bei Anhängen von Terminen waren so grob, dass ihr Text nicht zu lesen war. Jetzt werden sie feiner gezeichnet und in der Größe ihrer Kachel gezeigt.
+- **Beim Umzug einer Station gingen Dokumente verloren.** Der Umzug einer Station mit Dokumenten von Mitgliedern auf eine andere Installation schlug fehl, und angekommene Dokumente zeigten mitunter die Datei eines anderen Dokuments oder gar keine. Jetzt kommt jedes Dokument mit Datei, Vorschaubild, Tags und Mitgliedern an.
 
 ## v26.21.0
 

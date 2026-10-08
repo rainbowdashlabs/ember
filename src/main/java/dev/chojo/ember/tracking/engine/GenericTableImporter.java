@@ -109,15 +109,16 @@ public final class GenericTableImporter {
         if (bind.isEmpty()) return "SELECT 1;";
         var cols = new StringBuilder();
         var vals = new StringBuilder();
-        boolean first = true;
+        int position = 0;
         for (var e : bind.entrySet()) {
-            if (!first) {
+            if (position > 0) {
                 cols.append(", ");
                 vals.append(", ");
             }
-            first = false;
             cols.append(e.getKey());
-            vals.append(':').append(e.getKey()).append(castFor(e.getValue().type()));
+            vals.append(':')
+                    .append(tokenFor(position++))
+                    .append(castFor(e.getValue().type()));
         }
         var sql = new StringBuilder("INSERT INTO ").append(tableName);
         sql.append('(').append(cols).append(") VALUES(").append(vals).append(')');
@@ -151,10 +152,26 @@ public final class GenericTableImporter {
 
     private static Call callFor(Map<String, BoundValue> bind) {
         Call c = call();
-        for (var e : bind.entrySet()) {
-            c = bindOne(c, e.getKey(), e.getValue());
+        int position = 0;
+        for (var value : bind.values()) {
+            c = bindOne(c, tokenFor(position++), value);
         }
         return c;
+    }
+
+    /**
+     * The parameter the value at a position of the insert is bound under. It is named by the
+     * position rather than the column, since a column name may hold digits ({@code sha256}) and a
+     * query parameter may hold letters and underscores only.
+     */
+    static String tokenFor(int position) {
+        var token = new StringBuilder("value_");
+        int rest = position;
+        do {
+            token.append((char) ('a' + rest % 26));
+            rest /= 26;
+        } while (rest > 0);
+        return token.toString();
     }
 
     /**

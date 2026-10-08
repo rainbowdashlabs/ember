@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.station.transfer.StationImportContext.NewAccountR
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageScope;
 import dev.chojo.ember.feature.storage.service.StorageService;
+import dev.chojo.ember.tracking.engine.GenericTableImporter.IdRemapper;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -72,20 +73,23 @@ public class TransferFileImporter {
 
     /**
      * Pulls every key in one station-scoped movable category from the source and stores it
-     * on the destination's backend. Per-key streaming: the response body is piped straight
-     * into {@link StorageService#store}. Keys that already exist on the destination are
-     * skipped so a retried import after a partial failure is idempotent (cheap exists check
-     * rather than a SHA round-trip).
+     * on the destination's backend, under the key {@link TransferFileKeys} gives it there.
+     * Per-key streaming: the response body is piped straight into {@link StorageService#store}.
+     * Keys that already exist on the destination are skipped so a retried import after a partial
+     * failure is idempotent (cheap exists check rather than a SHA round-trip), and so are keys
+     * whose row did not arrive.
      *
      * @param client   the source client for this run
      * @param scope    the destination station scope
      * @param category the category to copy
+     * @param idMap    the source-to-destination ids of the imported rows
      * @param progress the run progress, updated per key
      */
     public void copyCategory(
             TransferSourceClient client,
             StorageScope.Station scope,
             StorageCategory category,
+            IdRemapper idMap,
             ImportProgress progress) {
         int copied = 0;
         int skipped = 0;
@@ -101,9 +105,10 @@ public class TransferFileImporter {
                 progress.setSubTotal(progress.subTotal() + page.keys().size());
             }
             for (String key : page.keys()) {
-                if (storageService.existsRelative(scope, category, key)) {
+                var target = TransferFileKeys.destinationKey(category, key, idMap);
+                if (target.isEmpty() || storageService.existsRelative(scope, category, target.get())) {
                     skipped++;
-                } else if (streamFile(client, scope, category, key)) {
+                } else if (streamFile(client, scope, category, key, target.get())) {
                     copied++;
                 }
                 progress.incrementSub();
@@ -112,7 +117,11 @@ public class TransferFileImporter {
             after = page.next();
         }
         if (copied > 0 || skipped > 0) {
-            log.info("Byte-copied {} key(s) for category {} (skipped {} already present)", copied, category, skipped);
+            log.info(
+                    "Byte-copied {} key(s) for category {} (skipped {} already present or without their row)",
+                    copied,
+                    category,
+                    skipped);
         }
     }
 
@@ -162,13 +171,17 @@ public class TransferFileImporter {
      * re-listed in a later transfer or stay absent).
      */
     private boolean streamFile(
-            TransferSourceClient client, StorageScope.Station scope, StorageCategory category, String key) {
-        var file = client.fetchFile(category, key);
+            TransferSourceClient client,
+            StorageScope.Station scope,
+            StorageCategory category,
+            String sourceKey,
+            String targetKey) {
+        var file = client.fetchFile(category, sourceKey);
         if (file.isEmpty()) return false;
         try {
-            store(scope, category, key, file.get().data(), file.get().contentType());
+            store(scope, category, targetKey, file.get().data(), file.get().contentType());
         } catch (IOException e) {
-            throw new RuntimeException("Failed to stream key '" + key + "' from remote", e);
+            throw new RuntimeException("Failed to stream key '" + sourceKey + "' from remote", e);
         }
         return true;
     }

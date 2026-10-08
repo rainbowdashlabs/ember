@@ -48,6 +48,7 @@ Stations turn their own templates and those of their association into documents 
 - **Text beside a picture started lower.** In a row of blocks on pages and in the page editor, text next to a picture began a little below the top of the picture. It now starts level with it.
 - **The member list in visibility filters was cut off.** Where a visibility or access restriction offers a choice of members, the list opened only as wide as its button, so the search and the names could not be read. It now opens wide enough for the names and stays inside the window.
 - **Pictures of PDFs were blurry.** The small pictures of PDFs in the media library, among member documents and among event attachments were so coarse that their text could not be read. They are now drawn finer and shown at the size of their tile.
+- **Moving a station lost its member documents.** Moving a station that kept member documents to another installation failed, and documents that did arrive could show the file of another document or none at all. Every document now arrives with its file, picture, tags and members.
 
 ## v26.21.0
 

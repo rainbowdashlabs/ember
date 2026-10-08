@@ -5,10 +5,18 @@
  */
 package dev.chojo.ember.feature.storage.transfer;
 
+import dev.chojo.ember.api.ApiJsonMapper;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.service.AvatarService;
+import dev.chojo.ember.feature.documents.entity.Document;
+import dev.chojo.ember.feature.documents.entity.DocumentTag;
+import dev.chojo.ember.feature.documents.entity.SealedVersion;
+import dev.chojo.ember.feature.documents.entity.Uploader;
+import dev.chojo.ember.feature.documents.repository.SealedVersionRepository;
+import dev.chojo.ember.feature.documents.service.DocumentDoor;
+import dev.chojo.ember.feature.documents.service.DocumentService;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.service.FederationPartnerTransferFixupService;
 import dev.chojo.ember.feature.media.entity.MediaContent;
@@ -20,6 +28,7 @@ import dev.chojo.ember.feature.quiz.entity.AiVendor;
 import dev.chojo.ember.feature.quiz.repository.AccountAiCredentialRepository;
 import dev.chojo.ember.feature.quiz.repository.AiProviderRepository;
 import dev.chojo.ember.feature.quiz.service.AiCredentialService;
+import dev.chojo.ember.feature.signing.entity.SealLevel;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.service.StationExportService;
 import dev.chojo.ember.feature.station.service.StationImportService;
@@ -27,6 +36,7 @@ import dev.chojo.ember.feature.station.service.StationTransferService;
 import dev.chojo.ember.feature.station.transfer.AccountCredentialTableImporter;
 import dev.chojo.ember.feature.station.transfer.AccountTableImporter;
 import dev.chojo.ember.feature.station.transfer.DisabledModuleTableImporter;
+import dev.chojo.ember.feature.station.transfer.DocumentSearchTableImporter;
 import dev.chojo.ember.feature.station.transfer.ImportProgress;
 import dev.chojo.ember.feature.station.transfer.StationTableImporter;
 import dev.chojo.ember.feature.station.transfer.TransferFileImporter;
@@ -37,16 +47,20 @@ import dev.chojo.ember.feature.storage.credential.StoredCredentials;
 import dev.chojo.ember.feature.storage.entity.StationStorageBackendConfig;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageScope;
+import dev.chojo.ember.feature.storage.entity.Variant;
 import dev.chojo.ember.feature.storage.repository.StationStorageConfigRepository;
 import dev.chojo.ember.feature.storage.service.StationTransferFileService;
 import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.feature.storage.service.TransferBackendDescriptorService;
 import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.repository.RepositoryTestBase;
+import dev.chojo.ember.util.Sha256;
 import dev.chojo.ember.util.TestRemoteUrlValidator;
 import dev.chojo.ember.util.TestStationKeys;
 import dev.chojo.ember.util.WebpEncoder;
 import io.javalin.Javalin;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
@@ -69,6 +83,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.imageio.ImageIO;
 
@@ -97,6 +112,7 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
     private static AvatarService avatarService;
     private static MediaStorageService mediaStorageService;
     private static ImageVariants images;
+    private static DocumentService documents;
     private static StationStorageConfigRepository configRepo;
     private static CredentialCipher credentialCipher;
 
@@ -124,6 +140,7 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
         exportService = new StationExportService(
                 stationRepo, TestStationKeys.transfer(), TestStationKeys.aiKeyTransfer(), new Api());
         var fileImporter = new TransferFileImporter(storageService, avatarService, images, mediaStorageService);
+        documents = newDocumentService(storageService);
         var stationImporter = new StationTableImporter(stationRepo);
         importService = new StationImportService(
                 stationRepo,
@@ -141,7 +158,8 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
                         stationImporter,
                         new AccountTableImporter(accountRepo),
                         new AccountCredentialTableImporter(accountRepo, passkeyModeService),
-                        new DisabledModuleTableImporter(stationRepo)),
+                        new DisabledModuleTableImporter(stationRepo),
+                        new DocumentSearchTableImporter(documents)),
                 accountRepo,
                 org.mockito.Mockito.mock(dev.chojo.ember.feature.account.service.AuthService.class),
                 new TaskScheduler());
@@ -160,6 +178,7 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
                 avatarService);
 
         server = Javalin.create(config -> {
+            config.jsonMapper(ApiJsonMapper.forApi(stationRepo, clusterRepo));
             for (Routes r : new Routes[] {assetRoutes, transferRoutes}) {
                 r.register(config.routes, "/api/v1");
             }
@@ -381,6 +400,148 @@ class StationTransferAcceptanceTest extends RepositoryTestBase {
         assertTrue(
                 destinationKeys.stream().noneMatch(k -> k.endsWith("/w128.png")),
                 "destination must not re-emit dropped original-format resizes");
+    }
+
+    /**
+     * Member documents get new ids on the destination, and their files follow them there: each
+     * document serves its own bytes and picture, with its members, tags and sealed versions. Sealed
+     * files are named by their SHA-256, so two versions of the same bytes share one file.
+     */
+    @Test
+    void memberDocumentsKeepTheirFilesUnderTheirNewIds() throws Exception {
+        Station source = stationRepo.create("Source DOCUMENTS");
+        Account account = accountRepo.create("documents@xfer.test", "Doc", "Owner", true);
+        int memberId = stationMemberRepo.create(source.id(), account.id()).id();
+        var versions = new SealedVersionRepository();
+        byte[] text = "Erste Vereinbarung".getBytes(StandardCharsets.UTF_8);
+        var agreement = storeDocument(documents, source, memberId, "Vereinbarung", "text/plain", text, "Vertrag");
+        var instruction =
+                storeDocument(documents, source, memberId, "Anweisung", "application/pdf", onePagePdf(), "Dienst");
+        assertTrue(instruction.hasThumbnail(), "a picture was made of the PDF (test precondition)");
+        byte[] firstSeal = "first sealed file".getBytes(StandardCharsets.UTF_8);
+        byte[] secondSeal = "second sealed file".getBytes(StandardCharsets.UTF_8);
+        int contract = sealedDocument(source, memberId, "Vertrag", versions, firstSeal, secondSeal);
+        int copy = sealedDocument(source, memberId, "Abschrift", versions, secondSeal);
+
+        String token = rawToken(exportService.createTransferToken(source.id()));
+        var importResult = importService.startRemoteImport(baseUrl, token);
+        waitForImport(importResult.stationId());
+
+        int destinationMember = stationMemberRepo
+                .findByStationAndAccount(importResult.stationId(), account.id())
+                .orElseThrow()
+                .id();
+        var arrived = memberDocumentRepo.findByMember(importResult.stationId(), destinationMember, true).stream()
+                .collect(Collectors.toMap(Document::title, document -> document));
+        assertEquals(Set.of("Vereinbarung", "Anweisung", "Vertrag", "Abschrift"), arrived.keySet());
+        for (var document : arrived.values()) {
+            assertFalse(
+                    Set.of(agreement.id(), instruction.id(), contract, copy).contains(document.id()),
+                    "the documents got new ids on the destination");
+            assertEquals(List.of(destinationMember), memberDocumentRepo.membersOf(document.id()));
+        }
+
+        assertArrayEquals(text, documents.read(arrived.get("Vereinbarung")).orElseThrow());
+        assertEquals(List.of("Vertrag"), tagNames(arrived.get("Vereinbarung")));
+        assertTrue(
+                memberDocumentRepo.findWithoutSourceText().stream()
+                        .noneMatch(document ->
+                                document.id() == arrived.get("Vereinbarung").id()),
+                "the document is indexed from the text the source read out of it");
+        assertArrayEquals(
+                documents.read(instruction).orElseThrow(),
+                documents.read(arrived.get("Anweisung")).orElseThrow());
+        assertEquals(List.of("Dienst"), tagNames(arrived.get("Anweisung")));
+        assertArrayEquals(
+                documents
+                        .thumbnail(instruction, 0, DocumentDoor.STATION)
+                        .orElseThrow()
+                        .data(),
+                documents
+                        .thumbnail(arrived.get("Anweisung"), 0, DocumentDoor.STATION)
+                        .orElseThrow()
+                        .data());
+
+        var sealedContract = arrived.get("Vertrag");
+        assertTrue(sealedContract.sealed());
+        assertArrayEquals(secondSeal, documents.read(sealedContract).orElseThrow());
+        var contractVersions = documents.sealedVersions(sealedContract);
+        assertEquals(
+                List.of(Sha256.hex(secondSeal), Sha256.hex(firstSeal)),
+                contractVersions.stream().map(SealedVersion::sha256).toList());
+        assertArrayEquals(
+                firstSeal,
+                documents.read(sealedContract, contractVersions.getLast()).orElseThrow());
+        assertArrayEquals(secondSeal, documents.read(arrived.get("Abschrift")).orElseThrow());
+    }
+
+    private static Document storeDocument(
+            DocumentService documents,
+            Station station,
+            int memberId,
+            String title,
+            String mimeType,
+            byte[] data,
+            String tag) {
+        return documents.store(
+                station.id(),
+                List.of(memberId),
+                title,
+                title.toLowerCase() + ".bin",
+                mimeType,
+                data,
+                false,
+                false,
+                Uploader.member(memberId),
+                List.of(tag));
+    }
+
+    /**
+     * Files a sealed document with one version per file, the last one current, the way sealing
+     * keeps them: the rows name each file by its SHA-256, under which the file is stored.
+     */
+    private static int sealedDocument(
+            Station station, int memberId, String title, SealedVersionRepository versions, byte[]... files) {
+        var scope = new StorageScope.Station(station.id(), station.uid());
+        var document = memberDocumentRepo.create(
+                station.id(),
+                title,
+                title.toLowerCase() + ".pdf",
+                "application/pdf",
+                files[files.length - 1].length,
+                false,
+                true,
+                Uploader.member(memberId),
+                List.of(memberId));
+        memberDocumentRepo.seal(document.id());
+        for (byte[] file : files) {
+            String sha256 = Sha256.hex(file);
+            versions.supersedeCurrent(document.id());
+            versions.add(document.id(), sha256, file.length, SealLevel.BASELINE_B, null);
+            storageService.store(
+                    scope,
+                    StorageCategory.MEMBER_DOCUMENTS,
+                    "sealed/" + sha256,
+                    new Variant("content"),
+                    file,
+                    "application/pdf");
+        }
+        return document.id();
+    }
+
+    private static List<String> tagNames(Document document) {
+        return memberDocumentRepo.findTags(document.id()).stream()
+                .map(DocumentTag::name)
+                .toList();
+    }
+
+    private static byte[] onePagePdf() throws IOException {
+        try (var pdf = new PDDocument()) {
+            pdf.addPage(new PDPage());
+            var out = new ByteArrayOutputStream();
+            pdf.save(out);
+            return out.toByteArray();
+        }
     }
 
     private static String rawToken(String encoded) {

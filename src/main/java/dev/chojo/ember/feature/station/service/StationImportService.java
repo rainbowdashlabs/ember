@@ -479,7 +479,7 @@ public class StationImportService {
         for (StorageCategory category : TransferFileImporter.transferrableStationCategories()) {
             p.startPhase("files_" + category.name().toLowerCase());
             if (!installedRemote) {
-                fileImporter.copyCategory(client, scope, category, p);
+                fileImporter.copyCategory(client, scope, category, context.idMap(), p);
             }
             p.completePhase();
         }

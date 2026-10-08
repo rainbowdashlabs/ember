@@ -279,6 +279,19 @@ public class DocumentService {
         } catch (Exception e) {
             log.warn("Nothing could be read out of document {}", documentId, e);
         }
+        indexText(documentId, stationId, text);
+    }
+
+    /**
+     * Records what a document says from text read out of it before, such as on the installation its
+     * station moved from, without reading its file again. The index is built in the language of the
+     * station it is at now.
+     *
+     * @param documentId the document
+     * @param stationId  the station it belongs to
+     * @param text       its title and whatever was read out of its file
+     */
+    public void indexText(int documentId, int stationId, String text) {
         repository.updateSearchIndex(documentId, text, searchConfigOf(stationId));
     }
 

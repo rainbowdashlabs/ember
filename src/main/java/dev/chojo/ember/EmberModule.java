@@ -304,6 +304,7 @@ import dev.chojo.ember.feature.station.service.TransferTimeoutWatchdog;
 import dev.chojo.ember.feature.station.transfer.AccountCredentialTableImporter;
 import dev.chojo.ember.feature.station.transfer.AccountTableImporter;
 import dev.chojo.ember.feature.station.transfer.DisabledModuleTableImporter;
+import dev.chojo.ember.feature.station.transfer.DocumentSearchTableImporter;
 import dev.chojo.ember.feature.station.transfer.StationTableImporter;
 import dev.chojo.ember.feature.station.transfer.TableImporter;
 import dev.chojo.ember.feature.statistics.route.StatisticsRoutes;
@@ -610,6 +611,7 @@ public class EmberModule extends AbstractModule {
         tableImporterBinder.addBinding().to(AccountTableImporter.class);
         tableImporterBinder.addBinding().to(AccountCredentialTableImporter.class);
         tableImporterBinder.addBinding().to(DisabledModuleTableImporter.class);
+        tableImporterBinder.addBinding().to(DocumentSearchTableImporter.class);
 
         Multibinder<DemoSeeder> demoSeederBinder = Multibinder.newSetBinder(binder(), DemoSeeder.class);
         demoSeederBinder.addBinding().to(DemoStationSeeder.class);
