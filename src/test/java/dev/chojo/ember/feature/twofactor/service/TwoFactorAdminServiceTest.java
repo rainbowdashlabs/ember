@@ -7,12 +7,15 @@ package dev.chojo.ember.feature.twofactor.service;
 
 import dev.chojo.ember.api.auth.InstanceUserType;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.api.refusal.TwoFactorRefusal;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.account.entity.AccountAction;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.repository.AccountRepository.PickerAccount;
+import dev.chojo.ember.feature.account.service.AccountReach;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorAuditEntry;
@@ -33,6 +36,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -45,6 +49,7 @@ class TwoFactorAdminServiceTest {
     private TwoFactorService twoFactor;
     private AccountRepository accounts;
     private StationMemberRepository members;
+    private AccountReach reach;
     private TwoFactorAdminService service;
 
     private static Account account(InstanceUserType type) {
@@ -66,7 +71,20 @@ class TwoFactorAdminServiceTest {
         twoFactor = mock(TwoFactorService.class);
         accounts = mock(AccountRepository.class);
         members = mock(StationMemberRepository.class);
-        service = new TwoFactorAdminService(repository, twoFactor, accounts, members);
+        reach = mock(AccountReach.class);
+        service = new TwoFactorAdminService(repository, twoFactor, accounts, members, reach);
+    }
+
+    @Test
+    void anAccountThatIsNotTheStationsAloneKeepsItsSecondFactor() {
+        targetIsAtTheStation();
+        when(accounts.findById(42)).thenReturn(Optional.of(account(InstanceUserType.USER)));
+        doThrow(MemberRefusal.ACCOUNT_SHARED_WITH_ANOTHER_STATION.raise())
+                .when(reach)
+                .require(3, 42, AccountAction.SECOND_FACTOR_RESET);
+
+        assertEquals(MemberRefusal.ACCOUNT_SHARED_WITH_ANOTHER_STATION, resetRefusal());
+        verify(twoFactor, never()).resetAccount2FA(anyInt(), any(), any(), any());
     }
 
     private void targetIsAtTheStation() {

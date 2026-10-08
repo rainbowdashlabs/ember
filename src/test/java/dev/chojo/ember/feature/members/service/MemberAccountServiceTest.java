@@ -17,8 +17,10 @@ import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.account.entity.AccountAction;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AccountEmailService;
+import dev.chojo.ember.feature.account.service.AccountReach;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.account.service.AuthService.EmailChangeResult;
 import dev.chojo.ember.feature.account.service.LoginNameService;
@@ -40,6 +42,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -56,6 +59,7 @@ class MemberAccountServiceTest {
     private StepUpGuard stepUp;
     private LoginNameService loginNames;
     private NameChangeService nameChanges;
+    private AccountReach reach;
     private MemberAccountService service;
 
     private static Account target(String email, InstanceUserType type) {
@@ -88,8 +92,17 @@ class MemberAccountServiceTest {
         stepUp = mock(StepUpGuard.class);
         loginNames = mock(LoginNameService.class);
         nameChanges = mock(NameChangeService.class);
+        reach = mock(AccountReach.class);
         service = new MemberAccountService(
-                accounts, members, auth, loginNames, emails, stepUp, mock(MemberNameResolver.class), nameChanges);
+                accounts,
+                members,
+                auth,
+                loginNames,
+                emails,
+                stepUp,
+                mock(MemberNameResolver.class),
+                nameChanges,
+                reach);
         when(accounts.update(anyInt(), any(), any(), any())).thenReturn(true);
     }
 
@@ -113,7 +126,10 @@ class MemberAccountServiceTest {
         assertEquals(
                 MemberRefusal.ACCOUNT_ABOVE_YOU,
                 refusalOf(() -> service.actionableAccount(
-                        TARGET, managerHere(), MemberRefusal.ACCOUNT_NOT_HERE_ON_PASSWORD_RESET)));
+                        TARGET,
+                        managerHere(),
+                        MemberRefusal.ACCOUNT_NOT_HERE_ON_PASSWORD_RESET,
+                        AccountAction.PASSWORD_RESET)));
     }
 
     @Test
@@ -123,7 +139,52 @@ class MemberAccountServiceTest {
         assertEquals(
                 MemberRefusal.ACCOUNT_NOT_HERE_ON_PASSWORD_RESET,
                 refusalOf(() -> service.actionableAccount(
-                        TARGET, managerHere(), MemberRefusal.ACCOUNT_NOT_HERE_ON_PASSWORD_RESET)));
+                        TARGET,
+                        managerHere(),
+                        MemberRefusal.ACCOUNT_NOT_HERE_ON_PASSWORD_RESET,
+                        AccountAction.PASSWORD_RESET)));
+    }
+
+    @Test
+    void anAccountThatIsNotTheStationsAloneIsOutOfReach() {
+        targetIsAtTheStation();
+        when(accounts.findById(TARGET)).thenReturn(Optional.of(target("tom@test.com", InstanceUserType.USER)));
+        doThrow(MemberRefusal.ACCOUNT_HELD_BY_AN_ASSOCIATION.raise())
+                .when(reach)
+                .require(STATION_ID, TARGET, AccountAction.ONBOARD_AGAIN);
+
+        assertEquals(
+                MemberRefusal.ACCOUNT_HELD_BY_AN_ASSOCIATION,
+                refusalOf(() -> service.actionableAccount(
+                        TARGET,
+                        managerHere(),
+                        MemberRefusal.ACCOUNT_NOT_HERE_ON_ONBOARDING_AGAIN,
+                        AccountAction.ONBOARD_AGAIN)));
+    }
+
+    @Test
+    void movingTheAddressOfASharedAccountIsRefusedBeforeAnythingIsWritten() {
+        targetIsAtTheStation();
+        when(accounts.findById(TARGET)).thenReturn(Optional.of(target("tom@test.com", InstanceUserType.USER)));
+        doThrow(MemberRefusal.ACCOUNT_SHARED_WITH_ANOTHER_STATION.raise())
+                .when(reach)
+                .require(STATION_ID, TARGET, AccountAction.EMAIL_CHANGE);
+
+        assertEquals(
+                MemberRefusal.ACCOUNT_SHARED_WITH_ANOTHER_STATION,
+                refusalOf(() -> update(manager(), TARGET, new UpdateAccountRequest("new@test.com", null, "A", "B"))));
+        verify(accounts, never()).update(anyInt(), any(), any(), any());
+        verify(emails, never()).setEmailFor(anyInt(), anyInt(), anyString());
+    }
+
+    @Test
+    void renamingAnAccountDoesNotAskWhetherItIsShared() {
+        targetIsAtTheStation();
+        when(accounts.findById(TARGET)).thenReturn(Optional.of(target("tom@test.com", InstanceUserType.USER)));
+
+        update(manager(), TARGET, new UpdateAccountRequest("tom@test.com", null, "A", "B"));
+
+        verify(reach, never()).require(anyInt(), anyInt(), any());
     }
 
     @Test

@@ -14,6 +14,7 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.api.refusal.MemberRefusal;
+import dev.chojo.ember.feature.account.entity.AccountAction;
 import dev.chojo.ember.feature.account.entity.IssuedOneTimePassword;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.account.service.OneTimePasswordService;
@@ -147,7 +148,8 @@ public class MemberRoutes implements Routes {
         if (accountId == null) {
             throw MemberRefusal.ACCOUNT_NOT_NAMED_ON_ONBOARDING_AGAIN.raise();
         }
-        memberAccounts.actionableAccount(accountId, session, MemberRefusal.ACCOUNT_NOT_HERE_ON_ONBOARDING_AGAIN);
+        memberAccounts.actionableAccount(
+                accountId, session, MemberRefusal.ACCOUNT_NOT_HERE_ON_ONBOARDING_AGAIN, AccountAction.ONBOARD_AGAIN);
         boolean mailed = enrollmentService.onboardAgain(
                 accountId, session.accountId(), ctx.userAgent(), ctx.header("CF-IPCountry"));
         ctx.json(new OnboardAgainResponse(mailed));
@@ -287,7 +289,10 @@ public class MemberRoutes implements Routes {
             throw MemberRefusal.ACCOUNT_NOT_NAMED_ON_PASSWORD_RESET.raise();
         }
         memberAccounts.actionableAccount(
-                request.accountId(), session, MemberRefusal.ACCOUNT_NOT_HERE_ON_PASSWORD_RESET);
+                request.accountId(),
+                session,
+                MemberRefusal.ACCOUNT_NOT_HERE_ON_PASSWORD_RESET,
+                AccountAction.PASSWORD_RESET);
         boolean forceChange = request.forceChange() != null && request.forceChange();
         if (authService.adminResetPassword(request.accountId(), forceChange)) {
             ctx.status(HttpStatus.OK).json(new MessageResponse("Password reset email sent"));

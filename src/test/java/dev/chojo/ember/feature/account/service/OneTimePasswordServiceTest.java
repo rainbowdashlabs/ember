@@ -108,7 +108,8 @@ class OneTimePasswordServiceTest extends RepositoryTestBase {
         target = account("target");
         stationMemberRepo.create(station.id(), administrator.id());
         stationMemberRepo.create(station.id(), target.id());
-        service = new OneTimePasswordService(accountRepo, stationMemberRepo, auth, audit);
+        service =
+                new OneTimePasswordService(accountRepo, stationMemberRepo, auth, audit, new AccountReach(accountRepo));
     }
 
     private static Account account(String label) {
@@ -157,7 +158,8 @@ class OneTimePasswordServiceTest extends RepositoryTestBase {
     @Test
     void anExpiredOneTimePasswordIsRefusedWithItsOwnReason() {
         var lastWeek = Clock.fixed(Instant.now().minus(8, ChronoUnit.DAYS), ZoneOffset.UTC);
-        var issued = new OneTimePasswordService(accountRepo, stationMemberRepo, auth, audit, lastWeek)
+        var issued = new OneTimePasswordService(
+                        accountRepo, stationMemberRepo, auth, audit, new AccountReach(accountRepo), lastWeek)
                 .issueForStation(station.id(), administrator.id(), target.id(), null, null);
 
         var login = auth.login(target.email(), issued.password(), "agent", "DE");
@@ -199,7 +201,7 @@ class OneTimePasswordServiceTest extends RepositoryTestBase {
         var elsewhere = stationRepo.create("One-time elsewhere " + System.nanoTime());
         stationMemberRepo.create(elsewhere.id(), target.id());
 
-        assertRefused(MemberRefusal.ONE_TIME_PASSWORD_FOR_SHARED_ACCOUNT, this::issueHere);
+        assertRefused(MemberRefusal.ACCOUNT_SHARED_WITH_ANOTHER_STATION, this::issueHere);
     }
 
     @Test
@@ -208,7 +210,7 @@ class OneTimePasswordServiceTest extends RepositoryTestBase {
         var former = stationMemberRepo.create(elsewhere.id(), target.id());
         stationMemberRepo.setFormer(former.id(), true);
 
-        assertRefused(MemberRefusal.ONE_TIME_PASSWORD_FOR_SHARED_ACCOUNT, this::issueHere);
+        assertRefused(MemberRefusal.ACCOUNT_SHARED_WITH_ANOTHER_STATION, this::issueHere);
     }
 
     @Test
@@ -216,7 +218,7 @@ class OneTimePasswordServiceTest extends RepositoryTestBase {
         var association = clusterRepo.create("One-time association " + System.nanoTime(), null, station.id());
         clusterRepo.addMember(association.id(), target.id(), ClusterUserType.CLUSTER_USER);
 
-        assertRefused(MemberRefusal.ONE_TIME_PASSWORD_FOR_ASSOCIATION_ACCOUNT, this::issueHere);
+        assertRefused(MemberRefusal.ACCOUNT_HELD_BY_AN_ASSOCIATION, this::issueHere);
     }
 
     @Test
@@ -253,7 +255,8 @@ class OneTimePasswordServiceTest extends RepositoryTestBase {
         var passwordless = mock(AuthService.class);
         when(passwordless.issueOneTimePassword(any(), anyString(), any()))
                 .thenReturn(AuthService.SetPasswordOutcome.PASSWORDLESS_MODE);
-        var refusing = new OneTimePasswordService(accountRepo, stationMemberRepo, passwordless, audit);
+        var refusing = new OneTimePasswordService(
+                accountRepo, stationMemberRepo, passwordless, audit, new AccountReach(accountRepo));
 
         assertRefused(
                 MemberRefusal.ONE_TIME_PASSWORD_PASSWORDS_SWITCHED_OFF,

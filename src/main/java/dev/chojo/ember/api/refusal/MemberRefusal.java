@@ -748,18 +748,6 @@ public enum MemberRefusal implements Refusal {
             HttpStatus.FORBIDDEN,
             "That account administers the instance, so only an instance administrator can issue it a one-time password"),
 
-    /** A one-time password asked at a station for an account that holds a role in an association. */
-    ONE_TIME_PASSWORD_FOR_ASSOCIATION_ACCOUNT(
-            204,
-            HttpStatus.FORBIDDEN,
-            "That account holds a role in an association, so only an instance administrator can issue it a one-time password"),
-
-    /** A one-time password asked at a station for an account that is or was a member of another station too. */
-    ONE_TIME_PASSWORD_FOR_SHARED_ACCOUNT(
-            205,
-            HttpStatus.FORBIDDEN,
-            "That account belongs to another station as well, so only an instance administrator can issue it a one-time password"),
-
     /** A one-time password asked at a station for an account without a password on an instance that signs in with passkeys only. */
     ONE_TIME_PASSWORD_PASSWORDS_SWITCHED_OFF(
             206, HttpStatus.CONFLICT, "This instance signs in with passkeys only, so no one-time password was issued"),
@@ -784,7 +772,19 @@ public enum MemberRefusal implements Refusal {
     PROFILE_GENDER_NOT_FROM_CHOICE(212, HttpStatus.BAD_REQUEST, Sentences.GENDER_NOT_FROM_CHOICE),
 
     /** A pronoun of a gender field longer than a pronoun may be. */
-    PROFILE_PRONOUN_TOO_LONG(213, HttpStatus.BAD_REQUEST, Sentences.PRONOUN_TOO_LONG);
+    PROFILE_PRONOUN_TOO_LONG(213, HttpStatus.BAD_REQUEST, Sentences.PRONOUN_TOO_LONG),
+
+    /** A station or a guardian reaching the address or the sign-in of an account that also belongs to another station, current or former. */
+    ACCOUNT_SHARED_WITH_ANOTHER_STATION(
+            214,
+            HttpStatus.FORBIDDEN,
+            "That account belongs to another station as well, so only the person can change its address or how it signs in"),
+
+    /** A station or a guardian reaching the address or the sign-in of an account that holds a role in an association. */
+    ACCOUNT_HELD_BY_AN_ASSOCIATION(
+            215,
+            HttpStatus.FORBIDDEN,
+            "That account holds a role in an association, so only the person can change its address or how it signs in");
 
     private final Definition definition;
 

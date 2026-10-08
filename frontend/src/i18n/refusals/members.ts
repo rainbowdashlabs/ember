@@ -255,10 +255,6 @@ export default {
     'M-202': ONE_TIME_PASSWORD_FOR_YOURSELF,
     'M-203': 'Dieses Konto verwaltet die Instanz, ein Einmalpasswort kann dafür nur die Administration '
         + 'der Instanz erstellen',
-    'M-204': 'Dieses Konto hat eine Rolle in einem Verband, ein Einmalpasswort kann dafür nur die Administration '
-        + 'der Instanz erstellen',
-    'M-205': 'Dieses Konto gehört auch zu einer anderen Wache, ein Einmalpasswort kann dafür nur die '
-        + 'Administration der Instanz erstellen',
     'M-206': ONE_TIME_PASSWORD_PASSKEYS_ONLY,
     'M-207': 'Dein Einmalpasswort ist abgelaufen. Bitte frag deine Administration nach einem neuen',
     'M-208': 'Dieser Namenswunsch ist nicht mehr offen, vielleicht wurde schon darüber entschieden',
@@ -267,4 +263,6 @@ export default {
     'M-211': GENDER_ALREADY_ASKED,
     'M-212': GENDER_NOT_FROM_CHOICE,
     'M-213': PRONOUN_TOO_LONG,
+    'M-214': 'Dieses Konto gehört auch zu einer anderen Wache, Adresse und Anmeldung kann nur die Person selbst ändern',
+    'M-215': 'Dieses Konto hat eine Rolle in einem Verband, Adresse und Anmeldung kann nur die Person selbst ändern',
 }
