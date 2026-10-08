@@ -51,7 +51,9 @@ export function useLoginConsent() {
       tosVersion.value = versions.tosVersion
 
       const stored = getStoredLegalVersions()
-      const outdated = stored.consent !== versions.consentVersion
+      const consentCurrent = stored.consent === versions.consentVersion
+        || stored.consent === versions.legacyConsentVersion
+      const outdated = !consentCurrent
         || stored.privacy !== versions.privacyVersion
         || stored.tos !== versions.tosVersion
       if (consent.value === 'accepted' && stored.consent && outdated) {
@@ -107,6 +109,14 @@ export function useLoginConsent() {
   }
 
   /**
+   * Asks again after a refusal. The stored refusal stays until the gate is answered, so leaving the
+   * page in between keeps it as it was; accepting replaces it.
+   */
+  function reconsider() {
+    consent.value = null
+  }
+
+  /**
    * Records consent against the account after login. An account that consented to older versions
    * is flagged for re-consent rather than silently updated.
    */
@@ -153,6 +163,7 @@ export function useLoginConsent() {
     loadTos,
     acceptCurrentVersions,
     deny,
+    reconsider,
     recordAfterLogin,
   }
 }

@@ -45,8 +45,15 @@ public class ConsentService {
 
     @Inject
     public ConsentService(AccountRepository accountRepository, Api apiConfig) {
+        this(accountRepository, apiConfig, new LegalDocumentService(apiConfig.placeholderFile()));
+    }
+
+    /**
+     * @param documentService the service reading and versioning the legal documents
+     */
+    ConsentService(AccountRepository accountRepository, Api apiConfig, LegalDocumentService documentService) {
         this.accountRepository = accountRepository;
-        this.documentService = new LegalDocumentService(apiConfig.placeholderFile());
+        this.documentService = documentService;
         this.privacyPolicyDir = Path.of(apiConfig.privacyPolicyDir());
         this.consentDir = Path.of(apiConfig.consentDir());
         this.tosDir = Path.of(apiConfig.tosDir());
@@ -88,6 +95,10 @@ public class ConsentService {
         boolean privacyChanged = documentService.initialize(privacyPolicyDir);
         boolean tosChanged = documentService.initialize(tosDir);
         boolean consentChanged = documentService.initialize(consentDir);
+        LegacyConsentPin.pinOnce(
+                consentDir,
+                documentService.getDocument(consentDir).version(),
+                documentService.versionByStorageCategories(consentDir));
 
         if (privacyChanged || tosChanged || consentChanged) {
             log.warn(
@@ -152,23 +163,38 @@ public class ConsentService {
     /**
      * Retrieves the GDPR consent text rendered for the given locale.
      *
+     * <p>The version it carries is the one a consent is given for, as {@link #getCurrentVersions()}
+     * names it.
+     *
      * @param locale the desired locale (e.g. "de", "en")
      * @return the rendered consent text document
      */
     public LegalDocumentService.RenderedDocument getConsentText(String locale) {
-        return documentService.getDocument(consentDir, locale);
+        var document = documentService.getDocument(consentDir, locale);
+        return new LegalDocumentService.RenderedDocument(
+                document.html(), document.markdown(), documentService.versionByStorageCategories(consentDir));
     }
 
     /**
      * Returns the current version hashes of all legal documents.
      *
+     * <p>The consent version is taken over the consent text with its storage section reduced to the
+     * categories, so a stored key added to a known category asks nobody again. The hash of the whole
+     * document comes along as the legacy version the consents recorded before were given for: the
+     * one {@link LegacyConsentPin} holds while the consent version is still the one it was pinned
+     * to, otherwise the hash of the document as it reads now.
+     *
      * @return the version hashes for privacy policy, terms of service, and consent text
      */
     public DocumentVersions getCurrentVersions() {
+        String consentVersion = documentService.versionByStorageCategories(consentDir);
+        String legacyConsentVersion = LegacyConsentPin.pinnedFor(consentDir, consentVersion)
+                .orElseGet(() -> documentService.getDocument(consentDir).version());
         return new DocumentVersions(
                 documentService.getDocument(privacyPolicyDir).version(),
                 documentService.getDocument(tosDir).version(),
-                documentService.getDocument(consentDir).version());
+                consentVersion,
+                legacyConsentVersion);
     }
 
     /**
@@ -263,7 +289,7 @@ public class ConsentService {
         }
 
         var current = getCurrentVersions();
-        if (!current.consentVersion().equals(consentVersion)
+        if (!current.coversConsent(consentVersion)
                 || !current.privacyVersion().equals(privacyVersion)
                 || !current.tosVersion().equals(tosVersion)) {
             throw LegalRefusal.LEGAL_DOCUMENTS_CHANGED.raise();

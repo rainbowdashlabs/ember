@@ -56400,6 +56400,8 @@ export interface components {
             rightItems: string[];
         };
         ConsentChangesResponse: {
+            consentChanged: boolean;
+            consentHtml: string | null;
             currentConsentVersion: string;
             currentPrivacyVersion: string;
             currentTosVersion: string;
@@ -59423,6 +59425,7 @@ export interface components {
         };
         LegalVersionsResponse: {
             consentVersion: string;
+            legacyConsentVersion: string;
             privacyVersion: string;
             tosVersion: string;
         };

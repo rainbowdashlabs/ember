@@ -36,7 +36,7 @@ class ConsentStatusServiceTest {
     @BeforeEach
     void setup() {
         consents = mock(ConsentService.class);
-        when(consents.getCurrentVersions()).thenReturn(new DocumentVersions("p2", "t2", "c2"));
+        when(consents.getCurrentVersions()).thenReturn(new DocumentVersions("p2", "t2", "c2", "c2-legacy"));
         service = new ConsentStatusService(consents);
     }
 
@@ -73,6 +73,29 @@ class ConsentStatusServiceTest {
     }
 
     @Test
+    void aConsentUnderTheLegacyHashOfTheCurrentConsentTextIsCurrent() {
+        when(consents.findLatestConsent(7)).thenReturn(Optional.of(consent("c2-legacy", "p2", "t2")));
+
+        assertTrue(service.status(7).current());
+        assertFalse(service.changes(7, "de").consentChanged());
+        verify(consents, never()).getConsentText(any());
+    }
+
+    @Test
+    void aConsentUnderAnOlderConsentTextIsNotCurrentAndTheChangesShowTheText() {
+        when(consents.findLatestConsent(7)).thenReturn(Optional.of(consent("c1-legacy", "p2", "t2")));
+        when(consents.getConsentText("de")).thenReturn(new LegalDocumentService.RenderedDocument("<c/>", "", "c2"));
+
+        assertFalse(service.status(7).current());
+        var changes = service.changes(7, "de");
+
+        assertTrue(changes.consentChanged());
+        assertFalse(changes.privacyChanged());
+        assertFalse(changes.tosChanged());
+        assertEquals("<c/>", changes.consentHtml());
+    }
+
+    @Test
     void theChangesAreTheDocumentsThatMovedOnSinceTheConsent() {
         when(consents.findLatestConsent(7)).thenReturn(Optional.of(consent("c2", "p1", "t2")));
         when(consents.getPrivacyDiff("p1", "p2")).thenReturn("+ new line");
@@ -94,6 +117,7 @@ class ConsentStatusServiceTest {
 
         assertFalse(changes.privacyChanged());
         assertFalse(changes.tosChanged());
+        assertFalse(changes.consentChanged());
         assertEquals("t2", changes.currentTosVersion());
     }
 

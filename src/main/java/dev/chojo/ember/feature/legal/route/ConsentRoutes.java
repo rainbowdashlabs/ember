@@ -119,8 +119,11 @@ public class ConsentRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = LegalVersionsResponse.class)))
     private void getLegalVersions(Context ctx) {
         var versions = consentService.getCurrentVersions();
-        ctx.json(
-                new LegalVersionsResponse(versions.privacyVersion(), versions.tosVersion(), versions.consentVersion()));
+        ctx.json(new LegalVersionsResponse(
+                versions.privacyVersion(),
+                versions.tosVersion(),
+                versions.consentVersion(),
+                versions.legacyConsentVersion()));
     }
 
     @OpenApi(
@@ -198,9 +201,13 @@ public class ConsentRoutes implements Routes {
     /**
      * Response containing the current version hashes of all legal documents.
      *
-     * @param privacyVersion the current privacy policy version hash
-     * @param tosVersion     the current terms of service version hash
-     * @param consentVersion the current consent text version hash
+     * @param privacyVersion       the current privacy policy version hash
+     * @param tosVersion           the current terms of service version hash
+     * @param consentVersion       the current consent text version hash
+     * @param legacyConsentVersion the hash of the whole consent document as it reads now, which a
+     *                             browser that consented before the version covered only the
+     *                             storage categories still holds and which still counts as current
      */
-    public record LegalVersionsResponse(String privacyVersion, String tosVersion, String consentVersion) {}
+    public record LegalVersionsResponse(
+            String privacyVersion, String tosVersion, String consentVersion, String legacyConsentVersion) {}
 }

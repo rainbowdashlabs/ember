@@ -1143,7 +1143,8 @@ volumes:
                 + 'abwählen. Die beiden übrigen Gruppen - Werte einzelner Funktionen und Einstellungen der '
                 + 'Ansicht - schaltest du einzeln. Nimmst du eine Gruppe zurück, werden ihre Werte sofort '
                 + 'gelöscht; die Anwendung startet dann wieder mit ihren Vorgaben. Welche Werte in welcher '
-                + 'Gruppe stehen, listet die Datenschutzerklärung vollständig auf.',
+                + 'Gruppe stehen, listet die Datenschutzerklärung vollständig auf. Hast du die Speicherung '
+                + 'abgelehnt, bringt „Entscheidung ändern" auf der Anmeldeseite die Auswahl zurück.',
             themeTitle: 'Erscheinungsbild',
             themeText: 'Hier kannst du dein Farbschema und den Modus (Hell/Dunkel) anpassen. Wenn die Wache es erlaubt, kannst du ein eigenes Farbschema wählen. Andernfalls siehst du eine Hinweismeldung.',
             emailTitle: 'E-Mail-Benachrichtigungen',
@@ -4405,7 +4406,7 @@ volumes:
             placeholdersTitle: 'Platzhalter statt fester Angaben',
             placeholdersText: 'Setze einen Namen in doppelte geschweifte Klammern, etwa für den Namen oder die Anschrift des Betreibers, und trage den Wert einmal unter „Platzhalter" ein. Ember findet die Platzhalter selbst, egal in welchem Dokument oder welcher Sprache sie stehen, und setzt überall denselben Wert ein. Ein Platzhalter ohne Wert bleibt im Text sichtbar, damit dir nichts durchrutscht - die mitgelieferte Impressum-Vorlage ist genau so aufgebaut.',
             generatedTitle: 'Der Abschnitt zur Speicherung im Browser',
-            generatedText: 'Datenschutzerklärung und Einwilligung enthalten einen Abschnitt, der jeden Wert auflistet, den die Anwendung im Browser ablegt, und warum sie ihn braucht. Diesen Abschnitt erzeugt Ember selbst - du kannst ihn nicht bearbeiten oder löschen, sondern nur ein- und ausblenden und an eine andere Stelle schieben. Kommt ein Wert hinzu, aktualisiert sich der Text von allein.',
+            generatedText: 'Datenschutzerklärung und Einwilligung enthalten einen Abschnitt, der jeden Wert auflistet, den die Anwendung im Browser ablegt, und warum sie ihn braucht. Diesen Abschnitt erzeugt Ember selbst - du kannst ihn nicht bearbeiten oder löschen, sondern nur ein- und ausblenden und an eine andere Stelle schieben. Kommt ein Wert hinzu, aktualisiert sich der Text von allein. Die Einwilligung fragt Ember nur neu ab, wenn sich ihr Text ändert oder eine neue Art von Daten hinzukommt, nicht für jeden einzelnen Wert. Steht der Abschnitt in der Datenschutzerklärung, zählt dort jeder neue Wert als Änderung.',
             exampleTitle: 'So sieht die Seite aus',
             editorPlaceholder: 'Hier steht der Inhalt des Dokuments...',
             tip: 'Tipp: Ändert sich der deutsche Text von Datenschutzerklärung, Nutzungsbedingungen oder Einwilligung, werden Nutzer um erneute Zustimmung gebeten. Das gilt auch für einen geänderten Platzhalterwert, ein- oder ausgeblendete oder verschobene Abschnitte und den erzeugten Abschnitt zur Speicherung im Browser. Das Impressum und andere Sprachen lösen keine neue Zustimmung aus.',

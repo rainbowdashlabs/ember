@@ -6,6 +6,7 @@
 <script setup lang="ts">
 import {useI18n} from 'vue-i18n'
 import Alert from '@/components/feedback/Alert.vue'
+import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ConsentGate from '@/components/consent/ConsentGate.vue'
 import LegalModal from '@/components/consent/LegalModal.vue'
 import type {LoginConsent} from '@/composables/useLoginConsent'
@@ -17,6 +18,10 @@ import type {LoginConsent} from '@/composables/useLoginConsent'
  *
  * <p>The page shows its own form once {@code legal.consent} is accepted; until then this stands in
  * its place. The consent is the page's own state, handed in so the page can tell when it is given.
+ *
+ * <p>A refusal is remembered in the browser, so it is never final here: next to it sits the way back
+ * to the choice. Without it, one press on "Ablehnen" left the page showing nothing but the refusal on
+ * every visit, until the site data was cleared by hand.
  */
 const props = defineProps<{
   legal: LoginConsent
@@ -26,7 +31,7 @@ const {
   consent, scopes, consentHtml, consentLoading,
   showPrivacyPolicy, privacyPolicyHtml, privacyPolicyLoading,
   showTos, tosHtml, tosLoading,
-  acceptCurrentVersions, deny, loadPrivacyPolicy, loadTos,
+  acceptCurrentVersions, deny, reconsider, loadPrivacyPolicy, loadTos,
 } = props.legal
 
 const {t} = useI18n()
@@ -39,9 +44,12 @@ const {t} = useI18n()
                @accept="acceptCurrentVersions" @deny="deny"
                @show-privacy="loadPrivacyPolicy" @show-tos="loadTos"/>
 
-  <Alert v-if="consent === 'denied'" variant="error">
-    {{ t('login.storageDenied') }}
-  </Alert>
+  <div v-if="consent === 'denied'" class="space-y-3">
+    <Alert variant="error">
+      {{ t('login.storageDenied') }}
+    </Alert>
+    <SecondaryButton class="w-full" @click="reconsider">{{ t('login.storageReconsider') }}</SecondaryButton>
+  </div>
 
   <LegalModal v-model="showPrivacyPolicy" :title="t('storageConsent.privacyPolicyTitle')"
               :loading="privacyPolicyLoading" :html="privacyPolicyHtml"/>

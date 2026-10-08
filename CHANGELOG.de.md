@@ -1,5 +1,14 @@
 # Änderungsprotokoll
 
+## v26.21.2
+
+Eine abgelehnte Speicherung im Browser lässt sich auf der Anmeldeseite ändern. Die Einwilligung wird nur noch erneut abgefragt, wenn sich ihr Text oder die Arten der gespeicherten Daten ändern.
+
+### Fehlerbehebungen
+
+- **Nach dem Ablehnen der Speicherung war keine Anmeldung mehr möglich.** Wer die Speicherung einmal abgelehnt hatte, sah auf der Anmeldeseite bei jedem Besuch nur eine Fehlermeldung und konnte die Wahl nicht ändern. Eine Schaltfläche unter der Meldung holt die Auswahl jetzt zurück, und nach der Zustimmung erscheint das Anmeldeformular.
+- **Änderungen an den gespeicherten Daten verlangten eine neue Zustimmung von allen.** Kam in der Liste der im Browser gespeicherten Daten etwas hinzu, mussten alle erneut zustimmen, auf einer Seite, die keine Änderung nannte. Die Einwilligung wird jetzt nur noch abgefragt, wenn sich ihr Text oder die Arten der gespeicherten Daten ändern, und die Seite nennt, was sich geändert hat.
+
 ## v26.21.1
 
 Beschreibungen der Prüfpunkte erscheinen beim Bewerten.

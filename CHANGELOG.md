@@ -1,5 +1,14 @@
 # Changelog
 
+## v26.21.2
+
+A refusal of storage in the browser can be changed on the sign-in page. The consent is asked again only when its text or the kinds of stored data change.
+
+### Fixes
+
+- **Declining storage locked people out of signing in.** After declining storage once, the sign-in page showed only an error on every visit, with no way to change the choice. A button below the error now brings the choice back, and agreeing shows the sign-in form.
+- **Changes to stored browser data asked everyone again.** A change to the list of data kept in the browser asked everybody to agree again, on a page that named no change. The consent is now asked again only when its text or the kinds of stored data change, and the page says what changed.
+
 ## v26.21.1
 
 Point descriptions show while grading.

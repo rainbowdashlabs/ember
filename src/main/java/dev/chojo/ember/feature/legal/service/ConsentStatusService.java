@@ -29,7 +29,8 @@ public class ConsentStatusService {
     /**
      * The account's latest consent, and whether it still covers every document as it now stands.
      * A consent that named no privacy policy or terms version is not held against the account for
-     * those.
+     * those. A consent to the consent text counts as current under either version
+     * {@link DocumentVersions#coversConsent} accepts.
      */
     public ConsentStatusResponse status(int accountId) {
         var current = consentService.getCurrentVersions();
@@ -37,7 +38,7 @@ public class ConsentStatusService {
                 .findLatestConsent(accountId)
                 .map(consent -> new ConsentStatusResponse(
                         true,
-                        current.consentVersion().equals(consent.consentVersion())
+                        current.coversConsent(consent.consentVersion())
                                 && !changed(consent.privacyVersion(), current.privacyVersion())
                                 && !changed(consent.tosVersion(), current.tosVersion()),
                         consent.consentVersion(),
@@ -64,8 +65,8 @@ public class ConsentStatusService {
     }
 
     /**
-     * What changed in the privacy policy and the terms since the account last consented, each as a
-     * diff and as the document now reads.
+     * What changed since the account last consented: the privacy policy and the terms each as a
+     * diff and as the document now reads, the consent text as it now reads.
      *
      * @param locale the language the documents are shown in
      */
@@ -76,13 +77,18 @@ public class ConsentStatusService {
         String tosFrom = consent.map(GdprConsent::tosVersion).orElse(null);
         boolean privacyChanged = changed(privacyFrom, current.privacyVersion());
         boolean tosChanged = changed(tosFrom, current.tosVersion());
+        boolean consentChanged = consent.map(GdprConsent::consentVersion)
+                .map(version -> !current.coversConsent(version))
+                .orElse(false);
         return new ConsentChangesResponse(
                 privacyChanged,
                 tosChanged,
+                consentChanged,
                 privacyChanged ? consentService.getPrivacyDiff(privacyFrom, current.privacyVersion()) : null,
                 tosChanged ? consentService.getTosDiff(tosFrom, current.tosVersion()) : null,
                 privacyChanged ? consentService.getPrivacyPolicy(locale).html() : null,
                 tosChanged ? consentService.getTermsOfService(locale).html() : null,
+                consentChanged ? consentService.getConsentText(locale).html() : null,
                 current.privacyVersion(),
                 current.tosVersion(),
                 current.consentVersion());
@@ -117,10 +123,12 @@ public class ConsentStatusService {
      *
      * @param privacyChanged        whether the privacy policy changed since last consent
      * @param tosChanged            whether the terms of service changed since last consent
+     * @param consentChanged        whether the consent text or its storage categories changed since last consent
      * @param privacyDiff           line-based diff of the privacy policy (null if unchanged)
      * @param tosDiff               line-based diff of the terms of service (null if unchanged)
      * @param privacyHtml           current privacy policy HTML (null if unchanged)
      * @param tosHtml               current terms of service HTML (null if unchanged)
+     * @param consentHtml           current consent text HTML (null if unchanged)
      * @param currentPrivacyVersion the current privacy policy version hash
      * @param currentTosVersion     the current terms of service version hash
      * @param currentConsentVersion the current consent text version hash
@@ -128,10 +136,12 @@ public class ConsentStatusService {
     public record ConsentChangesResponse(
             boolean privacyChanged,
             boolean tosChanged,
+            boolean consentChanged,
             @Nullable String privacyDiff,
             @Nullable String tosDiff,
             @Nullable String privacyHtml,
             @Nullable String tosHtml,
+            @Nullable String consentHtml,
             String currentPrivacyVersion,
             String currentTosVersion,
             String currentConsentVersion) {}

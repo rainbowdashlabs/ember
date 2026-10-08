@@ -42,6 +42,7 @@ function parseDiff(diff: string | undefined | null): { added: string[]; removed:
 <template>
   <NeutralContainer class="space-y-3">
     <SubHeader>{{ props.title }}</SubHeader>
+    <slot/>
 
     <template v-if="props.diff">
       <div class="text-xs text-(--text-muted) mb-1">{{ t('reconsent.whatChanged') }}</div>

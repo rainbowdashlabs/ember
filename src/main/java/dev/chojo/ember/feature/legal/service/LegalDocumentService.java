@@ -24,6 +24,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Function;
 import java.util.regex.Pattern;
 
 /**
@@ -65,7 +66,16 @@ public class LegalDocumentService {
      *                        {@value #DEFAULT_PLACEHOLDER_FILE} when null or blank
      */
     public LegalDocumentService(@Nullable String placeholderFile) {
-        this.browserStorage = new BrowserStorageService();
+        this(placeholderFile, new BrowserStorageService());
+    }
+
+    /**
+     * @param placeholderFile where the placeholder values are stored; falls back to
+     *                        {@value #DEFAULT_PLACEHOLDER_FILE} when null or blank
+     * @param browserStorage  the service rendering the generated browser storage section
+     */
+    LegalDocumentService(@Nullable String placeholderFile, BrowserStorageService browserStorage) {
+        this.browserStorage = browserStorage;
         this.placeholders = new PlaceholderService(Path.of(
                 placeholderFile == null || placeholderFile.isBlank() ? DEFAULT_PLACEHOLDER_FILE : placeholderFile));
     }
@@ -95,9 +105,9 @@ public class LegalDocumentService {
      * @return true if the content changed since last startup, false on the very first one
      */
     public boolean initialize(Path baseDir) {
-        String currentMarkdown = readMarkdownDirectory(baseDir, DEFAULT_LOCALE);
+        String currentMarkdown = readMarkdownDirectory(baseDir, DEFAULT_LOCALE, browserStorage::toMarkdown);
         if (currentMarkdown.isEmpty()) {
-            currentMarkdown = readMarkdownDirectoryFlat(baseDir);
+            currentMarkdown = readMarkdownDirectoryFlat(baseDir, browserStorage::toMarkdown);
         }
         if (currentMarkdown.isEmpty()) {
             log.warn("No markdown content found in {}", baseDir);
@@ -222,17 +232,50 @@ public class LegalDocumentService {
      * @return the rendered document with HTML, raw markdown, and version hash
      */
     public RenderedDocument getDocument(Path baseDir, String locale, @Nullable String typeSlug) {
-        String markdown = readMarkdownDirectory(baseDir, locale);
+        String markdown = resolveMarkdown(baseDir, locale, typeSlug, browserStorage::toMarkdown);
+        var numbered = LegalNumbering.apply(markdown, styleFor(typeSlug), paragraphSign(locale));
+        String html = Markdown.toHtml(numbered.markdown(), HtmlSanitizer.Policy.STRICT);
+        String version = hash(markdown);
+        if (!numbered.unresolved().isEmpty()) {
+            log.warn("Legal document {} refers to sections that do not exist: {}", baseDir, numbered.unresolved());
+        }
+        return new RenderedDocument(html, markdown, version);
+    }
+
+    /**
+     * The version of a document in the default locale, with its generated browser storage section
+     * counted by the storage categories alone instead of by every stored key.
+     *
+     * <p>This is the version a consent is given for: a key added to a category already disclosed
+     * leaves it as it was, while a new category, a reworded one or a change to the written text
+     * moves it. {@link #getDocument(Path)} keeps hashing the document as it reads.
+     *
+     * @param baseDir the base directory containing the markdown files
+     * @return the content hash of the document with the storage section reduced to its categories
+     */
+    public String versionByStorageCategories(Path baseDir) {
+        return hash(resolveMarkdown(baseDir, DEFAULT_LOCALE, typeSlug(baseDir), browserStorage::categorySummary));
+    }
+
+    /**
+     * Assembles the markdown of a document: the locale asked for, the flat layout, the default
+     * locale, and the bundled template of the type, in that order, whichever first holds anything.
+     *
+     * @param storageSection renders the generated browser storage section for a locale
+     */
+    private String resolveMarkdown(
+            Path baseDir, String locale, @Nullable String typeSlug, Function<String, String> storageSection) {
+        String markdown = readMarkdownDirectory(baseDir, locale, storageSection);
         if (markdown.isEmpty()) {
-            markdown = readMarkdownDirectoryFlat(baseDir);
+            markdown = readMarkdownDirectoryFlat(baseDir, storageSection);
         }
         if (markdown.isEmpty() && !DEFAULT_LOCALE.equals(locale)) {
-            markdown = readMarkdownDirectory(baseDir, DEFAULT_LOCALE);
+            markdown = readMarkdownDirectory(baseDir, DEFAULT_LOCALE, storageSection);
         }
         if (markdown.isEmpty()) {
-            markdown = readBundled(typeSlug, locale);
+            markdown = readBundled(typeSlug, locale, storageSection);
             if (markdown.isEmpty() && !DEFAULT_LOCALE.equals(locale)) {
-                markdown = readBundled(typeSlug, DEFAULT_LOCALE);
+                markdown = readBundled(typeSlug, DEFAULT_LOCALE, storageSection);
             }
             if (!markdown.isEmpty()) {
                 log.warn(
@@ -242,13 +285,7 @@ public class LegalDocumentService {
                         typeSlug);
             }
         }
-        var numbered = LegalNumbering.apply(markdown, styleFor(typeSlug), paragraphSign(locale));
-        String html = Markdown.toHtml(numbered.markdown(), HtmlSanitizer.Policy.STRICT);
-        String version = hash(markdown);
-        if (!numbered.unresolved().isEmpty()) {
-            log.warn("Legal document {} refers to sections that do not exist: {}", baseDir, numbered.unresolved());
-        }
-        return new RenderedDocument(html, markdown, version);
+        return markdown;
     }
 
     /**
@@ -277,12 +314,12 @@ public class LegalDocumentService {
      * Assembles the bundled document of a type the same way a directory of sections is assembled,
      * so the generated sections carry their generated content here too.
      */
-    private String readBundled(@Nullable String typeSlug, String locale) {
+    private String readBundled(@Nullable String typeSlug, String locale, Function<String, String> storageSection) {
         if (typeSlug == null) return "";
         var sb = new StringBuilder();
         for (var section : DataInitializer.bundledDocument(typeSlug, locale)) {
             String content = BrowserStorageService.isGeneratedSection(section.displayName())
-                    ? browserStorage.toMarkdown(locale)
+                    ? storageSection.apply(locale)
                     : placeholders.apply(section.content());
             if (content.isBlank()) continue;
             if (!sb.isEmpty()) sb.append("\n\n");
@@ -382,25 +419,25 @@ public class LegalDocumentService {
     /**
      * Reads markdown files from a locale subdirectory: baseDir/locale/*.md
      */
-    private String readMarkdownDirectory(Path baseDir, String locale) {
+    private String readMarkdownDirectory(Path baseDir, String locale, Function<String, String> storageSection) {
         Path localeDir = baseDir.resolve(locale);
         if (!Files.isDirectory(localeDir)) {
             return "";
         }
-        return readMarkdownFiles(localeDir, locale);
+        return readMarkdownFiles(localeDir, locale, storageSection);
     }
 
     /**
      * Reads markdown files directly from baseDir/*.md (flat layout, backwards compatible).
      */
-    private String readMarkdownDirectoryFlat(Path baseDir) {
+    private String readMarkdownDirectoryFlat(Path baseDir, Function<String, String> storageSection) {
         if (!Files.isDirectory(baseDir)) {
             return "";
         }
-        return readMarkdownFiles(baseDir, DEFAULT_LOCALE);
+        return readMarkdownFiles(baseDir, DEFAULT_LOCALE, storageSection);
     }
 
-    private String readMarkdownFiles(Path dir, String locale) {
+    private String readMarkdownFiles(Path dir, String locale, Function<String, String> storageSection) {
         List<Path> files = new ArrayList<>();
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir, "*.md")) {
             for (Path entry : stream) {
@@ -422,7 +459,7 @@ public class LegalDocumentService {
                 }
                 String name = FilePaths.nameOf(file);
                 if (BrowserStorageService.isGeneratedSection(name)) {
-                    sb.append(browserStorage.toMarkdown(locale));
+                    sb.append(storageSection.apply(locale));
                 } else {
                     sb.append(placeholders.apply(Files.readString(file, StandardCharsets.UTF_8)));
                 }
