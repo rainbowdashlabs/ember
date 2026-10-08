@@ -9,6 +9,7 @@ import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.feature.mail.entity.MailChainEntry;
 import dev.chojo.ember.feature.mail.entity.SmtpEncryption;
 import dev.chojo.ember.feature.mail.repository.EmailQueueRepository;
+import dev.chojo.ember.feature.mail.repository.InstanceMailGrantRepository;
 import dev.chojo.ember.feature.mail.repository.ProviderSecretRepository;
 import dev.chojo.ember.feature.mail.repository.StationMailProviderRepository;
 import dev.chojo.ember.feature.station.entity.MailProviderType;
@@ -40,7 +41,8 @@ class MailRetryServiceTest extends RepositoryTestBase {
 
     @BeforeAll
     static void setup() {
-        var chainService = new MailChainService(new Mailing(), providers, new ProviderSecretRepository());
+        var chainService = new MailChainService(
+                new Mailing(), providers, new ProviderSecretRepository(), new InstanceMailGrantRepository());
         service = new MailRetryService(queue, chainService);
         single = stationRepo.create("Retry Station Single");
         chained = stationRepo.create("Retry Station Chained");

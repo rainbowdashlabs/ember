@@ -130,7 +130,7 @@ public class UserSettingsRoutes implements Routes {
         var first = mailSettings.firstEntry(stationId);
         String mailProviderName = first.map(MailChainEntry::providerName).orElse("");
         String mailProviderUrl = first.map(MailChainEntry::providerUrl).orElse("");
-        boolean mailConfigured = first.isPresent();
+        boolean mailConfigured = mailSettings.sendsMail(stationId);
 
         var responseMap = new LinkedHashMap<NotificationType, NotificationToggle>();
         for (var type : NotificationType.values()) {

@@ -207,5 +207,6 @@ class StationManageRoutesTest {
 
         assertEquals(false, json(answer).path("mailConfigured").asBoolean());
         verify(mail).firstEntry(STATION_ID);
+        verify(mail).sendsMail(STATION_ID);
     }
 }

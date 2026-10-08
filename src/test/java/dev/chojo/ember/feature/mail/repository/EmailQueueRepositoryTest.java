@@ -137,16 +137,69 @@ class EmailQueueRepositoryTest extends RepositoryTestBase {
     @Order(12)
     void providerDailyCountSeparatesListsAndPositions() {
         LocalDate today = LocalDate.now();
-        int before = emailQueueRepo.getProviderDailyCount(today, null, 0);
+        int before = emailQueueRepo.instanceProviderDailyCount(today, 0);
+        int otherBefore = emailQueueRepo.instanceProviderDailyCount(today, 2);
+        int stationBefore = emailQueueRepo.ownProviderDailyCount(today, station.id(), 0);
 
+        drain();
         emailQueueRepo.enqueue("counted@example.com", "Counted", "Body");
-        var pending = emailQueueRepo.fetchPending(1, true);
-        emailQueueRepo.markSent(pending.getFirst().id());
+        emailQueueRepo.fetchPending(1, true);
+        emailQueueRepo.markSent(queuedId("counted@example.com"), 0);
 
-        assertEquals(before + 1, emailQueueRepo.getProviderDailyCount(today, null, 0));
-        assertEquals(0, emailQueueRepo.getProviderDailyCount(today, null, 1), "another provider of the same list");
-        assertEquals(0, emailQueueRepo.getProviderDailyCount(today, station.id(), 0), "a station's own list");
-        assertEquals(0, emailQueueRepo.getProviderDailyCount(today.minusDays(1), null, 0), "yesterday");
+        assertEquals(before + 1, emailQueueRepo.instanceProviderDailyCount(today, 0));
+        assertEquals(otherBefore, emailQueueRepo.instanceProviderDailyCount(today, 2), "another provider of the list");
+        assertEquals(stationBefore, emailQueueRepo.ownProviderDailyCount(today, station.id(), 0), "a station's list");
+        assertEquals(0, emailQueueRepo.instanceProviderDailyCount(today.minusDays(1), 0), "yesterday");
+        assertEquals(0, emailQueueRepo.stationShareDailyCount(today, 0), "the instance's own mail is no station's");
+    }
+
+    /**
+     * A station's mail through an instance provider counts three ways: against that provider's
+     * allowance for everybody, against the share all stations may use of it, and against the
+     * station's own daily limit there. It never counts against the station's own providers.
+     */
+    @Test
+    @Order(12)
+    void stationMailThroughTheInstanceCountsAgainstTheProviderTheShareAndTheStation() {
+        LocalDate today = LocalDate.now();
+        int providerBefore = emailQueueRepo.instanceProviderDailyCount(today, 1);
+
+        drain();
+        emailQueueRepo.enqueue("lent@example.com", "Lent", "Body", station.id());
+        emailQueueRepo.enqueue("own@example.com", "Own", "Body", station.id());
+        emailQueueRepo.fetchPending(10, true);
+        emailQueueRepo.markSent(queuedId("lent@example.com"), 1);
+        emailQueueRepo.markSent(queuedId("own@example.com"));
+
+        assertEquals(providerBefore + 1, emailQueueRepo.instanceProviderDailyCount(today, 1));
+        assertEquals(1, emailQueueRepo.stationShareDailyCount(today, 1));
+        assertEquals(1, emailQueueRepo.stationViaInstanceDailyCount(today, station.id(), 1));
+        assertEquals(1, emailQueueRepo.stationViaInstanceDailyCount(today, station.id(), null), "across all of them");
+        assertEquals(0, emailQueueRepo.stationViaInstanceDailyCount(today, station.id(), 0), "another provider");
+        assertEquals(1, emailQueueRepo.ownProviderDailyCount(today, station.id(), 0), "only the mail its own carried");
+    }
+
+    /**
+     * A mail held back for the next day starts over at the top of its list with fresh attempts, and
+     * is not handed out before that day has come.
+     */
+    @Test
+    @Order(12)
+    void aMailWaitingForTomorrowStartsOverThen() {
+        drain();
+        emailQueueRepo.enqueue("tomorrow@example.com", "Tomorrow", "Body", station.id());
+        int id = emailQueueRepo.fetchPending(10, true).getFirst().id();
+        emailQueueRepo.advanceProvider(id);
+        emailQueueRepo.countAttempt(id);
+
+        emailQueueRepo.waitUntil(id, LocalDate.now().plusDays(1));
+
+        assertEquals("PENDING", statusOf("tomorrow@example.com"));
+        assertTrue(emailQueueRepo.fetchPending(10, true).isEmpty(), "today it is not handed out");
+        makeDue("tomorrow@example.com");
+        var due = emailQueueRepo.fetchPending(10, true).getFirst();
+        assertEquals(0, due.providerPosition(), "back at the first provider");
+        assertEquals(0, due.attempts(), "with fresh attempts");
     }
 
     /**

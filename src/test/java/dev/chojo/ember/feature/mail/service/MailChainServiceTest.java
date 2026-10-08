@@ -9,6 +9,7 @@ import dev.chojo.ember.conf.file.elements.MailProviderEntry;
 import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.feature.mail.entity.MailChainEntry;
 import dev.chojo.ember.feature.mail.entity.SmtpEncryption;
+import dev.chojo.ember.feature.mail.repository.InstanceMailGrantRepository;
 import dev.chojo.ember.feature.mail.repository.ProviderSecretRepository;
 import dev.chojo.ember.feature.mail.repository.StationMailProviderRepository;
 import dev.chojo.ember.feature.station.entity.MailProviderType;
@@ -21,30 +22,108 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * The order a mail is tried through.
  *
  * <p>A station that has taken its outgoing mail into its own hands keeps it there: its chain is its
- * own, and it never runs into the instance's. That is the property worth pinning, because getting it
- * wrong would send a station's post out under somebody else's sender without anyone asking.
+ * own, and it runs into the instance's only where an instance administrator granted that, and then
+ * only after its own providers. That is the property worth pinning, because getting it wrong would
+ * send a station's post out under somebody else's sender without anyone asking.
  */
 class MailChainServiceTest extends RepositoryTestBase {
 
     private static final StationMailProviderRepository providers = new StationMailProviderRepository();
+    private static final InstanceMailGrantRepository grants = new InstanceMailGrantRepository();
     private static MailChainService service;
+    private static MailChainService withInstanceList;
     private static Station station;
+    private static Station granted;
 
     @BeforeAll
     static void setup() {
-        service = new MailChainService(new Mailing(), providers, new ProviderSecretRepository());
+        service = new MailChainService(new Mailing(), providers, new ProviderSecretRepository(), grants);
+        var mailing = new Mailing();
+        setField(
+                mailing,
+                "providers",
+                List.of(instanceProvider(MailProviderType.BREVO), instanceProvider(MailProviderType.SWEEGO)));
+        withInstanceList = new MailChainService(mailing, providers, new ProviderSecretRepository(), grants);
         station = stationRepo.create("Chain Station");
+        granted = stationRepo.create("Chain Station Granted");
     }
 
     @AfterAll
     static void cleanup() {
         stationRepo.delete(station.id());
+        stationRepo.delete(granted.id());
+    }
+
+    private static MailProviderEntry instanceProvider(MailProviderType provider) {
+        return new MailProviderEntry(
+                provider, "", 587, SmtpEncryption.STARTTLS, "user", "secret", "key", "post@instance", "Ember", 2, 100);
+    }
+
+    /**
+     * Without a grant the instance's list stays out of a station's chain, whatever the instance has.
+     */
+    @Test
+    void aStationWithoutAGrantNeverGetsTheInstanceList() {
+        assertTrue(withInstanceList.forStation(station.id()).isEmpty());
+    }
+
+    /**
+     * A granted station without providers of its own sends through the instance's list alone, every
+     * entry marked with its place in that list so its allowance is counted there.
+     */
+    @Test
+    void aGrantedStationWithoutItsOwnUsesOnlyTheInstanceList() {
+        grants.grant(granted.id(), null);
+        providers.replace(granted.id(), List.of());
+
+        var chain = withInstanceList.forStation(granted.id());
+
+        assertEquals(2, chain.size());
+        assertEquals(MailProviderType.BREVO, chain.get(0).provider());
+        assertEquals(0, chain.get(0).instancePosition());
+        assertEquals(1, chain.get(1).instancePosition());
+        assertEquals("post@instance", chain.get(0).senderAddress());
+    }
+
+    /**
+     * Own providers first, the instance's after them: the instance carries the post only once the
+     * station's own providers have nothing left to give.
+     */
+    @Test
+    void aGrantedStationTriesItsOwnProvidersBeforeTheInstances() {
+        grants.grant(granted.id(), 20);
+        providers.replace(granted.id(), List.of(fallback(0, MailProviderType.SMTP, 2)));
+
+        var chain = withInstanceList.forStation(granted.id());
+
+        assertEquals(3, chain.size());
+        assertEquals(MailProviderType.SMTP, chain.get(0).provider());
+        assertFalse(chain.get(0).isInstanceProvider(), "the station's own comes first");
+        assertEquals(MailProviderType.BREVO, chain.get(1).provider());
+        assertEquals(1, chain.get(1).position());
+        assertEquals(0, chain.get(1).instancePosition());
+        assertEquals(MailProviderType.SWEEGO, chain.get(2).provider());
+        assertEquals(2, chain.get(2).position());
+        assertEquals(1, chain.get(2).instancePosition());
+        assertEquals(1, withInstanceList.ownForStation(granted.id()).size(), "its own list is just its own");
+        assertEquals(
+                MailProviderType.SMTP,
+                withInstanceList.firstForStation(granted.id()).orElseThrow().provider());
+    }
+
+    @Test
+    void aWithdrawnGrantTakesTheInstanceListOutAgain() {
+        grants.grant(granted.id(), null);
+        grants.withdraw(granted.id());
+
+        assertTrue(withInstanceList.forStation(granted.id()).stream().noneMatch(MailChainEntry::isInstanceProvider));
     }
 
     private static MailChainEntry fallback(int position, MailProviderType provider, int attempts) {
@@ -122,7 +201,7 @@ class MailChainServiceTest extends RepositoryTestBase {
     @Test
     void theInstanceListIsReadFromTheListRatherThanTheOldFields() {
         var mailing = new Mailing();
-        var withList = new MailChainService(mailing, providers, new ProviderSecretRepository());
+        var withList = new MailChainService(mailing, providers, new ProviderSecretRepository(), grants);
 
         assertTrue(withList.forInstance().isEmpty(), "a bare configuration lists nothing");
 
@@ -147,6 +226,7 @@ class MailChainServiceTest extends RepositoryTestBase {
         assertEquals(1, chain.size(), "the list is what counts");
         assertEquals(MailProviderType.BREVO, chain.getFirst().provider());
         assertEquals("post@example", chain.getFirst().senderAddress());
+        assertEquals(0, chain.getFirst().instancePosition(), "the instance's own entries carry their place");
     }
 
     private static void setField(Object target, String field, Object value) {

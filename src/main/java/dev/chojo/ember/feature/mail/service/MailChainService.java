@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.mail.service;
 
 import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.feature.mail.entity.MailChainEntry;
+import dev.chojo.ember.feature.mail.repository.InstanceMailGrantRepository;
 import dev.chojo.ember.feature.mail.repository.ProviderSecretRepository;
 import dev.chojo.ember.feature.mail.repository.StationMailProviderRepository;
 import dev.chojo.ember.feature.station.entity.MailProviderType;
@@ -28,8 +29,10 @@ import java.util.Optional;
  *
  * <p>The first entry is simply the first, not a provider of a different kind. One list per owner,
  * worked from the top: the instance's for system mail, the station's for station mail. A station's
- * list never runs into the instance's, so a station that has taken its outgoing mail into its own
- * hands keeps it there and its post does not silently leave under the instance's sender.
+ * list runs into the instance's only where an instance administrator granted it that: its own
+ * providers come first and the instance's follow as the last entries, so a station that has taken
+ * its outgoing mail into its own hands keeps it there, and its post leaves under the instance's
+ * sender only when its own providers are spent and the instance agreed to carry it.
  */
 @Singleton
 public class MailChainService {
@@ -37,19 +40,23 @@ public class MailChainService {
     private final Mailing mailing;
     private final StationMailProviderRepository providerRepository;
     private final ProviderSecretRepository secretRepository;
+    private final InstanceMailGrantRepository grantRepository;
 
     @Inject
     public MailChainService(
             Mailing mailing,
             StationMailProviderRepository providerRepository,
-            ProviderSecretRepository secretRepository) {
+            ProviderSecretRepository secretRepository,
+            InstanceMailGrantRepository grantRepository) {
         this.mailing = mailing;
         this.providerRepository = providerRepository;
         this.secretRepository = secretRepository;
+        this.grantRepository = grantRepository;
     }
 
     /**
-     * The order system mail is tried through.
+     * The order system mail is tried through. Every entry is marked as the instance's provider at
+     * its place in the list.
      */
     public List<MailChainEntry> forInstance() {
         List<MailChainEntry> chain = new ArrayList<>();
@@ -71,23 +78,38 @@ public class MailChainService {
                     "",
                     ""));
         }
-        return configured(chain);
+        return configured(chain).stream()
+                .map(entry -> entry.asInstanceProvider(entry.position()))
+                .toList();
     }
 
     /**
-     * The order a station's mail is tried through. Empty when the station sends through the
-     * instance rather than through anything of its own.
+     * The order a station's mail is tried through: its own providers, followed by the instance's
+     * where the station was granted them. Empty when it has neither.
      */
     public List<MailChainEntry> forStation(int stationId) {
+        List<MailChainEntry> chain = new ArrayList<>(ownForStation(stationId));
+        if (grantRepository.find(stationId).isEmpty()) return chain;
+        for (var entry : forInstance()) {
+            chain.add(entry.withPosition(chain.size()));
+        }
+        return chain;
+    }
+
+    /**
+     * The station's own providers, without anything the instance lends it. What the station
+     * configures, tries and shows its members is this list.
+     */
+    public List<MailChainEntry> ownForStation(int stationId) {
         return configured(new ArrayList<>(providerRepository.findByStation(stationId)));
     }
 
     /**
-     * The provider a station shows its members as the one carrying its post, which is the first it
-     * sends through.
+     * The provider a station shows its members as the one carrying its post, which is the first of
+     * its own.
      */
     public Optional<MailChainEntry> firstForStation(int stationId) {
-        return forStation(stationId).stream().findFirst();
+        return ownForStation(stationId).stream().findFirst();
     }
 
     /**
@@ -121,21 +143,7 @@ public class MailChainService {
         List<MailChainEntry> usable = new ArrayList<>();
         for (var entry : chain) {
             if (entry.provider() == null || entry.provider() == MailProviderType.NONE) continue;
-            usable.add(new MailChainEntry(
-                    usable.size(),
-                    entry.provider(),
-                    entry.smtpHost(),
-                    entry.smtpPort(),
-                    entry.smtpEncryption(),
-                    entry.smtpUser(),
-                    entry.smtpPassword(),
-                    entry.apiKey(),
-                    entry.senderAddress(),
-                    entry.senderName(),
-                    entry.attempts(),
-                    entry.dailySendLimit(),
-                    entry.providerName(),
-                    entry.providerUrl()));
+            usable.add(entry.withPosition(usable.size()));
         }
         return usable;
     }

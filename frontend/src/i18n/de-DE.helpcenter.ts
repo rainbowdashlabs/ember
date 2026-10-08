@@ -802,6 +802,7 @@ volumes:
                         fallbacks: 'Die weiteren Anbieter aus älteren Konfigurationen, die nach dem hier eingetragenen Einzelanbieter versucht wurden. Ember liest sie, bis die Anbieter einmal unter Administration → E-Mail gespeichert werden, und schreibt sie danach nicht mehr.',
                         attempts: 'Wie oft dieser Anbieter versucht wird, bevor der nächste übernimmt.',
                         sweegoWebhookSecret: 'Signaturschlüssel, den Sweego für seinen Webhook ausgibt. Ist er gesetzt, prüft Ember jede Rückmeldung von Sweego damit.',
+                        stationShare: 'Wie viel Prozent vom Tageslimit jedes Mailanbieters der Instanz alle Wachen zusammen nutzen dürfen, denen die Verwaltung die Anbieter der Instanz freigegeben hat. Der Rest bleibt für die Mails der Instanz selbst frei. Anbieter ohne Tageslimit begrenzt das nicht. Standard ist 50.',
                     },
                     auth: {
                         tokenBytes: 'Länge der generierten Sicherheits-Token in Bytes. Ein höherer Wert ist sicherer, aber 32 Bytes sind bereits sehr sicher.',

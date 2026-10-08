@@ -18,7 +18,8 @@ import static org.mockito.Mockito.when;
 class MailDashboardServiceTest {
     private final EmailQueueRepository queue = mock(EmailQueueRepository.class);
     private final MailProviderBlockRepository blocks = mock(MailProviderBlockRepository.class);
-    private final MailDashboardService service = new MailDashboardService(queue, mock(MailChainService.class), blocks);
+    private final MailDashboardService service =
+            new MailDashboardService(queue, mock(MailChainService.class), blocks, mock(MailAllowance.class));
 
     @Test
     void aBlockIsLiftedForTheOwnerItWasPutOn() {

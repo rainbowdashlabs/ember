@@ -198,13 +198,30 @@ public class EmailQueueRepository {
     }
 
     /**
-     * Marks an email as successfully sent.
+     * Marks an email as successfully sent through a station's own provider.
      *
      * @param id the queued email ID
      */
     public void markSent(int id) {
-        query("UPDATE email_queue SET status = 'SENT', sent_at = now() WHERE id = :id;")
-                .single(call().bind("id", id))
+        markSent(id, null);
+    }
+
+    /**
+     * Marks an email as successfully sent, recording which of the instance's providers carried it.
+     *
+     * @param id               the queued email ID
+     * @param instancePosition where the provider sits in the instance's list, or null when a
+     *                         station's own provider carried the mail
+     */
+    public void markSent(int id, @Nullable Integer instancePosition) {
+        query("""
+                UPDATE email_queue
+                SET
+                    status            = 'SENT',
+                    sent_at           = now(),
+                    instance_position = CAST(:instance_position AS INTEGER)
+                WHERE id = :id;""")
+                .single(call().bind("id", id).bind("instance_position", instancePosition))
                 .update();
     }
 
@@ -223,16 +240,16 @@ public class EmailQueueRepository {
     }
 
     /**
-     * How many mails one provider of a chain has sent on the given day.
+     * How many mails one of a station's own providers has sent on the given day.
      *
      * <p>Read from what actually left rather than from a counter of its own, so a mail written
      * yesterday and sent today counts towards today, which is what a daily allowance means.
      *
      * @param day       the day to count
-     * @param stationId the station whose chain is meant, or null for the instance chain
-     * @param position  which provider of that chain
+     * @param stationId the station whose list is meant
+     * @param position  which provider of that list
      */
-    public int getProviderDailyCount(LocalDate day, @Nullable Integer stationId, int position) {
+    public int ownProviderDailyCount(LocalDate day, int stationId, int position) {
         return count(
                 """
                         SELECT
@@ -242,12 +259,105 @@ public class EmailQueueRepository {
                         WHERE
                             sent_at >= :day_start
                             AND sent_at < :day_end
+                            AND station_id = :station_id
                             AND provider_position = :position
-                            AND station_id IS NOT DISTINCT FROM CAST(:station_id AS INTEGER);""",
+                            AND instance_position IS NULL;""",
                 call().bind("day_start", day)
                         .bind("day_end", day.plusDays(1))
-                        .bind("position", position)
-                        .bind("station_id", stationId));
+                        .bind("station_id", stationId)
+                        .bind("position", position));
+    }
+
+    /**
+     * How many mails one of the instance's providers has sent on the given day, the instance's own
+     * and the stations' together, since its allowance is one for all of them.
+     *
+     * @param day              the day to count
+     * @param instancePosition which provider of the instance's list
+     */
+    public int instanceProviderDailyCount(LocalDate day, int instancePosition) {
+        return count(
+                """
+                        SELECT
+                            count(*) AS count
+                        FROM
+                            email_queue
+                        WHERE
+                            sent_at >= :day_start
+                            AND sent_at < :day_end
+                            AND instance_position = :position;""",
+                call().bind("day_start", day).bind("day_end", day.plusDays(1)).bind("position", instancePosition));
+    }
+
+    /**
+     * How many station mails one of the instance's providers has sent on the given day, all
+     * stations together. This is what the share stations may use of it is measured against.
+     *
+     * @param day              the day to count
+     * @param instancePosition which provider of the instance's list
+     */
+    public int stationShareDailyCount(LocalDate day, int instancePosition) {
+        return count(
+                """
+                        SELECT
+                            count(*) AS count
+                        FROM
+                            email_queue
+                        WHERE
+                            sent_at >= :day_start
+                            AND sent_at < :day_end
+                            AND instance_position = :position
+                            AND station_id IS NOT NULL;""",
+                call().bind("day_start", day).bind("day_end", day.plusDays(1)).bind("position", instancePosition));
+    }
+
+    /**
+     * How many of one station's mails the instance's providers sent on the given day.
+     *
+     * @param day              the day to count
+     * @param stationId        the station
+     * @param instancePosition one provider of the instance's list, or null for all of them, which
+     *                         is what the station's own daily limit is measured against
+     */
+    public int stationViaInstanceDailyCount(LocalDate day, int stationId, @Nullable Integer instancePosition) {
+        return count(
+                """
+                        SELECT
+                            count(*) AS count
+                        FROM
+                            email_queue
+                        WHERE
+                            sent_at >= :day_start
+                            AND sent_at < :day_end
+                            AND station_id = :station_id
+                            AND instance_position IS NOT NULL
+                            AND (CAST(:position AS INTEGER) IS NULL OR instance_position = :position);""",
+                call().bind("day_start", day)
+                        .bind("day_end", day.plusDays(1))
+                        .bind("station_id", stationId)
+                        .bind("position", instancePosition));
+    }
+
+    /**
+     * Holds a mail back until the start of the given day, when it starts over at the first
+     * provider of its list with a fresh set of attempts.
+     *
+     * <p>For a mail whose whole list has spent its allowance for today: nothing could carry it
+     * before tomorrow, and every provider is worth trying again once the day has turned.
+     *
+     * @param id  the queued email ID
+     * @param day the day it may go out on
+     */
+    public void waitUntil(int id, LocalDate day) {
+        query("""
+                UPDATE email_queue
+                SET
+                    status            = 'PENDING',
+                    claimed_at        = NULL,
+                    provider_position = 0,
+                    attempts          = 0,
+                    next_attempt_at   = :day
+                WHERE id = :id;""").single(call().bind("id", id).bind("day", day)).update();
     }
 
     /**

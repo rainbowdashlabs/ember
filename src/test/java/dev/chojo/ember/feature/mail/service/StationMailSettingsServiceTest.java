@@ -8,9 +8,11 @@ package dev.chojo.ember.feature.mail.service;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.api.refusal.StationRefusal;
 import dev.chojo.ember.conf.file.elements.Api;
+import dev.chojo.ember.feature.mail.entity.InstanceMailGrant;
 import dev.chojo.ember.feature.mail.entity.MailChainEntry;
 import dev.chojo.ember.feature.mail.entity.MailFallbackPayload;
 import dev.chojo.ember.feature.mail.entity.SmtpEncryption;
+import dev.chojo.ember.feature.mail.repository.InstanceMailGrantRepository;
 import dev.chojo.ember.feature.mail.repository.ProviderSecretRepository;
 import dev.chojo.ember.feature.mail.repository.StationMailProviderRepository;
 import dev.chojo.ember.feature.station.entity.MailProviderType;
@@ -18,6 +20,7 @@ import dev.chojo.ember.feature.webhook.service.WebhookKeyService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -35,6 +38,7 @@ class StationMailSettingsServiceTest {
     private StationMailProviderRepository providers;
     private ProviderSecretRepository secrets;
     private WebhookKeyService webhookKeys;
+    private InstanceMailGrantRepository grants;
     private StationMailSettingsService service;
 
     private static MailChainEntry stored(String password) {
@@ -82,7 +86,16 @@ class StationMailSettingsServiceTest {
         when(api.baseUrl()).thenReturn("https://ember.test");
         when(webhookKeys.webhookUrl(eq("https://ember.test"), eq(3), anyString()))
                 .thenReturn("https://ember.test/hook");
-        service = new StationMailSettingsService(providers, secrets, webhookKeys, api);
+        grants = mock(InstanceMailGrantRepository.class);
+        service = new StationMailSettingsService(providers, secrets, webhookKeys, api, grants);
+    }
+
+    @Test
+    void aStationGrantedTheInstancesProvidersSendsMailWithoutAnyOfItsOwn() {
+        when(grants.find(3)).thenReturn(Optional.of(new InstanceMailGrant(3, Instant.EPOCH, null)));
+
+        assertTrue(service.sendsMail(3));
+        service.requireProvider(3);
     }
 
     @Test

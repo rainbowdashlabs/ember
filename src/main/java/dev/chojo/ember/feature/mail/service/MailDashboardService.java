@@ -15,7 +15,6 @@ import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -39,15 +38,18 @@ public class MailDashboardService {
     private final EmailQueueRepository queueRepository;
     private final MailChainService chainService;
     private final MailProviderBlockRepository blockRepository;
+    private final MailAllowance allowance;
 
     @Inject
     public MailDashboardService(
             EmailQueueRepository queueRepository,
             MailChainService chainService,
-            MailProviderBlockRepository blockRepository) {
+            MailProviderBlockRepository blockRepository,
+            MailAllowance allowance) {
         this.queueRepository = queueRepository;
         this.chainService = chainService;
         this.blockRepository = blockRepository;
+        this.allowance = allowance;
     }
 
     /**
@@ -142,21 +144,18 @@ public class MailDashboardService {
         var summary = queueRepository.summary(stationId);
         var chain = stationId == null ? chainService.forInstance() : chainService.forStation(stationId);
         var waiting = queueRepository.pendingByProvider(stationId);
-        LocalDate today = LocalDate.now();
 
         List<ProviderStanding> standings = new ArrayList<>();
-        for (int position = 0; position < chain.size(); position++) {
-            var entry = chain.get(position);
-            int sentToday = queueRepository.getProviderDailyCount(today, stationId, position);
+        for (var entry : chain) {
             standings.add(new ProviderStanding(
-                    position,
+                    entry.position(),
                     entry.provider(),
                     entry.senderAddress(),
                     entry.attempts(),
                     entry.dailySendLimit(),
-                    sentToday,
-                    waiting.getOrDefault(position, 0),
-                    !entry.hasRoomToday(sentToday)));
+                    allowance.sentToday(stationId, entry),
+                    waiting.getOrDefault(entry.position(), 0),
+                    !allowance.hasRoomToday(stationId, entry)));
         }
 
         var blocks = blockRepository.list(stationId);

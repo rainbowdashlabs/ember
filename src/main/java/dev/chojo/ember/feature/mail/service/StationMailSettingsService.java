@@ -9,6 +9,7 @@ import dev.chojo.ember.api.refusal.StationRefusal;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.mail.entity.MailChainEntry;
 import dev.chojo.ember.feature.mail.entity.MailFallbackPayload;
+import dev.chojo.ember.feature.mail.repository.InstanceMailGrantRepository;
 import dev.chojo.ember.feature.mail.repository.ProviderSecretRepository;
 import dev.chojo.ember.feature.mail.repository.StationMailProviderRepository;
 import dev.chojo.ember.feature.station.entity.MailProviderType;
@@ -40,17 +41,29 @@ public class StationMailSettingsService {
     private final ProviderSecretRepository secrets;
     private final WebhookKeyService webhookKeys;
     private final Api api;
+    private final InstanceMailGrantRepository grants;
 
     @Inject
     public StationMailSettingsService(
             StationMailProviderRepository providers,
             ProviderSecretRepository secrets,
             WebhookKeyService webhookKeys,
-            Api api) {
+            Api api,
+            InstanceMailGrantRepository grants) {
         this.providers = providers;
         this.secrets = secrets;
         this.webhookKeys = webhookKeys;
         this.api = api;
+        this.grants = grants;
+    }
+
+    /**
+     * Whether the station sends mail at all: through a provider of its own, or through the
+     * instance's where it was granted them.
+     */
+    public boolean sendsMail(int stationId) {
+        return !providers.findByStation(stationId).isEmpty()
+                || grants.find(stationId).isPresent();
     }
 
     private MailProviderType firstProvider(int stationId) {
@@ -171,10 +184,11 @@ public class StationMailSettingsService {
     }
 
     /**
-     * Refuses unless the station has a provider of its own to send through.
+     * Refuses unless the station has something to send through, a provider of its own or the
+     * instance's.
      */
     public void requireProvider(int stationId) {
-        if (providers.findByStation(stationId).isEmpty()) {
+        if (!sendsMail(stationId)) {
             throw StationRefusal.NO_MAIL_PROVIDER_SET.raise();
         }
     }
