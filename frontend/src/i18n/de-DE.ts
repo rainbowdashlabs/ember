@@ -10540,6 +10540,13 @@ export default {
         cancelled: 'Abgesagt',
         cancelledDates: 'Fällt aus am: {dates}',
         backToDiscovery: 'Zurück zur Übersicht',
+        seal: {
+            title: 'Dokumente dieser Wache tragen ein Siegel',
+            hint: 'Ob ein Dokument echt und unverändert ist, zeigt sein Siegel. Stimmt der Fingerabdruck der Zertifizierungsstelle im Dokument mit diesem überein, stammt es von dieser Installation.',
+            fingerprint: 'SHA-256-Fingerabdruck der Zertifizierungsstelle',
+            certificate: 'Zertifikat der Zertifizierungsstelle',
+            revocationList: 'Sperrliste',
+        },
         waitlist: 'Warteliste',
         blog: 'Blog',
         blogTitle: 'Neuigkeiten',

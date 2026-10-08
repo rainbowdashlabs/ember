@@ -13,7 +13,6 @@ import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 
-import java.math.BigInteger;
 import java.security.cert.CRLException;
 import java.security.cert.X509CRL;
 import java.time.Clock;
@@ -135,7 +134,9 @@ public class StationKeyRevocations {
      * @throws SigningKeyWrapException when the authority's key does not open under the at-rest secret
      */
     public Optional<byte[]> revocationList(String authoritySerial) {
-        return normalised(authoritySerial).flatMap(keys::findAuthorityBySerial).map(this::currentList);
+        return SigningCertificates.serialNumber(authoritySerial)
+                .flatMap(keys::findAuthorityBySerial)
+                .map(this::currentList);
     }
 
     private byte[] currentList(StoredAuthority authority) {
@@ -176,16 +177,7 @@ public class StationKeyRevocations {
     }
 
     private static String serialOrRefuse(String serialNumber) {
-        return normalised(serialNumber)
+        return SigningCertificates.serialNumber(serialNumber)
                 .orElseThrow(() -> new IllegalArgumentException("Not a serial number: " + serialNumber));
-    }
-
-    private static Optional<String> normalised(String serialNumber) {
-        try {
-            var serial = new BigInteger(serialNumber.strip(), 16);
-            return serial.signum() > 0 ? Optional.of(serial.toString(16)) : Optional.empty();
-        } catch (NumberFormatException e) {
-            return Optional.empty();
-        }
     }
 }

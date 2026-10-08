@@ -40,6 +40,7 @@ import java.time.Instant;
 import java.time.Period;
 import java.time.ZoneOffset;
 import java.util.Date;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -189,6 +190,23 @@ public class SigningCertificates {
      */
     public static String serialOf(X509Certificate certificate) {
         return certificate.getSerialNumber().toString(16);
+    }
+
+    /**
+     * Reads a serial number as a reader or an address gives it: hexadecimal in either case, with
+     * leading zeros or surrounding blanks.
+     *
+     * @param text the serial number as given
+     * @return it in lower-case hexadecimal, as it is stored, or empty when it is no positive
+     *         hexadecimal number
+     */
+    public static Optional<String> serialNumber(String text) {
+        try {
+            var serial = new BigInteger(text.strip(), 16);
+            return serial.signum() > 0 ? Optional.of(serial.toString(16)) : Optional.empty();
+        } catch (NumberFormatException e) {
+            return Optional.empty();
+        }
     }
 
     /**

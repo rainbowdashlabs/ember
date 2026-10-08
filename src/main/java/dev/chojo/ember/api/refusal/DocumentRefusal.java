@@ -377,7 +377,18 @@ public enum DocumentRefusal implements Refusal {
 
     /** A sealed version built on a version of the document that another one has superseded since. */
     DOCUMENT_SEALED_VERSION_OUTDATED(
-            126, HttpStatus.CONFLICT, "The document has a newer sealed version since, so this one was not filed");
+            126, HttpStatus.CONFLICT, "The document has a newer sealed version since, so this one was not filed"),
+
+    /** A signing authority's certificate or revocation list asked for by a serial number it never had. */
+    SIGNING_AUTHORITY_NOT_HERE(
+            127, HttpStatus.NOT_FOUND, "This installation has no signing authority with that serial number"),
+
+    /** A station's seal certificate asked for by a serial number none of its keys had. */
+    SEAL_CERTIFICATE_NOT_HERE(
+            128, HttpStatus.NOT_FOUND, "This station has no seal certificate with that serial number"),
+
+    /** The seal certificates of a station that does not exist or never sealed a document. */
+    SEALING_STATION_NOT_HERE(129, HttpStatus.NOT_FOUND, "No station here seals documents under that address");
 
     private final Definition definition;
 

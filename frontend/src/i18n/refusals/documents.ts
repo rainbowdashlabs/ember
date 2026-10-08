@@ -106,4 +106,7 @@ export default {
     'D-124': 'Ein versiegeltes Dokument bleibt bei den Mitgliedern, für die es versiegelt wurde',
     'D-125': 'Dieses Dokument ist nicht versiegelt und nimmt deshalb keine versiegelte Fassung auf',
     'D-126': 'Das Dokument hat inzwischen eine neuere versiegelte Fassung, deshalb wurde diese nicht abgelegt',
+    'D-127': 'Diese Installation hat keine Zertifizierungsstelle mit dieser Seriennummer',
+    'D-128': 'Diese Wache hat kein Siegelzertifikat mit dieser Seriennummer',
+    'D-129': 'Unter dieser Adresse versiegelt keine Wache Dokumente',
 }

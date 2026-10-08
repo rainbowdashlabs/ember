@@ -11,6 +11,8 @@ import dev.chojo.ember.feature.form.service.FormService;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.news.service.NewsService;
 import dev.chojo.ember.feature.page.service.PageService;
+import dev.chojo.ember.feature.signing.entity.SigningAuthorityInfo;
+import dev.chojo.ember.feature.signing.service.PublishedCertificates;
 import dev.chojo.ember.feature.station.entity.PublicOffer;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationFormat;
@@ -45,6 +47,7 @@ public class PublicStationInfoService {
     private final WaitingListService waitingListService;
     private final NewsService newsService;
     private final FormService formService;
+    private final PublishedCertificates sealCertificates;
 
     @Inject
     public PublicStationInfoService(
@@ -53,13 +56,15 @@ public class PublicStationInfoService {
             PageService pageService,
             WaitingListService waitingListService,
             NewsService newsService,
-            FormService formService) {
+            FormService formService,
+            PublishedCertificates sealCertificates) {
         this.stations = stations;
         this.logoService = logoService;
         this.pageService = pageService;
         this.waitingListService = waitingListService;
         this.newsService = newsService;
         this.formService = formService;
+        this.sealCertificates = sealCertificates;
     }
 
     /**
@@ -146,7 +151,8 @@ public class PublicStationInfoService {
                 station.defaultTheme(),
                 station.defaultFeel() != null ? station.defaultFeel().name() : null,
                 station.customThemeColors(),
-                StationFormat.timezoneNameOf(station));
+                StationFormat.timezoneNameOf(station),
+                sealCertificates.authoritiesOfStation(station.id()));
     }
 
     /**
@@ -157,6 +163,10 @@ public class PublicStationInfoService {
      * clock happened to write it comes out differently in the two copies. The station's own clock is
      * the one answer both can agree on, and the honest one besides: an appointment at seven at the
      * station is at seven whoever is reading about it.
+     *
+     * <p>The seal authorities are the installation's signing authorities that issued the station's
+     * seal certificates, so a reader can compare the fingerprint in a sealed document with the one
+     * published here. Empty while the station has never sealed anything; asking never creates a key.
      */
     public record PublicStationInfo(
             String stationUid,
@@ -173,5 +183,6 @@ public class PublicStationInfoService {
             String defaultTheme,
             @Nullable String defaultFeel,
             @Nullable String customThemeColors,
-            String timezone) {}
+            String timezone,
+            List<SigningAuthorityInfo> sealAuthorities) {}
 }

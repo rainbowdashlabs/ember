@@ -9,8 +9,10 @@ import de.chojo.sadu.queries.api.call.Call;
 import dev.chojo.ember.feature.signing.entity.RevocationReason;
 import dev.chojo.ember.feature.signing.entity.RevokedKey;
 import dev.chojo.ember.feature.signing.entity.StoredAuthority;
+import dev.chojo.ember.feature.signing.entity.StoredAuthorityCertificate;
 import dev.chojo.ember.feature.signing.entity.StoredRevocationList;
 import dev.chojo.ember.feature.signing.entity.StoredSigningKey;
+import dev.chojo.ember.feature.signing.entity.StoredStationCertificate;
 import dev.chojo.ember.feature.signing.entity.StoredStationKey;
 import jakarta.inject.Singleton;
 
@@ -349,6 +351,68 @@ public class SigningKeyRepository {
         query("UPDATE signing_ca SET crl = NULL, crl_issued_at = NULL WHERE id = :id;")
                 .single(call().bind("id", authorityId))
                 .update();
+    }
+
+    /** @return every authority's certificate, active and retired, newest first, without private keys */
+    public List<StoredAuthorityCertificate> authorityCertificates() {
+        return query("""
+                        SELECT
+                            serial_number,
+                            certificate,
+                            retired_at IS NULL AS active
+                        FROM
+                            signing_ca
+                        ORDER BY id DESC;""").single(call()).map(StoredAuthorityCertificate.map()).all();
+    }
+
+    /**
+     * @param serialNumber the authority certificate's serial number, lower-case hexadecimal
+     * @return that authority's certificate, DER encoded, active or retired
+     */
+    public Optional<byte[]> authorityCertificate(String serialNumber) {
+        return query("SELECT certificate FROM signing_ca WHERE serial_number = :serial_number;")
+                .single(call().bind("serial_number", serialNumber))
+                .map(row -> row.getBytes("certificate"))
+                .first();
+    }
+
+    /**
+     * @param stationId the station
+     * @return every certificate the station's keys had, active, retired and revoked, newest first,
+     *         without private keys
+     */
+    public List<StoredStationCertificate> stationCertificates(int stationId) {
+        return query("""
+                        SELECT
+                            k.serial_number,
+                            k.certificate,
+                            ca.serial_number AS authority_serial_number,
+                            k.revoked_at
+                        FROM
+                            station_signing_key k
+                            JOIN signing_ca ca ON ca.id = k.signing_ca_id
+                        WHERE k.station_id = :station_id
+                        ORDER BY k.id DESC;""")
+                .single(call().bind("station_id", stationId))
+                .map(StoredStationCertificate.map())
+                .all();
+    }
+
+    /**
+     * @param stationId    the station
+     * @param serialNumber a certificate serial number, lower-case hexadecimal
+     * @return the station's certificate with that serial number, DER encoded, or empty when the
+     *         station never had it
+     */
+    public Optional<byte[]> stationCertificate(int stationId, String serialNumber) {
+        return query("""
+                        SELECT certificate
+                        FROM station_signing_key
+                        WHERE station_id = :station_id
+                          AND serial_number = :serial_number;""")
+                .single(call().bind("station_id", stationId).bind("serial_number", serialNumber))
+                .map(row -> row.getBytes("certificate"))
+                .first();
     }
 
     private static Call bindKey(StoredSigningKey key) {

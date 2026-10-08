@@ -36720,6 +36720,99 @@
         } ]
       }
     },
+    "/api/v1/public/signing/ca" : {
+      "get" : {
+        "summary" : "List the installation's signing authorities",
+        "tags" : [ "Public Signing" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/SigningAuthorityInfo"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/public/signing/ca/{serial}.crl" : {
+      "get" : {
+        "summary" : "Download a signing authority's current revocation list",
+        "tags" : [ "Public Signing" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/pkix-crl" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "serial",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ]
+      }
+    },
+    "/api/v1/public/signing/ca/{serial}.crt" : {
+      "get" : {
+        "summary" : "Download a signing authority's certificate",
+        "tags" : [ "Public Signing" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/pkix-cert" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "serial",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ]
+      }
+    },
     "/api/v1/public/station/{stationUid}/blog" : {
       "get" : {
         "responses" : {
@@ -36854,6 +36947,88 @@
           }
         }, {
           "name" : "newsUid",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ]
+      }
+    },
+    "/api/v1/public/station/{stationUid}/signing/certificates" : {
+      "get" : {
+        "summary" : "List a station's seal certificates",
+        "tags" : [ "Public Signing" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/StationCertificateInfo"
+                  }
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "stationUid",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ]
+      }
+    },
+    "/api/v1/public/station/{stationUid}/signing/certificates/{serial}.crt" : {
+      "get" : {
+        "summary" : "Download one of a station's seal certificates",
+        "tags" : [ "Public Signing" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/pkix-cert" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "stationUid",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "serial",
           "in" : "path",
           "required" : true,
           "schema" : {
@@ -65995,9 +66170,15 @@
           },
           "timezone" : {
             "type" : "string"
+          },
+          "sealAuthorities" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/SigningAuthorityInfo"
+            }
           }
         },
-        "required" : [ "stationUid", "name", "description", "hasLogo", "hasPublicKb", "hasPublicCalendar", "hasPublicPages", "hasPublicWaitlist", "hasPublicBlog", "landingPageSlug", "publicSlug", "defaultTheme", "defaultFeel", "customThemeColors", "timezone" ]
+        "required" : [ "stationUid", "name", "description", "hasLogo", "hasPublicKb", "hasPublicCalendar", "hasPublicPages", "hasPublicWaitlist", "hasPublicBlog", "landingPageSlug", "publicSlug", "defaultTheme", "defaultFeel", "customThemeColors", "timezone", "sealAuthorities" ]
       },
       "PublicTheme" : {
         "type" : "object",
@@ -71230,6 +71411,30 @@
         "type" : "string",
         "enum" : [ "PARTICIPANT", "GUARDIAN_1", "GUARDIAN_2", "EACH_GUARDIAN", "ANY_GUARDIAN", "ISSUER" ]
       },
+      "SigningAuthorityInfo" : {
+        "type" : "object",
+        "properties" : {
+          "serialNumber" : {
+            "type" : "string"
+          },
+          "subject" : {
+            "type" : "string"
+          },
+          "sha256Fingerprint" : {
+            "type" : "string"
+          },
+          "validFrom" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "validUntil" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "active" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "serialNumber", "subject", "sha256Fingerprint", "validFrom", "validUntil", "active" ]
+      },
       "SigningSecretRequest" : {
         "type" : "object",
         "properties" : {
@@ -71528,6 +71733,37 @@
           }
         },
         "required" : [ "id", "firstName", "lastName", "email", "stationName", "introduction", "status", "denyReason", "createdAt", "resolvedAt" ]
+      },
+      "StationCertificateInfo" : {
+        "type" : "object",
+        "properties" : {
+          "serialNumber" : {
+            "type" : "string"
+          },
+          "subject" : {
+            "type" : "string"
+          },
+          "sha256Fingerprint" : {
+            "type" : "string"
+          },
+          "validFrom" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "validUntil" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "authoritySerialNumber" : {
+            "type" : "string"
+          },
+          "revokedAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        },
+        "required" : [ "serialNumber", "subject", "sha256Fingerprint", "validFrom", "validUntil", "authoritySerialNumber", "revokedAt" ]
       },
       "StationClusterResponse" : {
         "type" : "object",

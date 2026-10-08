@@ -47817,6 +47817,136 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/public/signing/ca": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the installation's signing authorities */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SigningAuthorityInfo"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/signing/ca/{serial}.crl": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download a signing authority's current revocation list */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    serial: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/pkix-crl": string;
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/signing/ca/{serial}.crt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download a signing authority's certificate */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    serial: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/pkix-cert": string;
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/public/station/{stationUid}/blog": {
         parameters: {
             query?: never;
@@ -48036,6 +48166,101 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["NewsTeaser"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/station/{stationUid}/signing/certificates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List a station's seal certificates */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    stationUid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StationCertificateInfo"][];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/station/{stationUid}/signing/certificates/{serial}.crt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download one of a station's seal certificates */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    serial: string;
+                    stationUid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/pkix-cert": string;
                     };
                 };
                 /** @description Not Found */
@@ -65453,6 +65678,7 @@ export interface components {
             landingPageSlug: string | null;
             name: string;
             publicSlug: string | null;
+            sealAuthorities: components["schemas"]["SigningAuthorityInfo"][];
             stationUid: string;
             timezone: string;
         };
@@ -67211,6 +67437,14 @@ export interface components {
             credentialJson?: string;
             trustedDevice?: boolean;
         };
+        SigningAuthorityInfo: {
+            active: boolean;
+            serialNumber: string;
+            sha256Fingerprint: string;
+            subject: string;
+            validFrom: components["schemas"]["Instant"];
+            validUntil: components["schemas"]["Instant"];
+        };
         SigningSecretRequest: {
             secret?: string;
         };
@@ -67328,6 +67562,15 @@ export interface components {
             resolvedAt: components["schemas"]["Instant"] | null;
             stationName: string;
             status: components["schemas"]["ApplicationStatus"];
+        };
+        StationCertificateInfo: {
+            authoritySerialNumber: string;
+            revokedAt: components["schemas"]["Instant"] | null;
+            serialNumber: string;
+            sha256Fingerprint: string;
+            subject: string;
+            validFrom: components["schemas"]["Instant"];
+            validUntil: components["schemas"]["Instant"];
         };
         StationClusterResponse: {
             applications: components["schemas"]["ClusterApplicationView"][];
@@ -70241,6 +70484,7 @@ export type SignatureConfig = components['schemas']['SignatureConfig'];
 export type SignatureRole = components['schemas']['SignatureRole'];
 export type SignInClaimRequest = components['schemas']['SignInClaimRequest'];
 export type SignInFinishRequest = components['schemas']['SignInFinishRequest'];
+export type SigningAuthorityInfo = components['schemas']['SigningAuthorityInfo'];
 export type SigningSecretRequest = components['schemas']['SigningSecretRequest'];
 export type Simple = components['schemas']['Simple'];
 export type SizeRequest = components['schemas']['SizeRequest'];
@@ -70254,6 +70498,7 @@ export type SourceOccurrenceResponse = components['schemas']['SourceOccurrenceRe
 export type SpacerConfig = components['schemas']['SpacerConfig'];
 export type StationAiProvider = components['schemas']['StationAiProvider'];
 export type StationApplication = components['schemas']['StationApplication'];
+export type StationCertificateInfo = components['schemas']['StationCertificateInfo'];
 export type StationClusterResponse = components['schemas']['StationClusterResponse'];
 export type StationDetail = components['schemas']['StationDetail'];
 export type StationEvent = components['schemas']['StationEvent'];
