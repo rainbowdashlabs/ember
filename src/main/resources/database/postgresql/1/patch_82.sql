@@ -556,3 +556,6 @@ $$;
 
 COMMENT ON FUNCTION ember_schema.member_document_retention_over(INTEGER)
     IS 'Whether the signatures on a sealed member document no longer need keeping: some signing request on it has passed its retain_until and none still keeps it. Only then may the retention sweep delete the document while its station exists.';
+
+COMMENT ON COLUMN ember_schema.webauthn_challenge.purpose IS
+    'Which ceremony minted the challenge: REGISTRATION, SECOND_FACTOR_ASSERTION, PASSKEY_SIGN_IN, PASSKEY_TRIAL, STEPUP_ASSERTION, DEVICE_ENROLLMENT or SIGNING (a started signing act, spent once by its completion). A challenge is only spendable at the finish of its own ceremony.';
