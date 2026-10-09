@@ -225,7 +225,8 @@ class DemoPhotoConsentSeederTest extends RepositoryTestBase {
                 requirementRepo,
                 wiring.templates(),
                 new MemberNeutralTemplates(wiring.templates()),
-                new EventFederationRepository());
+                new EventFederationRepository(),
+                new DomainEventBus(Set.of()));
         var appointments = new AppointmentDocumentService(
                 requirementRepo,
                 new PaperSubmissionRepository(),

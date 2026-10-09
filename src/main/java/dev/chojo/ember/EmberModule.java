@@ -304,6 +304,7 @@ import dev.chojo.ember.feature.quiz.route.QuizTestRoutes;
 import dev.chojo.ember.feature.quiz.route.RemoteQuizRoutes;
 import dev.chojo.ember.feature.quiz.service.QuizFederationService;
 import dev.chojo.ember.feature.signing.handler.RegistrationSignaturesHandler;
+import dev.chojo.ember.feature.signing.handler.RequirementChangeSignaturesHandler;
 import dev.chojo.ember.feature.signing.route.AgreementRoutes;
 import dev.chojo.ember.feature.signing.route.PartnerAgreementRoutes;
 import dev.chojo.ember.feature.signing.route.PublicSigningRoutes;
@@ -770,6 +771,7 @@ public class EmberModule extends AbstractModule {
         eventBinder.addBinding().to(EventDateRestoredHandler.class);
         eventBinder.addBinding().to(EventAnswerRecordedHandler.class);
         eventBinder.addBinding().to(RegistrationSignaturesHandler.class);
+        eventBinder.addBinding().to(RequirementChangeSignaturesHandler.class);
         eventBinder.addBinding().to(ProcedureAssignedHandler.class);
         eventBinder.addBinding().to(ProcedureResolvedHandler.class);
         eventBinder.addBinding().to(ProcedureReopenedHandler.class);

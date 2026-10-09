@@ -248,7 +248,8 @@ class PartnerAgreementsTest extends GeneratorTestBase {
         var guardianPolicy = new GuardianPolicy(stationMemberRepo);
         var requirementRepo = new EventRequirementRepository();
         var neutral = new MemberNeutralTemplates(organiser.templates());
-        requirements = new EventRequirementService(requirementRepo, organiser.templates(), neutral, shareRepo);
+        requirements = new EventRequirementService(
+                requirementRepo, organiser.templates(), neutral, shareRepo, new DomainEventBus(Set.of()));
         var appointments = new AppointmentDocumentService(
                 requirementRepo,
                 new PaperSubmissionRepository(),

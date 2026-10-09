@@ -318,6 +318,32 @@ public class SignatureRequestRepository {
     }
 
     /**
+     * The requests on the participants' copies of some documents of an appointment, for its dates from one
+     * day on, that still wait for a signature.
+     *
+     * @param eventId     the appointment
+     * @param templateIds the documents
+     * @param from        the first date that counts
+     * @return the requests, oldest first
+     */
+    public List<AppointmentRequest> openForDocumentsFrom(int eventId, Collection<Integer> templateIds, LocalDate from) {
+        return query("""
+                        SELECT %s
+                        FROM signing_request r
+                                 JOIN document_generation g ON g.id = r.generation_id
+                        WHERE g.event_id = :event_id
+                          AND g.template_id = ANY (:template_ids)
+                          AND g.event_date >= :from
+                          AND r.state = 'OPEN'
+                        ORDER BY r.id;""", APPOINTMENT_COLUMNS)
+                .single(call().bind("event_id", eventId)
+                        .bind("template_ids", List.copyOf(templateIds), PostgreSqlTypes.INTEGER)
+                        .bind("from", from))
+                .map(AppointmentRequest.map())
+                .all();
+    }
+
+    /**
      * @param stateCondition a condition on the request {@code r}, one of the constant ones above
      */
     private static List<AppointmentRequest> forAppointment(

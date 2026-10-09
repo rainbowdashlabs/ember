@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.generator.service;
 import dev.chojo.ember.api.TestUploads;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.DocumentRefusal;
+import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.documents.service.DocumentCatalogService;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
@@ -41,6 +42,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
@@ -103,7 +105,8 @@ class PaperSubmissionServiceTest extends GeneratorTestBase {
                 repository,
                 wiring.templates(),
                 new MemberNeutralTemplates(wiring.templates()),
-                new EventFederationRepository());
+                new EventFederationRepository(),
+                new DomainEventBus(Set.of()));
         appointments = new AppointmentDocumentService(
                 repository,
                 submissions,

@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.generator.service;
 
 import dev.chojo.ember.api.refusal.DocumentRefusal;
+import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
@@ -31,6 +32,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.letter;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -91,7 +93,8 @@ class AppointmentDocumentServiceTest extends GeneratorTestBase {
                 repository,
                 wiring.templates(),
                 new MemberNeutralTemplates(wiring.templates()),
-                new EventFederationRepository());
+                new EventFederationRepository(),
+                new DomainEventBus(Set.of()));
         appointments = new AppointmentDocumentService(
                 repository,
                 new PaperSubmissionRepository(),

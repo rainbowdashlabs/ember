@@ -30,10 +30,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
@@ -110,10 +112,34 @@ public class AppointmentSignatures {
      * @return how many documents were asked for now
      */
     public int askOnRegistration(int eventId, LocalDate date, int memberId) {
+        return askFor(eventId, date, memberId, template -> true);
+    }
+
+    /**
+     * Asks for the signatures of documents the appointment asks for since the member took a place on the
+     * date, the same way as on registering.
+     *
+     * @param eventId     the appointment
+     * @param date        the date
+     * @param memberId    the member holding a place
+     * @param templateIds the documents added
+     * @return how many documents were asked for now
+     */
+    public int askForAdded(int eventId, LocalDate date, int memberId, Collection<Integer> templateIds) {
+        return askFor(eventId, date, memberId, template -> templateIds.contains(template.id()));
+    }
+
+    /**
+     * Asks for the signatures of the documents the appointment asks the member to bring on the date that the
+     * filter lets through, where the member holds a place on it.
+     */
+    private int askFor(int eventId, LocalDate date, int memberId, Predicate<DocumentTemplate> wanted) {
         var event = events.findById(eventId).orElse(null);
         var registration = event == null ? null : placeOf(eventId, date, memberId);
         if (event == null || registration == null) return 0;
-        var signable = appointments.signableFor(event, memberId);
+        var signable = appointments.signableFor(event, memberId).stream()
+                .filter(wanted)
+                .toList();
         if (signable.isEmpty()) return 0;
         var settled = settledTemplates(eventId, date, memberId);
         var filed = copies.latest(eventId, date, List.of(memberId));

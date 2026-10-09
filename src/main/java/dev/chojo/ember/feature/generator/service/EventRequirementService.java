@@ -7,6 +7,8 @@ package dev.chojo.ember.feature.generator.service;
 
 import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.api.refusal.RefusalDetail;
+import dev.chojo.ember.event.DomainEventBus;
+import dev.chojo.ember.event.events.EventRequirementsChanged;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.generator.entity.RequiredTemplate;
 import dev.chojo.ember.feature.generator.repository.EventRequirementRepository;
@@ -32,6 +34,11 @@ import java.util.Objects;
  * other signer: a document to bring that asks the member side to sign has to be about nobody in particular
  * there ({@link MemberNeutralTemplates}). That is asked when the documents of a shared appointment are set,
  * and when an appointment that asks for documents is shared ({@link #requireShareable}).
+ *
+ * <p>Changing what an appointment asks for is told to the rest of the station ({@link EventRequirementsChanged}),
+ * so the participants already registered are asked for a document added later, and what is still open on one
+ * taken off goes. Changing an appointment template only affects the appointments made from it afterwards, so
+ * nobody is told.
  */
 @Singleton
 public class EventRequirementService {
@@ -44,17 +51,20 @@ public class EventRequirementService {
     private final DocumentTemplateService templates;
     private final MemberNeutralTemplates neutral;
     private final EventFederationRepository shares;
+    private final DomainEventBus eventBus;
 
     @Inject
     public EventRequirementService(
             EventRequirementRepository requirements,
             DocumentTemplateService templates,
             MemberNeutralTemplates neutral,
-            EventFederationRepository shares) {
+            EventFederationRepository shares,
+            DomainEventBus eventBus) {
         this.requirements = requirements;
         this.templates = templates;
         this.neutral = neutral;
         this.shares = shares;
+        this.eventBus = eventBus;
     }
 
     /**
@@ -107,14 +117,25 @@ public class EventRequirementService {
      * @return what it asks for now
      */
     public List<RequiredTemplate> setForEvent(Owner.Station owner, int eventId, List<Integer> templateIds) {
-        var checked = checked(owner, templateIds, requirements.forEvent(eventId));
+        var before = requirements.forEvent(eventId);
+        var checked = checked(owner, templateIds, before);
         if (shares.findShareByEvent(eventId).isPresent()) {
             checked.forEach(templateId ->
                     neutral.requireSignableByPartners(templates.requireUsable(owner.stationId(), templateId)));
         }
         requirements.replaceForEvent(eventId, checked);
         log.info("Appointment {} asks for {} document(s)", eventId, checked.size());
+        announceChange(owner, eventId, before, checked);
         return requirements.forEvent(eventId);
+    }
+
+    /** Tells the station which documents the appointment asks for now that it did not, and the other way round. */
+    private void announceChange(Owner.Station owner, int eventId, List<RequiredTemplate> before, List<Integer> now) {
+        var previous = before.stream().map(RequiredTemplate::templateId).toList();
+        var added = now.stream().filter(id -> !previous.contains(id)).toList();
+        var removed = previous.stream().filter(id -> !now.contains(id)).toList();
+        if (added.isEmpty() && removed.isEmpty()) return;
+        eventBus.publish(new EventRequirementsChanged(owner.stationId(), eventId, added, removed));
     }
 
     /**

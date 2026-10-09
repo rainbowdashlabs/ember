@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.generator.service;
 
 import dev.chojo.ember.api.refusal.DocumentRefusal;
+import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.content.entity.GuardianCondition;
 import dev.chojo.ember.feature.content.route.BlockRowRequest;
 import dev.chojo.ember.feature.events.entity.StationEvent;
@@ -26,6 +27,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.letter;
@@ -58,8 +60,8 @@ class MemberNeutralTemplatesTest extends GeneratorTestBase {
     static void setup() {
         wiring = wire(stationRepo.create("Neutral Templates Station"));
         neutral = new MemberNeutralTemplates(wiring.templates());
-        requirements =
-                new EventRequirementService(new EventRequirementRepository(), wiring.templates(), neutral, shares);
+        requirements = new EventRequirementService(
+                new EventRequirementRepository(), wiring.templates(), neutral, shares, new DomainEventBus(Set.of()));
         manager = wiring.member("neutral-manager-" + System.nanoTime() + "@example.com", "Maria", "Leitung");
     }
 

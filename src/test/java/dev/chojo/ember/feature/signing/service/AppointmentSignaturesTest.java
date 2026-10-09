@@ -172,7 +172,8 @@ class AppointmentSignaturesTest extends GeneratorTestBase {
                 requirementRepo,
                 wiring.templates(),
                 new MemberNeutralTemplates(wiring.templates()),
-                new EventFederationRepository());
+                new EventFederationRepository(),
+                new DomainEventBus(Set.of()));
         appointments = new AppointmentDocumentService(
                 requirementRepo,
                 submissions,
