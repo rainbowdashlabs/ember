@@ -201,6 +201,48 @@ public class SignatureRequestRepository {
     }
 
     /**
+     * Whether a participant's copy of a document an appointment asks for already has a request that is open
+     * or complete on any copy of that document for the same participant and date. A generated document no
+     * appointment asked for has no such copies, so the answer is always no for it.
+     *
+     * <p>Every copy of the requirement is held until the transaction ends first, so two requests written for
+     * it at the same moment, on the same copy or on two, are written one after the other and the later one
+     * finds the first. The copies are held without blocking what only refers to them.
+     *
+     * @param generationId the generation log entry of the copy to be asked on
+     * @param replacing    the request a correction replaces, which does not count, or null
+     * @return whether such a request exists
+     */
+    public boolean liveForRequirement(int generationId, @Nullable Integer replacing) {
+        query("""
+                        SELECT g.id
+                        FROM document_generation g
+                                 JOIN document_generation own
+                                      ON own.event_id = g.event_id
+                                          AND own.event_date = g.event_date
+                                          AND own.template_id = g.template_id
+                                          AND own.member_id = g.member_id
+                        WHERE own.id = :generation_id
+                        ORDER BY g.id
+                        FOR NO KEY UPDATE OF g;""")
+                .single(call().bind("generation_id", generationId))
+                .map(row -> row.getInt("id"))
+                .all();
+        return SqlSupport.exists("""
+                        SELECT 1
+                        FROM signing_request r
+                                 JOIN document_generation g ON g.id = r.generation_id
+                                 JOIN document_generation own
+                                      ON own.event_id = g.event_id
+                                          AND own.event_date = g.event_date
+                                          AND own.template_id = g.template_id
+                                          AND own.member_id = g.member_id
+                        WHERE own.id = :generation_id
+                          AND r.state IN ('OPEN', 'COMPLETE')
+                          AND r.id IS DISTINCT FROM :replacing;""", call().bind("generation_id", generationId).bind("replacing", replacing));
+    }
+
+    /**
      * Whether a write failed because it would have given a generated document a second request that is open
      * or complete. The check of {@link #liveFor} cannot see a request another transaction has written but
      * not committed yet; the database's unique index on the live request of a generated document can, and

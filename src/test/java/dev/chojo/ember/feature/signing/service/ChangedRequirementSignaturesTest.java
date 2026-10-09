@@ -6,6 +6,8 @@
 package dev.chojo.ember.feature.signing.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.DocumentRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.content.route.BlockRowRequest;
 import dev.chojo.ember.feature.documents.service.DocumentAccessService;
@@ -53,6 +55,7 @@ import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.r
 import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.signature;
 import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.text;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
@@ -74,6 +77,7 @@ class ChangedRequirementSignaturesTest extends GeneratorTestBase {
     private static EventRequirementService requirements;
     private static EventRegistrationService registrations;
     private static SignatureRequestService requests;
+    private static AppointmentDocumentService appointments;
     private static AppointmentSignatures signatures;
     private static ChangedRequirementSignatures changes;
     private static StationMember manager;
@@ -127,7 +131,7 @@ class ChangedRequirementSignaturesTest extends GeneratorTestBase {
                 new MemberNeutralTemplates(wiring.templates()),
                 new EventFederationRepository(),
                 new DomainEventBus(Set.of(new RequirementChangeSignaturesHandler(() -> changes))));
-        var appointments = new AppointmentDocumentService(
+        appointments = new AppointmentDocumentService(
                 requirementRepo,
                 submissions,
                 wiring.templates(),
@@ -271,6 +275,26 @@ class ChangedRequirementSignaturesTest extends GeneratorTestBase {
                 RequestState.WITHDRAWN,
                 requestRepo.findById(untouched.id()).orElseThrow().state());
         assertTrue(requestRepo.fieldsOf(untouched.id()).stream().noneMatch(field -> field.state() == FieldState.OPEN));
+    }
+
+    /**
+     * A document added after the child registered is asked for on a copy of its own; a manager asking again
+     * on a second copy the guardian fetches for the same date is refused, and the child stays asked once.
+     */
+    @Test
+    void aManagerCannotAskASecondCopyOfAnAddedDocument() {
+        registrations.register(camp.id(), child.id(), DAY, true, guardian.id());
+        requirements.setForEvent(wiring.owner(), camp.id(), List.of(consent));
+        var first = onlyRequest(child);
+        var second = appointments.generate(stationSession(guardian), camp, DAY, consent, child.id());
+        var editor =
+                stationSession(manager, StationPermission.DOCUMENT_EDIT_MEMBER, StationPermission.DOCUMENT_READ_MEMBER);
+
+        var refused = assertThrows(
+                RefusalResponse.class, () -> requests.requireOwnedThenRequest(editor, second.generationId()));
+
+        assertEquals(DocumentRefusal.SIGNING_ALREADY_REQUESTED, refused.refusal());
+        assertEquals(first.uid(), onlyRequest(child).uid());
     }
 
     /** A member registering after the document was added is asked for it once, by registering. */

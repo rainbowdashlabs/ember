@@ -466,7 +466,10 @@ public enum DocumentRefusal implements Refusal {
     /** Signatures asked for on a document without a signature field. */
     SIGNING_NO_FIELDS(149, HttpStatus.CONFLICT, "The document has no signature fields to sign"),
 
-    /** Signatures asked for twice on one generated document. */
+    /**
+     * Signatures asked for twice on one generated document, or on two copies of a document an appointment asks
+     * one participant for on one date.
+     */
     SIGNING_ALREADY_REQUESTED(150, HttpStatus.CONFLICT, "Signatures are already asked for on this document"),
 
     /** Signatures asked for on a document about a member who left or was deleted. */

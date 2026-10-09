@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.signing.service;
 
+import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
@@ -310,7 +311,8 @@ public class AppointmentSignatures {
 
     /**
      * Asks on the current copy where one is filed and still asks for signatures as it was generated, else on
-     * a copy generated now.
+     * a copy generated now. Where the document already stands asked for on another copy for the date, no copy
+     * is generated: the refusal is passed on.
      */
     private void ask(
             StationEvent event,
@@ -324,6 +326,7 @@ public class AppointmentSignatures {
                 requestService.requestForAppointment(copy.generationId());
                 return;
             } catch (RefusalResponse e) {
+                if (e.refusal() == DocumentRefusal.SIGNING_ALREADY_REQUESTED) throw e;
                 log.info(
                         "Copy {} of template {} cannot be asked on ({}), generating a new one",
                         copy.documentId(),

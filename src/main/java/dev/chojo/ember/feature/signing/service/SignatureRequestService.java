@@ -63,7 +63,9 @@ import java.util.function.Supplier;
  * <p>The copies of the documents an appointment asks for are the exception: registering for the
  * appointment asks for their signatures ({@link #requestForAppointment}), and no longer taking part
  * withdraws what is still open ({@link #withdrawForAppointment}). So are the documents a partner station's
- * appointment asks a member here to sign ({@link #requestForPartner}).
+ * appointment asks a member here to sign ({@link #requestForPartner}). However a participant's copy is asked
+ * for, by the appointment or by a manager on a copy generated for it, one document of a date never stands
+ * asked twice for the same participant.
  *
  * <p>Everybody a new request asks is told so ({@link SignatureNotices}), and the requests for fields that
  * were withdrawn are taken back.
@@ -143,7 +145,7 @@ public class SignatureRequestService {
      */
     public SignatureRequest request(StationSession session, int generationId) {
         var generation = generationAt(session, generationId);
-        var created = onceForTheDocument(() -> create(session, generation));
+        var created = onceForTheDocument(() -> create(session, generation, null));
         notices.asked(created, requests.fieldsOf(created.id()));
         return created;
     }
@@ -186,7 +188,7 @@ public class SignatureRequestService {
             if (held.state() == RequestState.SUPERSEDED || held.state() == RequestState.WITHDRAWN) {
                 throw DocumentRefusal.SIGNING_REQUEST_ENDED.raise();
             }
-            var replacement = create(session, generation);
+            var replacement = create(session, generation, old.id());
             requests.withdrawOpen(old.id(), by, names.official(by));
             requests.supersede(old.id(), replacement.id());
             return replacement;
@@ -236,7 +238,7 @@ public class SignatureRequestService {
                 generations.findById(generationId).orElseThrow(DocumentRefusal.SIGNING_GENERATION_NOT_FOUND::raise);
         var created = Transactions.call(() -> {
             var plan = planOf(generation, memberOf(generation), filedDocument(generation));
-            return create(generation, plan, null);
+            return create(generation, plan, null, null);
         });
         if (requests.waitsForScan(created.id())) return created;
         notices.asked(created, requests.fieldsOf(created.id()));
@@ -439,12 +441,14 @@ public class SignatureRequestService {
         return requests.asks(session.stationId(), me, wardIdsOf(me), fieldId);
     }
 
-    private SignatureRequest create(StationSession session, DocumentGeneration generation) {
-        return create(generation, plan(session, generation), session.member().id());
+    private SignatureRequest create(
+            StationSession session, DocumentGeneration generation, @Nullable Integer replacing) {
+        return create(generation, plan(session, generation), session.member().id(), replacing);
     }
 
-    private SignatureRequest create(DocumentGeneration generation, Plan plan, @Nullable Integer askedBy) {
-        if (requests.liveFor(generation.id())) throw DocumentRefusal.SIGNING_ALREADY_REQUESTED.raise();
+    private SignatureRequest create(
+            DocumentGeneration generation, Plan plan, @Nullable Integer askedBy, @Nullable Integer replacing) {
+        requireNothingLive(generation, replacing);
         if (plan.fields().isEmpty()) throw DocumentRefusal.SIGNING_NO_FIELDS.raise();
         var created = requests.create(
                 new SignatureRequest.Draft(
@@ -464,6 +468,18 @@ public class SignatureRequestService {
                 generation.stationId(),
                 created.uid());
         return created;
+    }
+
+    /**
+     * Refuses a second live request: on the generated document itself, and, for a participant's copy of a
+     * document an appointment asks for, on any other copy of it for the same participant and date. Asking
+     * from the appointment and asking on a generated copy so never leave a participant asked twice for one
+     * document of a date. The request a correction replaces does not count.
+     */
+    private void requireNothingLive(DocumentGeneration generation, @Nullable Integer replacing) {
+        if (requests.liveFor(generation.id()) || requests.liveForRequirement(generation.id(), replacing)) {
+            throw DocumentRefusal.SIGNING_ALREADY_REQUESTED.raise();
+        }
     }
 
     /**
