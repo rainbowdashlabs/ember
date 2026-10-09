@@ -5,8 +5,8 @@
  */
 import {ref, type Ref} from 'vue'
 import {useI18n} from 'vue-i18n'
-import {equipment, inventory as inventoryApi, inventoryArts} from '@/api'
-import type {Inventory, InventoryArt, InventoryItem, NeedCoverage} from '@/api/generated/schema'
+import {equipment} from '@/api'
+import type {ArtChoice, InventoryChoice, ItemChoice, NeedCoverage} from '@/api/generated/schema'
 import {apiErrorMessage} from '@/util/apiError'
 import {describeFailure, type Failure} from '@/util/failure'
 
@@ -17,7 +17,9 @@ const MINUTES_PER_HOUR = 60
  * What an appointment needs, read for one date and written for the series or for that date.
  *
  * <p>The pickers need the station's own gear, which is loaded once: every inventory, every piece in
- * them and every kind of every mixed inventory, so one picker covers the lot.
+ * them and every kind of every mixed inventory, so one picker covers the lot. They are read from the
+ * appointment rather than from the inventory, because writing a line takes the right to edit the
+ * appointment and not the right to read the inventory.
  *
  * <p>Reading and writing keep their failures apart: {@code failure} is what the panel could not
  * read, {@code saveFailure} is what a line could not be written as, which is what the dialog shows
@@ -27,9 +29,9 @@ const MINUTES_PER_HOUR = 60
 export function useEquipmentNeeds(eventId: Ref<number>, date: Ref<string | null>) {
   const {t} = useI18n()
   const coverage = ref<NeedCoverage[]>([])
-  const inventories = ref<Inventory[]>([])
-  const items = ref<InventoryItem[]>([])
-  const arts = ref<InventoryArt[]>([])
+  const inventories = ref<InventoryChoice[]>([])
+  const items = ref<ItemChoice[]>([])
+  const arts = ref<ArtChoice[]>([])
   const loading = ref(false)
   const saving = ref(false)
   const failure = ref<Failure | null>(null)
@@ -68,17 +70,16 @@ export function useEquipmentNeeds(eventId: Ref<number>, date: Ref<string | null>
   }
 
   async function loadPickers() {
-    const [entries, allItems] = await Promise.all([
-      inventoryApi.listInventories().catch(() => [] as Inventory[]),
-      inventoryApi.listAllItems().catch(() => [] as InventoryItem[]),
-    ])
-    inventories.value = entries
-    items.value = allItems
-    arts.value = (
-        await Promise.all(entries
-            .filter(entry => !entry.homogeneous)
-            .map(entry => inventoryArts.listArts(entry.id).catch(() => [] as InventoryArt[])))
-    ).flat()
+    try {
+      const choices = await equipment.choices(eventId.value)
+      inventories.value = choices.inventories
+      items.value = choices.items
+      arts.value = choices.arts
+    } catch {
+      inventories.value = []
+      items.value = []
+      arts.value = []
+    }
   }
 
   async function add(payload: {

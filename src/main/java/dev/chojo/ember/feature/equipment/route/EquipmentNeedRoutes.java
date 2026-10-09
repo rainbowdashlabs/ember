@@ -12,9 +12,11 @@ import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.EquipmentRefusal;
 import dev.chojo.ember.api.refusal.EventRefusal;
+import dev.chojo.ember.feature.equipment.entity.EquipmentChoices;
 import dev.chojo.ember.feature.equipment.entity.EquipmentHandover;
 import dev.chojo.ember.feature.equipment.entity.EquipmentNeed;
 import dev.chojo.ember.feature.equipment.entity.NeedCoverage;
+import dev.chojo.ember.feature.equipment.service.EquipmentChoiceService;
 import dev.chojo.ember.feature.equipment.service.EquipmentNeedService;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.route.EventVisibility;
@@ -49,19 +51,28 @@ import static dev.chojo.ember.api.RouteSupport.pathInt;
  * {@code EVENT_EDIT}, because it is part of planning the appointment: nothing here reserves, holds or
  * moves anything, so no third permission is minted. Borrowing what a line still misses takes
  * {@code INVENTORY_LENDING_REQUEST}, where lending already asks for it.
+ *
+ * <p>What a line can be written for is read with {@code EVENT_EDIT} as well, through a list of its
+ * own that carries no more than the pickers show. Whoever may write a line has to be able to choose
+ * what it asks for, whether or not they may read the inventory.
  */
 @Singleton
 public class EquipmentNeedRoutes implements Routes {
     private static final Logger log = LoggerFactory.getLogger(EquipmentNeedRoutes.class);
 
     private final EquipmentNeedService needService;
+    private final EquipmentChoiceService choiceService;
     private final EventCrudService eventService;
     private final EventVisibility visibility;
 
     @Inject
     public EquipmentNeedRoutes(
-            EquipmentNeedService needService, EventCrudService eventService, EventVisibility visibility) {
+            EquipmentNeedService needService,
+            EquipmentChoiceService choiceService,
+            EventCrudService eventService,
+            EventVisibility visibility) {
         this.needService = needService;
+        this.choiceService = choiceService;
         this.eventService = eventService;
         this.visibility = visibility;
     }
@@ -69,8 +80,8 @@ public class EquipmentNeedRoutes implements Routes {
     /**
      * What an appointment needs is read by whoever keeps the equipment and by whoever runs the
      * appointment. Until the second right existed, somebody who ran events without keeping the
-     * inventory could not read the material of their own appointment at all. Writing it stays with
-     * whoever writes the event.
+     * inventory could not read the material of their own appointment at all. Writing it, and reading
+     * what it can be written for, stays with whoever writes the event.
      */
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
@@ -89,6 +100,7 @@ public class EquipmentNeedRoutes implements Routes {
                 this::handovers,
                 StationPermission.INVENTORY_READ,
                 StationPermission.EVENT_INTERNAL);
+        routes.get(prefix + "/events/{eventId}/equipment/choices", this::choices, StationPermission.EVENT_EDIT);
         routes.post(prefix + "/events/{eventId}/equipment", this::add, StationPermission.EVENT_EDIT);
         routes.put(prefix + "/events/{eventId}/equipment/order", this::reorder, StationPermission.EVENT_EDIT);
         routes.put(prefix + "/events/{eventId}/equipment/{needId}", this::update, StationPermission.EVENT_EDIT);
@@ -163,6 +175,19 @@ public class EquipmentNeedRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EquipmentHandover[].class)))
     private void handovers(Context ctx) {
         ctx.json(needService.handovers(ownEvent(ctx).id(), requiredDate(ctx)));
+    }
+
+    @OpenApi(
+            path = "/api/v1/events/{eventId}/equipment/choices",
+            methods = HttpMethod.GET,
+            summary = "List what a line of an appointment can ask for",
+            description =
+                    "The station's inventories, the kinds of its mixed inventories and its pieces, with no more than a picker shows, for whoever may edit the appointment.",
+            tags = {"Events"},
+            pathParams = @OpenApiParam(name = "eventId", type = Integer.class, required = true),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = EquipmentChoices.class)))
+    private void choices(Context ctx) {
+        ctx.json(choiceService.choicesFor(ownEvent(ctx).stationId()));
     }
 
     @OpenApi(

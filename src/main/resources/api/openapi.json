@@ -18203,6 +18203,33 @@
         } ]
       }
     },
+    "/api/v1/events/{eventId}/equipment/choices" : {
+      "get" : {
+        "summary" : "List what a line of an appointment can ask for",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EquipmentChoices"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "eventId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
     "/api/v1/events/{eventId}/equipment/coverage" : {
       "get" : {
         "summary" : "Read what one date needs against what is there",
@@ -47677,6 +47704,29 @@
           }
         }
       },
+      "ArtChoice" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "inventoryId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "icon" : {
+            "type" : [ "string", "null" ]
+          },
+          "color" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "id", "inventoryId", "name", "icon", "color" ]
+      },
       "ArtMergeRequest" : {
         "type" : "object",
         "properties" : {
@@ -55303,6 +55353,30 @@
         },
         "required" : [ "protocolVersion", "issuedAt", "nonce", "audience" ]
       },
+      "EquipmentChoices" : {
+        "type" : "object",
+        "properties" : {
+          "inventories" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/InventoryChoice"
+            }
+          },
+          "arts" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ArtChoice"
+            }
+          },
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ItemChoice"
+            }
+          }
+        },
+        "required" : [ "inventories", "arts", "items" ]
+      },
       "EquipmentClaim" : {
         "type" : "object",
         "properties" : {
@@ -59993,6 +60067,31 @@
         "type" : "string",
         "enum" : [ "MEMBER", "CONTAINER" ]
       },
+      "InventoryChoice" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "inventoryType" : {
+            "$ref" : "#/components/schemas/InventoryType"
+          },
+          "homogeneous" : {
+            "type" : "boolean"
+          },
+          "icon" : {
+            "type" : [ "string", "null" ]
+          },
+          "color" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "id", "name", "inventoryType", "homogeneous", "icon", "color" ]
+      },
       "InventoryContainer" : {
         "type" : "object",
         "properties" : {
@@ -60762,6 +60861,39 @@
           }
         },
         "required" : [ "checkId", "result", "checkedAt", "checkerName", "reporterName", "containerName", "scope", "note" ]
+      },
+      "ItemChoice" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "inventoryId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "artId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "internalId" : {
+            "type" : [ "string", "null" ]
+          },
+          "sizeLabel" : {
+            "type" : [ "string", "null" ]
+          },
+          "ownerKind" : {
+            "$ref" : "#/components/schemas/ItemOwner"
+          },
+          "custody" : {
+            "$ref" : "#/components/schemas/ItemCustody"
+          }
+        },
+        "required" : [ "id", "inventoryId", "artId", "name", "internalId", "sizeLabel", "ownerKind", "custody" ]
       },
       "ItemCustody" : {
         "type" : "string",
