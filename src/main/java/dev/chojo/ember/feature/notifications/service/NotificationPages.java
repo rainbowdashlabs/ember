@@ -65,6 +65,7 @@ final class NotificationPages {
             Map.entry("cluster-overview", CLUSTER_LANDING),
             Map.entry("cluster-applications", "/cluster/applications"),
             Map.entry("cluster-members", "/cluster/members"),
+            Map.entry("cluster-team", "/cluster/team"),
             Map.entry("cluster-inventory", "/cluster/inventory"),
             Map.entry("cluster-movements", "/cluster/inventory/movements"));
 
