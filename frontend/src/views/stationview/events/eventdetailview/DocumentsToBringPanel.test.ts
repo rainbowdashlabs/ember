@@ -179,7 +179,43 @@ describe('DocumentsToBringPanel', () => {
 
         expect(appointmentDocuments.submitScan).toHaveBeenCalledWith(
             {eventId: 3, date: '2026-10-08', templateId: 8, memberId: 11}, file, 'Einverständnis, unterschrieben')
-        expect(panel.text()).toContain('Eingereicht, wartet auf Bestätigung')
+        expect(panel.text()).toContain('Scan eingereicht, wartet auf Bestätigung')
+        expect(panel.find('[data-testid="document-scan-received"]').text())
+            .toBe('Scan hochgeladen. Die Terminverwaltung prüft ihn jetzt.')
+    })
+
+    it('shows the scan waiting at once, before the documents are read again, and offers no signing meanwhile', async () => {
+        const signature = asked(RequirementSignatureState.OPEN, RequirementSignatureState.OPEN, true)
+        const panel = await mountPanel({required: [CONSENT], own: [lena(null, signature)], participants: null})
+        vi.mocked(appointmentDocuments.submitScan).mockResolvedValue(scan(PaperState.SUBMITTED))
+        vi.mocked(appointmentDocuments.documentsToBring).mockReturnValue(new Promise(() => {}))
+
+        await pick(panel, 'document-to-bring-scan')
+
+        expect(panel.find('[data-testid="document-to-bring"]').text()).toContain('Scan eingereicht, wartet auf Bestätigung')
+        expect(panel.find('[data-testid="signature-field-sign"]').exists()).toBe(false)
+        expect(panel.find('[data-testid="document-scan-received"]').exists()).toBe(true)
+    })
+
+    it('keeps a failed upload in the failure handling and says nothing was received', async () => {
+        const panel = await mountPanel({required: [CONSENT], own: [lena()], participants: null})
+        vi.mocked(appointmentDocuments.submitScan).mockRejectedValue(new Error('offline'))
+
+        await pick(panel, 'document-to-bring-scan')
+
+        expect(panel.find('[data-testid="document-scan-received"]').exists()).toBe(false)
+        expect(panel.text()).not.toContain('Scan eingereicht')
+    })
+
+    it('tells an event manager that the scan they handed in is confirmed at once', async () => {
+        const panel = await mountPanel({required: [CONSENT], own: [], participants: [lena()]})
+        vi.mocked(appointmentDocuments.submitScan).mockResolvedValue(scan(PaperState.CONFIRMED))
+        await panel.find('[data-testid="document-to-bring-status"]').trigger('click')
+
+        await pick(panel, 'document-scan-hand-in')
+
+        expect(panel.find('[data-testid="documents-to-bring-overview"] [data-testid="document-scan-received"]').text())
+            .toBe('Scan hochgeladen und bestätigt. Das Dokument gilt als auf Papier unterschrieben.')
     })
 
     it('offers no further scan once one is confirmed, and says why one was turned down', async () => {

@@ -8,6 +8,7 @@ import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import Modal from '@/components/feedback/Modal.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
+import Alert from '@/components/feedback/Alert.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import {appointmentDocuments} from '@/api'
@@ -18,6 +19,7 @@ import ParticipantScanRow from './ParticipantScanRow.vue'
 import PartnerSignerList from './PartnerSignerList.vue'
 import RejectScanModal from './RejectScanModal.vue'
 import type {ParticipantCopy} from './documentTiles'
+import {scanReceiptKey} from './scanReceipt'
 
 /**
  * Where every participant of the date stands with one document, for an event manager. A scan handed in
@@ -42,6 +44,7 @@ const props = defineProps<{
 const {t} = useI18n()
 
 const rejecting = ref<PaperSubmission | null>(null)
+const received = ref<PaperSubmission | null>(null)
 const reason = ref('')
 const rejectOpen = computed({
   get: () => rejecting.value !== null,
@@ -55,6 +58,7 @@ const viewing = useAsyncAction(async (paper: PaperSubmission) => {
 })
 
 const deciding = useAsyncAction(async (decide: () => Promise<unknown>) => {
+  received.value = null
   await decide()
   rejecting.value = null
   props.onChanged()
@@ -77,7 +81,9 @@ function reject() {
 function handIn(copy: ParticipantCopy, file: File) {
   const target = {eventId: props.eventId, date: props.date, templateId: props.template.templateId, memberId: copy.memberId}
   const title = t('events.documents.scanTitle', {name: props.template.name})
-  void deciding.run(() => appointmentDocuments.submitScan(target, file, title))
+  void deciding.run(async () => {
+    received.value = await appointmentDocuments.submitScan(target, file, title)
+  })
 }
 </script>
 
@@ -86,6 +92,9 @@ function handIn(copy: ParticipantCopy, file: File) {
     <div class="space-y-3" data-testid="documents-to-bring-overview">
       <SubHeader>{{ t('events.documents.overviewOf', {name: template.name}) }}</SubHeader>
       <FailureAlert :failure="deciding.failure.value ?? viewing.failure.value"/>
+      <Alert v-if="received" variant="success" data-testid="document-scan-received">
+        {{ t(scanReceiptKey(received)) }}
+      </Alert>
       <MutedText v-if="participants.length === 0 && partnerSigners.length === 0" size="sm" tag="p">
         {{ t('events.documents.overviewEmpty') }}
       </MutedText>

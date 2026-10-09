@@ -224,7 +224,9 @@ public class SignatureRequestService {
      * Asks for the signatures of a participant's copy of a document an appointment asks for, generated as
      * they registered. Nobody in particular asks: the appointment does, so the request names nobody who
      * asked and nobody is told who signed. The caller has made sure the copy is the participant's for an
-     * appointment they take part in, so no right to change member documents is asked for.
+     * appointment they take part in, so no right to change member documents is asked for. Where the signed
+     * scan of the copy already waits for a manager, nobody is told yet: the fields are asked for once the
+     * scan is turned down.
      *
      * @param generationId the generation log entry of the copy
      * @return the request
@@ -236,6 +238,7 @@ public class SignatureRequestService {
             var plan = planOf(generation, memberOf(generation), filedDocument(generation));
             return create(generation, plan, null);
         });
+        if (requests.waitsForScan(created.id())) return created;
         notices.asked(created, requests.fieldsOf(created.id()));
         return created;
     }

@@ -128,8 +128,33 @@ describe('RegistrationSigningStep', () => {
 
         expect(appointmentDocuments.submitScan).toHaveBeenCalledWith(
             {eventId: 3, date: '2026-10-08', templateId: 8, memberId: 11}, file, 'Einverständnis, unterschrieben')
-        expect(step.text()).toContain('Eingereicht, wartet auf Bestätigung')
+        expect(step.text()).toContain('Scan eingereicht, wartet auf Bestätigung')
+        expect(step.find('[data-testid="document-scan-received"]').text())
+            .toBe('Scan hochgeladen. Die Terminverwaltung prüft ihn jetzt.')
         expect(step.find('[data-testid="registration-signing-scan"]').exists()).toBe(false)
+        expect(step.find('[data-testid="registration-signing-now"]').exists()).toBe(false)
+    })
+
+    it('leaves a copy whose scan already waits out of signing in one go', async () => {
+        const waiting = copy(11, 'Lena Schmidt', true)
+        waiting.document = {...waiting.document, paper: {
+            id: 20,
+            eventId: 3,
+            eventDate: '2026-10-08',
+            templateId: 8,
+            memberId: 11,
+            documentId: 41,
+            state: PaperState.SUBMITTED,
+            submittedAt: '2026-10-07T10:00:00Z',
+            reviewedAt: null,
+            rejectReason: null,
+        }}
+        const step = await mountStep({eventId: 3, date: '2026-10-08', copies: [waiting, copy(12, 'Tom Schmidt', true)]})
+
+        expect(step.findAll('[data-testid="registration-signing-copy"]')[0]!.text())
+            .toContain('Scan eingereicht, wartet auf Bestätigung')
+        await step.get('[data-testid="registration-signing-now"]').trigger('click')
+        expect(push).toHaveBeenCalledWith({name: 'station-signing-all', query: {fields: '70'}})
     })
 
     it('closes for later', async () => {

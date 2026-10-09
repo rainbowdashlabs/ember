@@ -42,6 +42,7 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.signing.entity.CompletedSigning;
 import dev.chojo.ember.feature.signing.entity.FieldState;
+import dev.chojo.ember.feature.signing.entity.OpenSignature;
 import dev.chojo.ember.feature.signing.entity.PendingSignature;
 import dev.chojo.ember.feature.signing.entity.RequestState;
 import dev.chojo.ember.feature.signing.entity.RequestedSignature;
@@ -193,7 +194,7 @@ class AppointmentSignaturesTest extends GeneratorTestBase {
                 new DocumentCatalogService(memberDocumentRepo, wiring.documents(), new SignatureSummaries(requestRepo)),
                 memberNameResolver,
                 newNotifier(),
-                new ScanSignatures(requestRepo, fields));
+                new ScanSignatures(requestRepo, fields, notices));
         var signatures = new AppointmentSignatures(
                 eventRepo,
                 eventRegistrationRepo,
@@ -421,6 +422,8 @@ class AppointmentSignaturesTest extends GeneratorTestBase {
 
         scans.confirm(stationSession(manager, StationPermission.EVENT_REGISTRATION), camp, submission.id());
 
+        assertTrue(owedBy(guardian, request).isEmpty());
+
         assertEquals(
                 RequestState.COMPLETE,
                 requestRepo.findById(request.id()).orElseThrow().state());
@@ -433,6 +436,41 @@ class AppointmentSignaturesTest extends GeneratorTestBase {
         assertEquals(
                 RequirementSignatureState.PAPER_CONFIRMED, status.signature().state());
         assertTrue(status.signature().fields().stream().noneMatch(RequirementSignatureField::yours));
+    }
+
+    /**
+     * While the guardian's scan waits for a manager, the copy's open fields are asked of nobody: they are not
+     * owed, not offered to sign in one go, not reminded of, the requests already out for them are taken back,
+     * and the status shows the scan waiting with nothing to sign. Nothing about the fields is stored for the
+     * wait. Turning the scan down asks for them again and the reminders resume.
+     */
+    @Test
+    void aWaitingScanAsksForNothingUntilItIsTurnedDown() throws IOException {
+        registrations.register(camp.id(), child.id(), DAY, true, guardian.id());
+        var request = onlyRequest(child);
+        assertEquals(2, owedBy(guardian, request).size());
+        int requested = countOf(guardian, "SIGNATURE_REQUESTED");
+
+        var submission = scans.submit(stationSession(guardian), camp, DAY, consent, child.id(), null, scan());
+
+        assertTrue(owedBy(guardian, request).isEmpty());
+        assertTrue(offeredInOneGo(guardian, request).isEmpty());
+        assertFalse(dueForReminder(request));
+        assertEquals(requested - 2, countOf(guardian, "SIGNATURE_REQUESTED"), "the requests are taken back");
+        var waiting = statusFor(guardian, child);
+        assertEquals(PaperState.SUBMITTED, waiting.paper().state());
+        assertEquals(RequirementSignatureState.OPEN, waiting.signature().state());
+        assertTrue(waiting.signature().fields().stream().noneMatch(RequirementSignatureField::yours));
+        assertTrue(requestRepo.fieldsOf(request.id()).stream().allMatch(field -> field.state() == FieldState.OPEN));
+
+        scans.reject(
+                stationSession(manager, StationPermission.EVENT_REGISTRATION), camp, submission.id(), "Unleserlich");
+
+        assertEquals(2, owedBy(guardian, request).size());
+        assertEquals(2, offeredInOneGo(guardian, request).size());
+        assertTrue(dueForReminder(request));
+        assertTrue(statusFor(guardian, child).signature().fields().stream().allMatch(RequirementSignatureField::yours));
+        assertTrue(notificationsOf(guardian).contains("DOCUMENT_SCAN_REJECTED"));
     }
 
     /**
@@ -732,6 +770,26 @@ class AppointmentSignaturesTest extends GeneratorTestBase {
                 .map(row -> String.valueOf(row.getString("types")))
                 .first()
                 .orElse("");
+    }
+
+    private static int countOf(StationMember member, String type) {
+        return query("SELECT count(*) AS n FROM notification WHERE member_id = :member_id AND type = :type;")
+                .single(call().bind("member_id", member.id()).bind("type", type))
+                .map(row -> row.getInt("n"))
+                .first()
+                .orElse(0);
+    }
+
+    /** The fields of the request the signing screen offers the member to sign in one go. */
+    private static List<OpenSignature> offeredInOneGo(StationMember member, SignatureRequest request) {
+        return requests.openFor(stationSession(member)).stream()
+                .filter(open -> open.pending().requestUid().equals(request.uid()))
+                .toList();
+    }
+
+    private static boolean dueForReminder(SignatureRequest request) {
+        return requestRepo.dueForReminder(Instant.now().plus(Duration.ofDays(60)), Duration.ofDays(7), 3, 500).stream()
+                .anyMatch(due -> due.pending().requestUid().equals(request.uid()));
     }
 
     private static void assertRefused(Refusal refusal, Executable call) {

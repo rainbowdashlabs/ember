@@ -253,6 +253,7 @@ class PaperSubmissionServiceTest extends GeneratorTestBase {
         assertNotNull(submission.reviewedAt());
         assertEquals(PaperState.CONFIRMED, lenasStatus().paper().state());
         verify(confirmations).confirmed(any(), eq(submission));
+        verify(confirmations, never()).waiting(any());
 
         int filed = memberDocumentRepo
                 .findByMember(wiring.station().id(), lena.id(), true)
@@ -280,6 +281,7 @@ class PaperSubmissionServiceTest extends GeneratorTestBase {
     @Test
     void aManagerConfirmsAWaitingScanOnce() {
         var submission = handIn(guardian);
+        verify(confirmations).waiting(submission);
         verify(confirmations, never()).confirmed(any(), any());
 
         var confirmed = scans.confirm(as(manager), camp, submission.id());

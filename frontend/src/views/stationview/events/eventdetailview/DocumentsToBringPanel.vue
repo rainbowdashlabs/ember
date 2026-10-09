@@ -10,12 +10,14 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
+import Alert from '@/components/feedback/Alert.vue'
 import {appointmentDocuments, partnerAgreements} from '@/api'
-import type {AppointmentDocuments, PartnerSigner} from '@/api/generated/schema'
+import type {AppointmentDocuments, PaperSubmission, PartnerSigner} from '@/api/generated/schema'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {fetchCopy} from './documentsToBring'
 import {documentTiles, type ParticipantCopy} from './documentTiles'
+import {scanReceiptKey, withScan} from './scanReceipt'
 import DocumentToBringTile from './DocumentToBringTile.vue'
 
 /**
@@ -56,9 +58,14 @@ const fetching = useAsyncAction(async (copy: ParticipantCopy) => {
   await reload()
 })
 
+const received = ref<PaperSubmission | null>(null)
+
 const handingIn = useAsyncAction(async (copy: ParticipantCopy, file: File) => {
+  received.value = null
   const target = {eventId: props.eventId, date: props.date, templateId: copy.document.templateId, memberId: copy.memberId}
-  await appointmentDocuments.submitScan(target, file, t('events.documents.scanTitle', {name: copy.document.name}))
+  const paper = await appointmentDocuments.submitScan(target, file, t('events.documents.scanTitle', {name: copy.document.name}))
+  if (documents.value) documents.value = withScan(documents.value, paper)
+  received.value = paper
   await reload()
 })
 
@@ -75,6 +82,9 @@ watch(() => [props.eventId, props.date], reload, {immediate: true})
       {{ takesPart ? t('events.documents.toBringHint') : t('events.documents.toBringOthersHint') }}
     </MutedText>
     <FailureAlert :failure="failure ?? actionFailure"/>
+    <Alert v-if="received" variant="success" data-testid="document-scan-received">
+      {{ t(scanReceiptKey(received)) }}
+    </Alert>
     <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
       <DocumentToBringTile v-for="tile in tiles" :key="tile.template.templateId" :event-id="eventId" :date="date"
                            :tile="tile" :partner-signers="partnerSigners" :busy="busy" :on-changed="reload"

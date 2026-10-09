@@ -54,8 +54,9 @@ import java.util.Optional;
  * <p>The scan is reached here through the appointment, so a manager of the registrations can read it
  * without the right to read member documents.
  *
- * <p>Once a scan counts as confirmed, the signatures still open on the participant's copy are settled as
- * signed on paper ({@link ScanConfirmations}).
+ * <p>While a scan waits, the signatures still open on the participant's copy are asked of nobody, and a scan
+ * turned down asks for them again. Once a scan counts as confirmed, they are settled as signed on paper
+ * ({@link ScanConfirmations}).
  */
 @Singleton
 public class PaperSubmissionService {
@@ -162,6 +163,8 @@ public class PaperSubmissionService {
                 handover.submission().state());
         if (handover.submission().state() == PaperState.CONFIRMED) {
             confirmations.confirmed(session, handover.submission());
+        } else {
+            confirmations.waiting(handover.submission());
         }
         return handover.submission();
     }

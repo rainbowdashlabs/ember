@@ -9,14 +9,16 @@ import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.feature.generator.entity.PaperSubmission;
 
 /**
- * Told once the scan of a signed paper copy counts as confirmed, so the signatures still open on the
- * participant's copy can be settled as signed on paper.
+ * Told where the scan of a signed paper copy stands, so the signatures still open on the participant's copy
+ * follow it: while the scan waits for a manager they are asked of nobody, and once it counts as confirmed
+ * they are settled as signed on paper.
  */
-@FunctionalInterface
 public interface ScanConfirmations {
 
-    /** Settles nothing. */
-    ScanConfirmations NONE = (session, submission) -> {};
+    /**
+     * @param submission the scan that now waits for a manager
+     */
+    void waiting(PaperSubmission submission);
 
     /**
      * @param session    the manager of the registrations who confirmed it, or handed it in confirmed

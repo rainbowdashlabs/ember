@@ -41,6 +41,7 @@ const emit = defineEmits<{
 const {t} = useI18n()
 
 const confirmed = computed(() => props.copy.document.paper?.state === PaperState.CONFIRMED)
+const scanWaits = computed(() => props.copy.document.paper?.state === PaperState.SUBMITTED)
 </script>
 
 <template>
@@ -58,7 +59,7 @@ const confirmed = computed(() => props.copy.document.paper?.state === PaperState
         </FileUploadButton>
       </ButtonRow>
     </div>
-    <SignatureFieldList v-if="copy.document.signature" :signature="copy.document.signature" offer-signing/>
+    <SignatureFieldList v-if="copy.document.signature" :signature="copy.document.signature" :offer-signing="!scanWaits"/>
     <AgreementActions :event-id="eventId" :date="date" :copy="copy" :busy="busy" @changed="emit('changed')"/>
     <ScanRejection :paper="copy.document.paper"/>
   </div>

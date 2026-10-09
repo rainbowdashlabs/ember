@@ -11,6 +11,7 @@ import Modal from '@/components/feedback/Modal.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
+import Alert from '@/components/feedback/Alert.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import FileUploadButton from '@/components/button/FileUploadButton.vue'
@@ -19,9 +20,11 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import InfoBadge from '@/components/badge/InfoBadge.vue'
 import {appointmentDocuments} from '@/api'
+import {PaperState, type PaperSubmission} from '@/api/generated/schema'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import type {SigningStep, SigningStepCopy} from '@/composables/useRegistrationSigningStep'
 import {SCAN_TYPES} from '../eventdetailview/documentTiles'
+import {scanReceiptKey} from '../eventdetailview/scanReceipt'
 import SignatureFieldList from './SignatureFieldList.vue'
 import SignatureStateBadge from './SignatureStateBadge.vue'
 import {fieldsToSign} from './requirementSignatures'
@@ -45,14 +48,22 @@ const {t} = useI18n()
 const router = useRouter()
 
 const handedIn = ref<string[]>([])
+const received = ref<PaperSubmission | null>(null)
 const named = computed(() => new Set(props.step.copies.map(copy => copy.memberId)).size > 1)
 
 function keyOf(copy: SigningStepCopy): string {
   return `${copy.memberId}-${copy.document.templateId}`
 }
 
+/** Whether a scan of the copy waits for the event managers, which asks nobody to sign it meanwhile. */
+function scanWaits(copy: SigningStepCopy): boolean {
+  return handedIn.value.includes(keyOf(copy)) || copy.document.paper?.state === PaperState.SUBMITTED
+}
+
 /** Every field on the copies the reader can sign now, for themselves or a member in their care. */
-const signable = computed(() => props.step.copies.flatMap(copy => fieldsToSign(copy.document.signature)))
+const signable = computed(() => props.step.copies
+    .filter(copy => !scanWaits(copy))
+    .flatMap(copy => fieldsToSign(copy.document.signature)))
 
 /** Opens the signing screen with exactly these fields ticked, every document in one go. */
 function signNow() {
@@ -66,7 +77,8 @@ const handingIn = useAsyncAction(async (copy: SigningStepCopy, file: File) => {
     templateId: copy.document.templateId,
     memberId: copy.memberId,
   }
-  await appointmentDocuments.submitScan(target, file, t('events.documents.scanTitle', {name: copy.document.name}))
+  received.value = null
+  received.value = await appointmentDocuments.submitScan(target, file, t('events.documents.scanTitle', {name: copy.document.name}))
   handedIn.value = [...handedIn.value, keyOf(copy)]
 })
 </script>
@@ -77,17 +89,20 @@ const handingIn = useAsyncAction(async (copy: SigningStepCopy, file: File) => {
       <SubHeader>{{ t('events.documents.step.title') }}</SubHeader>
       <MutedText size="sm" tag="p">{{ t('events.documents.step.hint') }}</MutedText>
       <FailureAlert :failure="handingIn.failure.value"/>
+      <Alert v-if="received" variant="success" data-testid="document-scan-received">
+        {{ t(scanReceiptKey(received)) }}
+      </Alert>
       <NeutralContainer v-for="copy in step.copies" :key="keyOf(copy)" class="space-y-2"
                         data-testid="registration-signing-copy">
         <div class="flex flex-wrap items-center gap-2">
           <FieldLabel class="flex-1">
             {{ named ? t('events.documents.step.copyFor', {document: copy.document.name, name: copy.name}) : copy.document.name }}
           </FieldLabel>
-          <InfoBadge v-if="handedIn.includes(keyOf(copy))">{{ t('events.documents.scanWaiting') }}</InfoBadge>
+          <InfoBadge v-if="scanWaits(copy)">{{ t('events.documents.scanWaiting') }}</InfoBadge>
           <SignatureStateBadge v-else-if="copy.document.signature" :state="copy.document.signature.state"/>
         </div>
         <SignatureFieldList v-if="copy.document.signature" :signature="copy.document.signature" :offer-signing="false"/>
-        <MutedText v-if="fieldsToSign(copy.document.signature).length === 0" size="sm" tag="p">
+        <MutedText v-if="!scanWaits(copy) && fieldsToSign(copy.document.signature).length === 0" size="sm" tag="p">
           {{ t('events.documents.step.othersAsked') }}
         </MutedText>
         <div v-if="!handedIn.includes(keyOf(copy))" class="flex justify-end">

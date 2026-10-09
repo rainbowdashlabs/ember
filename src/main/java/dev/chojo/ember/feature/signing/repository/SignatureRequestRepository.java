@@ -74,6 +74,23 @@ public class SignatureRequestRepository {
                  AND NOT EXISTS (SELECT 1 FROM member_manager m WHERE m.managed_id = f.member_id))""";
 
     /**
+     * Whether the request {@code r} is on a participant's copy for an appointment date whose signed paper
+     * scan waits for a manager. Its open fields are then asked of nobody until the scan is confirmed, which
+     * settles them, or turned down, which asks for them again. Nothing is stored for the wait: the
+     * submission's state alone decides.
+     */
+    private static final String SCAN_WAITS = """
+            EXISTS (SELECT 1
+                    FROM document_generation wg
+                             JOIN event_document_submission ws
+                                  ON ws.event_id = wg.event_id
+                                      AND ws.event_date = wg.event_date
+                                      AND ws.template_id = wg.template_id
+                                      AND ws.member_id = wg.member_id
+                    WHERE wg.id = r.generation_id
+                      AND ws.state = 'SUBMITTED')""";
+
+    /**
      * Writes a request with its fields, the retention copied from the template the document came from.
      *
      * @param request what the request is about
@@ -450,7 +467,8 @@ public class SignatureRequestRepository {
      * The open fields due for a reminder: of an open request whose document is still there and whose member
      * is still at the station, asked for at least one interval ago and not reminded of within the last
      * interval, with fewer reminders sent than the limit. A field whose signer has left is not due, and
-     * neither is a guardian's field whose guardian no longer looks after the member.
+     * neither is a guardian's field whose guardian no longer looks after the member, nor a field of a copy
+     * whose signed scan waits for a manager.
      *
      * @param now          the time to measure against
      * @param interval     how long a field waits before its first reminder and between two
@@ -476,8 +494,9 @@ public class SignatureRequestRepository {
                                        WHERE mm.manager_id = f.signer_id AND mm.managed_id = r.member_id))
                           AND f.reminders_sent < :max_reminders
                           AND coalesce(f.reminded_at, r.created_at) <= :due_before
+                          AND NOT %s
                         ORDER BY coalesce(f.reminded_at, r.created_at), f.id
-                        LIMIT :limit;""", SqlSupport.alias("f", RequestedSignature.COLUMNS))
+                        LIMIT :limit;""", SqlSupport.alias("f", RequestedSignature.COLUMNS), SCAN_WAITS)
                 .single(call().bind("max_reminders", maxReminders)
                         .bind("due_before", now.minus(interval), INSTANT_TIMESTAMP)
                         .bind("limit", limit))
@@ -530,7 +549,7 @@ public class SignatureRequestRepository {
      * The open fields a member is asked to sign at a station, together with those they sign on behalf of the
      * members in their care or lend their account to: their own fields as member or issuer, the fields of
      * the guardian place they hold, the fields any guardian of a ward may sign, and the member fields of
-     * their wards.
+     * their wards. A field of a copy whose signed scan waits for a manager is not asked for meanwhile.
      *
      * @param stationId the station
      * @param memberId  the member
@@ -548,12 +567,26 @@ public class SignatureRequestRepository {
                           AND r.state = 'OPEN'
                           AND f.state = 'OPEN'
                           AND %s
-                        ORDER BY r.created_at, r.id, f.id;""", SqlSupport.alias("f", RequestedSignature.COLUMNS), ASKED_OF)
+                          AND NOT %s
+                        ORDER BY r.created_at, r.id, f.id;""", SqlSupport.alias("f", RequestedSignature.COLUMNS), ASKED_OF, SCAN_WAITS)
                 .single(call().bind("station_id", stationId)
                         .bind("member_id", memberId)
                         .bind("ward_ids", wardIds, PostgreSqlTypes.INTEGER))
                 .map(PendingSignature.map())
                 .all();
+    }
+
+    /**
+     * Whether a request is on a participant's copy whose signed scan waits for a manager, so its open
+     * fields are asked of nobody meanwhile.
+     *
+     * @param requestId the request
+     * @return whether such a scan waits
+     */
+    public boolean waitsForScan(int requestId) {
+        return SqlSupport.exists(
+                "SELECT 1 FROM signing_request r WHERE r.id = :id AND %s;".formatted(SCAN_WAITS),
+                call().bind("id", requestId));
     }
 
     /**
