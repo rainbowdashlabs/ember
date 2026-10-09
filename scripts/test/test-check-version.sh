@@ -58,6 +58,17 @@ expect_fail "a release pull request at another version" "carries version 26.22.0
     check EVENT_NAME=pull_request BASE_REF=main HEAD_REF=release/v26.22.0
 expect_fail "a pull request into any other branch" "not into develop" \
     check EVENT_NAME=pull_request BASE_REF=develop HEAD_REF=feature/thing
+expect_fail "main at the next feature version without its changelog block" "should be 26.20.1" \
+    check EVENT_NAME=push REF_NAME=main
+printf '# Changelog\n\n## v26.21.0\n\nSecond release.\n\n## v26.20.0\n\nFirst release.\n' > CHANGELOG.md
+commit_all "Write the release notes"
+expect_pass "main holding a rebased and merged feature release before its tag" \
+    check EVENT_NAME=push REF_NAME=main
+set_version 26.22.0
+commit_all "Skip a release"
+expect_fail "main two minors above the release" "should be 26.20.1" check EVENT_NAME=push REF_NAME=main
+set_version 26.21.0
+commit_all "Back at the release"
 
 expect_pass "a feature while no release branch is open" check EVENT_NAME=push REF_NAME=feature/thing
 git push -q origin 'v26.20.0^{commit}:refs/heads/release/v26.20.0'

@@ -8,7 +8,7 @@ import { useI18n } from 'vue-i18n'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import AvailableFormRow from './AvailableFormRow.vue'
-import type { FormListEntry } from '@/api/generated/schema'
+import type { FormListEntry, FormRespondent } from '@/api/generated/schema'
 
 defineProps<{
   forms: FormListEntry[]
@@ -16,7 +16,7 @@ defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'fill', form: FormListEntry): void
+  (e: 'fill', form: FormListEntry, respondent: FormRespondent): void
 }>()
 
 const { t } = useI18n()
@@ -33,10 +33,7 @@ const { t } = useI18n()
         v-for="form in forms"
         :key="form.id"
         :form="form"
-        :responses-label="t('forms.responses')"
-        :fill-label="t('forms.fillForm')"
-        :edit-response-label="t('forms.editResponse')"
-        @fill="emit('fill', $event)"
+        @fill="(entry, respondent) => emit('fill', entry, respondent)"
       />
     </div>
   </div>

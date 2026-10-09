@@ -19,7 +19,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import LineTargetFields from '@/components/inventory/LineTargetFields.vue'
-import type {Inventory, InventoryArt, InventoryItem} from '@/api/generated/schema'
+import type {ArtChoice, InventoryChoice, ItemChoice} from '@/api/generated/schema'
 
 const show = defineModel<boolean>('show', {required: true})
 const kind = defineModel<'item' | 'art' | 'inventory'>('kind', {required: true})
@@ -32,9 +32,9 @@ const trailHours = defineModel<number>('trailHours', {required: true})
 const thisDateOnly = defineModel<boolean>('thisDateOnly', {required: true})
 
 defineProps<{
-  inventories: Inventory[]
-  items: InventoryItem[]
-  arts: InventoryArt[]
+  inventories: InventoryChoice[]
+  items: ItemChoice[]
+  arts: ArtChoice[]
   /** Whether the appointment repeats at all, which is what makes a need for a single date possible. */
   recurring: boolean
   saving: boolean

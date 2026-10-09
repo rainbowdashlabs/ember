@@ -119,8 +119,13 @@ public class ConsentRoutes implements Routes {
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = LegalVersionsResponse.class)))
     private void getLegalVersions(Context ctx) {
         var versions = consentService.getCurrentVersions();
-        ctx.json(
-                new LegalVersionsResponse(versions.privacyVersion(), versions.tosVersion(), versions.consentVersion()));
+        ctx.json(new LegalVersionsResponse(
+                versions.privacyVersion(),
+                versions.tosVersion(),
+                versions.consentVersion(),
+                versions.privacy().legacyVersion(),
+                versions.tos().legacyVersion(),
+                versions.consent().legacyVersion()));
     }
 
     @OpenApi(
@@ -198,9 +203,20 @@ public class ConsentRoutes implements Routes {
     /**
      * Response containing the current version hashes of all legal documents.
      *
-     * @param privacyVersion the current privacy policy version hash
-     * @param tosVersion     the current terms of service version hash
-     * @param consentVersion the current consent text version hash
+     * @param privacyVersion       the current privacy policy version hash
+     * @param tosVersion           the current terms of service version hash
+     * @param consentVersion       the current consent text version hash
+     * @param legacyPrivacyVersion the legacy hash of the privacy policy still counting as current
+     * @param legacyTosVersion     the legacy hash of the terms of service still counting as current
+     * @param legacyConsentVersion the legacy hash of the consent text still counting as current: a
+     *                             browser that consented before versions left out the stored keys
+     *                             still holds it
      */
-    public record LegalVersionsResponse(String privacyVersion, String tosVersion, String consentVersion) {}
+    public record LegalVersionsResponse(
+            String privacyVersion,
+            String tosVersion,
+            String consentVersion,
+            String legacyPrivacyVersion,
+            String legacyTosVersion,
+            String legacyConsentVersion) {}
 }

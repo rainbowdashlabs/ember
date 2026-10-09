@@ -3,7 +3,10 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {ItemCustody, ItemOwner, type InventoryItem} from '@/api/generated/schema'
+import {ItemCustody, ItemOwner, type ItemChoice} from '@/api/generated/schema'
+
+/** What a piece has to say for itself to be counted, which a full piece and a picker's piece both do. */
+type CountedPiece = Pick<ItemChoice, 'custody' | 'ownerKind' | 'artId' | 'inventoryId'>
 
 /**
  * Whether a piece is one the station could actually bring along.
@@ -16,7 +19,7 @@ import {ItemCustody, ItemOwner, type InventoryItem} from '@/api/generated/schema
  * @param item the piece
  * @returns whether it is at hand
  */
-export function isAtHand(item: InventoryItem): boolean {
+export function isAtHand(item: CountedPiece): boolean {
     if (item.custody === ItemCustody.AT_STATION || item.custody === ItemCustody.WITH_MEMBER) return true
     return item.custody === ItemCustody.WITH_OWNER && item.ownerKind === ItemOwner.STATION
 }
@@ -35,7 +38,7 @@ export function isAtHand(item: InventoryItem): boolean {
  * @param items every piece the station holds
  * @returns the count per kind, kinds with no piece left out
  */
-export function stockByArt(items: InventoryItem[]): Map<number, number> {
+export function stockByArt(items: CountedPiece[]): Map<number, number> {
     return countBy(items, item => item.artId ?? null)
 }
 
@@ -45,11 +48,11 @@ export function stockByArt(items: InventoryItem[]): Map<number, number> {
  * @param items every piece the station holds
  * @returns the count per inventory, inventories with no piece left out
  */
-export function stockByInventory(items: InventoryItem[]): Map<number, number> {
+export function stockByInventory(items: CountedPiece[]): Map<number, number> {
     return countBy(items, item => item.inventoryId)
 }
 
-function countBy(items: InventoryItem[], keyOf: (item: InventoryItem) => number | null): Map<number, number> {
+function countBy(items: CountedPiece[], keyOf: (item: CountedPiece) => number | null): Map<number, number> {
     const counts = new Map<number, number>()
     for (const item of items) {
         if (!isAtHand(item)) continue

@@ -1,38 +1,49 @@
 name: Docker Build
 
+# Builds what the Verify workflow passed on a push to main or of a release tag, once that very run
+# succeeded. Reacting to the run rather than waiting on the commit's checks keeps a build from
+# waiting for another branch that happens to sit on the same commit, as the next release branch does
+# on the released one, and holds no runner while Verify works.
 on:
-  release:
-    types:
-      - published
-  push:
-    branches:
-      - main
+  workflow_run:
+    workflows: [Verify]
+    types: [completed]
+    branches: [main, 'v*']
   # A feature branch is built on request rather than on every push. Each build pulls a full set of
   # dependencies, and a branch pushed to twenty times a day pulled them twenty times.
   workflow_dispatch:
 
 jobs:
-  wait:
+  # What is built: the commit Verify passed, or the branch a build was asked for, and whether that is
+  # main or a release tag. Only pushes count, so a pull request's run never reaches the registry.
+  source:
     runs-on: ubuntu-latest
-    name: Wait for verification
-    permissions:
-      checks: read
+    name: Work out what to build
+    if: >-
+      github.event_name == 'workflow_dispatch'
+      || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    outputs:
+      sha: ${{ steps.source.outputs.sha }}
+      ref_type: ${{ steps.source.outputs.ref_type }}
+      ref_name: ${{ steps.source.outputs.ref_name }}
     steps:
-      - name: Wait for checks to succeed
-        uses: lewagon/wait-on-check-action@369769072fe522a3a8a85c03c96af1e5242a1994
-        with:
-          ref: ${{ github.ref }}
-          check-regexp: "Verify.*"
-          ignore-checks: "Verify Docker Build"
-          running-workflow-name: 'Wait for verification'
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          allowed-conclusions: success,skipped
-          checks-discovery-timeout: 300
+      - id: source
+        env:
+          RUN_SHA: ${{ github.event.workflow_run.head_sha }}
+          RUN_BRANCH: ${{ github.event.workflow_run.head_branch }}
+        run: |
+          if [ -z "$RUN_SHA" ]; then
+            printf 'sha=%s\nref_type=%s\nref_name=%s\n' "$GITHUB_SHA" "$GITHUB_REF_TYPE" "$GITHUB_REF_NAME"
+          elif [[ "$RUN_BRANCH" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            printf 'sha=%s\nref_type=tag\nref_name=%s\n' "$RUN_SHA" "$RUN_BRANCH"
+          else
+            printf 'sha=%s\nref_type=branch\nref_name=%s\n' "$RUN_SHA" "$RUN_BRANCH"
+          fi >> "$GITHUB_OUTPUT"
 
   # Native runners rather than emulation: the backend installs LibreOffice and runs a Gradle build,
   # and under QEMU that takes the better part of an hour.
   build:
-    needs: wait
+    needs: source
     runs-on: ${{ matrix.runner }}
     name: Build ${{ matrix.name }} (${{ matrix.arch }})
     permissions:
@@ -60,6 +71,7 @@ jobs:
       # released. A shallow checkout carries none of them and the changelog page then shows no dates.
       - uses: actions/checkout@v7
         with:
+          ref: ${{ needs.source.outputs.sha }}
           fetch-depth: 0
       - uses: gradle/actions/wrapper-validation@v6
         if: matrix.name == 'backend'
@@ -88,9 +100,9 @@ jobs:
           build-args: |
             EMBER_VERSION=${{ steps.version.outputs.version }}
             GITHUB_ACTIONS=true
-            GITHUB_REF_TYPE=${{ github.ref_type }}
-            GITHUB_REF_NAME=${{ github.ref_name }}
-            GITHUB_SHA=${{ github.sha }}
+            GITHUB_REF_TYPE=${{ needs.source.outputs.ref_type }}
+            GITHUB_REF_NAME=${{ needs.source.outputs.ref_name }}
+            GITHUB_SHA=${{ needs.source.outputs.sha }}
           outputs: type=image,name=${{ matrix.image }},push-by-digest=true,name-canonical=true,push=true
           # Kept in the registry rather than the Actions cache, which is ten gigabytes for the whole
           # repository and is where the Gradle caches now live. A tag of its own per image and
@@ -119,7 +131,7 @@ jobs:
   # The build jobs push untagged images. Every tag is created here in one call, so a tag is never
   # briefly single-architecture.
   publish:
-    needs: build
+    needs: [source, build]
     runs-on: ubuntu-latest
     name: Publish ${{ matrix.name }}
     permissions:
@@ -150,42 +162,33 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # Every build carries its commit; main also `dev`, a feature branch built on request its branch
+      # name, and a release `latest` with its version at three depths.
       - name: Work out which tags this is
-        id: tags
+        id: meta
+        uses: docker/metadata-action@v6
         env:
-          REF_NAME: ${{ github.ref_name }}
-          EVENT_NAME: ${{ github.event_name }}
-          COMMIT_SHA: ${{ github.sha }}
-        run: |
-          tags="$COMMIT_SHA"
-
-          if [ "$REF_NAME" = "main" ] && [ "$EVENT_NAME" = "push" ]; then
-            tags="$tags dev"
-          fi
-
-          case "$REF_NAME" in
-            feature/*)
-              branch_tag="${REF_NAME#feature/}"
-              tags="$tags ${branch_tag//[^a-zA-Z0-9._-]/-}"
-              ;;
-          esac
-
-          if [ "$EVENT_NAME" = "release" ]; then
-            version="${REF_NAME#v}"
-            major="${version%%.*}"
-            minor="${version#*.}"
-            minor="${minor%%.*}"
-            tags="$tags latest v$major v$major.$minor v$version"
-          fi
-
-          echo "Tagging with: $tags"
-          echo "tags=$tags" >> "$GITHUB_OUTPUT"
+          IS_MAIN: ${{ github.event_name == 'workflow_run' && needs.source.outputs.ref_name == 'main' }}
+          IS_FEATURE: ${{ github.event_name == 'workflow_dispatch' && startsWith(github.ref, 'refs/heads/feature/') }}
+          IS_RELEASE: ${{ needs.source.outputs.ref_type == 'tag' }}
+          VERSION: ${{ needs.source.outputs.ref_name }}
+        with:
+          images: ${{ matrix.image }}
+          flavor: latest=false
+          tags: |
+            type=raw,value=${{ needs.source.outputs.sha }}
+            type=raw,value=dev,enable=${{ env.IS_MAIN }}
+            type=ref,event=branch,enable=${{ env.IS_FEATURE }}
+            type=raw,value=latest,enable=${{ env.IS_RELEASE }}
+            type=semver,pattern=v{{version}},value=${{ env.VERSION }},enable=${{ env.IS_RELEASE }}
+            type=semver,pattern=v{{major}}.{{minor}},value=${{ env.VERSION }},enable=${{ env.IS_RELEASE }}
+            type=semver,pattern=v{{major}},value=${{ env.VERSION }},enable=${{ env.IS_RELEASE }}
 
       - name: Create the manifest list
         uses: nick-fields/retry@v4
         env:
           IMAGE: ${{ matrix.image }}
-          TAGS: ${{ steps.tags.outputs.tags }}
+          TAGS: ${{ steps.meta.outputs.tags }}
         with:
           timeout_minutes: 10
           max_attempts: 3
@@ -193,7 +196,7 @@ jobs:
           command: |
             arguments=()
             for tag in $TAGS; do
-              arguments+=(-t "$IMAGE:$tag")
+              arguments+=(-t "$tag")
             done
             for digest in /tmp/digests/*; do
               arguments+=("$IMAGE@sha256:$(basename "$digest")")
@@ -203,7 +206,7 @@ jobs:
       - name: Check every architecture is there
         env:
           IMAGE: ${{ matrix.image }}
-          COMMIT_SHA: ${{ github.sha }}
+          COMMIT_SHA: ${{ needs.source.outputs.sha }}
         run: |
           published=$(docker buildx imagetools inspect "$IMAGE:$COMMIT_SHA")
           echo "$published"

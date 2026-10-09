@@ -112,6 +112,36 @@ public class BrowserStorageService {
         return out.toString();
     }
 
+    /**
+     * Renders only the categories of the disclosure: name, heading and description of every
+     * necessity group that holds at least one entry, in the fixed order of
+     * {@link BrowserStorageEntry.Necessity}.
+     *
+     * <p>This is what a consent is given for. A key added to a category already disclosed leaves
+     * it unchanged; a new category or a reworded one does not.
+     *
+     * @param locale the desired locale (e.g. "de", "en")
+     * @return the category summary, or an empty string if the catalog could not be read
+     */
+    public String categorySummary(String locale) {
+        var catalog = this.catalog;
+        if (catalog == null || catalog.entries() == null || catalog.entries().isEmpty()) {
+            return "";
+        }
+        var out = new StringBuilder();
+        for (var necessity : grouped(catalog).keySet()) {
+            var wording = catalog.text().necessity().get(necessity);
+            out.append("### ")
+                    .append(necessity.name())
+                    .append(": ")
+                    .append(wording.heading().get(locale))
+                    .append("\n\n")
+                    .append(wording.description().get(locale))
+                    .append("\n\n");
+        }
+        return out.toString();
+    }
+
     private static Map<BrowserStorageEntry.Necessity, List<BrowserStorageEntry>> grouped(
             BrowserStorageCatalog catalog) {
         Map<BrowserStorageEntry.Necessity, List<BrowserStorageEntry>> groups = new LinkedHashMap<>();

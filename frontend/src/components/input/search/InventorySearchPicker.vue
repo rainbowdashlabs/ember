@@ -10,12 +10,12 @@ import EntitySearchPicker from './EntitySearchPicker.vue'
 import GearGlyph from '@/components/inventory/GearGlyph.vue'
 import {listSearch, numericPickerModel} from '@/util/listSearch'
 import {glyphFor} from '@/util/glyph'
-import {InventoryType, type Inventory} from '@/api/generated/schema'
+import {InventoryType, type InventoryChoice} from '@/api/generated/schema'
 
 const model = defineModel<number | null>()
 
 const props = defineProps<{
-  inventories: Inventory[]
+  inventories: InventoryChoice[]
   /** How many pieces each inventory holds at hand, which is what turns a name into a choice. */
   stock?: Map<number, number>
   placeholder?: string
@@ -23,32 +23,32 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  pick: [inventory: Inventory]
+  pick: [inventory: InventoryChoice]
 }>()
 
 const {t} = useI18n()
 
 const entries = computed(() => props.inventories)
 const searchFn = listSearch(entries, entry => entry.name ?? '')
-const displayFn = (entry: Inventory) => entry.name ?? String(entry.id)
-const keyFn = (entry: Inventory) => entry.id
+const displayFn = (entry: InventoryChoice) => entry.name ?? String(entry.id)
+const keyFn = (entry: InventoryChoice) => entry.id
 
 /**
  * What an inventory is, in the words the badges on the manage page already use: whose gear it holds,
  * and whether it is a stock of one thing or a drawer of different things. Nine inventories of a
  * station differ in exactly those two things and in their picture.
  */
-function subtitleFn(entry: Inventory): string {
+function subtitleFn(entry: InventoryChoice): string {
   const owner = t(`inventory.manage.type.${entry.inventoryType ?? InventoryType.INTERNAL}`)
   const kind = entry.homogeneous ? t('inventory.manage.kindStockName') : t('inventory.manage.kindCollectionName')
   return `${owner} · ${kind}`
 }
 
-function glyphOf(entry: Inventory) {
+function glyphOf(entry: InventoryChoice) {
   return glyphFor({icon: entry.icon, color: entry.color, homogeneous: entry.homogeneous})
 }
 
-function badgeFn(entry: Inventory) {
+function badgeFn(entry: InventoryChoice) {
   if (!props.stock) return null
   const count = props.stock.get(entry.id) ?? 0
   return {text: t('inventory.stock.pieces', {count}), variant: count > 0 ? 'neutral' as const : 'error' as const}
@@ -56,7 +56,7 @@ function badgeFn(entry: Inventory) {
 
 const innerModel = numericPickerModel(model)
 
-function pickInventory(entry: Inventory) {
+function pickInventory(entry: InventoryChoice) {
   model.value = entry.id
   emit('pick', entry)
 }

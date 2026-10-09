@@ -15,7 +15,7 @@ env:
   JAVA_VERSION: 25
   NODE_VERSION: 24
   # Typst is not packaged by any distribution, so it comes from its own release.
-  TYPST_VERSION: 0.14.2
+  TYPST_VERSION: 0.15.1
 
 jobs:
   verify-build-backend:
@@ -98,16 +98,14 @@ jobs:
         if: matrix.tools
         uses: actions/cache@v6
         with:
-          path: |
-            ~/tool-cache/apt
-            ~/tool-cache/typst
-          key: external-tools-${{ runner.os }}-${{ steps.tools.outputs.key }}-typst-${{ env.TYPST_VERSION }}
+          path: ~/tool-cache/apt
+          key: external-tools-${{ runner.os }}-${{ steps.tools.outputs.key }}
       - name: Install external tools
         if: matrix.tools
         env:
           PACKAGES: libreoffice-core libreoffice-impress pandoc webp qpdf
         run: |
-          mkdir -p ~/tool-cache/apt ~/tool-cache/typst
+          mkdir -p ~/tool-cache/apt
 
           # Anything kept from an earlier run counts as already downloaded, so the download below
           # fetches only what is missing. It has to happen after `apt-get update`, which empties
@@ -121,15 +119,11 @@ jobs:
           sudo chown -R "$USER" ~/tool-cache/apt
 
           sudo apt-get install -y --no-install-recommends $PACKAGES
-
-          if [ ! -x ~/tool-cache/typst/typst ]; then
-            # Aborts on a stalled connection, not on a slow one: below a kilobyte a second for a
-            # minute is a download that has stopped, while a slow one should be left to finish.
-            curl -fsSL --retry 3 --retry-delay 5 --speed-limit 1000 --speed-time 60 \
-              "https://github.com/typst/typst/releases/download/v${TYPST_VERSION}/typst-x86_64-unknown-linux-musl.tar.xz" \
-              | tar -xJ -C ~/tool-cache/typst --strip-components=1 typst-x86_64-unknown-linux-musl/typst
-          fi
-          sudo install -m 0755 ~/tool-cache/typst/typst /usr/local/bin/typst
+      - name: Install Typst
+        if: matrix.tools
+        uses: typst-community/setup-typst@v5
+        with:
+          typst-version: ${{ env.TYPST_VERSION }}
       - name: Run the tests
         timeout-minutes: 25
         run: ./toolchain.sh be-suite ${{ matrix.suite }} --build-cache

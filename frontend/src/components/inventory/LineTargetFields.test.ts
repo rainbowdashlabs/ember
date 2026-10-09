@@ -7,43 +7,36 @@
 import {describe, expect, it} from 'vitest'
 import {mount} from '@vue/test-utils'
 import LineTargetFields from './LineTargetFields.vue'
-import {ItemCustody, ItemOwner, type Inventory, type InventoryArt, type InventoryItem} from '@/api/generated/schema'
+import {ItemCustody, ItemOwner, type ArtChoice, type InventoryChoice, type ItemChoice} from '@/api/generated/schema'
 
-const DRAWER: Inventory = {
-  id: 1, stationId: 's', name: 'Handfunkgeräte', inventoryType: 'INTERNAL', hasSizes: false, homogeneous: false,
-  borrowed: false, icon: null, color: null,
+const DRAWER: InventoryChoice = {
+  id: 1, name: 'Handfunkgeräte', inventoryType: 'INTERNAL', homogeneous: false, icon: null, color: null,
 }
-const SHELF: Inventory = {
-  id: 2, stationId: 's', name: 'Jacken', inventoryType: 'INTERNAL', hasSizes: true, homogeneous: true,
-  borrowed: false, icon: null, color: null,
+const SHELF: InventoryChoice = {
+  id: 2, name: 'Jacken', inventoryType: 'INTERNAL', homogeneous: true, icon: null, color: null,
 }
 
-const BLUE: InventoryArt = {
-  id: 7, inventoryId: 1, name: 'Funkgerät blau', note: '', position: 0, mergeKey: 'funkgerät blau', icon: null,
-  color: null,
-}
+const BLUE: ArtChoice = {id: 7, inventoryId: 1, name: 'Funkgerät blau', icon: null, color: null}
 
-function piece(id: number, patch: Partial<InventoryItem> = {}): InventoryItem {
+function piece(id: number, patch: Partial<ItemChoice> = {}): ItemChoice {
   return {
-    id, inventoryId: 1, internalId: null, name: `Gerät ${id}`, sizeId: null, artId: 7, metadata: {fields: {}},
-    assignedTo: null, lostAt: null, lostNote: null, lostNoteBy: null, ownerKind: ItemOwner.STATION,
-    ownerClusterId: null, ownerStationId: null, loanRequestItemId: null, custody: ItemCustody.AT_STATION,
-    custodyStationId: null, custodyPartnerStationId: null, custodyMovementId: null, containerId: null, ...patch,
+    id, inventoryId: 1, artId: 7, name: `Gerät ${id}`, internalId: null, sizeLabel: null,
+    ownerKind: ItemOwner.STATION, custody: ItemCustody.AT_STATION, ...patch,
   }
 }
 
-const ITEMS: InventoryItem[] = [
+const ITEMS: ItemChoice[] = [
   piece(1),
-  piece(2, {custody: ItemCustody.WITH_MEMBER, assignedTo: 3}),
+  piece(2, {custody: ItemCustody.WITH_MEMBER}),
   piece(3, {custody: ItemCustody.LOST}),
   piece(4, {inventoryId: 2, artId: null}),
 ]
 
-function fields(kind: 'art' | 'inventory', target: string, quantity: number) {
+function fields(kind: 'item' | 'art' | 'inventory', target: string, quantity: number) {
   return mount(LineTargetFields, {
     props: {
       kind,
-      itemId: '',
+      itemId: kind === 'item' ? target : '',
       artId: kind === 'art' ? target : '',
       inventoryId: kind === 'inventory' ? target : '',
       quantity,
@@ -95,5 +88,15 @@ describe('LineTargetFields', () => {
 
     expect(wrapper.text()).toContain('Jacken')
     expect(wrapper.text()).not.toContain('Handfunkgeräte')
+  })
+
+  it('offers the pieces it was handed and writes the chosen one back to the form', async () => {
+    const wrapper = fields('item', '', 1)
+    await wrapper.get('input[type="search"]').trigger('focusin')
+    await new Promise(resolve => setTimeout(resolve, 0))
+
+    expect(wrapper.text()).toContain('Gerät 4')
+    await wrapper.get('[data-testid="line-target-item"] button').trigger('click')
+    expect(wrapper.emitted('update:itemId')?.at(-1)).toEqual(['1'])
   })
 })
