@@ -21411,6 +21411,44 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/{eventId}/equipment/choices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List what a line of an appointment can ask for */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    eventId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EquipmentChoices"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/{eventId}/equipment/coverage": {
         parameters: {
             query?: never;
@@ -58478,6 +58516,15 @@ export interface components {
             artId?: number | null;
             itemIds?: number[];
         };
+        ArtChoice: {
+            color: string | null;
+            icon: string | null;
+            /** Format: int32 */
+            id: number;
+            /** Format: int32 */
+            inventoryId: number;
+            name: string;
+        };
         ArtMergeRequest: {
             /** Format: int32 */
             artId?: number;
@@ -60968,6 +61015,11 @@ export interface components {
             /** Format: int32 */
             protocolVersion: number;
         };
+        EquipmentChoices: {
+            arts: components["schemas"]["ArtChoice"][];
+            inventories: components["schemas"]["InventoryChoice"][];
+            items: components["schemas"]["ItemChoice"][];
+        };
         EquipmentClaim: {
             eventDate: components["schemas"]["LocalDate"] | null;
             /** Format: int32 */
@@ -62525,6 +62577,15 @@ export interface components {
         };
         /** @enum {string} */
         InventoryCheckScope: "MEMBER" | "CONTAINER";
+        InventoryChoice: {
+            color: string | null;
+            homogeneous: boolean;
+            icon: string | null;
+            /** Format: int32 */
+            id: number;
+            inventoryType: components["schemas"]["InventoryType"];
+            name: string;
+        };
         InventoryContainer: {
             createdAt: components["schemas"]["Instant"];
             /** Format: int32 */
@@ -62822,6 +62883,19 @@ export interface components {
             reporterName: string;
             result: components["schemas"]["CheckResult"];
             scope: components["schemas"]["InventoryCheckScope"];
+        };
+        ItemChoice: {
+            /** Format: int32 */
+            artId: number | null;
+            custody: components["schemas"]["ItemCustody"];
+            /** Format: int32 */
+            id: number;
+            internalId: string | null;
+            /** Format: int32 */
+            inventoryId: number;
+            name: string;
+            ownerKind: components["schemas"]["ItemOwner"];
+            sizeLabel: string | null;
         };
         /** @enum {string} */
         ItemCustody: "WITH_OWNER" | "AT_STATION" | "WITH_MEMBER" | "WITH_PARTNER" | "IN_TRANSIT" | "LOST";
@@ -69347,6 +69421,7 @@ export type AppointmentTemplateField = components['schemas']['AppointmentTemplat
 export type AppointRequest = components['schemas']['AppointRequest'];
 export type ApprovalCandidate = components['schemas']['ApprovalCandidate'];
 export type ArtAssignRequest = components['schemas']['ArtAssignRequest'];
+export type ArtChoice = components['schemas']['ArtChoice'];
 export type ArtMergeRequest = components['schemas']['ArtMergeRequest'];
 export type ArtRequest = components['schemas']['ArtRequest'];
 export type ArtStock = components['schemas']['ArtStock'];
@@ -69708,6 +69783,7 @@ export type EnumerationView = components['schemas']['EnumerationView'];
 export type EnumOption = components['schemas']['EnumOption'];
 export type EnumValue = components['schemas']['EnumValue'];
 export type Envelope = components['schemas']['Envelope'];
+export type EquipmentChoices = components['schemas']['EquipmentChoices'];
 export type EquipmentClaim = components['schemas']['EquipmentClaim'];
 export type EquipmentHandover = components['schemas']['EquipmentHandover'];
 export type EquipmentNeed = components['schemas']['EquipmentNeed'];
@@ -69918,6 +69994,7 @@ export type InventoryArt = components['schemas']['InventoryArt'];
 export type InventoryBlock = components['schemas']['InventoryBlock'];
 export type InventoryCheck = components['schemas']['InventoryCheck'];
 export type InventoryCheckScope = components['schemas']['InventoryCheckScope'];
+export type InventoryChoice = components['schemas']['InventoryChoice'];
 export type InventoryContainer = components['schemas']['InventoryContainer'];
 export type InventoryContainerHistory = components['schemas']['InventoryContainerHistory'];
 export type InventoryContainerKind = components['schemas']['InventoryContainerKind'];
@@ -69946,6 +70023,7 @@ export type IssuerChoice = components['schemas']['IssuerChoice'];
 export type ItemAssignment = components['schemas']['ItemAssignment'];
 export type ItemBooleanValue = components['schemas']['ItemBooleanValue'];
 export type ItemCheckHistoryEntry = components['schemas']['ItemCheckHistoryEntry'];
+export type ItemChoice = components['schemas']['ItemChoice'];
 export type ItemCustody = components['schemas']['ItemCustody'];
 export type ItemDateValue = components['schemas']['ItemDateValue'];
 export type ItemEnumValue = components['schemas']['ItemEnumValue'];

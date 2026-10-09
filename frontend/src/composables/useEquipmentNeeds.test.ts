@@ -19,13 +19,6 @@ vi.mock('@/api', () => ({
         add: (...args: unknown[]) => addNeed(...args),
         remove: (...args: unknown[]) => removeNeed(...args),
     },
-    inventory: {
-        listInventories: async () => [],
-        listAllItems: async () => [],
-    },
-    inventoryArts: {
-        listArts: async () => [],
-    },
 }))
 
 /** A refusal as the server sends it, with whatever it chose to say about it. */

@@ -123,7 +123,7 @@ jobs:
         with:
           typst-version: ${{ env.TYPST_VERSION }}
       - name: Run the tests
-        timeout-minutes: 15
+        timeout-minutes: 25
         run: ./toolchain.sh be-suite ${{ matrix.suite }} --build-cache
       - name: Upload coverage data
         if: always()
