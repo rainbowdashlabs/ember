@@ -47,7 +47,7 @@ class SystemTasksTest {
     @Test
     void theDemoIdleResetLooksEveryMinuteAndLeavesAnOrdinaryInstanceAlone() {
         var demo = mock(Demo.class);
-        var task = new DemoService(demo, null, null, null, Set.of(), null, null, null, null)
+        var task = new DemoService(demo, null, null, null, Set.of(), null, null, null, null, null, null)
                 .scheduledTasks()
                 .getFirst();
 

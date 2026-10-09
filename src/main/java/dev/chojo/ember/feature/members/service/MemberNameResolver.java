@@ -219,6 +219,15 @@ public class MemberNameResolver {
     }
 
     /**
+     * Forgets every name, for a database whose members were all thrown away: their numbers start again
+     * after a wipe, and a name kept against a number would be read for whoever holds it next.
+     */
+    public void forgetAll() {
+        partsCache.invalidateAll();
+        displayCache.invalidateAll();
+    }
+
+    /**
      * Forgets every membership of one account, for when the register name itself is rewritten.
      *
      * <p>The name is kept against the member and read from the account, so correcting a surname

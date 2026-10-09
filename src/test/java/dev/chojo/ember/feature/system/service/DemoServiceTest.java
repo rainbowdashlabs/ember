@@ -599,6 +599,8 @@ class DemoServiceTest extends RepositoryTestBase {
                 stationRepo,
                 clusterRepo,
                 new StorageBackendResolver(localStorage()),
+                () -> memberNameResolver,
+                () -> memberLookupService,
                 new TaskScheduler());
     }
 
