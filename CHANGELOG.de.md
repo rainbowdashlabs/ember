@@ -73,6 +73,7 @@ Wachen erstellen aus eigenen Vorlagen und denen ihres Verbands Dokumente für ih
 
 ### Fehlerbehebungen
 
+- **Eine beendete Anmeldung konnte den Browser festhalten.** In manchen Fällen zeigte ein Browser nach dem Ende der Anmeldung nur noch Seiten mit „Melde dich zuerst an“, und die Anmeldeseite schickte ihn sofort zurück. Jetzt landet er wieder auf der Anmeldeseite.
 - **Escape schloss den Textdialog nicht.** Im Textdialog der Editoren für Seiten, Neuigkeiten, Wiki und Vorlagen tat die Escape-Taste nichts, solange der Cursor im Text stand. Jetzt schließt sie den Dialog auch von dort.
 - **Fenster im Editor wurden am Rand des Feldes abgeschnitten.** In manchen Fällen wurden die Farbauswahl, die Fenster für Links, Bilder und Videos im Texteditor und die Menüs von Zeilen und Bausteinen im Editor für Seiten vom Rand des Textfelds oder eines Dialogs abgeschnitten. Jetzt öffnen sie sich immer vollständig.
 - **Mehrere Leerzeichen wurden zu einem.** Mehrere hintereinander getippte Leerzeichen im Texteditor schrumpften nach dem Speichern zu einem einzigen, auf Seiten, in Briefen und in Wiki-PDFs. Jetzt bleiben sie wie getippt, im Editor, auf der Seite und im Druck.
