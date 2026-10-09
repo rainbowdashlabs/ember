@@ -88,6 +88,22 @@ class SessionGateTest {
     }
 
     @Test
+    void theReadableCookieLeftWithoutASessionIsCleared() {
+        when(ctx.cookie(SessionCookies.CSRF_COOKIE)).thenReturn("left-over");
+
+        gate.forgetHalfSession(ctx);
+
+        verify(cookies).clear(ctx);
+    }
+
+    @Test
+    void aBrowserWithoutAnyCookieGetsNoneCleared() {
+        gate.forgetHalfSession(ctx);
+
+        verify(cookies, never()).clear(ctx);
+    }
+
+    @Test
     void aLiveSessionIsTouchedAndLeftAloneWhileFresh() {
         UserSession session = mock(UserSession.class);
         when(accessManager.resolveUserSession("live", null, null)).thenReturn(Optional.of(session));

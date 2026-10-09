@@ -116,6 +116,7 @@ class AccessGateTest {
         var refused = assertThrows(RefusalResponse.class, () -> gate.handle(ctx));
 
         assertEquals(GeneralRefusal.ROUTE_NEEDS_SIGN_IN, refused.refusal());
+        verify(sessionGate).forgetHalfSession(ctx);
     }
 
     @Test

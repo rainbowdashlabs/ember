@@ -79,6 +79,18 @@ public class SessionGate {
     }
 
     /**
+     * Clears what is left of a session in a browser whose request reaches a route that needs one without
+     * a session token: the readable cookie still tells the page it is signed in, so it never shows the
+     * sign-in again. That happens when the session cookie is gone or could not be read while the
+     * readable one stayed.
+     *
+     * @param ctx the request, refused next
+     */
+    public void forgetHalfSession(Context ctx) {
+        if (ctx.cookie(SessionCookies.CSRF_COOKIE) != null) sessionCookies.clear(ctx);
+    }
+
+    /**
      * Attaches the session a request to a public route carries, when it carries a live one and the
      * request may use it. A public route works without it, so nothing is refused here.
      *
