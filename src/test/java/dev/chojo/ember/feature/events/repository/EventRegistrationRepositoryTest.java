@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.events.repository;
 
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.events.entity.MemberRegistrationStats;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -45,6 +46,10 @@ class EventRegistrationRepositoryTest extends RepositoryTestBase {
     }
 
     private static StationEvent event(String name, Instant start) {
+        return event(name, start, true);
+    }
+
+    private static StationEvent event(String name, Instant start, boolean requiresRegistration) {
         return eventRepo.create(
                 station.id(),
                 name,
@@ -54,7 +59,7 @@ class EventRegistrationRepositoryTest extends RepositoryTestBase {
                 start,
                 start.plusSeconds(7200),
                 null,
-                true,
+                requiresRegistration,
                 null,
                 false,
                 null,
@@ -268,6 +273,80 @@ class EventRegistrationRepositoryTest extends RepositoryTestBase {
         } finally {
             eventRepo.delete(created.id());
         }
+    }
+
+    /**
+     * Where an appointment has to be signed up for, a withdrawal gives a place up and the member is
+     * not coming.
+     */
+    @Test
+    void withdrawalIsNotComingWhereRegistrationIsRequired() {
+        var created = event("Anmeldung zurückgezogen", Instant.parse("2026-11-02T09:00:00Z"), true);
+        LocalDate date = LocalDate.of(2026, 11, 2);
+        try {
+            var reg = eventRegistrationRepo.create(created.id(), member.id(), date, RegistrationStatus.ACCEPTED, null);
+            eventRegistrationRepo.recordAnswer(reg.id(), RegistrationStatus.WITHDRAWN);
+
+            assertTrue(eventRegistrationRepo
+                    .findNotAttendingMemberIds(created.id(), date)
+                    .contains(member.id()));
+            assertEquals(1, declinedOf(created));
+        } finally {
+            eventRepo.delete(created.id());
+        }
+    }
+
+    /**
+     * Where everybody is expected, a withdrawal is a refusal taken back, and the member is expected
+     * again rather than counted as staying away.
+     */
+    @Test
+    void refusalTakenBackIsComingWhereEverybodyIsExpected() {
+        var created = event("Absage zurückgenommen", Instant.parse("2026-11-03T09:00:00Z"), false);
+        LocalDate date = LocalDate.of(2026, 11, 3);
+        try {
+            var reg = eventRegistrationRepo.create(created.id(), member.id(), date, RegistrationStatus.DECLINED, null);
+            assertTrue(eventRegistrationRepo
+                    .findNotAttendingMemberIds(created.id(), date)
+                    .contains(member.id()));
+            assertEquals(1, declinedOf(created));
+
+            eventRegistrationRepo.recordAnswer(reg.id(), RegistrationStatus.WITHDRAWN);
+
+            assertFalse(eventRegistrationRepo
+                    .findNotAttendingMemberIds(created.id(), date)
+                    .contains(member.id()));
+            assertEquals(0, declinedOf(created));
+        } finally {
+            eventRepo.delete(created.id());
+        }
+    }
+
+    /**
+     * A row already stored as withdrawn on an appointment that expects everybody, however it got
+     * there, reads as no refusal.
+     */
+    @Test
+    void storedWithdrawalIsComingWhereEverybodyIsExpected() {
+        var created = event("Alte Rücknahme", Instant.parse("2026-11-04T09:00:00Z"), false);
+        LocalDate date = LocalDate.of(2026, 11, 4);
+        try {
+            eventRegistrationRepo.create(created.id(), member.id(), date, RegistrationStatus.WITHDRAWN, null);
+
+            assertFalse(eventRegistrationRepo
+                    .findNotAttendingMemberIds(created.id(), date)
+                    .contains(member.id()));
+            assertEquals(0, declinedOf(created));
+        } finally {
+            eventRepo.delete(created.id());
+        }
+    }
+
+    private int declinedOf(StationEvent event) {
+        return eventRegistrationRepo.findStatsByEvent(event.id(), null, 120).stream()
+                .filter(stats -> stats.memberId() == member.id())
+                .mapToInt(MemberRegistrationStats::declined)
+                .sum();
     }
 
     @Test

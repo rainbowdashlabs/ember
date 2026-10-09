@@ -33,7 +33,7 @@ import type {
 import {RegistrationStatus, StationPermission} from '@/api/generated/schema'
 import {useSession} from '@/composables/useSession'
 import {formatDateTime} from '@/util/format'
-import {answerTotals} from '@/util/eventAnswers'
+import {answerTotals, saysNotComing} from '@/util/eventAnswers'
 import ConfirmedRegistrationsTable from './ConfirmedRegistrationsTable.vue'
 
 interface StatusGroup { status: string; entries: RegistrationResponse[] }
@@ -137,7 +137,7 @@ const registrationSummary = computed(() => {
     if (r.status === RegistrationStatus.ACCEPTED) accepted++
     else if (r.status === RegistrationStatus.PENDING) pending++
     else if (r.status === RegistrationStatus.DENIED) denied++
-    else if (r.status === RegistrationStatus.DECLINED || r.status === RegistrationStatus.WITHDRAWN) declined++
+    else if (saysNotComing(r.status, !!props.event.requiresRegistration)) declined++
   }
   return {accepted, pending, denied, declined}
 })

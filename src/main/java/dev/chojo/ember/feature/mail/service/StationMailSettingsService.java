@@ -6,19 +6,26 @@
 package dev.chojo.ember.feature.mail.service;
 
 import dev.chojo.ember.api.refusal.StationRefusal;
+import dev.chojo.ember.api.refusal.SystemRefusal;
 import dev.chojo.ember.conf.file.elements.Api;
+import dev.chojo.ember.feature.mail.entity.InstanceMailStation;
 import dev.chojo.ember.feature.mail.entity.MailChainEntry;
 import dev.chojo.ember.feature.mail.entity.MailFallbackPayload;
+import dev.chojo.ember.feature.mail.entity.StationMailSender;
+import dev.chojo.ember.feature.mail.repository.InstanceMailGrantRepository;
 import dev.chojo.ember.feature.mail.repository.ProviderSecretRepository;
 import dev.chojo.ember.feature.mail.repository.StationMailProviderRepository;
+import dev.chojo.ember.feature.mail.repository.StationMailSenderRepository;
 import dev.chojo.ember.feature.station.entity.MailProviderType;
 import dev.chojo.ember.feature.webhook.service.WebhookKeyService;
+import dev.chojo.ember.util.MailAddress;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -27,10 +34,11 @@ import java.util.Optional;
  * How a station sends its own mail: the providers it goes out through, in order, and the address
  * those providers report back to.
  *
- * <p>A station's list is its own and never runs into the instance's: a station that has taken its
- * outgoing mail into its own hands keeps it there, rather than having its post leave under a
- * sender it did not choose. It gets a webhook address of its own for the same reason, so what it
- * hands to its provider can only ever touch its own post.
+ * <p>A station's list is its own: a station that has taken its outgoing mail into its own hands
+ * keeps it there, rather than having its post leave under a sender it did not choose. The
+ * instance's providers follow only where an instance administrator granted them, and the station
+ * can see that here but not change it. It gets a webhook address of its own for the same reason,
+ * so what it hands to its provider can only ever touch its own post.
  */
 @Singleton
 public class StationMailSettingsService {
@@ -40,17 +48,67 @@ public class StationMailSettingsService {
     private final ProviderSecretRepository secrets;
     private final WebhookKeyService webhookKeys;
     private final Api api;
+    private final InstanceMailGrantRepository grants;
+    private final StationMailSenderRepository senders;
+    private final MailChainService chains;
 
     @Inject
     public StationMailSettingsService(
             StationMailProviderRepository providers,
             ProviderSecretRepository secrets,
             WebhookKeyService webhookKeys,
-            Api api) {
+            Api api,
+            InstanceMailGrantRepository grants,
+            StationMailSenderRepository senders,
+            MailChainService chains) {
         this.providers = providers;
         this.secrets = secrets;
         this.webhookKeys = webhookKeys;
         this.api = api;
+        this.grants = grants;
+        this.senders = senders;
+        this.chains = chains;
+    }
+
+    /**
+     * Whether the instance carries the station's mail after its own providers, with the station's
+     * daily limit there and what went out that way today.
+     */
+    public InstanceMailStation instanceMail(int stationId) {
+        return grants.station(stationId, LocalDate.now())
+                .orElseThrow(SystemRefusal.STATION_NOT_HERE_FOR_INSTANCE_MAIL::raise);
+    }
+
+    /**
+     * Where replies to the station's mail go.
+     */
+    public MailReplyTo replyTo(int stationId) {
+        return new MailReplyTo(
+                senders.find(stationId).map(StationMailSender::replyTo).orElse(""));
+    }
+
+    /**
+     * Sets where replies to the station's mail go, through whichever provider carries it. An empty
+     * address sends replies back to the sender address again.
+     */
+    public MailReplyTo updateReplyTo(int stationId, @Nullable String replyTo) {
+        String address = replyTo == null || replyTo.isBlank()
+                ? null
+                : MailAddress.require(replyTo, StationRefusal.MAIL_REPLY_TO_NOT_AN_ADDRESS);
+        senders.updateReplyTo(stationId, address);
+        log.info("Station {} set its reply address", stationId);
+        return replyTo(stationId);
+    }
+
+    /**
+     * Whether the station sends mail at all: through a provider of its own, or through the
+     * instance's where it was granted them and the instance has at least one. A grant on an
+     * instance without providers carries nothing, so members are not offered mail that would
+     * never arrive.
+     */
+    public boolean sendsMail(int stationId) {
+        return !providers.findByStation(stationId).isEmpty()
+                || (grants.find(stationId).isPresent() && !chains.forInstance().isEmpty());
     }
 
     private MailProviderType firstProvider(int stationId) {
@@ -171,10 +229,11 @@ public class StationMailSettingsService {
     }
 
     /**
-     * Refuses unless the station has a provider of its own to send through.
+     * Refuses unless the station has something to send through, a provider of its own or the
+     * instance's.
      */
     public void requireProvider(int stationId) {
-        if (providers.findByStation(stationId).isEmpty()) {
+        if (!sendsMail(stationId)) {
             throw StationRefusal.NO_MAIL_PROVIDER_SET.raise();
         }
     }
@@ -184,4 +243,9 @@ public class StationMailSettingsService {
      * @param signingSecretSet   whether a signing secret is stored, without revealing it
      */
     public record WebhookUrl(String deliveryWebhookUrl, boolean signingSecretSet) {}
+
+    /**
+     * @param replyTo where replies to the station's mail go, empty for the sender address itself
+     */
+    public record MailReplyTo(@Nullable String replyTo) {}
 }

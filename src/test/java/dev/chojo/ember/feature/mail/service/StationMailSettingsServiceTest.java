@@ -7,24 +7,33 @@ package dev.chojo.ember.feature.mail.service;
 
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.api.refusal.StationRefusal;
+import dev.chojo.ember.api.refusal.SystemRefusal;
 import dev.chojo.ember.conf.file.elements.Api;
+import dev.chojo.ember.feature.mail.entity.InstanceMailGrant;
+import dev.chojo.ember.feature.mail.entity.InstanceMailStation;
 import dev.chojo.ember.feature.mail.entity.MailChainEntry;
 import dev.chojo.ember.feature.mail.entity.MailFallbackPayload;
 import dev.chojo.ember.feature.mail.entity.SmtpEncryption;
+import dev.chojo.ember.feature.mail.entity.StationMailSender;
+import dev.chojo.ember.feature.mail.repository.InstanceMailGrantRepository;
 import dev.chojo.ember.feature.mail.repository.ProviderSecretRepository;
 import dev.chojo.ember.feature.mail.repository.StationMailProviderRepository;
+import dev.chojo.ember.feature.mail.repository.StationMailSenderRepository;
 import dev.chojo.ember.feature.station.entity.MailProviderType;
 import dev.chojo.ember.feature.webhook.service.WebhookKeyService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -35,6 +44,9 @@ class StationMailSettingsServiceTest {
     private StationMailProviderRepository providers;
     private ProviderSecretRepository secrets;
     private WebhookKeyService webhookKeys;
+    private InstanceMailGrantRepository grants;
+    private StationMailSenderRepository senders;
+    private MailChainService chains;
     private StationMailSettingsService service;
 
     private static MailChainEntry stored(String password) {
@@ -82,7 +94,59 @@ class StationMailSettingsServiceTest {
         when(api.baseUrl()).thenReturn("https://ember.test");
         when(webhookKeys.webhookUrl(eq("https://ember.test"), eq(3), anyString()))
                 .thenReturn("https://ember.test/hook");
-        service = new StationMailSettingsService(providers, secrets, webhookKeys, api);
+        grants = mock(InstanceMailGrantRepository.class);
+        senders = mock(StationMailSenderRepository.class);
+        chains = mock(MailChainService.class);
+        service = new StationMailSettingsService(providers, secrets, webhookKeys, api, grants, senders, chains);
+    }
+
+    @Test
+    void theReplyAddressIsCheckedTrimmedAndClearedByLeavingItEmpty() {
+        when(senders.find(3)).thenReturn(Optional.of(new StationMailSender("Nord", "kontakt@nord.test")));
+
+        assertEquals(
+                "kontakt@nord.test",
+                service.updateReplyTo(3, "  kontakt@nord.test ").replyTo());
+        service.updateReplyTo(3, " ");
+        var refused = assertThrows(RefusalResponse.class, () -> service.updateReplyTo(3, "kontakt"));
+
+        verify(senders).updateReplyTo(3, "kontakt@nord.test");
+        verify(senders).updateReplyTo(3, null);
+        assertEquals(StationRefusal.MAIL_REPLY_TO_NOT_AN_ADDRESS, refused.refusal());
+        assertEquals("", service.replyTo(4).replyTo(), "a station named nothing");
+    }
+
+    @Test
+    void theStationSeesItsGrantAndAStationThatIsGoneIsRefused() {
+        var own = new InstanceMailStation(UUID.randomUUID(), "Nord", true, Instant.EPOCH, null, 2);
+        when(grants.station(eq(3), any())).thenReturn(Optional.of(own));
+
+        assertEquals(own, service.instanceMail(3));
+        assertEquals(
+                SystemRefusal.STATION_NOT_HERE_FOR_INSTANCE_MAIL,
+                assertThrows(RefusalResponse.class, () -> service.instanceMail(4))
+                        .refusal());
+    }
+
+    @Test
+    void aStationGrantedTheInstancesProvidersSendsMailWithoutAnyOfItsOwn() {
+        when(grants.find(3)).thenReturn(Optional.of(new InstanceMailGrant(3, Instant.EPOCH, null)));
+        when(chains.forInstance()).thenReturn(List.of(mock(MailChainEntry.class)));
+
+        assertTrue(service.sendsMail(3));
+        service.requireProvider(3);
+    }
+
+    @Test
+    void aGrantOnAnInstanceWithoutProvidersSendsNoMail() {
+        when(grants.find(3)).thenReturn(Optional.of(new InstanceMailGrant(3, Instant.EPOCH, null)));
+        when(chains.forInstance()).thenReturn(List.of());
+
+        assertFalse(service.sendsMail(3));
+        assertEquals(
+                StationRefusal.NO_MAIL_PROVIDER_SET,
+                assertThrows(RefusalResponse.class, () -> service.requireProvider(3))
+                        .refusal());
     }
 
     @Test

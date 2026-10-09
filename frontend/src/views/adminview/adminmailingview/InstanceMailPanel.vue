@@ -47,6 +47,11 @@ const {t} = useI18n()
         :label="t('adminSettings.mailing.digestInterval')"
         :hint="t('adminSettings.mailing.digestIntervalHint')"
     />
+    <MailingNumberField
+        v-model="config.stationShare"
+        :label="t('adminSettings.mailing.stationShare')"
+        :hint="t('adminSettings.mailing.stationShareHint')"
+    />
     <ButtonRow align="end">
       <ErrorButton :icon="['fas', 'trash']" :disabled="clearing" @click="emit('clear')">
         {{ t('adminSettings.mailing.clear') }}

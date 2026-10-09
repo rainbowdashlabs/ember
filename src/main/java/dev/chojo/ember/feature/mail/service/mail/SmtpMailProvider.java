@@ -50,6 +50,7 @@ public class SmtpMailProvider implements MailProvider {
     private final String senderName;
     private final @Nullable String correlationHeader;
     private final String correlationFormat;
+    private final String replyTo;
 
     /**
      * Creates a new SMTP mail provider.
@@ -92,6 +93,30 @@ public class SmtpMailProvider implements MailProvider {
             String senderName,
             @Nullable String correlationHeader,
             @Nullable String correlationFormat) {
+        this(
+                host,
+                port,
+                encryption,
+                user,
+                password,
+                senderAddress,
+                senderName,
+                correlationHeader,
+                correlationFormat,
+                "");
+    }
+
+    private SmtpMailProvider(
+            String host,
+            int port,
+            SmtpEncryption encryption,
+            String user,
+            String password,
+            String senderAddress,
+            String senderName,
+            @Nullable String correlationHeader,
+            @Nullable String correlationFormat,
+            String replyTo) {
         this.host = host;
         this.port = port;
         this.encryption = encryption;
@@ -101,6 +126,26 @@ public class SmtpMailProvider implements MailProvider {
         this.senderName = senderName;
         this.correlationHeader = correlationHeader;
         this.correlationFormat = correlationFormat == null ? "%s" : correlationFormat;
+        this.replyTo = replyTo;
+    }
+
+    /**
+     * This provider with replies going to another address than the sender's.
+     *
+     * @param address where replies go, empty for the sender address itself
+     */
+    public SmtpMailProvider replyingTo(String address) {
+        return new SmtpMailProvider(
+                host,
+                port,
+                encryption,
+                user,
+                password,
+                senderAddress,
+                senderName,
+                correlationHeader,
+                correlationFormat,
+                address);
     }
 
     @Override
@@ -109,6 +154,9 @@ public class SmtpMailProvider implements MailProvider {
         try {
             MimeMessage message = new MimeMessage(session);
             message.setFrom(new InternetAddress(senderAddress, senderName));
+            if (!replyTo.isBlank()) {
+                message.setReplyTo(new InternetAddress[] {new InternetAddress(replyTo)});
+            }
             message.setRecipient(Message.RecipientType.TO, new InternetAddress(to));
             message.setSubject(subject);
             message.setContent(htmlBody, "text/html; charset=UTF-8");

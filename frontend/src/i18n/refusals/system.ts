@@ -6,6 +6,7 @@
 import {
     UPLOAD_WITHOUT_FILE,
     LOOK_NOT_OFFERED,
+    STATION_NOT_HERE,
     TEST_MAIL_RECIPIENT_NOT_AN_ADDRESS,
 } from './shared'
 
@@ -73,4 +74,7 @@ export default {
     'SY-053': 'Eine Meldung nimmt nur Bilder als PNG oder WebP an, die Meldung wurde nicht gesendet',
     'SY-054': TRACKED_TABLE_NOT_HERE,
     'SY-055': TRACKED_TABLE_NOT_HERE,
+    'SY-056': STATION_NOT_HERE,
+    'SY-057': 'Das Tageslimit einer Wache ist mindestens eine Mail, es wurde nichts geändert',
+    'SY-058': 'Der Anteil der Wachen ist ein Prozentwert von 0 bis 100, es wurde nichts gespeichert',
 }
