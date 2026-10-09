@@ -93,4 +93,5 @@ export default {
     'S-071': 'Dieser Schritt hakt sich selbst ab, sobald er wirklich erledigt ist, es wurde nichts geändert',
     'S-072': MEMBER_NOT_HERE,
     'S-073': STATION_NOT_HERE,
+    'S-074': 'Das ist keine E-Mail-Adresse, die Antwortadresse wurde nicht gespeichert',
 }

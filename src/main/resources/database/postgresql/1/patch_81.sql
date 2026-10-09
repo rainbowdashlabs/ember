@@ -625,3 +625,31 @@ ALTER TABLE ember_schema.user_tag DROP COLUMN IF EXISTS visible;
 
 COMMENT ON COLUMN ember_schema.user_tag.visibility IS
     'Who sees the tag. BADGE shows it as a badge behind member names, PLAIN shows it on the member only, PRIVATE shows it only to readers allowed to view members, never to the tagged member, and keeps it out of every audience and restriction.';
+
+ALTER TABLE ember_schema.station
+    ADD COLUMN IF NOT EXISTS instance_mail_granted_at  TIMESTAMPTZ,
+    ADD COLUMN IF NOT EXISTS instance_mail_daily_limit INT
+        CHECK (instance_mail_daily_limit IS NULL OR instance_mail_daily_limit > 0),
+    ADD COLUMN IF NOT EXISTS mail_reply_to             TEXT;
+
+COMMENT ON COLUMN ember_schema.station.instance_mail_granted_at IS
+    'When an instance administrator let the station send its own mail through the instance''s mail providers, after its own. NULL while it may not.';
+COMMENT ON COLUMN ember_schema.station.instance_mail_daily_limit IS
+    'How many mails a day the station may send through the instance''s mail providers. NULL for no limit of its own; the share all stations together may use of each provider still applies.';
+COMMENT ON COLUMN ember_schema.station.mail_reply_to IS
+    'The address replies to the station''s mail go to. NULL when the station named none.';
+
+ALTER TABLE ember_schema.email_queue
+    ADD COLUMN IF NOT EXISTS instance_position INT;
+
+UPDATE ember_schema.email_queue
+SET instance_position = provider_position
+WHERE station_id IS NULL
+  AND sent_at IS NOT NULL;
+
+COMMENT ON COLUMN ember_schema.email_queue.instance_position IS
+    'Which provider of the instance''s list carried the mail, counted from zero, whether the mail was the instance''s own or a station''s. NULL while unsent and for mail a station''s own provider carried. The daily allowance of an instance provider and the share stations may use of it are counted from this.';
+
+CREATE INDEX IF NOT EXISTS idx_email_queue_instance_sent
+    ON ember_schema.email_queue (sent_at, instance_position)
+    WHERE instance_position IS NOT NULL;

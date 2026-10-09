@@ -21,6 +21,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import {RELAY_PROVIDER_NAMES} from '@/util/mailProviders'
+import InstanceMailExample from './mailconfighelp/InstanceMailExample.vue'
 
 const {t} = useI18n()
 </script>
@@ -196,6 +197,14 @@ const {t} = useI18n()
         </SuccessButton>
       </ButtonRow>
     </NeutralContainer>
+
+    <HelpSection :title="t('helpCenter.mailConfig.instanceTitle')">
+      <p>{{ t('helpCenter.mailConfig.instanceText') }}</p>
+      <p>{{ t('helpCenter.mailConfig.instanceText2') }}</p>
+      <p>{{ t('helpCenter.mailConfig.replyToText') }}</p>
+    </HelpSection>
+
+    <InstanceMailExample/>
 
     <HelpTip>{{ t('helpCenter.mailConfig.tip') }}</HelpTip>
   </HelpArticle>

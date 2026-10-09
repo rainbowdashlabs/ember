@@ -54,7 +54,15 @@ const {t} = useI18n()
         <FieldLabel>{{ t('adminSettings.mailing.digestInterval') }}</FieldLabel>
         <NumberInput :model-value="60" />
         <MutedText tag="div">{{ t('adminSettings.mailing.digestIntervalHint') }}</MutedText>
+        <FieldLabel>{{ t('adminSettings.mailing.stationShare') }}</FieldLabel>
+        <NumberInput :model-value="50" />
+        <MutedText tag="div">{{ t('adminSettings.mailing.stationShareHint') }}</MutedText>
       </NeutralContainer>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.adminMailing.stationsTitle')">
+      <p>{{ t('helpCenter.adminMailing.stationsText') }}</p>
+      <p>{{ t('helpCenter.adminMailing.shareText') }}</p>
     </HelpSection>
 
     <HelpTip>{{ t('helpCenter.adminMailing.tip') }}</HelpTip>

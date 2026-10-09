@@ -37,8 +37,10 @@ import java.util.Optional;
 /**
  * Central email service handling both global system emails and per-station notification emails.
  * Uses a queued architecture with a background worker that processes pending emails every 10 seconds.
- * Supports multiple mail providers (SMTP, Rapidmail, Twilio SendGrid, Sweego, Brevo) and enforces
- * daily send limits at both the global and per-station level.
+ * Supports multiple mail providers (SMTP, Rapidmail, Twilio SendGrid, Sweego, Brevo) and holds every
+ * provider to its daily send limit, as {@link MailAllowance} counts it: per provider of a station's
+ * own list, per instance provider for everybody together, and for stations sending through the
+ * instance's providers also to their share of each and to their own daily limit.
  */
 @Singleton
 public class EmailService implements TaskSource {
@@ -75,6 +77,7 @@ public class EmailService implements TaskSource {
     private final MailChainService chainService;
     private final MailProviderBlockRepository blockRepository;
     private final MailRetryService retryService;
+    private final MailAllowance allowance;
 
     @Inject
     public EmailService(
@@ -86,7 +89,9 @@ public class EmailService implements TaskSource {
             StationReadOnlyGuard readOnlyGuard,
             MailChainService chainService,
             MailProviderBlockRepository blockRepository,
-            MailRetryService retryService) {
+            MailRetryService retryService,
+            MailAllowance allowance) {
+        this.allowance = allowance;
         this.chainService = chainService;
         this.blockRepository = blockRepository;
         this.retryService = retryService;
@@ -133,11 +138,12 @@ public class EmailService implements TaskSource {
     }
 
     /**
-     * Builds a {@link MailProvider} from one entry of a list, without persisting anything. Returns
-     * {@code null} when the entry's provider is {@link MailProviderType#NONE}.
+     * Builds a {@link MailProvider} from one entry of a list, without persisting anything, sending
+     * under the entry's display name with replies going where the entry says. Returns {@code null}
+     * when the entry's provider is {@link MailProviderType#NONE}.
      */
     private static @Nullable MailProvider buildProvider(MailChainEntry entry) {
-        return buildProvider(
+        var provider = buildProvider(
                 entry.provider(),
                 entry.smtpHost(),
                 entry.smtpPort(),
@@ -147,6 +153,7 @@ public class EmailService implements TaskSource {
                 entry.apiKey(),
                 entry.senderAddress(),
                 entry.senderName());
+        return provider == null ? null : provider.replyingTo(entry.replyTo());
     }
 
     /**
@@ -157,7 +164,7 @@ public class EmailService implements TaskSource {
      * Brevo carries the correlation header through to its delivery events, which ties an event back
      * to its mail.
      */
-    private static @Nullable MailProvider buildProvider(
+    private static @Nullable SmtpMailProvider buildProvider(
             MailProviderType provider,
             String smtpHost,
             int smtpPort,
@@ -274,7 +281,7 @@ public class EmailService implements TaskSource {
      */
     public @Nullable String testStationMailConnection(@Nullable Integer stationId, int position) {
         if (stationId == null) return "No mail provider configured";
-        var chain = chainService.forStation(stationId);
+        var chain = chainService.ownForStation(stationId);
         var entry = chainService.at(chain, position);
         if (entry.isEmpty()) return "No mail provider configured";
         return testMailConnection(entry.get());
@@ -308,12 +315,14 @@ public class EmailService implements TaskSource {
     }
 
     /**
-     * Routes a per-station notification email through the station's own outbound mailbox.
+     * Routes a per-station notification email through the station's own outbound mailbox, and after
+     * it through the instance's providers where the station was granted them.
      *
      * <p><strong>Use only for high-volume aggregate notifications</strong> (event reminders,
-     * digests, attendance summaries) - anything where missing one is acceptable and where the
-     * station's daily/monthly send caps should apply. Per-station relays may be unconfigured or
-     * temporarily over their cap, in which case nothing is delivered.
+     * digests, attendance summaries) - anything where missing one is acceptable and where the daily
+     * limits of the station's providers, its share of the instance's providers and its own daily
+     * limit there should apply. A station may have no provider at all, in which case nothing is
+     * delivered; once every provider is spent for the day, the mail waits for the next one.
      *
      * <p><strong>Do not use for mandatory transactional mail</strong> (account verification,
      * password reset, invites, application status, waitlist confirmations, security notices).
@@ -331,12 +340,6 @@ public class EmailService implements TaskSource {
     }
 
     /**
-     * Whether any provider in the station's list still has room today.
-     *
-     * <p>The allowance belongs to the providers rather than to the station, so a list whose first
-     * provider is spent can still send through the next one.
-     */
-    /**
      * Queues a mail that belongs to no station, which goes out through the instance's own chain.
      *
      * <p>A cluster spans several stations and has no address of its own that a reader would
@@ -353,25 +356,19 @@ public class EmailService implements TaskSource {
 
     /** Whether the instance's own chain has room to send today. */
     public boolean canInstanceSend() {
-        LocalDate today = LocalDate.now();
-        var chain = chainService.forInstance();
-        for (int position = 0; position < chain.size(); position++) {
-            if (chain.get(position).hasRoomToday(queueRepository.getProviderDailyCount(today, null, position))) {
-                return true;
-            }
-        }
-        return false;
+        return allowance.anyRoomToday(null, chainService.forInstance());
     }
 
+    /**
+     * Whether any provider in the station's chain still has room today.
+     *
+     * <p>The allowance belongs to the providers rather than to the station, so a list whose first
+     * provider is spent can still send through the next one. The instance's providers at the end of
+     * a granted station's chain count only while the stations' share of them and the station's own
+     * daily limit there leave room.
+     */
     public boolean canStationSend(int stationId) {
-        LocalDate today = LocalDate.now();
-        var chain = chainService.forStation(stationId);
-        for (int position = 0; position < chain.size(); position++) {
-            if (chain.get(position).hasRoomToday(queueRepository.getProviderDailyCount(today, stationId, position))) {
-                return true;
-            }
-        }
-        return false;
+        return allowance.anyRoomToday(stationId, chainService.forStation(stationId));
     }
 
     /**
@@ -422,7 +419,7 @@ public class EmailService implements TaskSource {
      */
     public @Nullable String sendTestMailThrough(
             @Nullable Integer stationId, int position, String to, String name, String locale) {
-        var chain = stationId == null ? chainService.forInstance() : chainService.forStation(stationId);
+        var chain = stationId == null ? chainService.forInstance() : chainService.ownForStation(stationId);
         var entry = chainService.at(chain, position);
         if (entry.isEmpty()) return "No mail provider configured";
         MailProvider provider = buildProvider(entry.get());
@@ -839,8 +836,9 @@ public class EmailService implements TaskSource {
      *
      * <p>Every {@code send*} helper on this service for account-, station-, application-, invite-,
      * waitlist-, and security-related mail delegates here. The instance relay carries these
-     * regardless of whether the originating station has configured its own outbound mailbox, and
-     * the per-station daily/monthly send caps do not apply.
+     * regardless of whether the originating station has configured its own outbound mailbox. Only
+     * the daily limits of the instance's providers apply, in full: the share stations may use of
+     * them and a station's own daily limit there never hold this mail back.
      */
     private void enqueueGlobal(String to, String subject, String htmlBody) {
         if (demoConfig.enabled()) {
@@ -858,35 +856,17 @@ public class EmailService implements TaskSource {
     }
 
     /**
-     * The provider whose turn it is for this mail, built from the chain it belongs to.
-     *
-     * @return the provider, or empty when the chain holds nothing or has been used up
-     */
-    private Optional<MailProvider> providerInTurn(List<MailChainEntry> chain, EmailQueueRepository.QueuedEmail email) {
-        return entryInTurn(chain, email)
-                .map(entry -> buildProvider(
-                        entry.provider(),
-                        entry.smtpHost(),
-                        entry.smtpPort(),
-                        entry.smtpEncryption(),
-                        entry.smtpUser(),
-                        entry.smtpPassword(),
-                        entry.apiKey(),
-                        entry.senderAddress(),
-                        entry.senderName()));
-    }
-
-    /**
      * The entry whose turn it actually is, having walked past any whose daily allowance is spent.
      *
      * <p>A free tier is sold by the day, so a provider that has sent its share is not merely
      * failing, it is finished until tomorrow. Walking past it puts the mail on the next provider
-     * straight away instead of spending attempts on a refusal that is certain.
+     * straight away instead of spending attempts on a refusal that is certain. For station mail on
+     * one of the instance's providers, the stations' share of it and the station's own daily limit
+     * there count as part of that allowance.
      *
      * @return the entry, or empty when nothing in the chain has room left today
      */
     private Optional<MailChainEntry> entryInTurn(List<MailChainEntry> chain, EmailQueueRepository.QueuedEmail email) {
-        LocalDate today = LocalDate.now();
         var blocked = blockRepository.blockedFor(email.stationId(), email.recipient());
         int position = email.providerPosition();
         while (position < chain.size()) {
@@ -897,13 +877,12 @@ public class EmailService implements TaskSource {
                         position,
                         email.recipient(),
                         email.id());
-            } else if (entry.hasRoomToday(queueRepository.getProviderDailyCount(today, email.stationId(), position))) {
+            } else if (allowance.hasRoomToday(email.stationId(), entry)) {
                 return Optional.of(entry);
             } else {
                 log.info(
-                        "Provider {} of the chain has sent its {} for today; email {} moves to the next",
+                        "Provider {} of the chain has no room left today; email {} moves to the next",
                         position,
-                        entry.dailySendLimit(),
                         email.id());
             }
             position++;
@@ -920,15 +899,18 @@ public class EmailService implements TaskSource {
      */
     public boolean canReach(@Nullable Integer stationId, String recipient) {
         var chain = stationId == null ? chainService.forInstance() : chainService.forStation(stationId);
-        if (chain.isEmpty()) return false;
         var blocked = blockRepository.blockedFor(stationId, recipient);
-        LocalDate today = LocalDate.now();
-        for (int position = 0; position < chain.size(); position++) {
-            var entry = chain.get(position);
-            if (blocked.contains(entry.provider())) continue;
-            if (entry.hasRoomToday(queueRepository.getProviderDailyCount(today, stationId, position))) return true;
-        }
-        return false;
+        return chain.stream()
+                .anyMatch(entry -> !blocked.contains(entry.provider()) && allowance.hasRoomToday(stationId, entry));
+    }
+
+    /**
+     * What became of one mail in a round of the queue.
+     */
+    private enum Outcome {
+        SENT,
+        FAILED,
+        REQUEUED
     }
 
     private void processQueue() {
@@ -943,70 +925,10 @@ public class EmailService implements TaskSource {
             int failed = 0;
             int requeued = 0;
             for (var email : batch) {
-                MailProvider provider;
-                Integer stationId = email.stationId();
-                if (stationId != null) {
-                    if (!readOnlyGuard.isWritable(stationId)) {
-                        log.debug("Email {} requeued: station {} is read-only", email.id(), stationId);
-                        queueRepository.requeue(email.id());
-                        requeued++;
-                        continue;
-                    }
-                    if (!canStationSend(stationId)) {
-                        log.warn(
-                                "Email {} failed: station {} has reached its daily or monthly send limit",
-                                email.id(),
-                                stationId);
-                        queueRepository.markFailed(email.id());
-                        failed++;
-                        continue;
-                    }
-                    var inTurn = providerInTurn(chainService.forStation(stationId), email);
-                    if (inTurn.isEmpty()) {
-                        log.warn("Email {} failed: station {} has no provider left to try", email.id(), stationId);
-                        queueRepository.markFailed(email.id());
-                        failed++;
-                        continue;
-                    }
-                    provider = inTurn.get();
-                } else {
-                    var inTurn = providerInTurn(chainService.forInstance(), email);
-                    MailProvider current = inTurn.orElse(null);
-                    if (current == null) {
-                        log.debug(
-                                "Email {} deferred: no instance provider is configured or has room left today",
-                                email.id());
-                        queueRepository.requeue(email.id());
-                        requeued++;
-                        continue;
-                    }
-                    provider = current;
-                }
-
-                queueRepository.renewClaim(email.id());
-                var result =
-                        provider.send(email.recipient(), email.subject(), email.body(), String.valueOf(email.id()));
-                switch (result) {
-                    case SENT -> {
-                        queueRepository.markSent(email.id());
-                        if (email.stationId() == null) queueRepository.incrementDailyCount(LocalDate.now());
-                        sent++;
-                    }
-                    case TRANSIENT_FAILURE -> {
-                        if (retryService.afterTransientFailure(email) == MailRetryPolicy.Step.GIVE_UP) {
-                            failed++;
-                        } else {
-                            requeued++;
-                        }
-                    }
-                    case PERMANENT_FAILURE -> {
-                        log.warn(
-                                "Email {} delivery to {} failed permanently; marking failed",
-                                email.id(),
-                                email.recipient());
-                        queueRepository.markFailed(email.id());
-                        failed++;
-                    }
+                switch (process(email)) {
+                    case SENT -> sent++;
+                    case FAILED -> failed++;
+                    case REQUEUED -> requeued++;
                 }
             }
 
@@ -1021,6 +943,92 @@ public class EmailService implements TaskSource {
         } catch (Exception e) {
             log.error("Error processing email queue", e);
         }
+    }
+
+    /**
+     * Takes one mail through its chain: holds it back where its owner cannot send now, and hands it
+     * to the provider in turn otherwise.
+     *
+     * <p>A station's mail waits for the next day when nothing in its chain has room left today,
+     * rather than failing: the allowances turn over at midnight, and a reminder that goes out a day
+     * late is worth more than one that never does. A station with no provider at all has nothing to
+     * wait for, so its mail fails.
+     *
+     * <p>The instance's own mail that has walked past every provider waits for the next day the same
+     * way and starts again at the first provider then. Left where the walk ended, it would sit past
+     * the end of its list and never be carried again. While the instance has no provider at all, its
+     * mail stays queued until one is configured.
+     */
+    private Outcome process(EmailQueueRepository.QueuedEmail email) {
+        Integer stationId = email.stationId();
+        List<MailChainEntry> chain;
+        if (stationId != null) {
+            if (!readOnlyGuard.isWritable(stationId)) {
+                log.debug("Email {} requeued: station {} is read-only", email.id(), stationId);
+                queueRepository.requeue(email.id());
+                return Outcome.REQUEUED;
+            }
+            chain = chainService.forStation(stationId);
+            if (chain.isEmpty()) {
+                log.warn("Email {} failed: station {} has no provider to send through", email.id(), stationId);
+                queueRepository.markFailed(email.id());
+                return Outcome.FAILED;
+            }
+            if (!allowance.anyRoomToday(stationId, chain)) {
+                log.info(
+                        "Email {} waits until tomorrow: no provider of station {} has room left today",
+                        email.id(),
+                        stationId);
+                queueRepository.waitUntil(email.id(), LocalDate.now().plusDays(1));
+                return Outcome.REQUEUED;
+            }
+        } else {
+            chain = chainService.forInstance();
+        }
+
+        var inTurn = entryInTurn(chain, email);
+        if (inTurn.isEmpty()) {
+            if (stationId == null && chain.isEmpty()) {
+                log.debug("Email {} deferred: no instance provider is configured", email.id());
+                queueRepository.requeue(email.id());
+                return Outcome.REQUEUED;
+            }
+            if (stationId == null) {
+                log.info("Email {} waits until tomorrow: no instance provider has room left today", email.id());
+                queueRepository.waitUntil(email.id(), LocalDate.now().plusDays(1));
+                return Outcome.REQUEUED;
+            }
+            log.warn("Email {} failed: station {} has no provider left to try", email.id(), stationId);
+            queueRepository.markFailed(email.id());
+            return Outcome.FAILED;
+        }
+        return send(email, inTurn.get());
+    }
+
+    private Outcome send(EmailQueueRepository.QueuedEmail email, MailChainEntry entry) {
+        MailProvider provider = buildProvider(entry);
+        if (provider == null) {
+            queueRepository.markFailed(email.id());
+            return Outcome.FAILED;
+        }
+        queueRepository.renewClaim(email.id());
+        var result = provider.send(email.recipient(), email.subject(), email.body(), String.valueOf(email.id()));
+        return switch (result) {
+            case SENT -> {
+                queueRepository.markSent(email.id(), entry.instancePosition());
+                if (email.stationId() == null) queueRepository.incrementDailyCount(LocalDate.now());
+                yield Outcome.SENT;
+            }
+            case TRANSIENT_FAILURE ->
+                retryService.afterTransientFailure(email) == MailRetryPolicy.Step.GIVE_UP
+                        ? Outcome.FAILED
+                        : Outcome.REQUEUED;
+            case PERMANENT_FAILURE -> {
+                log.warn("Email {} delivery to {} failed permanently; marking failed", email.id(), email.recipient());
+                queueRepository.markFailed(email.id());
+                yield Outcome.FAILED;
+            }
+        };
     }
 
     private Map<String, String> baseVars(String name, @Nullable Integer stationId) {

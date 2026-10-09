@@ -231,7 +231,18 @@ public enum SystemRefusal implements Refusal {
     TRACKED_TABLE_NOT_HERE_TO_UPDATE(54, HttpStatus.NOT_FOUND, Sentences.TRACKED_TABLE_NOT_HERE),
 
     /** Every column of a table marked checked where data tracking keeps no record of the table. */
-    TRACKED_TABLE_NOT_HERE_TO_VERIFY(55, HttpStatus.NOT_FOUND, Sentences.TRACKED_TABLE_NOT_HERE);
+    TRACKED_TABLE_NOT_HERE_TO_VERIFY(55, HttpStatus.NOT_FOUND, Sentences.TRACKED_TABLE_NOT_HERE),
+
+    /** A station granted or refused the instance's mail providers that does not exist. */
+    STATION_NOT_HERE_FOR_INSTANCE_MAIL(56, HttpStatus.NOT_FOUND, Sentences.STATION_NOT_HERE),
+
+    /** A station's daily limit on the instance's mail providers below one mail. */
+    INSTANCE_MAIL_LIMIT_NOT_POSITIVE(
+            57, HttpStatus.BAD_REQUEST, "A station's daily limit is at least one mail, so nothing was changed"),
+
+    /** A share of the instance's mail providers for stations that is no percentage. */
+    INSTANCE_MAIL_SHARE_OUT_OF_RANGE(
+            58, HttpStatus.BAD_REQUEST, "The stations' share is a percentage from 0 to 100, so nothing was saved");
 
     private final Definition definition;
 
