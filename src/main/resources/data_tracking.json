@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:64f1b846d11e80e4af3e7e515ff7f998b143abd2b4843f45bc10016e0e834174",
-  "generatedAt": "2026-10-09T13:06:56Z",
+  "schemaHash": "sha256:3289504bb7e70bee4b553359557a88e04962e431414d98e1dca895a44ee4eb22",
+  "generatedAt": "2026-10-09T13:10:02Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -21510,6 +21510,102 @@
         ]
       },
       "description": "A sealed copy of a document an appointment asks partners to sign, as it came back from the member's home installation: sealed there and checked here against the partner's pinned signing authorities before it was taken. Each state the partner sealed is kept beside the earlier ones; the newest is the current one. Locked: a copy is never changed, and deleted only with its row in partner_agreement."
+    },
+    "partner_requirement_change": {
+      "feature": "signing",
+      "scope": "STATION",
+      "tableHash": "sha256:3c658fc6b9d1a5eaca2193f1b06a8bf28b82f04da5ac5e2407dcc36a274ae4a6",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Primary key."
+        },
+        {
+          "name": "station_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The station that holds the appointment."
+        },
+        {
+          "name": "event_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The appointment whose documents changed."
+        },
+        {
+          "name": "partner_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The partnership with the station to tell."
+        },
+        {
+          "name": "removed_template_ids",
+          "type": "_int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The templates taken off the appointment since the partner was last told, without those added back since. The documents added travel without a list: the partner fetches the documents of each date again."
+        },
+        {
+          "name": "changed_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the documents last changed; a notice that reached the partner deletes the row only where nothing changed since it was sent."
+        },
+        {
+          "name": "delivery_attempts",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "How many times in a row telling the partner failed. Given up after 32 failures in a row, about a week of tries, until the next change starts it again."
+        },
+        {
+          "name": "next_delivery_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When to try again, later after every failure."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "event_id",
+          "refTable": "station_event",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "partner_id",
+          "refTable": "federation_partner",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "station_id",
+          "refTable": "station",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "Notices still to send to partners about a change of an appointment's documents; nothing in it is evidence, and a moved station tells its partners again with the next change."
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Names no person: an appointment, a partnership, template ids and the delivery state."
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Holds no personal data. Deleted once the partner took the notice, or with its appointment or partnership."
+      },
+      "description": "A change of the documents a shared appointment asks for that a partner station still has to be told, so it asks its members already registered on dates still ahead for a document added, and lets the open requests of a document taken off go. One row per appointment and partner gathers every change until the partner took the notice, which is signed with this station's federation key; the row is deleted then. Sent again later while the partner is unreachable."
     },
     "partner_signing_request": {
       "feature": "signing",

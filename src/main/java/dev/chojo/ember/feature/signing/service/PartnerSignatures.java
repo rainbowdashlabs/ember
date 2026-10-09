@@ -17,7 +17,10 @@ import dev.chojo.ember.feature.events.entity.PartnerDocumentToSign;
 import dev.chojo.ember.feature.events.service.PartnerAppointmentSignatures;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.service.FederationEntityResolver;
+import dev.chojo.ember.feature.federation.transport.FederationEndpoints;
+import dev.chojo.ember.feature.federation.transport.FederationServer;
 import dev.chojo.ember.feature.federation.transport.FederationTransport;
+import dev.chojo.ember.feature.federation.transport.ServingPartner;
 import dev.chojo.ember.feature.generator.entity.FieldStatements;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
@@ -25,10 +28,16 @@ import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.signing.entity.PartnerSigning;
 import dev.chojo.ember.feature.signing.entity.RemoteAgreement;
+import dev.chojo.ember.feature.signing.entity.RemoteAgreementRelease;
+import dev.chojo.ember.feature.signing.entity.RemoteRegisteredMember;
+import dev.chojo.ember.feature.signing.entity.RemoteRequirementChange;
+import dev.chojo.ember.feature.signing.entity.RemoteRequirementChangeAnswer;
 import dev.chojo.ember.feature.signing.entity.SignatureRequest;
 import dev.chojo.ember.feature.signing.repository.PartnerSigningRepository;
 import dev.chojo.ember.feature.signing.repository.SignatureRequestRepository;
 import dev.chojo.ember.feature.signing.route.RemoteSigningRoutes;
+import dev.chojo.ember.feature.station.entity.StationFormat;
+import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.util.Sha256;
 import jakarta.inject.Inject;
@@ -40,8 +49,11 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.TreeMap;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * The documents a partner station's appointment asks the members of this station to sign, at the members'
@@ -59,6 +71,13 @@ import java.util.UUID;
  * signs for themselves or a member in their care, the document is taken on the same way, and the partner counts
  * the signature as "I will come".
  *
+ * <p><b>Documents changed later.</b> When the partner adds a document to the appointment or takes one off, it
+ * says so in a notice signed with its federation key, naming its members registered from here on dates still
+ * ahead. The documents of each such date are fetched again and every one of those members is asked for those
+ * they do not stand asked for or signed yet, the same way as at registration, so nobody is asked twice. The
+ * requests still open for a document taken off, on dates still ahead, are let go, and the partner is told
+ * which. Dates before today in this station's zone stay as they are.
+ *
  * <p>Nothing here holds the registration up. A partner that hands out nothing, cannot be reached, or hands out
  * a file that is not what it says, and a station that keeps no documents, leave the member registered without
  * a document to sign; the partner then counts the document as missing for them, and its organisers can confirm
@@ -68,7 +87,7 @@ import java.util.UUID;
  * taken on twice. Withdrawing the registration lets the signatures still open go; what was signed stays.
  */
 @Singleton
-public class PartnerSignatures implements PartnerAppointmentSignatures {
+public class PartnerSignatures implements PartnerAppointmentSignatures, FederationServer {
     private static final String PDF = "application/pdf";
     private static final Logger log = LoggerFactory.getLogger(PartnerSignatures.class);
 
@@ -84,6 +103,7 @@ public class PartnerSignatures implements PartnerAppointmentSignatures {
     private final PartnerSigningRepository links;
     private final PartnerDeliveries deliveries;
     private final RequirementSignatureStates states;
+    private final StationRepository stations;
 
     @Inject
     public PartnerSignatures(
@@ -98,7 +118,8 @@ public class PartnerSignatures implements PartnerAppointmentSignatures {
             SignatureRequestRepository requests,
             PartnerSigningRepository links,
             PartnerDeliveries deliveries,
-            RequirementSignatureStates states) {
+            RequirementSignatureStates states,
+            StationRepository stations) {
         this.partners = partners;
         this.transport = transport;
         this.members = members;
@@ -111,6 +132,14 @@ public class PartnerSignatures implements PartnerAppointmentSignatures {
         this.links = links;
         this.deliveries = deliveries;
         this.states = states;
+        this.stations = stations;
+    }
+
+    @Override
+    public void serveOn(FederationEndpoints endpoints) {
+        endpoints.<RemoteRequirementChange, RemoteRequirementChangeAnswer>serve(
+                RemoteSigningRoutes.REQUIREMENTS_CHANGED,
+                (partner, params, body) -> changed(partner, params.integer("eventId"), body));
     }
 
     @Override
@@ -137,6 +166,23 @@ public class PartnerSignatures implements PartnerAppointmentSignatures {
     }
 
     @Override
+    public void withdrawn(
+            StationSession session, UUID partnerStationUid, int eventId, LocalDate eventDate, UUID memberUid) {
+        var member = actedFor(session, memberUid);
+        if (member.isEmpty()) return;
+        for (int requestId : links.openRequests(
+                partnerStationUid, eventId, eventDate, member.get().id())) {
+            if (requestService.withdrawUnasked(requestId)) {
+                log.info(
+                        "Signing request {} withdrawn: member {} no longer takes part in appointment {} of a partner",
+                        requestId,
+                        member.get().id(),
+                        eventId);
+            }
+        }
+    }
+
+    @Override
     public List<PartnerAgreementOffer> offers(
             StationSession session, UUID partnerStationUid, int eventId, LocalDate eventDate) {
         if (!keepsDocuments(session.stationId())) return List.of();
@@ -157,6 +203,97 @@ public class PartnerSignatures implements PartnerAppointmentSignatures {
         return taken;
     }
 
+    /**
+     * Carries a change of the documents a partner's appointment asks for over to the members of this station:
+     * those registered on dates still ahead are asked for what they do not stand asked for yet, and the open
+     * requests of the documents taken off are let go.
+     *
+     * @param partner the partnership the notice arrived on
+     * @param eventId the appointment, by its id at the partner
+     * @param change  what the partner says changed
+     * @return the requests let go, for the partner
+     */
+    RemoteRequirementChangeAnswer changed(ServingPartner partner, int eventId, RemoteRequirementChange change) {
+        int stationId = partner.servingStationId();
+        var today = today(stationId);
+        var released = release(partner.row(), eventId, change.removedTemplateIds(), today);
+        int asked = keepsDocuments(stationId)
+                ? askRegistered(stationId, partner.row(), eventId, change.registered(), today)
+                : 0;
+        log.info(
+                "Partner {} changed the documents of appointment {}: {} asked for, {} let go",
+                partner.partnerId(),
+                eventId,
+                asked,
+                released.size());
+        return new RemoteRequirementChangeAnswer(released);
+    }
+
+    private List<RemoteAgreementRelease> release(
+            FederationPartner partner, int eventId, List<Integer> removedTemplateIds, LocalDate today) {
+        var released = new ArrayList<RemoteAgreementRelease>();
+        for (var link : links.openForTemplatesFrom(partner.partnerStationId(), eventId, removedTemplateIds, today)) {
+            if (!requestService.withdrawUnasked(link.requestId())) continue;
+            requests.findById(link.requestId())
+                    .map(SignatureRequest::memberId)
+                    .flatMap(members::findById)
+                    .ifPresent(member -> released.add(
+                            new RemoteAgreementRelease(member.uid(), link.eventDate(), link.remoteTemplateId())));
+        }
+        return released;
+    }
+
+    private int askRegistered(
+            int stationId,
+            FederationPartner partner,
+            int eventId,
+            List<RemoteRegisteredMember> registered,
+            LocalDate today) {
+        Map<LocalDate, List<UUID>> byDate = registered.stream()
+                .filter(entry -> !entry.eventDate().isBefore(today))
+                .collect(Collectors.groupingBy(
+                        RemoteRegisteredMember::eventDate,
+                        TreeMap::new,
+                        Collectors.mapping(RemoteRegisteredMember::memberUid, Collectors.toList())));
+        int asked = 0;
+        for (var date : byDate.entrySet()) {
+            var agreements = agreementsOf(partner, eventId, date.getKey());
+            for (var memberUid : date.getValue()) {
+                var member = members.findByUid(stationId, memberUid).filter(found -> !found.former());
+                if (member.isEmpty()) continue;
+                for (var agreement : agreements) {
+                    if (askIfNotAsked(stationId, partner, eventId, date.getKey(), member.get(), agreement)) asked++;
+                }
+            }
+        }
+        return asked;
+    }
+
+    private boolean askIfNotAsked(
+            int stationId,
+            FederationPartner partner,
+            int eventId,
+            LocalDate eventDate,
+            StationMember member,
+            RemoteAgreement agreement) {
+        if (links.asked(partner.partnerStationId(), eventId, eventDate, member.id(), agreement.templateId())) {
+            return false;
+        }
+        try {
+            ask(stationId, Uploader.nobody(), partner, eventId, eventDate, member, agreement);
+            return true;
+        } catch (RuntimeException e) {
+            log.warn(
+                    "Could not ask member {} for document {} added to appointment {} of partner {}",
+                    member.id(),
+                    agreement.templateId(),
+                    eventId,
+                    partner.id(),
+                    e);
+            return false;
+        }
+    }
+
     private List<RemoteAgreement> agreementsOf(FederationPartner partner, int eventId, LocalDate eventDate) {
         return transport.getList(partner, RemoteSigningRoutes.AGREEMENTS.at(eventId, eventDate), RemoteAgreement.class);
     }
@@ -169,23 +306,6 @@ public class PartnerSignatures implements PartnerAppointmentSignatures {
         }
     }
 
-    @Override
-    public void withdrawn(
-            StationSession session, UUID partnerStationUid, int eventId, LocalDate eventDate, UUID memberUid) {
-        var member = actedFor(session, memberUid);
-        if (member.isEmpty()) return;
-        for (int requestId : links.openRequests(
-                partnerStationUid, eventId, eventDate, member.get().id())) {
-            if (requestService.withdrawUnasked(requestId)) {
-                log.info(
-                        "Signing request {} withdrawn: member {} no longer takes part in appointment {} of a partner",
-                        requestId,
-                        member.get().id(),
-                        eventId);
-            }
-        }
-    }
-
     private PartnerDocumentToSign takeOn(
             StationSession session,
             FederationPartner partner,
@@ -193,27 +313,30 @@ public class PartnerSignatures implements PartnerAppointmentSignatures {
             LocalDate eventDate,
             StationMember member,
             RemoteAgreement agreement) {
-        byte[] content = Base64.getDecoder().decode(agreement.pdf());
-        if (!Sha256.hex(content).equals(agreement.sha256())) {
-            throw new IllegalArgumentException("The file the partner handed out is not the one it names");
-        }
         var live = links.live(partner.partnerStationId(), eventId, eventDate, member.id(), agreement.sha256());
         var request = live.isPresent()
                 ? requests.findById(live.get().requestId()).orElseThrow()
-                : ask(session, partner, eventId, eventDate, member, agreement, content);
+                : ask(
+                        session.stationId(),
+                        Uploader.member(session.member().id()),
+                        partner,
+                        eventId,
+                        eventDate,
+                        member,
+                        agreement);
         var signature = states.ofRequest(session, agreement.templateId(), member.id(), request);
         return new PartnerDocumentToSign(agreement.title(), member.id(), names.identified(member.id()), signature);
     }
 
     private SignatureRequest ask(
-            StationSession session,
+            int stationId,
+            Uploader uploader,
             FederationPartner partner,
             int eventId,
             LocalDate eventDate,
             StationMember member,
-            RemoteAgreement agreement,
-            byte[] content) {
-        int stationId = session.stationId();
+            RemoteAgreement agreement) {
+        byte[] content = contentOf(agreement);
         var upload = new DocumentIntake.Upload(agreement.fileName(), PDF, content);
         String type = intake.take(stationId, StorageCategory.MEMBER_DOCUMENTS, upload, DocumentDoor.STATION.intake());
         var document = documents.store(
@@ -225,7 +348,7 @@ public class PartnerSignatures implements PartnerAppointmentSignatures {
                 content,
                 false,
                 agreement.retentionMonths() != null,
-                Uploader.member(session.member().id()),
+                uploader,
                 List.of());
         var ask = new SignatureRequestService.PartnerAsk(
                 stationId,
@@ -250,6 +373,14 @@ public class PartnerSignatures implements PartnerAppointmentSignatures {
         return request;
     }
 
+    private static byte[] contentOf(RemoteAgreement agreement) {
+        byte[] content = Base64.getDecoder().decode(agreement.pdf());
+        if (!Sha256.hex(content).equals(agreement.sha256())) {
+            throw new IllegalArgumentException("The file the partner handed out is not the one it names");
+        }
+        return content;
+    }
+
     /** The member registered, where the reader may act for them: themselves or a member in their care. */
     private Optional<StationMember> actedFor(StationSession session, UUID memberUid) {
         return members.findByUid(session.stationId(), memberUid)
@@ -263,5 +394,10 @@ public class PartnerSignatures implements PartnerAppointmentSignatures {
         } catch (RefusalResponse e) {
             return false;
         }
+    }
+
+    private LocalDate today(int stationId) {
+        var zone = StationFormat.timezoneOf(stations.findById(stationId).orElse(null));
+        return LocalDate.now(zone);
     }
 }

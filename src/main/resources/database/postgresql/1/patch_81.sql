@@ -2208,3 +2208,40 @@ ALTER TABLE ember_schema.event_federation_registration
 
 COMMENT ON COLUMN ember_schema.event_federation_registration.agreement_withdrawn_at IS
     'When the partner reported a signed agreement for this date, which one of the appointment''s documents asked its member to sign, withdrawn there while the registration stood. Flags the registration for whoever runs the appointment. NULL where none was, and again once a complete signed copy comes back.';
+
+CREATE TABLE IF NOT EXISTS ember_schema.partner_requirement_change
+(
+    id                   SERIAL PRIMARY KEY,
+    station_id           INTEGER     NOT NULL,
+    event_id             INTEGER     NOT NULL REFERENCES ember_schema.station_event (id) ON DELETE CASCADE,
+    partner_id           INTEGER     NOT NULL REFERENCES ember_schema.federation_partner (id) ON DELETE CASCADE,
+    removed_template_ids INTEGER[]   NOT NULL DEFAULT '{}',
+    changed_at           TIMESTAMPTZ NOT NULL DEFAULT now(),
+    delivery_attempts    INTEGER     NOT NULL DEFAULT 0 CHECK (delivery_attempts >= 0),
+    next_delivery_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT partner_requirement_change_station FOREIGN KEY (station_id)
+        REFERENCES ember_schema.station (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+    CONSTRAINT partner_requirement_change_once UNIQUE (event_id, partner_id)
+);
+
+CREATE INDEX IF NOT EXISTS partner_requirement_change_station_idx ON ember_schema.partner_requirement_change (station_id);
+CREATE INDEX IF NOT EXISTS partner_requirement_change_partner_idx ON ember_schema.partner_requirement_change (partner_id);
+CREATE INDEX IF NOT EXISTS partner_requirement_change_due_idx ON ember_schema.partner_requirement_change (next_delivery_at);
+
+COMMENT ON TABLE ember_schema.partner_requirement_change IS
+    'A change of the documents a shared appointment asks for that a partner station still has to be told, so it asks its members already registered on dates still ahead for a document added, and lets the open requests of a document taken off go. One row per appointment and partner gathers every change until the partner took the notice, which is signed with this station''s federation key; the row is deleted then. Sent again later while the partner is unreachable.';
+COMMENT ON COLUMN ember_schema.partner_requirement_change.id IS 'Primary key.';
+COMMENT ON COLUMN ember_schema.partner_requirement_change.station_id IS 'The station that holds the appointment.';
+COMMENT ON COLUMN ember_schema.partner_requirement_change.event_id IS 'The appointment whose documents changed.';
+COMMENT ON COLUMN ember_schema.partner_requirement_change.partner_id IS 'The partnership with the station to tell.';
+COMMENT ON COLUMN ember_schema.partner_requirement_change.removed_template_ids IS
+    'The templates taken off the appointment since the partner was last told, without those added back since. The documents added travel without a list: the partner fetches the documents of each date again.';
+COMMENT ON COLUMN ember_schema.partner_requirement_change.changed_at IS
+    'When the documents last changed; a notice that reached the partner deletes the row only where nothing changed since it was sent.';
+COMMENT ON COLUMN ember_schema.partner_requirement_change.delivery_attempts IS
+    'How many times in a row telling the partner failed. Given up after 32 failures in a row, about a week of tries, until the next change starts it again.';
+COMMENT ON COLUMN ember_schema.partner_requirement_change.next_delivery_at IS 'When to try again, later after every failure.';
+COMMENT ON CONSTRAINT partner_requirement_change_station ON ember_schema.partner_requirement_change IS
+    'A row goes with its station. Checked at commit, because deleting a station also deletes the appointment and the partnership of a row it is about to delete.';
+COMMENT ON CONSTRAINT partner_requirement_change_once ON ember_schema.partner_requirement_change IS
+    'One row per appointment and partner, which every further change is gathered into.';

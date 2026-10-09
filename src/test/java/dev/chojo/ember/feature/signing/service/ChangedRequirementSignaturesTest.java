@@ -125,12 +125,14 @@ class ChangedRequirementSignaturesTest extends GeneratorTestBase {
 
         var requirementRepo = new EventRequirementRepository();
         var submissions = new PaperSubmissionRepository();
+        var partnerNotices = mock(PartnerRequirementNotices.class);
         requirements = new EventRequirementService(
                 requirementRepo,
                 wiring.templates(),
                 new MemberNeutralTemplates(wiring.templates()),
                 new EventFederationRepository(),
-                new DomainEventBus(Set.of(new RequirementChangeSignaturesHandler(() -> changes))));
+                new DomainEventBus(
+                        Set.of(new RequirementChangeSignaturesHandler(() -> changes, () -> partnerNotices))));
         appointments = new AppointmentDocumentService(
                 requirementRepo,
                 submissions,

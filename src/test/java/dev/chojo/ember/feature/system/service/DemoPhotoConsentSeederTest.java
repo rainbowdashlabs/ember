@@ -64,6 +64,7 @@ import dev.chojo.ember.feature.signing.service.AppointmentSignatures;
 import dev.chojo.ember.feature.signing.service.ChangedRequirementSignatures;
 import dev.chojo.ember.feature.signing.service.InEmberSignatureProvider;
 import dev.chojo.ember.feature.signing.service.IssuedLetterSigner;
+import dev.chojo.ember.feature.signing.service.PartnerRequirementNotices;
 import dev.chojo.ember.feature.signing.service.SignatureFieldService;
 import dev.chojo.ember.feature.signing.service.SignatureImageService;
 import dev.chojo.ember.feature.signing.service.SignatureNotices;
@@ -234,7 +235,8 @@ class DemoPhotoConsentSeederTest extends RepositoryTestBase {
                 wiring.templates(),
                 new MemberNeutralTemplates(wiring.templates()),
                 new EventFederationRepository(),
-                new DomainEventBus(Set.of(new RequirementChangeSignaturesHandler(() -> changes))));
+                new DomainEventBus(Set.of(new RequirementChangeSignaturesHandler(
+                        () -> changes, () -> mock(PartnerRequirementNotices.class)))));
         var submissions = new PaperSubmissionRepository();
         var appointments = new AppointmentDocumentService(
                 requirementRepo,

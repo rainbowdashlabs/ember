@@ -324,6 +324,7 @@ import dev.chojo.ember.feature.signing.service.IssuedLetterSigner;
 import dev.chojo.ember.feature.signing.service.PartnerAgreements;
 import dev.chojo.ember.feature.signing.service.PartnerAuthorities;
 import dev.chojo.ember.feature.signing.service.PartnerDeliveries;
+import dev.chojo.ember.feature.signing.service.PartnerRequirementNotices;
 import dev.chojo.ember.feature.signing.service.PartnerSignatures;
 import dev.chojo.ember.feature.signing.service.RequirementSignatureStates;
 import dev.chojo.ember.feature.signing.service.ScanSignatures;
@@ -793,6 +794,7 @@ public class EmberModule extends AbstractModule {
         federationServers.addBinding().to(FederatedBoardNotificationService.class);
         federationServers.addBinding().to(PartnerAuthorities.class);
         federationServers.addBinding().to(PartnerAgreements.class);
+        federationServers.addBinding().to(PartnerSignatures.class);
 
         Multibinder<FeedDetailsContributor> feedDetailsBinder =
                 Multibinder.newSetBinder(binder(), FeedDetailsContributor.class);
@@ -850,6 +852,7 @@ public class EmberModule extends AbstractModule {
         taskSources.addBinding().to(PartnerAuthorities.class);
         taskSources.addBinding().to(PartnerAgreements.class);
         taskSources.addBinding().to(PartnerDeliveries.class);
+        taskSources.addBinding().to(PartnerRequirementNotices.class);
         taskSources.addBinding().to(CredentialKeyStamps.class);
         taskSources.addBinding().to(AccountLinkSweeper.class);
 

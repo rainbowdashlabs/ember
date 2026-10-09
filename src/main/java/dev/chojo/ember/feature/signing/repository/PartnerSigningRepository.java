@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.signing.repository;
 
+import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import dev.chojo.ember.feature.signing.entity.PartnerSigning;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
@@ -12,6 +13,7 @@ import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -97,6 +99,68 @@ public class PartnerSigningRepository {
                         .bind("content_hash", contentSha256))
                 .map(PartnerSigning.map())
                 .first();
+    }
+
+    /**
+     * Whether a member stands asked for a document of a partner's appointment on a date, or signed it, whatever
+     * copy of it they were asked on.
+     *
+     * @param partnerStationUid the station holding the appointment
+     * @param remoteEventId     the appointment there
+     * @param eventDate         the date
+     * @param memberId          the member here
+     * @param remoteTemplateId  the document there
+     * @return whether a request for it is open or complete
+     */
+    public boolean asked(
+            UUID partnerStationUid, int remoteEventId, LocalDate eventDate, int memberId, int remoteTemplateId) {
+        return query("""
+                        SELECT exists (SELECT 1
+                                       FROM partner_signing_request p
+                                                JOIN signing_request r ON r.id = p.request_id
+                                       WHERE p.partner_station_uid = :partner_uid::UUID
+                                         AND p.remote_event_id = :event_id
+                                         AND p.event_date = :event_date
+                                         AND p.remote_template_id = :template_id
+                                         AND r.member_id = :member_id
+                                         AND r.state IN ('OPEN', 'COMPLETE')) AS asked;""")
+                .single(call().bind("partner_uid", partnerStationUid, UUID_STRING)
+                        .bind("event_id", remoteEventId)
+                        .bind("event_date", eventDate)
+                        .bind("template_id", remoteTemplateId)
+                        .bind("member_id", memberId))
+                .map(row -> row.getBoolean("asked"))
+                .first()
+                .orElse(false);
+    }
+
+    /**
+     * @param partnerStationUid the station holding the appointment
+     * @param remoteEventId     the appointment there
+     * @param remoteTemplateIds the documents there
+     * @param from              the first date that counts
+     * @return the rows of requests for those documents on that date or a later one that still wait for a
+     *         signature, the oldest first
+     */
+    public List<PartnerSigning> openForTemplatesFrom(
+            UUID partnerStationUid, int remoteEventId, Collection<Integer> remoteTemplateIds, LocalDate from) {
+        if (remoteTemplateIds.isEmpty()) return List.of();
+        return query("""
+                        SELECT %s
+                        FROM partner_signing_request p
+                                 JOIN signing_request r ON r.id = p.request_id
+                        WHERE p.partner_station_uid = :partner_uid::UUID
+                          AND p.remote_event_id = :event_id
+                          AND p.remote_template_id = ANY (:template_ids::INT[])
+                          AND p.event_date >= :from
+                          AND r.state = 'OPEN'
+                        ORDER BY p.id;""", PartnerSigning.COLUMNS)
+                .single(call().bind("partner_uid", partnerStationUid, UUID_STRING)
+                        .bind("event_id", remoteEventId)
+                        .bind("template_ids", List.copyOf(remoteTemplateIds), PostgreSqlTypes.INTEGER)
+                        .bind("from", from))
+                .map(PartnerSigning.map())
+                .all();
     }
 
     /**

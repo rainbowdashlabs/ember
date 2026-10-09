@@ -64,6 +64,8 @@ import dev.chojo.ember.feature.signing.entity.PartnerAgreementState;
 import dev.chojo.ember.feature.signing.entity.PartnerSignerDocument;
 import dev.chojo.ember.feature.signing.entity.RemoteAgreementField;
 import dev.chojo.ember.feature.signing.entity.RemoteAgreementNotice;
+import dev.chojo.ember.feature.signing.entity.RemoteRegisteredMember;
+import dev.chojo.ember.feature.signing.entity.RemoteRequirementChange;
 import dev.chojo.ember.feature.signing.entity.RequestState;
 import dev.chojo.ember.feature.signing.entity.SealingKey;
 import dev.chojo.ember.feature.signing.entity.SignatureLevel;
@@ -74,6 +76,7 @@ import dev.chojo.ember.feature.signing.entity.SigningCircumstances;
 import dev.chojo.ember.feature.signing.entity.SigningEvidence;
 import dev.chojo.ember.feature.signing.repository.PartnerAgreementRepository;
 import dev.chojo.ember.feature.signing.repository.PartnerAuthorityRepository;
+import dev.chojo.ember.feature.signing.repository.PartnerRequirementChangeRepository;
 import dev.chojo.ember.feature.signing.repository.PartnerSigningRepository;
 import dev.chojo.ember.feature.signing.repository.SignatureRequestRepository;
 import dev.chojo.ember.feature.signing.repository.SigningEvidenceRepository;
@@ -117,6 +120,7 @@ import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.s
 import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.text;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -158,6 +162,8 @@ class PartnerAgreementsTest extends GeneratorTestBase {
             .build();
     private static final JsonMapper WIRE = OutboundHttp.lenientMapper(PublicIdModule.forPartnerResponses());
     private static final AtomicBoolean ORGANISER_DOWN = new AtomicBoolean();
+    private static final AtomicBoolean HOME_DOWN = new AtomicBoolean();
+    private static final PartnerRequirementChangeRepository changeRepo = new PartnerRequirementChangeRepository();
 
     private static Wiring organiser;
     private static Station home;
@@ -174,6 +180,7 @@ class PartnerAgreementsTest extends GeneratorTestBase {
     private static SigningStateSealer sealer;
     private static SignatureWithdrawals withdrawals;
     private static AgreementSigners agreementSigners;
+    private static PartnerRequirementNotices requirementNotices;
     private static StationMember manager;
     private static int loginPermission;
 
@@ -341,7 +348,8 @@ class PartnerAgreementsTest extends GeneratorTestBase {
                 requestRepo,
                 linkRepo,
                 deliveries,
-                new RequirementSignatureStates(requestRepo, requests, new WithdrawalRights(guardianPolicy)));
+                new RequirementSignatureStates(requestRepo, requests, new WithdrawalRights(guardianPolicy)),
+                stationRepo);
         sealer = TestSealing.stateSealer(memberDocumentRepo, documents, stationRepo, memberNameResolver, deliveries);
         withdrawals = new SignatureWithdrawals(
                 requestRepo,
@@ -355,8 +363,17 @@ class PartnerAgreementsTest extends GeneratorTestBase {
                 mock(AppointmentSignatures.class));
         agreementSigners = new AgreementSigners(
                 requestRepo, requirementRepo, eventRegistrationRepo, memberNameResolver, agreementRepo, shareRepo);
+        requirementNotices = new PartnerRequirementNotices(
+                changeRepo,
+                agreementRepo,
+                events,
+                federationRepo,
+                stationRepo,
+                transport.transport(),
+                Runnable::run,
+                organiser.clock());
 
-        endpoints = transport.serve(events, authorities, agreements);
+        endpoints = transport.serve(events, authorities, agreements, signatures);
         routeOverHttp(httpClient);
     }
 
@@ -370,26 +387,17 @@ class PartnerAgreementsTest extends GeneratorTestBase {
     @BeforeEach
     void sharedAppointment() {
         ORGANISER_DOWN.set(false);
+        HOME_DOWN.set(false);
         camp = appointment("Zeltlager", true);
         shareRepo.setShare(camp.id(), ShareScope.ALL_PARTNERS);
-        consent = organiser
-                .templates()
-                .create(
-                        organiser.owner(),
-                        letter("Einverständnis " + NAMES.incrementAndGet())
-                                .body(List.of(
-                                        row(text("Ich nehme an {{event.name}} bei {{station.name}} teil.")),
-                                        row(signature(SignatureRole.PARTICIPANT, "Teilnehmende Person"))))
-                                .forAppointments(true)
-                                .build(),
-                        manager.id())
-                .id();
+        consent = neutralTemplate("Einverständnis");
         requirements.setForEvent(organiser.owner(), camp.id(), List.of(consent));
     }
 
     @AfterEach
     void organiserUp() {
         ORGANISER_DOWN.set(false);
+        HOME_DOWN.set(false);
     }
 
     /**
@@ -747,6 +755,129 @@ class PartnerAgreementsTest extends GeneratorTestBase {
         assertNull(signer.withdrawnAt());
     }
 
+    /**
+     * A document added after a partner's member registered reaches them at home: the organiser tells the
+     * partner, the partner fetches the documents of the date again and asks the member for the new one only,
+     * and the organiser hears it was taken on. Telling again asks nobody twice, and a date already past stays
+     * as it is.
+     */
+    @Test
+    void aDocumentAddedAfterAPartnersMemberRegisteredReachesThem() {
+        var member = homeMember("Olga", "Ost");
+        var first = requestOf(register(member).getFirst());
+        int rules = neutralTemplate("Hausordnung");
+        requirements.setForEvent(organiser.owner(), camp.id(), List.of(consent, rules));
+
+        assertEquals(1, requirementNotices.changed(organiser.station().id(), camp.id(), List.of(rules), List.of()));
+
+        assertTrue(linkRepo.asked(organiser.station().uid(), camp.id(), DAY, member.id(), rules));
+        assertEquals(
+                PartnerAgreementState.ASKED,
+                agreementRepo
+                        .find(camp.id(), DAY, rules, home.uid(), member.uid())
+                        .orElseThrow()
+                        .state());
+        assertTrue(changeRepo.forEvent(camp.id()).isEmpty(), "the partner took the notice");
+        int asked = requestsOf(member);
+        requirementNotices.changed(organiser.station().id(), camp.id(), List.of(rules), List.of());
+        assertEquals(asked, requestsOf(member), "nobody is asked twice");
+        assertEquals(
+                RequestState.OPEN,
+                requestRepo.findById(first.id()).orElseThrow().state());
+
+        var past = DAY.minusYears(1);
+        signatures.changed(
+                new ServingPartner(homeSide, organiser.station().uid()),
+                camp.id(),
+                new RemoteRequirementChange(List.of(), List.of(new RemoteRegisteredMember(member.uid(), past))));
+        assertFalse(linkRepo.asked(organiser.station().uid(), camp.id(), past, member.id(), rules));
+    }
+
+    /**
+     * A document taken off after a partner's member registered lets their open request go at home, the
+     * organiser forgets that it was taken on, and an agreement another member already signed stays signed.
+     */
+    @Test
+    void aDocumentTakenOffWithdrawsTheOpenRequestAtThePartner() {
+        var waiting = homeMember("Paula", "Pohl");
+        var open = requestOf(register(waiting).getFirst());
+        var signer = homeMember("Quirin", "Quast");
+        var signed = requestOf(register(signer).getFirst());
+        sign(signed, signer);
+        requirements.setForEvent(organiser.owner(), camp.id(), List.of());
+
+        requirementNotices.changed(organiser.station().id(), camp.id(), List.of(), List.of(consent));
+
+        assertEquals(
+                RequestState.WITHDRAWN,
+                requestRepo.findById(open.id()).orElseThrow().state());
+        assertTrue(agreementRepo
+                .find(camp.id(), DAY, consent, home.uid(), waiting.uid())
+                .isEmpty());
+        assertEquals(
+                RequestState.COMPLETE,
+                requestRepo.findById(signed.id()).orElseThrow().state());
+        assertEquals(
+                PartnerAgreementState.SIGNED,
+                agreementRepo
+                        .find(camp.id(), DAY, consent, home.uid(), signer.uid())
+                        .orElseThrow()
+                        .state());
+    }
+
+    /**
+     * A partner that cannot be reached when the documents change is told again later, after the time a failure
+     * waits, and its member is asked then.
+     */
+    @Test
+    void aPartnerThatMissedTheChangeIsToldAgainLater() {
+        var member = homeMember("Rita", "Roth");
+        register(member);
+        int rules = neutralTemplate("Hausordnung");
+        requirements.setForEvent(organiser.owner(), camp.id(), List.of(consent, rules));
+        HOME_DOWN.set(true);
+
+        requirementNotices.changed(organiser.station().id(), camp.id(), List.of(rules), List.of());
+
+        var missed = changeRepo.forEvent(camp.id());
+        assertEquals(1, missed.size());
+        assertEquals(1, missed.getFirst().deliveryAttempts());
+        assertFalse(linkRepo.asked(organiser.station().uid(), camp.id(), DAY, member.id(), rules));
+        HOME_DOWN.set(false);
+        assertEquals(0, requirementNotices.sweep(), "the next try is not due yet");
+        organiser.clock().advance(PartnerDeliveries.delayAfter(0).plusSeconds(1));
+        assertTrue(requirementNotices.sweep() >= 1);
+
+        assertTrue(linkRepo.asked(organiser.station().uid(), camp.id(), DAY, member.id(), rules));
+        assertTrue(changeRepo.forEvent(camp.id()).isEmpty());
+    }
+
+    /** A change for a partner the appointment is no longer shared with is dropped rather than told. */
+    @Test
+    void aPartnerTheAppointmentIsNoLongerSharedWithIsNotTold() {
+        var member = homeMember("Sina", "Sauer");
+        var open = requestOf(register(member).getFirst());
+        HOME_DOWN.set(true);
+        requirementNotices.changed(organiser.station().id(), camp.id(), List.of(), List.of(consent));
+        assertEquals(1, changeRepo.forEvent(camp.id()).size());
+        HOME_DOWN.set(false);
+        events.removeShare(camp.id());
+
+        assertFalse(requirementNotices.deliver(changeRepo.forEvent(camp.id()).getFirst()));
+
+        assertTrue(changeRepo.forEvent(camp.id()).isEmpty());
+        assertEquals(
+                RequestState.OPEN, requestRepo.findById(open.id()).orElseThrow().state());
+    }
+
+    private static int requestsOf(StationMember member) {
+        return query("SELECT count(*) AS asked FROM signing_request WHERE member_id = :member_id;")
+                .single(call().bind("member_id", member.id()))
+                .map(row -> row.getInt("asked"))
+                .first()
+                .orElse(0);
+    }
+
     private List<PartnerDocumentToSign> register(StationMember member) {
         events.registerForFederatedEvent(home.id(), organiser.station().uid(), camp.id(), member.uid(), DAY);
         return signatures.registered(at(member), organiser.station().uid(), camp.id(), DAY, member.uid());
@@ -828,6 +959,21 @@ class PartnerAgreementsTest extends GeneratorTestBase {
                 .orElse("");
     }
 
+    private static int neutralTemplate(String name) {
+        return organiser
+                .templates()
+                .create(
+                        organiser.owner(),
+                        letter(name + " " + NAMES.incrementAndGet())
+                                .body(List.of(
+                                        row(text("Ich nehme an {{event.name}} bei {{station.name}} teil.")),
+                                        row(signature(SignatureRole.PARTICIPANT, "Teilnehmende Person"))))
+                                .forAppointments(true)
+                                .build(),
+                        manager.id())
+                .id();
+    }
+
     private static StationEvent appointment(String name, boolean requiresRegistration) {
         return eventRepo.create(
                 organiser.station().id(),
@@ -877,8 +1023,8 @@ class PartnerAgreementsTest extends GeneratorTestBase {
     /**
      * Hands every request the stubbed client sends to the serving function of the station it names, as that
      * station's {@code /remote} route would: as the serving station's partnership with the asking one, the
-     * body and the answer each written as JSON and read back. The station holding the appointment can be
-     * switched off, which answers as an unreachable installation does.
+     * body and the answer each written as JSON and read back. Either station can be switched off, which
+     * answers as an unreachable installation does.
      */
     private static void routeOverHttp(FederationHttpClient httpClient) {
         doAnswer(call -> answer(
@@ -926,7 +1072,8 @@ class PartnerAgreementsTest extends GeneratorTestBase {
     }
 
     private static Object serve(FederationRequest request, Object body, UUID target, int asking) {
-        if (ORGANISER_DOWN.get() && target.equals(organiser.station().uid())) {
+        if ((ORGANISER_DOWN.get() && target.equals(organiser.station().uid()))
+                || (HOME_DOWN.get() && target.equals(home.uid()))) {
             throw FederationRefusal.FEDERATION_PARTNER_DID_NOT_ANSWER.raise();
         }
         var askingUid = stationRepo.requireUid(asking);

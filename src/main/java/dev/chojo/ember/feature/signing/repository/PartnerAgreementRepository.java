@@ -106,6 +106,49 @@ public class PartnerAgreementRepository {
     }
 
     /**
+     * @param eventId the appointment
+     * @param from    the first date that counts
+     * @return the partnerships that reported on a document of the appointment for that date or a later one
+     */
+    public List<Integer> partnersFrom(int eventId, LocalDate from) {
+        return query("""
+                        SELECT DISTINCT partner_id FROM partner_agreement
+                        WHERE event_id = :event_id AND event_date >= :from AND partner_id IS NOT NULL
+                        ORDER BY partner_id;""")
+                .single(call().bind("event_id", eventId).bind("from", from))
+                .map(row -> row.getInt("partner_id"))
+                .all();
+    }
+
+    /**
+     * Forgets that a partner took a document on for a member, once it let the request go because the document
+     * was taken off the appointment. A row that holds a sealed copy, or anything beyond being taken on, stays.
+     *
+     * @param eventId           the appointment
+     * @param eventDate         the date
+     * @param templateId        the template
+     * @param partnerStationUid the member's station
+     * @param remoteMemberId    the member
+     * @return whether a row was forgotten
+     */
+    public boolean release(
+            int eventId, LocalDate eventDate, int templateId, UUID partnerStationUid, UUID remoteMemberId) {
+        return query("""
+                        DELETE FROM partner_agreement a
+                        WHERE a.event_id = :event_id AND a.event_date = :event_date AND a.template_id = :template_id
+                          AND a.partner_station_uid = :partner_uid::UUID AND a.remote_member_id = :member_uid::UUID
+                          AND a.state = 'ASKED'
+                          AND NOT exists (SELECT 1 FROM partner_agreement_copy c WHERE c.agreement_id = a.id);""")
+                .single(call().bind("event_id", eventId)
+                        .bind("event_date", eventDate)
+                        .bind("template_id", templateId)
+                        .bind("partner_uid", partnerStationUid, UUID_STRING)
+                        .bind("member_uid", remoteMemberId, UUID_STRING))
+                .delete()
+                .changed();
+    }
+
+    /**
      * @param stationId the station holding the appointment
      * @param id        the row
      * @return the row, where it is the station's

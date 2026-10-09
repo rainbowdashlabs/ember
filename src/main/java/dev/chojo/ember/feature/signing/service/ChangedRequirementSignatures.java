@@ -34,7 +34,8 @@ import java.util.Collection;
  * <p>A document taken off withdraws what is still open on its copies; signed fields stay, reminders stop and
  * the requests already out are taken back.
  *
- * <p>A participant who cannot be asked is logged and left out; the change to the appointment stands.
+ * <p>A participant who cannot be asked is logged and left out; the change to the appointment stands. Members of
+ * partner stations are asked at home, once their station is told ({@link PartnerRequirementNotices}).
  */
 @Singleton
 public class ChangedRequirementSignatures {
@@ -89,7 +90,6 @@ public class ChangedRequirementSignatures {
     public int added(int stationId, int eventId, Collection<Integer> templateIds) {
         var event = events.findById(eventId).orElse(null);
         if (event == null || !event.requiresRegistration() || templateIds.isEmpty()) return 0;
-        // TODO: members of partner stations registered before a document is added are not asked for it.
         int asked = 0;
         for (var date : registrations.findDatesFrom(eventId, today(stationId))) {
             for (int memberId : registrations.findRegisteredMemberIds(eventId, date)) {

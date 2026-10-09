@@ -12,6 +12,8 @@ import dev.chojo.ember.feature.federation.contract.FederationSurface;
 import dev.chojo.ember.feature.federation.transport.FederationEndpoints;
 import dev.chojo.ember.feature.signing.entity.RemoteAgreement;
 import dev.chojo.ember.feature.signing.entity.RemoteAgreementNotice;
+import dev.chojo.ember.feature.signing.entity.RemoteRequirementChange;
+import dev.chojo.ember.feature.signing.entity.RemoteRequirementChangeAnswer;
 import dev.chojo.ember.feature.signing.entity.SigningAuthorityStatement;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
@@ -21,7 +23,7 @@ import java.util.List;
 
 /**
  * Server-to-server signing endpoints served to federation partners, through the serving functions of
- * {@code PartnerAuthorities} and {@code PartnerAgreements}. Requests carry an RSA-signed envelope instead of a
+ * {@code PartnerAuthorities}, {@code PartnerAgreements} and {@code PartnerSignatures}. Requests carry an RSA-signed envelope instead of a
  * user session, which covers the body: a signed copy sent back is signed with the sending station's
  * federation key.
  *
@@ -59,7 +61,19 @@ public class RemoteSigningRoutes implements Routes {
             RemoteAgreementNotice.class,
             Void.class);
 
-    public static final List<FederationEndpoint> CONTRACT = List.of(AUTHORITIES, AGREEMENTS, AGREEMENT_NOTICE);
+    /**
+     * The station holding a shared appointment telling a partner that the documents it asks for changed: the
+     * partner asks its members registered on dates still ahead for the documents added, lets the open requests
+     * of those taken off go, and answers with what it let go. Answered by {@code PartnerSignatures}.
+     */
+    public static final FederationEndpoint REQUIREMENTS_CHANGED = FederationEndpoint.post(
+            FederationSurface.EVENT_SHARE,
+            "/remote/signing/events/{eventId}/requirements",
+            RemoteRequirementChange.class,
+            RemoteRequirementChangeAnswer.class);
+
+    public static final List<FederationEndpoint> CONTRACT =
+            List.of(AUTHORITIES, AGREEMENTS, AGREEMENT_NOTICE, REQUIREMENTS_CHANGED);
 
     private final FederationEndpoints endpoints;
 
@@ -72,6 +86,7 @@ public class RemoteSigningRoutes implements Routes {
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
         FederationContractBinder.register(routes, prefix, CONTRACT, endpoints, binder -> binder.serve(AUTHORITIES)
                 .serve(AGREEMENTS)
-                .serve(AGREEMENT_NOTICE));
+                .serve(AGREEMENT_NOTICE)
+                .serve(REQUIREMENTS_CHANGED));
     }
 }
