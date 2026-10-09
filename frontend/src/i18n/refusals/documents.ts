@@ -180,4 +180,5 @@ export default {
     'D-265': 'Dieses Feld soll beim Unterschreiben nicht von dir ausgefüllt werden',
     'D-266': 'Ein Pflichtfeld wurde nicht ausgefüllt',
     'D-267': 'Ein Wert ist länger, als sein Feld erlaubt',
+    'D-268': 'Ein Eingabefeld kann nicht für das Mitglied sein, das das Dokument ausstellt',
 }

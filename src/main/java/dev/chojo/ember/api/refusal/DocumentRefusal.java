@@ -639,7 +639,11 @@ public enum DocumentRefusal implements Refusal {
     SIGNING_ENTRY_REQUIRED(266, HttpStatus.BAD_REQUEST, "A field that has to be filled in was left out"),
 
     /** A value typed at signing that is longer than its field takes. */
-    SIGNING_ENTRY_LONGER_THAN_FIELD(267, HttpStatus.BAD_REQUEST, "A value is longer than its field takes");
+    SIGNING_ENTRY_LONGER_THAN_FIELD(267, HttpStatus.BAD_REQUEST, "A value is longer than its field takes"),
+
+    /** A field to fill in for the issuer, whose signature can be made without them filling anything in. */
+    DOCUMENT_TEMPLATE_FILL_IN_FOR_ISSUER(
+            268, HttpStatus.BAD_REQUEST, "A field to fill in cannot be for the member who issues the document");
 
     private final Definition definition;
 

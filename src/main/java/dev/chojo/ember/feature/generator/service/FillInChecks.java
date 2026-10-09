@@ -23,6 +23,9 @@ import java.util.stream.IntStream;
  * document it becomes one field for each signature field that signer has there, so a field for every
  * guardian is filled in by each guardian in their own act. That only works where the template has a
  * signature field for that signer: a field nobody signs would be filled in by nobody, so it is refused.
+ *
+ * <p>The issuer never fills a field in. Their signature can be made automatically with no act of theirs,
+ * which would leave such a field empty and open to change in a document already signed for them.
  */
 final class FillInChecks {
     private FillInChecks() {}
@@ -46,6 +49,7 @@ final class FillInChecks {
     static Checked checked(@Nullable SignatureRole signer, @Nullable String label, @Nullable Integer maxLength) {
         String stripped = label == null ? "" : label.strip();
         if (signer == null || stripped.isEmpty()) throw DocumentRefusal.DOCUMENT_TEMPLATE_FILL_IN_INCOMPLETE.raise();
+        if (signer == SignatureRole.ISSUER) throw DocumentRefusal.DOCUMENT_TEMPLATE_FILL_IN_FOR_ISSUER.raise();
         if (stripped.length() > FillInField.LONGEST_LABEL) {
             throw DocumentRefusal.DOCUMENT_TEMPLATE_FILL_IN_LABEL_TOO_LONG.raise();
         }

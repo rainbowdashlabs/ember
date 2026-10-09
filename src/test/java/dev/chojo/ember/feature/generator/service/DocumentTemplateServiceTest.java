@@ -487,6 +487,24 @@ class DocumentTemplateServiceTest extends RepositoryTestBase {
                         authorId));
     }
 
+    /**
+     * A field to fill in for the issuer is refused, even beside the issuer's own signature line: a letter
+     * signed automatically for the issuer would leave it empty and open to change.
+     */
+    @Test
+    void aBoxToFillInIsNeverTheIssuers() {
+        refused(
+                DocumentRefusal.DOCUMENT_TEMPLATE_FILL_IN_FOR_ISSUER,
+                () -> service.create(
+                        owner,
+                        letter("Aussteller")
+                                .body(List.of(
+                                        row(fillIn(SignatureRole.ISSUER, "Telefon", false, null)),
+                                        row(signature(SignatureRole.ISSUER, ""))))
+                                .build(),
+                        authorId));
+    }
+
     /** A signature line keeps what its signer confirms, and a statement longer than one is refused. */
     @Test
     void aSignatureLineKeepsWhatItsSignerConfirms() {
