@@ -28,7 +28,7 @@ class RegistrationSignaturesHandlerTest {
             names = {"PENDING", "ACCEPTED"})
     void aPlaceTakenAsks(RegistrationStatus status) {
         var signatures = mock(AppointmentSignatures.class);
-        var handler = new RegistrationSignaturesHandler(signatures);
+        var handler = new RegistrationSignaturesHandler(() -> signatures);
 
         handler.handle(new EventAnswerRecorded(1, 2, 3, DAY, status));
 
@@ -44,7 +44,7 @@ class RegistrationSignaturesHandlerTest {
     void aPlaceGivenUpWithdraws(RegistrationStatus status) {
         var signatures = mock(AppointmentSignatures.class);
 
-        new RegistrationSignaturesHandler(signatures).handle(new EventAnswerRecorded(1, 2, 3, DAY, status));
+        new RegistrationSignaturesHandler(() -> signatures).handle(new EventAnswerRecorded(1, 2, 3, DAY, status));
 
         verify(signatures).withdrawOnLeaving(2, DAY, 3);
         verifyNoMoreInteractions(signatures);

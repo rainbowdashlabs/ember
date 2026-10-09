@@ -161,7 +161,7 @@ class AppointmentSignaturesTest extends GeneratorTestBase {
                 eventRegistrationRepo,
                 new EventRegistrationFieldRepository(),
                 eventRepo,
-                new DomainEventBus(Set.of(new RegistrationSignaturesHandler(signatures))),
+                new DomainEventBus(Set.of(new RegistrationSignaturesHandler(() -> signatures))),
                 memberNameResolver);
     }
 
