@@ -115,7 +115,7 @@ class AgreementRoutesTest {
 
     @Test
     void anAgreementIsWithdrawnWithTheReasonAndWhereItCameFrom() {
-        when(withdrawals.withdraw(any(), eq(REQUEST), eq("Krank"), any(SigningCircumstances.class)))
+        when(withdrawals.requireOwnedThenWithdraw(any(), eq(REQUEST), eq("Krank"), any(SigningCircumstances.class)))
                 .thenReturn(new SignatureWithdrawal(
                         1, 2, 11, 11, "Lena", SignerCapacity.ACCOUNT_HOLDER, "Krank", AT, null, null, null));
 
@@ -127,12 +127,12 @@ class AgreementRoutesTest {
         assertEquals(200, response.code());
         assertEquals(
                 AT.toString(), RouteHarness.json(response).get("withdrawnAt").asText());
-        verify(withdrawals).withdraw(any(), eq(REQUEST), eq("Krank"), any(SigningCircumstances.class));
+        verify(withdrawals).requireOwnedThenWithdraw(any(), eq(REQUEST), eq("Krank"), any(SigningCircumstances.class));
     }
 
     @Test
     void theAgreementsOfADocumentAreListed() {
-        when(withdrawals.onDocument(any(), eq(40)))
+        when(withdrawals.requireOwnedAgreements(any(), eq(40)))
                 .thenReturn(List.of(new DocumentAgreement(REQUEST, RequestState.COMPLETE, true, null, null)));
 
         var response = harness.request(client -> client.get(

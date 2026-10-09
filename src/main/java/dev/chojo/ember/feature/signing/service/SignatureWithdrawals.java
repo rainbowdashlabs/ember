@@ -124,7 +124,7 @@ public class SignatureWithdrawals {
     }
 
     /**
-     * Withdraws a signed agreement.
+     * Withdraws a signed agreement of a request at the reader's station.
      *
      * @param session      who withdraws it
      * @param requestUid   the request whose agreement it is
@@ -132,7 +132,7 @@ public class SignatureWithdrawals {
      * @param circumstances where the withdrawal came from
      * @return the withdrawal as recorded
      */
-    public SignatureWithdrawal withdraw(
+    public SignatureWithdrawal requireOwnedThenWithdraw(
             StationSession session, UUID requestUid, @Nullable String reason, SigningCircumstances circumstances) {
         String why = reasonOf(reason);
         var request = requestService.requestAt(session, requestUid);
@@ -172,7 +172,7 @@ public class SignatureWithdrawals {
      * @param documentId the member document
      * @return the agreements, newest first; none where the reader is no party to any
      */
-    public List<DocumentAgreement> onDocument(StationSession session, int documentId) {
+    public List<DocumentAgreement> requireOwnedAgreements(StationSession session, int documentId) {
         return requests.onDocument(session.stationId(), documentId).stream()
                 .map(request -> agreement(session, request, requests.fieldsOf(request.id())))
                 .flatMap(Optional::stream)

@@ -617,7 +617,7 @@ class SigningStateSealerTest extends RepositoryTestBase {
         WithdrawalRelay relay = mock(WithdrawalRelay.class);
 
         var withdrawal = withdrawals(sealer, notices, relay, Clock.systemUTC())
-                .withdraw(
+                .requireOwnedThenWithdraw(
                         at(signer),
                         request.uid(),
                         "Ich fahre doch nicht mit.",
@@ -673,17 +673,19 @@ class SigningStateSealerTest extends RepositoryTestBase {
         var document = documentOf(request);
         var stranger = member("Fritz", "Fremd");
         var before = withdrawals(sealer, mock(SignatureNotices.class), (r, w) -> {}, Clock.systemUTC());
-        assertTrue(before.onDocument(at(signer), document.id()).getFirst().withdrawable());
-        assertTrue(before.onDocument(at(stranger), document.id()).isEmpty());
+        assertTrue(before.requireOwnedAgreements(at(signer), document.id())
+                .getFirst()
+                .withdrawable());
+        assertTrue(before.requireOwnedAgreements(at(stranger), document.id()).isEmpty());
         var failing = mock(SigningStateSealer.class);
         when(failing.sealLatest(anyInt())).thenThrow(new IllegalStateException("no key"));
 
         withdrawals(failing, mock(SignatureNotices.class), (r, w) -> {}, Clock.systemUTC())
-                .withdraw(at(signer), request.uid(), " ", new SigningCircumstances(null, null));
+                .requireOwnedThenWithdraw(at(signer), request.uid(), " ", new SigningCircumstances(null, null));
 
         assertEquals(1, versions.versionsOf(document.id()).size());
         assertNull(requestRepo.withdrawalOf(request.id()).orElseThrow().reason(), "a blank reason is none");
-        var listed = before.onDocument(at(signer), document.id()).getFirst();
+        var listed = before.requireOwnedAgreements(at(signer), document.id()).getFirst();
         assertFalse(listed.withdrawable());
         assertNotNull(listed.withdrawnAt());
         var sweeper = new SigningStateSweeper(evidenceRepo, sealer);

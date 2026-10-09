@@ -147,7 +147,7 @@ public class AgreementRoutes implements Routes {
     private void withdraw(Context ctx) {
         var session = StationSession.from(ctx);
         var body = ctx.bodyAsClass(AgreementWithdrawalRequest.class);
-        var withdrawal = withdrawals.withdraw(
+        var withdrawal = withdrawals.requireOwnedThenWithdraw(
                 session,
                 pathUuid(ctx, "requestUid"),
                 body.reason(),
@@ -163,6 +163,6 @@ public class AgreementRoutes implements Routes {
             pathParams = @OpenApiParam(name = "documentId", type = Integer.class, required = true),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = DocumentAgreement[].class)))
     private void onDocument(Context ctx) {
-        ctx.json(withdrawals.onDocument(StationSession.from(ctx), pathInt(ctx, "documentId")));
+        ctx.json(withdrawals.requireOwnedAgreements(StationSession.from(ctx), pathInt(ctx, "documentId")));
     }
 }

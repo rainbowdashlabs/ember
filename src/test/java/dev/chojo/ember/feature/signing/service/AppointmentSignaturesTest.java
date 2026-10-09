@@ -577,7 +577,7 @@ class AppointmentSignaturesTest extends GeneratorTestBase {
         assertNull(answerOf(child).agreementWithdrawnAt());
         assertTrue(statusFor(guardian, child).signature().withdrawable());
 
-        var withdrawal = withdrawals.withdraw(
+        var withdrawal = withdrawals.requireOwnedThenWithdraw(
                 stationSession(guardian),
                 signed.uid(),
                 "  Doch krank  ",
@@ -619,9 +619,9 @@ class AppointmentSignaturesTest extends GeneratorTestBase {
         var circumstances = new SigningCircumstances(null, null);
         assertRefused(
                 DocumentRefusal.SIGNATURE_WITHDRAWAL_NOT_YOURS,
-                () -> withdrawals.withdraw(stationSession(adult), request.uid(), null, circumstances));
+                () -> withdrawals.requireOwnedThenWithdraw(stationSession(adult), request.uid(), null, circumstances));
 
-        withdrawals.withdraw(stationSession(guardian), request.uid(), null, circumstances);
+        withdrawals.requireOwnedThenWithdraw(stationSession(guardian), request.uid(), null, circumstances);
 
         var status = statusFor(guardian, child);
         assertEquals(RequirementSignatureState.REVOKED, status.signature().state());
@@ -633,7 +633,8 @@ class AppointmentSignaturesTest extends GeneratorTestBase {
         assertNotNull(listed.withdrawnAt());
         assertRefused(
                 DocumentRefusal.SIGNATURE_WITHDRAWAL_ENDED,
-                () -> withdrawals.withdraw(stationSession(guardian), request.uid(), null, circumstances));
+                () -> withdrawals.requireOwnedThenWithdraw(
+                        stationSession(guardian), request.uid(), null, circumstances));
     }
 
     /** An agreement only confirmed on paper is withdrawn on paper; a reason too long is refused. */
@@ -644,7 +645,8 @@ class AppointmentSignaturesTest extends GeneratorTestBase {
         var circumstances = new SigningCircumstances(null, null);
         assertRefused(
                 DocumentRefusal.SIGNATURE_WITHDRAWAL_REASON_TOO_LONG,
-                () -> withdrawals.withdraw(stationSession(guardian), request.uid(), "x".repeat(501), circumstances));
+                () -> withdrawals.requireOwnedThenWithdraw(
+                        stationSession(guardian), request.uid(), "x".repeat(501), circumstances));
         scans.submit(
                 stationSession(manager, StationPermission.EVENT_REGISTRATION),
                 camp,
@@ -656,7 +658,8 @@ class AppointmentSignaturesTest extends GeneratorTestBase {
 
         assertRefused(
                 DocumentRefusal.SIGNATURE_WITHDRAWAL_NOTHING_SIGNED,
-                () -> withdrawals.withdraw(stationSession(guardian), request.uid(), null, circumstances));
+                () -> withdrawals.requireOwnedThenWithdraw(
+                        stationSession(guardian), request.uid(), null, circumstances));
     }
 
     private static StationEvent appointment(boolean takesRegistrations) {
