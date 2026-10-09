@@ -15,6 +15,8 @@ import dev.chojo.ember.feature.events.service.EventFederationService;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.members.service.GuardianPolicy;
+import dev.chojo.ember.feature.members.service.MemberLookupService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import io.javalin.testtools.Request;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,6 +34,8 @@ import static dev.chojo.ember.api.RouteHarness.body;
 import static dev.chojo.ember.api.RouteHarness.json;
 import static dev.chojo.ember.api.RouteHarness.refusalOf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -62,6 +66,9 @@ class FederatedEventRoutesTest {
             null,
             "Wache Nord");
 
+    private static final UUID OTHER_UID = UUID.fromString("00000000-0000-0000-0000-000000000013");
+    private static final UUID ELSEWHERE_UID = UUID.fromString("00000000-0000-0000-0000-000000000014");
+
     private EventFederationService events;
     private FederationService federation;
     private StationMemberService members;
@@ -72,8 +79,14 @@ class FederatedEventRoutesTest {
         events = mock(EventFederationService.class);
         federation = mock(FederationService.class);
         members = mock(StationMemberService.class);
+        var lookup = mock(MemberLookupService.class);
+        var guardians = mock(GuardianPolicy.class);
         when(federation.findPartnerByRemoteUid(STATION, PARTNER_UID)).thenReturn(Optional.of(PARTNER));
-        harness = RouteHarness.serving(new FederatedEventRoutes(events, federation, members));
+        when(lookup.resolveId(STATION, MEMBER_UID)).thenReturn(Optional.of(TestSessions.MEMBER_ID));
+        when(lookup.resolveId(STATION, OTHER_UID)).thenReturn(Optional.of(13));
+        when(lookup.resolveId(STATION, ELSEWHERE_UID)).thenReturn(Optional.empty());
+        when(guardians.mayActFor(any(), eq(TestSessions.MEMBER_ID))).thenReturn(true);
+        harness = RouteHarness.serving(new FederatedEventRoutes(events, federation, members, lookup, guardians));
     }
 
     private Consumer<Request.Builder> registrar() {
@@ -99,6 +112,52 @@ class FederatedEventRoutesTest {
         verify(events).withdrawFederatedRegistration(STATION, PARTNER_UID, 4, MEMBER_UID, DAY);
         verify(events).undoFederatedWithdrawal(STATION, PARTNER_UID, 4, MEMBER_UID, DAY);
         verify(events).confirmOwnFederatedMember(STATION, PARTNER_UID, 4, MEMBER_UID, DAY);
+    }
+
+    /**
+     * A member answers for themselves and the members in their care. Signing up, withdrawing or putting
+     * back anybody else used to go through, because the member was taken from the request as it came.
+     */
+    @Test
+    void aMemberCannotAnswerForSomebodyElse() {
+        var other = body("{\"eventDate\": \"2026-05-01\", \"memberId\": \"" + OTHER_UID + "\"}");
+
+        harness.run((server, client) -> {
+            assertEquals(
+                    EventRefusal.MEMBER_NOT_YOURS_TO_REGISTER, refusalOf(client.post(REGISTER, other, registrar())));
+            assertEquals(
+                    EventRefusal.MEMBER_NOT_YOURS_TO_REGISTER, refusalOf(client.delete(REGISTER, other, registrar())));
+            assertEquals(
+                    EventRefusal.MEMBER_NOT_YOURS_TO_REGISTER,
+                    refusalOf(client.post(REGISTER + "/undo", other, registrar())));
+        });
+
+        verifyNoInteractions(events);
+    }
+
+    /** Whoever runs the station's appointments answers for any member of it, as for its own appointments. */
+    @Test
+    void anEventManagerAnswersForAnyMemberOfTheStation() {
+        var other = body("{\"eventDate\": \"2026-05-01\", \"memberId\": \"" + OTHER_UID + "\"}");
+        var manager = harness.as(TestSessions.member(STATION, StationPermission.USER, StationPermission.EVENT_MANAGER));
+
+        assertEquals(
+                204,
+                harness.request(client -> client.delete(REGISTER, other, manager))
+                        .code());
+
+        verify(events).withdrawFederatedRegistration(STATION, PARTNER_UID, 4, OTHER_UID, DAY);
+    }
+
+    /** A member of another station is nobody this station can give a place, not even its manager. */
+    @Test
+    void aMemberOfAnotherStationIsNotGivenAPlace() {
+        var elsewhere = body("{\"eventDate\": \"2026-05-01\", \"memberId\": \"" + ELSEWHERE_UID + "\"}");
+
+        var answer = harness.request(client -> client.post(REGISTER + "/confirm", elsewhere, registrar()));
+
+        assertEquals(EventRefusal.MEMBER_NOT_YOURS_TO_REGISTER, refusalOf(answer));
+        verifyNoInteractions(events);
     }
 
     @Test
