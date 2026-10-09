@@ -33,6 +33,7 @@ describe('the block editor of a letter', () => {
         expect(options.restrictable).toBe(catalogue.choices)
         expect(options.guardianCondition).toBe(true)
         expect(options.columnLines).toBe(true)
+        expect(options.verticalDivider).toBe(true)
         expect(options.markdownTools).toBeDefined()
     })
 

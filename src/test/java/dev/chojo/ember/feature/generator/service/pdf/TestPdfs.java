@@ -45,7 +45,7 @@ public final class TestPdfs {
     public static final PDRectangle AGREE_BOX = new PDRectangle(100, 500, 20, 20);
 
     /** How many pixels a point is drawn as, enough for a line of half a point to come out solid. */
-    private static final float SCALE = 4f;
+    public static final float SCALE = 4f;
 
     private TestPdfs() {}
 

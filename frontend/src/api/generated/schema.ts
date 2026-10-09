@@ -60688,6 +60688,7 @@ export interface components {
         };
         DividerConfig: {
             label?: string;
+            vertical?: boolean;
         };
         DocumentFontsResponse: {
             defaultFamily: string;

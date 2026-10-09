@@ -50,6 +50,7 @@ export function letterBlockOptions(catalogue: LetterCatalogue, part: LetterPart)
         restrictable: catalogue.choices,
         guardianCondition: true,
         columnLines: true,
+        verticalDivider: true,
         stationLogo: true,
     }
 }

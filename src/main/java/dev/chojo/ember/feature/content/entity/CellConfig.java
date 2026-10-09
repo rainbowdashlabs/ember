@@ -208,10 +208,24 @@ public sealed interface CellConfig {
     record QuoteConfig(@Nullable String author, @Nullable String attributionUrl) implements CellConfig {}
 
     /**
-     * Horizontal divider with optional centred label.
+     * A divider: a horizontal line with an optional centred label, or in a letter a vertical line between
+     * the blocks either side of it, as tall as their row and without a label.
+     *
+     * @param label    the text in the middle of a horizontal line, or null
+     * @param vertical true for a vertical line, null or false for a horizontal one
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record DividerConfig(@Nullable String label) implements CellConfig {}
+    record DividerConfig(@Nullable String label, @Nullable Boolean vertical) implements CellConfig {
+        /** @param label the text in the middle of a horizontal line, or null */
+        public DividerConfig(@Nullable String label) {
+            this(label, null);
+        }
+
+        /** @return whether the line runs vertically */
+        public boolean runsVertically() {
+            return Boolean.TRUE.equals(vertical);
+        }
+    }
 
     /**
      * Vertical spacer. Height in CSS pixels.

@@ -1855,7 +1855,9 @@ volumes:
                 + 'hält einen Text, ein Bild aus der Mediathek oder das Logo der Wache, eine Trennlinie mit oder '
                 + 'ohne Beschriftung, einen Abstand, oder mehrere davon untereinander. Die Breite einer Spalte '
                 + 'ziehst du am Rand oder gibst sie im Menü ein. Über „Linien zwischen den Spalten" im Menü einer '
-                + 'Zeile steht zwischen ihren Spalten je eine senkrechte Linie. Kopf- und Fußzeile zeigen sich, wie '
+                + 'Zeile steht zwischen ihren Spalten je eine senkrechte Linie. Soll nur zwischen zwei Spalten eine '
+                + 'Linie stehen, setze dort eine Trennlinie als eigene Spalte und schalte „Senkrechte Linie“ ein. '
+                + 'Sie ist so hoch wie die Zeile, ihre Spalte bleibt als Abstand um die Linie. Kopf- und Fußzeile zeigen sich, wie '
                 + 'sie gedruckt werden, und öffnen sich zum Bearbeiten per Klick.',
             pageText: 'Unter Seite stellst du die Ränder und die Schriftgröße ein. Der Rand oben ist der Abstand '
                 + 'vom Papierrand bis zur Kopfzeile, der Rand unten der Abstand von der Fußzeile bis zum Papierrand. '

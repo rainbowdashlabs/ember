@@ -51483,6 +51483,9 @@
         "properties" : {
           "label" : {
             "type" : "string"
+          },
+          "vertical" : {
+            "type" : "boolean"
           }
         }
       },
