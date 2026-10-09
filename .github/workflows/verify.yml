@@ -65,6 +65,8 @@ jobs:
           - suite: testRepositories
           - suite: testServices
             tools: true
+          - suite: testPeopleServices
+            tools: true
           - suite: testOther
             tools: true
           - suite: testTracking
@@ -129,7 +131,7 @@ jobs:
           fi
           sudo install -m 0755 ~/tool-cache/typst/typst /usr/local/bin/typst
       - name: Run the tests
-        timeout-minutes: 15
+        timeout-minutes: 25
         run: ./toolchain.sh be-suite ${{ matrix.suite }} --build-cache
       - name: Upload coverage data
         if: always()
