@@ -13,9 +13,13 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.SequenceInputStream;
 import java.io.UncheckedIOException;
 import java.net.http.HttpRequest;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
@@ -27,6 +31,8 @@ import static org.mockito.Mockito.when;
  */
 public final class TestUploads {
     private static final String BOUNDARY = "ember-test-boundary";
+    private static final byte[] FORM_TAIL = ("\r\n--" + BOUNDARY + "--\r\n").getBytes(StandardCharsets.UTF_8);
+    private static final byte[] PDF_HEADER = "%PDF-".getBytes(StandardCharsets.US_ASCII);
 
     private TestUploads() {}
 
@@ -99,18 +105,82 @@ public final class TestUploads {
                 .post(HttpRequest.BodyPublishers.ofInputStream(() -> new ByteArrayInputStream(body)));
     }
 
+    /**
+     * An upload of a file of the given size that the test never holds in memory: a PDF header followed by
+     * zeros, streamed as it is sent, with its length announced.
+     *
+     * @param fileName the name it is uploaded under
+     * @param size     the file's size in bytes
+     * @return what turns a request into the upload
+     */
+    public static Consumer<Request.Builder> streamedMultipart(String fileName, long size) {
+        long length = formHead(fileName, Map.of()).length + size + FORM_TAIL.length;
+        return builder -> builder.header("Content-Type", "multipart/form-data; boundary=" + BOUNDARY)
+                .post(HttpRequest.BodyPublishers.fromPublisher(
+                        HttpRequest.BodyPublishers.ofInputStream(() -> streamedBody(fileName, size)), length));
+    }
+
+    /**
+     * The same streamed upload sent in chunks, without announcing its length.
+     *
+     * @param fileName the name it is uploaded under
+     * @param size     the file's size in bytes
+     * @return what turns a request into the upload
+     */
+    public static Consumer<Request.Builder> streamedChunkedMultipart(String fileName, long size) {
+        return builder -> builder.header("Content-Type", "multipart/form-data; boundary=" + BOUNDARY)
+                .post(HttpRequest.BodyPublishers.ofInputStream(() -> streamedBody(fileName, size)));
+    }
+
+    private static InputStream streamedBody(String fileName, long size) {
+        return new SequenceInputStream(Collections.enumeration(List.of(
+                new ByteArrayInputStream(formHead(fileName, Map.of())),
+                new ByteArrayInputStream(PDF_HEADER),
+                new Zeros(size - PDF_HEADER.length),
+                new ByteArrayInputStream(FORM_TAIL))));
+    }
+
     private static byte[] multipartBody(String fileName, byte[] data, Map<String, String> fields) {
-        String boundary = BOUNDARY;
         var body = new ByteArrayOutputStream();
-        fields.forEach((name, value) -> body.writeBytes(
-                ("--" + boundary + "\r\nContent-Disposition: form-data; name=\"" + name + "\"\r\n\r\n" + value + "\r\n")
-                        .getBytes(StandardCharsets.UTF_8)));
-        body.writeBytes(("--" + boundary + "\r\nContent-Disposition: form-data; name=\"file\"; filename=\"" + fileName
-                        + "\"\r\nContent-Type: application/octet-stream\r\n\r\n")
-                .getBytes(StandardCharsets.UTF_8));
+        body.writeBytes(formHead(fileName, fields));
         body.writeBytes(data);
-        body.writeBytes(("\r\n--" + boundary + "--\r\n").getBytes(StandardCharsets.UTF_8));
+        body.writeBytes(FORM_TAIL);
         return body.toByteArray();
+    }
+
+    private static byte[] formHead(String fileName, Map<String, String> fields) {
+        var head = new StringBuilder();
+        fields.forEach((name, value) -> head.append("--" + BOUNDARY + "\r\nContent-Disposition: form-data; name=\""
+                + name + "\"\r\n\r\n" + value + "\r\n"));
+        head.append("--" + BOUNDARY + "\r\nContent-Disposition: form-data; name=\"file\"; filename=\"" + fileName
+                + "\"\r\nContent-Type: application/octet-stream\r\n\r\n");
+        return head.toString().getBytes(StandardCharsets.UTF_8);
+    }
+
+    /** A stream of the given number of zero bytes, made up as it is read. */
+    private static final class Zeros extends InputStream {
+        private long left;
+
+        private Zeros(long count) {
+            this.left = count;
+        }
+
+        @Override
+        public int read() {
+            if (left <= 0) return -1;
+            left--;
+            return 0;
+        }
+
+        @Override
+        public int read(byte[] buffer, int offset, int length) {
+            if (length == 0) return 0;
+            if (left <= 0) return -1;
+            int count = (int) Math.min(length, left);
+            Arrays.fill(buffer, offset, offset + count, (byte) 0);
+            left -= count;
+            return count;
+        }
     }
 
     private static UploadedFile of(String fileName, String type, long size, InputStream content) {

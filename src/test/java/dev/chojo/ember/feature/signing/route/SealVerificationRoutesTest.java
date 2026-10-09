@@ -302,12 +302,12 @@ class SealVerificationRoutesTest extends RepositoryTestBase {
 
     @Test
     void aFileOverTheLimitIsRefused() {
-        var tooLarge = new byte[SealVerifier.MAX_BYTES + 1];
-        System.arraycopy("%PDF-".getBytes(StandardCharsets.US_ASCII), 0, tooLarge, 0, 5);
-        assertRefused(verify(tooLarge), 413, DocumentRefusal.SEAL_CHECK_TOO_LARGE);
+        assertRefused(verifyStreamed(SealVerifier.MAX_BYTES + 1), 413, DocumentRefusal.SEAL_CHECK_TOO_LARGE);
 
-        var announcedTooLarge = new byte[SealVerifier.MAX_BYTES + 2 * PublicSigningRoutes.FORM_ALLOWANCE_BYTES];
-        assertRefused(verify(announcedTooLarge), 413, DocumentRefusal.SEAL_CHECK_TOO_LARGE);
+        assertRefused(
+                verifyStreamed(SealVerifier.MAX_BYTES + 2 * PublicSigningRoutes.FORM_ALLOWANCE_BYTES),
+                413,
+                DocumentRefusal.SEAL_CHECK_TOO_LARGE);
     }
 
     @Test
@@ -323,11 +323,11 @@ class SealVerificationRoutesTest extends RepositoryTestBase {
 
     @Test
     void aFileSentInChunksIsRefusedAsSoonAsItGrowsPastTheLimit() {
-        var tooLarge = new byte[SealVerifier.MAX_BYTES + 2 * PublicSigningRoutes.FORM_ALLOWANCE_BYTES];
-        System.arraycopy("%PDF-".getBytes(StandardCharsets.US_ASCII), 0, tooLarge, 0, 5);
+        long tooLarge = SealVerifier.MAX_BYTES + 2L * PublicSigningRoutes.FORM_ALLOWANCE_BYTES;
 
         assertRefused(
-                harness.request(client -> client.request(VERIFY, TestUploads.chunkedMultipart(FILE_NAME, tooLarge))),
+                harness.request(
+                        client -> client.request(VERIFY, TestUploads.streamedChunkedMultipart(FILE_NAME, tooLarge))),
                 413,
                 DocumentRefusal.SEAL_CHECK_TOO_LARGE);
     }
@@ -416,6 +416,10 @@ class SealVerificationRoutesTest extends RepositoryTestBase {
 
     private Response verify(byte[] file) {
         return harness.request(client -> client.request(VERIFY, TestUploads.multipart(FILE_NAME, file)));
+    }
+
+    private Response verifyStreamed(long size) {
+        return harness.request(client -> client.request(VERIFY, TestUploads.streamedMultipart(FILE_NAME, size)));
     }
 
     private static void assertRefused(Response answer, int status, DocumentRefusal refusal) {
