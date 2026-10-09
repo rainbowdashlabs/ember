@@ -544,7 +544,7 @@ case "$cmd" in
         cd "$ROOT"
         samples="$ROOT/build/signing-samples"
         rm -rf "$samples"
-        EMBER_SIGNING_SAMPLES="$samples" run ./gradlew testServices --rerun \
+        EMBER_SIGNING_SAMPLES="$samples" run ./gradlew testPeopleServices --rerun \
             --tests '*SignedDocumentMatrixTest' --tests '*IssuerSignedLettersTest' \
             --tests '*SigningStateAssemblerTest' "$@"
         if command -v nix-shell >/dev/null 2>&1; then
