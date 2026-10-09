@@ -47,8 +47,8 @@ function copy(memberId: number, name: string, yours: boolean): SigningStepCopy {
                 requestUid: '0b9f5c1e-8f6d-4a39-9d55-2c1b7f3d4e10',
                 state: RequirementSignatureState.OPEN,
                 fields: [
-                    {id: 70, name: 'participant', signerName: name, state: RequirementSignatureState.OPEN, yours},
-                    {id: 71, name: 'guardian2', signerName: 'Paul Schmidt', state: RequirementSignatureState.OPEN, yours: false},
+                    {id: 70, name: 'participant', signerName: name, state: RequirementSignatureState.OPEN, yours, nobodyCanSign: false},
+                    {id: 71, name: 'guardian2', signerName: 'Paul Schmidt', state: RequirementSignatureState.OPEN, yours: false, nobodyCanSign: false},
                 ],
                 withdrawable: false,
                 withdrawnAt: null,
@@ -98,7 +98,7 @@ describe('RegistrationSigningStep', () => {
             copies: [copy(11, 'Lena Schmidt', true), {...copy(12, 'Tim Schmidt', true), document: {
                 ...copy(12, 'Tim Schmidt', true).document,
                 signature: {...copy(12, 'Tim Schmidt', true).document.signature!, fields: [
-                    {id: 80, name: 'participant', signerName: 'Tim Schmidt', state: RequirementSignatureState.OPEN, yours: true},
+                    {id: 80, name: 'participant', signerName: 'Tim Schmidt', state: RequirementSignatureState.OPEN, yours: true, nobodyCanSign: false},
                 ]},
             }}],
         })

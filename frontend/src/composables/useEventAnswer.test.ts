@@ -276,12 +276,13 @@ function participant(person: {key: number; name: string}, state: RequirementSign
                 memberId: person.key,
                 requestUid: `0b9f5c1e-8f6d-4a39-9d55-2c1b7f3d4e${person.key}`,
                 state,
-                fields: [{id: 70 + person.key, name: 'participant', signerName: person.name, state, yours: true}],
+                fields: [{id: 70 + person.key, name: 'participant', signerName: person.name, state, yours: true, nobodyCanSign: false}],
                 withdrawable: false,
                 withdrawnAt: null,
             },
             agreementOffered: false,
         }],
+        agreementWithdrawnAt: null,
     }
 }
 

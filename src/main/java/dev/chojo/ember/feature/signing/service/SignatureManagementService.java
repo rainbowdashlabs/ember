@@ -144,7 +144,7 @@ public class SignatureManagementService {
     }
 
     private ManagedSignatureRequest managed(SignatureRequest request) {
-        var nobodyCanSign = requests.fieldsNobodyCanSign(request.id());
+        var nobodyCanSign = requests.fieldsNobodyCanSign(List.of(request.id()));
         Map<Integer, StoredEvidence> acts = evidence.evidenceOf(request.id()).stream()
                 .collect(Collectors.toMap(StoredEvidence::fieldId, Function.identity()));
         var fields = requests.fieldsOf(request.id()).stream()

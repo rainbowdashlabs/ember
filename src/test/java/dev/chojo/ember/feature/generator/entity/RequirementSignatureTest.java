@@ -94,6 +94,6 @@ class RequirementSignatureTest {
 
     private static RequirementSignatureField field(
             int id, String name, RequirementSignatureState state, boolean yours) {
-        return new RequirementSignatureField(id, name, null, state, yours);
+        return new RequirementSignatureField(id, name, null, state, yours, false);
     }
 }

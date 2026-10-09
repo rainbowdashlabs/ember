@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.generator.service;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.feature.events.entity.AppointmentField;
+import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
@@ -35,9 +36,11 @@ import org.jspecify.annotations.Nullable;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -61,6 +64,9 @@ import java.util.Set;
  */
 @Singleton
 public class AppointmentDocumentService {
+    private static final Set<RegistrationStatus> STANDING =
+            Set.of(RegistrationStatus.PENDING, RegistrationStatus.ACCEPTED);
+
     private final EventRequirementRepository requirements;
     private final PaperSubmissionRepository submissions;
     private final DocumentTemplateService templates;
@@ -135,8 +141,14 @@ public class AppointmentDocumentService {
      * @param memberId  the participant
      * @param name      their name
      * @param documents every document the appointment asks for, in its order
+     * @param agreementWithdrawnAt when a signed agreement was withdrawn while their registration stood, until
+     *                  it is signed anew; shown to whoever manages the registrations only, null for anybody else
      */
-    public record ParticipantDocuments(int memberId, String name, List<RequiredDocumentStatus> documents) {}
+    public record ParticipantDocuments(
+            int memberId,
+            String name,
+            List<RequiredDocumentStatus> documents,
+            @Nullable Instant agreementWithdrawnAt) {}
 
     /**
      * What an appointment asks participants to bring on a date, as one reader sees it.
@@ -190,8 +202,19 @@ public class AppointmentDocumentService {
         var offers = event.requiresRegistration() ? Set.<Offer>of() : offers(event, own);
         return new AppointmentDocuments(
                 required,
-                participantsOf(own, required, copies.asParticipantsSee(), offers),
-                overview ? participantsOf(everyone, required, copies, Set.of()) : null);
+                participantsOf(own, required, copies.asParticipantsSee(), offers, Map.of()),
+                overview ? participantsOf(everyone, required, copies, Set.of(), withdrawals(event, date)) : null);
+    }
+
+    /** When each participant whose registration is flagged withdrew a signed agreement, by participant. */
+    private Map<Integer, Instant> withdrawals(StationEvent event, LocalDate date) {
+        if (!event.requiresRegistration()) return Map.of();
+        var withdrawn = new HashMap<Integer, Instant>();
+        for (var registration : registrations.findByEventAndDate(event.id(), date)) {
+            var at = registration.agreementWithdrawnAt();
+            if (at != null && STANDING.contains(registration.status())) withdrawn.put(registration.memberId(), at);
+        }
+        return withdrawn;
     }
 
     /** A document whose agreement could be signed for a participant, where nothing stands for it yet. */
@@ -268,10 +291,17 @@ public class AppointmentDocumentService {
     }
 
     private List<ParticipantDocuments> participantsOf(
-            Collection<Integer> memberIds, List<RequiredTemplate> required, Copies copies, Set<Offer> offers) {
+            Collection<Integer> memberIds,
+            List<RequiredTemplate> required,
+            Copies copies,
+            Set<Offer> offers,
+            Map<Integer, Instant> withdrawn) {
         return memberIds.stream()
                 .map(memberId -> new ParticipantDocuments(
-                        memberId, names.identified(memberId), statuses(required, copies, memberId, offers)))
+                        memberId,
+                        names.identified(memberId),
+                        statuses(required, copies, memberId, offers),
+                        withdrawn.get(memberId)))
                 .toList();
     }
 

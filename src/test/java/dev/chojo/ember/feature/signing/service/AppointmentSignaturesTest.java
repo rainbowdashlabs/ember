@@ -32,11 +32,13 @@ import dev.chojo.ember.feature.generator.repository.DocumentGenerationRepository
 import dev.chojo.ember.feature.generator.repository.EventRequirementRepository;
 import dev.chojo.ember.feature.generator.repository.PaperSubmissionRepository;
 import dev.chojo.ember.feature.generator.service.AppointmentDocumentService;
+import dev.chojo.ember.feature.generator.service.AppointmentDocumentService.ParticipantDocuments;
 import dev.chojo.ember.feature.generator.service.AppointmentDocumentService.RequiredDocumentStatus;
 import dev.chojo.ember.feature.generator.service.EventRequirementService;
 import dev.chojo.ember.feature.generator.service.GeneratorTestBase;
 import dev.chojo.ember.feature.generator.service.MemberNeutralTemplates;
 import dev.chojo.ember.feature.generator.service.PaperSubmissionService;
+import dev.chojo.ember.feature.generator.service.ParticipantCopyService;
 import dev.chojo.ember.feature.generator.service.pdf.TestPdfs;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
@@ -106,6 +108,7 @@ class AppointmentSignaturesTest extends GeneratorTestBase {
     private static EventRequirementService requirements;
     private static AppointmentDocumentService appointments;
     private static PaperSubmissionService scans;
+    private static ParticipantCopyService copies;
     private static EventRegistrationService registrations;
     private static SignatureRequestService requests;
     private static SignatureFieldService fields;
@@ -187,12 +190,15 @@ class AppointmentSignaturesTest extends GeneratorTestBase {
                 wiring.issuers(),
                 new EventRestrictionService(eventRepo, restrictionService),
                 new RequirementSignatureStates(requestRepo, requests, new WithdrawalRights(guardianPolicy)));
+        var catalog =
+                new DocumentCatalogService(memberDocumentRepo, wiring.documents(), new SignatureSummaries(requestRepo));
+        copies = new ParticipantCopyService(appointments, requirementRepo, catalog, wiring.documents());
         scans = new PaperSubmissionService(
                 submissions,
                 appointments,
                 wiring.templates(),
                 wiring.documents(),
-                new DocumentCatalogService(memberDocumentRepo, wiring.documents(), new SignatureSummaries(requestRepo)),
+                catalog,
                 memberNameResolver,
                 newNotifier(),
                 new ScanSignatures(requestRepo, fields, notices));
@@ -640,6 +646,12 @@ class AppointmentSignaturesTest extends GeneratorTestBase {
                 RequestState.REVOKED,
                 requestRepo.findById(signed.id()).orElseThrow().state());
         assertNotNull(answerOf(child).agreementWithdrawnAt(), "the registration is flagged");
+        assertEquals(answerOf(child).agreementWithdrawnAt(), overviewOf(child).agreementWithdrawnAt());
+        assertNull(appointments
+                .documentsToBring(stationSession(guardian), camp, DAY, false)
+                .own()
+                .getFirst()
+                .agreementWithdrawnAt());
         var again = onlyRequest(child);
         assertNotEquals(signed.generationId(), again.generationId(), "asked anew on a fresh copy");
         assertEquals(RequestState.OPEN, again.state());
@@ -652,6 +664,42 @@ class AppointmentSignaturesTest extends GeneratorTestBase {
         signBoth(again);
 
         assertNull(answerOf(child).agreementWithdrawnAt(), "signed anew, the flag is off");
+        assertNull(overviewOf(child).agreementWithdrawnAt());
+    }
+
+    /**
+     * Whoever manages the registrations sees the fields of a child without a login and without guardians as
+     * fields nobody can sign, and those of a child with a guardian as signable. They download a
+     * participant's copy without the right to read member documents, and get none for a member who takes
+     * no part.
+     */
+    @Test
+    void aManagerSeesFieldsNobodyCanSignAndDownloadsTheCopy() {
+        var orphan = member("Ole", "Allein", false);
+        registrations.register(camp.id(), orphan.id(), DAY, true, manager.id());
+        registrations.register(camp.id(), child.id(), DAY, true, guardian.id());
+
+        assertTrue(overviewOf(orphan).documents().getFirst().signature().fields().stream()
+                .allMatch(RequirementSignatureField::nobodyCanSign));
+        assertTrue(overviewOf(child).documents().getFirst().signature().fields().stream()
+                .noneMatch(RequirementSignatureField::nobodyCanSign));
+
+        var managing = stationSession(manager, StationPermission.EVENT_REGISTRATION);
+        var copy = copies.copyOf(managing, camp, DAY, consent, child.id());
+        assertEquals(onlyCopy(child).documentId(), copy.document().id());
+        assertTrue(copy.data().length > 0);
+        assertRefused(
+                DocumentRefusal.DOCUMENT_REQUIREMENT_NOT_YOURS,
+                () -> copies.copyOf(managing, camp, DAY, consent, adult.id()));
+    }
+
+    /** Where a participant stands with the appointment's documents, as whoever manages the registrations sees it. */
+    private ParticipantDocuments overviewOf(StationMember participant) {
+        var managing = stationSession(manager, StationPermission.EVENT_REGISTRATION);
+        return appointments.documentsToBring(managing, camp, DAY, true).participants().stream()
+                .filter(seen -> seen.memberId() == participant.id())
+                .findFirst()
+                .orElseThrow();
     }
 
     /**

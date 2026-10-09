@@ -10,6 +10,7 @@ import dev.chojo.ember.api.TestSessions;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.api.refusal.EventRefusal;
+import dev.chojo.ember.feature.documents.entity.Document;
 import dev.chojo.ember.feature.events.entity.EventTemplate;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.route.EventVisibility;
@@ -21,6 +22,7 @@ import dev.chojo.ember.feature.generator.service.AppointmentDocumentService.Appo
 import dev.chojo.ember.feature.generator.service.DocumentGenerationService.GeneratedDocumentResponse;
 import dev.chojo.ember.feature.generator.service.DocumentTemplateService.DocumentTemplateSummary;
 import dev.chojo.ember.feature.generator.service.EventRequirementService;
+import dev.chojo.ember.feature.generator.service.ParticipantCopyService;
 import dev.chojo.ember.feature.generator.service.TemplateQuery;
 import dev.chojo.ember.feature.generator.service.TemplateQuery.TemplatePage;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
@@ -28,6 +30,7 @@ import dev.chojo.ember.owner.Owner;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
@@ -75,8 +78,11 @@ class AppointmentDocumentRoutesTest {
             0,
             TemplateQuery.DEFAULT_SIZE);
 
+    private static final byte[] COPY = "%PDF-1.4 copy".getBytes(StandardCharsets.US_ASCII);
+
     private EventRequirementService requirements;
     private AppointmentDocumentService documents;
+    private ParticipantCopyService copies;
     private RouteHarness harness;
 
     @BeforeEach
@@ -99,8 +105,30 @@ class AppointmentDocumentRoutesTest {
                 .thenReturn(new AppointmentDocuments(List.of(CONSENT), List.of(), null));
         when(documents.generate(any(), eq(event), eq(DAY), eq(8), eq(11)))
                 .thenReturn(new GeneratedDocumentResponse(40, 41, "Einverständnis", List.of()));
+        copies = mock(ParticipantCopyService.class);
+        when(copies.copyOf(any(), eq(event), eq(DAY), eq(8), eq(11)))
+                .thenReturn(new ParticipantCopyService.Copy(copyDocument(), COPY));
+        when(copies.copyOf(any(), eq(event), eq(DAY), eq(8), eq(12)))
+                .thenThrow(DocumentRefusal.DOCUMENT_REQUIREMENT_NOT_YOURS.raise());
         harness = RouteHarness.serving(
-                new AppointmentDocumentRoutes(requirements, documents, visibility, eventTemplates));
+                new AppointmentDocumentRoutes(requirements, documents, copies, visibility, eventTemplates));
+    }
+
+    private static Document copyDocument() {
+        return new Document(
+                40,
+                3,
+                "Einverständnis",
+                "einverstaendnis.pdf",
+                "application/pdf",
+                COPY.length,
+                false,
+                false,
+                false,
+                11,
+                null,
+                Instant.EPOCH,
+                false);
     }
 
     private static StationEvent event() {
@@ -238,6 +266,33 @@ class AppointmentDocumentRoutesTest {
         verify(documents).generate(any(), any(), eq(DAY), eq(8), eq(11));
         verify(documents, never()).generate(any(), any(), any(), anyInt(), eq(12));
         verify(requirements, never()).setForEvent(any(), anyInt(), any());
+    }
+
+    @Test
+    void aManagerOfTheRegistrationsDownloadsAParticipantsCopy() {
+        harness.run((server, client) -> {
+            var manager =
+                    harness.as(TestSessions.member(3, StationPermission.USER, StationPermission.EVENT_REGISTRATION));
+            var served = client.get(PREFIX + "/events/5/documents-to-bring/8/members/11/copy?date=2026-09-27", manager);
+            assertEquals(200, served.code());
+            assertEquals(
+                    new String(COPY, StandardCharsets.US_ASCII), served.body().string());
+            assertEquals(
+                    DocumentRefusal.DOCUMENT_REQUIREMENT_NOT_YOURS,
+                    refusalOf(client.get(
+                            PREFIX + "/events/5/documents-to-bring/8/members/12/copy?date=2026-09-27", manager)));
+            assertEquals(
+                    EventRefusal.EVENT_DOCUMENTS_DATE_MISSING,
+                    refusalOf(client.get(PREFIX + "/events/5/documents-to-bring/8/members/11/copy", manager)));
+            assertEquals(
+                    403,
+                    client.get(
+                                    PREFIX + "/events/5/documents-to-bring/8/members/11/copy?date=2026-09-27",
+                                    harness.as(TestSessions.member(3, StationPermission.USER)))
+                            .code());
+        });
+
+        verify(copies).copyOf(any(), any(), eq(DAY), eq(8), eq(11));
     }
 
     @Test

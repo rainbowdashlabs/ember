@@ -16,10 +16,12 @@ import type {AppointmentDocuments, PaperSubmission, PartnerSigner} from '@/api/g
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {fetchCopy} from './documentsToBring'
-import {documentTiles, signsOnline, type ParticipantCopy} from './documentTiles'
+import {copiesOf, signsOnline, type ParticipantCopy} from './documentTiles'
 import {scanReceiptKey, withScan} from './scanReceipt'
 import DocumentToBringTile from './DocumentToBringTile.vue'
 import PersonDocumentsTile from './PersonDocumentsTile.vue'
+import PersonDocument from './PersonDocument.vue'
+import ParticipantDocumentsSection from './ParticipantDocumentsSection.vue'
 
 /**
  * The documents the appointment asks participants to bring on the date. The reader and every member in
@@ -27,9 +29,9 @@ import PersonDocumentsTile from './PersonDocumentsTile.vue'
  * person, with each document to download filled with the person's data, sign online, or print, sign and
  * bring; getting it the first time files it in the person's documents. Instead of bringing the signed
  * paper, they may hand in its scan here, which waits for an event manager to confirm it and can be taken
- * back meanwhile. Whoever takes no
- * part, and every event manager, sees one tile per document with a picture of its first page, from which
- * an event manager opens where every participant stands, the members of partner stations included.
+ * back meanwhile. Whoever takes no part, and every event manager, sees one tile per document with a
+ * picture of its first page. Below, an event manager gets a section per document with where every
+ * participant stands, the members of partner stations included ({@link ParticipantDocumentsSection}).
  * Nothing shows where the appointment asks for nothing.
  */
 const props = defineProps<{
@@ -42,7 +44,7 @@ const {t} = useI18n()
 
 const documents = ref<AppointmentDocuments | null>(null)
 const partnerSigners = ref<PartnerSigner[]>([])
-const tiles = computed(() => documents.value ? documentTiles(documents.value) : [])
+const required = computed(() => documents.value?.required ?? [])
 const takesPart = computed(() => (documents.value?.own.length ?? 0) > 0)
 const showsDocumentTiles = computed(() => !takesPart.value || documents.value?.participants != null)
 const hint = computed(() => {
@@ -93,21 +95,31 @@ watch(() => [props.eventId, props.date], reload, {immediate: true})
 </script>
 
 <template>
-  <NeutralContainer v-if="tiles.length > 0 || failure" class="space-y-3" data-testid="documents-to-bring">
-    <SubHeader>{{ t('events.documents.toBringTitle') }}</SubHeader>
-    <MutedText size="sm" tag="p">{{ hint }}</MutedText>
-    <FailureAlert :failure="failure ?? actionFailure"/>
-    <Alert v-if="received" variant="success" data-testid="document-scan-received">
-      {{ t(scanReceiptKey(received)) }}
-    </Alert>
-    <div v-if="takesPart && documents" class="grid grid-cols-1 gap-3 md:grid-cols-2">
-      <PersonDocumentsTile v-for="person in documents.own" :key="person.memberId" :event-id="eventId" :date="date"
-                           :person="person" :busy="busy" @fetch="fetching.run" @hand-in="handingIn.run"
-                           @withdraw-scan="takingBack.run" @changed="reload"/>
-    </div>
-    <div v-if="showsDocumentTiles" class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      <DocumentToBringTile v-for="tile in tiles" :key="tile.template.templateId" :event-id="eventId" :date="date"
-                           :tile="tile" :partner-signers="partnerSigners" :on-changed="reload"/>
-    </div>
-  </NeutralContainer>
+  <div v-if="required.length > 0 || failure" class="space-y-6">
+    <NeutralContainer class="space-y-3" data-testid="documents-to-bring">
+      <SubHeader>{{ t('events.documents.toBringTitle') }}</SubHeader>
+      <MutedText size="sm" tag="p">{{ hint }}</MutedText>
+      <FailureAlert :failure="failure ?? actionFailure"/>
+      <Alert v-if="received" variant="success" data-testid="document-scan-received">
+        {{ t(scanReceiptKey(received)) }}
+      </Alert>
+      <div v-if="takesPart && documents" class="grid grid-cols-1 gap-3 md:grid-cols-2">
+        <PersonDocumentsTile v-for="person in documents.own" :key="person.memberId" :name="person.name">
+          <PersonDocument v-for="copy in copiesOf(person)" :key="copy.document.templateId" :event-id="eventId"
+                          :date="date" :copy="copy" :busy="busy" @fetch="fetching.run(copy)"
+                          @hand-in="file => handingIn.run(copy, file)" @withdraw-scan="takingBack.run(copy)"
+                          @changed="reload"/>
+        </PersonDocumentsTile>
+      </div>
+      <div v-if="showsDocumentTiles" class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <DocumentToBringTile v-for="template in required" :key="template.templateId" :event-id="eventId"
+                             :template="template"/>
+      </div>
+    </NeutralContainer>
+    <template v-if="documents?.participants">
+      <ParticipantDocumentsSection v-for="template in required" :key="template.templateId" :event-id="eventId"
+                                   :date="date" :template="template" :participants="documents.participants"
+                                   :partner-signers="partnerSigners" :on-changed="reload"/>
+    </template>
+  </div>
 </template>

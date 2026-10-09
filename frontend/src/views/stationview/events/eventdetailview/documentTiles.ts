@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {AppointmentDocuments, ParticipantDocuments, RequiredDocumentStatus, RequiredTemplate} from '@/api/generated/schema'
+import type {AppointmentDocuments, ParticipantDocuments, RequiredDocumentStatus} from '@/api/generated/schema'
 
 /** What a scan of a signed paper copy may be: a PDF or a photo. */
 export const SCAN_TYPES = 'application/pdf,image/*'
@@ -16,33 +16,13 @@ export interface ParticipantCopy {
 }
 
 /**
- * One document an appointment asks for, as its tile shows it, and for an event manager every
- * participant's copy of it.
- */
-export interface DocumentTile {
-    template: RequiredTemplate
-    /** Every participant's copy, or null where the reader is no event manager. */
-    participants: ParticipantCopy[] | null
-}
-
-function copiesOf(participants: readonly ParticipantDocuments[], templateId: number): ParticipantCopy[] {
-    return participants.flatMap(participant => {
-        const document = participant.documents.find(candidate => candidate.templateId === templateId)
-        return document ? [{memberId: participant.memberId, name: participant.name, document}] : []
-    })
-}
-
-/**
- * The documents of an appointment turned from one list per participant into one tile per document.
+ * One person's documents as copies, each naming the person.
  *
- * @param documents what the server answered for the reader
- * @returns one tile per document, in the order the appointment asks for them
+ * @param person the person and their documents
+ * @returns one copy per document, in the order the appointment asks for them
  */
-export function documentTiles(documents: AppointmentDocuments): DocumentTile[] {
-    return documents.required.map(template => ({
-        template,
-        participants: documents.participants ? copiesOf(documents.participants, template.templateId) : null,
-    }))
+export function copiesOf(person: ParticipantDocuments): ParticipantCopy[] {
+    return person.documents.map(document => ({memberId: person.memberId, name: person.name, document}))
 }
 
 /**

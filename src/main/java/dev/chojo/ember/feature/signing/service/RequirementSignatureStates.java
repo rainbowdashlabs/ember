@@ -33,7 +33,8 @@ import java.util.stream.Collectors;
  * more. A copy whose agreement a signer withdrew counts as revoked as a whole, with when it was withdrawn,
  * while its fields keep what they were. The fields the reader can sign now, for themselves or a member in
  * their care, are marked, so the screen can offer the signing screen for them, and so is whether the reader
- * may withdraw what was signed ({@link WithdrawalRights}).
+ * may withdraw what was signed ({@link WithdrawalRights}). So are the open fields nobody can sign, which a
+ * manager settles on paper or waives.
  */
 @Singleton
 public class RequirementSignatureStates implements RequirementSignatures {
@@ -59,11 +60,23 @@ public class RequirementSignatureStates implements RequirementSignatures {
         boolean anyOpen =
                 fields.values().stream().flatMap(List::stream).anyMatch(field -> field.state() == FieldState.OPEN);
         Set<Integer> yours = anyOpen ? signableBy(reader) : Set.of();
+        Set<Integer> nobody = anyOpen ? requests.fieldsNobodyCanSign(ids) : Set.of();
         return latest.stream()
                 .map(found -> stateOf(
-                        reader, found, fields.getOrDefault(found.request().id(), List.of()), yours))
+                        reader,
+                        found,
+                        fields.getOrDefault(found.request().id(), List.of()),
+                        new Signable(yours, nobody)))
                 .toList();
     }
+
+    /**
+     * Who can sign the open fields being shown.
+     *
+     * @param yours  the fields the reader can sign now
+     * @param nobody the fields nobody can sign
+     */
+    private record Signable(Set<Integer> yours, Set<Integer> nobody) {}
 
     /**
      * Where the signatures of one request stand, read the same way as those of an appointment's copies.
@@ -79,7 +92,9 @@ public class RequirementSignatureStates implements RequirementSignatures {
         var fields = requests.fieldsOf(request.id());
         boolean anyOpen = fields.stream().anyMatch(field -> field.state() == FieldState.OPEN);
         Set<Integer> yours = anyOpen ? signableBy(reader) : Set.of();
-        return stateOf(reader, new AppointmentRequest(templateId, memberId, request), fields, yours);
+        Set<Integer> nobody = anyOpen ? requests.fieldsNobodyCanSign(List.of(request.id())) : Set.of();
+        return stateOf(
+                reader, new AppointmentRequest(templateId, memberId, request), fields, new Signable(yours, nobody));
     }
 
     private Set<Integer> signableBy(StationSession reader) {
@@ -89,7 +104,7 @@ public class RequirementSignatureStates implements RequirementSignatures {
     }
 
     private RequirementSignature stateOf(
-            StationSession reader, AppointmentRequest found, List<RequestedSignature> fields, Set<Integer> yours) {
+            StationSession reader, AppointmentRequest found, List<RequestedSignature> fields, Signable signable) {
         var request = found.request();
         var shown = fields.stream()
                 .map(field -> new RequirementSignatureField(
@@ -97,7 +112,8 @@ public class RequirementSignatureStates implements RequirementSignatures {
                         field.fieldName(),
                         field.signerName(),
                         stateOf(field.state()),
-                        field.state() == FieldState.OPEN && yours.contains(field.id())))
+                        field.state() == FieldState.OPEN && signable.yours().contains(field.id()),
+                        signable.nobody().contains(field.id())))
                 .toList();
         boolean revoked = request.state() == RequestState.REVOKED;
         var overall = overall(request.state(), fields);

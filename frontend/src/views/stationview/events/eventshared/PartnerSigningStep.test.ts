@@ -20,7 +20,7 @@ function consentFor(memberId: number, memberName: string, yours: boolean): Partn
             requestUid: `0b9f5c1e-8f6d-4a39-9d55-2c1b7f3d4e1${memberId}`,
             state: RequirementSignatureState.OPEN,
             fields: [
-                {id: 70 + memberId, name: 'participant', signerName: memberName, state: RequirementSignatureState.OPEN, yours},
+                {id: 70 + memberId, name: 'participant', signerName: memberName, state: RequirementSignatureState.OPEN, yours, nobodyCanSign: false},
             ],
             withdrawable: false,
             withdrawnAt: null,

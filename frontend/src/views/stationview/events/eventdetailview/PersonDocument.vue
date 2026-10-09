@@ -17,6 +17,7 @@ import ScanRejection from './ScanRejection.vue'
 import SignatureFieldList from '../eventshared/SignatureFieldList.vue'
 import {fieldsToSign} from '../eventshared/requirementSignatures'
 import AgreementActions from './AgreementActions.vue'
+import CopyReviewActions from './CopyReviewActions.vue'
 import {SCAN_TYPES, type ParticipantCopy} from './documentTiles'
 
 /**
@@ -26,6 +27,10 @@ import {SCAN_TYPES, type ParticipantCopy} from './documentTiles'
  * fields of the copy now, signing them online in one go. Below, where the copy stands and each of its
  * signature fields; its agreement can be signed from here on an appointment without registrations, and
  * withdrawn ({@link AgreementActions}).
+ *
+ * <p>In manager mode, for whoever manages the registrations, the section around it already names the
+ * document, and the buttons are the manager's instead ({@link CopyReviewActions}): the copy and its scan to
+ * download, the scan to confirm or turn down, a scan to hand in for the participant.
  */
 const props = defineProps<{
   eventId: number
@@ -33,6 +38,8 @@ const props = defineProps<{
   date: string
   copy: ParticipantCopy
   busy: boolean
+  /** Whether the reader manages the registrations and reviews the copy rather than handing it in. */
+  manager?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -55,25 +62,28 @@ function signOnline() {
 
 <template>
   <div class="space-y-1" data-testid="document-to-bring">
-    <span class="block text-sm font-medium">{{ copy.document.name }}</span>
-    <ButtonRow>
-      <SecondaryButton compact :icon="['fas', 'download']" :disabled="busy" data-testid="document-to-bring-download"
-                       @click="emit('fetch')">
-        {{ t('common.download') }}
-      </SecondaryButton>
-      <FileUploadButton v-if="paper !== PaperState.CONFIRMED" compact :accept="SCAN_TYPES" :disabled="busy"
-                        data-testid="document-to-bring-scan" @select="file => emit('handIn', file)">
-        {{ paper === PaperState.SUBMITTED ? t('events.documents.scanReplace') : t('common.upload') }}
-      </FileUploadButton>
-      <SecondaryButton v-if="paper === PaperState.SUBMITTED" compact :icon="['fas', 'rotate-left']" :disabled="busy"
-                       data-testid="document-to-bring-scan-withdraw" @click="emit('withdrawScan')">
-        {{ t('events.documents.scanWithdraw') }}
-      </SecondaryButton>
-      <PrimaryButton v-if="toSign.length > 0" compact :icon="['fas', 'file-signature']" :disabled="busy"
-                     data-testid="document-to-bring-sign" @click="signOnline">
-        {{ t('events.documents.signOnline') }}
-      </PrimaryButton>
-    </ButtonRow>
+    <CopyReviewActions v-if="manager" :event-id="eventId" :date="date" :copy="copy" :on-changed="() => emit('changed')"/>
+    <template v-else>
+      <span class="block text-sm font-medium">{{ copy.document.name }}</span>
+      <ButtonRow>
+        <SecondaryButton compact :icon="['fas', 'download']" :disabled="busy" data-testid="document-to-bring-download"
+                         @click="emit('fetch')">
+          {{ t('common.download') }}
+        </SecondaryButton>
+        <FileUploadButton v-if="paper !== PaperState.CONFIRMED" compact :accept="SCAN_TYPES" :disabled="busy"
+                          data-testid="document-to-bring-scan" @select="file => emit('handIn', file)">
+          {{ paper === PaperState.SUBMITTED ? t('events.documents.scanReplace') : t('common.upload') }}
+        </FileUploadButton>
+        <SecondaryButton v-if="paper === PaperState.SUBMITTED" compact :icon="['fas', 'rotate-left']" :disabled="busy"
+                         data-testid="document-to-bring-scan-withdraw" @click="emit('withdrawScan')">
+          {{ t('events.documents.scanWithdraw') }}
+        </SecondaryButton>
+        <PrimaryButton v-if="toSign.length > 0" compact :icon="['fas', 'file-signature']" :disabled="busy"
+                       data-testid="document-to-bring-sign" @click="signOnline">
+          {{ t('events.documents.signOnline') }}
+        </PrimaryButton>
+      </ButtonRow>
+    </template>
     <RequirementStatusBadge :document="copy.document"/>
     <SignatureFieldList v-if="copy.document.signature" :signature="copy.document.signature" :offer-signing="false"/>
     <AgreementActions :event-id="eventId" :date="date" :copy="copy" :busy="busy" @changed="emit('changed')"/>

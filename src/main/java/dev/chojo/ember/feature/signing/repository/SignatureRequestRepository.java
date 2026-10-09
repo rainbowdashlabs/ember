@@ -1006,17 +1006,17 @@ public class SignatureRequestRepository {
     }
 
     /**
-     * The open fields of a request that nobody can sign.
+     * The open fields of some requests that nobody can sign.
      *
-     * @param requestId the request
-     * @return the ids of those fields
+     * @param requestIds the requests
+     * @return the ids of those fields, of all the requests together
      */
-    public Set<Integer> fieldsNobodyCanSign(int requestId) {
+    public Set<Integer> fieldsNobodyCanSign(Collection<Integer> requestIds) {
         return Set.copyOf(query("""
                         SELECT f.id FROM signing_request_field f
-                        WHERE f.request_id = :request_id
+                        WHERE f.request_id = ANY (:request_ids)
                           AND %s;""", NOBODY_CAN_SIGN)
-                .single(call().bind("request_id", requestId))
+                .single(call().bind("request_ids", List.copyOf(requestIds), PostgreSqlTypes.INTEGER))
                 .map(row -> row.getInt("id"))
                 .all());
     }

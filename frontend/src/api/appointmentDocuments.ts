@@ -112,6 +112,15 @@ export async function withdrawScan(eventId: number, submissionId: number): Promi
     await client.delete(`/events/${eventId}/document-scans/${submissionId}`)
 }
 
+/**
+ * Where a participant's copy of a document the appointment asks for is served to whoever manages the
+ * registrations: its sealed version once it was signed online, otherwise the copy as filed.
+ */
+export function participantCopyUrl(target: ScanTarget): string {
+    const date = encodeURIComponent(target.date)
+    return `/events/${target.eventId}/documents-to-bring/${target.templateId}/members/${target.memberId}/copy?date=${date}`
+}
+
 /** Where a scan handed in is served, for whoever manages the registrations. */
 export function scanContentUrl(eventId: number, submissionId: number): string {
     return `/events/${eventId}/document-scans/${submissionId}/content`

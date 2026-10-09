@@ -23718,6 +23718,64 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/{id}/documents-to-bring/{templateId}/members/{memberId}/copy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A participant's copy of a document the appointment asks for, sealed where it was signed online */
+        get: {
+            parameters: {
+                query: {
+                    date: string;
+                };
+                header?: never;
+                path: {
+                    id: number;
+                    memberId: number;
+                    templateId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/{id}/documents-to-bring/{templateId}/members/{memberId}/scan": {
         parameters: {
             query?: never;
@@ -68203,6 +68261,7 @@ export interface components {
             rows: string[][];
         };
         ParticipantDocuments: {
+            agreementWithdrawnAt: components["schemas"]["Instant"] | null;
             documents: components["schemas"]["RequiredDocumentStatus"][];
             /** Format: int32 */
             memberId: number;
@@ -70000,6 +70059,7 @@ export interface components {
             /** Format: int32 */
             id: number;
             name: string;
+            nobodyCanSign: boolean;
             signerName: string | null;
             state: components["schemas"]["RequirementSignatureState"];
             yours: boolean;

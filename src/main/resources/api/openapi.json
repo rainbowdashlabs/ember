@@ -19925,6 +19925,69 @@
         } ]
       }
     },
+    "/api/v1/events/{id}/documents-to-bring/{templateId}/members/{memberId}/copy" : {
+      "get" : {
+        "summary" : "A participant's copy of a document the appointment asks for, sealed where it was signed online",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "templateId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "memberId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "date",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ]
+      }
+    },
     "/api/v1/events/{id}/documents-to-bring/{templateId}/members/{memberId}/scan" : {
       "post" : {
         "summary" : "Hand in the scan of a participant's signed paper copy of a document the appointment asks for",
@@ -67355,9 +67418,16 @@
             "items" : {
               "$ref" : "#/components/schemas/RequiredDocumentStatus"
             }
+          },
+          "agreementWithdrawnAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
-        "required" : [ "memberId", "name", "documents" ]
+        "required" : [ "memberId", "name", "documents", "agreementWithdrawnAt" ]
       },
       "PartnerAgreementState" : {
         "type" : "string",
@@ -72615,9 +72685,12 @@
           },
           "yours" : {
             "type" : "boolean"
+          },
+          "nobodyCanSign" : {
+            "type" : "boolean"
           }
         },
-        "required" : [ "id", "name", "signerName", "state", "yours" ]
+        "required" : [ "id", "name", "signerName", "state", "yours", "nobodyCanSign" ]
       },
       "RequirementSignatureState" : {
         "type" : "string",

@@ -4,41 +4,40 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import type {ParticipantDocuments} from '@/api/generated/schema'
-import PersonDocument from './PersonDocument.vue'
-import type {ParticipantCopy} from './documentTiles'
+import ErrorBadge from '@/components/badge/ErrorBadge.vue'
+import MutedText from '@/components/typography/MutedText.vue'
+import {formatDateTime} from '@/util/format'
 
 /**
- * Everything the appointment asks one person the reader acts for to bring: their name, then each document
- * with its download, scan upload and online signing, and where it stands.
+ * One person's tile of documents to bring: their name, for a member of a partner station their station,
+ * and below it each of their documents ({@link PersonDocument}, or {@link PartnerDocument} for a partner's
+ * member). Members see their own and their children's tiles; a manager of the registrations sees one
+ * per participant. Where a registration carries a withdrawn agreement, the tile says when.
  */
-const props = defineProps<{
-  eventId: number
-  /** The date of the appointment on screen. */
-  date: string
-  person: ParticipantDocuments
-  busy: boolean
+defineProps<{
+  name: string
+  /** The partner station that registered the person, or nothing for the station's own. */
+  station?: string | null
+  /** When a signed agreement was withdrawn while the registration stood, until it is signed anew. */
+  withdrawnAt?: string | null
 }>()
 
-const emit = defineEmits<{
-  fetch: [copy: ParticipantCopy]
-  handIn: [copy: ParticipantCopy, file: File]
-  withdrawScan: [copy: ParticipantCopy]
-  changed: []
-}>()
-
-function copyOf(document: ParticipantDocuments['documents'][number]): ParticipantCopy {
-  return {memberId: props.person.memberId, name: props.person.name, document}
-}
+const {t} = useI18n()
 </script>
 
 <template>
   <NeutralContainer class="space-y-3" data-testid="person-documents">
-    <span class="block font-semibold">{{ person.name }}</span>
-    <PersonDocument v-for="document in person.documents" :key="document.templateId" :event-id="eventId" :date="date"
-                    :copy="copyOf(document)" :busy="busy" @fetch="emit('fetch', copyOf(document))"
-                    @hand-in="file => emit('handIn', copyOf(document), file)"
-                    @withdraw-scan="emit('withdrawScan', copyOf(document))" @changed="emit('changed')"/>
+    <div>
+      <p class="font-semibold">{{ name }}</p>
+      <MutedText v-if="station" size="sm" tag="p" data-testid="person-documents-station">
+        {{ t('events.documents.review.station', {station}) }}
+      </MutedText>
+    </div>
+    <ErrorBadge v-if="withdrawnAt" data-testid="person-documents-withdrawn">
+      {{ t('events.documents.review.withdrawnAt', {date: formatDateTime(withdrawnAt)}) }}
+    </ErrorBadge>
+    <slot/>
   </NeutralContainer>
 </template>
