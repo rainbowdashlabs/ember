@@ -50,6 +50,7 @@ Wachen erstellen aus eigenen Vorlagen und denen ihres Verbands Dokumente für ih
 - **Die Mitgliederliste in Sichtbarkeitsfiltern war abgeschnitten.** Wo eine Einschränkung von Sichtbarkeit oder Zugriff eine Auswahl von Mitgliedern anbietet, öffnete sich die Liste nur so breit wie ihr Knopf, sodass Suche und Namen nicht zu lesen waren. Jetzt öffnet sie sich breit genug für die Namen und bleibt im Fenster.
 - **Vorschaubilder von PDFs waren verpixelt.** Die kleinen Bilder von PDFs in der Mediathek, bei Dokumenten von Mitgliedern und bei Anhängen von Terminen waren so grob, dass ihr Text nicht zu lesen war. Jetzt werden sie feiner gezeichnet und in der Größe ihrer Kachel gezeigt.
 - **Neue Tags verloren Farbe und Badge.** Ein Tag, das mit Farbe oder als Badge angelegt wurde, wurde ohne beides gespeichert, bis es bearbeitet wurde. Jetzt bleibt beides von Anfang an erhalten.
+- **Die Ausrüstung eines Termins scheiterte ohne Zugriff aufs Inventar.** Mitglieder, die Termine bearbeiten, aber das Inventar nicht lesen dürfen, sahen beim Öffnen der Ausrüstung eines Termins einen Fehler und fanden beim Hinzufügen einer Zeile nichts zur Auswahl. Inventare, Arten und Gegenstände stehen jetzt allen zur Auswahl, die den Termin bearbeiten dürfen.
 
 ## v26.21.0
 
