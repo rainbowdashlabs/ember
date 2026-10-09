@@ -1187,7 +1187,7 @@ volumes:
             reachText: 'Du kommst über die offenen Aufgaben hierher, nach der Anmeldung zu einem Termin, oder über einen Link aus einer E-Mail.',
             steps: 'Die Schritte',
             stepOverview: '1. Übersicht - Du siehst, welche Unterschriften noch fehlen, sortiert nach Dokument. Alle sind ausgewählt. Willst du eine später machen, nimm den Haken weg. Dann tippe auf „Los geht\'s“.',
-            stepDocument: '2. Ein Dokument nach dem anderen - Du liest das Dokument. Darunter steht, wer unterschreibt und in welchem Feld. Setze den Haken, wenn du zustimmst. Fragt das Dokument etwas, etwa eine Telefonnummer, trägst du es hier ein.',
+            stepDocument: '2. Ein Dokument nach dem anderen - Du liest das Dokument. Darunter steht, wer unterschreibt und in welchem Feld. Mit der Lupe unter dem Dokument vergrößerst du es. Setze den Haken, wenn du zustimmst. Fragt das Dokument etwas, etwa eine Telefonnummer, trägst du es hier ein.',
             stepPicture: '3. Deine Unterschrift - So sieht deine Unterschrift im Dokument aus. Du kannst sie neu zeichnen. Unterschreibt ein Kind selbst, zeichnet es seine Unterschrift auf einem eigenen Schritt.',
             stepCheck: '4. Prüfen - Du siehst noch einmal alles, was du jetzt unterschreibst.',
             stepConfirm: '5. Bestätigen - Ein Schritt bestätigt alles auf einmal: mit deinem Passkey, mit dem Code aus der Authenticator-App oder mit deinem Passwort, je nachdem, was dein Konto hat.',
