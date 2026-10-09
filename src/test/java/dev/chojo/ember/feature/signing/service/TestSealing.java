@@ -83,6 +83,24 @@ public final class TestSealing implements AutoCloseable {
      */
     public static SigningStateSealer stateSealer(
             DocumentRepository documents, DocumentService documentService, StationRepository stations) {
+        return stateSealer(documents, documentService, stations, SealedStateFollowUp.NONE);
+    }
+
+    /**
+     * A sealer of signing states as {@link #stateSealer(DocumentRepository, DocumentService, StationRepository)}
+     * builds it, telling the given follow-up of every state it files.
+     *
+     * @param documents       the member documents
+     * @param documentService their files
+     * @param stations        the stations
+     * @param followUp        what is told of every state filed
+     * @return the sealer
+     */
+    public static SigningStateSealer stateSealer(
+            DocumentRepository documents,
+            DocumentService documentService,
+            StationRepository stations,
+            SealedStateFollowUp followUp) {
         var keys = new SigningKeyRepository();
         var wrap = new SigningKeyWrap(Base64.getEncoder().encodeToString(new byte[32]));
         var timestamps = SealedPdfs.noTimestamps();
@@ -95,7 +113,8 @@ public final class TestSealing implements AutoCloseable {
                 new StationSigningKeys(keys, new SigningCertificates(), wrap, stations, STATE_BASE_URL),
                 new SigningStateAssembler(stations, timestamps, STATE_BASE_URL, Clock.systemUTC()),
                 new PdfSealer(timestamps, new StationKeyRevocations(keys, new RevocationLists(), wrap)),
-                mock(SignedCopies.class));
+                mock(SignedCopies.class),
+                followUp);
     }
 
     /**

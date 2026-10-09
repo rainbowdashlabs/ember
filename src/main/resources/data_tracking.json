@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:7b8149d121f70b1ff64f057ac6a74b89254bf2030e483929cce2dce5bbbe60ce",
-  "generatedAt": "2026-10-09T00:39:55Z",
+  "schemaHash": "sha256:ace9285ced56f419b57330a899653aee3e45adbe2aeb42ee31d7e54fb75a028e",
+  "generatedAt": "2026-10-09T00:50:39Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -9840,6 +9840,123 @@
         "reason": "Event structure/template data, not per-member"
       },
       "description": "Default values for attendance session fields when created from an event."
+    },
+    "event_partner_agreement": {
+      "feature": "signing",
+      "scope": "STATION",
+      "tableHash": "sha256:e9cff4b4b7681263df0eecab8af3f5dddb011aab8d6ecbd93863bd650288698b",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Primary key."
+        },
+        {
+          "name": "station_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The station that holds the appointment."
+        },
+        {
+          "name": "event_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The appointment that asks for the document."
+        },
+        {
+          "name": "event_date",
+          "type": "date",
+          "nullable": false,
+          "verified": true,
+          "description": "The date of the appointment the copy is for."
+        },
+        {
+          "name": "template_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The template the copy was drawn from."
+        },
+        {
+          "name": "template_version",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The version of the template it was drawn from. A newer version is drawn anew, and the copy partners signed before stays."
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The title the copy carries."
+        },
+        {
+          "name": "file_name",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The file name the copy is handed out under, ending in .pdf."
+        },
+        {
+          "name": "content",
+          "type": "bytea",
+          "nullable": false,
+          "verified": true,
+          "description": "The PDF exactly as it is handed out, which every signature binds to."
+        },
+        {
+          "name": "sha256",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "SHA-256 of the PDF, lower-case hexadecimal, which a signed copy coming back names."
+        },
+        {
+          "name": "generated_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the copy was drawn."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "event_id",
+          "refTable": "station_event",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "station_id",
+          "refTable": "station",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "template_id",
+          "refTable": "document_template",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED",
+        "rationale": "The copy partners signed is what their signed copies name by its hash; drawn again after a move it would differ, and the copies still coming back would no longer match. Its appointment and template references follow to their new ids."
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Drawn about nobody in particular: it names the appointment and the station, never a person."
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Holds no personal data. Removed with its appointment or its template."
+      },
+      "description": "The one copy of a document an appointment asks for that the members of partner stations sign on one date: drawn once per date and version of the template, about nobody in particular, with the appointment's values for that date and the station's. Every partner's signer signs these same bytes at their home installation. Goes with the appointment and the template."
     },
     "event_partner_places": {
       "tableHash": "sha256:cfca64eea8beb0c2eebf3472319b63cc553bcbbdc2011fe3c0362796c1f0c68f",
@@ -21063,6 +21180,426 @@
         "status": "IGNORED",
         "reason": "Public page content, not per-member"
       }
+    },
+    "partner_agreement": {
+      "feature": "signing",
+      "scope": "STATION",
+      "tableHash": "sha256:2c83ae34cdebb576bc19897243f8c5f82a9187ab251b01f74d594b0c4ccdd706",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Primary key."
+        },
+        {
+          "name": "station_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The station that holds the appointment."
+        },
+        {
+          "name": "event_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The appointment. NULL once it was deleted."
+        },
+        {
+          "name": "event_date",
+          "type": "date",
+          "nullable": false,
+          "verified": true,
+          "description": "The date of the appointment."
+        },
+        {
+          "name": "template_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The template the document was drawn from. NULL once it was deleted."
+        },
+        {
+          "name": "template_name",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "What the template was called when the row was written, so the row still says what was signed once it is gone."
+        },
+        {
+          "name": "partner_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "This station's partnership with the member's station. NULL once the partnership was deleted."
+        },
+        {
+          "name": "partner_station_uid",
+          "type": "uuid",
+          "nullable": false,
+          "verified": true,
+          "description": "The member's station, as the federation knows it."
+        },
+        {
+          "name": "partner_name",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "The name the partnership knew the member's station by when the row was last written. NULL where it knew none."
+        },
+        {
+          "name": "remote_member_id",
+          "type": "uuid",
+          "nullable": false,
+          "verified": true,
+          "description": "The member at the partner station, by the id their registration names. Nothing else of the member is kept here; the signed copy carries the signers' official names."
+        },
+        {
+          "name": "state",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "ASKED once the partner took the document on for the member and asks for it to be signed there, SIGNED once a sealed copy came back from the partner (whether every field is settled says complete), PAPER_CONFIRMED when a manager here confirmed a signed paper copy and no sealed copy came back, WITHDRAWN when the partner reported the signed agreement withdrawn there."
+        },
+        {
+          "name": "content_sha256",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "SHA-256 of the copy the partner asked to be signed, the one in event_partner_agreement. NULL for a paper copy confirmed before the partner said anything."
+        },
+        {
+          "name": "complete",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether the latest copy that came back has every signature field settled at the partner; false while one still waits."
+        },
+        {
+          "name": "confirmed_by",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The member here who confirmed a signed paper copy. NULL where nobody did, and once that member is gone. Stays when a sealed copy comes back afterwards."
+        },
+        {
+          "name": "confirmed_by_name",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "The official name of the member who confirmed a paper copy, as it was then. NULL where nobody did."
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the row last changed."
+        },
+        {
+          "name": "retention_months",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The months the template keeps signed documents, copied when the row was written. NULL where the template sets none."
+        },
+        {
+          "name": "retain_until",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "Until when the row and its copies are kept: the date of the appointment plus retention_months, or plus 12 months where the template sets none. The daily sweep deletes it afterwards. The partner deleting its member never changes it, since nothing of that travels."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "confirmed_by",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
+        {
+          "column": "event_id",
+          "refTable": "station_event",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
+        {
+          "column": "partner_id",
+          "refTable": "federation_partner",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
+        {
+          "column": "station_id",
+          "refTable": "station",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "template_id",
+          "refTable": "document_template",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED",
+        "rationale": "The station's record of what partners' members signed for its appointments, kept as evidence; it moves with the station, and its appointment, template, partnership and member references follow to their new ids."
+      },
+      "gdprExport": {
+        "status": "TRACKED",
+        "identityColumns": [
+          {
+            "type": "MEMBER_UID",
+            "column": "remote_member_id"
+          },
+          {
+            "type": "MEMBER_ID",
+            "column": "confirmed_by"
+          }
+        ]
+      },
+      "gdprDeletion": {
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "remote_member_id",
+            "strategy": "RETAIN",
+            "reason": "Kept with its signed copies until retain_until, the date of the appointment plus the retention of the template, then deleted by the daily sweep; the partner deleting its member does not travel here",
+            "legalBasis": "GDPR Art. 17(3)(e): kept as evidence for the establishment, exercise or defence of legal claims"
+          },
+          {
+            "column": "confirmed_by",
+            "strategy": "NULL",
+            "reason": "FK ON DELETE SET NULL keeps the record, the member who confirmed a paper copy unlinked; the name copied then stays"
+          }
+        ]
+      },
+      "description": "Where a document an appointment asks partners to sign stands for one member of a partner station on one date, as the station holding the appointment sees it. No row means the partner never said it takes the document on: its installation cannot sign, or signing failed there, and the document counts as signature missing. The signed copies that came back are in partner_agreement_copy. Kept after the appointment and after the partnership end, until retain_until, then deleted by a daily sweep with its copies."
+    },
+    "partner_agreement_copy": {
+      "feature": "signing",
+      "scope": "STATION",
+      "tableHash": "sha256:856ade7f811248a6bb152e053e3d9e8c03a73ca5a9143c6817f81bb0bb6a6197",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Primary key."
+        },
+        {
+          "name": "agreement_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The document and member the copy is for."
+        },
+        {
+          "name": "sealed_sha256",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "SHA-256 of the sealed PDF, lower-case hexadecimal."
+        },
+        {
+          "name": "content",
+          "type": "bytea",
+          "nullable": false,
+          "verified": true,
+          "description": "The sealed PDF exactly as it came back: the document, the signature of each signer drawn in, the record page and the evidence attached, under the partner station's seal."
+        },
+        {
+          "name": "fields",
+          "type": "jsonb",
+          "nullable": false,
+          "verified": true,
+          "description": "What the partner reported of each signature field with the copy: its name, whether it is signed, open, confirmed on paper, waived or withdrawn, when it was settled, and for a signed one the kind of proof the signer gave."
+        },
+        {
+          "name": "complete",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether every field was settled at the partner in this copy."
+        },
+        {
+          "name": "received_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the copy came in."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "agreement_id",
+          "refTable": "partner_agreement",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED",
+        "rationale": "The sealed copies are the evidence the record of a partner's member stands on and move with it, their reference following it to its new id."
+      },
+      "gdprExport": {
+        "status": "TRACKED"
+      },
+      "gdprDeletion": {
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "agreement_id",
+            "strategy": "RETAIN",
+            "reason": "A sealed copy is locked and only deleted with its record in partner_agreement, by the retention sweep once its retain_until has passed",
+            "legalBasis": "GDPR Art. 17(3)(e): kept as evidence for the establishment, exercise or defence of legal claims"
+          }
+        ]
+      },
+      "description": "A sealed copy of a document an appointment asks partners to sign, as it came back from the member's home installation: sealed there and checked here against the partner's pinned signing authorities before it was taken. Each state the partner sealed is kept beside the earlier ones; the newest is the current one. Locked: a copy is never changed, and deleted only with its row in partner_agreement."
+    },
+    "partner_signing_request": {
+      "feature": "signing",
+      "scope": "STATION",
+      "tableHash": "sha256:8a1cd26800c3699e4a4499668cf876fbe48de924130c4a9dbf08ad342373deea",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Primary key."
+        },
+        {
+          "name": "station_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The station of the member who signs."
+        },
+        {
+          "name": "request_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The signing request here, on the copy filed in the member's documents."
+        },
+        {
+          "name": "partner_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "This station's partnership with the station that holds the appointment. NULL once the partnership was deleted; nothing travels then."
+        },
+        {
+          "name": "partner_station_uid",
+          "type": "uuid",
+          "nullable": false,
+          "verified": true,
+          "description": "The station that holds the appointment, as the federation knows it."
+        },
+        {
+          "name": "remote_event_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The appointment, by its id at the partner."
+        },
+        {
+          "name": "event_date",
+          "type": "date",
+          "nullable": false,
+          "verified": true,
+          "description": "The date of the appointment."
+        },
+        {
+          "name": "remote_template_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The document the appointment asks for, by the id of its template at the partner."
+        },
+        {
+          "name": "template_version",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The version of that template the copy was drawn from."
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the document was taken on here."
+        },
+        {
+          "name": "announced_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When the partner was told the document is asked for here. NULL until that reached it."
+        },
+        {
+          "name": "delivered_sha256",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "SHA-256 of the newest sealed copy the partner took. NULL until one reached it."
+        },
+        {
+          "name": "delivery_attempts",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "How many times in a row sending to the partner failed; back to 0 once something reached it. Sending is given up after 32 failures in a row, about a week of tries, until the next sealed state starts it again."
+        },
+        {
+          "name": "next_delivery_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When to try again what has not reached the partner yet, later after every failure."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "partner_id",
+          "refTable": "federation_partner",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
+        {
+          "column": "request_id",
+          "refTable": "signing_request",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "station_id",
+          "refTable": "station",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED",
+        "rationale": "Says which partner's appointment a moved signing request answers, so its signed copies still travel back after the move; its request and partnership references follow to their new ids."
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Holds nothing of a person beyond its signing request, which the export carries: the partner's appointment, date and document by their ids there, and the delivery state."
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Goes with its signing request, whose own retention decides when it is deleted."
+      },
+      "description": "A signing request at this installation for a document a partner station's appointment asks one of this station's members to sign: which partner, appointment, date and document it answers, and how far its signed copies have travelled back to that partner. The member signs here, and every sealed state is sent back to the partner, signed with this station's federation key, and sent again later while the partner is unreachable. Goes with its request."
     },
     "problem_report": {
       "feature": "system",

@@ -10,6 +10,8 @@ import dev.chojo.ember.feature.federation.contract.FederationContractBinder;
 import dev.chojo.ember.feature.federation.contract.FederationEndpoint;
 import dev.chojo.ember.feature.federation.contract.FederationSurface;
 import dev.chojo.ember.feature.federation.transport.FederationEndpoints;
+import dev.chojo.ember.feature.signing.entity.RemoteAgreement;
+import dev.chojo.ember.feature.signing.entity.RemoteAgreementNotice;
 import dev.chojo.ember.feature.signing.entity.SigningAuthorityStatement;
 import io.javalin.router.JavalinDefaultRoutingApi;
 import jakarta.inject.Inject;
@@ -19,7 +21,9 @@ import java.util.List;
 
 /**
  * Server-to-server signing endpoints served to federation partners, through the serving functions of
- * {@code PartnerAuthorities}. Requests carry an RSA-signed envelope instead of a user session.
+ * {@code PartnerAuthorities} and {@code PartnerAgreements}. Requests carry an RSA-signed envelope instead of a
+ * user session, which covers the body: a signed copy sent back is signed with the sending station's
+ * federation key.
  *
  * <p>They belong to the event sharing surface, since documents a partner seals reach an organiser only
  * through shared events.
@@ -34,7 +38,28 @@ public class RemoteSigningRoutes implements Routes {
     public static final FederationEndpoint AUTHORITIES = FederationEndpoint.get(
             FederationSurface.EVENT_SHARE, "/remote/signing/authorities", SigningAuthorityStatement.class);
 
-    public static final List<FederationEndpoint> CONTRACT = List.of(AUTHORITIES);
+    /**
+     * The documents a shared appointment asks the asking partner's members to sign on a date (path parameter
+     * {@code date}, ISO), each the one copy every partner's signer signs alike, with its bytes. Answered by
+     * {@code PartnerAgreements}; an appointment that asks nothing of the kind answers an empty list.
+     */
+    public static final FederationEndpoint AGREEMENTS = FederationEndpoint.getList(
+            FederationSurface.EVENT_SHARE,
+            "/remote/signing/events/{eventId}/dates/{date}/agreements",
+            RemoteAgreement.class);
+
+    /**
+     * A member's home installation telling the station holding a shared appointment where a document it asks
+     * the member to sign stands there: taken on, or signed with the sealed copy. Answered by
+     * {@code PartnerAgreements}.
+     */
+    public static final FederationEndpoint AGREEMENT_NOTICE = FederationEndpoint.post(
+            FederationSurface.EVENT_SHARE,
+            "/remote/signing/events/{eventId}/agreements",
+            RemoteAgreementNotice.class,
+            Void.class);
+
+    public static final List<FederationEndpoint> CONTRACT = List.of(AUTHORITIES, AGREEMENTS, AGREEMENT_NOTICE);
 
     private final FederationEndpoints endpoints;
 
@@ -45,6 +70,8 @@ public class RemoteSigningRoutes implements Routes {
 
     @Override
     public void register(JavalinDefaultRoutingApi routes, String prefix) {
-        FederationContractBinder.register(routes, prefix, CONTRACT, endpoints, binder -> binder.serve(AUTHORITIES));
+        FederationContractBinder.register(routes, prefix, CONTRACT, endpoints, binder -> binder.serve(AUTHORITIES)
+                .serve(AGREEMENTS)
+                .serve(AGREEMENT_NOTICE));
     }
 }

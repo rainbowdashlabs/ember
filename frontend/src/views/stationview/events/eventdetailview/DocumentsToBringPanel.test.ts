@@ -9,14 +9,16 @@ import {mountSuspended} from '@nuxt/test-utils/runtime'
 import {
     DocumentTemplateKind,
     PaperState,
+    PartnerAgreementState,
     RequirementSignatureState,
     RequirementStatus,
     type AppointmentDocuments,
     type PaperSubmission,
     type ParticipantDocuments,
+    type PartnerSigner,
     type RequirementSignature,
 } from '@/api/generated/schema'
-import {appointmentDocuments} from '@/api'
+import {appointmentDocuments, partnerAgreements} from '@/api'
 import DocumentsToBringPanel from './DocumentsToBringPanel.vue'
 
 vi.mock('@/api', () => ({
@@ -27,7 +29,29 @@ vi.mock('@/api', () => ({
         rejectScan: vi.fn(),
         scanContentUrl: (eventId: number, id: number) => `/events/${eventId}/document-scans/${id}/content`,
     },
+    partnerAgreements: {
+        listSigners: vi.fn(),
+        confirmPaper: vi.fn(),
+        copyUrl: (eventId: number, id: number) => `/events/${eventId}/partner-agreements/${id}/copy`,
+    },
 }))
+
+/** A member of a partner station, unnamed, standing with the consent as given. */
+function partnerSigner(state: PartnerAgreementState): PartnerSigner {
+    return {
+        registrationId: 90,
+        member: null,
+        documents: [{
+            templateId: 8,
+            name: 'Einverständnis',
+            state,
+            complete: state === PartnerAgreementState.SIGNED,
+            agreementId: state === PartnerAgreementState.MISSING ? null : 5,
+            copies: state === PartnerAgreementState.SIGNED ? 1 : 0,
+            confirmedByName: null,
+        }],
+    }
+}
 
 const CONSENT = {templateId: 8, name: 'Einverständnis', kind: DocumentTemplateKind.PDF, version: 1, archived: false, lastUsedAt: null}
 
@@ -113,6 +137,9 @@ describe('DocumentsToBringPanel', () => {
         vi.mocked(appointmentDocuments.submitScan).mockReset()
         vi.mocked(appointmentDocuments.confirmScan).mockReset()
         vi.mocked(appointmentDocuments.rejectScan).mockReset()
+        vi.mocked(partnerAgreements.listSigners).mockReset()
+        vi.mocked(partnerAgreements.listSigners).mockResolvedValue([])
+        vi.mocked(partnerAgreements.confirmPaper).mockReset()
     })
 
     it('shows a reader who takes no part what the appointment asks for, without copies', async () => {
@@ -231,6 +258,43 @@ describe('DocumentsToBringPanel', () => {
         })
         await waived.find('[data-testid="document-to-bring-status"]').trigger('click')
         expect(waived.find('[data-testid="documents-to-bring-participant"]').text()).toContain('Erlassen')
+    })
+
+    it('shows an event manager a partner\'s member whose signature is missing and confirms their paper copy', async () => {
+        vi.mocked(partnerAgreements.listSigners).mockResolvedValue([partnerSigner(PartnerAgreementState.MISSING)])
+        vi.mocked(partnerAgreements.confirmPaper).mockResolvedValue({
+            ...partnerSigner(PartnerAgreementState.PAPER_CONFIRMED).documents[0]!,
+            confirmedByName: 'Maria Leitung',
+        })
+        const panel = await mountPanel({required: [CONSENT], own: [], participants: []})
+        expect(partnerAgreements.listSigners).toHaveBeenCalledWith(3, '2026-10-08')
+        await panel.find('[data-testid="document-to-bring-status"]').trigger('click')
+
+        const row = panel.find('[data-testid="partner-signer"]')
+        expect(row.text()).toContain('Mitglied einer Partnerwache')
+        expect(row.text()).toContain('Unterschrift fehlt')
+        expect(row.find('[data-testid="partner-signer-copy"]').exists()).toBe(false)
+
+        await row.find('[data-testid="partner-signer-paper"]').trigger('click')
+        await flushPromises()
+
+        expect(partnerAgreements.confirmPaper).toHaveBeenCalledWith(3, 90, 8)
+        expect(appointmentDocuments.documentsToBring).toHaveBeenCalledTimes(2)
+    })
+
+    it('offers an event manager the copy a partner sent back and asks partners nothing for a reader', async () => {
+        vi.mocked(partnerAgreements.listSigners).mockResolvedValue([partnerSigner(PartnerAgreementState.SIGNED)])
+        const panel = await mountPanel({required: [CONSENT], own: [], participants: []})
+        await panel.find('[data-testid="document-to-bring-status"]').trigger('click')
+
+        const row = panel.find('[data-testid="partner-signer"]')
+        expect(row.text()).toContain('Unterschrieben')
+        expect(row.find('[data-testid="partner-signer-copy"]').exists()).toBe(true)
+        expect(row.find('[data-testid="partner-signer-paper"]').exists()).toBe(false)
+
+        vi.mocked(partnerAgreements.listSigners).mockClear()
+        await mountPanel({required: [CONSENT], own: [], participants: null})
+        expect(partnerAgreements.listSigners).not.toHaveBeenCalled()
     })
 
     it('shows nothing where the appointment asks for nothing', async () => {

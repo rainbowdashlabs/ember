@@ -14,9 +14,11 @@ import dev.chojo.ember.feature.comment.route.CommentResponse;
 import dev.chojo.ember.feature.comment.route.EventCommentRoutes;
 import dev.chojo.ember.feature.events.entity.AppointmentField;
 import dev.chojo.ember.feature.events.entity.EventField;
+import dev.chojo.ember.feature.events.entity.PartnerDocumentToSign;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.SharedEvent;
 import dev.chojo.ember.feature.events.service.EventFederationService;
+import dev.chojo.ember.feature.events.service.PartnerAppointmentSignatures;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.members.entity.NameParts;
@@ -59,15 +61,18 @@ public class FederatedEventRoutes implements Routes {
     private final EventFederationService eventFederationService;
     private final FederationService federationService;
     private final StationMemberService stationMemberService;
+    private final PartnerAppointmentSignatures signatures;
 
     @Inject
     public FederatedEventRoutes(
             EventFederationService eventFederationService,
             FederationService federationService,
-            StationMemberService stationMemberService) {
+            StationMemberService stationMemberService,
+            PartnerAppointmentSignatures signatures) {
         this.eventFederationService = eventFederationService;
         this.federationService = federationService;
         this.stationMemberService = stationMemberService;
+        this.signatures = signatures;
     }
 
     @Override
@@ -231,6 +236,10 @@ public class FederatedEventRoutes implements Routes {
      * <p>What comes back is the status the other station actually recorded. It used to say pending
      * whatever happened, so a member accepted at once by an appointment that asks for no confirmation
      * was told they were waiting on one that nobody would ever give.
+     *
+     * <p>Where the appointment asks its partners' members to sign a document, it is filed in the member's
+     * documents here and signed here; the answer lists those documents, so the registration can end on the
+     * signing step.
      */
     @OpenApi(
             path = "/api/v1/federated/{stationuid}/events/{id}/register",
@@ -246,7 +255,9 @@ public class FederatedEventRoutes implements Routes {
         var fed = resolveFederatedRegContext(ctx);
         var status = eventFederationService.registerForFederatedEvent(
                 fed.stationId(), fed.partnerUid(), fed.eventId(), fed.remoteMemberId(), fed.eventDate());
-        ctx.status(HttpStatus.CREATED).json(new FederatedRegistrationAnswer(status));
+        var toSign = signatures.registered(
+                StationSession.from(ctx), fed.partnerUid(), fed.eventId(), fed.eventDate(), fed.remoteMemberId());
+        ctx.status(HttpStatus.CREATED).json(new FederatedRegistrationAnswer(status, toSign));
     }
 
     @OpenApi(
@@ -260,6 +271,8 @@ public class FederatedEventRoutes implements Routes {
         var fed = resolveFederatedRegContext(ctx);
         eventFederationService.withdrawFederatedRegistration(
                 fed.stationId(), fed.partnerUid(), fed.eventId(), fed.remoteMemberId(), fed.eventDate());
+        signatures.withdrawn(
+                StationSession.from(ctx), fed.partnerUid(), fed.eventId(), fed.eventDate(), fed.remoteMemberId());
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -281,6 +294,8 @@ public class FederatedEventRoutes implements Routes {
         var fed = resolveFederatedRegContext(ctx);
         eventFederationService.undoFederatedWithdrawal(
                 fed.stationId(), fed.partnerUid(), fed.eventId(), fed.remoteMemberId(), fed.eventDate());
+        signatures.registered(
+                StationSession.from(ctx), fed.partnerUid(), fed.eventId(), fed.eventDate(), fed.remoteMemberId());
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -440,8 +455,11 @@ public class FederatedEventRoutes implements Routes {
 
     public record StatusResponse(String status) {}
 
-    /** What the station holding the appointment recorded for a registration sent to it. */
-    public record FederatedRegistrationAnswer(RegistrationStatus status) {}
+    /**
+     * What the station holding the appointment recorded for a registration sent to it, and the documents its
+     * appointment asks the member to sign, filed and signed here.
+     */
+    public record FederatedRegistrationAnswer(RegistrationStatus status, List<PartnerDocumentToSign> toSign) {}
 
     /**
      * Shared inputs for a federated register or withdraw request.

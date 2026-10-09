@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.generator.service;
 
 import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.api.refusal.RefusalDetail;
+import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.generator.entity.RequiredTemplate;
 import dev.chojo.ember.feature.generator.repository.EventRequirementRepository;
 import dev.chojo.ember.owner.Owner;
@@ -26,6 +27,11 @@ import java.util.Objects;
  * archived since it was asked for stays on the list until somebody takes it off, but none can be added.
  * An appointment made from an appointment template starts with the template's list
  * ({@code EventTemplateService.copyInto}).
+ *
+ * <p>An appointment shared with partner stations asks their members to sign the same document as every
+ * other signer: a document to bring that asks the member side to sign has to be about nobody in particular
+ * there ({@link MemberNeutralTemplates}). That is asked when the documents of a shared appointment are set,
+ * and when an appointment that asks for documents is shared ({@link #requireShareable}).
  */
 @Singleton
 public class EventRequirementService {
@@ -36,11 +42,31 @@ public class EventRequirementService {
 
     private final EventRequirementRepository requirements;
     private final DocumentTemplateService templates;
+    private final MemberNeutralTemplates neutral;
+    private final EventFederationRepository shares;
 
     @Inject
-    public EventRequirementService(EventRequirementRepository requirements, DocumentTemplateService templates) {
+    public EventRequirementService(
+            EventRequirementRepository requirements,
+            DocumentTemplateService templates,
+            MemberNeutralTemplates neutral,
+            EventFederationRepository shares) {
         this.requirements = requirements;
         this.templates = templates;
+        this.neutral = neutral;
+        this.shares = shares;
+    }
+
+    /**
+     * Refuses to share an appointment one of whose documents to bring partners could not sign alike.
+     *
+     * @param eventId the appointment, already checked to be the station's
+     */
+    public void requireShareable(int eventId) {
+        requirements.forEvent(eventId).stream()
+                .filter(required -> !required.archived())
+                .flatMap(required -> templates.find(required.templateId()).stream())
+                .forEach(neutral::requireSignableByPartners);
     }
 
     /**
@@ -82,6 +108,10 @@ public class EventRequirementService {
      */
     public List<RequiredTemplate> setForEvent(Owner.Station owner, int eventId, List<Integer> templateIds) {
         var checked = checked(owner, templateIds, requirements.forEvent(eventId));
+        if (shares.findShareByEvent(eventId).isPresent()) {
+            checked.forEach(templateId ->
+                    neutral.requireSignableByPartners(templates.requireUsable(owner.stationId(), templateId)));
+        }
         requirements.replaceForEvent(eventId, checked);
         log.info("Appointment {} asks for {} document(s)", eventId, checked.size());
         return requirements.forEvent(eventId);

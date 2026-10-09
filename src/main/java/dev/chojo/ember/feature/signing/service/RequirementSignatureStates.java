@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.generator.service.RequirementSignatures;
 import dev.chojo.ember.feature.signing.entity.AppointmentRequest;
 import dev.chojo.ember.feature.signing.entity.FieldState;
 import dev.chojo.ember.feature.signing.entity.RequestedSignature;
+import dev.chojo.ember.feature.signing.entity.SignatureRequest;
 import dev.chojo.ember.feature.signing.repository.SignatureRequestRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -53,6 +54,23 @@ public class RequirementSignatureStates implements RequirementSignatures {
                 fields.values().stream().flatMap(List::stream).anyMatch(field -> field.state() == FieldState.OPEN);
         Set<Integer> yours = anyOpen ? signableBy(reader) : Set.of();
         return latest.stream().map(found -> stateOf(found, fields, yours)).toList();
+    }
+
+    /**
+     * Where the signatures of one request stand, read the same way as those of an appointment's copies.
+     *
+     * @param reader     who reads them, which decides the fields they can sign now
+     * @param templateId the document the request is on, as the caller names it
+     * @param memberId   the member the document is about
+     * @param request    the request
+     * @return the request's fields with where each stands
+     */
+    public RequirementSignature ofRequest(
+            StationSession reader, int templateId, int memberId, SignatureRequest request) {
+        var fields = requests.fieldsOf(request.id());
+        boolean anyOpen = fields.stream().anyMatch(field -> field.state() == FieldState.OPEN);
+        Set<Integer> yours = anyOpen ? signableBy(reader) : Set.of();
+        return stateOf(new AppointmentRequest(templateId, memberId, request), Map.of(request.id(), fields), yours);
     }
 
     private Set<Integer> signableBy(StationSession reader) {

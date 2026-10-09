@@ -1771,3 +1771,245 @@ COMMENT ON CONSTRAINT document_template_field_role_kind_check ON ember_schema.do
     'A signature field and a field to fill in name a signer, no other field does.';
 COMMENT ON CONSTRAINT document_template_field_fill_in_check ON ember_schema.document_template_field IS
     'Only a field to fill in can be required or limit its length.';
+
+CREATE TABLE IF NOT EXISTS ember_schema.event_partner_agreement
+(
+    id               SERIAL PRIMARY KEY,
+    station_id       INTEGER     NOT NULL REFERENCES ember_schema.station (id) ON DELETE CASCADE,
+    event_id         INTEGER     NOT NULL REFERENCES ember_schema.station_event (id) ON DELETE CASCADE,
+    event_date       DATE        NOT NULL,
+    template_id      INTEGER     NOT NULL REFERENCES ember_schema.document_template (id) ON DELETE CASCADE,
+    template_version INTEGER     NOT NULL,
+    title            TEXT        NOT NULL,
+    file_name        TEXT        NOT NULL,
+    content          BYTEA       NOT NULL,
+    sha256           TEXT        NOT NULL CHECK (sha256 ~ '^[0-9a-f]{64}$'),
+    generated_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT event_partner_agreement_once UNIQUE (event_id, event_date, template_id, template_version)
+);
+
+CREATE INDEX IF NOT EXISTS event_partner_agreement_station_idx ON ember_schema.event_partner_agreement (station_id);
+CREATE INDEX IF NOT EXISTS event_partner_agreement_template_idx ON ember_schema.event_partner_agreement (template_id);
+
+COMMENT ON TABLE ember_schema.event_partner_agreement IS
+    'The one copy of a document an appointment asks for that the members of partner stations sign on one date: drawn once per date and version of the template, about nobody in particular, with the appointment''s values for that date and the station''s. Every partner''s signer signs these same bytes at their home installation. Goes with the appointment and the template.';
+COMMENT ON COLUMN ember_schema.event_partner_agreement.id IS 'Primary key.';
+COMMENT ON COLUMN ember_schema.event_partner_agreement.station_id IS 'The station that holds the appointment.';
+COMMENT ON COLUMN ember_schema.event_partner_agreement.event_id IS 'The appointment that asks for the document.';
+COMMENT ON COLUMN ember_schema.event_partner_agreement.event_date IS 'The date of the appointment the copy is for.';
+COMMENT ON COLUMN ember_schema.event_partner_agreement.template_id IS 'The template the copy was drawn from.';
+COMMENT ON COLUMN ember_schema.event_partner_agreement.template_version IS
+    'The version of the template it was drawn from. A newer version is drawn anew, and the copy partners signed before stays.';
+COMMENT ON COLUMN ember_schema.event_partner_agreement.title IS 'The title the copy carries.';
+COMMENT ON COLUMN ember_schema.event_partner_agreement.file_name IS 'The file name the copy is handed out under, ending in .pdf.';
+COMMENT ON COLUMN ember_schema.event_partner_agreement.content IS 'The PDF exactly as it is handed out, which every signature binds to.';
+COMMENT ON COLUMN ember_schema.event_partner_agreement.sha256 IS
+    'SHA-256 of the PDF, lower-case hexadecimal, which a signed copy coming back names.';
+COMMENT ON COLUMN ember_schema.event_partner_agreement.generated_at IS 'When the copy was drawn.';
+COMMENT ON CONSTRAINT event_partner_agreement_once ON ember_schema.event_partner_agreement IS
+    'One copy per appointment, date and version of the template.';
+
+CREATE TABLE IF NOT EXISTS ember_schema.partner_agreement
+(
+    id                  SERIAL PRIMARY KEY,
+    station_id          INTEGER     NOT NULL,
+    event_id            INTEGER     NULL REFERENCES ember_schema.station_event (id) ON DELETE SET NULL,
+    event_date          DATE        NOT NULL,
+    template_id         INTEGER     NULL REFERENCES ember_schema.document_template (id) ON DELETE SET NULL,
+    template_name       TEXT        NOT NULL,
+    partner_id          INTEGER     NULL REFERENCES ember_schema.federation_partner (id) ON DELETE SET NULL,
+    partner_station_uid UUID        NOT NULL,
+    partner_name        TEXT        NULL,
+    remote_member_id    UUID        NOT NULL,
+    state               TEXT        NOT NULL CHECK (state IN ('ASKED', 'SIGNED', 'PAPER_CONFIRMED', 'WITHDRAWN')),
+    content_sha256      TEXT        NULL CHECK (content_sha256 ~ '^[0-9a-f]{64}$'),
+    complete            BOOLEAN     NOT NULL DEFAULT FALSE,
+    confirmed_by        INTEGER     NULL REFERENCES ember_schema.station_member (id) ON DELETE SET NULL,
+    confirmed_by_name   TEXT        NULL,
+    updated_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+    retention_months    INTEGER     NULL CHECK (retention_months >= 0),
+    retain_until        TIMESTAMPTZ NOT NULL,
+    CONSTRAINT partner_agreement_station FOREIGN KEY (station_id)
+        REFERENCES ember_schema.station (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+    CONSTRAINT partner_agreement_once UNIQUE (event_id, event_date, template_id, partner_station_uid, remote_member_id),
+    CONSTRAINT partner_agreement_paper CHECK (state <> 'PAPER_CONFIRMED' OR confirmed_by_name IS NOT NULL)
+);
+
+CREATE INDEX IF NOT EXISTS partner_agreement_station_idx ON ember_schema.partner_agreement (station_id);
+CREATE INDEX IF NOT EXISTS partner_agreement_template_idx ON ember_schema.partner_agreement (template_id);
+CREATE INDEX IF NOT EXISTS partner_agreement_partner_idx ON ember_schema.partner_agreement (partner_id);
+CREATE INDEX IF NOT EXISTS partner_agreement_confirmed_by_idx ON ember_schema.partner_agreement (confirmed_by);
+CREATE INDEX IF NOT EXISTS partner_agreement_retain_until_idx ON ember_schema.partner_agreement (retain_until);
+
+COMMENT ON TABLE ember_schema.partner_agreement IS
+    'Where a document an appointment asks partners to sign stands for one member of a partner station on one date, as the station holding the appointment sees it. No row means the partner never said it takes the document on: its installation cannot sign, or signing failed there, and the document counts as signature missing. The signed copies that came back are in partner_agreement_copy. Kept after the appointment and after the partnership end, until retain_until, then deleted by a daily sweep with its copies.';
+COMMENT ON COLUMN ember_schema.partner_agreement.id IS 'Primary key.';
+COMMENT ON COLUMN ember_schema.partner_agreement.station_id IS 'The station that holds the appointment.';
+COMMENT ON COLUMN ember_schema.partner_agreement.event_id IS 'The appointment. NULL once it was deleted.';
+COMMENT ON COLUMN ember_schema.partner_agreement.event_date IS 'The date of the appointment.';
+COMMENT ON COLUMN ember_schema.partner_agreement.template_id IS 'The template the document was drawn from. NULL once it was deleted.';
+COMMENT ON COLUMN ember_schema.partner_agreement.template_name IS
+    'What the template was called when the row was written, so the row still says what was signed once it is gone.';
+COMMENT ON COLUMN ember_schema.partner_agreement.partner_id IS
+    'This station''s partnership with the member''s station. NULL once the partnership was deleted.';
+COMMENT ON COLUMN ember_schema.partner_agreement.partner_station_uid IS 'The member''s station, as the federation knows it.';
+COMMENT ON COLUMN ember_schema.partner_agreement.partner_name IS
+    'The name the partnership knew the member''s station by when the row was last written. NULL where it knew none.';
+COMMENT ON COLUMN ember_schema.partner_agreement.remote_member_id IS
+    'The member at the partner station, by the id their registration names. Nothing else of the member is kept here; the signed copy carries the signers'' official names.';
+COMMENT ON COLUMN ember_schema.partner_agreement.state IS
+    'ASKED once the partner took the document on for the member and asks for it to be signed there, SIGNED once a sealed copy came back from the partner (whether every field is settled says complete), PAPER_CONFIRMED when a manager here confirmed a signed paper copy and no sealed copy came back, WITHDRAWN when the partner reported the signed agreement withdrawn there.';
+COMMENT ON COLUMN ember_schema.partner_agreement.content_sha256 IS
+    'SHA-256 of the copy the partner asked to be signed, the one in event_partner_agreement. NULL for a paper copy confirmed before the partner said anything.';
+COMMENT ON COLUMN ember_schema.partner_agreement.complete IS
+    'Whether the latest copy that came back has every signature field settled at the partner; false while one still waits.';
+COMMENT ON COLUMN ember_schema.partner_agreement.confirmed_by IS
+    'The member here who confirmed a signed paper copy. NULL where nobody did, and once that member is gone. Stays when a sealed copy comes back afterwards.';
+COMMENT ON COLUMN ember_schema.partner_agreement.confirmed_by_name IS
+    'The official name of the member who confirmed a paper copy, as it was then. NULL where nobody did.';
+COMMENT ON COLUMN ember_schema.partner_agreement.updated_at IS 'When the row last changed.';
+COMMENT ON COLUMN ember_schema.partner_agreement.retention_months IS
+    'The months the template keeps signed documents, copied when the row was written. NULL where the template sets none.';
+COMMENT ON COLUMN ember_schema.partner_agreement.retain_until IS
+    'Until when the row and its copies are kept: the date of the appointment plus retention_months, or plus 12 months where the template sets none. The daily sweep deletes it afterwards. The partner deleting its member never changes it, since nothing of that travels.';
+COMMENT ON CONSTRAINT partner_agreement_station ON ember_schema.partner_agreement IS
+    'A row goes with its station. Checked at commit, because deleting a station also empties the appointment, template, partnership and member columns of a row it is about to delete.';
+COMMENT ON CONSTRAINT partner_agreement_once ON ember_schema.partner_agreement IS
+    'One row per appointment, date, document and member of a partner station.';
+COMMENT ON CONSTRAINT partner_agreement_paper ON ember_schema.partner_agreement IS
+    'A paper copy always names the member who confirmed it.';
+
+CREATE TABLE IF NOT EXISTS ember_schema.partner_agreement_copy
+(
+    id            SERIAL PRIMARY KEY,
+    agreement_id  INTEGER     NOT NULL,
+    sealed_sha256 TEXT        NOT NULL CHECK (sealed_sha256 ~ '^[0-9a-f]{64}$'),
+    content       BYTEA       NOT NULL,
+    fields        JSONB       NOT NULL,
+    complete      BOOLEAN     NOT NULL,
+    received_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT partner_agreement_copy_agreement FOREIGN KEY (agreement_id)
+        REFERENCES ember_schema.partner_agreement (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+    CONSTRAINT partner_agreement_copy_once UNIQUE (agreement_id, sealed_sha256)
+);
+
+COMMENT ON TABLE ember_schema.partner_agreement_copy IS
+    'A sealed copy of a document an appointment asks partners to sign, as it came back from the member''s home installation: sealed there and checked here against the partner''s pinned signing authorities before it was taken. Each state the partner sealed is kept beside the earlier ones; the newest is the current one. Locked: a copy is never changed, and deleted only with its row in partner_agreement.';
+COMMENT ON COLUMN ember_schema.partner_agreement_copy.id IS 'Primary key.';
+COMMENT ON COLUMN ember_schema.partner_agreement_copy.agreement_id IS 'The document and member the copy is for.';
+COMMENT ON COLUMN ember_schema.partner_agreement_copy.sealed_sha256 IS 'SHA-256 of the sealed PDF, lower-case hexadecimal.';
+COMMENT ON COLUMN ember_schema.partner_agreement_copy.content IS
+    'The sealed PDF exactly as it came back: the document, the signature of each signer drawn in, the record page and the evidence attached, under the partner station''s seal.';
+COMMENT ON COLUMN ember_schema.partner_agreement_copy.fields IS
+    'What the partner reported of each signature field with the copy: its name, whether it is signed, open, confirmed on paper, waived or withdrawn, when it was settled, and for a signed one the kind of proof the signer gave.';
+COMMENT ON COLUMN ember_schema.partner_agreement_copy.complete IS 'Whether every field was settled at the partner in this copy.';
+COMMENT ON COLUMN ember_schema.partner_agreement_copy.received_at IS 'When the copy came in.';
+COMMENT ON CONSTRAINT partner_agreement_copy_agreement ON ember_schema.partner_agreement_copy IS
+    'A copy goes with its row. Checked at commit, for the same reason as partner_agreement_station.';
+COMMENT ON CONSTRAINT partner_agreement_copy_once ON ember_schema.partner_agreement_copy IS
+    'A copy is kept once, whichever way it arrived again.';
+
+CREATE OR REPLACE FUNCTION ember_schema.partner_agreement_keep_copies() RETURNS TRIGGER
+    LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    IF EXISTS (SELECT 1 FROM ember_schema.station s WHERE s.id = OLD.station_id)
+        AND OLD.retain_until > now()
+        AND EXISTS (SELECT 1 FROM ember_schema.partner_agreement_copy c WHERE c.agreement_id = OLD.id) THEN
+        RAISE EXCEPTION 'Partner agreement % holds signed copies and is kept until %', OLD.id, OLD.retain_until
+            USING ERRCODE = 'restrict_violation';
+    END IF;
+    RETURN OLD;
+END;
+$$;
+
+COMMENT ON FUNCTION ember_schema.partner_agreement_keep_copies()
+    IS 'Refuses deleting a row that holds signed copies while its station exists and its retention is not over. Deleting the station still takes it, since the cascade from the station runs after the station row is gone.';
+
+CREATE TRIGGER partner_agreement_keep_copies
+    BEFORE DELETE
+    ON ember_schema.partner_agreement
+    FOR EACH ROW
+EXECUTE FUNCTION ember_schema.partner_agreement_keep_copies();
+
+CREATE OR REPLACE FUNCTION ember_schema.partner_agreement_copy_locked() RETURNS TRIGGER
+    LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    IF TG_OP = 'UPDATE' THEN
+        RAISE EXCEPTION 'Signed copy % of a partner agreement cannot be changed', OLD.id
+            USING ERRCODE = 'restrict_violation';
+    END IF;
+    IF EXISTS (SELECT 1 FROM ember_schema.partner_agreement a WHERE a.id = OLD.agreement_id) THEN
+        RAISE EXCEPTION 'Signed copy % of a partner agreement is only deleted with its agreement', OLD.id
+            USING ERRCODE = 'restrict_violation';
+    END IF;
+    RETURN OLD;
+END;
+$$;
+
+COMMENT ON FUNCTION ember_schema.partner_agreement_copy_locked()
+    IS 'Refuses changing a signed copy of a partner agreement, and deleting one while its row in partner_agreement exists. Deleting that row takes its copies, since the cascade runs after the row is gone.';
+
+CREATE TRIGGER partner_agreement_copy_locked
+    BEFORE UPDATE OR DELETE
+    ON ember_schema.partner_agreement_copy
+    FOR EACH ROW
+EXECUTE FUNCTION ember_schema.partner_agreement_copy_locked();
+
+CREATE TABLE IF NOT EXISTS ember_schema.partner_signing_request
+(
+    id                 SERIAL PRIMARY KEY,
+    station_id         INTEGER     NOT NULL,
+    request_id         INTEGER     NOT NULL UNIQUE,
+    partner_id         INTEGER     NULL REFERENCES ember_schema.federation_partner (id) ON DELETE SET NULL,
+    partner_station_uid UUID       NOT NULL,
+    remote_event_id    INTEGER     NOT NULL,
+    event_date         DATE        NOT NULL,
+    remote_template_id INTEGER     NOT NULL,
+    template_version   INTEGER     NOT NULL,
+    created_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
+    announced_at       TIMESTAMPTZ NULL,
+    delivered_sha256   TEXT        NULL CHECK (delivered_sha256 ~ '^[0-9a-f]{64}$'),
+    delivery_attempts  INTEGER     NOT NULL DEFAULT 0 CHECK (delivery_attempts >= 0),
+    next_delivery_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT partner_signing_request_station FOREIGN KEY (station_id)
+        REFERENCES ember_schema.station (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+    CONSTRAINT partner_signing_request_request FOREIGN KEY (request_id)
+        REFERENCES ember_schema.signing_request (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED
+);
+
+CREATE INDEX IF NOT EXISTS partner_signing_request_station_idx ON ember_schema.partner_signing_request (station_id);
+CREATE INDEX IF NOT EXISTS partner_signing_request_partner_idx ON ember_schema.partner_signing_request (partner_id);
+CREATE INDEX IF NOT EXISTS partner_signing_request_due_idx ON ember_schema.partner_signing_request (next_delivery_at);
+
+COMMENT ON TABLE ember_schema.partner_signing_request IS
+    'A signing request at this installation for a document a partner station''s appointment asks one of this station''s members to sign: which partner, appointment, date and document it answers, and how far its signed copies have travelled back to that partner. The member signs here, and every sealed state is sent back to the partner, signed with this station''s federation key, and sent again later while the partner is unreachable. Goes with its request.';
+COMMENT ON COLUMN ember_schema.partner_signing_request.id IS 'Primary key.';
+COMMENT ON COLUMN ember_schema.partner_signing_request.station_id IS 'The station of the member who signs.';
+COMMENT ON COLUMN ember_schema.partner_signing_request.request_id IS
+    'The signing request here, on the copy filed in the member''s documents.';
+COMMENT ON COLUMN ember_schema.partner_signing_request.partner_id IS
+    'This station''s partnership with the station that holds the appointment. NULL once the partnership was deleted; nothing travels then.';
+COMMENT ON COLUMN ember_schema.partner_signing_request.partner_station_uid IS
+    'The station that holds the appointment, as the federation knows it.';
+COMMENT ON COLUMN ember_schema.partner_signing_request.remote_event_id IS 'The appointment, by its id at the partner.';
+COMMENT ON COLUMN ember_schema.partner_signing_request.event_date IS 'The date of the appointment.';
+COMMENT ON COLUMN ember_schema.partner_signing_request.remote_template_id IS
+    'The document the appointment asks for, by the id of its template at the partner.';
+COMMENT ON COLUMN ember_schema.partner_signing_request.template_version IS 'The version of that template the copy was drawn from.';
+COMMENT ON COLUMN ember_schema.partner_signing_request.created_at IS 'When the document was taken on here.';
+COMMENT ON COLUMN ember_schema.partner_signing_request.announced_at IS
+    'When the partner was told the document is asked for here. NULL until that reached it.';
+COMMENT ON COLUMN ember_schema.partner_signing_request.delivered_sha256 IS
+    'SHA-256 of the newest sealed copy the partner took. NULL until one reached it.';
+COMMENT ON COLUMN ember_schema.partner_signing_request.delivery_attempts IS
+    'How many times in a row sending to the partner failed; back to 0 once something reached it. Sending is given up after 32 failures in a row, about a week of tries, until the next sealed state starts it again.';
+COMMENT ON COLUMN ember_schema.partner_signing_request.next_delivery_at IS
+    'When to try again what has not reached the partner yet, later after every failure.';
+COMMENT ON CONSTRAINT partner_signing_request_station ON ember_schema.partner_signing_request IS
+    'A row goes with its station. Checked at commit, because deleting a station also empties the partnership column of a row it is about to delete.';
+COMMENT ON CONSTRAINT partner_signing_request_request ON ember_schema.partner_signing_request IS
+    'A row goes with its signing request, which the retention sweep deletes. Checked at commit for the same reason as partner_signing_request_station.';

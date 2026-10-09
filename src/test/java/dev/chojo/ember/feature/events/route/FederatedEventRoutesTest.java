@@ -12,6 +12,7 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.service.EventFederationService;
+import dev.chojo.ember.feature.events.service.PartnerAppointmentSignatures;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -73,7 +74,8 @@ class FederatedEventRoutesTest {
         federation = mock(FederationService.class);
         members = mock(StationMemberService.class);
         when(federation.findPartnerByRemoteUid(STATION, PARTNER_UID)).thenReturn(Optional.of(PARTNER));
-        harness = RouteHarness.serving(new FederatedEventRoutes(events, federation, members));
+        harness = RouteHarness.serving(
+                new FederatedEventRoutes(events, federation, members, PartnerAppointmentSignatures.NONE));
     }
 
     private Consumer<Request.Builder> registrar() {

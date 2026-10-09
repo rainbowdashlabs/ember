@@ -13,7 +13,12 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {describeFailure} from '@/util/failure'
 import {partnerEventCommentSource} from '@/api/comments'
-import {StationPermission, type PartnerEventDetail, type RemoteMemberRegistration} from '@/api/generated/schema'
+import {
+  StationPermission,
+  type PartnerDocumentToSign,
+  type PartnerEventDetail,
+  type RemoteMemberRegistration,
+} from '@/api/generated/schema'
 import {events} from '@/api'
 import {UNDO_WINDOW_MS} from '@/api/events'
 import {showToast} from '@/util/toast'
@@ -25,6 +30,7 @@ import HeaderCard from './federatedeventdetailview/HeaderCard.vue'
 import RegistrationCard from './federatedeventdetailview/RegistrationCard.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import CommentSection from '@/components/comment/CommentSection.vue'
+import PartnerSigningStep from './eventshared/PartnerSigningStep.vue'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -37,6 +43,15 @@ const eventId = ref(Number(route.params.eventId))
 const detail = ref<PartnerEventDetail | null>(null)
 const myRegistrations = ref<RemoteMemberRegistration[]>([])
 const selectedMemberUid = ref('')
+
+/** The documents the appointment asks the people just registered to sign here, which the registration ends on. */
+const toSign = ref<PartnerDocumentToSign[]>([])
+const signingStepOpen = computed({
+  get: () => toSign.value.length > 0,
+  set: (shown: boolean) => {
+    if (!shown) toSign.value = []
+  },
+})
 
 const currentMemberUid = computed(() => sessionInfo.value?.member?.uid ?? '')
 const managedMembers = computed(() => sessionInfo.value?.managedMembers ?? [])
@@ -125,11 +140,12 @@ function selectedUidForRegister(): string | null {
 const {running: registering, failure: registrationFailure, run: runRegistration} = useAsyncAction(
     async (kind: 'register' | 'withdraw', uid: string) => {
       if (kind === 'register') {
-        const status = await events.registerForFederatedEvent(stationUid.value, eventId.value, getEventDate(), uid)
+        const answer = await events.registerForFederatedEvent(stationUid.value, eventId.value, getEventDate(), uid)
         myRegistrations.value.push({
           eventId: eventId.value, remoteMemberId: uid,
-          eventDate: getEventDate(), status, partnerId: 0,
+          eventDate: getEventDate(), status: answer.status, partnerId: 0,
         })
+        toSign.value = answer.toSign
       } else {
         await events.withdrawFederatedRegistration(stationUid.value, eventId.value, getEventDate(), uid)
         myRegistrations.value = myRegistrations.value.filter(r => !(r.eventId === eventId.value && r.remoteMemberId === uid))
@@ -219,5 +235,6 @@ watch(() => [route.params.stationUid, route.params.eventId], () => {
         </NeutralContainer>
       </template>
     </div>
+    <PartnerSigningStep v-if="signingStepOpen" v-model="signingStepOpen" :documents="toSign"/>
   </ViewContent>
 </template>

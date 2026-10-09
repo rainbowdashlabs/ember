@@ -23531,6 +23531,152 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/{id}/partner-agreements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Where the members of partner stations stand with the documents an appointment asks them to sign */
+        get: {
+            parameters: {
+                query: {
+                    date: components["schemas"]["LocalDate"];
+                };
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PartnerSigner"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/{id}/partner-agreements/{agreementId}/copy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The newest signed copy of a document that came back from a partner station */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    agreementId: number;
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/{id}/partner-agreements/paper": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm a signed paper copy of a document for a member of a partner station */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["PaperRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PartnerSignerDocument"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/{id}/partner-places": {
         parameters: {
             query?: never;
@@ -63223,6 +63369,7 @@ export interface components {
         };
         FederatedRegistrationAnswer: {
             status: components["schemas"]["RegistrationStatus"];
+            toSign: components["schemas"]["PartnerDocumentToSign"][];
         };
         FederationBoardBookmark: {
             createdAt: components["schemas"]["Instant"];
@@ -66803,6 +66950,12 @@ export interface components {
             /** Format: uuid */
             targetStationUid?: string;
         };
+        PaperRequest: {
+            /** Format: int32 */
+            registrationId?: number;
+            /** Format: int32 */
+            templateId?: number;
+        };
         /** @enum {string} */
         PaperState: "SUBMITTED" | "CONFIRMED" | "REJECTED";
         PaperSubmission: {
@@ -66832,6 +66985,15 @@ export interface components {
             memberId: number;
             name: string;
         };
+        /** @enum {string} */
+        PartnerAgreementState: "MISSING" | "ASKED" | "SIGNED" | "PAPER_CONFIRMED" | "WITHDRAWN";
+        PartnerDocumentToSign: {
+            /** Format: int32 */
+            memberId: number;
+            memberName: string;
+            name: string;
+            signature: components["schemas"]["RequirementSignature"];
+        };
         PartnerEventDetail: {
             event: components["schemas"]["SharedEvent"];
             places: components["schemas"]["RemotePlaces"] | null;
@@ -66849,6 +67011,24 @@ export interface components {
         PartnerResponse: {
             partner: components["schemas"]["FederationPartner"];
             partnerStationName: string;
+        };
+        PartnerSigner: {
+            documents: components["schemas"]["PartnerSignerDocument"][];
+            member: components["schemas"]["MemberIdentity"] | null;
+            /** Format: int32 */
+            registrationId: number;
+        };
+        PartnerSignerDocument: {
+            /** Format: int32 */
+            agreementId: number | null;
+            complete: boolean;
+            confirmedByName: string | null;
+            /** Format: int32 */
+            copies: number;
+            name: string;
+            state: components["schemas"]["PartnerAgreementState"];
+            /** Format: int32 */
+            templateId: number;
         };
         PartnerStationsConfig: {
             autoFillFromPartners?: boolean;
@@ -72384,13 +72564,18 @@ export type PairRequestRefusal = components['schemas']['PairRequestRefusal'];
 export type PairRequestResponse = components['schemas']['PairRequestResponse'];
 export type PairRequestStatus = components['schemas']['PairRequestStatus'];
 export type PairRequestStatusQuery = components['schemas']['PairRequestStatusQuery'];
+export type PaperRequest = components['schemas']['PaperRequest'];
 export type PaperState = components['schemas']['PaperState'];
 export type PaperSubmission = components['schemas']['PaperSubmission'];
 export type ParseResult = components['schemas']['ParseResult'];
 export type ParticipantDocuments = components['schemas']['ParticipantDocuments'];
+export type PartnerAgreementState = components['schemas']['PartnerAgreementState'];
+export type PartnerDocumentToSign = components['schemas']['PartnerDocumentToSign'];
 export type PartnerEventDetail = components['schemas']['PartnerEventDetail'];
 export type PartnerPlacesView = components['schemas']['PartnerPlacesView'];
 export type PartnerResponse = components['schemas']['PartnerResponse'];
+export type PartnerSigner = components['schemas']['PartnerSigner'];
+export type PartnerSignerDocument = components['schemas']['PartnerSignerDocument'];
 export type PartnerStationsConfig = components['schemas']['PartnerStationsConfig'];
 export type PasskeyCodeResponse = components['schemas']['PasskeyCodeResponse'];
 export type PasskeyEntryResponse = components['schemas']['PasskeyEntryResponse'];
@@ -73898,6 +74083,14 @@ export const PaperState = {
     CONFIRMED: "CONFIRMED",
     REJECTED: "REJECTED",
     SUBMITTED: "SUBMITTED",
+} as const;
+
+export const PartnerAgreementState = {
+    ASKED: "ASKED",
+    MISSING: "MISSING",
+    PAPER_CONFIRMED: "PAPER_CONFIRMED",
+    SIGNED: "SIGNED",
+    WITHDRAWN: "WITHDRAWN",
 } as const;
 
 export const PdfFieldKind = {

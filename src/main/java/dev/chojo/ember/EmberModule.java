@@ -138,6 +138,7 @@ import dev.chojo.ember.feature.events.service.EventFeedDetails;
 import dev.chojo.ember.feature.events.service.EventReminderChecker;
 import dev.chojo.ember.feature.events.service.EventThresholdChecker;
 import dev.chojo.ember.feature.events.service.FieldRegistrationSweeper;
+import dev.chojo.ember.feature.events.service.PartnerAppointmentSignatures;
 import dev.chojo.ember.feature.events.service.RegistrationDeadlineChecker;
 import dev.chojo.ember.feature.events.service.SettledRefusalSweeper;
 import dev.chojo.ember.feature.federation.handler.FederationRequestAnsweredHandler;
@@ -301,6 +302,7 @@ import dev.chojo.ember.feature.quiz.route.QuizTestRoutes;
 import dev.chojo.ember.feature.quiz.route.RemoteQuizRoutes;
 import dev.chojo.ember.feature.quiz.service.QuizFederationService;
 import dev.chojo.ember.feature.signing.handler.RegistrationSignaturesHandler;
+import dev.chojo.ember.feature.signing.route.PartnerAgreementRoutes;
 import dev.chojo.ember.feature.signing.route.PublicSigningRoutes;
 import dev.chojo.ember.feature.signing.route.RemoteSigningRoutes;
 import dev.chojo.ember.feature.signing.route.SignatureImageRoutes;
@@ -311,9 +313,13 @@ import dev.chojo.ember.feature.signing.service.CredentialKeyStamps;
 import dev.chojo.ember.feature.signing.service.DocumentStatements;
 import dev.chojo.ember.feature.signing.service.InEmberSignatureProvider;
 import dev.chojo.ember.feature.signing.service.IssuedLetterSigner;
+import dev.chojo.ember.feature.signing.service.PartnerAgreements;
 import dev.chojo.ember.feature.signing.service.PartnerAuthorities;
+import dev.chojo.ember.feature.signing.service.PartnerDeliveries;
+import dev.chojo.ember.feature.signing.service.PartnerSignatures;
 import dev.chojo.ember.feature.signing.service.RequirementSignatureStates;
 import dev.chojo.ember.feature.signing.service.ScanSignatures;
+import dev.chojo.ember.feature.signing.service.SealedStateFollowUp;
 import dev.chojo.ember.feature.signing.service.SealedVersionTimestamps;
 import dev.chojo.ember.feature.signing.service.SignatureProvider;
 import dev.chojo.ember.feature.signing.service.SignatureReminders;
@@ -495,6 +501,8 @@ public class EmberModule extends AbstractModule {
         bind(DocumentStatements.class).to(TemplateDocumentStatements.class);
         bind(RequirementSignatures.class).to(RequirementSignatureStates.class);
         bind(ScanConfirmations.class).to(ScanSignatures.class);
+        bind(PartnerAppointmentSignatures.class).to(PartnerSignatures.class);
+        bind(SealedStateFollowUp.class).to(PartnerDeliveries.class);
         Multibinder<BlockReferences> blockReferencesBinder = Multibinder.newSetBinder(binder(), BlockReferences.class);
         blockReferencesBinder.addBinding().to(NewsBlockReferences.class);
         blockReferencesBinder.addBinding().to(EventBlockReferences.class);
@@ -591,6 +599,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(RemoteSigningRoutes.class);
         routesBinder.addBinding().to(SigningRoutes.class);
         routesBinder.addBinding().to(SignatureRequestRoutes.class);
+        routesBinder.addBinding().to(PartnerAgreementRoutes.class);
         routesBinder.addBinding().to(SigningKeyAdminRoutes.class);
         routesBinder.addBinding().to(SignatureImageRoutes.class);
         routesBinder.addBinding().to(UtilRoutes.class);
@@ -768,6 +777,7 @@ public class EmberModule extends AbstractModule {
         federationServers.addBinding().to(FederatedTicketDetailProxy.class);
         federationServers.addBinding().to(FederatedBoardNotificationService.class);
         federationServers.addBinding().to(PartnerAuthorities.class);
+        federationServers.addBinding().to(PartnerAgreements.class);
 
         Multibinder<FeedDetailsContributor> feedDetailsBinder =
                 Multibinder.newSetBinder(binder(), FeedDetailsContributor.class);
@@ -823,6 +833,8 @@ public class EmberModule extends AbstractModule {
         taskSources.addBinding().to(SealedVersionTimestamps.class);
         taskSources.addBinding().to(SignatureReminders.class);
         taskSources.addBinding().to(PartnerAuthorities.class);
+        taskSources.addBinding().to(PartnerAgreements.class);
+        taskSources.addBinding().to(PartnerDeliveries.class);
         taskSources.addBinding().to(CredentialKeyStamps.class);
         taskSources.addBinding().to(AccountLinkSweeper.class);
 

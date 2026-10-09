@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.documents.service.DocumentAccessService;
 import dev.chojo.ember.feature.documents.service.DocumentCatalogService;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
 import dev.chojo.ember.feature.events.service.EventRegistrationService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
@@ -28,6 +29,7 @@ import dev.chojo.ember.feature.generator.service.AppointmentDocumentService;
 import dev.chojo.ember.feature.generator.service.AppointmentDocumentService.RequiredDocumentStatus;
 import dev.chojo.ember.feature.generator.service.EventRequirementService;
 import dev.chojo.ember.feature.generator.service.GeneratorTestBase;
+import dev.chojo.ember.feature.generator.service.MemberNeutralTemplates;
 import dev.chojo.ember.feature.generator.service.PaperSubmissionService;
 import dev.chojo.ember.feature.generator.service.pdf.TestPdfs;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -132,7 +134,11 @@ class AppointmentSignaturesTest extends GeneratorTestBase {
 
         var requirementRepo = new EventRequirementRepository();
         var submissions = new PaperSubmissionRepository();
-        requirements = new EventRequirementService(requirementRepo, wiring.templates());
+        requirements = new EventRequirementService(
+                requirementRepo,
+                wiring.templates(),
+                new MemberNeutralTemplates(wiring.templates()),
+                new EventFederationRepository());
         appointments = new AppointmentDocumentService(
                 requirementRepo,
                 submissions,

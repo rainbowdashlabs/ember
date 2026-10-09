@@ -10,6 +10,7 @@ import BareButton from '@/components/button/BareButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import FileThumbnail from '@/components/documents/FileThumbnail.vue'
 import {toBringPictureUrl} from '@/api/appointmentDocuments'
+import type {PartnerSigner} from '@/api/generated/schema'
 import DocumentDownload from './DocumentDownload.vue'
 import DocumentPictureModal from './DocumentPictureModal.vue'
 import ParticipantStatusModal from './ParticipantStatusModal.vue'
@@ -25,6 +26,8 @@ const props = defineProps<{
   /** The date of the appointment on screen. */
   date: string
   tile: DocumentTile
+  /** The members partner stations registered, for an event manager; empty for anybody else. */
+  partnerSigners: PartnerSigner[]
   busy: boolean
   /** Called once a scan was confirmed, turned down or handed in from the overview. */
   onChanged: () => void
@@ -62,6 +65,7 @@ const showingStatus = ref(false)
     <DocumentPictureModal v-if="enlarged" v-model="enlarged" :event-id="eventId" :template="props.tile.template"/>
     <ParticipantStatusModal v-if="showingStatus && props.tile.participants" v-model="showingStatus"
                             :event-id="eventId" :date="date" :template="props.tile.template"
-                            :participants="props.tile.participants" :on-changed="onChanged"/>
+                            :participants="props.tile.participants" :partner-signers="partnerSigners"
+                            :on-changed="onChanged"/>
   </article>
 </template>

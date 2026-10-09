@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.generator.entity.BuiltInPlaceholder;
 import dev.chojo.ember.feature.generator.entity.DataSubject;
 import dev.chojo.ember.feature.generator.entity.DateFormat;
 import dev.chojo.ember.feature.generator.entity.DateKind;
+import dev.chojo.ember.feature.generator.entity.DocumentIssuer;
 import dev.chojo.ember.feature.generator.entity.DocumentLanguage;
 import dev.chojo.ember.feature.generator.entity.GenerationContext;
 import dev.chojo.ember.feature.generator.entity.PlaceholderKey;
@@ -191,6 +192,40 @@ public class PlaceholderResolver {
             if (needsNoMember) reading.value(key).ifPresent(value -> values.put(key, value));
         }
         return values;
+    }
+
+    /**
+     * The values of a document about nobody in particular, drawn at a station for one date of an appointment:
+     * the values of the appointment, today's date and the data of the station and its association. A key that
+     * reads a person stays without a value.
+     *
+     * @param stationId the station the document is drawn at
+     * @param keys      the keys the template names, a date with the format it names
+     * @param language  the language the template writes in
+     * @param event     the appointment on that date
+     * @return the values by the keys that name them, and the keys without one
+     */
+    public ResolvedValues forAppointment(
+            int stationId, Set<String> keys, DocumentLanguage language, GenerationContext.EventFacts event) {
+        var place = new StationFacts(new Place(
+                stations.findById(stationId).orElse(null),
+                clusters.findByStation(stationId).orElse(null)));
+        var context = new GenerationContext(null, event, DocumentIssuer.NONE);
+        var reading = new Reading(batch(List.of()), place, 0, language, context);
+        var values = new LinkedHashMap<String, String>();
+        var missing = new ArrayList<String>();
+        for (String key : keys) {
+            boolean aboutNobody = BuiltInPlaceholder.of(key)
+                    .filter(BuiltInPlaceholder::needsNoPerson)
+                    .isPresent();
+            String value = aboutNobody ? reading.value(key).map(String::strip).orElse("") : "";
+            if (value.isEmpty()) {
+                missing.add(key);
+            } else {
+                values.put(key, value);
+            }
+        }
+        return new ResolvedValues(values, missing, List.of());
     }
 
     /**

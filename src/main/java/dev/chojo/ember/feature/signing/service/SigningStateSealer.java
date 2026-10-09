@@ -56,7 +56,9 @@ import java.util.Optional;
  * {@link SigningStateSweeper}, which also seals the fields a manager settled.
  *
  * <p>Filing a version queues the signer's own copy of each act it carries for the first time
- * ({@link SignedCopies}), in the same transaction.
+ * ({@link SignedCopies}), in the same transaction. Once it is filed, whatever the new state has to reach
+ * beyond this installation is sent on ({@link SealedStateFollowUp}), such as the station holding a partner's
+ * appointment the document was signed for.
  */
 @Singleton
 public class SigningStateSealer {
@@ -71,6 +73,7 @@ public class SigningStateSealer {
     private final SigningStateAssembler assembler;
     private final PdfSealer sealer;
     private final SignedCopies copies;
+    private final SealedStateFollowUp followUp;
 
     @Inject
     public SigningStateSealer(
@@ -82,7 +85,9 @@ public class SigningStateSealer {
             StationSigningKeys keys,
             SigningStateAssembler assembler,
             PdfSealer sealer,
-            SignedCopies copies) {
+            SignedCopies copies,
+            SealedStateFollowUp followUp) {
+        this.followUp = followUp;
         this.requests = requests;
         this.evidence = evidence;
         this.documents = documents;
@@ -107,7 +112,9 @@ public class SigningStateSealer {
     public boolean sealLatest(int requestId) {
         var state = unsealedState(requestId);
         if (state.isEmpty()) return false;
-        return file(state.get(), seal(state.get()));
+        boolean filed = file(state.get(), seal(state.get()));
+        if (filed) followUp.sealed(requestId);
+        return filed;
     }
 
     /**

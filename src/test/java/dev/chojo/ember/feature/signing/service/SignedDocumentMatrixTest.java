@@ -618,7 +618,8 @@ class SignedDocumentMatrixTest extends RepositoryTestBase {
                 stationKeys,
                 new SigningStateAssembler(stationRepo, timestamps, BASE_URL, Clock.systemUTC()),
                 new PdfSealer(timestamps, new StationKeyRevocations(keyRepo, new RevocationLists(), wrap)),
-                mock(SignedCopies.class));
+                mock(SignedCopies.class),
+                SealedStateFollowUp.NONE);
     }
 
     private static TimestampServices timestampsOf(LocalTimestampService service) {

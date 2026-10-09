@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.generator.service;
 import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
 import dev.chojo.ember.feature.generator.entity.RequiredTemplate;
@@ -86,7 +87,11 @@ class AppointmentDocumentServiceTest extends GeneratorTestBase {
         eventRegistrationRepo.create(camp.id(), max.id(), DAY);
 
         var repository = new EventRequirementRepository();
-        requirements = new EventRequirementService(repository, wiring.templates());
+        requirements = new EventRequirementService(
+                repository,
+                wiring.templates(),
+                new MemberNeutralTemplates(wiring.templates()),
+                new EventFederationRepository());
         appointments = new AppointmentDocumentService(
                 repository,
                 new PaperSubmissionRepository(),

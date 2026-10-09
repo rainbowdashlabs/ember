@@ -10,6 +10,7 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.feature.documents.service.DocumentCatalogService;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
 import dev.chojo.ember.feature.generator.entity.PaperState;
 import dev.chojo.ember.feature.generator.entity.PaperSubmission;
@@ -98,7 +99,11 @@ class PaperSubmissionServiceTest extends GeneratorTestBase {
 
         var repository = new EventRequirementRepository();
         var submissions = new PaperSubmissionRepository();
-        requirements = new EventRequirementService(repository, wiring.templates());
+        requirements = new EventRequirementService(
+                repository,
+                wiring.templates(),
+                new MemberNeutralTemplates(wiring.templates()),
+                new EventFederationRepository());
         appointments = new AppointmentDocumentService(
                 repository,
                 submissions,

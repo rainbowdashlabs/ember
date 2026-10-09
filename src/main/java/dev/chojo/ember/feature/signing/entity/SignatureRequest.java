@@ -105,4 +105,25 @@ public record SignatureRequest(
             String memberName,
             String contentSha256,
             @Nullable Integer createdBy) {}
+
+    /**
+     * A request for a document a partner station handed out for its appointment, as it is asked for: nobody
+     * here generated it and nobody here asks, so it names no generation and nobody who asked.
+     *
+     * @param stationId       the station of the member
+     * @param documentId      the member document the copy was filed as
+     * @param memberId        the member asked to sign
+     * @param memberName      their official name
+     * @param contentSha256   SHA-256 of the copy, lower-case hexadecimal
+     * @param retentionMonths how long the partner's template keeps signed documents, or null
+     * @param copyAttached    whether a signer's copy by mail may carry the sealed PDF
+     */
+    public record PartnerDraft(
+            int stationId,
+            int documentId,
+            int memberId,
+            String memberName,
+            String contentSha256,
+            @Nullable Integer retentionMonths,
+            boolean copyAttached) {}
 }

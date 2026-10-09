@@ -643,7 +643,40 @@ public enum DocumentRefusal implements Refusal {
 
     /** A field to fill in for the issuer, whose signature can be made without them filling anything in. */
     DOCUMENT_TEMPLATE_FILL_IN_FOR_ISSUER(
-            268, HttpStatus.BAD_REQUEST, "A field to fill in cannot be for the member who issues the document");
+            268, HttpStatus.BAD_REQUEST, "A field to fill in cannot be for the member who issues the document"),
+
+    /** A document partners sign for a shared appointment that names a person, not only the appointment and the station. */
+    PARTNER_AGREEMENT_NAMES_A_PERSON(
+            270,
+            HttpStatus.BAD_REQUEST,
+            "A document partners sign may only name the appointment and the station, never a person"),
+
+    /** A document partners sign whose blocks depend on who it is for, so it would not read alike for everybody. */
+    PARTNER_AGREEMENT_DEPENDS_ON_THE_MEMBER(
+            271,
+            HttpStatus.BAD_REQUEST,
+            "A document partners sign has to read the same for everybody, without blocks for some only"),
+
+    /** A document partners sign that asks a signer whose fields depend on the member, or the issuer. */
+    PARTNER_AGREEMENT_SIGNER_NOT_SHARED(
+            272,
+            HttpStatus.BAD_REQUEST,
+            "A document partners sign may only ask the participant, the first guardian or any guardian to sign"),
+
+    /** A paper copy confirmed for a partner's member who does not take part on that date. */
+    PARTNER_AGREEMENT_REGISTRATION_NOT_HERE(
+            273, HttpStatus.NOT_FOUND, "This partner's member is not registered for the appointment on that day"),
+
+    /** A paper copy confirmed for a document the appointment does not ask partners to sign. */
+    PARTNER_AGREEMENT_NOT_ASKED(
+            274, HttpStatus.NOT_FOUND, "The appointment does not ask partners to sign this document"),
+
+    /** A paper copy confirmed for a partner's member whose signed copy already came back. */
+    PARTNER_AGREEMENT_ALREADY_SIGNED(
+            275, HttpStatus.CONFLICT, "The signed copy of this document already came back from the partner"),
+
+    /** The signed copy of a partner's agreement asked for where none came back. */
+    PARTNER_AGREEMENT_COPY_NOT_HERE(276, HttpStatus.NOT_FOUND, "No signed copy of this document came back yet");
 
     private final Definition definition;
 

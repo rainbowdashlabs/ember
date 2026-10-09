@@ -339,7 +339,8 @@ class SigningStateSealerTest extends RepositoryTestBase {
                 brokenKeys,
                 assembler(SealedPdfs.noTimestamps()),
                 pdfSealer(SealedPdfs.noTimestamps()),
-                copies);
+                copies,
+                SealedStateFollowUp.NONE);
 
         assertThrows(SigningKeyWrapException.class, () -> broken.sealLatest(request.id()));
         new SigningStateSweeper(evidenceRepo, broken).sweep(Instant.now().plus(Duration.ofHours(1)));
@@ -539,7 +540,8 @@ class SigningStateSealerTest extends RepositoryTestBase {
                 stationKeys,
                 assembler(SealedPdfs.noTimestamps()),
                 pdfSealer(SealedPdfs.noTimestamps()),
-                failingCopies);
+                failingCopies,
+                SealedStateFollowUp.NONE);
 
         assertThrows(IllegalStateException.class, () -> sealer.sealLatest(request.id()));
         assertNull(sealedHashOf(evidence));
@@ -618,7 +620,8 @@ class SigningStateSealerTest extends RepositoryTestBase {
                 stationKeys,
                 assembler(timestamps),
                 pdfSealer,
-                copies);
+                copies,
+                SealedStateFollowUp.NONE);
     }
 
     /**

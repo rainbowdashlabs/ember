@@ -19777,6 +19777,137 @@
         } ]
       }
     },
+    "/api/v1/events/{id}/partner-agreements" : {
+      "get" : {
+        "summary" : "Where the members of partner stations stand with the documents an appointment asks them to sign",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/PartnerSigner"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "date",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/components/schemas/LocalDate"
+          }
+        } ]
+      }
+    },
+    "/api/v1/events/{id}/partner-agreements/paper" : {
+      "post" : {
+        "summary" : "Confirm a signed paper copy of a document for a member of a partner station",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PartnerSignerDocument"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PaperRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/events/{id}/partner-agreements/{agreementId}/copy" : {
+      "get" : {
+        "summary" : "The newest signed copy of a document that came back from a partner station",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "agreementId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
     "/api/v1/events/{id}/partner-places" : {
       "get" : {
         "summary" : "List what each partner station may do with an event",
@@ -55323,9 +55454,15 @@
         "properties" : {
           "status" : {
             "$ref" : "#/components/schemas/RegistrationStatus"
+          },
+          "toSign" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/PartnerDocumentToSign"
+            }
           }
         },
-        "required" : [ "status" ]
+        "required" : [ "status", "toSign" ]
       },
       "FederationBoardBookmark" : {
         "type" : "object",
@@ -65608,6 +65745,19 @@
           }
         }
       },
+      "PaperRequest" : {
+        "type" : "object",
+        "properties" : {
+          "registrationId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "templateId" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
       "PaperState" : {
         "type" : "string",
         "enum" : [ "SUBMITTED", "CONFIRMED", "REJECTED" ]
@@ -65697,6 +65847,29 @@
         },
         "required" : [ "memberId", "name", "documents" ]
       },
+      "PartnerAgreementState" : {
+        "type" : "string",
+        "enum" : [ "MISSING", "ASKED", "SIGNED", "PAPER_CONFIRMED", "WITHDRAWN" ]
+      },
+      "PartnerDocumentToSign" : {
+        "type" : "object",
+        "properties" : {
+          "name" : {
+            "type" : "string"
+          },
+          "memberId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "memberName" : {
+            "type" : "string"
+          },
+          "signature" : {
+            "$ref" : "#/components/schemas/RequirementSignature"
+          }
+        },
+        "required" : [ "name", "memberId", "memberName", "signature" ]
+      },
       "PartnerEventDetail" : {
         "type" : "object",
         "properties" : {
@@ -65751,6 +65924,59 @@
           }
         },
         "required" : [ "partner", "partnerStationName" ]
+      },
+      "PartnerSigner" : {
+        "type" : "object",
+        "properties" : {
+          "registrationId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "member" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/MemberIdentity"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "documents" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/PartnerSignerDocument"
+            }
+          }
+        },
+        "required" : [ "registrationId", "member", "documents" ]
+      },
+      "PartnerSignerDocument" : {
+        "type" : "object",
+        "properties" : {
+          "templateId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "state" : {
+            "$ref" : "#/components/schemas/PartnerAgreementState"
+          },
+          "complete" : {
+            "type" : "boolean"
+          },
+          "agreementId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "copies" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "confirmedByName" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "templateId", "name", "state", "complete", "agreementId", "copies", "confirmedByName" ]
       },
       "PartnerStationsConfig" : {
         "type" : "object",

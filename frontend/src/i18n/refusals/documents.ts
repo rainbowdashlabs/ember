@@ -181,4 +181,11 @@ export default {
     'D-266': 'Ein Pflichtfeld wurde nicht ausgefüllt',
     'D-267': 'Ein Wert ist länger, als sein Feld erlaubt',
     'D-268': 'Ein Eingabefeld kann nicht für das Mitglied sein, das das Dokument ausstellt',
+    'D-270': 'Ein Dokument, das Partnerwachen unterschreiben, darf nur den Termin und die Wache nennen, keine Person',
+    'D-271': 'Ein Dokument, das Partnerwachen unterschreiben, muss für alle gleich lauten, ohne Blöcke nur für manche',
+    'D-272': 'Ein Dokument, das Partnerwachen unterschreiben, darf nur die teilnehmende Person, die erste erziehungsberechtigte Person oder eine beliebige erziehungsberechtigte Person unterschreiben lassen',
+    'D-273': 'Dieses Mitglied der Partnerwache ist an diesem Tag nicht für den Termin angemeldet',
+    'D-274': 'Der Termin lässt dieses Dokument nicht von Partnerwachen unterschreiben',
+    'D-275': 'Das unterschriebene Exemplar dieses Dokuments ist von der Partnerwache bereits zurückgekommen',
+    'D-276': 'Von diesem Dokument ist noch kein unterschriebenes Exemplar zurückgekommen',
 }

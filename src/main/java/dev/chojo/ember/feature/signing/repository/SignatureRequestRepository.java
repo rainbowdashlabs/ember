@@ -99,23 +99,58 @@ public class SignatureRequestRepository {
                         .bind("created_by", request.createdBy()),
                 SignatureRequest.map(),
                 SignatureRequest.COLUMNS);
+        addFields(created.id(), request.memberId(), fields);
+        return created;
+    }
+
+    /**
+     * Writes a request with its fields for a document no template here generated: one a partner station
+     * handed out for its appointment, which says itself how long it is kept and whether a signer's copy
+     * carries it.
+     *
+     * @param request what the request is about
+     * @param fields  the fields it asks to be signed, in their order
+     * @return the request as written
+     */
+    public SignatureRequest createForPartner(
+            SignatureRequest.PartnerDraft request, List<RequestedSignature.Draft> fields) {
+        var created = SqlSupport.insertReturning(
+                """
+                        INSERT INTO signing_request(station_id, document_id, member_id, member_name, content_sha256,
+                                                    retention_months, copy_attached)
+                        VALUES (:station_id, :document_id, :member_id, :member_name, :content_hash, :retention_months,
+                                :copy_attached)
+                        RETURNING %s;""",
+                call().bind("station_id", request.stationId())
+                        .bind("document_id", request.documentId())
+                        .bind("member_id", request.memberId())
+                        .bind("member_name", request.memberName())
+                        .bind("content_hash", request.contentSha256())
+                        .bind("retention_months", request.retentionMonths())
+                        .bind("copy_attached", request.copyAttached()),
+                SignatureRequest.map(),
+                SignatureRequest.COLUMNS);
+        addFields(created.id(), request.memberId(), fields);
+        return created;
+    }
+
+    private static void addFields(int requestId, int memberId, List<RequestedSignature.Draft> fields) {
         for (var field : fields) {
             query("""
                     INSERT INTO signing_request_field(request_id, field_name, role, member_id, signer_id, signer_name,
                                                       capacity, statement)
                     VALUES (:request_id, :field_name, :role, :member_id, :signer_id, :signer_name, :capacity,
                             :statement);""")
-                    .single(call().bind("request_id", created.id())
+                    .single(call().bind("request_id", requestId)
                             .bind("field_name", field.fieldName())
                             .bind("role", field.role())
-                            .bind("member_id", request.memberId())
+                            .bind("member_id", memberId)
                             .bind("signer_id", field.signerId())
                             .bind("signer_name", field.signerName())
                             .bind("capacity", field.capacity())
                             .bind("statement", field.statement()))
                     .insert();
         }
-        return created;
     }
 
     /** @return the request, or empty where none has this uid */

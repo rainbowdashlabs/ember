@@ -82,6 +82,12 @@ public class DocumentGeneratorService {
     /** The longest file name, before its extension. */
     private static final int MAX_FILE_NAME = 150;
 
+    /**
+     * What a document about nobody in particular shows: no block meant for some only, and one guardian, so
+     * a guardian's line stands once.
+     */
+    private static final MemberView NOBODY_IN_PARTICULAR = MemberView.anyMember(1);
+
     private final DocumentTemplateService templates;
     private final PlaceholderResolver resolver;
     private final PlaceholderCatalogue catalogue;
@@ -444,6 +450,42 @@ public class DocumentGeneratorService {
         prepared.missing().forEach(missing -> labels.put(missing.key(), missing.label()));
         var drawn = drawing.draw(new Sheet(prepared.stationId(), prepared.view(), title, values, labels, false, today));
         return new Rendered(drawn.pdf(), title, fileName(source, values), prepared.resolved(), drawn.unprintable());
+    }
+
+    /**
+     * Draws a template about nobody in particular for one date of an appointment, as the one copy every
+     * partner's signer signs alike: the values of the appointment, today's date and the station's data. A
+     * value without one is left as a line, as in a member's document; the template is meant to name no
+     * person ({@link MemberNeutralTemplates}), and a person it names all the same stays empty.
+     *
+     * @param template  the template, which reads alike for every member
+     * @param stationId the station that holds the appointment, where the document is drawn
+     * @param event     the appointment on that date
+     * @return the document
+     */
+    public Rendered drawForAppointment(DocumentTemplate template, int stationId, GenerationContext.EventFacts event) {
+        var source = sourceOf(template);
+        var view = NOBODY_IN_PARTICULAR;
+        var keys = new LinkedHashSet<>(source.valueKeys(view));
+        var resolved = resolver.forAppointment(stationId, keys, source.language(), event);
+        var known = catalogue.byKey(source.owner());
+        var missing = resolved.missing().stream()
+                .map(key -> new MissingValue(key, PlaceholderCatalogue.labelOf(known, key)))
+                .toList();
+        var prepared = new Prepared(
+                source, stationId, view, resolved, new IssuerUse(DocumentIssuer.NONE, false, false, null), missing);
+        return render(prepared);
+    }
+
+    /**
+     * What the signers of a template's document about nobody in particular confirm, as {@link
+     * #drawForAppointment} draws it.
+     *
+     * @param template the template
+     * @return the statements the template words itself, in the template's language
+     */
+    public FieldStatements statementsForAppointment(DocumentTemplate template) {
+        return new FieldStatements(template.language(), sourceOf(template).signatureStatements(NOBODY_IN_PARTICULAR));
     }
 
     /**

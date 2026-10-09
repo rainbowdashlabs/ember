@@ -25,6 +25,7 @@ import dev.chojo.ember.feature.content.entity.ContentCell;
 import dev.chojo.ember.feature.documents.service.DocumentAccessService;
 import dev.chojo.ember.feature.events.entity.AppointmentField;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
 import dev.chojo.ember.feature.events.service.EventRegistrationFieldService;
@@ -39,6 +40,7 @@ import dev.chojo.ember.feature.generator.service.AppointmentDocumentService;
 import dev.chojo.ember.feature.generator.service.DocumentTemplateService.DocumentTemplateSummary;
 import dev.chojo.ember.feature.generator.service.EventRequirementService;
 import dev.chojo.ember.feature.generator.service.GeneratorTestBase;
+import dev.chojo.ember.feature.generator.service.MemberNeutralTemplates;
 import dev.chojo.ember.feature.generator.service.RequirementSignatures;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.mail.service.MailConfirmationPolicy;
@@ -218,7 +220,11 @@ class DemoPhotoConsentSeederTest extends RepositoryTestBase {
                         accountRepo,
                         new StorageService(new StorageBackendResolver(backend), backend)));
         requirementRepo = new EventRequirementRepository();
-        var requirements = new EventRequirementService(requirementRepo, wiring.templates());
+        var requirements = new EventRequirementService(
+                requirementRepo,
+                wiring.templates(),
+                new MemberNeutralTemplates(wiring.templates()),
+                new EventFederationRepository());
         var appointments = new AppointmentDocumentService(
                 requirementRepo,
                 new PaperSubmissionRepository(),

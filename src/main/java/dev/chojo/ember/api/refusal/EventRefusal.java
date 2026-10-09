@@ -600,7 +600,27 @@ public enum EventRefusal implements Refusal {
 
     /** The documents to bring asked for without the date of the appointment they are for. */
     EVENT_DOCUMENTS_DATE_MISSING(
-            156, HttpStatus.BAD_REQUEST, "The documents to bring need the date of the appointment as a day");
+            156, HttpStatus.BAD_REQUEST, "The documents to bring need the date of the appointment as a day"),
+
+    /** A partner asking for the documents to sign of an appointment that is not shared with it. */
+    PARTNER_AGREEMENTS_NOT_SHARED(160, HttpStatus.NOT_FOUND, Sentences.EVENT_NOT_HERE),
+
+    /** A partner reporting on a document to sign of an appointment that is not shared with it. */
+    PARTNER_AGREEMENT_NOTICE_NOT_SHARED(161, HttpStatus.NOT_FOUND, Sentences.EVENT_NOT_HERE),
+
+    /** A partner reporting on a document to sign for a member it has not registered on that day. */
+    PARTNER_AGREEMENT_NOTICE_NOT_REGISTERED(162, HttpStatus.NOT_FOUND, Sentences.EVENT_REGISTRATION_NOT_HERE),
+
+    /** A partner reporting on a document this station never handed out for that day. */
+    PARTNER_AGREEMENT_NOTICE_UNKNOWN_DOCUMENT(
+            163, HttpStatus.NOT_FOUND, "This station never handed out that document to sign for that day"),
+
+    /** A partner sending a signed copy without the file, or with a file that cannot be read. */
+    PARTNER_AGREEMENT_COPY_UNREADABLE(164, HttpStatus.BAD_REQUEST, "The signed copy came without a readable file"),
+
+    /** A partner sending a signed copy whose seal is not the partner's, or not intact. */
+    PARTNER_AGREEMENT_SEAL_REFUSED(
+            165, HttpStatus.UNPROCESSABLE_CONTENT, "The seal of the signed copy is not the partner's or not intact");
 
     private final Definition definition;
 

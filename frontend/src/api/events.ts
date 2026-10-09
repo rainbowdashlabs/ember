@@ -566,11 +566,12 @@ export async function listMyFederatedRegistrations(): Promise<RemoteMemberRegist
  * Signs a member up for a partner station's appointment and answers with what they recorded.
  *
  * <p>The status is theirs to decide: an appointment that asks for no confirmation accepts at once,
- * and showing a pending badge regardless would tell the member something nobody said.
+ * and showing a pending badge regardless would tell the member something nobody said. Beside it come
+ * the documents their appointment asks the member to sign, filed here and signed here.
  */
-export async function registerForFederatedEvent(stationUid: string, eventId: number, eventDate: string, memberId?: string): Promise<RegistrationStatus> {
+export async function registerForFederatedEvent(stationUid: string, eventId: number, eventDate: string, memberId?: string): Promise<FederatedRegistrationAnswer> {
     const res = await client.post<FederatedRegistrationAnswer>(`/federated/${stationUid}/events/${eventId}/register`, { eventDate, memberId: memberId ?? null })
-    return res.data.status
+    return res.data
 }
 
 export async function withdrawFederatedRegistration(stationUid: string, eventId: number, eventDate: string, memberId?: string): Promise<void> {

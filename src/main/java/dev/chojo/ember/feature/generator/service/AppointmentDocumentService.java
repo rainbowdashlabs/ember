@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplate;
+import dev.chojo.ember.feature.generator.entity.FieldStatements;
 import dev.chojo.ember.feature.generator.entity.GenerationContext;
 import dev.chojo.ember.feature.generator.entity.GenerationOrigin;
 import dev.chojo.ember.feature.generator.entity.PaperSubmission;
@@ -292,6 +293,38 @@ public class AppointmentDocumentService {
         return inUse(event.id()).stream()
                 .flatMap(required -> templates.find(required.templateId()).stream())
                 .filter(template -> generator.asksMemberSideToSign(template, memberId))
+                .toList();
+    }
+
+    /**
+     * Draws the one copy of a document the appointment asks for that partner stations' members sign alike on
+     * a date: about nobody in particular, with the appointment's values for that date and the station's.
+     *
+     * @param event    the appointment
+     * @param date     the date
+     * @param template the document, which partners can sign ({@link MemberNeutralTemplates})
+     * @return the document, not filed anywhere
+     */
+    public DocumentGeneratorService.Rendered drawForPartners(
+            StationEvent event, LocalDate date, DocumentTemplate template) {
+        return generator.drawForAppointment(template, event.stationId(), facts(event, date));
+    }
+
+    /**
+     * @param template a document partner stations sign
+     * @return what its signers confirm, as {@link #drawForPartners} draws it
+     */
+    public FieldStatements statementsForPartners(DocumentTemplate template) {
+        return generator.statementsForAppointment(template);
+    }
+
+    /**
+     * @param eventId the appointment
+     * @return the templates it asks participants to bring and still offers, in its order
+     */
+    public List<DocumentTemplate> templatesAskedFor(int eventId) {
+        return inUse(eventId).stream()
+                .flatMap(required -> templates.find(required.templateId()).stream())
                 .toList();
     }
 

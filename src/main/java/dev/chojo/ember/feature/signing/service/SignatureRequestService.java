@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.documents.entity.Document;
 import dev.chojo.ember.feature.documents.repository.DocumentRepository;
 import dev.chojo.ember.feature.documents.service.DocumentService;
 import dev.chojo.ember.feature.generator.entity.DocumentGeneration;
+import dev.chojo.ember.feature.generator.entity.FieldStatements;
 import dev.chojo.ember.feature.generator.repository.DocumentGenerationRepository;
 import dev.chojo.ember.feature.generator.service.pdf.SignatureFields;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -26,6 +27,7 @@ import dev.chojo.ember.feature.signing.entity.SignatureAsk;
 import dev.chojo.ember.feature.signing.entity.SignatureRequest;
 import dev.chojo.ember.feature.signing.entity.SignatureRequestView;
 import dev.chojo.ember.feature.signing.entity.Signer;
+import dev.chojo.ember.feature.signing.entity.SigningStatements;
 import dev.chojo.ember.feature.signing.repository.SignatureRequestRepository;
 import dev.chojo.ember.feature.signing.repository.SigningEvidenceRepository;
 import dev.chojo.ember.util.Sha256;
@@ -40,6 +42,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**
@@ -59,7 +62,8 @@ import java.util.function.Supplier;
  *
  * <p>The copies of the documents an appointment asks for are the exception: registering for the
  * appointment asks for their signatures ({@link #requestForAppointment}), and no longer taking part
- * withdraws what is still open ({@link #withdrawForAppointment}).
+ * withdraws what is still open ({@link #withdrawForAppointment}). So are the documents a partner station's
+ * appointment asks a member here to sign ({@link #requestForPartner}).
  *
  * <p>Everybody a new request asks is told so ({@link SignatureNotices}), and the requests for fields that
  * were withdrawn are taken back.
@@ -248,15 +252,7 @@ public class SignatureRequestService {
     public int withdrawForAppointment(int eventId, LocalDate eventDate, int memberId) {
         int withdrawn = 0;
         for (var open : requests.openForAppointment(eventId, eventDate, memberId)) {
-            int requestId = open.request().id();
-            boolean changed = Transactions.call(() -> {
-                var held = requests.lockRequest(requestId).orElse(null);
-                if (held == null || !held.open()) return false;
-                requests.withdrawOpen(requestId, null, null);
-                requests.closeIfSettled(requestId);
-                return true;
-            });
-            if (!changed) continue;
+            if (!withdrawUnasked(open.request().id())) continue;
             withdrawn++;
             log.info(
                     "Signing request {} withdrawn: member {} no longer takes part in appointment {} on {}",
@@ -264,10 +260,92 @@ public class SignatureRequestService {
                     memberId,
                     eventId,
                     eventDate);
-            notices.settled(withdrawnFieldsOf(requestId));
         }
         return withdrawn;
     }
+
+    /**
+     * Withdraws every signature a request still waits for, where nobody in particular withdraws it: the
+     * member no longer takes part in what asked for it. What was signed stays, and the reminders stop.
+     *
+     * @param requestId the request
+     * @return whether it was open and is withdrawn now
+     */
+    public boolean withdrawUnasked(int requestId) {
+        boolean changed = Transactions.call(() -> {
+            var held = requests.lockRequest(requestId).orElse(null);
+            if (held == null || !held.open()) return false;
+            requests.withdrawOpen(requestId, null, null);
+            requests.closeIfSettled(requestId);
+            return true;
+        });
+        if (changed) notices.settled(withdrawnFieldsOf(requestId));
+        return changed;
+    }
+
+    /**
+     * Asks for the signatures of a document a partner station's appointment asks a member here to sign, as
+     * the partner handed it out and as it was filed in the member's documents. The signers are the member and
+     * their guardians here, resolved like those of any document; what each confirms is what the partner's
+     * template words, else the default of the signer in the document's language. Nobody here asks, so the
+     * request names nobody who asked. The caller has made sure the member takes part.
+     *
+     * @param ask       the document, its member and what the partner said about it
+     * @param alongside what the caller writes about the request in the same transaction
+     * @return the request
+     */
+    public SignatureRequest requestForPartner(PartnerAsk ask, Consumer<SignatureRequest> alongside) {
+        var member = members.findById(ask.memberId())
+                .filter(found -> !found.former())
+                .orElseThrow(DocumentRefusal.SIGNING_MEMBER_GONE::raise);
+        String memberName = names.official(member.id());
+        var worded = SigningStatements.of(ask.statements(), memberName);
+        var fields = signers.resolve(member, null, SignatureFields.unsigned(ask.content()), worded);
+        if (fields.isEmpty()) throw DocumentRefusal.SIGNING_NO_FIELDS.raise();
+        var draft = new SignatureRequest.PartnerDraft(
+                ask.stationId(),
+                ask.documentId(),
+                member.id(),
+                memberName,
+                Sha256.hex(ask.content()),
+                ask.retentionMonths(),
+                ask.copyAttached());
+        var created = Transactions.call(() -> {
+            var request = requests.createForPartner(draft, fields);
+            alongside.accept(request);
+            return request;
+        });
+        log.info(
+                "Asked for {} signatures on document {} at station {} for a partner's appointment ({})",
+                fields.size(),
+                ask.documentId(),
+                ask.stationId(),
+                created.uid());
+        notices.asked(created, requests.fieldsOf(created.id()));
+        return created;
+    }
+
+    /**
+     * A document a partner station handed out for its appointment, filed in a member's documents here.
+     *
+     * <p>The array is handed over as it is, without a copy.
+     *
+     * @param stationId       the station of the member
+     * @param documentId      the member document it was filed as
+     * @param memberId        the member asked to sign
+     * @param content         the file exactly as it was handed out
+     * @param statements      what the partner's template words for its fields, in the document's language
+     * @param retentionMonths how long the partner's template keeps signed documents, or null
+     * @param copyAttached    whether a signer's copy by mail may carry the sealed PDF
+     */
+    public record PartnerAsk(
+            int stationId,
+            int documentId,
+            int memberId,
+            byte[] content,
+            FieldStatements statements,
+            @Nullable Integer retentionMonths,
+            boolean copyAttached) {}
 
     private List<Integer> withdrawnFieldsOf(int requestId) {
         return requests.fieldsOf(requestId).stream()

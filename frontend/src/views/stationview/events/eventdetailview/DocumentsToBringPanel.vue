@@ -10,8 +10,8 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
-import {appointmentDocuments} from '@/api'
-import type {AppointmentDocuments} from '@/api/generated/schema'
+import {appointmentDocuments, partnerAgreements} from '@/api'
+import type {AppointmentDocuments, PartnerSigner} from '@/api/generated/schema'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {fetchCopy} from './documentsToBring'
@@ -25,7 +25,8 @@ import DocumentToBringTile from './DocumentToBringTile.vue'
  * with the participant's data to print and sign; getting it the first time files it in the
  * participant's documents. Instead of bringing the signed paper, they may hand in its scan here, which
  * waits for an event manager to confirm it. An event manager opens from each tile where every
- * participant stands. Nothing shows where the appointment asks for nothing.
+ * participant stands, the members of partner stations included. Nothing shows where the appointment asks
+ * for nothing.
  */
 const props = defineProps<{
   eventId: number
@@ -36,12 +37,18 @@ const props = defineProps<{
 const {t} = useI18n()
 
 const documents = ref<AppointmentDocuments | null>(null)
+const partnerSigners = ref<PartnerSigner[]>([])
 const tiles = computed(() => documents.value ? documentTiles(documents.value) : [])
 const takesPart = computed(() => (documents.value?.own.length ?? 0) > 0)
 
 const {failure, reload} = useAsyncLoader(async isCurrent => {
   const loaded = await appointmentDocuments.documentsToBring(props.eventId, props.date)
-  if (isCurrent()) documents.value = loaded
+  const partners = loaded.participants === null || loaded.required.length === 0
+      ? []
+      : await partnerAgreements.listSigners(props.eventId, props.date)
+  if (!isCurrent()) return
+  documents.value = loaded
+  partnerSigners.value = partners
 }, {autoLoad: false})
 
 const fetching = useAsyncAction(async (copy: ParticipantCopy) => {
@@ -70,7 +77,8 @@ watch(() => [props.eventId, props.date], reload, {immediate: true})
     <FailureAlert :failure="failure ?? actionFailure"/>
     <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
       <DocumentToBringTile v-for="tile in tiles" :key="tile.template.templateId" :event-id="eventId" :date="date"
-                           :tile="tile" :busy="busy" :on-changed="reload" @fetch="fetching.run"
+                           :tile="tile" :partner-signers="partnerSigners" :busy="busy" :on-changed="reload"
+                           @fetch="fetching.run"
                            @hand-in="handingIn.run"/>
     </div>
   </NeutralContainer>
