@@ -16,19 +16,20 @@ import type {AppointmentDocuments, PaperSubmission, PartnerSigner} from '@/api/g
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {fetchCopy} from './documentsToBring'
-import {documentTiles, type ParticipantCopy} from './documentTiles'
+import {documentTiles, signsOnline, type ParticipantCopy} from './documentTiles'
 import {scanReceiptKey, withScan} from './scanReceipt'
 import DocumentToBringTile from './DocumentToBringTile.vue'
+import PersonDocumentsTile from './PersonDocumentsTile.vue'
 
 /**
- * The documents the appointment asks participants to bring on the date, one tile each with a picture
- * of its first page. Everyone who sees the appointment sees them. The reader and every member in their
- * care who takes part (on an appointment without registrations: all of them) download a copy filled
- * with the participant's data to print and sign; getting it the first time files it in the
- * participant's documents. Instead of bringing the signed paper, they may hand in its scan here, which
- * waits for an event manager to confirm it. An event manager opens from each tile where every
- * participant stands, the members of partner stations included. Nothing shows where the appointment asks
- * for nothing.
+ * The documents the appointment asks participants to bring on the date. The reader and every member in
+ * their care who takes part (on an appointment without registrations: all of them) get one tile per
+ * person, with each document to download filled with the person's data, sign online, or print, sign and
+ * bring; getting it the first time files it in the person's documents. Instead of bringing the signed
+ * paper, they may hand in its scan here, which waits for an event manager to confirm it. Whoever takes no
+ * part, and every event manager, sees one tile per document with a picture of its first page, from which
+ * an event manager opens where every participant stands, the members of partner stations included.
+ * Nothing shows where the appointment asks for nothing.
  */
 const props = defineProps<{
   eventId: number
@@ -42,6 +43,13 @@ const documents = ref<AppointmentDocuments | null>(null)
 const partnerSigners = ref<PartnerSigner[]>([])
 const tiles = computed(() => documents.value ? documentTiles(documents.value) : [])
 const takesPart = computed(() => (documents.value?.own.length ?? 0) > 0)
+const showsDocumentTiles = computed(() => !takesPart.value || documents.value?.participants != null)
+const hint = computed(() => {
+  if (!takesPart.value) return t('events.documents.toBringOthersHint')
+  return documents.value && signsOnline(documents.value)
+      ? t('events.documents.toBringHint')
+      : t('events.documents.toBringPaperHint')
+})
 
 const {failure, reload} = useAsyncLoader(async isCurrent => {
   const loaded = await appointmentDocuments.documentsToBring(props.eventId, props.date)
@@ -78,18 +86,19 @@ watch(() => [props.eventId, props.date], reload, {immediate: true})
 <template>
   <NeutralContainer v-if="tiles.length > 0 || failure" class="space-y-3" data-testid="documents-to-bring">
     <SubHeader>{{ t('events.documents.toBringTitle') }}</SubHeader>
-    <MutedText size="sm" tag="p">
-      {{ takesPart ? t('events.documents.toBringHint') : t('events.documents.toBringOthersHint') }}
-    </MutedText>
+    <MutedText size="sm" tag="p">{{ hint }}</MutedText>
     <FailureAlert :failure="failure ?? actionFailure"/>
     <Alert v-if="received" variant="success" data-testid="document-scan-received">
       {{ t(scanReceiptKey(received)) }}
     </Alert>
-    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+    <div v-if="takesPart && documents" class="grid grid-cols-1 gap-3 md:grid-cols-2">
+      <PersonDocumentsTile v-for="person in documents.own" :key="person.memberId" :event-id="eventId" :date="date"
+                           :person="person" :busy="busy" @fetch="fetching.run" @hand-in="handingIn.run"
+                           @changed="reload"/>
+    </div>
+    <div v-if="showsDocumentTiles" class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
       <DocumentToBringTile v-for="tile in tiles" :key="tile.template.templateId" :event-id="eventId" :date="date"
-                           :tile="tile" :partner-signers="partnerSigners" :busy="busy" :on-changed="reload"
-                           @fetch="fetching.run"
-                           @hand-in="handingIn.run"/>
+                           :tile="tile" :partner-signers="partnerSigners" :on-changed="reload"/>
     </div>
   </NeutralContainer>
 </template>

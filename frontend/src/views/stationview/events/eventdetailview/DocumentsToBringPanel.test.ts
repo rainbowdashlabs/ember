@@ -21,6 +21,13 @@ import {
 import {appointmentDocuments, partnerAgreements, signing} from '@/api'
 import DocumentsToBringPanel from './DocumentsToBringPanel.vue'
 
+const push = vi.hoisted(() => vi.fn())
+
+vi.mock('vue-router', async (importOriginal) => ({
+    ...(await importOriginal<typeof import('vue-router')>()),
+    useRouter: () => ({push}),
+}))
+
 vi.mock('@/api', () => ({
     signing: {withdrawAgreement: vi.fn()},
     appointmentDocuments: {
@@ -163,10 +170,30 @@ describe('DocumentsToBringPanel', () => {
         expect(panel.find('[data-testid="document-to-bring-status"]').exists()).toBe(false)
     })
 
-    it('gives a participant their copy to download on the tile', async () => {
-        const panel = await mountPanel({required: [CONSENT], own: [lena()], participants: null})
+    it('gives each person a tile of their own, with their documents to download and upload', async () => {
+        const tim = {...lena(), memberId: 12, name: 'Tim Schmidt'}
+        const panel = await mountPanel({required: [CONSENT], own: [lena(), tim], participants: null})
 
-        expect(panel.findAll('[data-testid="document-to-bring-download"]')).toHaveLength(1)
+        const people = panel.findAll('[data-testid="person-documents"]')
+        expect(people).toHaveLength(2)
+        expect(people[0]!.text()).toContain('Lena Schmidt')
+        expect(people[0]!.text()).toContain('Einverständnis')
+        expect(people[1]!.text()).toContain('Tim Schmidt')
+        expect(people[0]!.find('[data-testid="document-to-bring-download"]').text()).toBe('Herunterladen')
+        expect(people[0]!.find('[data-testid="document-to-bring-scan"]').text()).toBe('Hochladen')
+        expect(panel.find('[data-testid="document-to-bring-tile"]').exists()).toBe(false)
+        expect(panel.text()).toContain('Herunterladen, ausdrucken, unterschreiben')
+        expect(panel.text()).not.toContain('Online unterschreiben')
+    })
+
+    it('signs a person\'s fields of a document online in one go, and leads the hint with it', async () => {
+        const signature = asked(RequirementSignatureState.OPEN, RequirementSignatureState.OPEN, true)
+        const panel = await mountPanel({required: [CONSENT], own: [lena(null, signature)], participants: null})
+
+        expect(panel.text()).toContain('Am einfachsten unterschreibst du direkt hier')
+        await panel.find('[data-testid="document-to-bring-sign"]').trigger('click')
+
+        expect(push).toHaveBeenCalledWith({name: 'station-signing-all', query: {fields: '70'}})
     })
 
     it('hands a participant\'s signed scan in and shows it waiting', async () => {
@@ -182,6 +209,7 @@ describe('DocumentsToBringPanel', () => {
         expect(panel.text()).toContain('Scan eingereicht, wartet auf Bestätigung')
         expect(panel.find('[data-testid="document-scan-received"]').text())
             .toBe('Scan hochgeladen. Die Terminverwaltung prüft ihn jetzt.')
+        expect(panel.find('[data-testid="document-to-bring-scan"]').text()).toBe('Ersetzen')
     })
 
     it('shows the scan waiting at once, before the documents are read again, and offers no signing meanwhile', async () => {
@@ -189,11 +217,12 @@ describe('DocumentsToBringPanel', () => {
         const panel = await mountPanel({required: [CONSENT], own: [lena(null, signature)], participants: null})
         vi.mocked(appointmentDocuments.submitScan).mockResolvedValue(scan(PaperState.SUBMITTED))
         vi.mocked(appointmentDocuments.documentsToBring).mockReturnValue(new Promise(() => {}))
+        expect(panel.find('[data-testid="document-to-bring-sign"]').exists()).toBe(true)
 
         await pick(panel, 'document-to-bring-scan')
 
         expect(panel.find('[data-testid="document-to-bring"]').text()).toContain('Scan eingereicht, wartet auf Bestätigung')
-        expect(panel.find('[data-testid="signature-field-sign"]').exists()).toBe(false)
+        expect(panel.find('[data-testid="document-to-bring-sign"]').exists()).toBe(false)
         expect(panel.find('[data-testid="document-scan-received"]').exists()).toBe(true)
     })
 
@@ -267,7 +296,7 @@ describe('DocumentsToBringPanel', () => {
         expect(panel.find('[data-testid="document-scan-reject-form"]').exists()).toBe(false)
     })
 
-    it('shows a participant each signature of their copy and offers the ones they sign online', async () => {
+    it('shows a participant each signature of their copy below the buttons', async () => {
         const signature = asked(RequirementSignatureState.OPEN, RequirementSignatureState.OPEN, true)
         const panel = await mountPanel({required: [CONSENT], own: [lena(null, signature)], participants: null})
 
@@ -276,9 +305,15 @@ describe('DocumentsToBringPanel', () => {
         expect(fields[0]!.text()).toContain('Teilnehmende Person: Lena Schmidt')
         expect(fields[0]!.text()).toContain('Unterschrift offen')
         expect(fields[1]!.text()).toContain('Erziehungsberechtigte Person 1: Anna Schmidt')
-        expect(fields[0]!.find('[data-testid="signature-field-sign"]').exists()).toBe(true)
-        expect(fields[1]!.find('[data-testid="signature-field-sign"]').exists()).toBe(false)
+        expect(panel.find('[data-testid="signature-field-sign"]').exists()).toBe(false)
         expect(panel.find('[data-testid="document-to-bring"]').text()).toContain('Unterschrift offen')
+    })
+
+    it('offers no online signing where the reader signs none of the fields', async () => {
+        const signature = asked(RequirementSignatureState.OPEN, RequirementSignatureState.OPEN, false)
+        const panel = await mountPanel({required: [CONSENT], own: [lena(null, signature)], participants: null})
+
+        expect(panel.find('[data-testid="document-to-bring-sign"]').exists()).toBe(false)
     })
 
     it('shows an event manager signed, open, paper confirmed and waived fields without signing them', async () => {

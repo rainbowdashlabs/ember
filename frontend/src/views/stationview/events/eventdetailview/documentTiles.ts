@@ -16,12 +16,11 @@ export interface ParticipantCopy {
 }
 
 /**
- * One document an appointment asks for, as its tile shows it: the copies of the participants the
- * reader acts for, and for an event manager every participant's.
+ * One document an appointment asks for, as its tile shows it, and for an event manager every
+ * participant's copy of it.
  */
 export interface DocumentTile {
     template: RequiredTemplate
-    own: ParticipantCopy[]
     /** Every participant's copy, or null where the reader is no event manager. */
     participants: ParticipantCopy[] | null
 }
@@ -42,7 +41,18 @@ function copiesOf(participants: readonly ParticipantDocuments[], templateId: num
 export function documentTiles(documents: AppointmentDocuments): DocumentTile[] {
     return documents.required.map(template => ({
         template,
-        own: copiesOf(documents.own, template.templateId),
         participants: documents.participants ? copiesOf(documents.participants, template.templateId) : null,
     }))
+}
+
+/**
+ * Whether any copy of the people the reader acts for can be signed online, which the hint above the
+ * documents then leads with.
+ *
+ * @param documents what the server answered for the reader
+ * @returns true where a copy carries signature fields or offers its agreement to sign
+ */
+export function signsOnline(documents: AppointmentDocuments): boolean {
+    return documents.own.some(person => person.documents.some(document =>
+        document.signature !== null || document.agreementOffered))
 }

@@ -11,15 +11,14 @@ import IconButton from '@/components/button/IconButton.vue'
 import FileThumbnail from '@/components/documents/FileThumbnail.vue'
 import {toBringPictureUrl} from '@/api/appointmentDocuments'
 import type {PartnerSigner} from '@/api/generated/schema'
-import DocumentDownload from './DocumentDownload.vue'
 import DocumentPictureModal from './DocumentPictureModal.vue'
 import ParticipantStatusModal from './ParticipantStatusModal.vue'
-import type {DocumentTile, ParticipantCopy} from './documentTiles'
+import type {DocumentTile} from './documentTiles'
 
 /**
- * One document an appointment asks for: a picture of its first page, which opens large, its name,
- * and a download and a scan hand-in per participant the reader acts for. An event manager also gets a
- * button showing where every participant stands with it, where scans are checked.
+ * One document an appointment asks for: a picture of its first page, which opens large, and its name. An
+ * event manager also gets a button showing where every participant stands with it, where scans are
+ * checked. The copies of the people the reader acts for are on their own tiles ({@link PersonDocumentsTile}).
  */
 const props = defineProps<{
   eventId: number
@@ -28,14 +27,8 @@ const props = defineProps<{
   tile: DocumentTile
   /** The members partner stations registered, for an event manager; empty for anybody else. */
   partnerSigners: PartnerSigner[]
-  busy: boolean
   /** Called once a scan was confirmed, turned down or handed in from the overview. */
   onChanged: () => void
-}>()
-
-const emit = defineEmits<{
-  fetch: [copy: ParticipantCopy]
-  handIn: [copy: ParticipantCopy, file: File]
 }>()
 
 const TILE_PICTURE_SIZE = 512
@@ -52,15 +45,10 @@ const showingStatus = ref(false)
       <FileThumbnail :url="toBringPictureUrl(eventId, props.tile.template.templateId, TILE_PICTURE_SIZE)"
                      mime-type="application/pdf" :alt="props.tile.template.name" size="aspect-[4/3] w-full" anchor-top/>
     </BareButton>
-    <div class="flex flex-1 flex-col gap-2 p-3">
-      <div class="flex items-start gap-2">
-        <span class="flex-1 font-medium">{{ props.tile.template.name }}</span>
-        <IconButton v-if="props.tile.participants" :icon="['fas', 'users']" :label="t('events.documents.overviewTitle')"
-                    data-testid="document-to-bring-status" @click="showingStatus = true"/>
-      </div>
-      <DocumentDownload v-for="copy in props.tile.own" :key="copy.memberId" :event-id="eventId" :date="date"
-                        :copy="copy" :named="props.tile.own.length > 1" :busy="busy" @fetch="emit('fetch', copy)"
-                        @hand-in="file => emit('handIn', copy, file)" @changed="onChanged"/>
+    <div class="flex items-start gap-2 p-3">
+      <span class="flex-1 font-medium">{{ props.tile.template.name }}</span>
+      <IconButton v-if="props.tile.participants" :icon="['fas', 'users']" :label="t('events.documents.overviewTitle')"
+                  data-testid="document-to-bring-status" @click="showingStatus = true"/>
     </div>
     <DocumentPictureModal v-if="enlarged" v-model="enlarged" :event-id="eventId" :template="props.tile.template"/>
     <ParticipantStatusModal v-if="showingStatus && props.tile.participants" v-model="showingStatus"
