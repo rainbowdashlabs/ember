@@ -391,6 +391,8 @@ export default {
                 revokedText: 'Manchmal sperrt eine Wache ihren Schlüssel später. Hat ein Zeitstempel das Siegel vor der Sperre bestätigt, bleibt es gültig. Die Seite sagt dir dann, dass der Schlüssel erst später gesperrt wurde und das Siegel von davor stammt.',
                 heldTitle: 'Liegt die Datei bei Ember?',
                 heldText: 'Unter dem Ergebnis steht, ob diese Installation genau diese Datei aufbewahrt. Wenn nicht, ist das kein schlechtes Zeichen. Eine Kopie kann auch woanders liegen.',
+                evidenceTitle: 'Wer hat unterschrieben?',
+                evidenceText: 'Bei einem unterschriebenen Dokument zeigt die Seite außerdem, wer welches Feld wann und womit unterschrieben hat, und ob mehrere Felder in einem Schritt bestätigt wurden. Diese Angaben trägt die Datei unsichtbar bei sich. Ob sie unverändert sind, sagt die Prüfung des Siegels darüber. Den ausführlichen Nachweis zum Ausdrucken lädst du in Ember neben dem Dokument herunter.',
                 compareTitle: 'Selbst nachprüfen',
                 compareText: 'Klappe die Einzelheiten auf. Dort steht der SHA-256-Fingerabdruck unter Ausgestellt von. Vergleiche ihn mit dem Fingerabdruck unten auf den öffentlichen Seiten der Wache. Stimmen beide überein, stammt das Siegel von dieser Installation.',
                 compareText2: 'Ein Fingerabdruck ist eine lange Folge aus Zahlen und Buchstaben. Jede Zertifizierungsstelle hat ihren eigenen.',
@@ -1163,53 +1165,53 @@ volumes:
             exampleEventText: 'Der Termin am 15.08.2026 stellt eine neue Frage. Deine Anmeldung braucht dafür noch eine Antwort.',
             signaturesText: 'Dokumente unterschreiben - Wartet ein Dokument auf deine Unterschrift, führt dich die Karte direkt '
                 + 'zum Unterschreiben. Als Erziehungsberechtigter siehst du hier auch die Dokumente der Mitglieder, für die du '
-                + 'unterschreibst oder die über dein Konto unterschreiben.',
+                + 'unterschreibst oder die über dein Konto unterschreiben. Warten mehrere, unterschreibst du sie mit '
+                + '„Alle auf einmal unterschreiben" in einem Durchgang und bestätigst nur einmal.',
             exampleSignature: 'Einverständnis Zeltlager',
         },
         signing: {
-            title: 'Dokument unterschreiben',
-            subtitle: 'Ein Dokument lesen, die Erklärung bestätigen und mit einem Nachweis unterschreiben.',
-            whatIs: 'Was passiert auf dieser Seite?',
-            whatIsText: 'Hier unterschreibst du ein Dokument, das die Wache für dich oder für ein Mitglied in deiner Obhut erstellt hat. '
-                + 'Die Unterschrift ist eine einfache elektronische Signatur: Ember hält fest, wer wann welche Erklärung zu genau diesem Dokument abgegeben hat.',
-            reachText: 'Du kommst über die offenen Aufgaben hierher, oder über einen Link, der dich um eine Unterschrift bittet.',
-            steps: 'Drei Schritte',
-            stepRead: '1. Dokument lesen - Die Seite zeigt genau die Datei, die du unterschreibst. Du kannst sie auch speichern oder im PDF-Betrachter deines Browsers öffnen.',
-            stepConfirm: '2. Erklärung bestätigen - Lies die Erklärung und setze den Haken, wenn du sie abgibst. Erst dann geht es weiter.',
-            stepFillIn: 'Bittet das Dokument um eigene Angaben, etwa eine Telefonnummer für den Notfall, stehen die Felder dafür bei der Erklärung. '
-                + 'Pflichtangaben musst du ausfüllen, bevor es weitergeht. Was du einträgst, schreibt Ember mit deiner Unterschrift in das Dokument, '
-                + 'es steht im Signaturnachweis und ist danach nicht mehr zu ändern.',
+            title: 'Unterschreiben',
+            subtitle: 'Alles, was auf deine Unterschrift wartet, in kleinen Schritten und mit einer Bestätigung.',
+            whatIs: 'Was passiert hier?',
+            whatIsText: 'Hier unterschreibst du Dokumente, die die Wache für dich oder für ein Kind in deiner Obhut erstellt hat. '
+                + 'Alles, was gerade auf dich wartet, machst du in einem Durchgang: für dich, für jedes Kind und für ein Kind, das selbst unterschreibt.',
+            reachText: 'Du kommst über die offenen Aufgaben hierher, nach der Anmeldung zu einem Termin, oder über einen Link aus einer E-Mail.',
+            steps: 'Die Schritte',
+            stepOverview: '1. Übersicht - Du siehst, welche Unterschriften noch fehlen, sortiert nach Dokument. Alle sind ausgewählt. Willst du eine später machen, nimm den Haken weg. Dann tippe auf „Los geht\'s“.',
+            stepDocument: '2. Ein Dokument nach dem anderen - Du liest das Dokument. Darunter steht, wer unterschreibt und in welchem Feld. Setze den Haken, wenn du zustimmst. Fragt das Dokument etwas, etwa eine Telefonnummer, trägst du es hier ein.',
+            stepPicture: '3. Deine Unterschrift - So sieht deine Unterschrift im Dokument aus. Du kannst sie neu zeichnen. Unterschreibt ein Kind selbst, zeichnet es seine Unterschrift auf einem eigenen Schritt.',
+            stepCheck: '4. Prüfen - Du siehst noch einmal alles, was du jetzt unterschreibst.',
+            stepConfirm: '5. Bestätigen - Ein Schritt bestätigt alles auf einmal: mit deinem Passkey, mit dem Code aus der Authenticator-App oder mit deinem Passwort, je nachdem, was dein Konto hat.',
+            stepDone: '6. Fertig - Alles ist unterschrieben. Du bekommst eine Kopie per E-Mail.',
+            stepBack: 'Mit „Zurück“ kommst du jederzeit einen Schritt zurück. Was du angekreuzt oder eingetragen hast, bleibt dabei erhalten.',
             exampleFillIn: 'Telefon im Notfall',
-            stepProve: '3. Unterschrift bestätigen - Bestätige mit einem Nachweis aus deinem Konto. Erst damit ist das Dokument unterschrieben.',
-            stepMark: 'Vor dem Nachweis wählst du die Unterschrift, die in dein Feld kommt. Hast du eine gespeichert, nimmt Ember sie. Sonst zeichnest du eine oder tippst deinen Namen. Darunter stehen dein Name, das Datum und die Seite mit dem Nachweis.',
-            exampleTitle: 'Einverständnis Zeltlager',
-            exampleChild: 'Mia Beispiel',
+            exampleTitle: 'Fotoerlaubnis Bürgerfest',
+            exampleChild: 'Ben Beispiel',
             exampleGuardian: 'Jana Beispiel',
-            exampleStatement: 'Ich bin erziehungsberechtigt und bin einverstanden, dass Mia am Zeltlager teilnimmt.',
-            proofs: 'Welche Nachweise gibt es?',
-            proofsBound: 'Ein Passkey oder Sicherheitsschlüssel bindet die Bestätigung an genau dieses Dokument. Das ist der stärkste Nachweis.',
+            exampleStatement: 'Ich bin erziehungsberechtigt und erlaube Fotos von Ben beim Bürgerfest.',
+            proofs: 'Wie bestätige ich?',
+            proofsBound: 'Am besten mit einem Passkey oder Sicherheitsschlüssel. Er bindet die Bestätigung an genau diese Dokumente.',
             proofsUnbound: 'Ohne Passkey geht es mit dem Code aus deiner Authenticator-App. Hat dein Konto keinen zweiten Faktor, '
-                + 'reicht dein Passwort. Beides wird festgehalten, ist aber nicht an das Dokument selbst gebunden.',
-            proofsNever: 'Backup-Codes und die Bestätigung auf einem anderen Gerät gelten beim Unterschreiben nicht, denn das andere Gerät zeigt das Dokument nicht.',
-            forOthers: 'Für andere unterschreiben',
-            forOthersGuardian: 'Als Erziehungsberechtigter unterschreibst du in deinem eigenen Feld für das Mitglied in deiner Obhut.',
-            forOthersThrough: 'Hat ein Kind kein eigenes Konto, unterschreibt es sein eigenes Feld über dein Konto: Es liest und setzt den Haken auf deinem Gerät, danach bestätigst du mit deinem Nachweis.',
+                + 'reicht dein Passwort. Beides wird festgehalten, ist aber nicht an die Dokumente selbst gebunden.',
+            proofsNever: 'Backup-Codes und die Bestätigung auf einem anderen Gerät gelten beim Unterschreiben nicht, denn das andere Gerät zeigt die Dokumente nicht.',
+            forOthers: 'Für Kinder unterschreiben',
+            forOthersGuardian: 'Als erziehungsberechtigte Person unterschreibst du in deinem eigenen Feld für das Kind.',
+            forOthersThrough: 'Hat ein Kind kein eigenes Konto, unterschreibt es sein eigenes Feld über dein Konto: Gib ihm das Gerät zum Lesen und Ankreuzen. Danach bestätigst du.',
             forOthersMark: 'Das Kind zeichnet seine Unterschrift dabei selbst. Deine gespeicherte Unterschrift kommt nie in sein Feld.',
             mail: 'Erinnerungen und deine Kopie',
             mailReminder: 'Bittet die Wache um deine Unterschrift, bekommst du eine Benachrichtigung und eine E-Mail. Fehlt die Unterschrift nach einer Woche noch, '
                 + 'erinnert Ember dich, und danach jede Woche, höchstens dreimal.',
-            mailCopy: 'Sobald die Fassung mit deiner Unterschrift versiegelt ist, bekommst du eine E-Mail als eigene Kopie. Sie nennt den SHA-256 genau dieser Datei, '
-                + 'ihren Fingerabdruck: Eine Datei mit demselben Wert ist unverändert. Das PDF hängt nur an, wenn die Vorlage es erlaubt, sonst liegt es in Ember bei deinen Dokumenten.',
+            mailCopy: 'Sobald ein Dokument mit deiner Unterschrift versiegelt ist, bekommst du eine E-Mail als eigene Kopie, mit Links zum Dokument und zu seinem Signaturnachweis. '
+                + 'Das PDF hängt nur an, wenn die Vorlage es erlaubt, sonst liegt es in Ember bei deinen Dokumenten.',
             withdraw: 'Unterschrift widerrufen',
             withdrawText: 'Eine Unterschrift lässt sich zurücknehmen: beim Dokument unter „Meine Dokumente" oder auf der Terminseite mit „Unterschrift widerrufen". '
                 + 'Das können die Person, um die es geht, ihre Erziehungsberechtigten und alle, die selbst ein Feld unterschrieben haben. Ein Grund ist freiwillig.',
-            withdrawRecord: 'Die unterschriebene Fassung bleibt als Nachweis erhalten. Der Widerruf kommt in eine neue versiegelte Fassung, deren Nachweisseite sagt, wer wann widerrufen hat. '
+            withdrawRecord: 'Die unterschriebene Fassung bleibt als Nachweis erhalten. Der Widerruf kommt in eine neue versiegelte Fassung, deren Signaturnachweis sagt, wer wann widerrufen hat. '
                 + 'Wer die Unterschrift angefragt hat oder den Termin betreut, wird benachrichtigt. Verlangt ein Termin das Dokument, wird die Unterschrift neu angefragt.',
             access: 'Mit Tastatur und Screenreader',
-            accessText: 'Jeder Schritt hat eine eigene Überschrift und ist mit der Tastatur erreichbar. Die Vorschau des Dokuments ist ein Bild, '
-                + 'deshalb gibt es daneben Speichern und Öffnen im PDF-Betrachter, wo ein Screenreader den Text vorlesen kann. '
-                + 'Was sich ändert, wird angesagt, und nach jedem Schritt springt der Fokus zum nächsten.',
-            tip: 'Ein angefangener Unterschriftsversuch gilt fünf Minuten. Dauert es länger oder war ein Code falsch, beginnt Ember beim nächsten Versuch von selbst neu. Du gibst dann nur den Nachweis noch einmal.',
+            accessText: 'Jeder Schritt hat eine eigene Überschrift, auf die der Fokus springt, und ist mit der Tastatur erreichbar. Angesagt wird, bei welchem Schritt du bist. '
+                + 'Die Vorschau eines Dokuments ist ein Bild, deshalb gibt es daneben Speichern und Öffnen im PDF-Betrachter, wo ein Screenreader den Text vorlesen kann.',
+            tip: 'Die Bestätigung bleibt fünf Minuten gültig. Dauert es länger oder war ein Code falsch, gibst du sie einfach noch einmal ein.',
         },
         newsList: {
             federatedTitle: 'Neuigkeiten von Partnerwachen',
@@ -2201,6 +2203,9 @@ volumes:
                 + '„Niemand kann unterschreiben" heißt, dass ein Feld auf jemanden wartet, den es nicht gibt.',
             sealedVersionsText: '„Herunterladen" speichert die aktuelle Fassung. Unter „Versiegelte Fassungen" '
                 + 'speicherst du jede frühere Fassung einzeln, über das Symbol neben ihr.',
+            sealedRecordText: 'Neben jeder Fassung gibt es den Nachweis: Er zeigt, wer wann und womit unterschrieben hat. '
+                + 'Das Dokument selbst zeigt nur die Unterschriften. Der Nachweis wird beim Herunterladen erstellt und von der Wache versiegelt, '
+                + 'zum Aufheben und Ausdrucken. „Mit Nachweis" gibt dir eine Kopie aus Dokument und Nachweis zum Weitergeben, aber keine neue Fassung.',
             sealedManageText: 'Wer Mitgliederdokumente verwalten darf, sieht im geöffneten Dokument jedes '
                 + 'Unterschriftsfeld. Wie das geht, steht unter Erstellte Dokumente.',
             filingRulesTitle: 'Dokumente aus Postfächern',
@@ -3089,11 +3094,11 @@ volumes:
             documentsToBringText: 'Verlangt der Termin Dokumente, etwa eine Einverständniserklärung, nennt er sie unter „Mitzubringende Dokumente". Sobald du oder eines deiner Kinder angemeldet ist, gibt es dort für jede angemeldete Person eine eigene Zeile zum Herunterladen. Wer die Anmeldungen verwaltet, sieht dort zusätzlich für alle Teilnehmenden, ob ihr Exemplar schon erstellt ist.',
             documentsToBringDownloadText: '„Herunterladen" füllt das Dokument mit den Daten der Person und des Termins aus und legt es zusätzlich bei ihren Dokumenten ab. Drucke es aus, unterschreibe es und bring es zum Termin mit. Ändert die Wache die Vorlage, wird beim nächsten Herunterladen ein neues Dokument erstellt.',
             documentsToBringScanText: 'Statt das Papier mitzubringen, kannst du das unterschriebene Exemplar einscannen oder fotografieren und mit „Scan hochladen" einreichen, für dich selbst und für jedes deiner Kinder. Dafür brauchst du kein Recht zum Hochladen von Dokumenten. Der Scan wird bei den Dokumenten der Person abgelegt und steht auf „Eingereicht, wartet auf Bestätigung", bis die Terminverwaltung ihn prüft. Ein neuer Scan ersetzt einen, der noch wartet.',
-            documentsToBringSigningText: 'Hat ein mitzubringendes Dokument Unterschriftsfelder, etwa für die teilnehmende Person und eine erziehungsberechtigte Person, wird es bei der Anmeldung gleich für die angemeldete Person erstellt, und die Unterschriften werden angefragt. Die Anmeldung endet dann auf einem Schritt „Dokumente unterschreiben": jetzt online unterschreiben, das unterschriebene Exemplar als Scan hochladen oder „Später". Offene Unterschriften stehen danach bei den Aufgaben und unter „Mitzubringende Dokumente". Ein Feld für jemand anderen, etwa die zweite erziehungsberechtigte Person, wird bei dieser Person angefragt.',
-            documentsToBringSigningStatusText: 'Jedes Unterschriftsfeld zeigt seinen Stand: „Unterschrieben", „Unterschrift offen", „Auf Papier bestätigt" oder „Erlassen". Bestätigt die Terminverwaltung einen Scan, gelten alle noch offenen Felder des Dokuments als auf Papier bestätigt. Wer sich wieder abmeldet, für den werden die offenen Unterschriften zurückgezogen und nicht mehr erinnert; schon Unterschriebenes bleibt erhalten.',
             documentsToBringPartnersText: 'Ist der Termin mit Partnerwachen geteilt, stehen im Stand der Teilnehmenden unter „Mitglieder von Partnerwachen" auch deren angemeldete Mitglieder. Sie unterschreiben bei ihrer eigenen Wache, das versiegelte Exemplar kommt hierher zurück und lässt sich mit dem Augen-Symbol ansehen. „Wird bei der Partnerwache unterschrieben" heißt, dass die Partnerwache das Dokument übernommen hat. „Unterschrift fehlt" heißt, dass die Partnerwache nicht unterschreiben kann, etwa mit einer älteren Version von Ember; die Anmeldung gilt trotzdem, und mit „Papierexemplar bestätigen" lässt sich ein unterschriebenes Papierexemplar bestätigen.',
             documentsToBringAgreementText: 'Bei einem Termin ohne Anmeldung fragt niemand nach der Unterschrift. Hat eines seiner Dokumente Unterschriftsfelder für dich oder dein Kind, steht dort „Online unterschreiben": Das Dokument wird für die Person erstellt, und du kommst gleich zur Unterschrift. Die Unterschrift gilt als Zusage. Hattest du für diesen Tag abgesagt, wird die Absage damit zurückgenommen. Wer die Anmeldungen verwaltet, sieht im Tab „Anwesenheit" unter „Zusagen per Unterschrift", wer unterschrieben hat und wer später doch abgesagt hat.',
             documentsToBringWithdrawText: 'Eine Unterschrift lässt sich mit „Unterschrift widerrufen" zurücknehmen, auf der Terminseite oder beim Dokument unter „Meine Dokumente", wahlweise mit einem Grund. Das unterschriebene Dokument bleibt als Nachweis erhalten, der Widerruf wird in einer neuen versiegelten Fassung vermerkt. Bei einem Termin mit Anmeldung wird die Unterschrift neu angefragt, und die Anmeldung trägt den Hinweis „Vereinbarung widerrufen", bis neu unterschrieben ist. Wer den Termin betreut, wird benachrichtigt.',
+            documentsToBringSigningText: 'Hat ein mitzubringendes Dokument Unterschriftsfelder, etwa für die teilnehmende Person und eine erziehungsberechtigte Person, wird es bei der Anmeldung gleich für die angemeldete Person erstellt, und die Unterschriften werden angefragt. Die Anmeldung endet dann auf einem Schritt „Dokumente unterschreiben": mit „Jetzt unterschreiben" alle Unterschriften in einem Durchgang erledigen, das unterschriebene Exemplar als Scan hochladen oder „Später". Offene Unterschriften stehen danach bei den Aufgaben und unter „Mitzubringende Dokumente". Ein Feld für jemand anderen, etwa die zweite erziehungsberechtigte Person, wird bei dieser Person angefragt.',
+            documentsToBringSigningStatusText: 'Jedes Unterschriftsfeld zeigt seinen Stand: „Unterschrieben", „Unterschrift offen", „Auf Papier bestätigt" oder „Erlassen". Das Feld der ausstellenden Person steht für Teilnehmende und Erziehungsberechtigte als „Wird von der Wache unterschrieben" da: Darum kümmert sich die Wache, es fehlt nichts von dir. Die Terminverwaltung sieht es als offen, bis es unterschrieben ist. Bestätigt die Terminverwaltung einen Scan, gelten alle noch offenen Felder des Dokuments als auf Papier bestätigt. Wer sich wieder abmeldet, für den werden die offenen Unterschriften zurückgezogen und nicht mehr erinnert; schon Unterschriebenes bleibt erhalten.',
             documentsToBringScanReviewText:'Wer die Anmeldungen verwaltet, öffnet über das Personen-Symbol der Kachel den Stand der Teilnehmenden. Dort lässt sich jeder eingereichte Scan ansehen und bestätigen („Auf Papier bestätigt") oder mit einem kurzen Grund ablehnen. Bei einer Ablehnung bekommen die Person und ihre Erziehungsberechtigten eine Benachrichtigung mit dem Grund, und das Dokument ist wieder offen. Lädt die Terminverwaltung selbst einen Scan für jemanden hoch, gilt er sofort als bestätigt.',
             commentsTitle: 'Kommentare',
             commentsText: 'Unter dem Termin findest du einen Kommentarbereich. Hier können alle Mitglieder Fragen stellen oder Hinweise geben. Deine eigenen Kommentare kannst du ändern und löschen, und wer Termine verwaltet, kann auch die Kommentare anderer löschen.',

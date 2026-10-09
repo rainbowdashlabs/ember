@@ -4,102 +4,75 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, nextTick, ref, watch} from 'vue'
+import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {useRoute} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
+import Alert from '@/components/feedback/Alert.vue'
 import SigningUnavailable from './signingview/SigningUnavailable.vue'
-import SigningDocument from './signingview/SigningDocument.vue'
-import SigningStatement from './signingview/SigningStatement.vue'
-import SigningFillIns from './signingview/SigningFillIns.vue'
-import {fillInEntries, fillInsComplete, type FillInValues} from './signingview/fillIns'
-import SigningProof from './signingview/SigningProof.vue'
-import SigningMark from './signingview/SigningMark.vue'
+import SigningNothingOpen from './signingview/SigningNothingOpen.vue'
+import SigningOverviewStep from './signingview/SigningOverviewStep.vue'
+import SigningDocumentStep from './signingview/SigningDocumentStep.vue'
+import SigningHolderPictureStep from './signingview/SigningHolderPictureStep.vue'
+import SigningMemberPictureStep from './signingview/SigningMemberPictureStep.vue'
+import SigningCheckStep from './signingview/SigningCheckStep.vue'
+import SigningConfirmStep from './signingview/SigningConfirmStep.vue'
 import SigningDone from './signingview/SigningDone.vue'
-import {useSigningAct, type SigningMarkChoice, type TypedProof} from './signingview/useSigningAct'
+import {namedFields} from './signingview/batchFlow'
+import {useSigningFlow} from './signingview/useSigningFlow'
+import type {TypedProof} from './signingview/useBatchSigning'
 import {describeSigningFailure} from './signingview/signingFailure'
-import {SignerCapacity} from '@/api/generated/schema'
-import type {FillInResponse, OpenSignatureResponse} from '@/api/generated/schema'
-import {getSigningField, getSigningFillIns} from '@/api/signing'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useOwnSignature} from '@/composables/useOwnSignature'
 import type {Failure} from '@/util/failure'
+import type {SignatureDraft} from '@/util/signatureDraft'
 
 /**
- * Signing one field of a document: reading the document, confirming the statement, and giving the
- * proof that binds the act.
+ * Signing in one go: every field the reader may sign now, across documents and the members in their care,
+ * in small steps with one thing each. The overview ticks what to sign, each document is read and agreed
+ * to on its own screen, the signature picture comes once (and once more for each child who signs in
+ * person), a check lists it all again, and one confirmation signs everything.
  *
- * <p>Three steps on one page, each a section under its own heading, so a screen reader can move between
- * them by heading and a keyboard reaches everything in reading order. The proof step appears only once
- * the statement is ticked and the act is started, and takes the focus when it does; the result replaces
- * the steps and takes the focus in turn. What changes without a move of focus is said in the live region
- * at the top.
- *
- * <p>The proof step also takes the signature picture the act leaves in its field: the signer's saved one,
- * or one drawn or typed there. The saved picture is read along with the field; where it cannot be read
- * the signer simply draws one, and the proof waits until there is a picture.
- *
- * <p>Where the document asks the signer to fill in fields of their own, such as a phone number, their
- * inputs stand in the statement step and are read with the field. The values go with the start of the act,
- * which binds them, so they are locked once it is started.
- *
- * <p>The address is what a "please sign" link opens, so the page loads the field itself and says plainly
- * when it no longer waits for the reader, was never theirs, or is gone.
+ * <p>Opened from a field ("please sign" link, an appointment), that field's document comes first; opened
+ * with `fields=1,2,3` only those are ticked. Every screen takes the focus on its heading, and the live
+ * region says which step the reader is on. Nothing of a later step is shown before it is reached, and
+ * going back keeps everything ticked and typed.
  */
 const {t} = useI18n()
 const route = useRoute()
-const fieldId = computed(() => Number(route.params.fieldId))
 
-const field = ref<OpenSignatureResponse | null>(null)
-const fillIns = ref<FillInResponse[]>([])
-const fillInValues = ref<FillInValues>({})
-const confirmed = ref(false)
-const documentReady = ref(false)
-const announcement = ref('')
-const proofStep = ref<InstanceType<typeof SigningProof> | null>(null)
-
-const act = useSigningAct(() => fieldId.value, () => fillInEntries(fillIns.value, fillInValues.value))
+const firstFieldId = computed(() => (route.params.fieldId ? Number(route.params.fieldId) : null))
+const flow = useSigningFlow(() => firstFieldId.value, () => namedFields(route.query.fields))
 const {imageUrl: savedSignature, loadImage: loadSavedSignature} = useOwnSignature()
-const mark = ref<SigningMarkChoice>({draft: null, useSaved: true, keep: false})
 
 const {loading, failure: loadFailure} = useAsyncLoader(async (isCurrent) => {
-  const [loaded, asked] = await Promise.all([getSigningField(fieldId.value), getSigningFillIns(fieldId.value)])
-  if (!isCurrent()) return
-  field.value = loaded
-  fillIns.value = asked
-  await loadSavedSignature().catch(() => undefined)
+  await flow.load()
+  if (isCurrent()) await loadSavedSignature().catch(() => undefined)
 })
 
-const filledIn = computed(() => fillInsComplete(fillIns.value, fillInValues.value))
+const notWaiting = computed(() => firstFieldId.value !== null
+    && !flow.fields.value.some(field => field.fieldId === firstFieldId.value))
+const total = computed(() => flow.steps.value.length)
+const announcement = ref('')
 
-/**
- * Whether the act has a picture to leave in its field: the saved one, where the signer may use it and
- * chose to, or one made here. A member signing through another's account always makes their own.
- */
-const markReady = computed(() => {
-  const capacity = act.offer.value?.capacity ?? field.value?.capacity
-  const savedUsable = capacity !== SignerCapacity.MEMBER_THROUGH_ACCOUNT && savedSignature.value !== null
-  return mark.value.draft !== null || (savedUsable && mark.value.useSaved)
-})
+const {running: preparing, failure: prepareFailure, run: prepare} = useAsyncAction(() => flow.act.prepare())
 
-const title = computed(() => field.value?.documentTitle ?? t('pages.station-signing.title'))
-
-const {running: preparing, failure: prepareFailure, run: prepare} = useAsyncAction(async () => {
-  await act.prepare()
-  announcement.value = t('signing.announce.ready')
-  await nextTick()
-  proofStep.value?.focusHeading()
+watch(() => `${flow.position.value}:${flow.step.value.kind}`, () => {
+  const kind = flow.step.value.kind
+  announcement.value = t('signing.flow.announce', {
+    position: flow.position.value,
+    total: total.value,
+    step: t(`signing.flow.stepName.${kind}`),
+  })
+  if (kind === 'confirm') void prepare()
 })
 
 const confirming = ref(false)
 const confirmFailure = ref<Failure | null>(null)
 
-/**
- * Runs one confirmation, keeping its failure in the signer's terms. Nothing runs twice at once: a second
- * press while the first is on its way is dropped, as it would sign nothing more.
- */
+/** Runs one confirmation; a second press while the first is on its way is dropped. */
 async function confirm(action: () => Promise<void>, waiting: string) {
   if (confirming.value) return
   confirming.value = true
@@ -117,16 +90,21 @@ async function confirm(action: () => Promise<void>, waiting: string) {
 }
 
 function withAuthenticator() {
-  void confirm(() => act.confirmWithAuthenticator(mark.value), t('signing.announce.authenticator'))
+  void confirm(() => flow.act.confirmWithAuthenticator(flow.pictures()), t('signing.announce.authenticator'))
 }
 
 function withSecret(proof: TypedProof, secret: string) {
-  void confirm(() => act.confirmWithSecret(proof, secret, mark.value), t('signing.announce.checking'))
+  void confirm(() => flow.act.confirmWithSecret(proof, secret, flow.pictures()), t('signing.announce.checking'))
 }
 
-watch(confirmed, (ticked) => {
-  if (!ticked) confirmFailure.value = null
-})
+const step = flow.step
+
+/** Keeps what the member on the current picture step drew. */
+function drawMember(draft: SignatureDraft | null) {
+  const current = step.value
+  if (current.kind === 'memberPicture') flow.setMemberMark(current.signer.memberId, draft)
+}
+const title = computed(() => (firstFieldId.value === null ? t('pages.station-signing-all.title') : t('pages.station-signing.title')))
 </script>
 
 <template>
@@ -134,42 +112,29 @@ watch(confirmed, (ticked) => {
     <p class="sr-only" role="status" aria-live="polite" data-testid="signing-announcement">{{ announcement }}</p>
     <Spinner v-if="loading"/>
     <SigningUnavailable v-else-if="loadFailure" :failure="loadFailure"/>
-    <SigningDone v-else-if="act.outcome.value" :outcome="act.outcome.value"/>
-    <div v-else-if="field" class="space-y-8 max-w-3xl">
-      <SigningDocument :field-id="fieldId" :title="title" :file-name="`${title}.pdf`" @loaded="documentReady = true"/>
-      <SigningStatement
-          v-model:confirmed="confirmed"
-          :field="field"
-          :preparing="preparing"
-          :failure="prepareFailure"
-          :started="act.offer.value !== null"
-          :document-ready="documentReady"
-          :filled-in="filledIn"
-          @proceed="prepare"
-      >
-        <SigningFillIns
-            v-if="fillIns.length > 0"
-            v-model="fillInValues"
-            :fields="fillIns"
-            :locked="act.offer.value !== null"
-        />
-      </SigningStatement>
-      <SigningProof
-          v-if="confirmed && act.offer.value"
-          ref="proofStep"
-          :offer="act.offer.value"
-          :busy="confirming || !markReady"
-          :failure="confirmFailure"
-          @authenticator="withAuthenticator"
-          @secret="withSecret"
-      >
-        <SigningMark
-            v-model="mark"
-            :capacity="act.offer.value.capacity"
-            :member-name="act.offer.value.memberName"
-            :saved-url="savedSignature"
-        />
-      </SigningProof>
+    <SigningDone v-else-if="flow.act.outcome.value" :signed="flow.act.outcome.value.fields.length"/>
+    <SigningNothingOpen v-else-if="flow.fields.value.length === 0"/>
+    <div v-else class="space-y-4">
+      <Alert v-if="notWaiting && step.kind === 'overview'" variant="info">{{ t('signing.flow.notWaiting') }}</Alert>
+      <SigningOverviewStep v-if="step.kind === 'overview'" v-model="flow.chosen.value" :groups="flow.groups.value"
+                           :position="flow.position.value" :total="total" @next="flow.next"/>
+      <SigningDocumentStep v-else-if="step.kind === 'document'" :key="step.group.requestUid"
+                           v-model:agreed="flow.agreed.value" v-model:values="flow.values.value" :group="step.group"
+                           :index="step.index" :count="step.count" :fill-ins="flow.fillIns.value"
+                           :position="flow.position.value" :total="total" @next="flow.next" @back="flow.back"/>
+      <SigningHolderPictureStep v-else-if="step.kind === 'holderPicture'" v-model="flow.holderMark.value"
+                                :saved-url="savedSignature" :position="flow.position.value" :total="total"
+                                @next="flow.next" @back="flow.back"/>
+      <SigningMemberPictureStep v-else-if="step.kind === 'memberPicture'" :key="step.signer.memberId"
+                                :model-value="flow.memberMarks.value[step.signer.memberId] ?? null"
+                                :signer="step.signer" :position="flow.position.value" :total="total"
+                                @update:model-value="drawMember"
+                                @next="flow.next" @back="flow.back"/>
+      <SigningCheckStep v-else-if="step.kind === 'check'" :groups="flow.selected.value"
+                        :position="flow.position.value" :total="total" @next="flow.next" @back="flow.back"/>
+      <SigningConfirmStep v-else :offer="flow.act.offer.value" :preparing="preparing" :busy="confirming"
+                          :failure="confirmFailure ?? prepareFailure" :position="flow.position.value" :total="total"
+                          @authenticator="withAuthenticator" @secret="withSecret" @back="flow.back"/>
     </div>
   </ViewContent>
 </template>

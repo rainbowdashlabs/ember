@@ -11,6 +11,13 @@ import {appointmentDocuments} from '@/api'
 import type {SigningStep, SigningStepCopy} from '@/composables/useRegistrationSigningStep'
 import RegistrationSigningStep from './RegistrationSigningStep.vue'
 
+const push = vi.hoisted(() => vi.fn())
+
+vi.mock('vue-router', async (importOriginal) => ({
+    ...(await importOriginal<typeof import('vue-router')>()),
+    useRouter: () => ({push}),
+}))
+
 vi.mock('@/api', () => ({
     appointmentDocuments: {
         submitScan: vi.fn(),
@@ -64,15 +71,25 @@ describe('RegistrationSigningStep', () => {
         vi.mocked(appointmentDocuments.submitScan).mockReset()
     })
 
-    it('offers the fields the reader signs online and names the others asked', async () => {
-        const step = await mountStep({eventId: 3, date: '2026-10-08', copies: [copy(11, 'Lena Schmidt', true)]})
+    it('signs every field the reader may sign on the copies in one go and names the others asked', async () => {
+        const step = await mountStep({
+            eventId: 3,
+            date: '2026-10-08',
+            copies: [copy(11, 'Lena Schmidt', true), {...copy(12, 'Tim Schmidt', true), document: {
+                ...copy(12, 'Tim Schmidt', true).document,
+                signature: {...copy(12, 'Tim Schmidt', true).document.signature!, fields: [
+                    {id: 80, name: 'participant', signerName: 'Tim Schmidt', state: RequirementSignatureState.OPEN, yours: true},
+                ]},
+            }}],
+        })
 
         const copies = step.findAll('[data-testid="registration-signing-copy"]')
-        expect(copies).toHaveLength(1)
+        expect(copies).toHaveLength(2)
         expect(copies[0]!.text()).toContain('Einverständnis')
         expect(copies[0]!.text()).toContain('Erziehungsberechtigte Person 2: Paul Schmidt')
-        expect(copies[0]!.findAll('[data-testid="signature-field-sign"]')).toHaveLength(1)
-        expect(copies[0]!.text()).not.toContain('werden bei den genannten Personen angefragt')
+        expect(step.findAll('[data-testid="signature-field-sign"]')).toHaveLength(0)
+        await step.get('[data-testid="registration-signing-now"]').trigger('click')
+        expect(push).toHaveBeenCalledWith({name: 'station-signing-all', query: {fields: '70,80'}})
     })
 
     it('says the signatures are asked of others where the reader signs none, and names each person', async () => {

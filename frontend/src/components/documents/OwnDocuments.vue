@@ -7,6 +7,7 @@
 import {ref} from 'vue'
 import MemberDocumentsPanel from '@/components/documents/MemberDocumentsPanel.vue'
 import SelfServiceDocuments from './SelfServiceDocuments.vue'
+import type {DocumentOpening} from './documentOpening'
 
 /**
  * The documents of one member as the reader sees them for themselves, their own or those of a child,
@@ -18,6 +19,8 @@ defineProps<{
   canUpload: boolean
   offers: boolean
   title?: string
+  /** A document to open as soon as the list holds it, with the version whose record the reader came for. */
+  opening?: DocumentOpening | null
 }>()
 
 const filed = ref(0)
@@ -25,7 +28,8 @@ const filed = ref(0)
 
 <template>
   <div class="space-y-3">
-    <MemberDocumentsPanel :key="filed" :member-id="memberId" :can-upload="canUpload" :title="title"/>
+    <MemberDocumentsPanel :key="filed" :member-id="memberId" :can-upload="canUpload" :title="title"
+                          :open-document-id="opening?.documentId ?? null" :focus-record="opening?.record ?? null"/>
     <SelfServiceDocuments v-if="offers" :member-id="memberId" @filed="filed++"/>
   </div>
 </template>

@@ -23,7 +23,7 @@ import SignatureRequestPanel from '@/components/documents/signatures/SignatureRe
 import DocumentAgreements from '@/components/documents/DocumentAgreements.vue'
 import {formatDate, formatSize} from '@/util/format'
 import {downloadAuthed} from '@/util/downloadAuthed'
-import {contentUrl as stationContentUrl} from '@/api/documents'
+import {contentUrl as stationContentUrl, type RecordKind} from '@/api/documents'
 import type {MemberDocumentResponse} from '@/api/generated/schema'
 import type {MemberLike} from '@/components/input/select/memberOption'
 
@@ -55,6 +55,10 @@ const props = withDefaults(defineProps<{
   contentUrl?: (documentId: number) => string
   /** Where one sealed version is served from, or null where the door serves none. */
   versionUrl?: ((documentId: number, version: number) => string) | null
+  /** Where the signature record of one sealed version is built, or null where the door serves none. */
+  recordUrl?: ((documentId: number, version: number, kind: RecordKind) => string) | null
+  /** The sealed version whose record the reader came for, whose download takes the focus. */
+  focusRecord?: number | null
   /** Whether the reader looks after the signatures asked for on the document. */
   manageSignatures?: boolean
   /** Told after the signatures on the document changed, so the list behind can show it. */
@@ -65,6 +69,8 @@ const props = withDefaults(defineProps<{
   canEdit: false,
   contentUrl: stationContentUrl,
   versionUrl: null,
+  recordUrl: null,
+  focusRecord: null,
   manageSignatures: false,
   onSignaturesChanged: undefined,
 })
@@ -93,6 +99,14 @@ const versionUrlOfShown = computed(() => {
   const id = props.document?.id
   if (!url || id === undefined) return null
   return (version: number) => url(id, version)
+})
+
+/** Where the signature record of a version of the shown document is built, where the door builds them. */
+const recordUrlOfShown = computed(() => {
+  const url = props.recordUrl
+  const id = props.document?.id
+  if (!url || id === undefined) return null
+  return (version: number, kind: RecordKind) => url(id, version, kind)
 })
 
 /** Whether the reader may remove the document and choose its members, which a seal takes from everybody. */
@@ -148,7 +162,8 @@ async function download() {
       <SignatureStateBadge v-if="props.document.signature" :summary="props.document.signature"/>
 
       <SealedVersionList v-if="props.document.sealed" :versions="props.document.sealedVersions"
-                         :file-name="props.document.fileName" :version-url="versionUrlOfShown"/>
+                         :file-name="props.document.fileName" :version-url="versionUrlOfShown"
+                         :record-url="recordUrlOfShown" :focus-record="props.focusRecord"/>
       <DocumentAgreements v-if="props.document.sealed" :document-id="props.document.id"/>
 
       <SignatureRequestPanel v-if="props.manageSignatures && props.document.signature"

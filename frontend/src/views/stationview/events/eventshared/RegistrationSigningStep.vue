@@ -6,7 +6,10 @@
 <script lang="ts" setup>
 import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
+import {useRouter} from 'vue-router'
 import Modal from '@/components/feedback/Modal.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
+import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -25,8 +28,9 @@ import {fieldsToSign} from './requirementSignatures'
 
 /**
  * The step a registration ends on, where the appointment's documents to bring ask for signatures: each
- * copy of the people just registered that still waits, with its fields. A field the reader may sign opens
- * the signing screen; instead, a scan of the signed paper copy can be handed in, which waits for the
+ * copy of the people just registered that still waits, with its fields. "Jetzt unterschreiben" opens the
+ * signing screen with every field the reader may sign on these copies ticked, all in one go; instead, a
+ * scan of the signed paper copy can be handed in, which waits for the
  * event managers to confirm it; or the step is closed and the signatures are done later from the open
  * tasks or the appointment's page. Fields for somebody else, such as a second guardian, are asked of
  * them and only shown here.
@@ -38,12 +42,21 @@ const props = defineProps<{
 }>()
 
 const {t} = useI18n()
+const router = useRouter()
 
 const handedIn = ref<string[]>([])
 const named = computed(() => new Set(props.step.copies.map(copy => copy.memberId)).size > 1)
 
 function keyOf(copy: SigningStepCopy): string {
   return `${copy.memberId}-${copy.document.templateId}`
+}
+
+/** Every field on the copies the reader can sign now, for themselves or a member in their care. */
+const signable = computed(() => props.step.copies.flatMap(copy => fieldsToSign(copy.document.signature)))
+
+/** Opens the signing screen with exactly these fields ticked, every document in one go. */
+function signNow() {
+  void router.push({name: 'station-signing-all', query: {fields: signable.value.map(field => field.id).join(',')}})
 }
 
 const handingIn = useAsyncAction(async (copy: SigningStepCopy, file: File) => {
@@ -73,7 +86,7 @@ const handingIn = useAsyncAction(async (copy: SigningStepCopy, file: File) => {
           <InfoBadge v-if="handedIn.includes(keyOf(copy))">{{ t('events.documents.scanWaiting') }}</InfoBadge>
           <SignatureStateBadge v-else-if="copy.document.signature" :state="copy.document.signature.state"/>
         </div>
-        <SignatureFieldList v-if="copy.document.signature" :signature="copy.document.signature" offer-signing/>
+        <SignatureFieldList v-if="copy.document.signature" :signature="copy.document.signature" :offer-signing="false"/>
         <MutedText v-if="fieldsToSign(copy.document.signature).length === 0" size="sm" tag="p">
           {{ t('events.documents.step.othersAsked') }}
         </MutedText>
@@ -84,11 +97,15 @@ const handingIn = useAsyncAction(async (copy: SigningStepCopy, file: File) => {
           </FileUploadButton>
         </div>
       </NeutralContainer>
-      <div class="flex justify-end">
+      <ButtonRow align="end">
         <SecondaryButton data-testid="registration-signing-later" @click="open = false">
           {{ t('events.documents.step.later') }}
         </SecondaryButton>
-      </div>
+        <PrimaryButton v-if="signable.length > 0" :icon="['fas', 'file-signature']" data-testid="registration-signing-now"
+                       @click="signNow">
+          {{ t('events.documents.step.signNow') }}
+        </PrimaryButton>
+      </ButtonRow>
     </div>
   </Modal>
 </template>

@@ -204,4 +204,5 @@ export const associationDocumentSource: MemberDocumentSource = {
     contentUrl: documentId => `/cluster/members/manage/documents/${documentId}/content`,
     thumbnailUrl: null,
     versionUrl: null,
+    recordUrl: null,
 }

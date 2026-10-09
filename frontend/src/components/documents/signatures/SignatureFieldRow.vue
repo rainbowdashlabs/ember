@@ -12,9 +12,10 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import {FieldSettlement} from '@/api/signing'
-import {FieldState, StepUpProof, type ManagedFieldResponse} from '@/api/generated/schema'
+import {FieldState, type ManagedFieldResponse} from '@/api/generated/schema'
 import {formatDateTime} from '@/util/format'
 import {signerOf} from '../signatureSigner'
+import {proofWords} from './proofWords'
 
 /**
  * One field of a request for signatures as its document's manager sees it: who is asked, how it stands,
@@ -40,18 +41,6 @@ const {t} = useI18n()
 
 const asked = ref<FieldSettlement | null>(null)
 
-/** The words for each proof a signing act takes; backup codes and another device never confirm one. */
-const PROOF_WORDS: Readonly<Partial<Record<StepUpProof, string>>> = {
-  [StepUpProof.PASSKEY]: 'signing.done.proof.passkey',
-  [StepUpProof.SECURITY_KEY]: 'signing.done.proof.securityKey',
-  [StepUpProof.TOTP]: 'signing.done.proof.code',
-  [StepUpProof.PASSWORD]: 'signing.done.proof.password',
-}
-
-function proofWords(proof: StepUpProof): string {
-  const key = PROOF_WORDS[proof]
-  return key ? t(key) : proof
-}
 
 const waits = computed(() => props.settleable && props.field.state === FieldState.OPEN)
 
@@ -63,7 +52,7 @@ const actLine = computed(() => {
     signer: act.signerName,
     holder: act.accountHolderName,
     time: formatDateTime(act.signedAt),
-    proof: proofWords(act.proof),
+    proof: proofWords(act.proof, t),
   }
   return t(act.signerName === act.accountHolderName ? 'signing.manage.act' : 'signing.manage.actThrough', named)
 })

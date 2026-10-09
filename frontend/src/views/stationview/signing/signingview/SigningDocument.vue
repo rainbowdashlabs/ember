@@ -6,7 +6,7 @@
 <script lang="ts" setup>
 import {onUnmounted, ref, useId} from 'vue'
 import {useI18n} from 'vue-i18n'
-import SectionHeader from '@/components/typography/SectionHeader.vue'
+import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
@@ -26,15 +26,13 @@ import {saveBlob} from '@/util/saveBlob'
  * reader and the browser's zoom reach the text. The hint saying so comes before the drawing, so a
  * reader who cannot see it hears where to go before meeting it.
  *
- * <p>Says when the document has arrived, since nobody is asked to sign what they could not open.
+ * <p>A document that could not be opened says so in place of the drawing.
  */
 const props = defineProps<{
   fieldId: number
   title: string
   fileName: string
 }>()
-
-const emit = defineEmits<{loaded: []}>()
 
 const {t} = useI18n()
 const headingId = useId()
@@ -48,7 +46,6 @@ const {loading, failure} = useAsyncLoader(async (isCurrent) => {
   if (!isCurrent()) return
   pdf.value = loaded
   address.value = URL.createObjectURL(new Blob([loaded], {type: 'application/pdf'}))
-  emit('loaded')
 })
 
 function save() {
@@ -62,7 +59,7 @@ onUnmounted(() => {
 
 <template>
   <section :aria-labelledby="headingId" class="space-y-3">
-    <SectionHeader :id="headingId">{{ t('signing.document.heading') }}</SectionHeader>
+    <SubHeader :id="headingId">{{ t('signing.document.heading') }}</SubHeader>
     <Spinner v-if="loading" size="md"/>
     <FailureAlert v-else-if="failure" :failure="failure"/>
     <template v-else-if="pdf">

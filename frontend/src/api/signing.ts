@@ -5,6 +5,10 @@
  */
 import type {
     AgreementWithdrawalResponse,
+    BatchCompleteRequest,
+    BatchCompleteResponse,
+    BatchFieldChoice,
+    BatchStartResponse,
     DocumentAgreement,
     FillInResponse,
     ManagedRequestResponse,
@@ -13,12 +17,8 @@ import type {
     SignatureAskResponse,
     SignatureImageSource,
     SignatureSettingsResponse,
-    SignerEntryDraft,
-    SigningCompleteRequest,
-    SigningCompleteResponse,
     SigningKeyRecoveryEntry,
     SigningKeyStatus,
-    SigningStartResponse,
 } from '@/api/generated/schema'
 import client from './client'
 import {uploadFile} from './upload'
@@ -79,13 +79,11 @@ export async function verifySeals(file: File): Promise<SealVerification> {
 }
 
 /**
- * One signature field waiting for the reader, with whose document it is and in what capacity they
- * would sign it. Refused once the field no longer waits for them.
- *
- * @param fieldId the field
+ * Every signature field waiting for the reader now, their own and those of the members in their care,
+ * each with whose document it is and in what capacity they would sign it.
  */
-export async function getSigningField(fieldId: number): Promise<OpenSignatureResponse> {
-    const res = await client.get<OpenSignatureResponse>(`/signing/fields/${fieldId}`)
+export async function getOpenSignatures(): Promise<OpenSignatureResponse[]> {
+    const res = await client.get<OpenSignatureResponse[]>('/signing/open')
     return res.data
 }
 
@@ -218,28 +216,24 @@ export async function getSigningDocument(fieldId: number): Promise<Blob> {
 }
 
 /**
- * Starts a signing act on a field. The start is kept on the server for a few minutes and spent by
- * the first confirmation, whether it passes or not.
+ * Starts one signing act on several fields, confirmed later with one proof. The start is kept on the server
+ * for a few minutes and spent by the first confirmation, whether it passes or not.
  *
- * @param fieldId the field
- * @param entries what the signer typed into fields of their own, none where the document asks for none
+ * @param fields the fields in the order they are signed, each with what was typed into its fill-ins
  */
-export async function startSigning(fieldId: number, entries: SignerEntryDraft[] = []): Promise<SigningStartResponse> {
-    const res = await client.post<SigningStartResponse>(`/signing/fields/${fieldId}/start`, {entries})
+export async function startBatchSigning(fields: BatchFieldChoice[]): Promise<BatchStartResponse> {
+    const res = await client.post<BatchStartResponse>('/signing/batch/start', {fields})
     return res.data
 }
 
 /**
- * Confirms a started signing act with one proof.
+ * Confirms a started act on several fields with one proof and one signature picture per person.
  *
- * @param fieldId      the field the act was started for
- * @param confirmation the start's token, the proof, and the authenticator's answer or the code or password
+ * @param confirmation the start's token, the proof, the authenticator's answer or the code or password, and
+ *                     the pictures
  */
-export async function completeSigning(
-    fieldId: number,
-    confirmation: SigningCompleteRequest,
-): Promise<SigningCompleteResponse> {
-    const res = await client.post<SigningCompleteResponse>(`/signing/fields/${fieldId}/complete`, confirmation)
+export async function completeBatchSigning(confirmation: BatchCompleteRequest): Promise<BatchCompleteResponse> {
+    const res = await client.post<BatchCompleteResponse>('/signing/batch/complete', confirmation)
     return res.data
 }
 

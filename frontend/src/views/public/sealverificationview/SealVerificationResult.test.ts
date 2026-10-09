@@ -194,4 +194,29 @@ describe('SealVerificationResult', () => {
 
         expect(view.get('[data-testid="seal-document-timestamps"]').text()).toContain('Zeitstempel auf der ganzen Datei')
     })
+
+    it('lists the signatures the file records, those confirmed together and the issuer\'s', () => {
+        const view = show(createSealVerification({
+            signatures: [createSealCheck()],
+            evidence: {
+                requestUid: '7f1c2a8e-0000-4000-8000-000000000001',
+                contentSha256: 'ab'.repeat(32),
+                fields: [
+                    {fieldName: 'guardian1', role: 'GUARDIAN', state: 'SIGNED', signerName: 'Jana Beispiel',
+                        signedAt: '2026-10-08T12:30:00Z', proof: 'PASSKEY', bound: true, together: true},
+                    {fieldName: 'guardian2', role: 'GUARDIAN', state: 'OPEN', signerName: null, signedAt: null,
+                        proof: null, bound: false, together: false},
+                ],
+                issued: {issuerName: 'Erika Wehr', consentedAt: '2026-09-01T08:00:00Z',
+                    signedAt: '2026-10-08T10:00:00Z', pictureSha256: 'cd'.repeat(32)},
+            },
+        }))
+
+        const fields = view.findAll('[data-testid="seal-evidence-field"]').map(field => field.text())
+        expect(fields[0]).toContain('Jana Beispiel')
+        expect(fields[0]).toContain('einem Passkey')
+        expect(fields[0]).toContain('in einem Schritt bestätigt')
+        expect(fields[1]).toContain('offen')
+        expect(view.get('[data-testid="seal-evidence-issued"]').text()).toContain('Erika Wehr')
+    })
 })

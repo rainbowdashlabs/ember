@@ -46,7 +46,13 @@ const props = withDefaults(defineProps<{
   /** Whether the reader looks after the signatures asked for on these documents. */
   manageSignatures?: boolean
   allMembers?: MemberLike[]
+  /** A document to open as soon as the list holds it, as a link from a mail asks for. */
+  openDocumentId?: number | null
+  /** The sealed version of that document whose record the reader came for. */
+  focusRecord?: number | null
 }>(), {
+  openDocumentId: null,
+  focusRecord: null,
   source: () => stationDocumentSource,
   title: undefined,
   hint: undefined,
@@ -68,7 +74,10 @@ const opened = ref<MemberDocumentResponse | null>(null)
 
 const {loading, failure: loadFailure, reload} = useAsyncLoader(async (isCurrent) => {
   const found = await props.source.listOf(props.memberId)
-  if (isCurrent()) documents.value = found
+  if (!isCurrent()) return
+  documents.value = found
+  const asked = found.find(document => document.id === props.openDocumentId)
+  if (asked && !showDocument.value) open(asked)
 }, {autoLoad: false})
 
 /**
@@ -183,6 +192,8 @@ async function act(action: Promise<unknown>) {
         :can-edit="props.canEdit"
         :content-url="props.source.contentUrl"
         :version-url="props.source.versionUrl"
+        :record-url="props.source.recordUrl"
+        :focus-record="opened?.id === props.openDocumentId ? props.focusRecord : null"
         :manage-signatures="props.manageSignatures"
         :on-signatures-changed="signaturesChanged"
         @members="(id, members) => act(documentsApi.setMembers(id, members))"

@@ -58,6 +58,7 @@ function fakeSource(): MemberDocumentSource & {listOf: ReturnType<typeof vi.fn>,
         contentUrl: (documentId: number) => `/elsewhere/${documentId}/content`,
         thumbnailUrl: null,
         versionUrl: null,
+        recordUrl: null,
     }
 }
 

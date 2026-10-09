@@ -124,6 +124,28 @@ describe('DocumentModal', () => {
         expect(view.find('[data-testid="document-version-download-2"]').exists()).toBe(true)
     })
 
+    it('offers each version\'s record and the copy with it, and puts the focus on the record asked for', async () => {
+        const view = mount(DocumentModal, {
+            props: {
+                modelValue: true,
+                document: sealed,
+                recordUrl: (documentId: number, version: number, kind: string) => `/documents/${documentId}/versions/${version}/${kind}`,
+                focusRecord: 1,
+            },
+            global: {stubs},
+            attachTo: globalThis.document.body,
+        })
+
+        await view.get('[data-testid="document-version-record-2"]').trigger('click')
+        await view.get('[data-testid="document-version-with-record-1"]').trigger('click')
+
+        expect(downloadAuthed).toHaveBeenCalledWith('/documents/4/versions/2/record', 'urkunde-v2-record.pdf')
+        expect(downloadAuthed).toHaveBeenCalledWith('/documents/4/versions/1/with-record', 'urkunde-v1-with-record.pdf')
+        expect(globalThis.document.activeElement?.getAttribute('data-testid')).toBe('document-version-record-1')
+        expect(view.text()).toContain('keine neue Fassung')
+        view.unmount()
+    })
+
     it('says how the signatures stand and lets only their manager look after them', () => {
         const asked = document({
             signature: {

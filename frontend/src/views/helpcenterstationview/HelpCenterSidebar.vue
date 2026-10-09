@@ -142,8 +142,8 @@ function highlightSnippet(result: (typeof searchResults.value)[number]): string 
 
     <SidebarGroup :icon="['fas', 'clipboard-check']" :label="t('sidebar.requirements')"
                   to="/helpcenter/station/requirements" name="help-station-requirements" @navigate="close">
-      <SidebarLink :icon="['fas', 'file-signature']" name="help-station-signing"
-                   to="/helpcenter/station/signing/0" @navigate="close">
+      <SidebarLink :icon="['fas', 'file-signature']" name="help-station-signing-all"
+                   to="/helpcenter/station/signing" @navigate="close">
         {{ t('helpCenter.signing.title') }}
       </SidebarLink>
     </SidebarGroup>

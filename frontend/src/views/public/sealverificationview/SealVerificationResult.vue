@@ -11,10 +11,12 @@ import type {SealVerification} from '@/api/generated/schema'
 import DocumentTimestampList from './DocumentTimestampList.vue'
 import HeldCopyNotice from './HeldCopyNotice.vue'
 import SealCheckCard from './SealCheckCard.vue'
+import EvidenceSummaryCard from './EvidenceSummaryCard.vue'
 
 /**
  * What the check found in one file: a card per seal, or the plain statement that there is none, then
- * whether this installation keeps the file and any timestamps on the file as a whole.
+ * whether this installation keeps the file, any timestamps on the file as a whole, and the signatures a
+ * signed document records in the details it carries.
  */
 defineProps<{
   result: SealVerification
@@ -34,5 +36,6 @@ const {t} = useI18n()
     <SealCheckCard v-for="(check, index) in result.signatures" :key="index" :check="check"/>
     <HeldCopyNotice :document="result.document"/>
     <DocumentTimestampList v-if="result.documentTimestamps.length > 0" :timestamps="result.documentTimestamps"/>
+    <EvidenceSummaryCard v-if="result.evidence" :evidence="result.evidence"/>
   </section>
 </template>

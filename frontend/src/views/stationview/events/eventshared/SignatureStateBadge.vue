@@ -11,7 +11,11 @@ import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import {RequirementSignatureState} from '@/api/generated/schema'
 
-/** Where a signature stands: signed online, confirmed on paper, waived, withdrawn by a signer, or still open. */
+/**
+ * Where a signature stands: signed online, confirmed on paper, waived, withdrawn by a signer, still open,
+ * or, for the issuer's field as participants and guardians see it, signed by the station, which is neutral
+ * and asks nothing of them.
+ */
 defineProps<{
   state: RequirementSignatureState
 }>()
@@ -30,5 +34,8 @@ const {t} = useI18n()
   <ErrorBadge v-else-if="state === RequirementSignatureState.REVOKED">
     {{ t('events.documents.signatureRevoked') }}
   </ErrorBadge>
+  <SecondaryBadge v-else-if="state === RequirementSignatureState.BY_STATION" data-testid="signature-by-station">
+    {{ t('events.documents.signatureByStation') }}
+  </SecondaryBadge>
   <InfoBadge v-else>{{ t('events.documents.signatureOpen') }}</InfoBadge>
 </template>

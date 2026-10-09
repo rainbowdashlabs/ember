@@ -7,11 +7,13 @@
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import RequirementCard from './RequirementCard.vue'
+import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import type {SignatureItem} from '@/api/generated/schema'
 
 /**
  * The documents waiting for the reader's signature, each opening the signing screen for its field.
- * Whose document it is shows only where it is not the reader's own.
+ * Whose document it is shows only where it is not the reader's own. Where more than one waits, one action
+ * above them signs them all in one go.
  */
 defineProps<{signatures: SignatureItem[]}>()
 
@@ -26,6 +28,12 @@ function textOf(signature: SignatureItem): string {
 </script>
 
 <template>
+  <div v-if="signatures.length > 1" class="flex justify-end">
+    <PrimaryButton :icon="['fas', 'file-signature']" data-testid="requirement-sign-all"
+                   @click="router.push({name: 'station-signing-all'})">
+      {{ t('requirements.signAll') }}
+    </PrimaryButton>
+  </div>
   <RequirementCard
       v-for="signature in signatures"
       :key="signature.fieldId"

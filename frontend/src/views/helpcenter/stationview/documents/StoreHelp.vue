@@ -109,6 +109,7 @@ const versions: SealedVersionResponse[] = [
       <p>{{ t('helpCenter.documents.sealedText') }}</p>
       <p>{{ t('helpCenter.documents.sealedStateText') }}</p>
       <p>{{ t('helpCenter.documents.sealedVersionsText') }}</p>
+      <p>{{ t('helpCenter.documents.sealedRecordText') }}</p>
       <p>{{ t('helpCenter.documents.sealedManageText') }}</p>
       <NeutralContainer class="space-y-3">
         <SignatureStateBadge :summary="partlySigned"/>

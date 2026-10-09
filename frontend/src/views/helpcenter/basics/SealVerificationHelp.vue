@@ -131,6 +131,10 @@ const HELD: HeldCopy = {held: true, sealedAt: '2026-10-05T09:12:03Z', sealLevel:
       <p>{{ t('helpCenter.basics.seals.heldText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.basics.seals.evidenceTitle')">
+      <p>{{ t('helpCenter.basics.seals.evidenceText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.basics.seals.compareTitle')">
       <p>{{ t('helpCenter.basics.seals.compareText') }}</p>
       <p>{{ t('helpCenter.basics.seals.compareText2') }}</p>

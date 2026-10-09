@@ -10,20 +10,15 @@ import HelpArticle from '@/components/helpcenter/HelpArticle.vue'
 import HelpSection from '@/components/helpcenter/HelpSection.vue'
 import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import SigningStatement from '@/views/stationview/signing/signingview/SigningStatement.vue'
+import SigningFieldAgreement from '@/views/stationview/signing/signingview/SigningFieldAgreement.vue'
 import SigningProof from '@/views/stationview/signing/signingview/SigningProof.vue'
-import SigningMark from '@/views/stationview/signing/signingview/SigningMark.vue'
-import SigningFillIns from '@/views/stationview/signing/signingview/SigningFillIns.vue'
 import type {FillInValues} from '@/views/stationview/signing/signingview/fillIns'
-import type {SigningMarkChoice} from '@/views/stationview/signing/signingview/useSigningAct'
 import {FieldRole, SignerCapacity, StepUpProof} from '@/api/generated/schema'
-import type {FillInResponse, OpenSignatureResponse, SigningStartResponse} from '@/api/generated/schema'
+import type {BatchStartResponse, FillInResponse, OpenSignatureResponse} from '@/api/generated/schema'
 
 const {t} = useI18n()
 
-const exampleConfirmed = ref(true)
-const exampleMark: SigningMarkChoice = {draft: null, useSaved: false, keep: false}
-
+const exampleAgreed = ref(true)
 const exampleFillIns = computed<FillInResponse[]>(() => [
   {name: 'fill-guardian1-0', label: t('helpCenter.signing.exampleFillIn'), required: true, maxLength: 40},
 ])
@@ -43,20 +38,11 @@ const exampleField = computed<OpenSignatureResponse>(() => ({
   statement: t('helpCenter.signing.exampleStatement'),
 }))
 
-const exampleOffer = computed<SigningStartResponse>(() => ({
+const exampleOffer = computed<BatchStartResponse>(() => ({
   startToken: '',
   expiresAt: '2026-10-08T12:05:00Z',
-  fieldId: 0,
-  requestUid: '00000000-0000-0000-0000-000000000000',
-  fieldName: 'guardian1',
-  role: FieldRole.GUARDIAN,
-  capacity: SignerCapacity.GUARDIAN,
-  statement: t('helpCenter.signing.exampleStatement'),
-  signerName: t('helpCenter.signing.exampleGuardian'),
-  accountHolderName: t('helpCenter.signing.exampleGuardian'),
-  memberName: t('helpCenter.signing.exampleChild'),
-  documentMemberName: t('helpCenter.signing.exampleChild'),
-  contentSha256: '9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08',
+  batchUid: '00000000-0000-0000-0000-000000000000',
+  fields: [],
   acceptedProofs: [StepUpProof.PASSKEY, StepUpProof.TOTP],
   webAuthnOptionsJson: null,
 }))
@@ -70,25 +56,19 @@ const exampleOffer = computed<SigningStartResponse>(() => ({
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.signing.steps')">
-      <p>{{ t('helpCenter.signing.stepRead') }}</p>
+      <p>{{ t('helpCenter.signing.stepOverview') }}</p>
+      <p>{{ t('helpCenter.signing.stepDocument') }}</p>
+      <p>{{ t('helpCenter.signing.stepPicture') }}</p>
+      <p>{{ t('helpCenter.signing.stepCheck') }}</p>
       <p>{{ t('helpCenter.signing.stepConfirm') }}</p>
-      <p>{{ t('helpCenter.signing.stepFillIn') }}</p>
-      <p>{{ t('helpCenter.signing.stepProve') }}</p>
-      <p>{{ t('helpCenter.signing.stepMark') }}</p>
+      <p>{{ t('helpCenter.signing.stepDone') }}</p>
+      <p>{{ t('helpCenter.signing.stepBack') }}</p>
     </HelpSection>
 
-    <NeutralContainer class="space-y-8">
-      <SigningStatement v-model:confirmed="exampleConfirmed" :field="exampleField" :preparing="false" :failure="null" started document-ready>
-        <SigningFillIns v-model="exampleValues" :fields="exampleFillIns" locked/>
-      </SigningStatement>
-      <SigningProof :offer="exampleOffer" :busy="false" :failure="null">
-        <SigningMark
-            :model-value="exampleMark"
-            :capacity="SignerCapacity.GUARDIAN"
-            :member-name="t('helpCenter.signing.exampleChild')"
-            :saved-url="null"
-        />
-      </SigningProof>
+    <NeutralContainer class="space-y-6">
+      <SigningFieldAgreement v-model:agreed="exampleAgreed" v-model:values="exampleValues" :field="exampleField"
+                             :fill-ins="exampleFillIns"/>
+      <SigningProof :offer="exampleOffer" :busy="false"/>
     </NeutralContainer>
 
     <HelpSection :title="t('helpCenter.signing.proofs')">

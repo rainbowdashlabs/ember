@@ -7,6 +7,7 @@
 import {computed, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import OwnDocuments from './OwnDocuments.vue'
+import type {DocumentOpening} from './documentOpening'
 import {managedMembers as managedMembersApi} from '@/api'
 import {StationPermission, type ManagedMember} from '@/api/generated/schema'
 import {useSession} from '@/composables/useSession'
@@ -18,9 +19,13 @@ import {useSession} from '@/composables/useSession'
  * documents of a child only read, adding is the child's own to do. With `offers` each list also shows
  * the documents that can be generated for that member.
  */
-defineProps<{
+withDefaults(defineProps<{
   offers: boolean
-}>()
+  /** A document a link asks to open, in whichever of the lists holds it. */
+  opening?: DocumentOpening | null
+}>(), {
+  opening: null,
+})
 
 const {t} = useI18n()
 const {sessionInfo, hasPermission, isGuardian} = useSession()
@@ -36,13 +41,14 @@ watch(memberId, async id => {
 
 <template>
   <div v-if="memberId" class="space-y-6">
-    <OwnDocuments :member-id="memberId" :can-upload="canUploadOwn" :offers="offers"/>
+    <OwnDocuments :member-id="memberId" :can-upload="canUploadOwn" :offers="offers" :opening="opening"/>
     <OwnDocuments
         v-for="child in managed"
         :key="child.id"
         :can-upload="false"
         :member-id="child.id"
         :offers="offers"
+        :opening="opening"
         :title="t('profile.documentsOf', {name: child.name})"
     />
   </div>
