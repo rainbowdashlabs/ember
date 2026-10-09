@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.form.service;
 
 import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormPurpose;
+import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -17,6 +18,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -29,10 +31,12 @@ import java.util.stream.Collectors;
 @Singleton
 public class FormDirectoryService {
     private final FormService forms;
+    private final StationMemberRepository members;
 
     @Inject
-    public FormDirectoryService(FormService forms) {
+    public FormDirectoryService(FormService forms, StationMemberRepository members) {
         this.forms = forms;
+        this.members = members;
     }
 
     private boolean answerableNow(Form form) {
@@ -41,6 +45,11 @@ public class FormDirectoryService {
 
     /**
      * The open forms a member can answer, followed by the ones only a member in their care can.
+     *
+     * <p>Each form names the people the reader may answer it for, with whether each of them has: the
+     * reader where the form is put to them, and every ward it is put to. Those are the same checks
+     * the answer routes make, so the list never offers an answer the routes would refuse, and a form
+     * nobody in the household may answer is left out, even for a manager who sees every form.
      *
      * @param stationId the station
      * @param memberId  the member asking
@@ -64,10 +73,36 @@ public class FormDirectoryService {
                     .filter(this::answerableNow)
                     .forEach(combined::add);
         }
-        return combined.stream().map(f -> entryOf(f, memberId)).toList();
+        var wards = wardIds.stream().filter(ward -> ward != memberId).distinct().toList();
+        var household = new ArrayList<Integer>();
+        household.add(memberId);
+        household.addAll(wards);
+        var names = members.findDisplayNames(household);
+        return combined.stream()
+                .map(f -> entryOf(f, respondentsOf(f, memberId, wards, names)))
+                .filter(entry -> !entry.respondents().isEmpty())
+                .toList();
     }
 
-    private FormListEntry entryOf(Form form, int memberId) {
+    private List<FormRespondent> respondentsOf(
+            Form form, int memberId, List<Integer> wards, Map<Integer, String> names) {
+        var respondents = new ArrayList<FormRespondent>();
+        if (forms.canMemberAccess(form.id(), memberId)) {
+            respondents.add(respondentOf(form, memberId, true, names));
+        }
+        wards.stream()
+                .filter(ward -> forms.canMemberAccess(form.id(), ward))
+                .map(ward -> respondentOf(form, ward, false, names))
+                .forEach(respondents::add);
+        return respondents;
+    }
+
+    private FormRespondent respondentOf(Form form, int memberId, boolean self, Map<Integer, String> names) {
+        return new FormRespondent(
+                memberId, names.getOrDefault(memberId, ""), self, forms.hasResponded(form.id(), memberId));
+    }
+
+    private FormListEntry entryOf(Form form, List<FormRespondent> respondents) {
         return new FormListEntry(
                 form.id(),
                 form.stationId(),
@@ -77,7 +112,8 @@ public class FormDirectoryService {
                 form.startAt(),
                 form.endAt(),
                 forms.countResponses(form.id()),
-                forms.hasResponded(form.id(), memberId),
+                form.allowEdit(),
+                respondents,
                 form.restricted());
     }
 
@@ -130,9 +166,12 @@ public class FormDirectoryService {
     public record FormSearchResult(UUID publicUid, String title, FormPurpose purpose, Form.FormStatus status) {}
 
     /**
-     * A form a member can answer, with whether they already have.
+     * A form a member can answer, for themselves or for the members in their care.
      *
-     * @param restricted whether the form is put to only part of the station, which the list marks with a lock
+     * @param allowEdit   whether an answer once sent can still be changed
+     * @param respondents the people the reader may answer the form for, the reader first where it is
+     *                    put to them, never empty
+     * @param restricted  whether the form is put to only part of the station, which the list marks with a lock
      */
     public record FormListEntry(
             int id,
@@ -143,6 +182,17 @@ public class FormDirectoryService {
             @Nullable Instant startAt,
             @Nullable Instant endAt,
             int responseCount,
-            boolean hasResponded,
+            boolean allowEdit,
+            List<FormRespondent> respondents,
             boolean restricted) {}
+
+    /**
+     * Somebody the reader may answer a form for.
+     *
+     * @param memberId     the member the answer is filed for
+     * @param name         the name the reader knows them by
+     * @param self         whether this is the reader themselves rather than a member in their care
+     * @param hasResponded whether an answer is already on file for them
+     */
+    public record FormRespondent(int memberId, String name, boolean self, boolean hasResponded) {}
 }

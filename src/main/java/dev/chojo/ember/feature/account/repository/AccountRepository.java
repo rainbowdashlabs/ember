@@ -111,13 +111,14 @@ public class AccountRepository {
     }
 
     /**
-     * Finds an account by its email address.
+     * Finds an account by its email address, ignoring case: a phone that capitalises the first
+     * letter still names the same mailbox.
      *
-     * @param email the email address
+     * @param email the email address, as typed
      * @return the account, or empty if not found
      */
     public Optional<Account> findByEmail(String email) {
-        return query("SELECT %s FROM account WHERE email = :email;", ACCOUNT_COLUMNS)
+        return query("SELECT %s FROM account WHERE lower(email) = lower(:email);", ACCOUNT_COLUMNS)
                 .single(call().bind("email", email))
                 .map(Account.map())
                 .first();

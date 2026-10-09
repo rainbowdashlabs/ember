@@ -90,6 +90,48 @@ Stations turn their own templates and those of their association into documents 
 - **A refusal taken back still counted as not coming.** On appointments without registration, a member who took back their refusal could still be marked away on the attendance sheet, left out of reminders and calendars, and counted among the refusals. Taking a refusal back now counts the member in again, including refusals taken back before this release.
 - **System mail could stay unsent for good.** In some cases, once every provider of the instance had reached its daily limit, a waiting mail such as a password link was never sent, not even the next day. It now goes out the next day.
 
+## v26.21.5
+
+The forms list shows, for each person a form can be filled in for, whether an answer is already on file.
+
+### Fixes
+
+- **Guardians could not see which forms were filled in for whom.** The forms list showed one button per form, based only on the guardian's own answer, so an answer given for a member in their care did not show. Each form now has a line per person it can be filled in for, with whether that person has answered and a button to fill in or change their answer.
+
+## v26.21.4
+
+Email addresses are recognised regardless of capital letters when signing in and when asking for a new password.
+
+### Fixes
+
+- **A capitalised email address was not recognised.** In some cases, for example when a phone capitalised the first letter, signing in failed and a password reset sent no mail. Email addresses are now recognised regardless of capital letters.
+
+## v26.21.3
+
+Waiting list entries can be deleted from their own page, whatever their state.
+
+### Fixes
+
+- **Waiting list entries could not be deleted from their own page.** An entry could only be deleted from the list, and only while it was waiting or invited. The entry's own page now offers deleting it in every state, to everyone allowed to edit the waiting list.
+
+## v26.21.2
+
+A refusal of storage in the browser can be changed on the sign-in page. The privacy policy and the consent are asked again only when their text or the kinds of stored data change. Changed lines of the legal texts appear formatted.
+
+### Fixes
+
+- **Declining storage locked people out of signing in.** After declining storage once, the sign-in page showed only an error on every visit, with no way to change the choice. A button below the error now brings the choice back, and agreeing shows the sign-in form.
+- **Changes to stored browser data asked everyone again.** A change to the list of data kept in the browser asked everybody to agree again, on a page that named no change. The privacy policy and the consent now ask again only when their text or the kinds of stored data change, and the page says what changed.
+- **Changed legal texts showed formatting marks.** The page asking to agree to changed terms or a changed privacy policy listed the changed lines with their raw formatting marks, such as hash signs and asterisks. The lines now appear formatted like the text itself.
+
+## v26.21.1
+
+Point descriptions show while grading.
+
+### Fixes
+
+- **Point descriptions were missing while grading.** The grading sheet showed only the name of each point, even when a description was set. The description now appears below the name.
+
 ## v26.21.0
 
 Theme colours show where they were missing. Editing a comment is safer. Email addresses of members only reach those allowed to read the member register. Members who set up their account from a link stay in their station, and the consent is asked on every way in. Exams can be planned with examiners per section, and only they grade them. Protocols nest to any depth, sections can be moved, and points can be bonus points. Protocols can be shared with partner stations one by one. Copying from partners is limited to what they share, and works with partners on other installations.

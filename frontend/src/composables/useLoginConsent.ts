@@ -12,6 +12,14 @@ import {
 import { useConsentGuard } from '@/composables/useConsentGuard'
 
 /**
+ * Whether a version stored in the browser still stands for the document in force: the current
+ * version, or the legacy hash the server still takes as it.
+ */
+function covers(stored: string | null | undefined, version: string, legacyVersion: string): boolean {
+  return stored === version || stored === legacyVersion
+}
+
+/**
  * The storage-consent gate on the login page and the legal documents behind it.
  *
  * Consent is stored in the browser together with the document versions it was given for, so a
@@ -51,9 +59,9 @@ export function useLoginConsent() {
       tosVersion.value = versions.tosVersion
 
       const stored = getStoredLegalVersions()
-      const outdated = stored.consent !== versions.consentVersion
-        || stored.privacy !== versions.privacyVersion
-        || stored.tos !== versions.tosVersion
+      const outdated = !covers(stored.consent, versions.consentVersion, versions.legacyConsentVersion)
+        || !covers(stored.privacy, versions.privacyVersion, versions.legacyPrivacyVersion)
+        || !covers(stored.tos, versions.tosVersion, versions.legacyTosVersion)
       if (consent.value === 'accepted' && stored.consent && outdated) {
         consent.value = null
       }
@@ -107,6 +115,14 @@ export function useLoginConsent() {
   }
 
   /**
+   * Asks again after a refusal. The stored refusal stays until the gate is answered, so leaving the
+   * page in between keeps it as it was; accepting replaces it.
+   */
+  function reconsider() {
+    consent.value = null
+  }
+
+  /**
    * Records consent against the account after login. An account that consented to older versions
    * is flagged for re-consent rather than silently updated.
    */
@@ -153,6 +169,7 @@ export function useLoginConsent() {
     loadTos,
     acceptCurrentVersions,
     deny,
+    reconsider,
     recordAfterLogin,
   }
 }

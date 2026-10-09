@@ -31,7 +31,10 @@ defineEmits<{
       :icon="['fas', checked ? 'square-check' : 'square']"
       :class="['w-6 h-6 shrink-0 transition-colors', checked ? 'text-[var(--color-success)]' : 'text-[var(--text-muted)]']"
     />
-    <span class="flex-1 min-w-0 break-words text-sm">{{ item.label }}</span>
+    <span class="flex-1 min-w-0 break-words text-sm">
+      {{ item.label }}
+      <span v-if="item.description" class="block break-words text-[var(--text-muted)]">{{ item.description }}</span>
+    </span>
     <ProtocolItemPoints :item="item" />
   </BaseButton>
 </template>

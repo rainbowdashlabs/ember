@@ -41,6 +41,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import javax.imageio.ImageIO;
@@ -54,6 +55,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
 class SetupServiceTest extends RepositoryTestBase {
+    private static final Pattern IMAGE_SUBTYPE = Pattern.compile("/Subtype\\s*/Image");
+
     private static SetupService setupService;
     private static StationLogoService logoService;
 
@@ -308,9 +311,11 @@ class SetupServiceTest extends RepositoryTestBase {
                 .bytes();
     }
 
-    /** Whether the document places a raster image anywhere. */
+    /** Whether the document places a raster image anywhere, however the writer spaces its dictionary keys. */
     private static boolean carriesAPicture(byte[] pdf) {
-        return new String(pdf, StandardCharsets.ISO_8859_1).contains("/Subtype /Image");
+        return IMAGE_SUBTYPE
+                .matcher(new String(pdf, StandardCharsets.ISO_8859_1))
+                .find();
     }
 
     /** A small opaque square, raster so the logo store accepts it. */

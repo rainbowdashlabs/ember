@@ -52046,6 +52046,9 @@
           "tosChanged" : {
             "type" : "boolean"
           },
+          "consentChanged" : {
+            "type" : "boolean"
+          },
           "privacyDiff" : {
             "type" : [ "string", "null" ]
           },
@@ -52058,6 +52061,9 @@
           "tosHtml" : {
             "type" : [ "string", "null" ]
           },
+          "consentHtml" : {
+            "type" : [ "string", "null" ]
+          },
           "currentPrivacyVersion" : {
             "type" : "string"
           },
@@ -52068,7 +52074,7 @@
             "type" : "string"
           }
         },
-        "required" : [ "privacyChanged", "tosChanged", "privacyDiff", "tosDiff", "privacyHtml", "tosHtml", "currentPrivacyVersion", "currentTosVersion", "currentConsentVersion" ]
+        "required" : [ "privacyChanged", "tosChanged", "consentChanged", "privacyDiff", "tosDiff", "privacyHtml", "tosHtml", "consentHtml", "currentPrivacyVersion", "currentTosVersion", "currentConsentVersion" ]
       },
       "ConsentStatusResponse" : {
         "type" : "object",
@@ -58113,14 +58119,20 @@
             "type" : "integer",
             "format" : "int32"
           },
-          "hasResponded" : {
+          "allowEdit" : {
             "type" : "boolean"
+          },
+          "respondents" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/FormRespondent"
+            }
           },
           "restricted" : {
             "type" : "boolean"
           }
         },
-        "required" : [ "id", "stationId", "title", "description", "status", "startAt", "endAt", "responseCount", "hasResponded", "restricted" ]
+        "required" : [ "id", "stationId", "title", "description", "status", "startAt", "endAt", "responseCount", "allowEdit", "respondents", "restricted" ]
       },
       "FormPage" : {
         "type" : "object",
@@ -58441,6 +58453,25 @@
             "type" : [ "string", "null" ]
           }
         }
+      },
+      "FormRespondent" : {
+        "type" : "object",
+        "properties" : {
+          "memberId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "self" : {
+            "type" : "boolean"
+          },
+          "hasResponded" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "memberId", "name", "self", "hasResponded" ]
       },
       "FormResponse" : {
         "type" : "object",
@@ -61866,9 +61897,18 @@
           },
           "consentVersion" : {
             "type" : "string"
+          },
+          "legacyPrivacyVersion" : {
+            "type" : "string"
+          },
+          "legacyTosVersion" : {
+            "type" : "string"
+          },
+          "legacyConsentVersion" : {
+            "type" : "string"
           }
         },
-        "required" : [ "privacyVersion", "tosVersion", "consentVersion" ]
+        "required" : [ "privacyVersion", "tosVersion", "consentVersion", "legacyPrivacyVersion", "legacyTosVersion", "legacyConsentVersion" ]
       },
       "LendingItemRequest" : {
         "type" : "object",

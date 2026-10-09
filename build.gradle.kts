@@ -116,7 +116,12 @@ fun testForks(): Int {
  * tests send signature pictures of up to 5 MB and seal checks of up to 25 MB on top, and a fork of
  * 1.5 GB ran out of heap late in the suite.
  *
+ * A suite may hand part of what its packages match to another suite through [excludes], which is how
+ * one layer is split in two once a single job of it takes too long. The excluded patterns have to be
+ * held by some other suite, or those tests run nowhere.
+ *
  * @property packages the test name patterns this suite holds; empty for the suite of the rest
+ * @property excludes the test name patterns of [packages] that another suite runs instead
  * @property forks the forks this suite may use at most; the tracking tests share one database
  * @property heap the heap of each fork, where the default for every test task is not enough
  */
@@ -124,14 +129,31 @@ data class TestSuite(
     val name: String,
     val description: String,
     val packages: List<String> = emptyList(),
+    val excludes: List<String> = emptyList(),
     val architectureRules: Boolean = false,
     val forks: Int? = null,
     val heap: String? = null,
 )
 
+/**
+ * The service tests of people and their paperwork: accounts, members, appointments and their
+ * attendance and waiting lists, documents and signing. Together they take about half the time of all
+ * service tests, so they run as a suite of their own beside the rest of the service tests.
+ */
+val peopleServicePackages = listOf(
+    "account", "accountlink", "passkey", "twofactor",
+    "members", "events", "attendance", "waitinglist",
+    "generator", "documents", "signing",
+).map { "dev.chojo.ember.feature.$it.service.*" }
+
 val testSuites = listOf(
     TestSuite("testRepositories", "Runs the repository tests", listOf("*.repository.*")),
-    TestSuite("testServices", "Runs the service tests", listOf("*.service.*")),
+    TestSuite("testServices", "Runs the service tests the people suite leaves", listOf("*.service.*"), excludes = peopleServicePackages),
+    TestSuite(
+        "testPeopleServices",
+        "Runs the service tests of accounts, members, appointments, documents and signing",
+        peopleServicePackages,
+    ),
     TestSuite("testTracking", "Runs the data tracking verification tests", listOf("dev.chojo.ember.tracking.*"), forks = 1),
     TestSuite(
         "testOther",
@@ -325,6 +347,7 @@ tasks {
                     suitePackages.forEach { excludeTestsMatching(it) }
                 } else {
                     suite.packages.forEach { includeTestsMatching(it) }
+                    suite.excludes.forEach { excludeTestsMatching(it) }
                 }
             }
             suite.forks?.let { maxParallelForks = it }

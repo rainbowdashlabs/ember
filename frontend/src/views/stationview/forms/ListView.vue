@@ -23,6 +23,7 @@ import {
   type Form,
   type FormListEntry,
   type FormPurpose,
+  type FormRespondent,
 } from '@/api/generated/schema'
 import { forms } from '@/api'
 import { useSession } from '@/composables/useSession'
@@ -191,8 +192,13 @@ function goAnalytics(form: Form) {
   router.push(analyticsPage(form))
 }
 
-function goFill(form: FormListEntry) {
-  router.push({ name: 'forms-fill', params: { id: form.id } })
+/** Opens the form for whoever it is answered for: the reader without a member, a ward by their id. */
+function goFill(form: FormListEntry, respondent: FormRespondent) {
+  router.push({
+    name: 'forms-fill',
+    params: { id: form.id },
+    query: respondent.self ? undefined : { member: respondent.memberId },
+  })
 }
 
 onMounted(() => {

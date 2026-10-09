@@ -90,6 +90,48 @@ Wachen erstellen aus eigenen Vorlagen und denen ihres Verbands Dokumente für ih
 - **Eine zurückgenommene Absage zählte weiter als Absage.** Bei Terminen ohne Anmeldung konnte ein Mitglied, das seine Absage zurückgenommen hatte, weiter auf der Anwesenheitsliste als abwesend stehen, keine Erinnerung bekommen, im Kalender fehlen und bei den Absagen mitgezählt werden. Jetzt zählt es nach der Rücknahme wieder als erwartet, auch bei Absagen, die vor diesem Release zurückgenommen wurden.
 - **System-Mails blieben manchmal für immer liegen.** Hatten alle Anbieter der Instanz ihr Tageslimit erreicht, wurde eine wartende Mail wie ein Passwort-Link in manchen Fällen nie verschickt, auch am nächsten Tag nicht. Jetzt geht sie am nächsten Tag raus.
 
+## v26.21.5
+
+Die Umfrageliste zeigt für jede Person, für die eine Umfrage ausgefüllt werden kann, ob schon eine Antwort vorliegt.
+
+### Fehlerbehebungen
+
+- **Erziehungsberechtigte sahen nicht, für wen eine Umfrage schon ausgefüllt war.** Die Umfrageliste zeigte pro Umfrage nur einen Button, der sich allein nach der eigenen Antwort richtete, sodass eine Antwort für ein verwaltetes Mitglied nicht zu sehen war. Jede Umfrage hat jetzt eine Zeile pro Person, für die sie ausgefüllt werden kann, mit dem Stand der Antwort und einem Button zum Ausfüllen oder Ändern.
+
+## v26.21.4
+
+E-Mail-Adressen werden bei der Anmeldung und beim Zurücksetzen des Passworts unabhängig von Groß- und Kleinschreibung erkannt.
+
+### Fehlerbehebungen
+
+- **Eine großgeschriebene E-Mail-Adresse wurde nicht erkannt.** In manchen Fällen, etwa wenn ein Handy den ersten Buchstaben großschrieb, schlug die Anmeldung fehl und beim Zurücksetzen des Passworts kam keine Mail an. E-Mail-Adressen werden jetzt unabhängig von Groß- und Kleinschreibung erkannt.
+
+## v26.21.3
+
+Einträge einer Warteliste lassen sich auf ihrer eigenen Seite löschen, egal in welchem Status.
+
+### Fehlerbehebungen
+
+- **Einträge einer Warteliste ließen sich auf ihrer eigenen Seite nicht löschen.** Gelöscht werden konnte ein Eintrag nur in der Liste und nur, solange er wartete oder eingeladen war. Die Seite des Eintrags bietet das Löschen jetzt in jedem Status an, für alle, die die Warteliste bearbeiten dürfen.
+
+## v26.21.2
+
+Eine abgelehnte Speicherung im Browser lässt sich auf der Anmeldeseite ändern. Datenschutzerklärung und Einwilligung werden nur noch erneut abgefragt, wenn sich ihr Text oder die Arten der gespeicherten Daten ändern. Geänderte Zeilen der rechtlichen Texte erscheinen formatiert.
+
+### Fehlerbehebungen
+
+- **Nach dem Ablehnen der Speicherung war keine Anmeldung mehr möglich.** Wer die Speicherung einmal abgelehnt hatte, sah auf der Anmeldeseite bei jedem Besuch nur eine Fehlermeldung und konnte die Wahl nicht ändern. Eine Schaltfläche unter der Meldung holt die Auswahl jetzt zurück, und nach der Zustimmung erscheint das Anmeldeformular.
+- **Änderungen an den gespeicherten Daten verlangten eine neue Zustimmung von allen.** Kam in der Liste der im Browser gespeicherten Daten etwas hinzu, mussten alle erneut zustimmen, auf einer Seite, die keine Änderung nannte. Datenschutzerklärung und Einwilligung werden jetzt nur noch abgefragt, wenn sich ihr Text oder die Arten der gespeicherten Daten ändern, und die Seite nennt, was sich geändert hat.
+- **Geänderte rechtliche Texte zeigten Formatierungszeichen.** Die Seite, auf der geänderten Nutzungsbedingungen oder einer geänderten Datenschutzerklärung zugestimmt wird, zeigte die geänderten Zeilen mit ihren Formatierungszeichen, etwa Rauten und Sternchen. Die Zeilen erscheinen jetzt so formatiert wie der Text selbst.
+
+## v26.21.1
+
+Beschreibungen der Prüfpunkte erscheinen beim Bewerten.
+
+### Fehlerbehebungen
+
+- **Beschreibungen der Prüfpunkte fehlten beim Bewerten.** Der Bewertungsbogen zeigte nur den Namen jedes Prüfpunkts, auch wenn eine Beschreibung hinterlegt war. Die Beschreibung erscheint jetzt unter dem Namen.
+
 ## v26.21.0
 
 Themenfarben erscheinen dort, wo sie fehlten. Das Bearbeiten von Kommentaren ist sicherer. E-Mail-Adressen von Mitgliedern erreichen nur noch die, die das Mitgliederverzeichnis lesen dürfen. Mitglieder, die ihr Konto über einen Link einrichten, bleiben in ihrer Wache, und die Einwilligung wird auf jedem Weg hinein abgefragt. Prüfungen lassen sich mit Prüfern je Abschnitt planen, und nur diese bewerten sie dann. Abschnitte lassen sich beliebig tief verschachteln und verschieben, und Prüfpunkte können Bonuspunkte sein. Prüfungsbögen lassen sich einzeln mit Partnerwachen teilen. Kopiert wird von Partnern nur, was sie teilen, und das auch von Partnern auf anderen Installationen.

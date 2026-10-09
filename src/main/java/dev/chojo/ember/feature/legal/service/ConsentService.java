@@ -45,8 +45,15 @@ public class ConsentService {
 
     @Inject
     public ConsentService(AccountRepository accountRepository, Api apiConfig) {
+        this(accountRepository, apiConfig, new LegalDocumentService(apiConfig.placeholderFile()));
+    }
+
+    /**
+     * @param documentService the service reading and versioning the legal documents
+     */
+    ConsentService(AccountRepository accountRepository, Api apiConfig, LegalDocumentService documentService) {
         this.accountRepository = accountRepository;
-        this.documentService = new LegalDocumentService(apiConfig.placeholderFile());
+        this.documentService = documentService;
         this.privacyPolicyDir = Path.of(apiConfig.privacyPolicyDir());
         this.consentDir = Path.of(apiConfig.consentDir());
         this.tosDir = Path.of(apiConfig.tosDir());
@@ -160,15 +167,17 @@ public class ConsentService {
     }
 
     /**
-     * Returns the current version hashes of all legal documents.
+     * Returns the current versions of all legal documents, each with the legacy hash still taken
+     * as it ({@link LegalDocumentService#versionOf(Path)}). A stored key added to a known category
+     * moves none of them.
      *
-     * @return the version hashes for privacy policy, terms of service, and consent text
+     * @return the versions of privacy policy, terms of service, and consent text
      */
     public DocumentVersions getCurrentVersions() {
         return new DocumentVersions(
-                documentService.getDocument(privacyPolicyDir).version(),
-                documentService.getDocument(tosDir).version(),
-                documentService.getDocument(consentDir).version());
+                documentService.versionOf(privacyPolicyDir),
+                documentService.versionOf(tosDir),
+                documentService.versionOf(consentDir));
     }
 
     /**
@@ -263,9 +272,9 @@ public class ConsentService {
         }
 
         var current = getCurrentVersions();
-        if (!current.consentVersion().equals(consentVersion)
-                || !current.privacyVersion().equals(privacyVersion)
-                || !current.tosVersion().equals(tosVersion)) {
+        if (!current.consent().covers(consentVersion)
+                || !current.privacy().covers(privacyVersion)
+                || !current.tos().covers(tosVersion)) {
             throw LegalRefusal.LEGAL_DOCUMENTS_CHANGED.raise();
         }
 

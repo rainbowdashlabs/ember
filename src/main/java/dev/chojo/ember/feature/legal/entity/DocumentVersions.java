@@ -6,10 +6,26 @@
 package dev.chojo.ember.feature.legal.entity;
 
 /**
- * Container for the current version hashes of all legal documents.
+ * The versions of the three legal documents a consent names.
  *
- * @param privacyVersion the privacy policy version hash
- * @param tosVersion     the terms of service version hash
- * @param consentVersion the consent text version hash
+ * @param privacy the privacy policy
+ * @param tos     the terms of service
+ * @param consent the consent text
  */
-public record DocumentVersions(String privacyVersion, String tosVersion, String consentVersion) {}
+public record DocumentVersions(DocumentVersion privacy, DocumentVersion tos, DocumentVersion consent) {
+
+    /** The current privacy policy version. */
+    public String privacyVersion() {
+        return privacy.version();
+    }
+
+    /** The current terms of service version. */
+    public String tosVersion() {
+        return tos.version();
+    }
+
+    /** The current consent text version. */
+    public String consentVersion() {
+        return consent.version();
+    }
+}

@@ -18,6 +18,7 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import InfoContainer from '@/components/container/InfoContainer.vue'
 import SuccessButton from '@/components/button/SuccessButton.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
+import MutedText from '@/components/typography/MutedText.vue'
 import PolicyChangeSection from '@/views/reconsentview/PolicyChangeSection.vue'
 
 const {t} = useI18n()
@@ -83,6 +84,14 @@ const failure = computed(() => loadFailure.value ?? submitFailure.value)
                              :html="changes.tosHtml"
                              added-key-prefix="ta-"
                              removed-key-prefix="tr-"/>
+
+        <PolicyChangeSection v-if="changes.consentChanged"
+                             :title="t('reconsent.consentChanged')"
+                             :html="changes.consentHtml"
+                             added-key-prefix="ca-"
+                             removed-key-prefix="cr-">
+          <MutedText tag="p" size="sm">{{ t('reconsent.consentChangedHint') }}</MutedText>
+        </PolicyChangeSection>
 
         <InfoContainer class="space-y-2">
           <p class="text-sm">{{ t('reconsent.consentNote') }}</p>
