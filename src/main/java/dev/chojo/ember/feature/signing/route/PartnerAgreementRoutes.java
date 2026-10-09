@@ -117,8 +117,9 @@ public class PartnerAgreementRoutes implements Routes {
             })
     private void copy(Context ctx) {
         var session = StationSession.from(ctx);
-        visibility.requireVisibleEvent(session, pathInt(ctx, "id"));
-        var copy = agreements.latestCopy(session, pathInt(ctx, "agreementId"));
+        int eventId = pathInt(ctx, "id");
+        visibility.requireVisibleEvent(session, eventId);
+        var copy = agreements.latestCopy(session, eventId, pathInt(ctx, "agreementId"));
         FileResponse.send(ctx, PDF, copy.fileName(), copy.pdf());
     }
 }

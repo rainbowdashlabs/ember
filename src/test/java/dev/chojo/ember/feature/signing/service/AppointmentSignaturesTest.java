@@ -190,7 +190,8 @@ class AppointmentSignaturesTest extends GeneratorTestBase {
                 memberNameResolver,
                 wiring.issuers(),
                 new EventRestrictionService(eventRepo, restrictionService),
-                new RequirementSignatureStates(requestRepo, requests, new WithdrawalRights(guardianPolicy)));
+                new RequirementSignatureStates(requestRepo, requests, new WithdrawalRights(guardianPolicy)),
+                stationMemberRepo);
         var catalog =
                 new DocumentCatalogService(memberDocumentRepo, wiring.documents(), new SignatureSummaries(requestRepo));
         copies = new ParticipantCopyService(appointments, requirementRepo, catalog, wiring.documents());

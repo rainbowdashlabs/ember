@@ -77,7 +77,10 @@ import java.util.stream.Collectors;
  * ahead. The documents of each such date are fetched again and every one of those members is asked for those
  * they do not stand asked for or signed yet, the same way as at registration, so nobody is asked twice. The
  * requests still open for a document taken off, on dates still ahead, are let go, and the partner is told
- * which. Dates before today in this station's zone stay as they are.
+ * which. Dates before today in this station's zone stay as they are. The partner's word on who is registered
+ * is taken only for members this station signed up for that date itself, which it notes on every sign-up and
+ * forgets on every withdrawal: a partner cannot put a document in front of a member who never went near its
+ * appointment.
  *
  * <p>Nothing here holds the registration up. A partner that hands out nothing, cannot be reached, or hands out
  * a file that is not what it says, and a station that keeps no documents, leave the member registered without
@@ -146,6 +149,9 @@ public class PartnerSignatures implements PartnerAppointmentSignatures, Federati
     @Override
     public List<PartnerDocumentToSign> registered(
             StationSession session, UUID partnerStationUid, int eventId, LocalDate eventDate, UUID memberUid) {
+        signedUpHere(session.stationId(), memberUid)
+                .ifPresent(found ->
+                        links.recordSignup(session.stationId(), found.id(), partnerStationUid, eventId, eventDate));
         var member = actedFor(session, memberUid);
         if (member.isEmpty() || !keepsDocuments(session.stationId())) return List.of();
         var partner = activePartner(session.stationId(), partnerStationUid);
@@ -169,6 +175,8 @@ public class PartnerSignatures implements PartnerAppointmentSignatures, Federati
     @Override
     public void withdrawn(
             StationSession session, UUID partnerStationUid, int eventId, LocalDate eventDate, UUID memberUid) {
+        signedUpHere(session.stationId(), memberUid)
+                .ifPresent(found -> links.forgetSignup(found.id(), partnerStationUid, eventId, eventDate));
         var member = actedFor(session, memberUid);
         if (member.isEmpty()) return;
         for (int requestId : links.openRequests(
@@ -263,7 +271,7 @@ public class PartnerSignatures implements PartnerAppointmentSignatures, Federati
     RemoteRequirementChangeAnswer changed(ServingPartner partner, int eventId, RemoteRequirementChange change) {
         int stationId = partner.servingStationId();
         var today = today(stationId);
-        var released = release(partner.row(), eventId, change.removedTemplateIds(), today);
+        var released = release(stationId, partner.row(), eventId, change.removedTemplateIds(), today);
         int asked = keepsDocuments(stationId)
                 ? askRegistered(stationId, partner.row(), eventId, change.registered(), today)
                 : 0;
@@ -277,9 +285,10 @@ public class PartnerSignatures implements PartnerAppointmentSignatures, Federati
     }
 
     private List<RemoteAgreementRelease> release(
-            FederationPartner partner, int eventId, List<Integer> removedTemplateIds, LocalDate today) {
+            int stationId, FederationPartner partner, int eventId, List<Integer> removedTemplateIds, LocalDate today) {
         var released = new ArrayList<RemoteAgreementRelease>();
-        for (var link : links.openForTemplatesFrom(partner.partnerStationId(), eventId, removedTemplateIds, today)) {
+        for (var link :
+                links.openForTemplatesFrom(stationId, partner.partnerStationId(), eventId, removedTemplateIds, today)) {
             if (!requestService.withdrawUnasked(link.requestId())) continue;
             requests.findById(link.requestId())
                     .map(SignatureRequest::memberId)
@@ -306,8 +315,11 @@ public class PartnerSignatures implements PartnerAppointmentSignatures, Federati
         for (var date : byDate.entrySet()) {
             var agreements = agreementsOf(partner, eventId, date.getKey());
             for (var memberUid : date.getValue()) {
-                var member = members.findByUid(stationId, memberUid).filter(found -> !found.former());
-                if (member.isEmpty()) continue;
+                var member = signedUpHere(stationId, memberUid);
+                if (member.isEmpty()
+                        || !links.signedUp(member.get().id(), partner.partnerStationId(), eventId, date.getKey())) {
+                    continue;
+                }
                 for (var agreement : agreements) {
                     if (askIfNotAsked(stationId, partner, eventId, date.getKey(), member.get(), agreement)) asked++;
                 }
@@ -426,6 +438,11 @@ public class PartnerSignatures implements PartnerAppointmentSignatures, Federati
             throw new IllegalArgumentException("The file the partner handed out is not the one it names");
         }
         return content;
+    }
+
+    /** A current member of the station by their identifier, as a sign-up or a partner names them. */
+    private Optional<StationMember> signedUpHere(int stationId, UUID memberUid) {
+        return members.findByUid(stationId, memberUid).filter(found -> !found.former());
     }
 
     /** The member registered, where the reader may act for them: themselves or a member in their care. */

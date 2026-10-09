@@ -27,6 +27,7 @@ import dev.chojo.ember.feature.generator.entity.RequirementStatus;
 import dev.chojo.ember.feature.generator.repository.EventRequirementRepository;
 import dev.chojo.ember.feature.generator.repository.PaperSubmissionRepository;
 import dev.chojo.ember.feature.generator.service.DocumentGenerationService.GeneratedDocumentResponse;
+import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import jakarta.inject.Inject;
@@ -79,6 +80,7 @@ public class AppointmentDocumentService {
     private final DocumentIssuerService issuers;
     private final EventRestrictionService audience;
     private final RequirementSignatures signatures;
+    private final StationMemberRepository members;
 
     @Inject
     public AppointmentDocumentService(
@@ -93,9 +95,11 @@ public class AppointmentDocumentService {
             MemberNameResolver names,
             DocumentIssuerService issuers,
             EventRestrictionService audience,
-            RequirementSignatures signatures) {
+            RequirementSignatures signatures,
+            StationMemberRepository members) {
         this.audience = audience;
         this.signatures = signatures;
+        this.members = members;
         this.requirements = requirements;
         this.submissions = submissions;
         this.templates = templates;
@@ -243,8 +247,11 @@ public class AppointmentDocumentService {
     }
 
     /**
-     * Refuses a scan to be handed in for a member by somebody who may not: the reader has to act for
-     * the member, or manage the registrations, and the member has to take part on the date.
+     * Refuses a scan to be handed in for a member by somebody who may not: the member has to be a current
+     * member of the appointment's station, the reader has to act for them or manage the registrations, and
+     * the member has to take part on the date. Taking part alone does not prove the station: an appointment
+     * without registrations and without an audience is meant for anybody, and a manager could otherwise
+     * name a member of any station by their number.
      *
      * @param session  the reader
      * @param event    the appointment, already checked to be one the reader may see
@@ -253,8 +260,11 @@ public class AppointmentDocumentService {
      * @param manages  whether the reader manages the registrations of the station
      */
     void requireMayHandIn(StationSession session, StationEvent event, LocalDate date, int memberId, boolean manages) {
+        boolean ofTheStation = members.findById(memberId)
+                .filter(member -> member.stationId() == event.stationId() && !member.former())
+                .isPresent();
         boolean actsFor = manages || guardians.mayActFor(session.user(), memberId);
-        if (!actsFor || !takesPart(event, date, memberId)) {
+        if (!ofTheStation || !actsFor || !takesPart(event, date, memberId)) {
             throw DocumentRefusal.DOCUMENT_REQUIREMENT_NOT_YOURS.raise();
         }
     }

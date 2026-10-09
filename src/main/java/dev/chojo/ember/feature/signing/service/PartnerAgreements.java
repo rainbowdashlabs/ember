@@ -376,12 +376,14 @@ public class PartnerAgreements implements FederationServer, TaskSource {
      * The newest sealed copy of a document that came back from a partner.
      *
      * @param session     the reader, who manages the registrations of the appointment's station
+     * @param eventId     the appointment the reader may see, which the record has to be about: seeing one
+     *                    appointment must not hand over the copies of another
      * @param agreementId the record of the document for the member
      * @return the sealed PDF, named after the document
      */
-    public SealedPartnerCopy latestCopy(StationSession session, int agreementId) {
+    public SealedPartnerCopy latestCopy(StationSession session, int eventId, int agreementId) {
         var agreement = agreements
-                .find(session.stationId(), agreementId)
+                .findOn(session.stationId(), eventId, agreementId)
                 .orElseThrow(DocumentRefusal.PARTNER_AGREEMENT_COPY_NOT_HERE::raise);
         var pdf =
                 agreements.latestCopy(agreementId).orElseThrow(DocumentRefusal.PARTNER_AGREEMENT_COPY_NOT_HERE::raise);

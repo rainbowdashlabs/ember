@@ -135,6 +135,79 @@ public class PartnerSigningRepository {
     }
 
     /**
+     * Notes that a member of the station was signed up here for a date of a partner's appointment, or
+     * signed up again.
+     *
+     * @param stationId         the station of the member
+     * @param memberId          the member
+     * @param partnerStationUid the station holding the appointment
+     * @param remoteEventId     the appointment there
+     * @param eventDate         the date
+     */
+    public void recordSignup(
+            int stationId, int memberId, UUID partnerStationUid, int remoteEventId, LocalDate eventDate) {
+        query("""
+                        INSERT INTO partner_signup (station_id, member_id, partner_station_uid, remote_event_id, event_date)
+                        VALUES (:station_id, :member_id, :partner_uid::UUID, :event_id, :event_date)
+                        ON CONFLICT (member_id, partner_station_uid, remote_event_id, event_date)
+                            DO UPDATE SET signed_up_at = now();""")
+                .single(call().bind("station_id", stationId)
+                        .bind("member_id", memberId)
+                        .bind("partner_uid", partnerStationUid, UUID_STRING)
+                        .bind("event_id", remoteEventId)
+                        .bind("event_date", eventDate))
+                .insert();
+    }
+
+    /**
+     * Forgets a sign-up the member withdrew.
+     *
+     * @param memberId          the member
+     * @param partnerStationUid the station holding the appointment
+     * @param remoteEventId     the appointment there
+     * @param eventDate         the date
+     */
+    public void forgetSignup(int memberId, UUID partnerStationUid, int remoteEventId, LocalDate eventDate) {
+        query("""
+                        DELETE FROM partner_signup
+                        WHERE member_id = :member_id
+                          AND partner_station_uid = :partner_uid::UUID
+                          AND remote_event_id = :event_id
+                          AND event_date = :event_date;""")
+                .single(call().bind("member_id", memberId)
+                        .bind("partner_uid", partnerStationUid, UUID_STRING)
+                        .bind("event_id", remoteEventId)
+                        .bind("event_date", eventDate))
+                .delete();
+    }
+
+    /**
+     * @param memberId          the member
+     * @param partnerStationUid the station holding the appointment
+     * @param remoteEventId     the appointment there
+     * @param eventDate         the date
+     * @return whether this station signed the member up for that date
+     */
+    public boolean signedUp(int memberId, UUID partnerStationUid, int remoteEventId, LocalDate eventDate) {
+        return query("""
+                        SELECT exists (SELECT 1
+                                       FROM partner_signup
+                                       WHERE member_id = :member_id
+                                         AND partner_station_uid = :partner_uid::UUID
+                                         AND remote_event_id = :event_id
+                                         AND event_date = :event_date) AS signed_up;""")
+                .single(call().bind("member_id", memberId)
+                        .bind("partner_uid", partnerStationUid, UUID_STRING)
+                        .bind("event_id", remoteEventId)
+                        .bind("event_date", eventDate))
+                .map(row -> row.getBoolean("signed_up"))
+                .first()
+                .orElse(false);
+    }
+
+    /**
+     * @param stationId         the station of the members, which is the one the partner told: another station
+     *                          here that is a partner of the same station is none of its business
      * @param partnerStationUid the station holding the appointment
      * @param remoteEventId     the appointment there
      * @param remoteTemplateIds the documents there
@@ -143,19 +216,25 @@ public class PartnerSigningRepository {
      *         signature, the oldest first
      */
     public List<PartnerSigning> openForTemplatesFrom(
-            UUID partnerStationUid, int remoteEventId, Collection<Integer> remoteTemplateIds, LocalDate from) {
+            int stationId,
+            UUID partnerStationUid,
+            int remoteEventId,
+            Collection<Integer> remoteTemplateIds,
+            LocalDate from) {
         if (remoteTemplateIds.isEmpty()) return List.of();
         return query("""
                         SELECT %s
                         FROM partner_signing_request p
                                  JOIN signing_request r ON r.id = p.request_id
-                        WHERE p.partner_station_uid = :partner_uid::UUID
+                        WHERE p.station_id = :station_id
+                          AND p.partner_station_uid = :partner_uid::UUID
                           AND p.remote_event_id = :event_id
                           AND p.remote_template_id = ANY (:template_ids::INT[])
                           AND p.event_date >= :from
                           AND r.state = 'OPEN'
                         ORDER BY p.id;""", PartnerSigning.COLUMNS)
-                .single(call().bind("partner_uid", partnerStationUid, UUID_STRING)
+                .single(call().bind("station_id", stationId)
+                        .bind("partner_uid", partnerStationUid, UUID_STRING)
                         .bind("event_id", remoteEventId)
                         .bind("template_ids", List.copyOf(remoteTemplateIds), PostgreSqlTypes.INTEGER)
                         .bind("from", from))

@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:3289504bb7e70bee4b553359557a88e04962e431414d98e1dca895a44ee4eb22",
-  "generatedAt": "2026-10-09T13:10:02Z",
+  "schemaHash": "sha256:6e0aeee49b8124d62f03baae57742c5c4cc7e1fa55044900a1df4f8c41222f93",
+  "generatedAt": "2026-10-09T16:05:24Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -21744,6 +21744,87 @@
         "reason": "Goes with its signing request, whose own retention decides when it is deleted."
       },
       "description": "A signing request at this installation for a document a partner station's appointment asks one of this station's members to sign: which partner, appointment, date and document it answers, and how far its signed copies have travelled back to that partner. The member signs here, and every sealed state is sent back to the partner, signed with this station's federation key, and sent again later while the partner is unreachable. Goes with its request."
+    },
+    "partner_signup": {
+      "feature": "signing",
+      "scope": "STATION",
+      "tableHash": "sha256:093444782c2053582a18a4c5dca4a4872e4fe4cf98727637ca6944edebf5c67f",
+      "columns": [
+        {
+          "name": "station_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The station of the member."
+        },
+        {
+          "name": "member_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The member signed up."
+        },
+        {
+          "name": "partner_station_uid",
+          "type": "uuid",
+          "nullable": false,
+          "verified": true,
+          "description": "The station that holds the appointment, as the federation knows it."
+        },
+        {
+          "name": "remote_event_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The appointment, by its id at the partner."
+        },
+        {
+          "name": "event_date",
+          "type": "date",
+          "nullable": false,
+          "verified": true,
+          "description": "The date signed up for."
+        },
+        {
+          "name": "signed_up_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the sign-up was given, the latest time where it was given again."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "member_id",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "station_id",
+          "refTable": "station",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "Only vouches for sign-ups this station gave to its partners; a moved station pairs with its partners anew, and its members' next sign-ups are noted again."
+      },
+      "gdprExport": {
+        "status": "TRACKED",
+        "identityColumns": [
+          {
+            "type": "MEMBER_ID",
+            "column": "member_id"
+          }
+        ]
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Goes with the member, who is deleted with it, and with a withdrawal of the sign-up."
+      },
+      "description": "A member of this station signed up here for one date of a partner station's appointment. The partner holds the registration itself; this is this station's own word that it was given, so that a partner telling it which of its members are registered is believed only for members it signed up. Removed when the member withdraws."
     },
     "problem_report": {
       "feature": "system",

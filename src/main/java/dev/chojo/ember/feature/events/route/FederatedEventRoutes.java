@@ -330,6 +330,8 @@ public class FederatedEventRoutes implements Routes {
         var fed = resolveFederatedRegContext(ctx);
         eventFederationService.confirmOwnFederatedMember(
                 fed.stationId(), fed.partnerUid(), fed.eventId(), fed.remoteMemberId(), fed.eventDate());
+        signatures.registered(
+                StationSession.from(ctx), fed.partnerUid(), fed.eventId(), fed.eventDate(), fed.remoteMemberId());
         ctx.status(HttpStatus.NO_CONTENT);
     }
 

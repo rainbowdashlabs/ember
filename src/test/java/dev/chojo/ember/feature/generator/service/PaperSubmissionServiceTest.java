@@ -119,7 +119,8 @@ class PaperSubmissionServiceTest extends GeneratorTestBase {
                 memberNameResolver,
                 wiring.issuers(),
                 new EventRestrictionService(eventRepo, restrictionService),
-                RequirementSignatures.NONE);
+                RequirementSignatures.NONE,
+                stationMemberRepo);
         notifier = mock(Notifier.class);
         confirmations = mock(ScanConfirmations.class);
         scans = new PaperSubmissionService(
@@ -414,6 +415,42 @@ class PaperSubmissionServiceTest extends GeneratorTestBase {
     /** Without registrations, whoever handed in a scan counts among the participants the organiser sees. */
     @Test
     void withoutRegistrationsAScanNamesItsParticipant() {
+        var open = openDay();
+        var submission = scans.submit(as(max), open, DAY, consent, max.id(), null, scanFile());
+
+        var participants =
+                appointments.documentsToBring(as(manager), open, DAY, true).participants();
+
+        assertNotNull(participants);
+        assertEquals(
+                List.of(max.id()),
+                participants.stream().map(participant -> participant.memberId()).toList());
+        assertEquals(submission, participants.getFirst().documents().getFirst().paper());
+    }
+
+    /**
+     * A manager hands a scan in only for a member of the appointment's own station. An appointment without
+     * registrations and without an audience is meant for anybody, and a manager could once name a member of
+     * any station by their number, filing a document for them and reading their name in the overview.
+     */
+    @Test
+    void aManagerHandsNothingInForAMemberOfAnotherStation() {
+        var open = openDay();
+        var elsewhere = stationRepo.create("Scan Fremdwache");
+        var stranger = accountRepo.create("scan-fremd@test.com", "Fremd", "Person");
+        var foreign = stationMemberRepo.create(elsewhere.id(), stranger.id());
+        try {
+            refused(
+                    DocumentRefusal.DOCUMENT_REQUIREMENT_NOT_YOURS,
+                    () -> scans.submit(as(manager), open, DAY, consent, foreign.id(), null, scanFile()));
+        } finally {
+            stationRepo.delete(elsewhere.id());
+            accountRepo.delete(stranger.id());
+        }
+    }
+
+    /** An appointment of the station that takes no registrations and asks for the consent. */
+    private StationEvent openDay() {
         var open = eventRepo.create(
                 wiring.station().id(),
                 "Tag der offenen Tür",
@@ -432,16 +469,7 @@ class PaperSubmissionServiceTest extends GeneratorTestBase {
                 null,
                 null);
         requirements.setForEvent(wiring.owner(), open.id(), List.of(consent));
-        var submission = scans.submit(as(max), open, DAY, consent, max.id(), null, scanFile());
-
-        var participants =
-                appointments.documentsToBring(as(manager), open, DAY, true).participants();
-
-        assertNotNull(participants);
-        assertEquals(
-                List.of(max.id()),
-                participants.stream().map(participant -> participant.memberId()).toList());
-        assertEquals(submission, participants.getFirst().documents().getFirst().paper());
+        return open;
     }
 
     @Test

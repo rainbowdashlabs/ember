@@ -150,6 +150,21 @@ public class PartnerAgreementRepository {
 
     /**
      * @param stationId the station holding the appointment
+     * @param eventId   the appointment the row has to be about
+     * @param id        the row
+     * @return the row, where it is the station's and about that appointment
+     */
+    public Optional<PartnerAgreement> findOn(int stationId, int eventId, int id) {
+        return query("""
+                        SELECT %s FROM partner_agreement a
+                        WHERE a.id = :id AND a.station_id = :station_id AND a.event_id = :event_id;""", PartnerAgreement.COLUMNS)
+                .single(call().bind("id", id).bind("station_id", stationId).bind("event_id", eventId))
+                .map(PartnerAgreement.map())
+                .first();
+    }
+
+    /**
+     * @param stationId the station holding the appointment
      * @param id        the row
      * @return the row, where it is the station's
      */

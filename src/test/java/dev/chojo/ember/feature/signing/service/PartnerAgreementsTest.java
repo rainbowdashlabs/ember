@@ -282,7 +282,8 @@ class PartnerAgreementsTest extends GeneratorTestBase {
                 memberNameResolver,
                 organiser.issuers(),
                 new EventRestrictionService(eventRepo, restrictionService),
-                RequirementSignatures.NONE);
+                RequirementSignatures.NONE,
+                stationMemberRepo);
         var notices = TestNotices.notices(
                 newNotifier(), emailQueueRepo, stationRepo, stationMemberRepo, accountRepo, memberDocumentRepo);
         agreements = new PartnerAgreements(
@@ -405,7 +406,8 @@ class PartnerAgreementsTest extends GeneratorTestBase {
      * A member of the partner registers and signs at home: the copy drawn once for the date is filed in the
      * member's documents at home byte for byte, the organiser hears it was taken on, the member signs with
      * the home station's proof and seal, and the sealed copy goes back, is checked against the authorities
-     * the home station stated, and is kept with the registration, locked.
+     * the home station stated, and is kept with the registration, locked. The copy is handed out only for
+     * the appointment it is about, so seeing one appointment does not open the copies of another.
      */
     @Test
     void aPartnersMemberSignsAtHomeAndTheOrganiserKeepsTheSealedCopy() {
@@ -436,7 +438,10 @@ class PartnerAgreementsTest extends GeneratorTestBase {
                 .documents()
                 .read(memberDocumentRepo.findById(request.documentId()).orElseThrow())
                 .orElseThrow();
-        var kept = agreements.latestCopy(managing(), standing.agreementId());
+        var kept = agreements.latestCopy(managing(), camp.id(), standing.agreementId());
+        refused(
+                DocumentRefusal.PARTNER_AGREEMENT_COPY_NOT_HERE,
+                () -> agreements.latestCopy(managing(), camp.id() + 1, standing.agreementId()));
         assertArrayEquals(sealedAtHome, kept.pdf(), "the organiser keeps the copy sealed at home");
         assertEquals(
                 Sha256.hex(sealedAtHome),
@@ -647,8 +652,9 @@ class PartnerAgreementsTest extends GeneratorTestBase {
         var request = requestOf(register(member).getFirst());
         sign(request, member);
         var signed = documentOf(member);
-        byte[] signedCopy =
-                agreements.latestCopy(managing(), signed.agreementId()).pdf();
+        byte[] signedCopy = agreements
+                .latestCopy(managing(), camp.id(), signed.agreementId())
+                .pdf();
         ORGANISER_DOWN.set(true);
 
         withdrawals.requireOwnedThenWithdraw(
@@ -664,7 +670,9 @@ class PartnerAgreementsTest extends GeneratorTestBase {
         assertEquals(PartnerAgreementState.WITHDRAWN, withdrawn.state());
         assertEquals(2, withdrawn.copies(), "the signed copy stays beside the withdrawal");
         var withdrawal = requestRepo.withdrawalOf(request.id()).orElseThrow();
-        byte[] kept = agreements.latestCopy(managing(), withdrawn.agreementId()).pdf();
+        byte[] kept = agreements
+                .latestCopy(managing(), camp.id(), withdrawn.agreementId())
+                .pdf();
         assertEquals(withdrawal.sealedSha256(), Sha256.hex(kept));
         assertNotEquals(Sha256.hex(signedCopy), Sha256.hex(kept));
         assertNotNull(events.findRegistration(camp.id(), organiserSide.id(), member.uid(), DAY)
@@ -827,6 +835,35 @@ class PartnerAgreementsTest extends GeneratorTestBase {
     }
 
     /**
+     * A partner's word on who is registered is taken only for members this station signed up itself. A
+     * partner naming any member it knows the identifier of could once file its document with them and ask
+     * them to sign, whether or not they ever went near its appointment; withdrawing forgets the sign-up.
+     */
+    @Test
+    void aPartnerAsksOnlyMembersThisStationSignedUp() {
+        var stranger = homeMember("Rita", "Rand");
+        var leaver = homeMember("Sven", "Sand");
+        requestOf(register(leaver).getFirst());
+        events.withdrawFederatedRegistration(home.id(), organiser.station().uid(), camp.id(), leaver.uid(), DAY);
+        signatures.withdrawn(at(leaver), organiser.station().uid(), camp.id(), DAY, leaver.uid());
+        int rules = neutralTemplate("Badeordnung");
+        requirements.setForEvent(organiser.owner(), camp.id(), List.of(consent, rules));
+        int askedBefore = requestsOf(leaver);
+
+        signatures.changed(
+                new ServingPartner(homeSide, organiser.station().uid()),
+                camp.id(),
+                new RemoteRequirementChange(
+                        List.of(),
+                        List.of(
+                                new RemoteRegisteredMember(stranger.uid(), DAY),
+                                new RemoteRegisteredMember(leaver.uid(), DAY))));
+
+        assertEquals(0, requestsOf(stranger), "a member never signed up is not asked");
+        assertEquals(askedBefore, requestsOf(leaver), "a member who withdrew is not asked again");
+    }
+
+    /**
      * A document taken off after a partner's member registered lets their open request go at home, the
      * organiser forgets that it was taken on, and an agreement another member already signed stays signed.
      */
@@ -838,6 +875,11 @@ class PartnerAgreementsTest extends GeneratorTestBase {
         var signed = requestOf(register(signer).getFirst());
         sign(signed, signer);
         requirements.setForEvent(organiser.owner(), camp.id(), List.of());
+        assertTrue(
+                linkRepo.openForTemplatesFrom(
+                                organiser.station().id(), organiser.station().uid(), camp.id(), List.of(consent), DAY)
+                        .isEmpty(),
+                "another station of the installation that is the same station's partner is none of the notice's business");
 
         requirementNotices.changed(organiser.station().id(), camp.id(), List.of(), List.of(consent));
 

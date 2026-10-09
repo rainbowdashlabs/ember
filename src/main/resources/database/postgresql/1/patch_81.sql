@@ -2245,3 +2245,30 @@ COMMENT ON CONSTRAINT partner_requirement_change_station ON ember_schema.partner
     'A row goes with its station. Checked at commit, because deleting a station also deletes the appointment and the partnership of a row it is about to delete.';
 COMMENT ON CONSTRAINT partner_requirement_change_once ON ember_schema.partner_requirement_change IS
     'One row per appointment and partner, which every further change is gathered into.';
+
+CREATE TABLE IF NOT EXISTS ember_schema.partner_signup
+(
+    station_id          INTEGER     NOT NULL,
+    member_id           INTEGER     NOT NULL REFERENCES ember_schema.station_member (id) ON DELETE CASCADE,
+    partner_station_uid UUID        NOT NULL,
+    remote_event_id     INTEGER     NOT NULL,
+    event_date          DATE        NOT NULL,
+    signed_up_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (member_id, partner_station_uid, remote_event_id, event_date),
+    CONSTRAINT partner_signup_station FOREIGN KEY (station_id)
+        REFERENCES ember_schema.station (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED
+);
+
+CREATE INDEX IF NOT EXISTS partner_signup_station_idx ON ember_schema.partner_signup (station_id);
+
+COMMENT ON TABLE ember_schema.partner_signup IS
+    'A member of this station signed up here for one date of a partner station''s appointment. The partner holds the registration itself; this is this station''s own word that it was given, so that a partner telling it which of its members are registered is believed only for members it signed up. Removed when the member withdraws.';
+COMMENT ON COLUMN ember_schema.partner_signup.station_id IS 'The station of the member.';
+COMMENT ON COLUMN ember_schema.partner_signup.member_id IS 'The member signed up.';
+COMMENT ON COLUMN ember_schema.partner_signup.partner_station_uid IS
+    'The station that holds the appointment, as the federation knows it.';
+COMMENT ON COLUMN ember_schema.partner_signup.remote_event_id IS 'The appointment, by its id at the partner.';
+COMMENT ON COLUMN ember_schema.partner_signup.event_date IS 'The date signed up for.';
+COMMENT ON COLUMN ember_schema.partner_signup.signed_up_at IS 'When the sign-up was given, the latest time where it was given again.';
+COMMENT ON CONSTRAINT partner_signup_station ON ember_schema.partner_signup IS
+    'A row goes with its station. Checked at commit, because deleting a station also deletes its members first.';
