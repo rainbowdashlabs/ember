@@ -802,6 +802,7 @@ volumes:
                         fallbacks: 'Die weiteren Anbieter aus älteren Konfigurationen, die nach dem hier eingetragenen Einzelanbieter versucht wurden. Ember liest sie, bis die Anbieter einmal unter Administration → E-Mail gespeichert werden, und schreibt sie danach nicht mehr.',
                         attempts: 'Wie oft dieser Anbieter versucht wird, bevor der nächste übernimmt.',
                         sweegoWebhookSecret: 'Signaturschlüssel, den Sweego für seinen Webhook ausgibt. Ist er gesetzt, prüft Ember jede Rückmeldung von Sweego damit.',
+                        stationShare: 'Wie viel Prozent vom Tageslimit jedes Mailanbieters der Instanz alle Wachen zusammen nutzen dürfen, denen die Verwaltung die Anbieter der Instanz freigegeben hat. Der Rest bleibt für die Mails der Instanz selbst frei. Anbieter ohne Tageslimit begrenzt das nicht. Standard ist 50.',
                     },
                     auth: {
                         tokenBytes: 'Länge der generierten Sicherheits-Token in Bytes. Ein höherer Wert ist sicherer, aber 32 Bytes sind bereits sehr sicher.',
@@ -1420,6 +1421,10 @@ volumes:
             limitsUsage: 'Unter den Limits siehst du, wie viele E-Mails heute und diesen Monat bereits gesendet wurden.',
             testTitle: 'Verbindung testen',
             testText: 'Mit dem Button „Verbindung testen" prüfst du, ob die Zugangsdaten stimmen. Mit „Test-Mail an mich senden" schickst du dir selbst eine echte Test-E-Mail an deine eigene Adresse, um den Versand von Anfang bis Ende zu prüfen.',
+            instanceTitle: 'Mailanbieter der Instanz',
+            instanceText: 'Die Verwaltung der Instanz kann deiner Wache ihre eigenen Mailanbieter freigeben. Dann verschickt die Instanz eure Mails mit, sobald eure eigenen Anbieter für den Tag nichts mehr übrig haben. Hat deine Wache gar keinen eigenen Anbieter, gehen die Mails gleich über die Instanz.',
+            instanceText2: 'Im Kasten „Mailanbieter der Instanz" siehst du, ob die Freigabe besteht und wie viele Mails heute schon über die Instanz gingen, gegen die feste Höchstzahl der Wache, wo eine gesetzt ist. Ist sie oder der Anteil aller Wachen erreicht, warten weitere Mails bis zum nächsten Tag. In der Zustellung stehen die Anbieter der Instanz unter euren eigenen, mit dem Zeichen „Instanz".',
+            replyToText: 'Mails über die Instanz kommen von ihrer Adresse, aber mit dem Namen deiner Wache. Trag eine Antwortadresse ein, damit Antworten bei euch ankommen. Sie gilt für alle Mails deiner Wache, auch über eure eigenen Anbieter.',
             tip: 'Für kleine Wachen reicht oft der kostenlose Tarif von Brevo oder Sweego. Beide hosten in der EU und sind DSGVO-konform.',
         },
         mailVendor: {
@@ -4881,6 +4886,9 @@ volumes:
                 + 'ersetzen, falls die Adresse in falsche Hände geraten ist - die alte gilt dann '
                 + 'sofort nicht mehr, und du trägst die neue beim Anbieter nach.',
             exampleTitle: 'So sieht die Seite aus',
+            stationsTitle: 'Wachen über die Instanz',
+            stationsText: 'Wachen können ihre Mails über die Anbieter der Instanz verschicken, nach ihren eigenen. Im Kasten „Wachen mit den Anbietern der Instanz" hakst du Wachen an und gibst sie frei oder entziehst die Freigabe. Für jede Wache lässt sich eine feste Höchstzahl an Mails pro Tag setzen. Eine einzelne Wache stellst du auch auf ihrer Seite unter Wachen ein.',
+            shareText: 'Der „Anteil aller Wachen in Prozent" legt fest, wie viel Prozent vom Tageslimit jedes Anbieters alle Wachen zusammen nutzen dürfen, etwa 50 % von 300 Mails, also 150 Mails am Tag. Der Rest bleibt für die Mails der Instanz frei, etwa für Passwort-Links. Bei einem Anbieter ohne Tageslimit gilt nur die feste Höchstzahl der einzelnen Wache.',
             tip: 'Tipp: Schicke dir nach dem Speichern mit „Test-Mail an mich senden" eine Test-E-Mail, bevor du Einladungen versendest.',
         },
         adminStationsOverview: {
@@ -4976,6 +4984,8 @@ volumes:
             managerTitle: 'Manager zuweisen',
             managerText: 'Der Manager ist die Person, die die Wache verwaltet. Gib die E-Mail-Adresse ein - wenn noch kein Konto existiert, wird automatisch eine Einladung versendet.',
             exampleTitle: 'So sieht die Seite aus',
+            instanceMailTitle: 'Mailanbieter der Instanz',
+            instanceMailText: 'Im Kasten „Mailanbieter der Instanz" gibst du der Wache die Anbieter der Instanz frei. Dann verschickt die Instanz ihre Mails mit, sobald die eigenen Anbieter der Wache für den Tag nichts mehr übrig haben. Eine feste Höchstzahl an Mails pro Tag nur für diese Wache ist möglich. Leer gilt nur der Anteil aller Wachen in Prozent.',
             tip: 'Wenn du den Manager wechselst, erhält die neue Person alle Verwaltungsrechte für die Wache.',
         },
         membersDetail: {
@@ -6114,6 +6124,13 @@ volumes:
             providersText: 'Zu jedem Anbieter steht, wie viel er heute versendet hat, wie viel er '
                 + 'darf, und wie viele Mails gerade an ihm warten. Ist sein Tageslimit erreicht, '
                 + 'übernimmt der nächste, und der Anbieter ist entsprechend gekennzeichnet.',
+            poolTitle: 'Der Anteil der Wachen',
+            poolText: 'Unter jedem Anbieter steht, wie viel die freigegebenen Wachen heute über ihn '
+                + 'verschickt haben, gegen ihren Anteil am Tageslimit, und welche Wachen das waren. '
+                + 'Der Rest des Tageslimits bleibt für die Mails der Instanz frei.',
+            poolWarningText: 'Hat ein Anbieter kein Tageslimit, gibt es keinen Anteil, den er '
+                + 'zurückhalten kann. Solange Wachen freigegeben sind, warnt die Seite dann. Trag '
+                + 'beim Anbieter ein Tageslimit ein, damit der Instanz sicher etwas bleibt.',
             tip: 'Häufen sich weiche Abweisungen bei einem Anbieter, liegt das meist nicht an der '
                 + 'Nachricht, sondern an seinem Absendeserver. Dann hilft ein weiterer Anbieter in '
                 + 'der Liste mehr als ein weiterer Versuch.',

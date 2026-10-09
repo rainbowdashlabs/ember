@@ -2,7 +2,7 @@
 
 ## v26.22.0
 
-Stations turn their own templates and those of their association into documents for their members. A letter template is written in blocks like the station's pages, with placeholders for member data, guardians and the station, and blocks some members get and others do not. A PDF template fills an uploaded form, such as a consent form, in place, and an appointment can ask its participants to bring it. Letters and forms leave an empty signature field for each signer, and each template names the member who issues its documents. Documents name people by their official names, and pronouns follow the new gender profile field or use the first name. Managers generate a document on the member page or in the document store after a preview that names missing data, or for many members at once in the background. Members and guardians generate documents marked for self service in the new Documents menu, with a waiting time between two documents. Templates take their body from a Word or OpenDocument text, print in built-in fonts or in fonts that the instance, an association or the station uploaded, and are duplicated as the start of new ones. The guardians of a member have an order, which documents follow. A short profile opens from any member's name, and a new name members give themselves waits for the member management to approve it.
+Stations turn their own templates and those of their association into documents for their members. A letter template is written in blocks like the station's pages, with placeholders for member data, guardians and the station, and blocks some members get and others do not. A PDF template fills an uploaded form, such as a consent form, in place, and an appointment can ask its participants to bring it. Letters and forms leave an empty signature field for each signer, and each template names the member who issues its documents. Documents name people by their official names, and pronouns follow the new gender profile field or use the first name. Managers generate a document on the member page or in the document store after a preview that names missing data, or for many members at once in the background. Members and guardians generate documents marked for self service in the new Documents menu, with a waiting time between two documents. Templates take their body from a Word or OpenDocument text, print in built-in fonts or in fonts that the instance, an association or the station uploaded, and are duplicated as the start of new ones. Stations can send their mail through the instance's providers, within a share of each provider the instance sets aside for them. A short profile opens from any member's name, and a new name members give themselves waits for the member management to approve it.
 
 ### New Features
 
@@ -22,6 +22,9 @@ Stations turn their own templates and those of their association into documents 
 - **A short profile behind every name.** Resting the pointer on a member's name or picture, or tapping the picture on a phone, opens a small card with their picture, guardians, managed members, tags and groups. Mentions in comments open the same card.
 - **A new name waits for approval.** When members change their own name, it only takes effect once someone allowed to confirm member changes approves it under Members → Changes. A declined name can carry a reason, which the member sees in the notification.
 - **Tags only the member management sees.** A tag can be private: only people allowed to view members see it, and the tagged member does not. A private tag labels members but cannot choose an audience, a restriction or who has access to something.
+- **Stations can send through the instance's mail providers.** An instance administrator grants a station the instance's providers on the station's page in the administration, or for many stations at once in the email configuration, with a daily limit per station where wanted. The station's mail then goes out through the instance once its own providers are spent for the day, or right away where it has none, from the instance's address under the station's name.
+- **A share of each instance provider for stations.** All granted stations together use at most a set percentage of each instance provider's daily limit, 50 by default, so the rest stays free for the instance's own mail. It is set in the email configuration or with `mailing.stationShare` (`MAILING_STATIONSHARE`), and the mail log shows each provider's share, which stations used it today and a warning for a provider without a daily limit.
+- **Stations see what the instance carries for them.** Station → Manage → Mailing shows whether the instance sends the station's mail and how much went out that way today. The delivery overview lists the instance's providers after the station's own.
 
 ### Improvements
 
@@ -33,6 +36,8 @@ Stations turn their own templates and those of their association into documents 
 - **Text alignment in the text editor.** Paragraphs and headings in pages, news, wiki articles and letters are aligned left, centred, right or justified from the editor's toolbar. The alignment shows on the published pages and in the letter and wiki PDFs.
 - **Any colour for text and highlights.** Next to the ready-made colours, the editor's text colour and highlight take any colour as a hex code or from a colour picker. The chosen colour shows on the published pages and in the letter and wiki PDFs.
 - **A font size for selected words.** The editor's toolbar sets selected words in pages, news, wiki articles and letters to a size from 6 to 96 pixels, and an empty field gives them their normal size back. The size shows on the published pages and in the letter and wiki PDFs.
+- **A reply address for station mail.** Under Station → Manage → Mailing a station names the address replies to its mail go to. It applies to every mail of the station, whichever provider carries it.
+- **Station mail waits for the next day.** Once every provider of a station has used its daily limit, further station mail goes out the next day instead of being dropped.
 
 ### Changes
 
@@ -50,6 +55,7 @@ Stations turn their own templates and those of their association into documents 
 - **The member list in visibility filters was cut off.** Where a visibility or access restriction offers a choice of members, the list opened only as wide as its button, so the search and the names could not be read. It now opens wide enough for the names and stays inside the window.
 - **Pictures of PDFs were blurry.** The small pictures of PDFs in the media library, among member documents and among event attachments were so coarse that their text could not be read. They are now drawn finer and shown at the size of their tile.
 - **New tags lost their colour and badge.** A tag created with a colour or as a badge was saved without them until it was edited. Both are now kept from the start.
+- **System mail could stay unsent for good.** In some cases, once every provider of the instance had reached its daily limit, a waiting mail such as a password link was never sent, not even the next day. It now goes out the next day.
 
 ## v26.21.5
 

@@ -87,6 +87,13 @@ public class Mailing {
     @Overwrite(env = @Env)
     private String sweegoWebhookSecret = "";
 
+    /**
+     * The percentage of each instance provider's daily allowance that stations sending through the
+     * instance may use together. The rest stays free for the instance's own mail.
+     */
+    @Overwrite(env = @Env)
+    private int stationShare = 50;
+
     public MailProviderType provider() {
         return provider;
     }
@@ -206,6 +213,18 @@ public class Mailing {
     }
 
     /**
+     * The percentage of each instance provider's daily allowance that stations may use together,
+     * held between 0 and 100 whatever the file says.
+     */
+    public int stationShare() {
+        return Math.clamp(stationShare, 0, 100);
+    }
+
+    public void stationShare(int stationShare) {
+        this.stationShare = stationShare;
+    }
+
+    /**
      * Where mail goes, exactly as written here: the provider list and the fields the first
      * provider lived in before the providers became one list.
      */
@@ -292,6 +311,7 @@ public class Mailing {
                 + senderAddress + '\'' + ", senderName='"
                 + senderName + '\'' + ", properties="
                 + properties.keySet() + ", dailySendLimit="
-                + dailySendLimit + '}';
+                + dailySendLimit + ", stationShare="
+                + stationShare + '}';
     }
 }

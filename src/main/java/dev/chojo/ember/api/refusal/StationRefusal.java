@@ -301,7 +301,11 @@ public enum StationRefusal implements Refusal {
     ONBOARDING_MEMBER_NOT_HERE(72, HttpStatus.NOT_FOUND, Sentences.MEMBER_NOT_HERE),
 
     /** A station whose look was saved, gone before the save reached it. */
-    STATION_NOT_HERE_FOR_LOOK(73, HttpStatus.NOT_FOUND, Sentences.STATION_NOT_HERE);
+    STATION_NOT_HERE_FOR_LOOK(73, HttpStatus.NOT_FOUND, Sentences.STATION_NOT_HERE),
+
+    /** An address for replies to the station's mail that is plainly not an address. */
+    MAIL_REPLY_TO_NOT_AN_ADDRESS(
+            74, HttpStatus.BAD_REQUEST, "That is not an email address, so the reply address was not saved");
 
     private final Definition definition;
 

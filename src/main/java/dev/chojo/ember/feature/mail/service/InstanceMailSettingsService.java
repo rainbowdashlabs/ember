@@ -42,15 +42,30 @@ public class InstanceMailSettingsService {
     }
 
     public MailingConfigResponse mailing() {
-        return new MailingConfigResponse(mailingConfig().notificationDigestIntervalMinutes());
+        var mailing = mailingConfig();
+        return new MailingConfigResponse(mailing.notificationDigestIntervalMinutes(), mailing.stationShare());
     }
 
+    /**
+     * Writes the instance-wide mail settings. A request without the stations' share leaves it as it
+     * is, so a client that does not know the setting cannot reset it.
+     */
     public MailingConfigResponse updateMailing(MailingConfigRequest request) {
         var mailing = mailingConfig();
-        int before = mailing.notificationDigestIntervalMinutes();
+        Integer requestedShare = request.stationShare();
+        int share = requestedShare == null ? mailing.stationShare() : requestedShare;
+        if (share < 0 || share > 100) throw SystemRefusal.INSTANCE_MAIL_SHARE_OUT_OF_RANGE.raise();
+        int intervalBefore = mailing.notificationDigestIntervalMinutes();
+        int shareBefore = mailing.stationShare();
         changes.apply(
-                () -> mailing.notificationDigestIntervalMinutes(request.notificationDigestIntervalMinutes()),
-                () -> mailing.notificationDigestIntervalMinutes(before));
+                () -> {
+                    mailing.notificationDigestIntervalMinutes(request.notificationDigestIntervalMinutes());
+                    mailing.stationShare(share);
+                },
+                () -> {
+                    mailing.notificationDigestIntervalMinutes(intervalBefore);
+                    mailing.stationShare(shareBefore);
+                });
         return mailing();
     }
 
@@ -162,16 +177,23 @@ public class InstanceMailSettingsService {
     /**
      * What is left of the mailing page once the providers became a list of their own: the settings
      * that belong to the instance rather than to any one provider.
+     *
+     * @param stationShare the percentage of each provider's daily limit that stations granted the
+     *                     instance's providers may use together
      */
-    public record MailingConfigResponse(int notificationDigestIntervalMinutes) {}
+    public record MailingConfigResponse(int notificationDigestIntervalMinutes, int stationShare) {}
 
     /**
      * The fields the client may set. Read-only ones the response carries, the webhook address
      * among them, are accepted and dropped rather than refused, so a client holding an older
      * response does not fail on them.
+     *
+     * @param stationShare the percentage of each provider's daily limit that stations may use
+     *                     together, or null to leave it as it is
      */
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public record MailingConfigRequest(int notificationDigestIntervalMinutes) {}
+    public record MailingConfigRequest(
+            int notificationDigestIntervalMinutes, @Nullable Integer stationShare) {}
 
     /**
      * @param deliveryWebhookUrl the freshly minted address. It carries the instance webhook key, so

@@ -20,6 +20,7 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import TableColumnPicker from '@/components/table/TableColumnPicker.vue'
 import MailRecordTable from '@/components/mail/MailRecordTable.vue'
 import MailProviderStanding from '@/components/mail/MailProviderStanding.vue'
+import MailPoolOverview from '@/components/mail/MailPoolOverview.vue'
 import {useMailRecordTable} from '@/components/mail/useMailRecordTable'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {showToast} from '@/util/toast'
@@ -175,6 +176,7 @@ const stuckTable = useMailRecordTable('mail-stuck', () => data.value?.stuckMails
       </MutedText>
 
       <SubHeader>{{ t('mailDashboard.providersTitle') }}</SubHeader>
+      <MailPoolOverview v-if="data.pool" :pool="data.pool" :providers="data.providers"/>
       <EmptyHint v-if="data.providers.length === 0">{{ t('mailDashboard.noProviders') }}</EmptyHint>
       <MailProviderStanding v-for="standing in data.providers" :key="standing.position" :standing="standing"/>
 
