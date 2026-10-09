@@ -1361,6 +1361,60 @@ class AttendanceServiceTest extends RepositoryTestBase {
         accountRepo.delete(account7.id());
     }
 
+    /**
+     * A withdrawal enters somebody by hand as declined only where the appointment is signed up for.
+     * Where everybody is expected it is a refusal taken back, and the member is entered open.
+     */
+    @Test
+    @Order(60)
+    void createEntryReadsAWithdrawalByWhetherTheAppointmentIsSignedUpFor() {
+        var withdrawerAccount = accountRepo.create("attend-withdrawn@test.com", "Zieht", "Zurück");
+        var withdrawer = stationMemberRepo.create(station.id(), withdrawerAccount.id());
+        var signedUp = withdrawnEvent("Anmeldung zurückgezogen", true, withdrawer.id());
+        var expected = withdrawnEvent("Absage zurückgenommen", false, withdrawer.id());
+        var signedUpSheet = openSheet(templateId, null, null, signedUp.id(), null);
+        var expectedSheet = openSheet(templateId, null, null, expected.id(), null);
+        try {
+            var signedUpEntries =
+                    service.createEntry(signedUpSheet.id(), withdrawer.id(), AttendanceEntry.EntrySource.EXPECTED);
+            assertEquals(AttendanceEntry.AttendanceStatus.DECLINED, statusOf(signedUpEntries, withdrawer.id()));
+
+            var expectedEntries =
+                    service.createEntry(expectedSheet.id(), withdrawer.id(), AttendanceEntry.EntrySource.EXPECTED);
+            assertEquals(AttendanceEntry.AttendanceStatus.UNCONFIRMED, statusOf(expectedEntries, withdrawer.id()));
+        } finally {
+            service.deleteSession(signedUpSheet.id());
+            service.deleteSession(expectedSheet.id());
+            eventRepo.delete(signedUp.id());
+            eventRepo.delete(expected.id());
+            stationMemberRepo.delete(withdrawer.id());
+            accountRepo.delete(withdrawerAccount.id());
+        }
+    }
+
+    /** An appointment a week out on which the member's answer stands withdrawn. */
+    private StationEvent withdrawnEvent(String name, boolean requiresRegistration, int memberId) {
+        var event = eventRepo.create(
+                station.id(),
+                name,
+                "",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                Instant.now().plus(8, ChronoUnit.DAYS),
+                Instant.now().plus(8, ChronoUnit.DAYS).plus(1, ChronoUnit.HOURS),
+                null,
+                requiresRegistration,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null);
+        eventRegistrationRepo.create(event.id(), memberId, dayOf(event), RegistrationStatus.WITHDRAWN, null);
+        return event;
+    }
+
     @Test
     @Order(61)
     void parseMemberIdsFromFieldValueFormats() {
@@ -1679,7 +1733,8 @@ class AttendanceServiceTest extends RepositoryTestBase {
 
     /**
      * A no given to an occasion that asked nobody to answer still arrives on the sheet the moment it
-     * is opened, the same as filling it in from the appointment later writes it.
+     * is opened, the same as filling it in from the appointment later writes it. A no taken back
+     * there is no answer at all, so that member arrives expected rather than declined.
      */
     @Test
     @Order(65)
@@ -1719,7 +1774,7 @@ class AttendanceServiceTest extends RepositoryTestBase {
         try {
             var entries = service.findEntries(session.id());
             assertEquals(AttendanceEntry.AttendanceStatus.DECLINED, statusOf(entries, decliner.id()));
-            assertEquals(AttendanceEntry.AttendanceStatus.DECLINED, statusOf(entries, withdrawer.id()));
+            assertEquals(AttendanceEntry.AttendanceStatus.UNCONFIRMED, statusOf(entries, withdrawer.id()));
             assertEquals(entries, service.syncFromEvent(session.id()), "filling it in later changes nothing");
         } finally {
             service.deleteSession(session.id());
@@ -1827,16 +1882,21 @@ class AttendanceServiceTest extends RepositoryTestBase {
         }
     }
 
-    /** Giving back a place after the sheet was opened declines the row the same way a no does. */
+    /**
+     * A no given over a place after the sheet was opened declines the row. Taking the place back
+     * instead is no answer on an occasion that expects everybody, so that row stays open.
+     */
     @Test
     @Order(65)
-    void aWithdrawalGivenAfterTheSheetWasOpenedReachesIt() {
-        var audience = newAudience("later-back", 1);
+    void aNoGivenAfterTheSheetWasOpenedReachesIt() {
+        var audience = newAudience("later-back", 2);
         var event = occasionWithoutRegistration("Abend mit Rückzug", audience.templateId(), 15);
         var session = openSheet(audience.templateId(), null, null, event.id(), null);
         try {
             var registrations = answering();
-            var place = registrations.register(event.id(), audience.member(0).id(), dayOf(event), true, null);
+            var refused = registrations.register(event.id(), audience.member(0).id(), dayOf(event), true, null);
+            var takenBack =
+                    registrations.register(event.id(), audience.member(1).id(), dayOf(event), true, null);
             assertEquals(
                     AttendanceEntry.AttendanceStatus.UNCONFIRMED,
                     statusOf(
@@ -1844,13 +1904,19 @@ class AttendanceServiceTest extends RepositoryTestBase {
                             audience.member(0).id()),
                     "a yes leaves the row to be checked");
 
-            registrations.withdraw(place.id());
+            registrations.refuse(refused.id());
+            registrations.withdraw(takenBack.id());
 
             assertEquals(
                     AttendanceEntry.AttendanceStatus.DECLINED,
                     statusOf(
                             service.findEntries(session.id()),
                             audience.member(0).id()));
+            assertEquals(
+                    AttendanceEntry.AttendanceStatus.UNCONFIRMED,
+                    statusOf(
+                            service.findEntries(session.id()),
+                            audience.member(1).id()));
         } finally {
             service.deleteSession(session.id());
             eventRepo.delete(event.id());

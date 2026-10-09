@@ -86,6 +86,7 @@ Wachen erstellen aus eigenen Vorlagen und denen ihres Verbands Dokumente für ih
 - **Ein Import in eine Wache änderte ihre Identität.** Wurden die Daten einer anderen Wache in eine bestehende Wache importiert, übernahm diese die Identität der anderen und verlor damit den Zugang zu ihren eigenen Dateien und Partnern. Jetzt behält sie ihre eigene Identität.
 - **Beim Umzug einer Wache fehlten Einträge oder kamen doppelt an.** In manchen Fällen ließ der Umzug einer Wache mit vielen Einträgen einige davon aus und brachte andere zweimal. Jetzt kommt jeder Eintrag genau einmal an.
 - **Das Löschen eines Mitglieds konnte ein noch genutztes Konto löschen.** Wurde ein Mitglied gelöscht, das zu keiner anderen Wache gehörte, konnte auch sein Konto gelöscht werden, obwohl es noch eine Rolle in einem Verband hatte. Jetzt wird nur das Mitglied entfernt, und das Konto behält seine Rolle im Verband.
+- **Eine zurückgenommene Absage zählte weiter als Absage.** Bei Terminen ohne Anmeldung konnte ein Mitglied, das seine Absage zurückgenommen hatte, weiter auf der Anwesenheitsliste als abwesend stehen, keine Erinnerung bekommen, im Kalender fehlen und bei den Absagen mitgezählt werden. Jetzt zählt es nach der Rücknahme wieder als erwartet, auch bei Absagen, die vor diesem Release zurückgenommen wurden.
 - **System-Mails blieben manchmal für immer liegen.** Hatten alle Anbieter der Instanz ihr Tageslimit erreicht, wurde eine wartende Mail wie ein Passwort-Link in manchen Fällen nie verschickt, auch am nächsten Tag nicht. Jetzt geht sie am nächsten Tag raus.
 
 ## v26.21.0

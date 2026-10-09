@@ -6,7 +6,7 @@
 /** @vitest-environment happy-dom */
 import {describe, expect, it} from 'vitest'
 import {FieldType, RegistrationStatus, type EventRegistrationField, type RegistrationResponse} from '@/api/generated/schema'
-import {answerTotals, localAnswers, membersToRegister, rowsOnDate} from './eventAnswers'
+import {answerTotals, localAnswers, membersToRegister, rowsOnDate, saysNotComing} from './eventAnswers'
 
 const SETTINGS = {required: false, managersOnly: false, selfRegistration: false, perDate: false}
 
@@ -158,6 +158,24 @@ describe('membersToRegister', () => {
     ])
 
     expect(offered.map(entry => entry.value)).toEqual(['3', '4', '5', '6'])
+  })
+})
+
+describe('saysNotComing', () => {
+  it('reads a refusal as not coming either way', () => {
+    expect(saysNotComing(RegistrationStatus.DECLINED, false)).toBe(true)
+    expect(saysNotComing(RegistrationStatus.DECLINED, true)).toBe(true)
+  })
+
+  /** Where everybody is expected, taking back is taking a refusal back, so the member is expected again. */
+  it('reads a withdrawal as not coming only where the appointment is signed up for', () => {
+    expect(saysNotComing(RegistrationStatus.WITHDRAWN, true)).toBe(true)
+    expect(saysNotComing(RegistrationStatus.WITHDRAWN, false)).toBe(false)
+  })
+
+  it('reads a held or awaited place as coming', () => {
+    expect(saysNotComing(RegistrationStatus.ACCEPTED, true)).toBe(false)
+    expect(saysNotComing(RegistrationStatus.PENDING, true)).toBe(false)
   })
 })
 

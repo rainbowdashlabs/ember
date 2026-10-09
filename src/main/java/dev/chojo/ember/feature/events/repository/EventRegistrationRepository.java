@@ -257,13 +257,17 @@ public class EventRegistrationRepository {
      *
      * <p>Declining and taking a confirmed place back are different acts and are stored apart, but
      * both end with somebody not being there, so anything that acts on who is coming reads them
-     * together: no reminder is sent, and the attendance sheet opens with them marked away.
+     * together: no reminder is sent, and the attendance sheet opens with them marked away. On an
+     * appointment that expects everybody a withdrawal is a refusal taken back instead, and is not
+     * read as one, see {@link RefusalSql#NOT_COMING}.
      */
     public List<Integer> findNotAttendingMemberIds(int eventId, LocalDate eventDate) {
         return query("""
-                SELECT member_id FROM event_registration
-                WHERE event_id = :event_id AND event_date = :event_date
-                  AND status IN ('DECLINED', 'WITHDRAWN');""")
+                SELECT er.member_id
+                FROM event_registration er
+                    JOIN station_event se ON se.id = er.event_id
+                WHERE er.event_id = :event_id AND er.event_date = :event_date
+                  AND %s;""", RefusalSql.NOT_COMING)
                 .single(call().bind("event_id", eventId).bind("event_date", eventDate))
                 .map(row -> row.getInt("member_id"))
                 .all();
@@ -281,7 +285,7 @@ public class EventRegistrationRepository {
                     count(*)                                               AS registered,
                     count(*) FILTER (WHERE er.status = 'ACCEPTED')         AS accepted,
                     count(*) FILTER (WHERE er.status = 'DENIED')           AS denied,
-                    count(*) FILTER (WHERE er.status IN ('DECLINED', 'WITHDRAWN')) AS declined,
+                    count(*) FILTER (WHERE %s)                             AS declined,
                     max(er.event_date) FILTER (WHERE er.status = 'DENIED') AS last_denied
                 FROM
                     event_registration er
@@ -299,7 +303,7 @@ public class EventRegistrationRepository {
                     FROM event_registration
                     WHERE event_id = :event_id
                                       )
-                GROUP BY er.member_id;""")
+                GROUP BY er.member_id;""", RefusalSql.NOT_COMING)
                 .single(call().bind("event_id", eventId)
                         .bind("category_id", categoryId)
                         .bind("months", months))

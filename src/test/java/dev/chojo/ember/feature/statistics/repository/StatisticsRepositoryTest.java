@@ -157,6 +157,10 @@ class StatisticsRepositoryTest extends RepositoryTestBase {
     }
 
     private static StationEvent eventAt(int stationId, String name, Instant start) {
+        return eventAt(stationId, name, start, true);
+    }
+
+    private static StationEvent eventAt(int stationId, String name, Instant start, boolean requiresRegistration) {
         return eventRepo.create(
                 stationId,
                 name,
@@ -166,7 +170,7 @@ class StatisticsRepositoryTest extends RepositoryTestBase {
                 start,
                 start.plus(Duration.ofHours(1)),
                 null,
-                true,
+                requiresRegistration,
                 null,
                 false,
                 null,
@@ -232,6 +236,25 @@ class StatisticsRepositoryTest extends RepositoryTestBase {
         var registrations = statistics.stationStatistics(station.id()).eventRegistrations();
 
         assertEquals(List.of(new EventRegistrations("Kommend", 1, 1, 2)), registrations);
+    }
+
+    /**
+     * Where everybody is expected, a withdrawal is a refusal taken back, so only the refusal still
+     * standing counts as staying away.
+     */
+    @Test
+    void aRefusalTakenBackWhereEverybodyIsExpectedIsNotCountedAsDeclined() {
+        var station = stationRepo.create("Expected Statistics Station");
+        int first = memberOf(station.id(), "ev-expected-first@test.com");
+        int second = memberOf(station.id(), "ev-expected-second@test.com");
+        var expected = eventAt(station.id(), "Dienstabend", Instant.now().plus(Duration.ofDays(5)), false);
+        LocalDate day = LocalDate.now().plusDays(5);
+        eventRegistrationRepo.create(expected.id(), first, day, RegistrationStatus.DECLINED, null);
+        eventRegistrationRepo.create(expected.id(), second, day, RegistrationStatus.WITHDRAWN, null);
+
+        var registrations = statistics.stationStatistics(station.id()).eventRegistrations();
+
+        assertEquals(List.of(new EventRegistrations("Dienstabend", 0, 0, 1)), registrations);
     }
 
     @Test

@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.statistics.repository;
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry.AttendanceStatus;
 import dev.chojo.ember.feature.cluster.entity.StationKind;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
+import dev.chojo.ember.feature.events.repository.RefusalSql;
 import dev.chojo.ember.feature.federation.entity.FederationPartner.FederationStatus;
 import dev.chojo.ember.feature.mail.entity.EmailQueueStatus;
 import dev.chojo.ember.feature.station.entity.ApplicationStatus;
@@ -165,7 +166,7 @@ public class StatisticsRepository {
                             se.name,
                             count(er.id) FILTER (WHERE er.status = :accepted)                 AS accepted,
                             count(er.id) FILTER (WHERE er.status = :pending)                  AS pending,
-                            count(er.id) FILTER (WHERE er.status IN (:declined, :withdrawn)) AS declined
+                            count(er.id) FILTER (WHERE %s)                                    AS declined
                         FROM
                             station_event se
                             LEFT JOIN event_registration er ON er.event_id = se.id
@@ -173,12 +174,10 @@ public class StatisticsRepository {
                           AND se.start_time >= now()
                         GROUP BY se.id, se.name
                         HAVING count(er.id) > 0
-                        ORDER BY se.start_time;""")
+                        ORDER BY se.start_time;""", RefusalSql.NOT_COMING)
                 .single(call().bind("station_id", stationId)
                         .bind("accepted", RegistrationStatus.ACCEPTED)
-                        .bind("pending", RegistrationStatus.PENDING)
-                        .bind("declined", RegistrationStatus.DECLINED)
-                        .bind("withdrawn", RegistrationStatus.WITHDRAWN))
+                        .bind("pending", RegistrationStatus.PENDING))
                 .map(row -> new EventRegistrations(
                         row.getString("name"), row.getInt("accepted"), row.getInt("pending"), row.getInt("declined")))
                 .all();
