@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.generator.service.DocumentTemplateService;
 import dev.chojo.ember.feature.generator.service.EventRequirementService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.signing.entity.AppointmentRequest;
 import dev.chojo.ember.feature.signing.entity.FieldRole;
 import dev.chojo.ember.feature.signing.entity.RequestedSignature;
 import dev.chojo.ember.feature.signing.entity.SignatureImageSource;
@@ -20,6 +21,7 @@ import dev.chojo.ember.feature.signing.entity.SignatureRequest;
 import dev.chojo.ember.feature.signing.entity.SigningAnswer;
 import dev.chojo.ember.feature.signing.entity.SigningCircumstances;
 import dev.chojo.ember.feature.signing.entity.SigningPicture;
+import dev.chojo.ember.feature.signing.repository.SignatureRequestRepository;
 import dev.chojo.ember.feature.signing.service.SignatureFieldService;
 import dev.chojo.ember.feature.signing.service.SignatureImageService;
 import dev.chojo.ember.feature.signing.service.SignatureRequestService;
@@ -34,6 +36,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Predicate;
 
 /**
@@ -46,9 +49,11 @@ import java.util.function.Predicate;
  * and one carer. Whoever the festival already holds a place for keeps that registration, and the others are
  * registered as accepted. The youth warden Anna Schmidt, who issues the consent and takes it in, keeps a
  * signature picture and agreed to documents being signed for her, so every copy arrives signed by her for
- * the station. Each of them fetched their copy of the consent from the appointment, the guardians for their
- * children, and the station's administrator asked for the signatures on each. From there the copies stand at
- * every step a station sees:
+ * the station. Whoever already held a place when the consent was attached was asked for it by attaching it,
+ * on a copy of their own, and that copy and request are the ones taken on. The others fetched their copy of
+ * the consent from the appointment, the guardians for their children, and the station's administrator asked
+ * for the signatures on each. Either way each of them holds one request for the consent. From there the
+ * copies stand at every step a station sees:
  *
  * <ul>
  *   <li>Lena Berger's is signed by everybody: by Lena and by her guardian Hans Berger, and sealed with each
@@ -62,8 +67,9 @@ import java.util.function.Predicate;
  * the consent waiting to be signed.
  *
  * <p>Everything goes through the services a person's request reaches, in the session of whoever would do it
- * ({@link DemoSessions}): the template is saved as a manager saves one, the copies are fetched from the
- * appointment, signatures are asked for, and every signature is a signing act confirmed with the demo
+ * ({@link DemoSessions}): the template is saved as a manager saves one, the issuer agrees to signing for the
+ * station before the consent is attached, the copies are fetched from the appointment, signatures are asked
+ * for, and every signature is a signing act confirmed with the demo
  * password and a drawn signature. Sealing follows the instance's settings for timestamps like any other act.
  *
  * <p>A station that already has the consent keeps it and everything hung on it, so seeding twice leaves one.
@@ -112,6 +118,7 @@ public class DemoPhotoConsentSeeder implements DemoSeeder {
     private final EventRequirementService requirements;
     private final AppointmentDocumentService appointments;
     private final SignatureRequestService signatures;
+    private final SignatureRequestRepository requestRepository;
     private final SignatureFieldService signatureFields;
     private final SigningActService acts;
     private final StationMemberRepository stationMembers;
@@ -125,6 +132,7 @@ public class DemoPhotoConsentSeeder implements DemoSeeder {
             EventRequirementService requirements,
             AppointmentDocumentService appointments,
             SignatureRequestService signatures,
+            SignatureRequestRepository requestRepository,
             SignatureFieldService signatureFields,
             SigningActService acts,
             StationMemberRepository stationMembers,
@@ -136,6 +144,7 @@ public class DemoPhotoConsentSeeder implements DemoSeeder {
         this.requirements = requirements;
         this.appointments = appointments;
         this.signatures = signatures;
+        this.requestRepository = requestRepository;
         this.signatureFields = signatureFields;
         this.acts = acts;
         this.stationMembers = stationMembers;
@@ -161,18 +170,13 @@ public class DemoPhotoConsentSeeder implements DemoSeeder {
                 .create(owner, DemoPhotoConsentTemplate.request(warden.id()), author)
                 .id();
         var festival = station.events().buergerfest();
-        requirements.setForEvent(owner, festival.event().id(), List.of(consent));
         signsForTheStation(warden);
+        requirements.setForEvent(owner, festival.event().id(), List.of(consent));
         var manager = sessions.of(station.station(), station.adminMember().id());
         for (var participant : participants(station.members())) {
             register(festival, participant.memberId());
-            var copy = appointments.generate(
-                    sessions.of(station.station(), participant.fetchedBy()),
-                    festival.event(),
-                    festival.day(),
-                    consent,
-                    participant.memberId());
-            var request = signatures.request(manager, copy.generationId());
+            var request = askedOnAttaching(festival, consent, participant.memberId())
+                    .orElseGet(() -> fetchAndAsk(station.station(), manager, festival, consent, participant));
             settle(station.station(), manager, request, participant.progress());
         }
         log.info(
@@ -231,6 +235,37 @@ public class DemoPhotoConsentSeeder implements DemoSeeder {
         int eventId = festival.event().id();
         if (registrations.findRegisteredMemberIds(eventId, festival.day()).contains(memberId)) return;
         registrations.create(eventId, memberId, festival.day(), RegistrationStatus.ACCEPTED, null);
+    }
+
+    /**
+     * The request attaching the consent already made for a participant who held a place on the festival
+     * then, on the copy filed for them.
+     */
+    private Optional<SignatureRequest> askedOnAttaching(
+            DemoEventSeeder.Appointment festival, int consent, int memberId) {
+        return requestRepository.liveForAppointment(festival.event().id(), festival.day(), memberId).stream()
+                .filter(asked -> asked.templateId() == consent)
+                .map(AppointmentRequest::request)
+                .findFirst();
+    }
+
+    /**
+     * Fetches the participant's copy from the festival as whoever fetches it for them, and asks for its
+     * signatures as the station's administrator.
+     */
+    private SignatureRequest fetchAndAsk(
+            Station station,
+            StationSession manager,
+            DemoEventSeeder.Appointment festival,
+            int consent,
+            Participant participant) {
+        var copy = appointments.generate(
+                sessions.of(station, participant.fetchedBy()),
+                festival.event(),
+                festival.day(),
+                consent,
+                participant.memberId());
+        return signatures.request(manager, copy.generationId());
     }
 
     /** Brings one participant's request as far as their consent has come. */

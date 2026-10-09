@@ -34,6 +34,7 @@ import dev.chojo.ember.feature.events.service.EventTemplateService;
 import dev.chojo.ember.feature.generator.entity.LetterContent;
 import dev.chojo.ember.feature.generator.entity.SignatureRole;
 import dev.chojo.ember.feature.generator.entity.TemplateSigning;
+import dev.chojo.ember.feature.generator.repository.DocumentGenerationRepository;
 import dev.chojo.ember.feature.generator.repository.EventRequirementRepository;
 import dev.chojo.ember.feature.generator.repository.PaperSubmissionRepository;
 import dev.chojo.ember.feature.generator.service.AppointmentDocumentService;
@@ -49,14 +50,20 @@ import dev.chojo.ember.feature.mail.service.MailRecipientService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.MemberGroupSetRepository;
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
+import dev.chojo.ember.feature.signing.entity.AppointmentRequest;
 import dev.chojo.ember.feature.signing.entity.FieldState;
 import dev.chojo.ember.feature.signing.entity.RequestState;
 import dev.chojo.ember.feature.signing.entity.RequestedSignature;
 import dev.chojo.ember.feature.signing.entity.SignatureRequest;
+import dev.chojo.ember.feature.signing.handler.RequirementChangeSignaturesHandler;
 import dev.chojo.ember.feature.signing.repository.AccountSignatureRepository;
+import dev.chojo.ember.feature.signing.repository.IssuerSignatureRepository;
 import dev.chojo.ember.feature.signing.repository.SignatureRequestRepository;
 import dev.chojo.ember.feature.signing.repository.SigningEvidenceRepository;
+import dev.chojo.ember.feature.signing.service.AppointmentSignatures;
+import dev.chojo.ember.feature.signing.service.ChangedRequirementSignatures;
 import dev.chojo.ember.feature.signing.service.InEmberSignatureProvider;
+import dev.chojo.ember.feature.signing.service.IssuedLetterSigner;
 import dev.chojo.ember.feature.signing.service.SignatureFieldService;
 import dev.chojo.ember.feature.signing.service.SignatureImageService;
 import dev.chojo.ember.feature.signing.service.SignatureNotices;
@@ -116,6 +123,7 @@ class DemoPhotoConsentSeederTest extends RepositoryTestBase {
     private static DemoPhotoConsentSeeder seeder;
     private static SignatureRequestService requests;
     private static EventRequirementRepository requirementRepo;
+    private static ChangedRequirementSignatures changes;
     private static DemoClock clock;
 
     @BeforeAll
@@ -226,10 +234,11 @@ class DemoPhotoConsentSeederTest extends RepositoryTestBase {
                 wiring.templates(),
                 new MemberNeutralTemplates(wiring.templates()),
                 new EventFederationRepository(),
-                new DomainEventBus(Set.of()));
+                new DomainEventBus(Set.of(new RequirementChangeSignaturesHandler(() -> changes))));
+        var submissions = new PaperSubmissionRepository();
         var appointments = new AppointmentDocumentService(
                 requirementRepo,
-                new PaperSubmissionRepository(),
+                submissions,
                 wiring.templates(),
                 wiring.generator(),
                 wiring.generation(),
@@ -240,12 +249,26 @@ class DemoPhotoConsentSeederTest extends RepositoryTestBase {
                 wiring.issuers(),
                 new EventRestrictionService(eventRepo, restrictionService),
                 RequirementSignatures.NONE);
+        var signatures = new AppointmentSignatures(
+                eventRepo,
+                eventRegistrationRepo,
+                appointments,
+                requirementRepo,
+                submissions,
+                requestRepo,
+                requests,
+                new DocumentGenerationRepository(),
+                new IssuerSignatureRepository(),
+                mock(IssuedLetterSigner.class));
+        changes = new ChangedRequirementSignatures(
+                eventRepo, eventRegistrationRepo, stationRepo, signatures, requestRepo, requests);
         return new DemoPhotoConsentSeeder(
                 wiring.templates(),
                 eventRegistrationRepo,
                 requirements,
                 appointments,
                 requests,
+                requestRepo,
                 fields,
                 acts,
                 stationMemberRepo,
@@ -306,7 +329,31 @@ class DemoPhotoConsentSeederTest extends RepositoryTestBase {
         var station = run.primaryStation();
         assertEquals(1, consents(station).size());
         assertEquals(1, festivals(station).size());
-        assertEquals(5, requestsOf(festival()).size());
+        for (var participant : seeder.participants(members())) {
+            assertEquals(1, liveRequestsOf(participant.memberId()).size(), "member " + participant.memberId());
+        }
+    }
+
+    /**
+     * Attaching the consent asks whoever already held a place on the festival, and the seeder takes that
+     * request on instead of asking a second time, so each participant holds exactly one live request for the
+     * consent on the day, and the member left unregistered holds none.
+     */
+    @Test
+    void eachParticipantHoldsOneLiveRequestForTheConsent() {
+        var participants = seeder.participants(members());
+        for (var participant : participants) {
+            assertEquals(1, liveRequestsOf(participant.memberId()).size(), "member " + participant.memberId());
+        }
+        assertTrue(
+                participants.stream()
+                        .anyMatch(participant -> liveRequestsOf(participant.memberId())
+                                        .getFirst()
+                                        .createdBy()
+                                == null),
+                "someone already registered was asked by attaching the consent");
+        assertTrue(liveRequestsOf(DemoPhotoConsentSeeder.unregistered(members()).id())
+                .isEmpty());
     }
 
     @Test
@@ -515,18 +562,17 @@ class DemoPhotoConsentSeederTest extends RepositoryTestBase {
         return run.primaryStation().events().buergerfest().day();
     }
 
-    private static List<SignatureRequest> requestsOf(StationEvent festival) {
-        var participants = eventRegistrationRepo.findRegisteredMemberIds(festival.id(), festivalDay());
-        return requirementRepo.latest(festival.id(), festivalDay(), participants).stream()
-                .map(copy -> requestRepo.findLiveFor(copy.generationId()).orElseThrow())
+    private static List<SignatureRequest> liveRequestsOf(int memberId) {
+        return requestRepo.liveForAppointment(festival().id(), festivalDay(), memberId).stream()
+                .filter(asked -> asked.templateId() == consentId())
+                .map(AppointmentRequest::request)
                 .toList();
     }
 
     private static SignatureRequest requestFor(StationMember member) {
-        return requestsOf(festival()).stream()
-                .filter(request -> Objects.equals(request.memberId(), member.id()))
-                .findFirst()
-                .orElseThrow();
+        var live = liveRequestsOf(member.id());
+        assertEquals(1, live.size(), "member " + member.id());
+        return live.getFirst();
     }
 
     private static Set<String> names(List<RequestedSignature> fields) {
