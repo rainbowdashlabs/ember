@@ -2140,6 +2140,173 @@
         }
       }
     },
+    "/api/v1/admin/config/mailing/stations" : {
+      "get" : {
+        "summary" : "Every station and whether it may send through the instance's mail providers",
+        "tags" : [ "Settings" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/InstanceMailStation"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/config/mailing/stations/grant" : {
+      "post" : {
+        "summary" : "Let several stations send through the instance's mail providers",
+        "tags" : [ "Settings" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/InstanceMailStation"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/InstanceMailBulkGrantRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/config/mailing/stations/withdraw" : {
+      "post" : {
+        "summary" : "Take the instance's mail providers away from several stations",
+        "tags" : [ "Settings" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/InstanceMailStation"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/InstanceMailBulkWithdrawRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/config/mailing/stations/{stationUid}" : {
+      "get" : {
+        "summary" : "Whether one station may send through the instance's mail providers",
+        "tags" : [ "Settings" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/InstanceMailStation"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "stationUid",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ]
+      },
+      "put" : {
+        "summary" : "Let one station send through the instance's mail providers, or change its daily limit there",
+        "tags" : [ "Settings" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/InstanceMailStation"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "stationUid",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/InstanceMailGrantRequest"
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "summary" : "Take the instance's mail providers away from one station",
+        "tags" : [ "Settings" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/InstanceMailStation"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "stationUid",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ]
+      }
+    },
     "/api/v1/admin/config/mailing/stuck/requeue" : {
       "post" : {
         "summary" : "Queue left-behind instance mails for another attempt",
@@ -41955,6 +42122,24 @@
         }
       }
     },
+    "/api/v1/station/manage/mail/instance" : {
+      "get" : {
+        "summary" : "Get whether the instance's mail providers carry the station's mail, and today's use",
+        "tags" : [ "Station Manage" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/InstanceMailStation"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/station/manage/mail/providers" : {
       "get" : {
         "summary" : "Get the station's mail providers in the order they are tried",
@@ -42037,6 +42222,49 @@
             "application/json" : {
               "schema" : {
                 "$ref" : "#/components/schemas/ProviderTestRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/station/manage/mail/reply-to" : {
+      "get" : {
+        "summary" : "Get where replies to the station's mail go",
+        "tags" : [ "Station Manage" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MailReplyTo"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "summary" : "Set where replies to the station's mail go, or send them to the sender address again",
+        "tags" : [ "Station Manage" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MailReplyTo"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/MailReplyTo"
               }
             }
           }
@@ -56447,6 +56675,74 @@
         },
         "required" : [ "code", "validForHours" ]
       },
+      "InstanceMailBulkGrantRequest" : {
+        "type" : "object",
+        "properties" : {
+          "stationUids" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string",
+              "format" : "uuid"
+            }
+          },
+          "dailyLimit" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          }
+        }
+      },
+      "InstanceMailBulkWithdrawRequest" : {
+        "type" : "object",
+        "properties" : {
+          "stationUids" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string",
+              "format" : "uuid"
+            }
+          }
+        }
+      },
+      "InstanceMailGrantRequest" : {
+        "type" : "object",
+        "properties" : {
+          "dailyLimit" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          }
+        }
+      },
+      "InstanceMailStation" : {
+        "type" : "object",
+        "properties" : {
+          "stationUid" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "granted" : {
+            "type" : "boolean"
+          },
+          "grantedAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "dailyLimit" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "sentToday" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "stationUid", "name", "granted", "grantedAt", "dailyLimit", "sentToday" ]
+      },
       "InstanceMigrateRequest" : {
         "type" : "object",
         "properties" : {
@@ -59502,9 +59798,16 @@
             "items" : {
               "$ref" : "#/components/schemas/ProviderBlock"
             }
+          },
+          "pool" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/PoolOverview"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
-        "required" : [ "pending", "sending", "sent", "failed", "stuck", "oldestPendingAt", "providers", "stuckMails", "recent", "blocks" ]
+        "required" : [ "pending", "sending", "sent", "failed", "stuck", "oldestPendingAt", "providers", "stuckMails", "recent", "blocks", "pool" ]
       },
       "MailDeliveryStatus" : {
         "type" : "string",
@@ -59635,6 +59938,15 @@
         },
         "required" : [ "id", "recipient", "subject", "createdAt", "sentAt", "status", "deliveryStatus", "deliveryDetail", "attempts", "providerPosition", "reachable" ]
       },
+      "MailReplyTo" : {
+        "type" : "object",
+        "properties" : {
+          "replyTo" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "replyTo" ]
+      },
       "MailRuleAction" : {
         "type" : "string",
         "enum" : [ "NOTHING", "MARK_SEEN", "FLAG", "MOVE" ]
@@ -59764,6 +60076,10 @@
           "notificationDigestIntervalMinutes" : {
             "type" : "integer",
             "format" : "int32"
+          },
+          "stationShare" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
           }
         }
       },
@@ -59773,9 +60089,13 @@
           "notificationDigestIntervalMinutes" : {
             "type" : "integer",
             "format" : "int32"
+          },
+          "stationShare" : {
+            "type" : "integer",
+            "format" : "int32"
           }
         },
-        "required" : [ "notificationDigestIntervalMinutes" ]
+        "required" : [ "notificationDigestIntervalMinutes", "stationShare" ]
       },
       "ManagedAccess" : {
         "type" : "object",
@@ -64201,6 +64521,20 @@
         "type" : "string",
         "enum" : [ "PENDING", "APPROVED", "EXPIRED", "UNKNOWN", "REJECTED" ]
       },
+      "PoolOverview" : {
+        "type" : "object",
+        "properties" : {
+          "sharePercent" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "grantedStations" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "sharePercent", "grantedStations" ]
+      },
       "PoolRequest" : {
         "type" : "object",
         "properties" : {
@@ -64209,6 +64543,26 @@
             "format" : "int64"
           }
         }
+      },
+      "PoolStanding" : {
+        "type" : "object",
+        "properties" : {
+          "limit" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "sentToday" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "stations" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/StationPoolUse"
+            }
+          }
+        },
+        "required" : [ "limit", "sentToday", "stations" ]
       },
       "PresetRequest" : {
         "type" : "object",
@@ -65373,9 +65727,19 @@
           },
           "exhausted" : {
             "type" : "boolean"
+          },
+          "viaInstance" : {
+            "type" : "boolean"
+          },
+          "pool" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/PoolStanding"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
-        "required" : [ "position", "provider", "senderAddress", "attempts", "dailySendLimit", "sentToday", "waiting", "exhausted" ]
+        "required" : [ "position", "provider", "senderAddress", "attempts", "dailySendLimit", "sentToday", "waiting", "exhausted", "viaInstance", "pool" ]
       },
       "ProviderTestRequest" : {
         "type" : "object",
@@ -72094,6 +72458,27 @@
           }
         },
         "required" : [ "stationUid", "name", "city", "country", "logoUrl", "selectable" ]
+      },
+      "StationPoolUse" : {
+        "type" : "object",
+        "properties" : {
+          "instancePosition" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "stationUid" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "sentToday" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "instancePosition", "stationUid", "name", "sentToday" ]
       },
       "StationRegistrationStatus" : {
         "type" : "object",

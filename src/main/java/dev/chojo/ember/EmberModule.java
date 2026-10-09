@@ -215,6 +215,7 @@ import dev.chojo.ember.feature.knowledgebase.service.KnowledgeBaseFederationServ
 import dev.chojo.ember.feature.legal.route.ConsentRoutes;
 import dev.chojo.ember.feature.lostandfound.route.LostAndFoundRoutes;
 import dev.chojo.ember.feature.lostandfound.service.LostAndFoundFeedDetails;
+import dev.chojo.ember.feature.mail.route.InstanceMailGrantRoutes;
 import dev.chojo.ember.feature.mail.route.MailWebhookRoutes;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.mail.service.MailWebhookService;
@@ -496,6 +497,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(PublicPageRoutes.class);
         routesBinder.addBinding().to(SharedPageRoutes.class);
         routesBinder.addBinding().to(MailWebhookRoutes.class);
+        routesBinder.addBinding().to(InstanceMailGrantRoutes.class);
         routesBinder.addBinding().to(UserSettingsRoutes.class);
         routesBinder.addBinding().to(MovementRoutes.class);
         routesBinder.addBinding().to(MovementFlowRoutes.class);

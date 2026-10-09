@@ -3253,6 +3253,208 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/config/mailing/stations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every station and whether it may send through the instance's mail providers */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["InstanceMailStation"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/config/mailing/stations/{stationUid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Whether one station may send through the instance's mail providers */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    stationUid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["InstanceMailStation"];
+                    };
+                };
+            };
+        };
+        /** Let one station send through the instance's mail providers, or change its daily limit there */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    stationUid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["InstanceMailGrantRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["InstanceMailStation"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Take the instance's mail providers away from one station */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    stationUid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["InstanceMailStation"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/config/mailing/stations/grant": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Let several stations send through the instance's mail providers */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["InstanceMailBulkGrantRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["InstanceMailStation"][];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/config/mailing/stations/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Take the instance's mail providers away from several stations */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["InstanceMailBulkWithdrawRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["InstanceMailStation"][];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/config/mailing/stuck/requeue": {
         parameters: {
             query?: never;
@@ -55224,6 +55426,42 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/station/manage/mail/instance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get whether the instance's mail providers carry the station's mail, and today's use */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["InstanceMailStation"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/station/manage/mail/providers": {
         parameters: {
             query?: never;
@@ -55320,6 +55558,66 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/station/manage/mail/reply-to": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get where replies to the station's mail go */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MailReplyTo"];
+                    };
+                };
+            };
+        };
+        /** Set where replies to the station's mail go, or send them to the sender address again */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["MailReplyTo"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MailReplyTo"];
+                    };
+                };
+            };
+        };
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -62109,6 +62407,29 @@ export interface components {
             /** Format: int64 */
             validForHours: number;
         };
+        InstanceMailBulkGrantRequest: {
+            /** Format: int32 */
+            dailyLimit?: number | null;
+            stationUids?: string[];
+        };
+        InstanceMailBulkWithdrawRequest: {
+            stationUids?: string[];
+        };
+        InstanceMailGrantRequest: {
+            /** Format: int32 */
+            dailyLimit?: number | null;
+        };
+        InstanceMailStation: {
+            /** Format: int32 */
+            dailyLimit: number | null;
+            granted: boolean;
+            grantedAt: components["schemas"]["Instant"] | null;
+            name: string;
+            /** Format: int32 */
+            sentToday: number;
+            /** Format: uuid */
+            stationUid: string;
+        };
         InstanceMigrateRequest: {
             keepSource?: boolean | null;
             target?: components["schemas"]["BackendRequest"] | null;
@@ -63277,6 +63598,7 @@ export interface components {
             oldestPendingAt: components["schemas"]["Instant"] | null;
             /** Format: int32 */
             pending: number;
+            pool: components["schemas"]["PoolOverview"] | null;
             providers: components["schemas"]["ProviderStanding"][];
             recent: components["schemas"]["MailRecord"][];
             /** Format: int32 */
@@ -63318,10 +63640,14 @@ export interface components {
         MailingConfigRequest: {
             /** Format: int32 */
             notificationDigestIntervalMinutes?: number;
+            /** Format: int32 */
+            stationShare?: number | null;
         };
         MailingConfigResponse: {
             /** Format: int32 */
             notificationDigestIntervalMinutes: number;
+            /** Format: int32 */
+            stationShare: number;
         };
         /** @enum {string} */
         MailProviderType: "NONE" | "SMTP" | "RAPIDMAIL" | "TWILIO" | "SWEEGO" | "BREVO";
@@ -63342,6 +63668,9 @@ export interface components {
             sentAt: components["schemas"]["Instant"] | null;
             status: components["schemas"]["EmailQueueStatus"];
             subject: string;
+        };
+        MailReplyTo: {
+            replyTo: string | null;
         };
         /** @enum {string} */
         MailRuleAction: "NOTHING" | "MARK_SEEN" | "FLAG" | "MOVE";
@@ -64848,9 +65177,22 @@ export interface components {
         };
         /** @enum {string} */
         PollStatus: "PENDING" | "APPROVED" | "EXPIRED" | "UNKNOWN" | "REJECTED";
+        PoolOverview: {
+            /** Format: int32 */
+            grantedStations: number;
+            /** Format: int32 */
+            sharePercent: number;
+        };
         PoolRequest: {
             /** Format: int64 */
             quotaBytes?: number;
+        };
+        PoolStanding: {
+            /** Format: int32 */
+            limit: number | null;
+            /** Format: int32 */
+            sentToday: number;
+            stations: components["schemas"]["StationPoolUse"][];
         };
         PresetRequest: {
             /** Format: int64 */
@@ -65241,12 +65583,14 @@ export interface components {
             /** Format: int32 */
             dailySendLimit: number;
             exhausted: boolean;
+            pool: components["schemas"]["PoolStanding"] | null;
             /** Format: int32 */
             position: number;
             provider: components["schemas"]["MailProviderType"];
             senderAddress: string;
             /** Format: int32 */
             sentToday: number;
+            viaInstance: boolean;
             /** Format: int32 */
             waiting: number;
         };
@@ -67538,6 +67882,15 @@ export interface components {
             selectable: boolean;
             stationUid: string;
         };
+        StationPoolUse: {
+            /** Format: int32 */
+            instancePosition: number;
+            name: string;
+            /** Format: int32 */
+            sentToday: number;
+            /** Format: uuid */
+            stationUid: string;
+        };
         StationRegistrationStatus: {
             enabled: boolean;
         };
@@ -69535,6 +69888,10 @@ export type ImportResult = components['schemas']['ImportResult'];
 export type ImportStartResponse = components['schemas']['ImportStartResponse'];
 export type InstallPresetRequest = components['schemas']['InstallPresetRequest'];
 export type InstallPresetResponse = components['schemas']['InstallPresetResponse'];
+export type InstanceMailBulkGrantRequest = components['schemas']['InstanceMailBulkGrantRequest'];
+export type InstanceMailBulkWithdrawRequest = components['schemas']['InstanceMailBulkWithdrawRequest'];
+export type InstanceMailGrantRequest = components['schemas']['InstanceMailGrantRequest'];
+export type InstanceMailStation = components['schemas']['InstanceMailStation'];
 export type InstanceMigrateRequest = components['schemas']['InstanceMigrateRequest'];
 export type InstanceMigrationStatusResponse = components['schemas']['InstanceMigrationStatusResponse'];
 export type InstanceSettingsResponse = components['schemas']['InstanceSettingsResponse'];
@@ -69693,6 +70050,7 @@ export type MailingConfigResponse = components['schemas']['MailingConfigResponse
 export type MailProviderType = components['schemas']['MailProviderType'];
 export type MailReaches = components['schemas']['MailReaches'];
 export type MailRecord = components['schemas']['MailRecord'];
+export type MailReplyTo = components['schemas']['MailReplyTo'];
 export type MailRuleAction = components['schemas']['MailRuleAction'];
 export type MailSecurity = components['schemas']['MailSecurity'];
 export type MailTestResponse = components['schemas']['MailTestResponse'];
@@ -69920,7 +70278,9 @@ export type PolicyResponse = components['schemas']['PolicyResponse'];
 export type PolicyScope = components['schemas']['PolicyScope'];
 export type PollEmbedConfig = components['schemas']['PollEmbedConfig'];
 export type PollStatus = components['schemas']['PollStatus'];
+export type PoolOverview = components['schemas']['PoolOverview'];
 export type PoolRequest = components['schemas']['PoolRequest'];
+export type PoolStanding = components['schemas']['PoolStanding'];
 export type PresetRequest = components['schemas']['PresetRequest'];
 export type PreviewIssuer = components['schemas']['PreviewIssuer'];
 export type PreviewResponse = components['schemas']['PreviewResponse'];
@@ -70261,6 +70621,7 @@ export type StationPage = components['schemas']['StationPage'];
 export type StationPermission = components['schemas']['StationPermission'];
 export type StationPermissionsRequest = components['schemas']['StationPermissionsRequest'];
 export type StationPickerResult = components['schemas']['StationPickerResult'];
+export type StationPoolUse = components['schemas']['StationPoolUse'];
 export type StationRegistrationStatus = components['schemas']['StationRegistrationStatus'];
 export type StationRequest = components['schemas']['StationRequest'];
 export type StationRoomResponse = components['schemas']['StationRoomResponse'];

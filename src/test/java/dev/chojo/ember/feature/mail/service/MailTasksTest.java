@@ -36,7 +36,8 @@ class MailTasksTest {
                         mock(StationReadOnlyGuard.class),
                         mock(MailChainService.class),
                         mock(MailProviderBlockRepository.class),
-                        mock(MailRetryService.class))
+                        mock(MailRetryService.class),
+                        mock(MailAllowance.class))
                 .scheduledTasks();
 
         tasks.forEach(task -> task.work().run());
