@@ -104,38 +104,50 @@
 
 #let gutter = 0.8em
 
+#let upright(c) = c.kind == "divider" and c.at("vertical", default: false)
+
 #let rows(list, max-height, gap) = for (index, r) in list.enumerate() {
   let lines = r.at("lines", default: false)
-  let last = r.cells.len() - 1
+  let drawn(c) = if c.kind == "text" {
+    text-block(c, max-height)
+  } else if c.kind == "image" {
+    picture(c, max-height)
+  } else if c.kind == "divider" {
+    divider(c)
+  } else if c.kind == "spacer" {
+    block(height: c.heightMm * 1mm)
+  } else if c.kind == "signature" {
+    signature(c, max-height)
+  } else if c.kind == "fillIn" {
+    fill-in(c)
+  } else if c.kind == "rows" {
+    rows(c.rows, max-height, gap)
+  } else {
+    []
+  }
+  let columns = r.cells.map(c => if upright(c) {
+    (
+      (width: c.width / 2 * 1fr, body: [], starts: true),
+      (width: 0pt, body: grid.cell(stroke: (left: rule), []), starts: false),
+      (width: c.width / 2 * 1fr, body: [], starts: false),
+    )
+  } else {
+    ((width: c.width * 1fr, body: drawn(c), starts: true),)
+  }).join()
+  let last = columns.len() - 1
   block(
     width: 100%,
     above: if index == 0 { 0pt } else { gap },
     below: 0pt,
     grid(
-      columns: r.cells.map(c => c.width * 1fr),
+      columns: columns.map(column => column.width),
       column-gutter: if lines { 0pt } else { gutter },
       align: top,
       inset: if lines {
         (x, y) => (left: if x == 0 { 0pt } else { gutter / 2 }, right: if x == last { 0pt } else { gutter / 2 })
       } else { 0pt },
-      stroke: if lines { (x, y) => if x > 0 { (left: rule) } } else { none },
-      ..r.cells.map(c => if c.kind == "text" {
-        text-block(c, max-height)
-      } else if c.kind == "image" {
-        picture(c, max-height)
-      } else if c.kind == "divider" {
-        divider(c)
-      } else if c.kind == "spacer" {
-        block(height: c.heightMm * 1mm)
-      } else if c.kind == "signature" {
-        signature(c, max-height)
-      } else if c.kind == "fillIn" {
-        fill-in(c)
-      } else if c.kind == "rows" {
-        rows(c.rows, max-height, gap)
-      } else {
-        []
-      }),
+      stroke: if lines { (x, y) => if x > 0 and columns.at(x).starts { (left: rule) } } else { none },
+      ..columns.map(column => column.body),
     ),
   )
 }

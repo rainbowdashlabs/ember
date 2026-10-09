@@ -27,7 +27,8 @@ import java.util.Objects;
  *
  * <p>A row becomes a grid with one column per cell, each as wide as its share of the row, with a line
  * in every gap between two columns where the row asks for one. A cell is a text, a picture, a line, a
- * gap, a signature line, or rows stacked in it, which are walked the same way. A block the member does
+ * gap, a signature line, or rows stacked in it, which are walked the same way. A vertical line is drawn
+ * in the middle of its column, as tall as its row. A block the member does
  * not see ({@link MemberView#sees}) is left out, and so is everything stacked inside it; its column
  * stays, empty, so the others keep their place. A row left with nothing to print is dropped.
  *
@@ -244,12 +245,16 @@ final class LetterLayout {
     }
 
     private static Map<String, Object> divider(ContentCell cell) {
-        String label = cell.config() instanceof CellConfig.DividerConfig divider ? divider.label() : null;
+        var divider = cell.config() instanceof CellConfig.DividerConfig config ? config : null;
+        boolean vertical = divider != null && divider.runsVertically();
+        String label = divider == null || vertical ? null : divider.label();
         return Map.of(
                 "kind",
                 "divider",
                 "label",
-                Objects.requireNonNullElse(label, "").strip());
+                Objects.requireNonNullElse(label, "").strip(),
+                "vertical",
+                vertical);
     }
 
     private static Map<String, Object> spacer(ContentCell cell) {

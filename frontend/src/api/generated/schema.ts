@@ -63869,6 +63869,7 @@ export interface components {
         };
         DividerConfig: {
             label?: string;
+            vertical?: boolean;
         };
         DocumentAgreement: {
             /** Format: uuid */

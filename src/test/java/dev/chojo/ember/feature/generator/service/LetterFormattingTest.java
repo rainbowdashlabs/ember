@@ -25,12 +25,14 @@ import org.apache.pdfbox.text.TextPosition;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -40,7 +42,8 @@ import static org.mockito.Mockito.when;
 /**
  * A letter prints its paragraphs and words the way the editor showed them: centred paragraphs in the middle
  * of the text, right-aligned ones against its right edge, justified ones filling their lines to it, and
- * words set in a size of their own in that size, a pixel printed as three quarters of a point.
+ * words set in a size of their own in that size, a pixel printed as three quarters of a point. A vertical
+ * divider draws its line between its two neighbours.
  */
 class LetterFormattingTest extends RepositoryTestBase {
     private static final String LONG_WORD = "Donaudampfschifffahrtsgesellschaftskapitän";
@@ -112,6 +115,59 @@ class LetterFormattingTest extends RepositoryTestBase {
         assertEquals(3, words.size(), "one in the header, the body and the footer");
         words.forEach(
                 word -> assertEquals(24, word.getFontSizeInPt(), 0.5, () -> "printed at " + word.getFontSizeInPt()));
+    }
+
+    /**
+     * A vertical divider between the second and third of four blocks draws its line in that gap only, as
+     * tall as the row, and keeps its own width as room either side of the line.
+     */
+    @Test
+    void aVerticalDividerDrawsItsLineBetweenItsNeighboursOnly() throws IOException {
+        var divided = new ContentRow(
+                0,
+                0,
+                0,
+                List.of(
+                        text(0, 20, "A"),
+                        text(1, 20, "B"),
+                        new ContentCell(
+                                0, 0, 2, 20, CellContentType.DIVIDER, "", new CellConfig.DividerConfig(null, true)),
+                        text(3, 20, "C"),
+                        text(4, 20, "D")));
+        byte[] pdf = render(divided);
+        var positions = TestPdfs.positions(pdf, 1);
+        var picture = TestPdfs.picture(pdf);
+        float pageHeight = picture.getHeight() / TestPdfs.SCALE;
+        float y = pageHeight
+                - (first(positions, "B").getYDirAdj() - first(positions, "B").getHeightDir() / 2);
+
+        assertTrue(lineBetween(picture, positions, "B", "C", y), "a line between B and C");
+        assertFalse(lineBetween(picture, positions, "A", "B", y), "no line between A and B");
+        assertFalse(lineBetween(picture, positions, "C", "D", y), "no line between C and D");
+        float columns = startOf(positions, "B") - startOf(positions, "A");
+        assertEquals(columns, startOf(positions, "D") - startOf(positions, "C"), 1, "the blocks keep equal widths");
+        assertTrue(
+                startOf(positions, "C") - startOf(positions, "B") > columns * 1.5f,
+                "the divider keeps its width as room around the line");
+    }
+
+    /**
+     * Whether a grey or darker line crosses the gap between the ends of two blocks' texts at a height.
+     */
+    private static boolean lineBetween(
+            BufferedImage picture, List<TextPosition> positions, String before, String after, float y) {
+        float from = startOf(positions, before) + first(positions, before).getWidthDirAdj() + 2;
+        float to = startOf(positions, after) - 2;
+        for (float x = from; x < to; x += 0.25f) {
+            int rgb = picture.getRGB(
+                    Math.round(x * TestPdfs.SCALE), Math.round(picture.getHeight() - y * TestPdfs.SCALE));
+            if (((rgb >> 16) & 0xff) < 200) return true;
+        }
+        return false;
+    }
+
+    private static ContentCell text(int column, int width, String markdown) {
+        return new ContentCell(0, 0, column, width, CellContentType.MARKDOWN, markdown, CellConfig.EMPTY);
     }
 
     /**

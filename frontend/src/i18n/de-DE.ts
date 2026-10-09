@@ -11939,6 +11939,7 @@ export default {
             quoteAttribution: 'Quellen-Link',
             dividerLabel: 'Beschriftung',
             dividerLabelPlaceholder: 'optional',
+            dividerVertical: 'Senkrechte Linie zwischen den Blöcken links und rechts',
             spacerHeight: 'Höhe (px)',
             accordionTitle: 'Überschrift',
             accordionOpenByDefault: 'Standardmäßig geöffnet',

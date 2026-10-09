@@ -175,6 +175,15 @@ class LetterLayoutTest {
         assertEquals("divider", onlyCell(labelled, FOR_MEMBER).get("kind"));
         assertEquals("Termine", onlyCell(labelled, FOR_MEMBER).get("label"));
         assertEquals("", onlyCell(bare, FOR_MEMBER).get("label"));
+        assertEquals(false, onlyCell(labelled, FOR_MEMBER).get("vertical"));
+    }
+
+    @Test
+    void aVerticalDividerIsALineWithoutLabel() {
+        var letter = body(row(block(CellContentType.DIVIDER, "", new CellConfig.DividerConfig("Termine", true))));
+
+        assertEquals(true, onlyCell(letter, FOR_MEMBER).get("vertical"));
+        assertEquals("", onlyCell(letter, FOR_MEMBER).get("label"), "a vertical line has no room for a label");
     }
 
     @Test
