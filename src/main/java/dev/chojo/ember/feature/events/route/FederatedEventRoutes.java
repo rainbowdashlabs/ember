@@ -393,10 +393,11 @@ public class FederatedEventRoutes implements Routes {
                 session.stationId(), partner.partnerStationId(), eventId, eventDate(req.eventDate()), remoteMemberId);
     }
 
-    private static LocalDate eventDate(String value) {
+    private static LocalDate eventDate(@Nullable String value) {
+        if (value == null) throw FederationRefusal.FEDERATED_REGISTRATION_DAY_NOT_A_DAY.raise();
         try {
             return LocalDate.parse(value);
-        } catch (DateTimeParseException | NullPointerException e) {
+        } catch (DateTimeParseException e) {
             throw FederationRefusal.FEDERATED_REGISTRATION_DAY_NOT_A_DAY.raise();
         }
     }
