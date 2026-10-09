@@ -39,9 +39,11 @@ import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.BiFunction;
@@ -1523,6 +1525,26 @@ public class AuthService {
         return (demo.dev() || demo.enabled()) && demo.stableSessionTokens();
     }
 
+    /**
+     * The stable token of an account: its address, with every byte a cookie cannot carry
+     * percent-encoded. A cookie value is printable ASCII without quotes, commas, semicolons and
+     * backslashes, so an address such as {@code jürgen@könig.local} as it stands reaches the browser
+     * and comes back as other bytes, and every request after signing in is refused. A plain address
+     * stays exactly as it is.
+     *
+     * @param email the account's address
+     * @return the token, readable and safe in a cookie
+     */
+    static String stableTokenOf(String email) {
+        var token = new StringBuilder();
+        for (byte b : email.getBytes(StandardCharsets.UTF_8)) {
+            int value = b & 0xFF;
+            if (value > 0x20 && value < 0x7F && "\",;\\%".indexOf(value) < 0) token.append((char) value);
+            else token.append('%').append(String.format(Locale.ROOT, "%02X", value));
+        }
+        return token.toString();
+    }
+
     private LoginResult createSession(
             int accountId, @Nullable String userAgent, @Nullable String location, boolean trustedDevice) {
         return createSession(accountId, userAgent, location, null, null, trustedDevice);
@@ -1546,8 +1568,10 @@ public class AuthService {
             @Nullable Integer deviceTrustId,
             boolean trustedDevice) {
         if (stableSessionTokens()) {
-            String stableToken =
-                    accountRepository.findById(accountId).map(Account::email).orElseGet(this::generateToken);
+            String stableToken = accountRepository
+                    .findById(accountId)
+                    .map(account -> stableTokenOf(account.email()))
+                    .orElseGet(this::generateToken);
             Instant stableExpiry = Instant.now().plus(365, ChronoUnit.DAYS);
             accountRepository.createOrReplaceSession(
                     accountId,

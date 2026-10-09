@@ -1143,6 +1143,18 @@ class AuthServiceTest extends RepositoryTestBase {
     }
 
     /**
+     * The address as a token has to survive a cookie: a plain one stays as it is, one with umlauts is
+     * percent-encoded, since a cookie carries printable ASCII only and the umlauts came back as other bytes.
+     */
+    @Test
+    @Order(88)
+    void stableTokenIsSafeInACookie() {
+        assertEquals("anna@schmidt.local", AuthService.stableTokenOf("anna@schmidt.local"));
+        assertEquals("j%C3%BCrgen@k%C3%B6nig.local", AuthService.stableTokenOf("jürgen@könig.local"));
+        assertEquals("a%3Bb%25c@x.local", AuthService.stableTokenOf("a;b%c@x.local"));
+    }
+
+    /**
      * Quick login signs somebody in by address alone, and an ordinary instance refuses it.
      *
      * <p>The route is only registered on a dev or demo instance, so this is the second of two gates. It is
