@@ -58215,11 +58215,12 @@ export interface components {
             questions?: components["schemas"]["FormQuestionRequest"][];
         };
         FormListEntry: {
+            allowEdit: boolean;
             description: string;
             endAt: components["schemas"]["Instant"] | null;
-            hasResponded: boolean;
             /** Format: int32 */
             id: number;
+            respondents: components["schemas"]["FormRespondent"][];
             /** Format: int32 */
             responseCount: number;
             restricted: boolean;
@@ -58328,6 +58329,13 @@ export interface components {
             shuffleQuestions?: boolean | null;
             startAt?: components["schemas"]["Instant"] | null;
             title?: string;
+        };
+        FormRespondent: {
+            hasResponded: boolean;
+            /** Format: int32 */
+            memberId: number;
+            name: string;
+            self: boolean;
         };
         FormResponse: {
             acknowledgedAt: components["schemas"]["Instant"] | null;
@@ -65793,6 +65801,7 @@ export type FormQuestionRequest = components['schemas']['FormQuestionRequest'];
 export type FormQuestionTally = components['schemas']['FormQuestionTally'];
 export type FormQuestionType = components['schemas']['FormQuestionType'];
 export type FormRequest = components['schemas']['FormRequest'];
+export type FormRespondent = components['schemas']['FormRespondent'];
 export type FormResponse = components['schemas']['FormResponse'];
 export type FormResponseDetail = components['schemas']['FormResponseDetail'];
 export type FormResponseEntry = components['schemas']['FormResponseEntry'];

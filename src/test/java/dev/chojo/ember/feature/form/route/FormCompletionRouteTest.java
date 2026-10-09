@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.form.service.FormDirectoryService;
 import dev.chojo.ember.feature.form.service.FormResponseExportService;
 import dev.chojo.ember.feature.form.service.FormService;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.members.service.MemberGroupService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
@@ -63,7 +64,7 @@ class FormCompletionRouteTest extends RepositoryTestBase {
         member = stationMemberRepo.create(station.id(), account.id());
         harness = RouteHarness.serving(new FormRoutes(
                         formService,
-                        new FormDirectoryService(formService),
+                        new FormDirectoryService(formService, mock(StationMemberRepository.class)),
                         mock(GuardianPolicy.class),
                         mock(FormAnalyticsAssembler.class),
                         mock(FormResponseExportService.class),

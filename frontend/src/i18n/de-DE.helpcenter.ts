@@ -2459,7 +2459,7 @@ volumes:
             typeRanking: 'Rangfolge - Bringe Elemente mit den Pfeilen in die richtige Reihenfolge.',
             typeLikert: 'Likert-Skala - Bewerte mehrere Aussagen in einer Tabelle.',
             memberManagerTitle: 'Als Erziehungsberechtigter',
-            memberManagerText: 'Wenn du ein Erziehungsberechtigter bist, kannst du die Umfrage auch für deine verwalteten Mitglieder ausfüllen. Wähle dazu oben das Mitglied aus dem Dropdown aus.',
+            memberManagerText: 'Wenn du ein Erziehungsberechtigter bist, kannst du die Umfrage auch für deine verwalteten Mitglieder ausfüllen. Öffnest du sie in der Liste bei einem Mitglied, ist es oben schon ausgewählt. Mit dem Dropdown wechselst du zu einer anderen Person.',
             submitTitle: 'Absenden',
             submitText: 'Wenn du alle Fragen beantwortet hast, klicke auf „Absenden". Pflichtfragen sind mit einem roten Stern markiert - diese musst du ausfüllen, bevor du weitergehen oder absenden kannst. Stimmt etwas nicht, springt die Umfrage auf die Seite mit dem Fehler und markiert die Frage. Danach siehst du eine Bestätigung, manchmal mit einer eigenen Nachricht und einem Link. Falls die Umfrage bearbeitbar ist, kannst du deine Antworten dort noch ändern.',
             pagesTitle: 'Umfragen mit mehreren Seiten',
@@ -5108,6 +5108,8 @@ volumes:
             overviewTip: 'Umfragen können auf bestimmte Rollen, Gruppen oder Tags eingeschränkt werden.',
             duplicateTitle: 'Umfrage duplizieren',
             duplicateText: '„Duplizieren" im Menü einer Umfrage legt eine Kopie als Entwurf an, mit Einstellungen, Seiten, Fragen und Einschränkungen. Antworten, Link, Start- und Enddatum werden nicht übernommen. Die Kopie öffnet sich direkt im Editor.',
+            respondentsTitle: 'Für wen schon ausgefüllt ist',
+            respondentsText: 'Unter jeder offenen Umfrage steht eine Zeile für jede Person, für die du sie ausfüllen kannst: für dich, wenn sie an dich geht, und für jedes deiner verwalteten Mitglieder, an das sie geht. „Beantwortet" oder „Noch offen" zeigt, für wen schon eine Antwort vorliegt. Mit „Ausfüllen" oder „Antwort bearbeiten" öffnest du die Umfrage direkt für diese Person. Lässt die Umfrage keine Änderungen zu, fehlt der Button bei einer schon abgegebenen Antwort.',
         },
         formsEdit: {
             title: 'Formular bearbeiten',

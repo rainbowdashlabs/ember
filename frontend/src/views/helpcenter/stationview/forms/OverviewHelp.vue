@@ -22,6 +22,10 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.formsOverview.pagesText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.formsOverview.respondentsTitle')">
+      <p>{{ t('helpCenter.formsOverview.respondentsText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.formsOverview.duplicateTitle')">
       <p>{{ t('helpCenter.formsOverview.duplicateText') }}</p>
     </HelpSection>

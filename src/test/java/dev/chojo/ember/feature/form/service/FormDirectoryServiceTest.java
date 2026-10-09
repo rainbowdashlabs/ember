@@ -8,21 +8,27 @@ package dev.chojo.ember.feature.form.service;
 import dev.chojo.ember.feature.form.entity.Form;
 import dev.chojo.ember.feature.form.entity.FormPurpose;
 import dev.chojo.ember.feature.form.entity.FormVisibility;
+import dev.chojo.ember.feature.form.service.FormDirectoryService.FormRespondent;
+import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class FormDirectoryServiceTest {
     private FormService forms;
+    private StationMemberRepository members;
     private FormDirectoryService directory;
 
     static Form form(
@@ -77,8 +83,10 @@ class FormDirectoryServiceTest {
     @BeforeEach
     void setup() {
         forms = mock(FormService.class);
+        members = mock(StationMemberRepository.class);
         when(forms.isAcceptingResponses(any())).thenReturn(true);
-        directory = new FormDirectoryService(forms);
+        when(forms.canMemberAccess(anyInt(), anyInt())).thenReturn(true);
+        directory = new FormDirectoryService(forms, members);
     }
 
     @Test
@@ -88,15 +96,49 @@ class FormDirectoryServiceTest {
         when(forms.findByStationOnBehalfOf(3, 20)).thenReturn(List.of(open(1), open(2)));
         when(forms.findByStation(3)).thenReturn(List.of(open(1), open(2), open(5)));
         when(forms.countResponses(2)).thenReturn(7);
-        when(forms.hasResponded(1, 11)).thenReturn(true);
 
         var available = directory.available(3, 11, false, List.of(20));
 
         assertEquals(
                 List.of(1, 2),
                 available.stream().map(FormDirectoryService.FormListEntry::id).toList());
-        assertTrue(available.getFirst().hasResponded());
         assertEquals(7, available.get(1).responseCount());
+    }
+
+    @Test
+    void aGuardianSeesForEveryoneTheFormIsPutToWhetherTheyAnswered() {
+        var form = open(1);
+        when(forms.findByStationForMember(3, 11, false)).thenReturn(List.of(form));
+        when(forms.findByStationOnBehalfOf(eq(3), anyInt())).thenReturn(List.of(form));
+        when(forms.findByStation(3)).thenReturn(List.of(form));
+        when(forms.canMemberAccess(1, 22)).thenReturn(false);
+        when(forms.hasResponded(1, 20)).thenReturn(true);
+        when(members.findDisplayNames(List.of(11, 20, 21, 22)))
+                .thenReturn(Map.of(11, "Ines", 20, "Lena", 21, "Tom", 22, "Mia"));
+
+        var respondents = directory
+                .available(3, 11, false, List.of(20, 21, 22))
+                .getFirst()
+                .respondents();
+
+        assertEquals(
+                List.of(
+                        new FormRespondent(11, "Ines", true, false),
+                        new FormRespondent(20, "Lena", false, true),
+                        new FormRespondent(21, "Tom", false, false)),
+                respondents);
+    }
+
+    @Test
+    void aFormNobodyInTheHouseholdMayAnswerIsLeftOut() {
+        when(forms.findByStationForMember(3, 11, true)).thenReturn(List.of(open(1), open(2)));
+        when(forms.canMemberAccess(2, 11)).thenReturn(false);
+
+        assertEquals(
+                List.of(1),
+                directory.available(3, 11, true, List.of()).stream()
+                        .map(FormDirectoryService.FormListEntry::id)
+                        .toList());
     }
 
     @Test
