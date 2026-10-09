@@ -10,6 +10,7 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
 import ToggleSetting from '@/components/input/toggle/ToggleSetting.vue'
 import SignerSelect from '@/components/documents/SignerSelect.vue'
+import {FILL_IN_SIGNERS} from '@/components/documents/signers'
 import type {SignatureRole} from '@/api/generated/schema'
 
 /** The longest label the server keeps. */
@@ -38,7 +39,7 @@ function setMaxLength(value: number | undefined) {
 <template>
   <div class="space-y-3" data-testid="fill-in-settings">
     <SignerSelect v-model="signer" :label="t('documentTemplates.fillIn.signerLabel')"
-                  :help="t('documentTemplates.fillIn.signerHelp')"/>
+                  :help="t('documentTemplates.fillIn.signerHelp')" :signers="FILL_IN_SIGNERS"/>
     <LabelledField :label="t('documentTemplates.fillIn.label')" :help="t('documentTemplates.fillIn.labelHelp')">
       <TextInput :model-value="label" :maxlength="MAX_LABEL" data-testid="fill-in-label"
                  @update:model-value="label = $event ?? ''"/>
