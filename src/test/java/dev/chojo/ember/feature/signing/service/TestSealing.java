@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.documents.repository.SealedVersionRepository;
 import dev.chojo.ember.feature.documents.service.DocumentService;
 import dev.chojo.ember.feature.documents.service.SealedDocumentService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.signing.repository.IssuerSignatureRepository;
 import dev.chojo.ember.feature.signing.repository.PartnerAuthorityRepository;
 import dev.chojo.ember.feature.signing.repository.SignatureRequestRepository;
@@ -79,20 +80,26 @@ public final class TestSealing implements AutoCloseable {
      * @param documents       the member documents
      * @param documentService their files
      * @param stations        the stations
+     * @param names           names the issuer of a document signed for them at generation
      * @return the sealer
      */
     public static SigningStateSealer stateSealer(
-            DocumentRepository documents, DocumentService documentService, StationRepository stations) {
-        return stateSealer(documents, documentService, stations, SealedStateFollowUp.NONE);
+            DocumentRepository documents,
+            DocumentService documentService,
+            StationRepository stations,
+            MemberNameResolver names) {
+        return stateSealer(documents, documentService, stations, names, SealedStateFollowUp.NONE);
     }
 
     /**
-     * A sealer of signing states as {@link #stateSealer(DocumentRepository, DocumentService, StationRepository)}
-     * builds it, telling the given follow-up of every state it files.
+     * A sealer of signing states as
+     * {@link #stateSealer(DocumentRepository, DocumentService, StationRepository, MemberNameResolver)} builds
+     * it, telling the given follow-up of every state it files.
      *
      * @param documents       the member documents
      * @param documentService their files
      * @param stations        the stations
+     * @param names           names the issuer of a document signed for them at generation
      * @param followUp        what is told of every state filed
      * @return the sealer
      */
@@ -100,6 +107,7 @@ public final class TestSealing implements AutoCloseable {
             DocumentRepository documents,
             DocumentService documentService,
             StationRepository stations,
+            MemberNameResolver names,
             SealedStateFollowUp followUp) {
         var keys = new SigningKeyRepository();
         var wrap = new SigningKeyWrap(Base64.getEncoder().encodeToString(new byte[32]));
@@ -114,7 +122,8 @@ public final class TestSealing implements AutoCloseable {
                 new SigningStateAssembler(Clock.systemUTC()),
                 new PdfSealer(timestamps, new StationKeyRevocations(keys, new RevocationLists(), wrap)),
                 mock(SignedCopies.class),
-                followUp);
+                followUp,
+                new IssuedSignatures(new IssuerSignatureRepository(), names));
     }
 
     /**

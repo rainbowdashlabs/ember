@@ -33,6 +33,8 @@ import java.util.UUID;
  * @param assembledAt     when this signing state was put together
  * @param fields          every signature field of the request, in the order they were asked for
  * @param withdrawal      the withdrawal of the signed agreement, or null where nobody withdrew it
+ * @param issued          the issuer's signature the document carried when it was generated, or null for a
+ *                        document generated without one
  */
 public record SigningEvidenceFile(
         String format,
@@ -42,7 +44,21 @@ public record SigningEvidenceFile(
         String memberName,
         Instant assembledAt,
         List<Field> fields,
-        @Nullable Withdrawal withdrawal) {
+        @Nullable Withdrawal withdrawal,
+        @Nullable Issued issued) {
+
+    /**
+     * The issuer's signature a document carried from its generation on: the issuer's saved picture drawn
+     * into the issuer field under their standing consent, and the document sealed by the station then. No
+     * act of the issuer and no proof belong to it; the consent and the seal are what it rests on.
+     *
+     * @param issuerName    the official name of the issuer as the document names them, or null once they
+     *                      cannot be named any more
+     * @param consentedAt   when the issuer agreed to documents being signed for them
+     * @param signedAt      when the document was signed and sealed for them
+     * @param pictureSha256 SHA-256 of the picture drawn in, lower-case hexadecimal
+     */
+    public record Issued(@Nullable String issuerName, Instant consentedAt, Instant signedAt, String pictureSha256) {}
 
     /** The name and version of the layout; the second version adds the batch an act was confirmed in. */
     public static final String FORMAT = "ember-signing-evidence-v2";

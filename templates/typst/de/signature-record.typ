@@ -198,6 +198,18 @@ Unterschrift erzeugt wurde.
   #if f.act != none { act-table(f.act) } else { field-table(f) }
 ]
 
+#if r.issued != none [
+  === Ausstellende Person
+
+  #facts(
+    [Unterschrieben von], [#if r.issued.issuerName != none [#r.issued.issuerName] else [Nicht mehr bekannt]],
+    [Wie], [Beim Erstellen des Dokuments mit der hinterlegten Unterschrift, ohne eigene Bestätigung, weil die Person dem zugestimmt hat],
+    [Zustimmung vom], [#r.issued.consentedAt],
+    [Zeitpunkt], [#r.issued.signedAt],
+    [Unterschriftsbild (SHA-256)], mono(r.issued.pictureSha256),
+  )
+]
+
 == Siegel und Zeit
 
 #if r.timeBasis == "TIMESTAMP_SERVICE" [

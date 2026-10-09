@@ -128,6 +128,7 @@ public final class SignatureRecordPage {
                 (int) signed,
                 fields.size(),
                 fields,
+                issued(evidence.issued(), times),
                 input.timeBasis(),
                 lines(List.of(input.authorityFingerprint().split(":")), FINGERPRINT_PAIRS_PER_LINE, ":"),
                 SigningEvidenceFile.FILE_NAME,
@@ -183,6 +184,15 @@ public final class SignatureRecordPage {
                 act.userAgent(),
                 picture(act.picture()),
                 batch(act.batch()));
+    }
+
+    private static @Nullable IssuedModel issued(SigningEvidenceFile.@Nullable Issued issued, Times times) {
+        if (issued == null) return null;
+        return new IssuedModel(
+                issued.issuerName(),
+                times.format(issued.consentedAt()),
+                times.format(issued.signedAt()),
+                lines(grouped(issued.pictureSha256()), HASH_GROUPS_PER_LINE));
     }
 
     private static @Nullable BatchModel batch(SigningEvidenceFile.@Nullable Batch batch) {
@@ -271,6 +281,7 @@ public final class SignatureRecordPage {
      * @param signed               how many fields are signed
      * @param fieldCount           how many fields the request asks for
      * @param fields               every field
+     * @param issued               the issuer's signature from the document's generation, or null
      * @param timeBasis            where the times come from
      * @param authorityFingerprint the authority's fingerprint in lines of pairs
      * @param evidenceFile         the name of the attached evidence file
@@ -292,6 +303,7 @@ public final class SignatureRecordPage {
             int signed,
             int fieldCount,
             List<FieldModel> fields,
+            @Nullable IssuedModel issued,
             RecordTimeBasis timeBasis,
             List<String> authorityFingerprint,
             String evidenceFile,
@@ -381,6 +393,16 @@ public final class SignatureRecordPage {
             @Nullable String userAgent,
             @Nullable PictureModel picture,
             @Nullable BatchModel batch) {}
+
+    /**
+     * The issuer's signature from the document's generation, on the page.
+     *
+     * @param issuerName    who issued it, or null where they cannot be named any more
+     * @param consentedAt   when they agreed to documents being signed for them
+     * @param signedAt      when it was signed and sealed for them
+     * @param pictureSha256 the picture's hash in lines of grouped characters
+     */
+    record IssuedModel(@Nullable String issuerName, String consentedAt, String signedAt, List<String> pictureSha256) {}
 
     /**
      * The batch an act was confirmed in, on the page.

@@ -7,6 +7,8 @@ package dev.chojo.ember.feature.signing.service;
 
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.DocumentRefusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.documents.entity.Document;
 import dev.chojo.ember.feature.documents.entity.SealedVersion;
 import dev.chojo.ember.feature.documents.entity.Uploader;
@@ -42,6 +44,7 @@ import dev.chojo.ember.feature.signing.entity.SigningEvidence;
 import dev.chojo.ember.feature.signing.entity.SigningEvidenceFile;
 import dev.chojo.ember.feature.signing.entity.SigningStatements;
 import dev.chojo.ember.feature.signing.entity.StoredEvidence;
+import dev.chojo.ember.feature.signing.repository.IssuerSignatureRepository;
 import dev.chojo.ember.feature.signing.repository.SignatureRequestRepository;
 import dev.chojo.ember.feature.signing.repository.SigningEvidenceRepository;
 import dev.chojo.ember.feature.signing.repository.SigningKeyRepository;
@@ -215,10 +218,11 @@ class SigningStateSealerTest extends RepositoryTestBase {
                 Sha256.hex(documents.readUploaded(document).orElseThrow()));
         assertSealIntact(sealed);
         try (var pdf = Loader.loadPDF(sealed)) {
-            assertEquals(2, pdf.getNumberOfPages(), "the content page and the record after it");
-            assertTrue(record(pdf).contains("Beim Versiegeln hat diese Installation keine Zeitstempel eingeholt"));
+            assertEquals(1, pdf.getNumberOfPages(), "the content page alone, no record added");
+            assertEquals(0, recordsIn(pdf));
             assertTrue(attachedEvidence(pdf).contains("\"participant\""));
         }
+        assertTrue(record(request).contains("Beim Versiegeln der Fassung hat diese Installation keine Zeitstempel"));
 
         assertFalse(sealer(SealedPdfs.noTimestamps()).sealLatest(request.id()), "nothing new to seal");
         assertEquals(1, versions.versionsOf(document.id()).size());
@@ -252,7 +256,7 @@ class SigningStateSealerTest extends RepositoryTestBase {
             assertEquals(1, signedFieldsIn(attachedEvidence(pdf)));
         }
         try (var pdf = Loader.loadPDF(newer)) {
-            assertEquals(1, recordsIn(pdf), "built from the content again, not from the version before");
+            assertEquals(1, pdf.getNumberOfPages(), "built from the content again, not from the version before");
             assertEquals(2, signedFieldsIn(attachedEvidence(pdf)));
         }
         assertEquals(
@@ -261,7 +265,7 @@ class SigningStateSealerTest extends RepositoryTestBase {
     }
 
     @Test
-    void withoutAnAnsweringServiceTheRecordSaysSoAndTheServicesAreAskedOnce() throws IOException {
+    void withoutAnAnsweringServiceTheRecordSaysSoAndTheStateIsSealedOnce() throws IOException {
         var signer = member("Nina", "Ohnezeit");
         var request = ask(signer);
         sign(request, signer, "participant");
@@ -274,14 +278,12 @@ class SigningStateSealerTest extends RepositoryTestBase {
         assertTrue(sealer(unanswered, pdfSealer).sealLatest(request.id()));
 
         verify(pdfSealer, times(1)).seal(any(), any(), any());
-        verify(pdfSealer, times(1)).sealWithoutTimestamp(any(), any(), any());
+        verify(pdfSealer, times(0)).sealWithoutTimestamp(any(), any(), any());
         var document = documentOf(request);
         assertEquals(
                 SealLevel.BASELINE_B,
                 versions.current(document.id()).orElseThrow().sealLevel());
-        try (var pdf = Loader.loadPDF(documents.read(document).orElseThrow())) {
-            assertTrue(record(pdf).contains("Beim Versiegeln hat kein Zeitstempeldienst geantwortet"));
-        }
+        assertTrue(record(request).contains("Alle Zeiten in diesem Nachweis stammen deshalb nur von der Uhr"));
     }
 
     @Test
@@ -300,10 +302,43 @@ class SigningStateSealerTest extends RepositoryTestBase {
         var version = versions.current(document.id()).orElseThrow();
         assertEquals(SealLevel.BASELINE_LT, version.sealLevel());
         assertNotNull(version.timestampedBy());
-        try (var pdf = Loader.loadPDF(documents.read(document).orElseThrow())) {
-            assertTrue(
-                    record(pdf).contains("Das Siegel trägt einen Zeitstempel eines unabhängigen Zeitstempeldienstes"));
+        assertTrue(record(request).contains("Das Siegel der Fassung trägt einen Zeitstempel eines unabhängigen"));
+    }
+
+    /**
+     * The record of a version and the copy with its record are built and sealed on download: each validates
+     * on its own, the record names the version by number and hash, the copy carries the document's pages
+     * and the record's after them with the evidence still attached, and neither becomes a version.
+     */
+    @Test
+    void theRecordAndTheCopyWithItAreBuiltAndSealedOnDownloadAndFileNoVersion() throws IOException {
+        var signer = member("Rea", "Nachweis");
+        var request = ask(signer);
+        sign(request, signer, "participant");
+        assertTrue(sealer(SealedPdfs.noTimestamps()).sealLatest(request.id()));
+        var document = documentOf(request);
+        var version = versions.current(document.id()).orElseThrow();
+
+        var record = records().record(document, 1);
+        var copy = records().withRecord(document, 1);
+
+        assertTrue(record.fileName().endsWith("-v1-record.pdf"), record.fileName());
+        assertTrue(copy.fileName().endsWith("-v1-with-record.pdf"), copy.fileName());
+        assertSealIntact(record.pdf());
+        assertSealIntact(copy.pdf());
+        try (var pdf = Loader.loadPDF(record.pdf())) {
+            String text = new PDFTextStripper().getText(pdf).replaceAll("\\s+", " ");
+            assertTrue(text.contains("Fassung 1 des Dokuments"), text);
+            assertTrue(text.contains(version.sha256().substring(0, 4)), "names the version's hash");
         }
+        try (var pdf = Loader.loadPDF(copy.pdf())) {
+            assertTrue(pdf.getNumberOfPages() >= 2, "the document's page and the record after it");
+            assertEquals(1, recordsIn(pdf));
+            assertTrue(attachedEvidence(pdf).contains("\"participant\""));
+        }
+        assertEquals(1, versions.versionsOf(document.id()).size(), "a download files no version");
+        var none = assertThrows(RefusalResponse.class, () -> records().record(document, 2));
+        assertEquals(DocumentRefusal.SEALED_VERSION_NOT_FOUND, none.refusal());
     }
 
     @Test
@@ -345,7 +380,8 @@ class SigningStateSealerTest extends RepositoryTestBase {
                 assembler(),
                 pdfSealer(SealedPdfs.noTimestamps()),
                 copies,
-                SealedStateFollowUp.NONE);
+                SealedStateFollowUp.NONE,
+                issued());
 
         assertThrows(SigningKeyWrapException.class, () -> broken.sealLatest(request.id()));
         new SigningStateSweeper(evidenceRepo, broken).sweep(Instant.now().plus(Duration.ofHours(1)));
@@ -469,7 +505,10 @@ class SigningStateSealerTest extends RepositoryTestBase {
         assertTrue(copy.body().contains(firstHash));
         assertTrue(copy.body().contains("Ida Kopie"));
         assertTrue(copy.body().contains(TestNotices.BASE_URL + "/verify"));
-        assertTrue(copy.body().contains(TestNotices.BASE_URL + "/station/documents?station=" + station.uid()));
+        assertTrue(copy.body().contains(TestNotices.BASE_URL + "/station/documents?"), copy.body());
+        assertTrue(copy.body().contains("station=" + station.uid()));
+        assertTrue(copy.body().contains("document=" + documentOf(request).id()), "the document and its record");
+        assertTrue(copy.body().contains("record=1"), copy.body());
         assertTrue(copy.body().contains("weil die Wache diese Art Dokument nicht per E-Mail verschickt"));
         assertEquals(List.of(), emailQueueRepo.attachmentsOf(copy.id()));
 
@@ -546,7 +585,8 @@ class SigningStateSealerTest extends RepositoryTestBase {
                 assembler(),
                 pdfSealer(SealedPdfs.noTimestamps()),
                 failingCopies,
-                SealedStateFollowUp.NONE);
+                SealedStateFollowUp.NONE,
+                issued());
 
         assertThrows(IllegalStateException.class, () -> sealer.sealLatest(request.id()));
         assertNull(sealedHashOf(evidence));
@@ -576,10 +616,8 @@ class SigningStateSealerTest extends RepositoryTestBase {
 
         var current = versions.current(document.id()).orElseThrow();
         assertEquals(2, current.version());
-        try (var pdf = Loader.loadPDF(documents.read(document).orElseThrow())) {
-            String text = new PDFTextStripper().getText(pdf).replaceAll("\\s+", " ");
-            assertTrue(text.contains("Auf Papier unterschrieben"), text);
-        }
+        String record = record(request);
+        assertTrue(record.contains("Auf Papier unterschrieben"), record);
         var settled = requestRepo.fieldsOf(request.id());
         assertEquals(first, settled.getFirst().sealedSha256(), "the signature was shown by the first version");
         assertEquals(current.sha256(), settled.getLast().sealedSha256(), "the paper confirmation by the second");
@@ -634,13 +672,12 @@ class SigningStateSealerTest extends RepositoryTestBase {
                 filed.getFirst().sha256(),
                 requestRepo.withdrawalOf(request.id()).orElseThrow().sealedSha256());
         try (var pdf = Loader.loadPDF(signed)) {
-            assertFalse(record(pdf).contains("Widerruf"));
             assertFalse(attachedEvidence(pdf).contains("withdrawnByName"));
         }
+        String record = record(request);
+        assertTrue(record.contains("Diese Vereinbarung wurde widerrufen"), record);
+        assertTrue(record.contains("Ich fahre doch nicht mit."), record);
         try (var pdf = Loader.loadPDF(withdrawn)) {
-            String record = new PDFTextStripper().getText(pdf).replaceAll("\\s+", " ");
-            assertTrue(record.contains("Diese Vereinbarung wurde widerrufen"), record);
-            assertTrue(record.contains("Ich fahre doch nicht mit."), record);
             String evidence = attachedEvidence(pdf);
             assertTrue(evidence.contains("\"withdrawnByName\" : \"Wanda Widerruf\""), evidence);
             assertTrue(evidence.contains("\"reason\" : \"Ich fahre doch nicht mit.\""), evidence);
@@ -745,7 +782,12 @@ class SigningStateSealerTest extends RepositoryTestBase {
                 assembler(),
                 pdfSealer,
                 copies,
-                SealedStateFollowUp.NONE);
+                SealedStateFollowUp.NONE,
+                issued());
+    }
+
+    private static IssuedSignatures issued() {
+        return new IssuedSignatures(new IssuerSignatureRepository(), memberNameResolver);
     }
 
     /**
@@ -802,10 +844,23 @@ class SigningStateSealerTest extends RepositoryTestBase {
         return RECORD_HEADING.matcher(text).results().count();
     }
 
-    private static String record(PDDocument pdf) throws IOException {
-        var stripper = new PDFTextStripper();
-        stripper.setStartPage(pdf.getNumberOfPages());
-        return stripper.getText(pdf).replaceAll("\\s+", " ");
+    /** The current version's record as a reader downloads it, without timestamps on the record itself. */
+    private static String record(SignatureRequest request) throws IOException {
+        var document = documentOf(request);
+        int version = sealedDocuments.currentVersion(document.id());
+        try (var pdf = Loader.loadPDF(records().record(document, version).pdf())) {
+            return new PDFTextStripper().getText(pdf).replaceAll("\\s+", " ");
+        }
+    }
+
+    private static SignatureRecords records() {
+        return new SignatureRecords(
+                documents,
+                stationRepo,
+                stationKeys,
+                pdfSealer(SealedPdfs.noTimestamps()),
+                SealedPdfs.noTimestamps(),
+                BASE_URL);
     }
 
     private static String attachedEvidence(PDDocument pdf) throws IOException {

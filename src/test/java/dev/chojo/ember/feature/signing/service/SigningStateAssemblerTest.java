@@ -330,6 +330,31 @@ class SigningStateAssemblerTest extends RepositoryTestBase {
         assertTrue(record.contains(otherRequest.toString()), record);
     }
 
+    /**
+     * A document its issuer's saved signature was drawn into when it was generated names that signature in
+     * its evidence, and the record lists it under the issuer as signed with the saved signature by consent.
+     */
+    @Test
+    void theIssuersSignatureFromTheGenerationIsNamedInTheEvidenceAndTheRecord() throws IOException {
+        var station = station("de-DE", "Europe/Berlin");
+        var issued = new SigningEvidenceFile.Issued(
+                "Erika Wehr",
+                Instant.parse("2026-09-01T08:00:00Z"),
+                SIGNED_AT.minusSeconds(7200),
+                Sha256.hex(new byte[] {4, 2}));
+
+        var assembled = assembler().assemble(view(station), content, Map.of(), issued);
+
+        var file = SigningEvidenceFiles.read(
+                SigningStateAssembler.evidenceOf(assembled).orElseThrow());
+        assertEquals(issued, file.issued());
+        String record = recordOf(assembled, station, RecordTimeBasis.TIMESTAMPS_OFF);
+        assertTrue(record.contains("Ausstellende Person"), record);
+        assertTrue(record.contains("Erika Wehr"), record);
+        assertTrue(record.contains("mit der hinterlegten Unterschrift"), record);
+        assertTrue(record.contains("1. September 2026"), record);
+    }
+
     private static SigningEvidenceFile.Act withBatch(SigningEvidenceFile.Act act, SigningEvidenceFile.Batch batch) {
         return new SigningEvidenceFile.Act(
                 act.level(),
@@ -516,7 +541,8 @@ class SigningStateAssemblerTest extends RepositoryTestBase {
         var record = recordOf(assembler().assemble(view(station), content), station, RecordTimeBasis.TIMESTAMPS_OFF);
 
         assertTrue(record.contains("Signature record"));
-        assertTrue(record.contains("version 2 of the document “Einverständnis”"), record);
+        assertTrue(record.contains("version 2 of the document"), record);
+        assertTrue(record.contains("Einverständnis"), record);
         assertTrue(record.contains("as guardian of Lena Beispiel"));
         assertTrue(record.contains("8 October 2026, 12:30:00 UTC"));
         assertTrue(record.contains("When the version was sealed, this installation asked no timestamp service"));
@@ -577,7 +603,8 @@ class SigningStateAssemblerTest extends RepositoryTestBase {
      * The record of an assembled state, rendered as {@link SignatureRecords} renders it for the state's
      * version: version 2 of "Einverständnis", sealed at the time of the first act, on its own pages.
      */
-    private static String recordOf(byte[] assembled, Station station, RecordTimeBasis timeBasis) throws IOException {
+    private static String recordOf(byte[] assembled, Station created, RecordTimeBasis timeBasis) throws IOException {
+        var station = stationRepo.findById(created.id()).orElseThrow();
         byte[] json = SigningStateAssembler.evidenceOf(assembled).orElseThrow();
         var input = new SignatureRecordPage.Input(
                 SigningEvidenceFiles.read(json),

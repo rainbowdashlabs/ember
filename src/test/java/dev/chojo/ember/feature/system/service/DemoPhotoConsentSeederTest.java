@@ -213,7 +213,7 @@ class DemoPhotoConsentSeederTest extends RepositoryTestBase {
                 memberDocumentRepo,
                 documents,
                 new InEmberSignatureProvider(twoFactor, assertions, names, keyStamps),
-                TestSealing.stateSealer(memberDocumentRepo, documents, stationRepo),
+                TestSealing.stateSealer(memberDocumentRepo, documents, stationRepo, memberNameResolver),
                 new SigningStarts(new WebAuthnChallengeRepository(TokenHasher.forTesting("demo-consent-pepper"))),
                 assertions,
                 names,

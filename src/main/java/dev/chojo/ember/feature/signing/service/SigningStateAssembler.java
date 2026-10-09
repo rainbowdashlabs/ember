@@ -121,6 +121,27 @@ public class SigningStateAssembler {
      * @throws UncheckedIOException     when the content cannot be read
      */
     public byte[] assemble(SignatureRequestView view, byte[] content, Map<Integer, ActPicture> pictures) {
+        return assemble(view, content, pictures, null);
+    }
+
+    /**
+     * Puts together the document of a request as it stands now, with the picture of every signed field
+     * drawn into it and the issuer's signature it carried from its generation named in its evidence.
+     *
+     * @param view     the request, its fields and the evidence of every act on them
+     * @param content  the frozen content every signer read, whose SHA-256 the request holds
+     * @param pictures the signature picture of each act, by the id of the field it filled
+     * @param issued   the issuer's signature the content carried when it was generated, or null
+     * @return the document, not yet sealed
+     * @throws IllegalArgumentException when the content is not the request's frozen content, or evidence
+     *                                  names a field the request does not have
+     * @throws UncheckedIOException     when the content cannot be read
+     */
+    public byte[] assemble(
+            SignatureRequestView view,
+            byte[] content,
+            Map<Integer, ActPicture> pictures,
+            SigningEvidenceFile.@Nullable Issued issued) {
         var request = view.request();
         if (!Sha256.hex(content).equals(request.contentSha256())) {
             throw new IllegalArgumentException("The content is not the frozen content of request " + request.uid());
@@ -128,7 +149,7 @@ public class SigningStateAssembler {
         Instant now = clock.instant();
         try (PDDocument document = Loader.loadPDF(content)) {
             SigningEvidenceFile evidence =
-                    SigningEvidenceFiles.of(view, pictures, labelsOf(FillInFields.of(document)), now);
+                    SigningEvidenceFiles.of(view, pictures, labelsOf(FillInFields.of(document)), now, issued);
             SignatureMarks.withoutSeals(document);
             FilledInValues.draw(document, typedValues(view), signedFields(view));
             SignatureMarks.draw(document, marks(view, pictures));

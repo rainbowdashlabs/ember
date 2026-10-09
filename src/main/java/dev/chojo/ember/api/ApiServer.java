@@ -229,7 +229,8 @@ public class ApiServer {
         return path.contains("/auth/")
                 || path.contains("/ai/")
                 || path.contains("/admin/config/")
-                || path.contains("/signing/fields/");
+                || path.contains("/signing/fields/")
+                || path.contains("/signing/batch/");
     }
 
     private static String traceHeaders(Map<String, String> headers) {

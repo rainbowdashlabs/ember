@@ -20,8 +20,10 @@ import java.util.UUID;
  * @param requestUid    the request for signatures the document belongs to
  * @param contentSha256 SHA-256 of the content every signature binds to, lower-case hexadecimal
  * @param fields        every signature field, in the order the evidence lists them
+ * @param issued        the issuer's signature the document carried from its generation, or null
  */
-public record EvidenceSummary(UUID requestUid, String contentSha256, List<Field> fields) {
+public record EvidenceSummary(
+        UUID requestUid, String contentSha256, List<Field> fields, SigningEvidenceFile.@Nullable Issued issued) {
 
     /** Copies the fields, so they cannot change after the fact. */
     public EvidenceSummary {
@@ -36,7 +38,8 @@ public record EvidenceSummary(UUID requestUid, String contentSha256, List<Field>
         return new EvidenceSummary(
                 file.requestUid(),
                 file.contentSha256(),
-                file.fields().stream().map(Field::of).toList());
+                file.fields().stream().map(Field::of).toList(),
+                file.issued());
     }
 
     /**

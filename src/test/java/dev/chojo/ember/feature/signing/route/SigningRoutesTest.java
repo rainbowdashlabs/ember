@@ -53,7 +53,9 @@ import dev.chojo.ember.feature.signing.entity.SignatureImageSource;
 import dev.chojo.ember.feature.signing.entity.SignatureRequest;
 import dev.chojo.ember.feature.signing.entity.SignerCapacity;
 import dev.chojo.ember.feature.signing.entity.SignerEntry;
+import dev.chojo.ember.feature.signing.entity.SigningAct;
 import dev.chojo.ember.feature.signing.entity.SigningEvidence;
+import dev.chojo.ember.feature.signing.entity.SigningEvidenceFile;
 import dev.chojo.ember.feature.signing.entity.SigningStatements;
 import dev.chojo.ember.feature.signing.entity.StoredEvidence;
 import dev.chojo.ember.feature.signing.repository.AccountSignatureRepository;
@@ -69,8 +71,11 @@ import dev.chojo.ember.feature.signing.service.SignerNames;
 import dev.chojo.ember.feature.signing.service.SignerResolver;
 import dev.chojo.ember.feature.signing.service.SigningActService;
 import dev.chojo.ember.feature.signing.service.SigningAssertions;
+import dev.chojo.ember.feature.signing.service.SigningChallenge;
+import dev.chojo.ember.feature.signing.service.SigningEvidenceFiles;
 import dev.chojo.ember.feature.signing.service.SigningGuards;
 import dev.chojo.ember.feature.signing.service.SigningStarts;
+import dev.chojo.ember.feature.signing.service.SigningStateAssembler;
 import dev.chojo.ember.feature.signing.service.SigningStateSealer;
 import dev.chojo.ember.feature.signing.service.TestKeyStamps;
 import dev.chojo.ember.feature.signing.service.TestSealing;
@@ -104,6 +109,7 @@ import io.javalin.testtools.Response;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -147,6 +153,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -165,7 +172,8 @@ import static org.mockito.Mockito.when;
  * once the first act was sealed into a version of it. Each act is sealed with real keys and without
  * timestamps, and an act whose seal failed stays signed and is sealed with the next one. Every act leaves a
  * signature picture, one made for it or the saved one, and is refused with neither; a picture a child makes
- * through a guardian's account is never kept as the guardian's.
+ * through a guardian's account is never kept as the guardian's. Several fields across documents and children
+ * are signed in one go with one proof, wholly or not at all, each document sealed once.
  */
 class SigningRoutesTest extends RepositoryTestBase {
     private static final String RIGHT_CODE = "424242";
@@ -279,7 +287,8 @@ class SigningRoutesTest extends RepositoryTestBase {
                 twoFactor,
                 auth,
                 signatureImages);
-        acts = actsSealingWith.apply(TestSealing.stateSealer(memberDocumentRepo, documents, stationRepo));
+        acts = actsSealingWith.apply(
+                TestSealing.stateSealer(memberDocumentRepo, documents, stationRepo, memberNameResolver));
 
         loginPermission = stationMemberRepo
                 .findPermissionByName(StationPermission.LOGIN)
@@ -304,8 +313,242 @@ class SigningRoutesTest extends RepositoryTestBase {
     }
 
     private static RouteHarness serving(SigningActService signingActs) {
-        return RouteHarness.serving(new SigningRoutes(signingActs, requests, new AuthRateLimiter(Clock.systemUTC())))
+        var limiter = new AuthRateLimiter(Clock.systemUTC());
+        return RouteHarness.serving(
+                        new SigningRoutes(signingActs, requests, limiter), new SigningBatchRoutes(signingActs, limiter))
                 .withStations(stationRepo);
+    }
+
+    /**
+     * A guardian signs, in one go and with one passkey answer, both their fields on two documents of two
+     * children and one child's own field through their account: every field is signed, each act's evidence
+     * names the same batch at its own position, the passkey signed one challenge, which the evidence each
+     * sealed document carries gives back on its own, and each document is sealed once into a version whose
+     * seal validates.
+     */
+    @Test
+    void oneGuardianSignsTwoDocumentsOfTwoChildrenWithOnePasskeyAnswer() throws IOException {
+        var guardian = member("Gesa", "Gemeinsam", true);
+        var first = member("Finn", "Gemeinsam", false);
+        var second = member("Sara", "Gemeinsam", false);
+        stationMemberRepo.addManager(guardian.id(), first.id(), manager.id());
+        stationMemberRepo.addManager(guardian.id(), second.id(), manager.id());
+        TestAuthenticator passkey = enrolPasskey(guardian.accountId());
+        var firstRequest = ask(first, SignatureRole.PARTICIPANT, SignatureRole.GUARDIAN_1);
+        var secondRequest = ask(second, SignatureRole.GUARDIAN_1);
+        int childOwn = fieldNamed(firstRequest, "participant");
+        int firstGuardian = fieldNamed(firstRequest, "guardian1");
+        int secondGuardian = fieldNamed(secondRequest, "guardian1");
+
+        harness.run((server, client) -> {
+            JsonNode started = startBatch(
+                    client,
+                    guardian,
+                    "[{\"fieldId\":" + firstGuardian + ",\"entries\":[{\"field\":\"fill-guardian1-0\",\"value\":"
+                            + "\"0171 1\"}]},{\"fieldId\":" + childOwn + "},{\"fieldId\":" + secondGuardian + "}]");
+            assertEquals(List.of("PASSKEY"), texts(started.path("acceptedProofs")));
+            assertEquals(3, started.path("fields").size());
+            assertEquals(
+                    "MEMBER_THROUGH_ACCOUNT",
+                    started.path("fields").get(1).path("capacity").asString());
+            String credential = passkey.sign(started.path("webAuthnOptionsJson").asString());
+
+            JsonNode completed = accepted(
+                    completeBatch(client, guardian, started, "PASSKEY", credential, null, List.of(first.id())));
+
+            assertEquals(3, completed.path("fields").size());
+            for (JsonNode field : completed.path("fields")) {
+                assertEquals("SIGNED", field.path("state").asString());
+                assertTrue(field.path("bound").asBoolean());
+            }
+            byte[] signedChallenge =
+                    decode(body(started.path("webAuthnOptionsJson").asString())
+                            .path("publicKey")
+                            .path("challenge")
+                            .asString());
+            assertBatchSealedOnce(firstRequest, 2, signedChallenge);
+            assertBatchSealedOnce(secondRequest, 1, signedChallenge);
+        });
+
+        var acts = new ArrayList<SigningAct>();
+        evidenceRepo
+                .evidenceOf(firstRequest.id())
+                .forEach(stored -> acts.add(stored.evidence().act()));
+        evidenceRepo
+                .evidenceOf(secondRequest.id())
+                .forEach(stored -> acts.add(stored.evidence().act()));
+        var batch = Objects.requireNonNull(acts.getFirst().batch());
+        assertEquals(3, batch.items().size());
+        assertTrue(acts.stream().allMatch(act -> batch.uid()
+                .equals(Objects.requireNonNull(act.batch()).uid())));
+        assertEquals(
+                Set.of(0, 1, 2),
+                Set.copyOf(acts.stream()
+                        .map(act -> Objects.requireNonNull(act.batch()).position())
+                        .toList()));
+    }
+
+    /**
+     * One authenticator code confirms a guardian's fields on two documents of two children: both are
+     * recorded as unbound acts of one batch and each document is sealed once.
+     */
+    @Test
+    void oneAuthenticatorCodeConfirmsTwoDocumentsOfTwoChildren() throws IOException {
+        var guardian = member("Tilo", "Takt", true);
+        var first = member("Ole", "Takt", false);
+        var second = member("Ina", "Takt", false);
+        stationMemberRepo.addManager(guardian.id(), first.id(), manager.id());
+        stationMemberRepo.addManager(guardian.id(), second.id(), manager.id());
+        enrolAuthenticatorApp(guardian.accountId());
+        var firstRequest = ask(first, SignatureRole.GUARDIAN_1);
+        var secondRequest = ask(second, SignatureRole.GUARDIAN_1);
+
+        harness.run((server, client) -> {
+            JsonNode started = startBatch(
+                    client,
+                    guardian,
+                    "[{\"fieldId\":" + fieldOf(firstRequest) + "},{\"fieldId\":" + fieldOf(secondRequest) + "}]");
+            assertEquals(List.of("TOTP"), texts(started.path("acceptedProofs")));
+
+            JsonNode completed =
+                    accepted(completeBatch(client, guardian, started, "TOTP", null, RIGHT_CODE, List.of()));
+
+            assertEquals(2, completed.path("fields").size());
+            assertFalse(completed.path("fields").get(0).path("bound").asBoolean());
+            assertBatchSealedOnce(firstRequest, 1, null);
+            assertBatchSealedOnce(secondRequest, 1, null);
+        });
+        var act = onlyEvidence(firstRequest);
+        assertInstanceOf(SigningEvidence.TotpUnbound.class, act.evidence());
+        assertNotNull(act.evidence().act().batch());
+    }
+
+    /**
+     * A confirmation covers all its fields or none: once one of them was signed in the meantime, the whole
+     * confirmation is refused and the other field stays open; a child signing through the account without a
+     * picture of their own is refused before anything is confirmed; and a field chosen twice never starts.
+     */
+    @Test
+    void aBatchIsSignedWhollyOrNotAtAll() throws IOException {
+        var guardian = member("Alma", "Allesodernichts", true);
+        accountRepo.createCredential(guardian.accountId(), hasher.hash(PASSWORD));
+        var first = member("Bo", "Allesodernichts", false);
+        var second = member("Cleo", "Allesodernichts", false);
+        stationMemberRepo.addManager(guardian.id(), first.id(), manager.id());
+        stationMemberRepo.addManager(guardian.id(), second.id(), manager.id());
+        var firstRequest = ask(first, SignatureRole.GUARDIAN_1, SignatureRole.PARTICIPANT);
+        var secondRequest = ask(second, SignatureRole.GUARDIAN_1);
+        int firstGuardian = fieldNamed(firstRequest, "guardian1");
+        int childOwn = fieldNamed(firstRequest, "participant");
+        int secondGuardian = fieldOf(secondRequest);
+
+        harness.run((server, client) -> {
+            assertRefused(
+                    DocumentRefusal.SIGNING_BATCH_FIELD_TWICE,
+                    startBatchRaw(
+                            client,
+                            guardian,
+                            "[{\"fieldId\":" + firstGuardian + "},{\"fieldId\":" + firstGuardian + "}]"));
+            assertRefused(DocumentRefusal.SIGNING_BATCH_EMPTY, startBatchRaw(client, guardian, "[]"));
+
+            JsonNode withChild = startBatch(
+                    client, guardian, "[{\"fieldId\":" + firstGuardian + "},{\"fieldId\":" + childOwn + "}]");
+            assertRefused(
+                    DocumentRefusal.SIGNING_MARK_MISSING,
+                    completeBatch(client, guardian, withChild, "PASSWORD", null, PASSWORD, List.of()));
+
+            JsonNode started = startBatch(
+                    client, guardian, "[{\"fieldId\":" + firstGuardian + "},{\"fieldId\":" + secondGuardian + "}]");
+            complete(
+                    client,
+                    guardian,
+                    secondGuardian,
+                    start(client, guardian, secondGuardian, null),
+                    "PASSWORD",
+                    null,
+                    PASSWORD);
+            assertRefused(
+                    DocumentRefusal.SIGNING_FIELD_NOT_OPEN,
+                    completeBatch(client, guardian, started, "PASSWORD", null, PASSWORD, List.of()));
+        });
+
+        assertEquals(FieldState.OPEN, fieldState(firstRequest));
+        assertTrue(evidenceRepo.evidenceOf(firstRequest.id()).isEmpty(), "nothing of the refused batch is kept");
+    }
+
+    /**
+     * Checks that a request was sealed once into a version that validates, carrying the given number of acts,
+     * each of the batch, whose challenge the evidence in that version gives back.
+     */
+    private static void assertBatchSealedOnce(SignatureRequest request, int acts, byte @Nullable [] challenge) {
+        var document = filedDocument(request);
+        assertEquals(1, documents.sealedVersions(document).size(), "the document is sealed once");
+        byte[] sealed = documents.read(document).orElseThrow();
+        assertEquals(1, TestSealing.intactSealsOf(sealed, stationRepo, station.id()));
+        var file = SigningEvidenceFiles.read(
+                SigningStateAssembler.evidenceOf(sealed).orElseThrow());
+        var recorded = file.fields().stream()
+                .map(SigningEvidenceFile.Field::act)
+                .filter(Objects::nonNull)
+                .toList();
+        assertEquals(acts, recorded.size());
+        for (var act : recorded) {
+            assertNotNull(act.batch());
+            if (challenge == null) continue;
+            assertArrayEquals(challenge, SigningChallenge.of(SigningEvidenceFiles.actOf(file, act)));
+            assertArrayEquals(challenge, Objects.requireNonNull(act.webAuthn()).challenge());
+        }
+    }
+
+    private static JsonNode accepted(Response response) {
+        String text = response.body().string();
+        assertEquals(200, response.code(), text);
+        return body(text);
+    }
+
+    private JsonNode startBatch(HttpClient client, StationMember signer, String fields) {
+        Response response = startBatchRaw(client, signer, fields);
+        assertEquals(200, response.code(), () -> response.body().string());
+        return json(response);
+    }
+
+    private Response startBatchRaw(HttpClient client, StationMember signer, String fields) {
+        return client.post(
+                PREFIX + "/signing/batch/start",
+                body("{\"fields\":" + fields + "}"),
+                harness.as(signedIn(signer, StationPermission.LOGIN)));
+    }
+
+    /**
+     * Completes a started batch with the account holder's picture drawn for it and one drawn by each named
+     * member signing through the account.
+     */
+    private Response completeBatch(
+            HttpClient client,
+            StationMember signer,
+            JsonNode started,
+            String proof,
+            @Nullable String credentialJson,
+            @Nullable String secret,
+            List<Integer> throughAccount) {
+        ObjectNode object = JsonNodeFactory.instance.objectNode();
+        object.put("startToken", started.path("startToken").asString());
+        object.put("proof", proof);
+        object.put("credentialJson", credentialJson);
+        object.put("secret", secret);
+        var pictures = object.putArray("pictures");
+        String drawn = Base64.getEncoder().encodeToString(TestSignatures.drawn());
+        pictures.addObject().put("signatureImage", drawn).put("signatureSource", "DRAWN");
+        for (int memberId : throughAccount) {
+            pictures.addObject()
+                    .put("memberId", memberId)
+                    .put("signatureImage", drawn)
+                    .put("signatureSource", "DRAWN");
+        }
+        return client.post(
+                PREFIX + "/signing/batch/complete",
+                body(object.toString()),
+                harness.as(signedIn(signer, StationPermission.LOGIN)));
     }
 
     @Test

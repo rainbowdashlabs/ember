@@ -9,6 +9,7 @@ import dev.chojo.ember.feature.signing.entity.Signer;
 import dev.chojo.ember.feature.signing.entity.SignerCapacity;
 import dev.chojo.ember.feature.signing.entity.SignerEntry;
 import dev.chojo.ember.feature.signing.entity.SigningAct;
+import dev.chojo.ember.feature.signing.entity.SigningBatch;
 import dev.chojo.ember.feature.signing.entity.SigningRequest;
 import dev.chojo.ember.util.Sha256;
 import org.junit.jupiter.api.Test;
@@ -19,6 +20,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -166,6 +168,67 @@ class SigningChallengeTest {
                 "Firefox");
 
         assertArrayEquals(SigningChallenge.of(nonce(3), request), SigningChallenge.of(act));
+    }
+
+    @Test
+    void aBatchOfOneIsBoundAsASingleAct() {
+        assertArrayEquals(
+                SigningChallenge.of(nonce(1), base()),
+                SigningChallenge.of(nonce(1), new SigningBatch(UUID.randomUUID(), List.of(base()))));
+    }
+
+    @Test
+    void aBatchFollowsTheDocumentedLayout() {
+        var other = new SigningRequest(
+                UUID.fromString("0e3c1d7a-5b2f-4f4e-9a51-6d3f8c2b1a91"),
+                1,
+                "%PDF-1.7 other".getBytes(StandardCharsets.UTF_8),
+                STATEMENT,
+                Signer.guardian(7, 12),
+                FIELD,
+                List.of());
+        UUID batchUid = UUID.fromString("11111111-2222-4333-8444-555555555555");
+        var batch = new SigningBatch(batchUid, List.of(base(), other));
+
+        var out = new ByteArrayOutputStream();
+        part(out, SigningBatchChallenge.LABEL.getBytes(StandardCharsets.UTF_8));
+        part(out, nonce(1));
+        part(out, uid(batchUid));
+        part(out, integer(7));
+        out.writeBytes(integer(2));
+        part(out, item(base()));
+        part(out, item(other));
+
+        assertArrayEquals(Sha256.digest().digest(out.toByteArray()), SigningChallenge.of(nonce(1), batch));
+        var swapped = new SigningBatch(batchUid, List.of(other, base()));
+        assertFalse(
+                Arrays.equals(SigningChallenge.of(nonce(1), batch), SigningChallenge.of(nonce(1), swapped)),
+                "the order is part of what is signed");
+    }
+
+    /** The item digest of a field as the batch layout documents it. */
+    private static byte[] item(SigningRequest request) {
+        var out = new ByteArrayOutputStream();
+        part(out, SigningBatchChallenge.ITEM_LABEL.getBytes(StandardCharsets.UTF_8));
+        part(out, uid(request.requestUid()));
+        part(out, request.contentSha256());
+        part(out, request.statement().getBytes(StandardCharsets.UTF_8));
+        part(out, "guardian".getBytes(StandardCharsets.UTF_8));
+        part(out, integer(Objects.requireNonNull(request.signer().memberId())));
+        part(out, request.fieldName().getBytes(StandardCharsets.UTF_8));
+        out.writeBytes(integer(request.entries().size()));
+        for (SignerEntry entry : request.entries()) {
+            part(out, entry.field().getBytes(StandardCharsets.UTF_8));
+            part(out, entry.value().getBytes(StandardCharsets.UTF_8));
+        }
+        return Sha256.digest().digest(out.toByteArray());
+    }
+
+    private static byte[] uid(UUID uid) {
+        return ByteBuffer.allocate(16)
+                .putLong(uid.getMostSignificantBits())
+                .putLong(uid.getLeastSignificantBits())
+                .array();
     }
 
     @Test

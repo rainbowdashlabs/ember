@@ -42,6 +42,7 @@ public final class SigningEvidenceFiles {
      * @param labels      the label of each field the content asks its signers to fill in, by the field's
      *                    name
      * @param assembledAt when this signing state is put together
+     * @param issued      the issuer's signature the document carried from its generation, or null
      * @return the evidence file, its fields in the request's order, each with the act that filled it
      * @throws IllegalArgumentException when evidence names a field the request does not have
      */
@@ -49,7 +50,8 @@ public final class SigningEvidenceFiles {
             SignatureRequestView view,
             Map<Integer, ActPicture> pictures,
             Map<String, String> labels,
-            Instant assembledAt) {
+            Instant assembledAt,
+            SigningEvidenceFile.@Nullable Issued issued) {
         Map<Integer, StoredEvidence> byField =
                 view.evidence().stream().collect(Collectors.toMap(StoredEvidence::fieldId, Function.identity()));
         List<SigningEvidenceFile.Field> fields = view.fields().stream()
@@ -67,7 +69,8 @@ public final class SigningEvidenceFiles {
                 request.memberName(),
                 assembledAt,
                 fields,
-                withdrawal(view.withdrawal(), request.memberName()));
+                withdrawal(view.withdrawal(), request.memberName()),
+                issued);
     }
 
     private static SigningEvidenceFile.@Nullable Withdrawal withdrawal(

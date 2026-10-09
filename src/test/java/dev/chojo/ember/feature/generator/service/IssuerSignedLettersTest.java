@@ -96,8 +96,8 @@ class IssuerSignedLettersTest extends GeneratorTestBase {
         byte[] file = fileOf(generated.documentId());
         assertEquals(List.of(), SignatureFields.unsigned(file), "the issuer field carries the signature now");
         String text = Objects.requireNonNull(PdfText.extract(file));
-        assertTrue(text.contains("Erika Wehr"));
-        assertTrue(text.contains("Elektronisch signiert am"));
+        assertFalse(text.contains("Erika Wehr"), "the picture alone, no name printed beside it");
+        assertFalse(text.contains("Elektronisch signiert"), "the picture alone, no caption printed beside it");
         assertEquals(1, picturesOnFirstPage(file));
         assertEquals(
                 1, TestSealing.intactSealsOf(file, stationRepo, wiring.station().id()));

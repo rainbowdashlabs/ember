@@ -39,6 +39,7 @@ import dev.chojo.ember.feature.signing.entity.SigningEvidenceFile;
 import dev.chojo.ember.feature.signing.entity.SigningStatements;
 import dev.chojo.ember.feature.signing.entity.ValidationIndication;
 import dev.chojo.ember.feature.signing.entity.ValidationSubIndication;
+import dev.chojo.ember.feature.signing.repository.IssuerSignatureRepository;
 import dev.chojo.ember.feature.signing.repository.PartnerAuthorityRepository;
 import dev.chojo.ember.feature.signing.repository.SignatureRequestRepository;
 import dev.chojo.ember.feature.signing.repository.SigningEvidenceRepository;
@@ -95,10 +96,11 @@ import static org.mockito.Mockito.mock;
  * PDF/A-3b letter with signature fields, signed with a picture in each field, its state assembled and
  * sealed with the station's real key, then validated offline by the installation's verifier, which runs
  * the EU DSS validator. Every baseline level the sealer reaches validates at that level; a changed byte in
- * the content or the record page, a page added after the seal, a record page covered and evidence replaced
- * by a later revision all fail; two signers leave two valid versions, the later superseding the earlier; an
- * outage of every timestamp service falls back to a seal without a timestamp and the record says so; and a
- * document with signature pictures drawn into its fields stays PDF/A-3b ({@link PdfA3b}).
+ * the content, a page added after the seal, a page covered and evidence replaced by a later revision all
+ * fail; two signers leave two valid versions, the later superseding the earlier; an outage of every
+ * timestamp service falls back to a seal without a timestamp and the record says so; the record and the copy
+ * with it, built on download, validate and stay PDF/A-3b; and a document with signature pictures drawn into
+ * its fields stays PDF/A-3b ({@link PdfA3b}).
  *
  * <p>The timestamp services run on loopback ({@link LocalTimestampService}); nothing reaches the internet.
  * The documents are kept as {@link SigningSamples} when asked for.
@@ -278,37 +280,56 @@ class SignedDocumentMatrixTest extends RepositoryTestBase {
         assertFalse(verification.document().held());
     }
 
+    /**
+     * The record and the copy with it, as a reader downloads them, are sealed at baseline long term when a
+     * service answers, stay PDF/A-3b, and fail their seal once a byte of the record is changed. Neither is a
+     * version the installation holds.
+     */
     @Test
-    void aByteChangedInTheRecordPageFailsTheSeal() throws IOException {
+    void theRecordAndTheCopyWithItValidateAndAChangedByteFailsThem() throws IOException {
         var request = signedByOne("Rolf", "Rekord");
-        byte[] sealed;
+        byte[] record;
+        byte[] copy;
+        Document document;
         try (var service = LocalTimestampService.start()) {
-            sealed = sealLatest(request, timestampsOf(service));
+            sealLatest(request, timestampsOf(service));
+            document = documentOf(request);
+            int version = currentVersion(request).version();
+            record = records(timestampsOf(service)).record(document, version).pdf();
+            copy = records(timestampsOf(service)).withRecord(document, version).pdf();
         }
 
-        byte[] tampered = withByteFlippedInPageContent(sealed, pageCount(sealed) - 1);
+        for (byte[] built : List.of(record, copy)) {
+            var verification = verifier.verify(built);
+            assertFalse(verification.document().held(), "a download is no version");
+            assertEquals(1, verification.signatures().size());
+            assertPassed(verification.signatures().getFirst(), PadesLevel.BASELINE_LT);
+            PdfA3b.assertConforms(built);
+        }
+        assertEquals(pageCount(documents.read(document).orElseThrow()) + pageCount(record), pageCount(copy));
+        assertNotNull(verifier.verify(copy).evidence(), "the copy still carries the evidence");
 
-        var verification = verifier.verify(tampered);
-        var check = verification.signatures().getFirst();
+        byte[] tampered = withByteFlippedInPageContent(copy, pageCount(copy) - 1);
+        var check = verifier.verify(tampered).signatures().getFirst();
         assertFalse(check.intact());
         assertEquals(ValidationIndication.TOTAL_FAILED, check.indication());
-        assertEquals(ValidationSubIndication.HASH_FAILURE, check.subIndication());
-        assertFalse(verification.document().held());
+        SigningSamples.write("record.pdf", record);
+        SigningSamples.write("with-record.pdf", copy);
     }
 
     @Test
-    void aRecordPageCoveredByAnIncrementalUpdateFailsTheSeal() throws IOException {
+    void aPageCoveredByAnIncrementalUpdateFailsTheSeal() throws IOException {
         var request = signedByOne("Rita", "Ruebermalt");
         byte[] sealed;
         try (var service = LocalTimestampService.start()) {
             sealed = sealLatest(request, timestampsOf(service));
         }
 
-        byte[] covered = withRecordPageCoveredIncrementally(sealed);
+        byte[] covered = withLastPageCoveredIncrementally(sealed);
 
         assertArrayEquals(sealed, Arrays.copyOf(covered, sealed.length), "an update keeps the sealed bytes");
         assertEquals(pageCount(sealed), pageCount(covered));
-        assertEquals(recordPageStreams(sealed) + 1, recordPageStreams(covered), "the cover is drawn on that page");
+        assertEquals(lastPageStreams(sealed) + 1, lastPageStreams(covered), "the cover is drawn on that page");
         assertFailsAsModified(covered);
     }
 
@@ -379,10 +400,10 @@ class SignedDocumentMatrixTest extends RepositoryTestBase {
             assertEquals(
                     new SigningEvidenceFile.Picture(saved.sha256(), ActPictureSource.SAVED),
                     actOn(evidence, "issuer").picture());
-            String record = record(pdf);
-            assertTrue(record.contains("Beim Unterschreiben gezeichnet"), record);
-            assertTrue(record.contains("Vorher im Konto gespeichert"), record);
         }
+        String record = record(request);
+        assertTrue(record.contains("Beim Unterschreiben gezeichnet"), record);
+        assertTrue(record.contains("Vorher im Konto gespeichert"), record);
         PdfA3b.assertConforms(first);
         PdfA3b.assertConforms(latest);
         SigningSamples.write("two-signers-v1.pdf", first);
@@ -404,10 +425,9 @@ class SignedDocumentMatrixTest extends RepositoryTestBase {
         assertNull(version.timestampedBy());
         var check = assertPassed(sealed, PadesLevel.BASELINE_B);
         assertTrue(check.timestamps().isEmpty());
-        try (var pdf = Loader.loadPDF(sealed)) {
-            assertTrue(record(pdf).contains("Beim Versiegeln hat kein Zeitstempeldienst geantwortet"));
-            assertTrue(record(pdf).contains("Ein Zeitstempel kann später ergänzt werden"));
-        }
+        String record = record(request);
+        assertTrue(record.contains("Alle Zeiten in diesem Nachweis stammen deshalb nur von der Uhr"), record);
+        assertTrue(record.contains("Ein Zeitstempel kann später ergänzt werden"));
         SigningSamples.write("timestamp-outage-baseline-b.pdf", sealed);
     }
 
@@ -518,8 +538,8 @@ class SignedDocumentMatrixTest extends RepositoryTestBase {
         }
     }
 
-    /** Paints the record page white by an incremental update, the way an editor covers what a page says. */
-    private static byte[] withRecordPageCoveredIncrementally(byte[] sealed) throws IOException {
+    /** Paints the last page white by an incremental update, the way an editor covers what a page says. */
+    private static byte[] withLastPageCoveredIncrementally(byte[] sealed) throws IOException {
         try (var pdf = Loader.loadPDF(sealed);
                 var out = new ByteArrayOutputStream()) {
             var page = pdf.getPage(pdf.getNumberOfPages() - 1);
@@ -556,7 +576,7 @@ class SignedDocumentMatrixTest extends RepositoryTestBase {
         }
     }
 
-    private static int recordPageStreams(byte[] pdf) throws IOException {
+    private static int lastPageStreams(byte[] pdf) throws IOException {
         try (var document = Loader.loadPDF(pdf)) {
             int streams = 0;
             var contents = document.getPage(document.getNumberOfPages() - 1).getContentStreams();
@@ -603,10 +623,24 @@ class SignedDocumentMatrixTest extends RepositoryTestBase {
         return act;
     }
 
-    private static String record(PDDocument pdf) throws IOException {
-        var stripper = new PDFTextStripper();
-        stripper.setStartPage(2);
-        return stripper.getText(pdf).replaceAll("\\s+", " ");
+    /** The text of the current version's record as a reader downloads it. */
+    private static String record(SignatureRequest request) throws IOException {
+        var document = documentOf(request);
+        try (var pdf = Loader.loadPDF(records(SealedPdfs.noTimestamps())
+                .record(document, currentVersion(request).version())
+                .pdf())) {
+            return new PDFTextStripper().getText(pdf).replaceAll("\\s+", " ");
+        }
+    }
+
+    private static SignatureRecords records(TimestampServices timestamps) {
+        return new SignatureRecords(
+                documents,
+                stationRepo,
+                stationKeys,
+                new PdfSealer(timestamps, new StationKeyRevocations(keyRepo, new RevocationLists(), wrap)),
+                timestamps,
+                BASE_URL);
     }
 
     private static SigningStateSealer sealer(TimestampServices timestamps) {
@@ -620,7 +654,8 @@ class SignedDocumentMatrixTest extends RepositoryTestBase {
                 new SigningStateAssembler(Clock.systemUTC()),
                 new PdfSealer(timestamps, new StationKeyRevocations(keyRepo, new RevocationLists(), wrap)),
                 mock(SignedCopies.class),
-                SealedStateFollowUp.NONE);
+                SealedStateFollowUp.NONE,
+                new IssuedSignatures(new IssuerSignatureRepository(), memberNameResolver));
     }
 
     private static TimestampServices timestampsOf(LocalTimestampService service) {

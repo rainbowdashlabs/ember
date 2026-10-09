@@ -164,6 +164,17 @@ public class SealedDocumentService {
     }
 
     /**
+     * @param documentId the sealed document
+     * @return the number of the version it serves now
+     * @throws IllegalStateException when it has no sealed version
+     */
+    public int currentVersion(int documentId) {
+        return versions.current(documentId)
+                .orElseThrow(() -> new IllegalStateException("Document " + documentId + " has no sealed version"))
+                .version();
+    }
+
+    /**
      * Files a sealed file that only adds to a version, such as a later timestamp over it, as the document's
      * current version through {@link #fileVersion}, but only while that version is still the current one.
      * A version filed in the meantime carries something the file does not, so the file is dropped instead of

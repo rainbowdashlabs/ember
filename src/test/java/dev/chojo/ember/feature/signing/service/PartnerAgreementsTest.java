@@ -327,7 +327,7 @@ class PartnerAgreementsTest extends GeneratorTestBase {
                 linkRepo,
                 deliveries,
                 new RequirementSignatureStates(requestRepo, requests, new WithdrawalRights(guardianPolicy)));
-        sealer = TestSealing.stateSealer(memberDocumentRepo, documents, stationRepo, deliveries);
+        sealer = TestSealing.stateSealer(memberDocumentRepo, documents, stationRepo, memberNameResolver, deliveries);
 
         endpoints = transport.serve(events, authorities, agreements);
         routeOverHttp(httpClient);

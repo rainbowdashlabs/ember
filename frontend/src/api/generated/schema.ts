@@ -64275,6 +64275,7 @@ export interface components {
         EvidenceSummary: {
             contentSha256: string;
             fields: components["schemas"]["Field"][];
+            issued: components["schemas"]["Issued"] | null;
             /** Format: uuid */
             requestUid: string;
         };
@@ -65793,6 +65794,12 @@ export interface components {
             firstName?: string;
             lastName?: string;
             sendSetupMail?: boolean;
+        };
+        Issued: {
+            consentedAt: components["schemas"]["Instant"];
+            issuerName: string | null;
+            pictureSha256: string;
+            signedAt: components["schemas"]["Instant"];
         };
         IssuedOneTimePassword: {
             /** Format: int32 */
@@ -73360,6 +73367,7 @@ export type InventoryType = components['schemas']['InventoryType'];
 export type InviteCodeResponse = components['schemas']['InviteCodeResponse'];
 export type InviteEntry = components['schemas']['InviteEntry'];
 export type InviteRequest = components['schemas']['InviteRequest'];
+export type Issued = components['schemas']['Issued'];
 export type IssuedOneTimePassword = components['schemas']['IssuedOneTimePassword'];
 export type IssuerChoice = components['schemas']['IssuerChoice'];
 export type ItemAssignment = components['schemas']['ItemAssignment'];

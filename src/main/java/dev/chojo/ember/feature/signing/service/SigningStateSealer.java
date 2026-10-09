@@ -72,6 +72,7 @@ public class SigningStateSealer {
     private final PdfSealer sealer;
     private final SignedCopies copies;
     private final SealedStateFollowUp followUp;
+    private final IssuedSignatures issued;
 
     @Inject
     public SigningStateSealer(
@@ -84,8 +85,10 @@ public class SigningStateSealer {
             SigningStateAssembler assembler,
             PdfSealer sealer,
             SignedCopies copies,
-            SealedStateFollowUp followUp) {
+            SealedStateFollowUp followUp,
+            IssuedSignatures issued) {
         this.followUp = followUp;
+        this.issued = issued;
         this.requests = requests;
         this.evidence = evidence;
         this.documents = documents;
@@ -148,7 +151,8 @@ public class SigningStateSealer {
     SealedDocument seal(UnsealedState state) {
         SealingKey key = keys.forStation(state.view().request().stationId());
         var pictures = evidence.marksOf(state.view().request().id());
-        var assembled = assembler.assemble(state.view(), state.content(), pictures);
+        var assembled = assembler.assemble(
+                state.view(), state.content(), pictures, issued.of(state.view().request()));
         return sealer.seal(assembled, key.privateKey(), key.chain());
     }
 
@@ -182,7 +186,12 @@ public class SigningStateSealer {
             requests.markWithdrawalSealed(request.id(), sha256);
             evidence.clearSealFailure(request.id());
             copies.queue(
-                    state.view(), state.document(), versionOf(state.document(), sha256), sealed.pdf(), sha256, carried);
+                    state.view(),
+                    state.document(),
+                    sealedDocuments.currentVersion(state.document().id()),
+                    sealed.pdf(),
+                    sha256,
+                    carried);
             log.info(
                     "Sealed {} new acts and {} newly settled fields of signing request {} into document {} ({})",
                     carried.size(),
@@ -192,15 +201,6 @@ public class SigningStateSealer {
                     sealed.level());
             return true;
         });
-    }
-
-    /** The number of the document's sealed version with that hash, which was just filed. */
-    private int versionOf(Document document, String sha256) {
-        return documentService.sealedVersions(document).stream()
-                .filter(version -> version.sha256().equals(sha256))
-                .findFirst()
-                .orElseThrow(() -> new IllegalStateException("The version just filed is not among the versions"))
-                .version();
     }
 
     /**

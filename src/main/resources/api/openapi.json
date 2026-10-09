@@ -56233,9 +56233,16 @@
             "items" : {
               "$ref" : "#/components/schemas/Field"
             }
+          },
+          "issued" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Issued"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
-        "required" : [ "requestUid", "contentSha256", "fields" ]
+        "required" : [ "requestUid", "contentSha256", "fields", "issued" ]
       },
       "ExaminerCandidate" : {
         "type" : "object",
@@ -60646,6 +60653,24 @@
             "type" : "boolean"
           }
         }
+      },
+      "Issued" : {
+        "type" : "object",
+        "properties" : {
+          "issuerName" : {
+            "type" : [ "string", "null" ]
+          },
+          "consentedAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "signedAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "pictureSha256" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "issuerName", "consentedAt", "signedAt", "pictureSha256" ]
       },
       "IssuedOneTimePassword" : {
         "type" : "object",

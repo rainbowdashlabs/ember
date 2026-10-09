@@ -197,6 +197,18 @@ first signature.
   #if f.act != none { act-table(f.act) } else { field-table(f) }
 ]
 
+#if r.issued != none [
+  === Issuer
+
+  #facts(
+    [Signed by], [#if r.issued.issuerName != none [#r.issued.issuerName] else [No longer known]],
+    [How], [When the document was generated, with the saved signature and without a confirmation of their own, as the person agreed to],
+    [Agreed on], [#r.issued.consentedAt],
+    [Time], [#r.issued.signedAt],
+    [Signature picture (SHA-256)], mono(r.issued.pictureSha256),
+  )
+]
+
 == Seal and time
 
 #if r.timeBasis == "TIMESTAMP_SERVICE" [
