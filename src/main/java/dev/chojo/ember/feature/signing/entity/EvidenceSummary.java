@@ -25,14 +25,9 @@ import java.util.UUID;
 public record EvidenceSummary(
         UUID requestUid, String contentSha256, List<Field> fields, SigningEvidenceFile.@Nullable Issued issued) {
 
-    /** Copies the fields, so they cannot change after the fact. */
-    public EvidenceSummary {
-        fields = List.copyOf(fields);
-    }
-
     /**
      * @param file the evidence a document carries
-     * @return what it says in short
+     * @return what it says in short, its fields in a list that cannot change
      */
     public static EvidenceSummary of(SigningEvidenceFile file) {
         return new EvidenceSummary(
