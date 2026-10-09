@@ -279,11 +279,21 @@ public class EventRegistrationService {
      * it declines. Both mean the member will not be there and every count treats them alike; they
      * are kept apart so the list and the notification can say which of the two happened.
      *
+     * <p>An appointment that expects everybody has no place to give up, so a "no" there always
+     * declines. A withdrawal on it is a refusal taken back and reads as coming, so writing one for a
+     * "no" would have counted the member in.
+     *
      * @param current the status the registration holds now, or null where there is none yet
+     * @param eventId the appointment the "no" is for
      * @return the status to write
      */
-    private static RegistrationStatus refusalFor(@Nullable RegistrationStatus current) {
-        return current == RegistrationStatus.ACCEPTED ? RegistrationStatus.WITHDRAWN : RegistrationStatus.DECLINED;
+    private RegistrationStatus refusalFor(@Nullable RegistrationStatus current, int eventId) {
+        if (current != RegistrationStatus.ACCEPTED) return RegistrationStatus.DECLINED;
+        boolean registrationRequired = eventRepository
+                .findById(eventId)
+                .map(StationEvent::requiresRegistration)
+                .orElse(true);
+        return registrationRequired ? RegistrationStatus.WITHDRAWN : RegistrationStatus.DECLINED;
     }
 
     /**
@@ -317,6 +327,10 @@ public class EventRegistrationService {
      * confirmed it is still owed the question. What they had answered outlives the refusal by exactly
      * the window it can be taken back in, because an undo handing back a registration with its
      * questions blank would be worse than none.
+     *
+     * <p>On an appointment that expects everybody this is how a refusal is taken back. The row stays
+     * for the same reasons, and every read of who is coming takes it for no answer at all, so the
+     * member is expected again.
      *
      * @param id the registration ID
      * @return true if the registration was withdrawn
@@ -377,7 +391,7 @@ public class EventRegistrationService {
             return false;
         }
         requireNotHeldByAField(registration, EventRefusal.REGISTRATION_HELD_BY_A_FIELD_ON_REFUSAL);
-        var status = refusalFor(registration.status());
+        var status = refusalFor(registration.status(), registration.eventId());
         if (!registrationRepository.recordAnswer(id, status)) return false;
         log.info("Recorded {} for registration {}", status, id);
         announceFreedPlace(registration.eventId(), registration.memberId(), registration.status());
@@ -478,7 +492,7 @@ public class EventRegistrationService {
                 .orElse(null);
         if (existing != null) requireNotHeldByAField(existing, EventRefusal.REGISTRATION_HELD_BY_A_FIELD_ON_DECLINE);
         var heldBefore = existing == null ? null : existing.status();
-        var status = refusalFor(heldBefore);
+        var status = refusalFor(heldBefore, eventId);
         var result = registrationRepository.create(eventId, memberId, eventDate, status, createdBy);
         log.info("Recorded {} for member {} on event {} ({})", status, memberId, eventId, eventDate);
         announceFreedPlace(eventId, memberId, heldBefore);

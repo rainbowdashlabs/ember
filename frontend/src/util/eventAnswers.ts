@@ -60,6 +60,20 @@ export function isRefusal(status: RegistrationStatus): boolean {
 }
 
 /**
+ * Whether an answer says the member will not be at the appointment.
+ *
+ * <p>A refusal always does. Taking an answer back only does where the appointment has to be signed up
+ * for, because there it gives a place up. Where everybody is expected, it takes a refusal back, and
+ * the member is expected again.
+ *
+ * @param registrationRequired whether the appointment has to be signed up for
+ */
+export function saysNotComing(status: RegistrationStatus, registrationRequired: boolean): boolean {
+    return status === RegistrationStatus.DECLINED
+        || (status === RegistrationStatus.WITHDRAWN && registrationRequired)
+}
+
+/**
  * Whether a registration is still an answer somebody holds.
  *
  * <p>A place that was given back is kept for whoever runs the appointment, so the row outlives the

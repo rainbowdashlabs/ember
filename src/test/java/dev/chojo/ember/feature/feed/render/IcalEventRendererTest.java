@@ -128,6 +128,22 @@ class IcalEventRendererTest {
         assertFalse(renderer.isVisibleForFeed(event, ctx));
     }
 
+    /** Where everybody is expected, a withdrawal is a refusal taken back, so the appointment stays. */
+    @Test
+    void keepsAnAppointmentWithoutRegistrationWhoseRefusalWasTakenBack() {
+        var event = simpleEvent(10);
+        assertTrue(renderer.isVisibleForFeed(event, ctx(Map.of(10, RegistrationStatus.WITHDRAWN), Map.of())));
+        var managed = Map.of(10, List.of(new IcalEventRenderer.ManagedRegistration("A", RegistrationStatus.WITHDRAWN)));
+        assertTrue(renderer.isVisibleForFeed(event, ctx(Map.of(), managed)));
+    }
+
+    /** Where the appointment is signed up for, a withdrawal gives the place up, so the appointment goes. */
+    @Test
+    void hidesAnAppointmentWithRegistrationWhosePlaceWasGivenUp() {
+        var event = registrationRequiredEvent(10, Instant.now().plusSeconds(86_400));
+        assertFalse(renderer.isVisibleForFeed(event, ctx(Map.of(10, RegistrationStatus.WITHDRAWN), Map.of())));
+    }
+
     @Test
     void showsNonGuardianWhoIsPending() {
         var event = simpleEvent(10);

@@ -13,5 +13,21 @@ public enum RegistrationStatus {
     ACCEPTED,
     DENIED,
     DECLINED,
-    WITHDRAWN
+    WITHDRAWN;
+
+    /**
+     * Whether this answer, as the member's own, says they will not be at the appointment.
+     *
+     * <p>A refusal always does. A withdrawal only does where the appointment has to be signed up for,
+     * because there it gives a place up. Where everybody is expected, the only answer is a refusal, and
+     * a withdrawal is that refusal taken back: the member is expected again, exactly as if they had
+     * never answered. A denial is the station's word and not the member's, so it is left to the reads
+     * that care about it.
+     *
+     * @param registrationRequired whether the appointment has to be signed up for
+     * @return true where the member is not coming
+     */
+    public boolean saysNotComing(boolean registrationRequired) {
+        return this == DECLINED || (this == WITHDRAWN && registrationRequired);
+    }
 }

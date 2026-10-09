@@ -55,6 +55,7 @@ Wachen erstellen aus eigenen Vorlagen und denen ihres Verbands Dokumente für ih
 - **Die Mitgliederliste in Sichtbarkeitsfiltern war abgeschnitten.** Wo eine Einschränkung von Sichtbarkeit oder Zugriff eine Auswahl von Mitgliedern anbietet, öffnete sich die Liste nur so breit wie ihr Knopf, sodass Suche und Namen nicht zu lesen waren. Jetzt öffnet sie sich breit genug für die Namen und bleibt im Fenster.
 - **Vorschaubilder von PDFs waren verpixelt.** Die kleinen Bilder von PDFs in der Mediathek, bei Dokumenten von Mitgliedern und bei Anhängen von Terminen waren so grob, dass ihr Text nicht zu lesen war. Jetzt werden sie feiner gezeichnet und in der Größe ihrer Kachel gezeigt.
 - **Neue Tags verloren Farbe und Badge.** Ein Tag, das mit Farbe oder als Badge angelegt wurde, wurde ohne beides gespeichert, bis es bearbeitet wurde. Jetzt bleibt beides von Anfang an erhalten.
+- **Eine zurückgenommene Absage zählte weiter als Absage.** Bei Terminen ohne Anmeldung konnte ein Mitglied, das seine Absage zurückgenommen hatte, weiter auf der Anwesenheitsliste als abwesend stehen, keine Erinnerung bekommen, im Kalender fehlen und bei den Absagen mitgezählt werden. Jetzt zählt es nach der Rücknahme wieder als erwartet, auch bei Absagen, die vor diesem Release zurückgenommen wurden.
 - **System-Mails blieben manchmal für immer liegen.** Hatten alle Anbieter der Instanz ihr Tageslimit erreicht, wurde eine wartende Mail wie ein Passwort-Link in manchen Fällen nie verschickt, auch am nächsten Tag nicht. Jetzt geht sie am nächsten Tag raus.
 
 ## v26.21.0
