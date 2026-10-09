@@ -177,8 +177,7 @@ class IssuerSignedLettersTest extends GeneratorTestBase {
         images.consent(warden.accountId(), true);
         var brokenKeys = mock(StationSigningKeys.class);
         when(brokenKeys.forStation(anyInt())).thenThrow(new IllegalStateException("The key does not open"));
-        var failing = new IssuedLetterSigner(
-                stationMemberRepo, stationRepo, images, brokenKeys, mock(PdfSealer.class), records);
+        var failing = new IssuedLetterSigner(stationMemberRepo, images, brokenKeys, mock(PdfSealer.class), records);
         var broken = wire(stationRepo.create("Kaputte Wache " + UUID.randomUUID()), failing);
         var issuer = broken.member(UUID.randomUUID() + "@issued.test", "Ida", "Kaputt");
         var boss = broken.member(UUID.randomUUID() + "@issued.test", "Bo", "Leitung");

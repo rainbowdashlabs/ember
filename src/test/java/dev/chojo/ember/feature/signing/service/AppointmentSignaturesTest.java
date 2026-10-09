@@ -28,6 +28,7 @@ import dev.chojo.ember.feature.generator.entity.PaperState;
 import dev.chojo.ember.feature.generator.entity.RequirementSignatureField;
 import dev.chojo.ember.feature.generator.entity.RequirementSignatureState;
 import dev.chojo.ember.feature.generator.entity.SignatureRole;
+import dev.chojo.ember.feature.generator.repository.DocumentGenerationRepository;
 import dev.chojo.ember.feature.generator.repository.EventRequirementRepository;
 import dev.chojo.ember.feature.generator.repository.PaperSubmissionRepository;
 import dev.chojo.ember.feature.generator.service.AppointmentDocumentService;
@@ -52,6 +53,7 @@ import dev.chojo.ember.feature.signing.entity.SigningAct;
 import dev.chojo.ember.feature.signing.entity.SigningCircumstances;
 import dev.chojo.ember.feature.signing.entity.SigningEvidence;
 import dev.chojo.ember.feature.signing.handler.RegistrationSignaturesHandler;
+import dev.chojo.ember.feature.signing.repository.IssuerSignatureRepository;
 import dev.chojo.ember.feature.signing.repository.SignatureRequestRepository;
 import dev.chojo.ember.feature.signing.repository.SigningEvidenceRepository;
 import io.javalin.http.UploadedFile;
@@ -193,7 +195,16 @@ class AppointmentSignaturesTest extends GeneratorTestBase {
                 newNotifier(),
                 new ScanSignatures(requestRepo, fields));
         var signatures = new AppointmentSignatures(
-                eventRepo, eventRegistrationRepo, appointments, requirementRepo, submissions, requestRepo, requests);
+                eventRepo,
+                eventRegistrationRepo,
+                appointments,
+                requirementRepo,
+                submissions,
+                requestRepo,
+                requests,
+                new DocumentGenerationRepository(),
+                new IssuerSignatureRepository(),
+                mock(IssuedLetterSigner.class));
         registrations = new EventRegistrationService(
                 eventRegistrationRepo,
                 new EventRegistrationFieldRepository(),

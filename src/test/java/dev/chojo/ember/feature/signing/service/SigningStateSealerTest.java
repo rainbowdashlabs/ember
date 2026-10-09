@@ -342,7 +342,7 @@ class SigningStateSealerTest extends RepositoryTestBase {
                 documents,
                 sealedDocuments,
                 brokenKeys,
-                assembler(SealedPdfs.noTimestamps()),
+                assembler(),
                 pdfSealer(SealedPdfs.noTimestamps()),
                 copies,
                 SealedStateFollowUp.NONE);
@@ -543,7 +543,7 @@ class SigningStateSealerTest extends RepositoryTestBase {
                 documents,
                 sealedDocuments,
                 stationKeys,
-                assembler(SealedPdfs.noTimestamps()),
+                assembler(),
                 pdfSealer(SealedPdfs.noTimestamps()),
                 failingCopies,
                 SealedStateFollowUp.NONE);
@@ -742,7 +742,7 @@ class SigningStateSealerTest extends RepositoryTestBase {
                 documents,
                 sealedDocuments,
                 stationKeys,
-                assembler(timestamps),
+                assembler(),
                 pdfSealer,
                 copies,
                 SealedStateFollowUp.NONE);
@@ -783,8 +783,8 @@ class SigningStateSealerTest extends RepositoryTestBase {
         return new PdfSealer(timestamps, new StationKeyRevocations(keyRepo, new RevocationLists(), wrap));
     }
 
-    private static SigningStateAssembler assembler(TimestampServices timestamps) {
-        return new SigningStateAssembler(stationRepo, timestamps, BASE_URL, Clock.systemUTC());
+    private static SigningStateAssembler assembler() {
+        return new SigningStateAssembler(Clock.systemUTC());
     }
 
     private static void assertSealIntact(byte[] sealed) {

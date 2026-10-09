@@ -13,8 +13,6 @@ import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.signing.entity.IssuerSignature;
 import dev.chojo.ember.feature.signing.entity.SignatureMark;
 import dev.chojo.ember.feature.signing.repository.IssuerSignatureRepository;
-import dev.chojo.ember.feature.station.entity.StationFormat;
-import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.util.Sha256;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -33,8 +31,7 @@ import java.util.Optional;
  * <p>A letter is signed when all of these hold: it carries the issuer's signature field, its issuer is the
  * one its template names (not one a manager picked for the occasion), that member has an account, and the
  * account both keeps a signature picture and consented to letters being signed with it. Then the picture is
- * drawn into the issuer field with the issuer's official name and the day under it ({@link SignatureMarks}),
- * and the letter is sealed with the station's key ({@link PdfSealer}): with a timestamp and its validation
+ * drawn into the issuer field ({@link SignatureMarks}), and the letter is sealed with the station's key ({@link PdfSealer}): with a timestamp and its validation
  * material where the services give them, without a timestamp where no service answers. The signed letter is
  * what is filed and logged, and {@code issuer_signature} records that it was signed, under which consent and
  * with which picture.
@@ -52,7 +49,6 @@ public class IssuedLetterSigner implements IssuerSigning {
     private static final String ISSUER_FIELD = "issuer";
 
     private final StationMemberRepository members;
-    private final StationRepository stations;
     private final SignatureImageService images;
     private final StationSigningKeys keys;
     private final PdfSealer sealer;
@@ -62,12 +58,11 @@ public class IssuedLetterSigner implements IssuerSigning {
     @Inject
     public IssuedLetterSigner(
             StationMemberRepository members,
-            StationRepository stations,
             SignatureImageService images,
             StationSigningKeys keys,
             PdfSealer sealer,
             IssuerSignatureRepository records) {
-        this(members, stations, images, keys, sealer, records, Clock.systemUTC());
+        this(members, images, keys, sealer, records, Clock.systemUTC());
     }
 
     /**
@@ -75,14 +70,12 @@ public class IssuedLetterSigner implements IssuerSigning {
      */
     IssuedLetterSigner(
             StationMemberRepository members,
-            StationRepository stations,
             SignatureImageService images,
             StationSigningKeys keys,
             PdfSealer sealer,
             IssuerSignatureRepository records,
             Clock clock) {
         this.members = members;
-        this.stations = stations;
         this.images = images;
         this.keys = keys;
         this.sealer = sealer;
@@ -112,20 +105,42 @@ public class IssuedLetterSigner implements IssuerSigning {
         Integer issuerId = issuer.memberOfRecord();
         String name = issuer.name();
         if (!issuer.signs() || !issuer.issuer().fixed() || issuerId == null || name == null) return Optional.empty();
+        return standingConsent(issuerId).flatMap(standing -> images.image(standing.accountId())
+                .map(png -> new Consent(issuerId, name, standing.consentedAt(), png)));
+    }
+
+    /**
+     * Whether a member would have letters signed for them now: they have an account that keeps a signature
+     * picture and consented to letters being signed with it.
+     *
+     * @param issuerId the member
+     * @return whether a letter they issue as their template's issuer would be signed for them
+     */
+    public boolean signsFor(int issuerId) {
+        return standingConsent(issuerId).isPresent();
+    }
+
+    private Optional<Standing> standingConsent(int issuerId) {
         Integer accountId =
                 members.findById(issuerId).map(StationMember::accountId).orElse(null);
         if (accountId == null) return Optional.empty();
         var settings = images.settings(accountId);
         Instant consentedAt = settings.autoSignConsentedAt();
         if (consentedAt == null || !settings.hasImage()) return Optional.empty();
-        return images.image(accountId).map(png -> new Consent(issuerId, name, consentedAt, png));
+        return Optional.of(new Standing(accountId, consentedAt));
     }
+
+    /**
+     * An issuer's standing consent.
+     *
+     * @param accountId   their account, which keeps the picture
+     * @param consentedAt when they agreed to letters being signed
+     */
+    private record Standing(int accountId, Instant consentedAt) {}
 
     private Signed signed(Prepared prepared, Rendered rendered, Consent consent) {
         Instant now = clock.instant();
-        var station = stations.findById(prepared.stationId()).orElse(null);
-        var captions = MarkCaptions.of(prepared.source().language().code(), StationFormat.timezoneOf(station));
-        var mark = new SignatureMark(ISSUER_FIELD, consent.png(), captions.issued(consent.name(), now));
+        var mark = new SignatureMark(ISSUER_FIELD, consent.png());
         byte[] marked = SignatureMarks.draw(rendered.pdf(), List.of(mark));
         var key = keys.forStation(prepared.stationId());
         var sealed = sealer.seal(marked, key.privateKey(), key.chain());

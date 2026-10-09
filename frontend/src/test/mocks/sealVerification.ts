@@ -65,6 +65,7 @@ export function createSealVerification(overrides: Partial<SealVerification> = {}
         document: {held: false, sealedAt: null, sealLevel: null},
         signatures: [],
         documentTimestamps: [],
+        evidence: null,
         ...overrides,
     }
 }

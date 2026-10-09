@@ -38,13 +38,38 @@ public record RequirementSignature(
     }
 
     /**
-     * Where a copy stands, read from its fields.
+     * The copy as a participant or guardian sees it: the issuer's open field is the station's to sign
+     * ({@link RequirementSignatureField#asParticipantsSee}) and does not keep the copy open for them. A
+     * withdrawn copy stays withdrawn.
+     *
+     * @return the copy as participants and guardians see it
+     */
+    public RequirementSignature asParticipantsSee() {
+        var seen = fields.stream()
+                .map(RequirementSignatureField::asParticipantsSee)
+                .toList();
+        var states = seen.stream().map(RequirementSignatureField::state).toList();
+        var seenState = state == RequirementSignatureState.REVOKED ? state : overall(states);
+        return new RequirementSignature(templateId, memberId, requestUid, seenState, seen, withdrawable, withdrawnAt);
+    }
+
+    /**
+     * Where a copy stands, read from its fields. A field the station signs counts for nothing either way;
+     * a copy with no other field stands as the station's to sign.
      *
      * @param fields the states of its fields
      * @return open while any field is, waived where all were let go, confirmed on paper where any was, else
      *         signed
      */
     public static RequirementSignatureState overall(List<RequirementSignatureState> fields) {
+        var counted = fields.stream()
+                .filter(state -> state != RequirementSignatureState.BY_STATION)
+                .toList();
+        if (counted.isEmpty() && !fields.isEmpty()) return RequirementSignatureState.BY_STATION;
+        return overallOf(counted);
+    }
+
+    private static RequirementSignatureState overallOf(List<RequirementSignatureState> fields) {
         if (fields.contains(RequirementSignatureState.OPEN)) return RequirementSignatureState.OPEN;
         if (fields.stream().allMatch(state -> state == RequirementSignatureState.WAIVED)) {
             return RequirementSignatureState.WAIVED;

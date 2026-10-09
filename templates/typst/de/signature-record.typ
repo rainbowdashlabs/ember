@@ -115,6 +115,19 @@
   ([Eingaben], a.entries.map(e => [#name(e): #e.value]).join(linebreak()))
 }
 
+#let batch-rows(a) = {
+  if a.batch == none { return () }
+  let b = a.batch
+  (
+    [Gemeinsam bestätigt],
+    [
+      Mit einer Bestätigung für #b.size Felder, hier Feld #b.position (Vorgang #b.uid). Die anderen Felder:
+      #linebreak()
+      #b.others.map(o => [Anfrage #o.requestUid, Feld #raw(o.fieldName)]).join(linebreak())
+    ],
+  )
+}
+
 #let act-table(a) = facts(
   [Unterschrieben von], [#a.signerName],
   ..capacity-rows(a),
@@ -123,6 +136,7 @@
   ..entry-rows(a),
   ..picture-rows(a),
   ..proof-rows(a),
+  ..batch-rows(a),
   [Zeitpunkt], [#a.signedAt],
   [Netzadresse (gekürzt)], if a.truncatedIp != none [#a.truncatedIp] else [Nicht bekannt],
   [Browser], if a.userAgent != none [#a.userAgent] else [Nicht bekannt],
@@ -136,9 +150,11 @@
 
 = Signaturnachweis
 
-Dieser Nachweis gehört zum Dokument davor. Er hält fest, wer es wann und womit elektronisch unterschrieben
-hat. Die Unterschriften sind einfache elektronische Signaturen. Das Siegel der Wache bestätigt, dass das
-Dokument seit dem Versiegeln nicht verändert wurde.
+Dieser Nachweis gehört zur Fassung #r.version des Dokuments „#r.documentTitle“ mit dem SHA-256-Wert unten.
+Er hält fest, wer es wann und womit elektronisch unterschrieben hat. Die Unterschriften sind einfache
+elektronische Signaturen. Das Siegel der Wache auf dem Dokument bestätigt, dass es seit dem Versiegeln nicht
+verändert wurde. Der Nachweis wurde aus den Angaben erstellt, die dieser Fassung unsichtbar beiliegen, und
+beim Erstellen von der Wache versiegelt.
 
 #if r.withdrawal != none [
   #let w = r.withdrawal
@@ -161,7 +177,10 @@ Dokument seit dem Versiegeln nicht verändert wurde.
 
 #facts(
   [Wache], [#r.station],
+  [Dokument], [#r.documentTitle],
   [Betrifft], [#r.member],
+  [Fassung], [#r.version, versiegelt am #r.sealedAt],
+  [Fassung (SHA-256)], mono(r.versionSha256),
   [Anfrage], [#r.requestUid],
   [Inhalt (SHA-256)], mono(r.contentSha256),
   [Stand vom], [#r.assembledAt],
@@ -182,26 +201,27 @@ Unterschrift erzeugt wurde.
 == Siegel und Zeit
 
 #if r.timeBasis == "TIMESTAMP_SERVICE" [
-  Das Siegel trägt einen Zeitstempel eines unabhängigen Zeitstempeldienstes. Er belegt, dass das Dokument
-  zu diesem Zeitpunkt in dieser Form bestand.
+  Das Siegel der Fassung trägt einen Zeitstempel eines unabhängigen Zeitstempeldienstes. Er belegt, dass das
+  Dokument zu diesem Zeitpunkt in dieser Form bestand.
 ] else if r.timeBasis == "NO_SERVICE_ANSWERED" [
-  Beim Versiegeln hat kein Zeitstempeldienst geantwortet. Alle Zeiten auf dieser Seite und im Siegel stammen
-  deshalb nur von der Uhr des Servers. Ein Zeitstempel kann später ergänzt werden.
+  Das Siegel der Fassung trägt keinen Zeitstempel, weil beim Versiegeln kein Zeitstempeldienst geantwortet
+  hat. Alle Zeiten in diesem Nachweis stammen deshalb nur von der Uhr des Servers. Ein Zeitstempel kann
+  später ergänzt werden.
 ] else [
-  Beim Versiegeln hat diese Installation keine Zeitstempel eingeholt. Alle Zeiten auf dieser Seite und im
-  Siegel stammen deshalb nur von der Uhr des Servers. Ein Zeitstempel kann später ergänzt werden.
+  Beim Versiegeln der Fassung hat diese Installation keine Zeitstempel eingeholt. Alle Zeiten in diesem
+  Nachweis stammen deshalb nur von der Uhr des Servers. Ein Zeitstempel kann später ergänzt werden.
 ]
 
-Das Siegel stammt von einem Zertifikat der Wache, ausgestellt von der Zertifizierungsstelle dieser
-Installation. Ihr Fingerabdruck (SHA-256) lässt sich mit dem auf den öffentlichen Seiten der Wache
-vergleichen:
+Die Siegel stammen von Zertifikaten der Wache, ausgestellt von der Zertifizierungsstelle dieser
+Installation. Der Fingerabdruck (SHA-256) der Zertifizierungsstelle, die das Siegel dieses Nachweises
+ausgestellt hat, lässt sich mit dem auf den öffentlichen Seiten der Wache vergleichen:
 
 #mono(r.authorityFingerprint)
 
-Die maschinenlesbaren Nachweise liegen dieser PDF-Datei als Anhang #raw(r.evidenceFile) bei, mit diesem
+Die maschinenlesbaren Nachweise liegen der Fassung als Anhang #raw(r.evidenceFile) bei, mit diesem
 SHA-256-Wert:
 
 #mono(r.evidenceSha256)
 
-Prüfen lässt sich das Siegel unter #link(r.verifyAddress)[#r.verifyAddress] oder mit einem PDF-Programm, das
-Signaturen anzeigt. Browser und Telefone zeigen Siegel meist gar nicht an; dafür gibt es diese Seite.
+Prüfen lassen sich die Siegel unter #link(r.verifyAddress)[#r.verifyAddress] oder mit einem PDF-Programm, das
+Signaturen anzeigt. Browser und Telefone zeigen Siegel meist gar nicht an; dafür gibt es diesen Nachweis.

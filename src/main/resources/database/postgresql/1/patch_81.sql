@@ -2153,3 +2153,35 @@ ALTER TABLE ember_schema.event_registration
 
 COMMENT ON COLUMN ember_schema.event_registration.agreement_withdrawn_at IS
     'When a signed agreement for this date that one of the appointment''s documents to bring asked for was withdrawn while the registration stood, which flags the registration for whoever runs the appointment. NULL where none was, and again once the agreement is signed anew.';
+
+ALTER TABLE ember_schema.signing_evidence
+    ADD COLUMN batch_uid          UUID    NULL,
+    ADD COLUMN batch_position     INTEGER NULL,
+    ADD COLUMN batch_request_uids TEXT[]  NULL,
+    ADD COLUMN batch_field_names  TEXT[]  NULL,
+    ADD COLUMN batch_digests      BYTEA   NULL,
+    ADD CONSTRAINT signing_evidence_batch CHECK (
+        num_nonnulls(batch_uid, batch_position, batch_request_uids, batch_field_names, batch_digests) = 0
+        OR (num_nonnulls(batch_uid, batch_position, batch_request_uids, batch_field_names, batch_digests) = 5
+            AND cardinality(batch_request_uids) >= 2
+            AND cardinality(batch_field_names) = cardinality(batch_request_uids)
+            AND length(batch_digests) = 32 * cardinality(batch_request_uids)
+            AND batch_position >= 0
+            AND batch_position < cardinality(batch_request_uids)));
+
+COMMENT ON COLUMN ember_schema.signing_evidence.batch_uid IS
+    'The batch the act was confirmed in together with other fields, by one passkey or security key answer, code or password. NULL for an act confirmed on its own, whose challenge has the single layout.';
+COMMENT ON COLUMN ember_schema.signing_evidence.batch_position IS
+    'Where this act stands in its batch, counted from 0, in the order the fields were signed. NULL outside a batch.';
+COMMENT ON COLUMN ember_schema.signing_evidence.batch_request_uids IS
+    'The request of every field of the batch in its order, this act''s included, so the evidence names the other fields the confirmation covered. NULL outside a batch.';
+COMMENT ON COLUMN ember_schema.signing_evidence.batch_field_names IS
+    'The name of every field of the batch in its order, beside batch_request_uids. NULL outside a batch.';
+COMMENT ON COLUMN ember_schema.signing_evidence.batch_digests IS
+    'The item digest of every field of the batch in its order, 32 bytes each one after the other, from which with the nonce the batch challenge is recomputed. The other fields are known by their digest only, never by what they bound; this act''s own digest is recomputed from the act. NULL outside a batch.';
+COMMENT ON CONSTRAINT signing_evidence_batch ON ember_schema.signing_evidence IS
+    'An act is either outside any batch, or names a batch of two fields or more with its position in it, the request, the name and the 32-byte digest of each.';
+COMMENT ON COLUMN ember_schema.signing_evidence.mark_image IS
+    'The signature picture drawn into the signed field, a transparent PNG as the signer gave it at the act: their saved picture or one drawn on the spot. Every sealed version of the document draws it from here and shows nothing beside it, so a later change of the saved picture never changes an earlier signature. NULL for acts recorded before signature pictures, whose field is left empty.';
+COMMENT ON COLUMN ember_schema.signing_evidence.mark_source IS
+    'How mark_image came to the act: DRAWN, TYPED or UPLOADED when it was made for the act, SAVED when it was the picture the signer''s account kept. The evidence attached to each sealed version, and the record built from it on request, name it beside the picture''s SHA-256. NULL exactly when mark_image is.';

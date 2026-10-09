@@ -9,6 +9,7 @@ import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import de.chojo.sadu.queries.api.call.Call;
 import dev.chojo.ember.feature.signing.entity.ActPicture;
 import dev.chojo.ember.feature.signing.entity.ActPictureSource;
+import dev.chojo.ember.feature.signing.entity.BatchMembership;
 import dev.chojo.ember.feature.signing.entity.GuardianLink;
 import dev.chojo.ember.feature.signing.entity.SignatureLevel;
 import dev.chojo.ember.feature.signing.entity.SignerEntry;
@@ -19,6 +20,7 @@ import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
+import java.io.ByteArrayOutputStream;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.HexFormat;
@@ -82,6 +84,7 @@ public class SigningEvidenceRepository {
                 .bind("user_agent", act.userAgent());
         bindGuardianLink(call, guardianLink);
         bindWebAuthn(call, evidence instanceof SigningEvidence.WebAuthnBound bound ? bound : null);
+        bindBatch(call, act.batch());
         int id = SqlSupport.insertReturning("""
                         INSERT INTO signing_evidence(field_id, signature_level, proof, bound, capacity,
                                                      challenge_account_id, challenge_member_id, account_member_id,
@@ -93,7 +96,8 @@ public class SigningEvidenceRepository {
                                                      client_data_json, authenticator_data, signature, user_verified,
                                                      signature_count, credential_key_stamp_token,
                                                      credential_key_stamped_at, credential_key_stamp_service,
-                                                     credential_key_stamp_kind)
+                                                     credential_key_stamp_kind, batch_uid, batch_position,
+                                                     batch_request_uids, batch_field_names, batch_digests)
                         VALUES (:field_id, :signature_level, :proof, :bound, :capacity, :challenge_account_id,
                                 :challenge_member_id, :account_member_id, :member_id, :account_holder_name,
                                 :member_name, :guardian_position, :guardian_linked_at, :guardian_linked_by_name,
@@ -101,7 +105,9 @@ public class SigningEvidenceRepository {
                                 :signed_at, :truncated_ip, :user_agent, :relying_party_id, :challenge,
                                 :credential_id, :credential_public_key, :client_data_json, :authenticator_data,
                                 :signature, :user_verified, :signature_count, :key_stamp_token, :key_stamped_at,
-                                :key_stamp_service, :key_stamp_kind)
+                                :key_stamp_service, :key_stamp_kind, :batch_uid::uuid, :batch_position,
+                                nullif(:batch_request_uids, '{}'::text[]), nullif(:batch_field_names, '{}'::text[]),
+                                nullif(:batch_digests, ''::bytea))
                         RETURNING id;""", call, row -> row.getInt("id"));
         return query("""
                         SELECT %s
@@ -266,6 +272,34 @@ public class SigningEvidenceRepository {
                         SET seal_failed_at = NULL
                         WHERE id = :id
                           AND seal_failed_at IS NOT NULL;""").single(call().bind("id", requestId)).update();
+    }
+
+    private static void bindBatch(Call call, @Nullable BatchMembership batch) {
+        if (batch == null) {
+            call.bind("batch_uid", (String) null)
+                    .bind("batch_position", (Integer) null)
+                    .bind("batch_request_uids", List.<String>of(), PostgreSqlTypes.TEXT)
+                    .bind("batch_field_names", List.<String>of(), PostgreSqlTypes.TEXT)
+                    .bind("batch_digests", new byte[0]);
+            return;
+        }
+        var digests = new ByteArrayOutputStream();
+        batch.items().forEach(item -> digests.writeBytes(item.digest()));
+        call.bind("batch_uid", batch.uid().toString())
+                .bind("batch_position", batch.position())
+                .bind(
+                        "batch_request_uids",
+                        batch.items().stream()
+                                .map(item -> item.requestUid().toString())
+                                .toList(),
+                        PostgreSqlTypes.TEXT)
+                .bind(
+                        "batch_field_names",
+                        batch.items().stream()
+                                .map(BatchMembership.Item::fieldName)
+                                .toList(),
+                        PostgreSqlTypes.TEXT)
+                .bind("batch_digests", digests.toByteArray());
     }
 
     private static void bindGuardianLink(Call call, @Nullable GuardianLink link) {

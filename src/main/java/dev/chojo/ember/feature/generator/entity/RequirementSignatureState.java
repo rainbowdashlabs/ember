@@ -18,5 +18,11 @@ public enum RequirementSignatureState {
     /** Let go without a signature, or no longer asked for. */
     WAIVED,
     /** Signed, and then withdrawn by a signer; the copy as a whole only, its fields keep their state. */
-    REVOKED
+    REVOKED,
+    /**
+     * Open, but the station signs it: the issuer's field as participants and guardians see it, which waits
+     * for nothing they could do and does not count as missing for them. Whoever manages the registrations
+     * sees it as {@link #OPEN}.
+     */
+    BY_STATION
 }

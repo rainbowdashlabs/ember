@@ -20791,6 +20791,116 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/documents/{id}/versions/{version}/record": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The signature record of one sealed version of a document, sealed when asked for */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                    version: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/documents/{id}/versions/{version}/with-record": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One sealed version of a document with its signature record joined, sealed when asked for */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                    version: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/documents/ids": {
         parameters: {
             query?: never;
@@ -54036,6 +54146,176 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/signing/batch/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm a started act on several fields with one proof */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["BatchCompleteRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BatchCompleteResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Gone */
+                410: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Too Many Requests */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/signing/batch/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start signing several fields with one proof */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["BatchStartRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BatchStartResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/signing/documents/{documentId}/agreements": {
         parameters: {
             query?: never;
@@ -61359,6 +61639,16 @@ export interface components {
         BackupCodesResponse: {
             codes: string[];
         };
+        BatchCompleteRequest: {
+            credentialJson?: string | null;
+            pictures?: components["schemas"]["BatchPicture"][] | null;
+            proof?: components["schemas"]["StepUpProof"] | null;
+            secret?: string | null;
+            startToken?: string | null;
+        };
+        BatchCompleteResponse: {
+            fields: components["schemas"]["SigningCompleteResponse"][];
+        };
         BatchCreateRequest: {
             /** Format: int32 */
             categoryId?: number | null;
@@ -61374,6 +61664,11 @@ export interface components {
             templateId?: number | null;
             viewRestriction?: components["schemas"]["RestrictionSelection"] | null;
         };
+        BatchFieldChoice: {
+            entries?: components["schemas"]["SignerEntryDraft"][] | null;
+            /** Format: int32 */
+            fieldId?: number;
+        };
         BatchFieldEntryDto: {
             /** Format: int32 */
             attendanceFieldId?: number | null;
@@ -61382,11 +61677,38 @@ export interface components {
             name?: string;
             overview?: boolean | null;
         };
+        BatchFieldResponse: {
+            accountHolderName: string;
+            capacity: components["schemas"]["SignerCapacity"];
+            contentSha256: string;
+            /** Format: int32 */
+            documentId: number | null;
+            documentMemberName: string;
+            documentTitle: string | null;
+            /** Format: int32 */
+            fieldId: number;
+            fieldName: string;
+            /** Format: int32 */
+            memberId: number | null;
+            memberName: string | null;
+            /** Format: uuid */
+            requestUid: string;
+            role: components["schemas"]["FieldRole"];
+            signerName: string;
+            statement: string;
+        };
         BatchGenerateRequest: {
             model?: string | null;
             provider?: components["schemas"]["AiVendor"] | null;
             /** Format: int32 */
             targetTotalOptions?: number | null;
+        };
+        BatchPicture: {
+            keepSignature?: boolean | null;
+            /** Format: int32 */
+            memberId?: number | null;
+            signatureImage?: string | null;
+            signatureSource?: components["schemas"]["SignatureImageSource"] | null;
         };
         BatchResult: {
             errors: string[];
@@ -61408,6 +61730,18 @@ export interface components {
             } | null;
             name?: string | null;
             startTime?: components["schemas"]["Instant"];
+        };
+        BatchStartRequest: {
+            fields?: components["schemas"]["BatchFieldChoice"][] | null;
+        };
+        BatchStartResponse: {
+            acceptedProofs: components["schemas"]["StepUpProof"][];
+            /** Format: uuid */
+            batchUid: string;
+            expiresAt: components["schemas"]["Instant"];
+            fields: components["schemas"]["BatchFieldResponse"][];
+            startToken: string;
+            webAuthnOptionsJson: string | null;
         };
         BeaconFault: {
             acknowledged: boolean;
@@ -63938,6 +64272,12 @@ export interface components {
         };
         /** @enum {string} */
         EventType: "ONE_TIME" | "RECURRING" | "MONTHLY_FIRST" | "QUARTERLY" | "YEARLY";
+        EvidenceSummary: {
+            contentSha256: string;
+            fields: components["schemas"]["Field"][];
+            /** Format: uuid */
+            requestUid: string;
+        };
         ExaminerCandidate: {
             /** Format: int32 */
             memberId: number;
@@ -64184,6 +64524,16 @@ export interface components {
             /** Format: int32 */
             memberId: number;
             notificationPolledAt: components["schemas"]["Instant"] | null;
+        };
+        Field: {
+            bound: boolean;
+            fieldName: string;
+            proof: components["schemas"]["StepUpProof"] | null;
+            role: components["schemas"]["FieldRole"];
+            signedAt: components["schemas"]["Instant"] | null;
+            signerName: string | null;
+            state: components["schemas"]["FieldState"];
+            together: boolean;
         };
         FieldConfig: components["schemas"]["BooleanConfig"] | components["schemas"]["DateConfig"] | components["schemas"]["EnumConfig"] | components["schemas"]["NumberConfig"] | components["schemas"]["TextConfig"];
         FieldDateValueRequest: {
@@ -69497,7 +69847,7 @@ export interface components {
             yours: boolean;
         };
         /** @enum {string} */
-        RequirementSignatureState: "OPEN" | "SIGNED" | "PAPER_CONFIRMED" | "WAIVED" | "REVOKED";
+        RequirementSignatureState: "OPEN" | "SIGNED" | "PAPER_CONFIRMED" | "WAIVED" | "REVOKED" | "BY_STATION";
         RequirementsRequest: {
             templateIds?: number[] | null;
         };
@@ -69857,6 +70207,7 @@ export interface components {
         SealVerification: {
             document: components["schemas"]["HeldCopy"];
             documentTimestamps: components["schemas"]["DocumentTimestampCheck"][];
+            evidence: components["schemas"]["EvidenceSummary"] | null;
             signatures: components["schemas"]["SealCheck"][];
         };
         SearchResultItem: {
@@ -72437,12 +72788,19 @@ export type BackendRequest = components['schemas']['BackendRequest'];
 export type BackendSummary = components['schemas']['BackendSummary'];
 export type BackupCodesConfig = components['schemas']['BackupCodesConfig'];
 export type BackupCodesResponse = components['schemas']['BackupCodesResponse'];
+export type BatchCompleteRequest = components['schemas']['BatchCompleteRequest'];
+export type BatchCompleteResponse = components['schemas']['BatchCompleteResponse'];
 export type BatchCreateRequest = components['schemas']['BatchCreateRequest'];
+export type BatchFieldChoice = components['schemas']['BatchFieldChoice'];
 export type BatchFieldEntryDto = components['schemas']['BatchFieldEntryDto'];
+export type BatchFieldResponse = components['schemas']['BatchFieldResponse'];
 export type BatchGenerateRequest = components['schemas']['BatchGenerateRequest'];
+export type BatchPicture = components['schemas']['BatchPicture'];
 export type BatchResult = components['schemas']['BatchResult'];
 export type BatchRow = components['schemas']['BatchRow'];
 export type BatchRowEntry = components['schemas']['BatchRowEntry'];
+export type BatchStartRequest = components['schemas']['BatchStartRequest'];
+export type BatchStartResponse = components['schemas']['BatchStartResponse'];
 export type BeaconFault = components['schemas']['BeaconFault'];
 export type BeaconMetricsRow = components['schemas']['BeaconMetricsRow'];
 export type BeaconReport = components['schemas']['BeaconReport'];
@@ -72790,6 +73148,7 @@ export type EventSummary = components['schemas']['EventSummary'];
 export type EventTemplate = components['schemas']['EventTemplate'];
 export type EventTemplateFieldData = components['schemas']['EventTemplateFieldData'];
 export type EventType = components['schemas']['EventType'];
+export type EvidenceSummary = components['schemas']['EvidenceSummary'];
 export type ExaminerCandidate = components['schemas']['ExaminerCandidate'];
 export type Expected = components['schemas']['Expected'];
 export type ExportColumnRequest = components['schemas']['ExportColumnRequest'];
@@ -72825,6 +73184,7 @@ export type FeedStatusResponse = components['schemas']['FeedStatusResponse'];
 export type FeedTokenResponse = components['schemas']['FeedTokenResponse'];
 export type FeedUserAgentStat = components['schemas']['FeedUserAgentStat'];
 export type FeedUseResponse = components['schemas']['FeedUseResponse'];
+export type Field = components['schemas']['Field'];
 export type FieldConfig = components['schemas']['FieldConfig'];
 export type FieldDateValueRequest = components['schemas']['FieldDateValueRequest'];
 export type FieldDefaultEntry = components['schemas']['FieldDefaultEntry'];
@@ -74971,6 +75331,7 @@ export const RequestState = {
 } as const;
 
 export const RequirementSignatureState = {
+    BY_STATION: "BY_STATION",
     OPEN: "OPEN",
     PAPER_CONFIRMED: "PAPER_CONFIRMED",
     REVOKED: "REVOKED",

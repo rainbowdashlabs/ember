@@ -18,4 +18,18 @@ import org.jspecify.annotations.Nullable;
  * @param yours      whether the reader can sign it now, for themselves or for a member in their care
  */
 public record RequirementSignatureField(
-        int id, String name, @Nullable String signerName, RequirementSignatureState state, boolean yours) {}
+        int id, String name, @Nullable String signerName, RequirementSignatureState state, boolean yours) {
+
+    /**
+     * The field as a participant or guardian sees it: the issuer's field, still open and not theirs to
+     * sign, is the station's to sign and nothing they could do anything about, so it shows as
+     * {@link RequirementSignatureState#BY_STATION} rather than as open. Every other field stays as it is.
+     *
+     * @return the field as participants and guardians see it
+     */
+    public RequirementSignatureField asParticipantsSee() {
+        boolean stations = SignatureRole.ISSUER.fieldNames(0).contains(name);
+        if (!stations || yours || state != RequirementSignatureState.OPEN) return this;
+        return new RequirementSignatureField(id, name, signerName, RequirementSignatureState.BY_STATION, false);
+    }
+}

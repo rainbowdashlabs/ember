@@ -16226,6 +16226,102 @@
         } ]
       }
     },
+    "/api/v1/documents/{id}/versions/{version}/record" : {
+      "get" : {
+        "summary" : "The signature record of one sealed version of a document, sealed when asked for",
+        "tags" : [ "Signing" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "version",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/documents/{id}/versions/{version}/with-record" : {
+      "get" : {
+        "summary" : "One sealed version of a document with its signature record joined, sealed when asked for",
+        "tags" : [ "Signing" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "version",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
     "/api/v1/equipment/collected" : {
       "post" : {
         "summary" : "Count a collected list again before it is sent",
@@ -41135,6 +41231,160 @@
         }
       }
     },
+    "/api/v1/signing/batch/complete" : {
+      "post" : {
+        "summary" : "Confirm a started act on several fields with one proof",
+        "tags" : [ "Signing" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/BatchCompleteResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "410" : {
+            "description" : "Gone",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "429" : {
+            "description" : "Too Many Requests",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/BatchCompleteRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/signing/batch/start" : {
+      "post" : {
+        "summary" : "Start signing several fields with one proof",
+        "tags" : [ "Signing" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/BatchStartResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/BatchStartRequest"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/signing/documents/{documentId}/agreements" : {
       "get" : {
         "summary" : "The agreements signed on a member document that the reader signed or acts for",
@@ -48296,6 +48546,45 @@
         },
         "required" : [ "codes" ]
       },
+      "BatchCompleteRequest" : {
+        "type" : "object",
+        "properties" : {
+          "startToken" : {
+            "type" : [ "string", "null" ]
+          },
+          "proof" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/StepUpProof"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "credentialJson" : {
+            "type" : [ "string", "null" ]
+          },
+          "secret" : {
+            "type" : [ "string", "null" ]
+          },
+          "pictures" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "$ref" : "#/components/schemas/BatchPicture"
+            }
+          }
+        }
+      },
+      "BatchCompleteResponse" : {
+        "type" : "object",
+        "properties" : {
+          "fields" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/SigningCompleteResponse"
+            }
+          }
+        },
+        "required" : [ "fields" ]
+      },
       "BatchCreateRequest" : {
         "type" : "object",
         "properties" : {
@@ -48354,6 +48643,21 @@
           }
         }
       },
+      "BatchFieldChoice" : {
+        "type" : "object",
+        "properties" : {
+          "fieldId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "entries" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "$ref" : "#/components/schemas/SignerEntryDraft"
+            }
+          }
+        }
+      },
       "BatchFieldEntryDto" : {
         "type" : "object",
         "properties" : {
@@ -48383,6 +48687,58 @@
           }
         }
       },
+      "BatchFieldResponse" : {
+        "type" : "object",
+        "properties" : {
+          "fieldId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "requestUid" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "documentId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "documentTitle" : {
+            "type" : [ "string", "null" ]
+          },
+          "fieldName" : {
+            "type" : "string"
+          },
+          "role" : {
+            "$ref" : "#/components/schemas/FieldRole"
+          },
+          "capacity" : {
+            "$ref" : "#/components/schemas/SignerCapacity"
+          },
+          "memberId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "statement" : {
+            "type" : "string"
+          },
+          "signerName" : {
+            "type" : "string"
+          },
+          "accountHolderName" : {
+            "type" : "string"
+          },
+          "memberName" : {
+            "type" : [ "string", "null" ]
+          },
+          "documentMemberName" : {
+            "type" : "string"
+          },
+          "contentSha256" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "fieldId", "requestUid", "documentId", "documentTitle", "fieldName", "role", "capacity", "memberId", "statement", "signerName", "accountHolderName", "memberName", "documentMemberName", "contentSha256" ]
+      },
       "BatchGenerateRequest" : {
         "type" : "object",
         "properties" : {
@@ -48399,6 +48755,28 @@
           "targetTotalOptions" : {
             "type" : [ "integer", "null" ],
             "format" : "int32"
+          }
+        }
+      },
+      "BatchPicture" : {
+        "type" : "object",
+        "properties" : {
+          "memberId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "signatureImage" : {
+            "type" : [ "string", "null" ]
+          },
+          "signatureSource" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/SignatureImageSource"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "keepSignature" : {
+            "type" : [ "boolean", "null" ]
           }
         }
       },
@@ -48458,6 +48836,48 @@
             }
           }
         }
+      },
+      "BatchStartRequest" : {
+        "type" : "object",
+        "properties" : {
+          "fields" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "$ref" : "#/components/schemas/BatchFieldChoice"
+            }
+          }
+        }
+      },
+      "BatchStartResponse" : {
+        "type" : "object",
+        "properties" : {
+          "startToken" : {
+            "type" : "string"
+          },
+          "expiresAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "batchUid" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "fields" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/BatchFieldResponse"
+            }
+          },
+          "acceptedProofs" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/StepUpProof"
+            }
+          },
+          "webAuthnOptionsJson" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "startToken", "expiresAt", "batchUid", "fields", "acceptedProofs", "webAuthnOptionsJson" ]
       },
       "BeaconFault" : {
         "type" : "object",
@@ -55798,6 +56218,25 @@
         "type" : "string",
         "enum" : [ "ONE_TIME", "RECURRING", "MONTHLY_FIRST", "QUARTERLY", "YEARLY" ]
       },
+      "EvidenceSummary" : {
+        "type" : "object",
+        "properties" : {
+          "requestUid" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "contentSha256" : {
+            "type" : "string"
+          },
+          "fields" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/Field"
+            }
+          }
+        },
+        "required" : [ "requestUid", "contentSha256", "fields" ]
+      },
       "ExaminerCandidate" : {
         "type" : "object",
         "properties" : {
@@ -56515,6 +56954,44 @@
           }
         },
         "required" : [ "uaHash", "uaString", "requestCount", "firstSeen", "lastSeen" ]
+      },
+      "Field" : {
+        "type" : "object",
+        "properties" : {
+          "fieldName" : {
+            "type" : "string"
+          },
+          "role" : {
+            "$ref" : "#/components/schemas/FieldRole"
+          },
+          "state" : {
+            "$ref" : "#/components/schemas/FieldState"
+          },
+          "signerName" : {
+            "type" : [ "string", "null" ]
+          },
+          "signedAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "proof" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/StepUpProof"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "bound" : {
+            "type" : "boolean"
+          },
+          "together" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "fieldName", "role", "state", "signerName", "signedAt", "proof", "bound", "together" ]
       },
       "FieldConfig" : {
         "oneOf" : [ {
@@ -71889,7 +72366,7 @@
       },
       "RequirementSignatureState" : {
         "type" : "string",
-        "enum" : [ "OPEN", "SIGNED", "PAPER_CONFIRMED", "WAIVED", "REVOKED" ]
+        "enum" : [ "OPEN", "SIGNED", "PAPER_CONFIRMED", "WAIVED", "REVOKED", "BY_STATION" ]
       },
       "RequirementStatus" : {
         "type" : "string",
@@ -72987,9 +73464,16 @@
             "items" : {
               "$ref" : "#/components/schemas/DocumentTimestampCheck"
             }
+          },
+          "evidence" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/EvidenceSummary"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
-        "required" : [ "document", "signatures", "documentTimestamps" ]
+        "required" : [ "document", "signatures", "documentTimestamps", "evidence" ]
       },
       "SealedVersionResponse" : {
         "type" : "object",

@@ -6,9 +6,11 @@
 package dev.chojo.ember.feature.signing.service;
 
 import dev.chojo.ember.feature.signing.entity.ActPicture;
+import dev.chojo.ember.feature.signing.entity.BatchMembership;
 import dev.chojo.ember.feature.signing.entity.RequestedSignature;
 import dev.chojo.ember.feature.signing.entity.SignatureRequestView;
 import dev.chojo.ember.feature.signing.entity.SignatureWithdrawal;
+import dev.chojo.ember.feature.signing.entity.Signer;
 import dev.chojo.ember.feature.signing.entity.SignerCapacity;
 import dev.chojo.ember.feature.signing.entity.SigningAct;
 import dev.chojo.ember.feature.signing.entity.SigningEvidence;
@@ -97,6 +99,59 @@ public final class SigningEvidenceFiles {
         return Json.MAPPER.readValue(json, SigningEvidenceFile.class);
     }
 
+    /**
+     * An act as the file records it, read back into the parts its challenge was computed from, which is how
+     * a reader holding nothing but the file recomputes the challenge ({@link SigningChallenge#of(SigningAct)}).
+     *
+     * @param file the evidence file
+     * @param act  one of its acts
+     * @return the act
+     */
+    public static SigningAct actOf(SigningEvidenceFile file, SigningEvidenceFile.Act act) {
+        var batch = act.batch();
+        return new SigningAct(
+                file.requestUid(),
+                new Signer(act.capacity(), act.accountId(), act.memberId()),
+                act.accountHolderName(),
+                act.memberName(),
+                act.fieldName(),
+                act.statement(),
+                HexFormat.of().parseHex(act.contentSha256()),
+                act.entries().stream().map(SigningEvidenceFile.Entry::asSigned).toList(),
+                act.nonce(),
+                act.signedAt(),
+                act.truncatedIp(),
+                act.userAgent(),
+                batch == null ? null : membershipOf(batch));
+    }
+
+    private static BatchMembership membershipOf(SigningEvidenceFile.Batch batch) {
+        return new BatchMembership(
+                batch.uid(),
+                batch.position(),
+                batch.items().stream()
+                        .map(item -> new BatchMembership.Item(
+                                item.requestUid(),
+                                item.fieldName(),
+                                HexFormat.of().parseHex(item.digest())))
+                        .toList());
+    }
+
+    private static SigningEvidenceFile.@Nullable Batch batchOf(@Nullable BatchMembership batch) {
+        if (batch == null) return null;
+        return new SigningEvidenceFile.Batch(
+                SigningBatchChallenge.LABEL,
+                SigningBatchChallenge.ITEM_LABEL,
+                batch.uid(),
+                batch.position(),
+                batch.items().stream()
+                        .map(item -> new SigningEvidenceFile.BatchItem(
+                                item.requestUid(),
+                                item.fieldName(),
+                                HexFormat.of().formatHex(item.digest())))
+                        .toList());
+    }
+
     private static SigningEvidenceFile.Field field(
             RequestedSignature field,
             @Nullable StoredEvidence evidence,
@@ -140,7 +195,8 @@ public final class SigningEvidenceFiles {
                 act.userAgent(),
                 stored.guardianLink(),
                 evidence instanceof SigningEvidence.WebAuthnBound bound ? webAuthn(bound) : null,
-                picture == null ? null : new SigningEvidenceFile.Picture(picture.sha256(), picture.source()));
+                picture == null ? null : new SigningEvidenceFile.Picture(picture.sha256(), picture.source()),
+                batchOf(act.batch()));
     }
 
     private static SigningEvidenceFile.WebAuthn webAuthn(SigningEvidence.WebAuthnBound bound) {

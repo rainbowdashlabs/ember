@@ -115,6 +115,19 @@
   ([Entries], a.entries.map(e => [#name(e): #e.value]).join(linebreak()))
 }
 
+#let batch-rows(a) = {
+  if a.batch == none { return () }
+  let b = a.batch
+  (
+    [Confirmed together],
+    [
+      With one confirmation for #b.size fields, this being field #b.position (batch #b.uid). The other fields:
+      #linebreak()
+      #b.others.map(o => [Request #o.requestUid, field #raw(o.fieldName)]).join(linebreak())
+    ],
+  )
+}
+
 #let act-table(a) = facts(
   [Signed by], [#a.signerName],
   ..capacity-rows(a),
@@ -123,6 +136,7 @@
   ..entry-rows(a),
   ..picture-rows(a),
   ..proof-rows(a),
+  ..batch-rows(a),
   [Time], [#a.signedAt],
   [Network address (shortened)], if a.truncatedIp != none [#a.truncatedIp] else [Not known],
   [Browser], if a.userAgent != none [#a.userAgent] else [Not known],
@@ -136,9 +150,10 @@
 
 = Signature record
 
-This record belongs to the document before it. It states who signed it electronically, when and with what.
-The signatures are simple electronic signatures. The station's seal confirms that the document has not
-changed since it was sealed.
+This record belongs to version #r.version of the document "#r.documentTitle" with the SHA-256 value below. It
+states who signed it electronically, when and with what. The signatures are simple electronic signatures.
+The station's seal on the document confirms that it has not changed since it was sealed. The record was
+built from the details the version carries invisibly, and sealed by the station when it was built.
 
 #if r.withdrawal != none [
   #let w = r.withdrawal
@@ -161,7 +176,10 @@ changed since it was sealed.
 
 #facts(
   [Station], [#r.station],
+  [Document], [#r.documentTitle],
   [Concerns], [#r.member],
+  [Version], [#r.version, sealed on #r.sealedAt],
+  [Version (SHA-256)], mono(r.versionSha256),
   [Request], [#r.requestUid],
   [Content (SHA-256)], mono(r.contentSha256),
   [As of], [#r.assembledAt],
@@ -182,25 +200,25 @@ first signature.
 == Seal and time
 
 #if r.timeBasis == "TIMESTAMP_SERVICE" [
-  The seal carries a timestamp from an independent timestamp service. It proves that the document existed
-  in this form at that time.
+  The version's seal carries a timestamp from an independent timestamp service. It proves that the document
+  existed in this form at that time.
 ] else if r.timeBasis == "NO_SERVICE_ANSWERED" [
-  No timestamp service answered when the document was sealed. All times on this page and in the seal
-  therefore come only from the server's clock. A timestamp can be added later.
+  The version's seal carries no timestamp, because no timestamp service answered when it was sealed. All
+  times in this record therefore come only from the server's clock. A timestamp can be added later.
 ] else [
-  When the document was sealed, this installation asked no timestamp service. All times on this page and in
-  the seal therefore come only from the server's clock. A timestamp can be added later.
+  When the version was sealed, this installation asked no timestamp service. All times in this record
+  therefore come only from the server's clock. A timestamp can be added later.
 ]
 
-The seal comes from a certificate of the station, issued by this installation's certificate authority. Its
-fingerprint (SHA-256) can be compared with the one on the station's public pages:
+The seals come from certificates of the station, issued by this installation's certificate authority. The
+fingerprint (SHA-256) of the authority that issued this record's seal can be compared with the one on the
+station's public pages:
 
 #mono(r.authorityFingerprint)
 
-The machine-readable evidence is attached to this PDF file as #raw(r.evidenceFile), with this SHA-256
-value:
+The machine-readable evidence is attached to the version as #raw(r.evidenceFile), with this SHA-256 value:
 
 #mono(r.evidenceSha256)
 
-The seal can be checked at #link(r.verifyAddress)[#r.verifyAddress] or with a PDF program that shows
-signatures. Browsers and phones usually do not show seals at all; this page is there for that.
+The seals can be checked at #link(r.verifyAddress)[#r.verifyAddress] or with a PDF program that shows
+signatures. Browsers and phones usually do not show seals at all; this record is there for that.

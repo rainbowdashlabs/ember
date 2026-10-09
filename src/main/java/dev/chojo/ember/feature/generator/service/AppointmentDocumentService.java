@@ -143,9 +143,10 @@ public class AppointmentDocumentService {
      *
      * @param required     every document the appointment asks for, in its order, which anybody who sees
      *                     the appointment may know
-     * @param own          the documents of the reader and every member in their care who takes part
-     * @param participants the documents of every participant, for whoever manages the registrations;
-     *                     null for anybody else
+     * @param own          the documents of the reader and every member in their care who takes part, where
+     *                     the issuer's open field shows as the station's to sign
+     * @param participants the documents of every participant, for whoever manages the registrations, where
+     *                     the issuer's open field shows as open; null for anybody else
      */
     public record AppointmentDocuments(
             List<RequiredTemplate> required,
@@ -189,7 +190,7 @@ public class AppointmentDocumentService {
         var offers = event.requiresRegistration() ? Set.<Offer>of() : offers(event, own);
         return new AppointmentDocuments(
                 required,
-                participantsOf(own, required, copies, offers),
+                participantsOf(own, required, copies.asParticipantsSee(), offers),
                 overview ? participantsOf(everyone, required, copies, Set.of()) : null);
     }
 
@@ -207,7 +208,16 @@ public class AppointmentDocumentService {
 
     /** The generated copies, the scans handed in and the signatures asked for, for the participants asked about. */
     private record Copies(
-            List<RequirementGeneration> generated, List<PaperSubmission> scans, List<RequirementSignature> signed) {}
+            List<RequirementGeneration> generated, List<PaperSubmission> scans, List<RequirementSignature> signed) {
+
+        /** The copies as participants and guardians see them, the issuer's field as the station's to sign. */
+        Copies asParticipantsSee() {
+            return new Copies(
+                    generated,
+                    scans,
+                    signed.stream().map(RequirementSignature::asParticipantsSee).toList());
+        }
+    }
 
     /**
      * Refuses a scan to be handed in for a member by somebody who may not: the reader has to act for

@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:8d95db6359896e005791146f06a48933f969f26ab1f3c95f91bd4f9859e7c491",
-  "generatedAt": "2026-10-09T09:50:25Z",
+  "schemaHash": "sha256:c50c33128cf1e067c18221f62a2e4b318ad4cce32bc1b479d590738ac141e619",
+  "generatedAt": "2026-10-09T10:56:27Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -24289,7 +24289,7 @@
     "signing_evidence": {
       "feature": "signing",
       "scope": "STATION",
-      "tableHash": "sha256:9e3391eedba9b0770d17a208399da037ca11febbf984519eefb7019bb97f39c0",
+      "tableHash": "sha256:1b6195b82aae9f056a79d1b519c854252e358beeb6376667d176b205f4dd74bd",
       "columns": [
         {
           "name": "id",
@@ -24569,14 +24569,49 @@
           "type": "bytea",
           "nullable": true,
           "verified": true,
-          "description": "The signature picture drawn into the signed field, a transparent PNG as the signer gave it at the act: their saved picture or one drawn on the spot. Every sealed version of the document draws it from here, so a later change of the saved picture never changes an earlier signature. NULL for acts recorded before signature pictures, whose field shows the name and date only."
+          "description": "The signature picture drawn into the signed field, a transparent PNG as the signer gave it at the act: their saved picture or one drawn on the spot. Every sealed version of the document draws it from here and shows nothing beside it, so a later change of the saved picture never changes an earlier signature. NULL for acts recorded before signature pictures, whose field is left empty."
         },
         {
           "name": "mark_source",
           "type": "text",
           "nullable": true,
           "verified": true,
-          "description": "How mark_image came to the act: DRAWN, TYPED or UPLOADED when it was made for the act, SAVED when it was the picture the signer's account kept. The evidence attached to each sealed version and its record page name it beside the picture's SHA-256. NULL exactly when mark_image is."
+          "description": "How mark_image came to the act: DRAWN, TYPED or UPLOADED when it was made for the act, SAVED when it was the picture the signer's account kept. The evidence attached to each sealed version, and the record built from it on request, name it beside the picture's SHA-256. NULL exactly when mark_image is."
+        },
+        {
+          "name": "batch_uid",
+          "type": "uuid",
+          "nullable": true,
+          "verified": true,
+          "description": "The batch the act was confirmed in together with other fields, by one passkey or security key answer, code or password. NULL for an act confirmed on its own, whose challenge has the single layout."
+        },
+        {
+          "name": "batch_position",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "Where this act stands in its batch, counted from 0, in the order the fields were signed. NULL outside a batch."
+        },
+        {
+          "name": "batch_request_uids",
+          "type": "_text",
+          "nullable": true,
+          "verified": true,
+          "description": "The request of every field of the batch in its order, this act's included, so the evidence names the other fields the confirmation covered. NULL outside a batch."
+        },
+        {
+          "name": "batch_field_names",
+          "type": "_text",
+          "nullable": true,
+          "verified": true,
+          "description": "The name of every field of the batch in its order, beside batch_request_uids. NULL outside a batch."
+        },
+        {
+          "name": "batch_digests",
+          "type": "bytea",
+          "nullable": true,
+          "verified": true,
+          "description": "The item digest of every field of the batch in its order, 32 bytes each one after the other, from which with the nonce the batch challenge is recomputed. The other fields are known by their digest only, never by what they bound; this act's own digest is recomputed from the act. NULL outside a batch."
         }
       ],
       "foreignKeys": [

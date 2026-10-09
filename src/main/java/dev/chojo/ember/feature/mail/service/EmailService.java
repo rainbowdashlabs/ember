@@ -894,6 +894,7 @@ public class EmailService implements TaskSource {
         vars.put("signedAt", copy.signedAt());
         vars.put("sealedSha256", copy.sealedSha256());
         vars.put("url", copy.documentUrl());
+        vars.put("recordUrl", copy.recordUrl());
         vars.put("verifyUrl", copy.verifyUrl());
         var attachment = copy.attachment();
         vars.put("attached", attachment == null ? "" : "yes");

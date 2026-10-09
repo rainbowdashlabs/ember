@@ -14,8 +14,10 @@ import org.jspecify.annotations.Nullable;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.UUID;
 
 import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 import static de.chojo.sadu.queries.converter.StandardValueConverter.UUID_STRING;
@@ -55,7 +57,8 @@ public record StoredEvidence(
             e.challenge, e.credential_id, e.credential_public_key, e.client_data_json, e.authenticator_data,
             e.signature, e.user_verified, e.signature_count, e.credential_key_stamp_token,
             e.credential_key_stamped_at, e.credential_key_stamp_service, e.credential_key_stamp_kind, e.sealed_sha256,
-            e.recorded_at, r.uid AS request_uid""";
+            e.recorded_at, e.batch_uid, e.batch_position, e.batch_request_uids, e.batch_field_names, e.batch_digests,
+            r.uid AS request_uid""";
 
     /** Maps a row read with {@link #COLUMNS}. */
     public static RowMapping<StoredEvidence> map() {
@@ -112,7 +115,23 @@ public record StoredEvidence(
                 row.getBytes("nonce"),
                 row.get("signed_at", INSTANT_TIMESTAMP),
                 row.getString("truncated_ip"),
-                row.getString("user_agent"));
+                row.getString("user_agent"),
+                batchOf(row));
+    }
+
+    private static @Nullable BatchMembership batchOf(Row row) throws SQLException {
+        UUID uid = row.get("batch_uid", UUID_STRING);
+        if (uid == null) return null;
+        var requests = (String[]) row.getArray("batch_request_uids").getArray();
+        var fields = (String[]) row.getArray("batch_field_names").getArray();
+        byte[] digests = row.getBytes("batch_digests");
+        int size = BatchMembership.DIGEST_BYTES;
+        var items = new ArrayList<BatchMembership.Item>(requests.length);
+        for (int i = 0; i < requests.length; i++) {
+            items.add(new BatchMembership.Item(
+                    UUID.fromString(requests[i]), fields[i], Arrays.copyOfRange(digests, i * size, (i + 1) * size)));
+        }
+        return new BatchMembership(uid, row.getInt("batch_position"), items);
     }
 
     private static List<SignerEntry> entriesOf(Row row) throws SQLException {

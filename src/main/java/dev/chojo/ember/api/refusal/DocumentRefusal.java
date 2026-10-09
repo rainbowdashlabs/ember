@@ -689,7 +689,26 @@ public enum DocumentRefusal implements Refusal {
             292, HttpStatus.CONFLICT, "Nothing was signed online on this agreement, so it is withdrawn on paper"),
 
     /** The reason for a withdrawal written longer than it may be. */
-    SIGNATURE_WITHDRAWAL_REASON_TOO_LONG(293, HttpStatus.BAD_REQUEST, "A reason may be at most 500 characters");
+    SIGNATURE_WITHDRAWAL_REASON_TOO_LONG(293, HttpStatus.BAD_REQUEST, "A reason may be at most 500 characters"),
+
+    /** Signing in one go started without a single field to sign. */
+    SIGNING_BATCH_EMPTY(300, HttpStatus.BAD_REQUEST, "Choose at least one field to sign"),
+
+    /** More fields signed in one go than one confirmation takes. */
+    SIGNING_BATCH_TOO_LARGE(301, HttpStatus.BAD_REQUEST, "At most 50 fields are signed in one go"),
+
+    /** The same field chosen twice for signing in one go. */
+    SIGNING_BATCH_FIELD_TWICE(302, HttpStatus.BAD_REQUEST, "A field was chosen twice"),
+
+    /** A signature picture sent for a person who signs none of the fields of the confirmation. */
+    SIGNING_PICTURE_FOR_NOBODY(
+            303, HttpStatus.BAD_REQUEST, "A signature picture was sent for somebody who signs nothing here"),
+
+    /** Two signature pictures sent for one person in one confirmation. */
+    SIGNING_PICTURE_TWICE(304, HttpStatus.BAD_REQUEST, "Two signature pictures were sent for one person"),
+
+    /** The signature record asked for a sealed version that carries no evidence of signatures. */
+    SIGNATURE_RECORD_NONE(305, HttpStatus.NOT_FOUND, "This version carries no record of signatures");
 
     private final Definition definition;
 

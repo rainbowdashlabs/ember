@@ -30,21 +30,21 @@ import java.util.Map;
 import java.util.regex.Pattern;
 
 /**
- * Renders the signature record page of a signed document: who signed it, for whom, what they confirmed,
- * with which proof, when and from where, which signature picture went into their field and how it was made,
- * which fields are still open or were settled otherwise, and how
- * the seal and its time can be checked. It is the readable alternative to a reader's signature panel,
- * which screen readers, phone viewers and paper do not show.
+ * Renders the signature record of one sealed version of a signed document: who signed it, for whom, what
+ * they confirmed, with which proof, when and from where, which fields were confirmed together with one proof,
+ * which signature picture went into each field and how it was made, which fields are still open or were
+ * settled otherwise, and how the seals and their times can be checked. It is the readable alternative to a
+ * reader's signature panel, which screen readers, phone viewers and paper do not show.
  *
- * <p>Everything about the acts comes from the {@link SigningEvidenceFile} the document carries as well, so
- * the page and the attachment cannot say different things. Names are the official names the evidence
- * recorded.
+ * <p>The record is not part of the version: it is built on request from the evidence the version carries
+ * ({@link SigningEvidenceFile}), so the record and the attachment cannot say different things, and it names
+ * the version by its number and SHA-256. Names are the official names the evidence recorded.
  *
  * <p>The page is a Typst template in German and English ({@code signature-record.typ}), written as PDF/A-3b,
- * the format of the documents it is joined to. Typst writes it tagged, with its title and language, so a
+ * the format of the documents it may be joined to. Typst writes it tagged, with its title and language, so a
  * screen reader can follow it; it cannot claim PDF/UA at the same time as PDF/A, since Typst enforces only
- * one of them per document. Its page numbers continue the document's, so a signer's mark can name the page
- * that holds the record.
+ * one of them per document. Its page numbers start where it is told, so joined to the document they continue
+ * the document's.
  */
 public final class SignatureRecordPage {
     private static final String TEMPLATE = "signature-record.typ";
@@ -58,20 +58,23 @@ public final class SignatureRecordPage {
     /**
      * What a record page shows beyond the evidence.
      *
-     * @param evidence             the evidence of the signing state
+     * @param evidence             the evidence of the signing state the version carries
      * @param evidenceSha256       SHA-256 of the attached evidence file, lower-case hexadecimal
+     * @param document             the version the record belongs to
      * @param stationName          the station the document belongs to
      * @param language             {@code de} or {@code en}
      * @param zone                 the zone the times are shown in
      * @param authorityFingerprint SHA-256 fingerprint of the installation authority that issued the
-     *                             sealing certificate, upper-case pairs joined by colons
-     * @param timeBasis            where the document's times come from
+     *                             certificate the record is sealed with, upper-case pairs joined by colons
+     * @param timeBasis            where the version's times come from
      * @param verifyAddress        the address of the installation's verification page
-     * @param firstPage            the number the record's first page has in the whole document
+     * @param firstPage            the number the record's first page has: 1 on its own, the page after the
+     *                             document's last where it is joined to it
      */
     public record Input(
             SigningEvidenceFile evidence,
             String evidenceSha256,
+            RecordedVersion document,
             String stationName,
             String language,
             ZoneId zone,
@@ -79,6 +82,16 @@ public final class SignatureRecordPage {
             RecordTimeBasis timeBasis,
             String verifyAddress,
             int firstPage) {}
+
+    /**
+     * The sealed version a record belongs to.
+     *
+     * @param title    the document's title
+     * @param version  the version's number within the document, counting from 1
+     * @param sha256   SHA-256 of the sealed version, lower-case hexadecimal
+     * @param sealedAt when the version was filed
+     */
+    public record RecordedVersion(String title, int version, String sha256, Instant sealedAt) {}
 
     /**
      * @param input what the page shows
@@ -101,10 +114,15 @@ public final class SignatureRecordPage {
         long signed = evidence.fields().stream()
                 .filter(field -> field.state() == FieldState.SIGNED)
                 .count();
+        var document = input.document();
         return new Model(
                 input.stationName(),
                 evidence.memberName(),
                 evidence.requestUid().toString(),
+                document.title(),
+                document.version(),
+                lines(grouped(document.sha256()), HASH_GROUPS_PER_LINE),
+                times.format(document.sealedAt()),
                 lines(grouped(evidence.contentSha256()), HASH_GROUPS_PER_LINE),
                 times.format(evidence.assembledAt()),
                 (int) signed,
@@ -163,7 +181,20 @@ public final class SignatureRecordPage {
                 times.format(act.signedAt()),
                 act.truncatedIp(),
                 act.userAgent(),
-                picture(act.picture()));
+                picture(act.picture()),
+                batch(act.batch()));
+    }
+
+    private static @Nullable BatchModel batch(SigningEvidenceFile.@Nullable Batch batch) {
+        if (batch == null) return null;
+        var others = new ArrayList<BatchItemModel>();
+        for (int position = 0; position < batch.items().size(); position++) {
+            if (position == batch.position()) continue;
+            var item = batch.items().get(position);
+            others.add(new BatchItemModel(item.requestUid().toString(), item.fieldName()));
+        }
+        return new BatchModel(
+                batch.uid().toString(), batch.position() + 1, batch.items().size(), others);
     }
 
     private static @Nullable PictureModel picture(SigningEvidenceFile.@Nullable Picture picture) {
@@ -231,6 +262,10 @@ public final class SignatureRecordPage {
      * @param station              the station's name
      * @param member               the official name of the member the document is about
      * @param requestUid           the request for signatures
+     * @param documentTitle        the document's title
+     * @param version              the number of the version the record belongs to
+     * @param versionSha256        that version's hash in lines of grouped characters
+     * @param sealedAt             when that version was filed
      * @param contentSha256        the content hash in lines of grouped characters
      * @param assembledAt          when this signing state was put together
      * @param signed               how many fields are signed
@@ -248,6 +283,10 @@ public final class SignatureRecordPage {
             String station,
             String member,
             String requestUid,
+            String documentTitle,
+            int version,
+            List<String> versionSha256,
+            String sealedAt,
             List<String> contentSha256,
             String assembledAt,
             int signed,
@@ -323,6 +362,7 @@ public final class SignatureRecordPage {
      * @param truncatedIp       from which network, or null
      * @param userAgent         with which browser, or null
      * @param picture           the signature picture the act left in its field, or null where it left none
+     * @param batch             the batch it was confirmed in together with other fields, or null
      */
     record ActModel(
             String signerName,
@@ -339,7 +379,26 @@ public final class SignatureRecordPage {
             String signedAt,
             @Nullable String truncatedIp,
             @Nullable String userAgent,
-            @Nullable PictureModel picture) {}
+            @Nullable PictureModel picture,
+            @Nullable BatchModel batch) {}
+
+    /**
+     * The batch an act was confirmed in, on the page.
+     *
+     * @param uid      the batch
+     * @param position where the act stands in it, counted from 1
+     * @param size     how many fields it holds
+     * @param others   the other fields it covered, in its order
+     */
+    record BatchModel(String uid, int position, int size, List<BatchItemModel> others) {}
+
+    /**
+     * Another field of a batch, on the page.
+     *
+     * @param requestUid the request it belongs to
+     * @param fieldName  its name in its document
+     */
+    record BatchItemModel(String requestUid, String fieldName) {}
 
     /**
      * A signature picture on the page.

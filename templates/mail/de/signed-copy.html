@@ -7,6 +7,8 @@
       <p>Der Wert ist der Fingerabdruck genau dieser Datei. Eine Datei mit demselben Wert ist unverändert, und auf der Prüfseite lässt sich das Siegel jeder Kopie prüfen. Weitere Unterschriften ergeben neue Fassungen, diese hier bleibt gültig. Es lohnt sich, diese Nachricht aufzubewahren.</p>
       {% if attached %}<p>Die versiegelte Datei hängt an.</p>{% elseif tooLarge %}<p>Die Datei ist zu groß für eine E-Mail und hängt deshalb nicht an. Sie liegt in Ember bei den Dokumenten.</p>{% else %}<p>Die Datei hängt nicht an, weil die Wache diese Art Dokument nicht per E-Mail verschickt. Sie liegt in Ember bei den Dokumenten.</p>{% endif %}
       {% if guardian %}<p>Diese Nachricht geht an dich, weil du dich um {{ name }} kümmerst.</p>{% endif %}
+      <p>Wer wann und womit unterschrieben hat, steht im Signaturnachweis. Er liegt der Fassung unsichtbar bei und lässt sich in Ember neben dem Dokument als eigenes PDF herunterladen und ausdrucken.</p>
       <div class="btn-wrap"><a class="btn" href="{{ url }}">Dokument öffnen</a></div>
+      <div class="btn-wrap"><a class="btn" href="{{ recordUrl }}">Nachweis öffnen</a></div>
       <p>Prüfseite: <a href="{{ verifyUrl }}">{{ verifyUrl }}</a></p>
 {% endblock %}

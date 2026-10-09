@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.signing.entity.SigningAnswer;
 import dev.chojo.ember.feature.signing.entity.SigningCircumstances;
 import dev.chojo.ember.feature.signing.entity.SigningPicture;
 import dev.chojo.ember.feature.signing.service.SignatureFieldService;
+import dev.chojo.ember.feature.signing.service.SignatureImageService;
 import dev.chojo.ember.feature.signing.service.SignatureRequestService;
 import dev.chojo.ember.feature.signing.service.SigningActService;
 import dev.chojo.ember.feature.station.entity.Station;
@@ -43,14 +44,16 @@ import java.util.function.Predicate;
  * registration, which is why this seeder runs in a later band. The consent is attached to it as a document to
  * bring, and five people are registered for it with a copy each: four young members, each with a guardian,
  * and one carer. Whoever the festival already holds a place for keeps that registration, and the others are
- * registered as accepted. Each of them fetched their copy of the consent from the appointment, the guardians
- * for their children, and the station's administrator asked for the signatures on each. From there the
- * copies stand at every step a station sees:
+ * registered as accepted. The youth warden Anna Schmidt, who issues the consent and takes it in, keeps a
+ * signature picture and agreed to documents being signed for her, so every copy arrives signed by her for
+ * the station. Each of them fetched their copy of the consent from the appointment, the guardians for their
+ * children, and the station's administrator asked for the signatures on each. From there the copies stand at
+ * every step a station sees:
  *
  * <ul>
- *   <li>Lena Berger's is signed by everybody: by Lena, by her guardian Hans Berger and by the youth warden
- *       Anna Schmidt, who takes it in, and sealed with each act;</li>
- *   <li>Sophie Schulze signed her own, and her guardian Klaus Schulze and the youth warden have yet to;</li>
+ *   <li>Lena Berger's is signed by everybody: by Lena and by her guardian Hans Berger, and sealed with each
+ *       act;</li>
+ *   <li>Sophie Schulze signed her own, and her guardian Klaus Schulze has yet to;</li>
  *   <li>Lukas Frank's came back on paper, and the administrator confirmed each signature on it;</li>
  *   <li>Mia Berger's and that of the carer Thomas Müller wait for everybody.</li>
  * </ul>
@@ -112,6 +115,7 @@ public class DemoPhotoConsentSeeder implements DemoSeeder {
     private final SignatureFieldService signatureFields;
     private final SigningActService acts;
     private final StationMemberRepository stationMembers;
+    private final SignatureImageService images;
     private final DemoSessions sessions;
 
     @Inject
@@ -124,7 +128,9 @@ public class DemoPhotoConsentSeeder implements DemoSeeder {
             SignatureFieldService signatureFields,
             SigningActService acts,
             StationMemberRepository stationMembers,
+            SignatureImageService images,
             DemoSessions sessions) {
+        this.images = images;
         this.templates = templates;
         this.registrations = registrations;
         this.requirements = requirements;
@@ -156,6 +162,7 @@ public class DemoPhotoConsentSeeder implements DemoSeeder {
                 .id();
         var festival = station.events().buergerfest();
         requirements.setForEvent(owner, festival.event().id(), List.of(consent));
+        signsForTheStation(warden);
         var manager = sessions.of(station.station(), station.adminMember().id());
         for (var participant : participants(station.members())) {
             register(festival, participant.memberId());
@@ -204,6 +211,19 @@ public class DemoPhotoConsentSeeder implements DemoSeeder {
     private Participant child(StationMember child, Progress progress) {
         int guardian = stationMembers.findManagers(child.id()).getFirst().id();
         return new Participant(child.id(), guardian, progress);
+    }
+
+    /**
+     * Gives the issuer a signature picture and their agreement to documents being signed with it, so every
+     * copy generated from here on is signed for the station as it is filed.
+     */
+    private void signsForTheStation(StationMember issuer) {
+        Integer accountId = issuer.accountId();
+        if (accountId == null) return;
+        if (!images.settings(accountId).hasImage()) {
+            images.save(accountId, DemoSignatureStroke.of(issuer.displayName()), SignatureImageSource.DRAWN);
+        }
+        images.consent(accountId, true);
     }
 
     /** Holds a place at the festival for the member, keeping a registration the festival already has. */

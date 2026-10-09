@@ -10,6 +10,7 @@ import dev.chojo.ember.conf.file.elements.Signing;
 import dev.chojo.ember.feature.documents.repository.SealedVersionRepository;
 import dev.chojo.ember.feature.signing.entity.CertificateFacts;
 import dev.chojo.ember.feature.signing.entity.DocumentTimestampCheck;
+import dev.chojo.ember.feature.signing.entity.EvidenceSummary;
 import dev.chojo.ember.feature.signing.entity.HeldCopy;
 import dev.chojo.ember.feature.signing.entity.PadesLevel;
 import dev.chojo.ember.feature.signing.entity.PinnedAuthority;
@@ -285,7 +286,23 @@ public class SealVerifier {
         var authorities = new ArrayList<>(here);
         authorities.addAll(partnerAuthorities(partnerPins.allPinned(), fingerprintsOf(here)));
         var checked = checked(pdf, authorities);
-        return new SealVerification(held(pdf), checked.signatures(), checked.documentTimestamps());
+        return new SealVerification(held(pdf), checked.signatures(), checked.documentTimestamps(), evidenceOf(pdf));
+    }
+
+    /**
+     * The signatures the evidence attached to a signed document records, which is what a sealed version
+     * shows of them now that it carries no record page. A file without it, or with one that cannot be read,
+     * has none; the check of its seals stands either way.
+     */
+    private static @Nullable EvidenceSummary evidenceOf(byte[] pdf) {
+        try {
+            return SigningStateAssembler.evidenceOf(pdf)
+                    .map(json -> EvidenceSummary.of(SigningEvidenceFiles.read(json)))
+                    .orElse(null);
+        } catch (RuntimeException e) {
+            log.debug("The evidence attached to an uploaded document could not be read", e);
+            return null;
+        }
     }
 
     /**

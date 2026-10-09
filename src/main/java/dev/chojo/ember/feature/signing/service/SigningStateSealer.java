@@ -9,9 +9,7 @@ import dev.chojo.ember.feature.documents.entity.Document;
 import dev.chojo.ember.feature.documents.repository.DocumentRepository;
 import dev.chojo.ember.feature.documents.service.DocumentService;
 import dev.chojo.ember.feature.documents.service.SealedDocumentService;
-import dev.chojo.ember.feature.signing.entity.RecordTimeBasis;
 import dev.chojo.ember.feature.signing.entity.RequestedSignature;
-import dev.chojo.ember.feature.signing.entity.SealLevel;
 import dev.chojo.ember.feature.signing.entity.SealedDocument;
 import dev.chojo.ember.feature.signing.entity.SealingKey;
 import dev.chojo.ember.feature.signing.entity.SignatureRequestView;
@@ -36,17 +34,13 @@ import java.util.Optional;
  * recorded.
  *
  * <p>Each state is a document of its own: the request's frozen content with the signature picture each act
- * left drawn into its field, the record page of every act so far and their evidence attached
- * ({@link SigningStateAssembler}), sealed once with the station's key at
- * {@code BASELINE-LT}, or as far towards it as the timestamp services allow ({@link PdfSealer}). It is filed
- * as the current version of the request's member document ({@link SealedDocumentService#fileVersion}), which
- * is locked from its first version on and keeps every earlier version as it was. The content always comes
- * from the file the document was filed with, never from a version sealed before, so every version carries
- * the same content and each one is valid on its own.
- *
- * <p>The record page says where the document's times come from before the seal is made. A document
- * assembled expecting a timestamp whose seal came back without one is assembled again saying that no
- * service answered, and sealed without asking the services a second time.
+ * left drawn into its field and the evidence of every act so far attached ({@link SigningStateAssembler}),
+ * sealed once with the station's key at {@code BASELINE-LT}, or as far towards it as the timestamp services
+ * allow ({@link PdfSealer}). It is filed as the current version of the request's member document
+ * ({@link SealedDocumentService#fileVersion}), which is locked from its first version on and keeps every
+ * earlier version as it was. The content always comes from the file the document was filed with, never from
+ * a version sealed before, so every version carries the same content and each one is valid on its own. The
+ * readable record of a version is built from its attachment when somebody asks for it ({@link SignatureRecords}).
  *
  * <p>Sealing runs after the act is recorded and outside its transaction, since it may wait for the
  * timestamp services, and it is safe to run again at any time. A version is filed only on a request somebody
@@ -150,17 +144,12 @@ public class SigningStateSealer {
         return Optional.of(new UnsealedState(view.get(), document, content));
     }
 
-    /** Assembles the state and seals it, again without a timestamp where none came back. */
+    /** Assembles the state and seals it, with a timestamp where a service gives one. */
     SealedDocument seal(UnsealedState state) {
         SealingKey key = keys.forStation(state.view().request().stationId());
-        RecordTimeBasis expected = assembler.expectedTimeBasis();
         var pictures = evidence.marksOf(state.view().request().id());
-        var assembled = assembler.assemble(state.view(), state.content(), key.authority(), expected, pictures);
-        var sealed = sealer.seal(assembled.pdf(), key.privateKey(), key.chain());
-        if (expected != RecordTimeBasis.TIMESTAMP_SERVICE || sealed.level() != SealLevel.BASELINE_B) return sealed;
-        var unstamped = assembler.assemble(
-                state.view(), state.content(), key.authority(), RecordTimeBasis.NO_SERVICE_ANSWERED, pictures);
-        return sealer.sealWithoutTimestamp(unstamped.pdf(), key.privateKey(), key.chain());
+        var assembled = assembler.assemble(state.view(), state.content(), pictures);
+        return sealer.seal(assembled, key.privateKey(), key.chain());
     }
 
     /**
@@ -192,7 +181,8 @@ public class SigningStateSealer {
             int shown = requests.markSettledSealed(request.id(), sha256);
             requests.markWithdrawalSealed(request.id(), sha256);
             evidence.clearSealFailure(request.id());
-            copies.queue(state.view(), state.document(), sealed.pdf(), sha256, carried);
+            copies.queue(
+                    state.view(), state.document(), versionOf(state.document(), sha256), sealed.pdf(), sha256, carried);
             log.info(
                     "Sealed {} new acts and {} newly settled fields of signing request {} into document {} ({})",
                     carried.size(),
@@ -202,6 +192,15 @@ public class SigningStateSealer {
                     sealed.level());
             return true;
         });
+    }
+
+    /** The number of the document's sealed version with that hash, which was just filed. */
+    private int versionOf(Document document, String sha256) {
+        return documentService.sealedVersions(document).stream()
+                .filter(version -> version.sha256().equals(sha256))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("The version just filed is not among the versions"))
+                .version();
     }
 
     /**

@@ -192,4 +192,10 @@ export default {
     'D-291': 'Diese Vereinbarung gilt nicht mehr, es gibt nichts zu widerrufen',
     'D-292': 'Hier wurde nichts online unterschrieben, ein Widerruf geht deshalb nur auf Papier',
     'D-293': 'Der Grund darf höchstens 500 Zeichen lang sein',
+    'D-300': 'Wähle mindestens ein Feld zum Unterschreiben',
+    'D-301': 'In einem Durchgang lassen sich höchstens 50 Felder unterschreiben',
+    'D-302': 'Ein Feld wurde zweimal gewählt',
+    'D-303': 'Ein Unterschriftsbild kam für jemanden, der hier nichts unterschreibt',
+    'D-304': 'Für eine Person kamen zwei Unterschriftsbilder',
+    'D-305': 'Diese Fassung enthält keinen Signaturnachweis',
 }

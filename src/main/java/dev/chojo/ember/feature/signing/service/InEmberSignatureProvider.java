@@ -7,12 +7,14 @@ package dev.chojo.ember.feature.signing.service;
 
 import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.feature.legal.service.ConsentService;
+import dev.chojo.ember.feature.signing.entity.BatchMembership;
 import dev.chojo.ember.feature.signing.entity.CompletedSigning;
 import dev.chojo.ember.feature.signing.entity.SignatureLevel;
 import dev.chojo.ember.feature.signing.entity.SignerConfirmation;
 import dev.chojo.ember.feature.signing.entity.SignerConfirmation.StepUpPassed;
 import dev.chojo.ember.feature.signing.entity.SignerConfirmation.WebAuthnAssertion;
 import dev.chojo.ember.feature.signing.entity.SigningAct;
+import dev.chojo.ember.feature.signing.entity.SigningBatch;
 import dev.chojo.ember.feature.signing.entity.SigningCircumstances;
 import dev.chojo.ember.feature.signing.entity.SigningEvidence;
 import dev.chojo.ember.feature.signing.entity.SigningRequest;
@@ -27,7 +29,10 @@ import org.jspecify.annotations.Nullable;
 
 import java.net.InetAddress;
 import java.time.Clock;
+import java.time.Instant;
+import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -90,21 +95,29 @@ public class InEmberSignatureProvider implements SignatureProvider {
     }
 
     @Override
-    public SigningStart start(SigningRequest request) {
-        Set<StepUpProof> accepted = acceptedProofs(request.signer().accountId());
+    public SigningStart start(SigningBatch batch) {
+        Set<StepUpProof> accepted = acceptedProofs(batch.accountId());
         if (accepted.isEmpty()) throw DocumentRefusal.SIGNING_NO_PROOF.raise();
         byte[] nonce = RandomTokens.bytes(SigningChallenge.NONCE_BYTES);
-        return new SigningStart.InEmber(nonce, SigningChallenge.of(nonce, request), accepted);
+        return new SigningStart.InEmber(nonce, SigningChallenge.of(nonce, batch), accepted);
     }
 
+    /**
+     * Checks the one confirmation of a batch once, then gives each field its own evidence: the act on that
+     * field, with the batch it was confirmed in, and the shared proof. A passkey's or security key's answer
+     * is the same in every field's evidence, and so is the moment it was accepted.
+     */
     @Override
-    public CompletedSigning complete(SigningRequest request, SignerConfirmation confirmation) {
-        SigningEvidence evidence =
+    public List<CompletedSigning> complete(SigningBatch batch, SignerConfirmation confirmation) {
+        var acts = acts(batch, confirmation);
+        List<SigningEvidence> evidence =
                 switch (confirmation) {
-                    case WebAuthnAssertion assertion -> bound(request, assertion);
-                    case StepUpPassed passed -> unbound(request, passed);
+                    case WebAuthnAssertion assertion -> bound(batch, acts, assertion);
+                    case StepUpPassed passed -> unbound(batch, acts, passed);
                 };
-        return new CompletedSigning(level(), evidence);
+        return evidence.stream()
+                .map(each -> new CompletedSigning(level(), each))
+                .toList();
     }
 
     private Set<StepUpProof> acceptedProofs(int accountId) {
@@ -114,51 +127,76 @@ public class InEmberSignatureProvider implements SignatureProvider {
         return accepted;
     }
 
-    private SigningEvidence bound(SigningRequest request, WebAuthnAssertion assertion) {
-        byte[] challenge = SigningChallenge.of(assertion.nonce(), request);
-        VerifiedSigningAssertion verified = assertions.verify(request.signer().accountId(), challenge, assertion);
-        return new SigningEvidence.WebAuthnBound(
-                act(request, assertion),
-                verified.proof(),
-                verified.relyingPartyId(),
-                challenge,
-                assertion.credentialId(),
-                verified.credential().publicKeyCose(),
-                assertion.clientDataJson(),
-                assertion.authenticatorData(),
-                assertion.signature(),
-                verified.userVerified(),
-                verified.signatureCount(),
-                keyStamps.forSigning(verified.credential()));
+    private List<SigningEvidence> bound(SigningBatch batch, List<SigningAct> acts, WebAuthnAssertion assertion) {
+        byte[] challenge = SigningChallenge.of(assertion.nonce(), batch);
+        VerifiedSigningAssertion verified = assertions.verify(batch.accountId(), challenge, assertion);
+        var keyStamp = keyStamps.forSigning(verified.credential());
+        return acts.stream()
+                .<SigningEvidence>map(act -> new SigningEvidence.WebAuthnBound(
+                        act,
+                        verified.proof(),
+                        verified.relyingPartyId(),
+                        challenge,
+                        assertion.credentialId(),
+                        verified.credential().publicKeyCose(),
+                        assertion.clientDataJson(),
+                        assertion.authenticatorData(),
+                        assertion.signature(),
+                        verified.userVerified(),
+                        verified.signatureCount(),
+                        keyStamp))
+                .toList();
     }
 
-    private SigningEvidence unbound(SigningRequest request, StepUpPassed passed) {
+    private List<SigningEvidence> unbound(SigningBatch batch, List<SigningAct> acts, StepUpPassed passed) {
         StepUpProof proof = passed.proof();
         if (!UNBOUND_PROOFS.contains(proof)
-                || !twoFactor.availableProofs(request.signer().accountId()).contains(proof)) {
+                || !twoFactor.availableProofs(batch.accountId()).contains(proof)) {
             throw DocumentRefusal.SIGNING_PROOF_NOT_ACCEPTED.raise();
         }
-        SigningAct act = act(request, passed);
-        return proof == StepUpProof.TOTP
-                ? new SigningEvidence.TotpUnbound(act)
-                : new SigningEvidence.PasswordUnbound(act);
+        return acts.stream()
+                .<SigningEvidence>map(act -> proof == StepUpProof.TOTP
+                        ? new SigningEvidence.TotpUnbound(act)
+                        : new SigningEvidence.PasswordUnbound(act))
+                .toList();
     }
 
-    private SigningAct act(SigningRequest request, SignerConfirmation confirmation) {
+    /** The act on each field of the batch, each naming the batch where it holds more than one field. */
+    private List<SigningAct> acts(SigningBatch batch, SignerConfirmation confirmation) {
         SigningCircumstances circumstances = confirmation.circumstances();
-        return new SigningAct(
-                request.requestUid(),
-                request.signer(),
-                names.accountHolder(request.signer().accountId()),
-                names.member(request.signer().memberId()),
-                request.fieldName(),
-                request.statement(),
-                request.contentSha256(),
-                request.entries(),
-                confirmation.nonce(),
-                clock.instant(),
-                truncated(circumstances.clientIp()),
-                circumstances.userAgent());
+        Instant signedAt = clock.instant();
+        @Nullable String truncatedIp = truncated(circumstances.clientIp());
+        String accountHolder = names.accountHolder(batch.accountId());
+        List<BatchMembership.Item> items = batch.single() ? List.of() : itemsOf(batch);
+        var acts = new ArrayList<SigningAct>(batch.requests().size());
+        for (int position = 0; position < batch.requests().size(); position++) {
+            SigningRequest request = batch.requests().get(position);
+            acts.add(new SigningAct(
+                    request.requestUid(),
+                    request.signer(),
+                    accountHolder,
+                    names.member(request.signer().memberId()),
+                    request.fieldName(),
+                    request.statement(),
+                    request.contentSha256(),
+                    request.entries(),
+                    confirmation.nonce(),
+                    signedAt,
+                    truncatedIp,
+                    circumstances.userAgent(),
+                    items.isEmpty() ? null : new BatchMembership(batch.uid(), position, items)));
+        }
+        return acts;
+    }
+
+    private static List<BatchMembership.Item> itemsOf(SigningBatch batch) {
+        var digests = SigningBatchChallenge.digestsOf(batch);
+        var items = new ArrayList<BatchMembership.Item>(digests.size());
+        for (int position = 0; position < digests.size(); position++) {
+            var request = batch.requests().get(position);
+            items.add(new BatchMembership.Item(request.requestUid(), request.fieldName(), digests.get(position)));
+        }
+        return items;
     }
 
     private static @Nullable String truncated(@Nullable String clientIp) {

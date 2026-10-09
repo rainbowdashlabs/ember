@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.mail.entity.SignedCopy;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.mail.service.MailRecipientService;
 import dev.chojo.ember.feature.notifications.entity.LinkHome;
+import dev.chojo.ember.feature.notifications.entity.NotificationData.NotificationLink;
 import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
 import dev.chojo.ember.feature.notifications.service.NotificationText;
 import dev.chojo.ember.feature.signing.entity.FieldRole;
@@ -39,7 +40,7 @@ import java.util.Locale;
  * first sealed version that carries the signature. That hash is the point of the copy: a sealed file cannot
  * print its own hash, and a hash kept in the signer's mailbox, outside the installation, is what makes a
  * version produced later and claimed to be that one tell itself apart. The mail links to the document in
- * Ember and to the verification page.
+ * Ember, to the readable record of that version beside it, and to the verification page.
  *
  * <p>The PDF itself goes along only where the request copied that from its template, since a consent form
  * may hold health data and a mailbox is no place for it, and only up to {@link #MAX_ATTACHMENT_BYTES}, which
@@ -84,6 +85,7 @@ public class SignedCopies {
      *
      * @param view         the request as it was sealed, with its fields and evidence
      * @param document     the member document the version was filed to
+     * @param version      the version's number within the document
      * @param sealedPdf    the sealed version
      * @param sealedSha256 its SHA-256, lower-case hexadecimal
      * @param carried      the evidence ids of the acts it carries for the first time
@@ -91,6 +93,7 @@ public class SignedCopies {
     public void queue(
             SignatureRequestView view,
             Document document,
+            int version,
             byte[] sealedPdf,
             String sealedSha256,
             List<Integer> carried) {
@@ -102,7 +105,7 @@ public class SignedCopies {
             boolean tooLarge = view.request().copyAttached() && attachment == null;
             for (var act : view.evidence()) {
                 if (!carried.contains(act.id())) continue;
-                send(view, station, document, act, sealedSha256, attachment, tooLarge);
+                send(view, station, document, version, act, sealedSha256, attachment, tooLarge);
             }
         } catch (RuntimeException e) {
             if (fromTheDatabase(e)) throw e;
@@ -130,6 +133,7 @@ public class SignedCopies {
             SignatureRequestView view,
             Station station,
             Document document,
+            int version,
             StoredEvidence evidence,
             String sealedSha256,
             @Nullable MailAttachment attachment,
@@ -147,7 +151,8 @@ public class SignedCopies {
                 act.signerName(),
                 format.format(act.signedAt()),
                 sealedSha256,
-                documentUrl(view, evidence, station, baseUrl),
+                linkOf(view, evidence, station, baseUrl, NotificationLinks.ownDocument(document.id())),
+                linkOf(view, evidence, station, baseUrl, NotificationLinks.ownDocumentRecord(document.id(), version)),
                 baseUrl + VERIFY_PATH,
                 attachment,
                 tooLarge);
@@ -158,16 +163,22 @@ public class SignedCopies {
     }
 
     /**
-     * Where the copy leads in Ember: the reader's own documents, which list the documents of the members in
-     * their care as well, or the member's page for the issuer, whose document is somebody else's.
+     * Where the copy leads in Ember: the document, or its record, among the reader's own documents, which
+     * list the documents of the members in their care as well; or the member's page for the issuer, whose
+     * document is somebody else's.
      */
-    private String documentUrl(SignatureRequestView view, StoredEvidence evidence, Station station, String baseUrl) {
+    private String linkOf(
+            SignatureRequestView view,
+            StoredEvidence evidence,
+            Station station,
+            String baseUrl,
+            NotificationLink ownDocuments) {
         Integer memberId = view.request().memberId();
         boolean issuer = view.fields().stream()
                 .filter(field -> field.id() == evidence.fieldId())
                 .map(RequestedSignature::role)
                 .anyMatch(FieldRole.ISSUER::equals);
-        var link = issuer && memberId != null ? NotificationLinks.member(memberId) : NotificationLinks.ownDocuments();
+        var link = issuer && memberId != null ? NotificationLinks.member(memberId) : ownDocuments;
         return text.resolveLinkUrl(baseUrl, LinkHome.station(station.uid()), link);
     }
 

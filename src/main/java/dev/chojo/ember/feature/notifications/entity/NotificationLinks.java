@@ -274,4 +274,28 @@ public final class NotificationLinks {
     public static NotificationLink ownDocuments() {
         return new NotificationLink("documents-own", Map.of());
     }
+
+    /**
+     * One document among the reader's own documents, opened with its sealed versions.
+     *
+     * @param documentId the document
+     * @return the link a signed copy leads to
+     */
+    public static NotificationLink ownDocument(int documentId) {
+        return new NotificationLink("documents-own", Map.of(), Map.of("document", documentId));
+    }
+
+    /**
+     * The readable record of one sealed version of a document among the reader's own documents.
+     *
+     * @param documentId the document
+     * @param version    the version's number
+     * @return the link a signed copy's record leads to
+     */
+    public static NotificationLink ownDocumentRecord(int documentId, int version) {
+        var query = new LinkedHashMap<String, Object>();
+        query.put("document", documentId);
+        query.put("record", version);
+        return new NotificationLink("documents-own", Map.of(), query);
+    }
 }

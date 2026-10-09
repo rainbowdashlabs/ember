@@ -111,7 +111,7 @@ public final class TestSealing implements AutoCloseable {
                 documentService,
                 new SealedDocumentService(documents, new SealedVersionRepository(), documentService),
                 new StationSigningKeys(keys, new SigningCertificates(), wrap, stations, STATE_BASE_URL),
-                new SigningStateAssembler(stations, timestamps, STATE_BASE_URL, Clock.systemUTC()),
+                new SigningStateAssembler(Clock.systemUTC()),
                 new PdfSealer(timestamps, new StationKeyRevocations(keys, new RevocationLists(), wrap)),
                 mock(SignedCopies.class),
                 followUp);
@@ -132,7 +132,6 @@ public final class TestSealing implements AutoCloseable {
         var wrap = new SigningKeyWrap(Base64.getEncoder().encodeToString(new byte[32]));
         return new IssuedLetterSigner(
                 members,
-                stations,
                 images,
                 new StationSigningKeys(keys, new SigningCertificates(), wrap, stations, STATE_BASE_URL),
                 new PdfSealer(SealedPdfs.noTimestamps(), new StationKeyRevocations(keys, new RevocationLists(), wrap)),
@@ -154,7 +153,6 @@ public final class TestSealing implements AutoCloseable {
         var wrap = new SigningKeyWrap(Base64.getEncoder().encodeToString(new byte[32]));
         return new IssuedLetterSigner(
                 members,
-                stations,
                 images,
                 new StationSigningKeys(keys, new SigningCertificates(), wrap, stations, STATE_BASE_URL),
                 sealer(new StationKeyRevocations(keys, new RevocationLists(), wrap)),

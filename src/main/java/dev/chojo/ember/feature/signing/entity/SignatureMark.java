@@ -7,22 +7,14 @@ package dev.chojo.ember.feature.signing.entity;
 
 import org.jspecify.annotations.Nullable;
 
-import java.util.List;
-
 /**
- * What a signature leaves visible in its field: the signer's picture with a short caption under it, so a
- * printed copy still shows who signed and when.
+ * What a signature leaves visible in its field: the signer's picture, and nothing printed beside it. Who
+ * signed, when and how is in the evidence the document carries and in its record.
  *
  * <p>The array is handed over as it is, without a copy.
  *
  * @param fieldName the signature field it is drawn into
- * @param png       the signature picture, a transparent PNG, or null where the act left none and only the
- *                  caption is drawn
- * @param caption   the lines under the picture, such as the official name and when and how it was signed
+ * @param png       the signature picture, a transparent PNG, or null where the act left none and the field is
+ *                  only taken out
  */
-public record SignatureMark(String fieldName, byte @Nullable [] png, List<String> caption) {
-
-    public SignatureMark {
-        caption = List.copyOf(caption);
-    }
-}
+public record SignatureMark(String fieldName, byte @Nullable [] png) {}

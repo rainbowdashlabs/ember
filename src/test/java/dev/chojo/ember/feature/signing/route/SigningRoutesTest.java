@@ -278,7 +278,6 @@ class SigningRoutesTest extends RepositoryTestBase {
                 names,
                 twoFactor,
                 auth,
-                evidenceRepo,
                 signatureImages);
         acts = actsSealingWith.apply(TestSealing.stateSealer(memberDocumentRepo, documents, stationRepo));
 

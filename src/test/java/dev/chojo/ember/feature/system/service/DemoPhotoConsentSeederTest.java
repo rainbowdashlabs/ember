@@ -202,6 +202,10 @@ class DemoPhotoConsentSeederTest extends RepositoryTestBase {
         var names = new SignerNames(accountRepo, memberNameResolver);
         var keyStamps = TestKeyStamps.off(twoFactorRepo);
         var backend = localStorage();
+        var images = new SignatureImageService(
+                new AccountSignatureRepository(),
+                accountRepo,
+                new StorageService(new StorageBackendResolver(backend), backend));
         var acts = new SigningActService(
                 requestRepo,
                 requests,
@@ -215,11 +219,7 @@ class DemoPhotoConsentSeederTest extends RepositoryTestBase {
                 names,
                 twoFactor,
                 authService(),
-                evidenceRepo,
-                new SignatureImageService(
-                        new AccountSignatureRepository(),
-                        accountRepo,
-                        new StorageService(new StorageBackendResolver(backend), backend)));
+                images);
         requirementRepo = new EventRequirementRepository();
         var requirements = new EventRequirementService(
                 requirementRepo,
@@ -248,6 +248,7 @@ class DemoPhotoConsentSeederTest extends RepositoryTestBase {
                 fields,
                 acts,
                 stationMemberRepo,
+                images,
                 new DemoSessions(accountRepo, stationMemberRepo, memberPermissionResolver));
     }
 

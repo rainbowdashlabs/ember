@@ -5,7 +5,6 @@
  */
 package dev.chojo.ember.feature.signing.service;
 
-import dev.chojo.ember.feature.generator.service.font.BundledFont;
 import dev.chojo.ember.feature.generator.service.pdf.PdfFiles;
 import dev.chojo.ember.feature.signing.entity.SignatureMark;
 import org.apache.pdfbox.cos.COSName;
@@ -13,8 +12,6 @@ import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
-import org.apache.pdfbox.pdmodel.font.PDFont;
-import org.apache.pdfbox.pdmodel.font.PDType0Font;
 import org.apache.pdfbox.pdmodel.graphics.image.LosslessFactory;
 import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotationWidget;
 import org.apache.pdfbox.pdmodel.interactive.form.PDAcroForm;
@@ -23,7 +20,6 @@ import org.apache.pdfbox.pdmodel.interactive.form.PDSignatureField;
 import org.apache.pdfbox.pdmodel.interactive.form.PDTerminalField;
 import org.jspecify.annotations.Nullable;
 
-import java.awt.Color;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -37,15 +33,13 @@ import javax.imageio.ImageIO;
  * Draws what a signature leaves visible into its signature field, and takes earlier seals out of a
  * document that is about to be sealed afresh.
  *
- * <p>A mark is drawn onto the page, inside the rectangle of the field it belongs to and nowhere else: the
- * signature picture in the upper part, scaled to fit and centred, and its caption in small print along the
- * bottom edge, just above the line the field sits on. The field itself is taken out afterwards, so no reader
- * offers to sign an empty field over a signature that is already there; every other field stays as it was.
- * Drawing onto the page rather than into the field's own appearance is what makes the mark show in every
- * viewer and on paper, since browser viewers leave signature fields out.
- *
- * <p>The caption is set in the bundled Liberation Sans, embedded as a subset, so a PDF/A document stays
- * PDF/A. A character the font has no glyph for is left out rather than failing the signature.
+ * <p>A mark is the signature picture alone, drawn onto the page inside the rectangle of the field it belongs
+ * to and nowhere else, scaled to fit and centred, resting just above the line the field sits on. Nothing is
+ * printed beside it: a template that wants the signer's name under the line prints it as the field's own
+ * text. The field itself is taken out afterwards, so no reader offers to sign an empty field over a signature
+ * that is already there; every other field stays as it was. Drawing onto the page rather than into the
+ * field's own appearance is what makes the mark show in every viewer and on paper, since browser viewers
+ * leave signature fields out.
  *
  * <p>A document sealed before (a letter signed for its issuer when it was generated) carries that seal in
  * a signed signature field. Any later state of it is a new document sealed once as a whole, in which the
@@ -53,12 +47,7 @@ import javax.imageio.ImageIO;
  * long-term validation material that belonged to them.
  */
 public final class SignatureMarks {
-    private static final float MAX_FONT_SIZE = 7f;
-    private static final float MIN_FONT_SIZE = 3.5f;
-    private static final float CAPTION_SHARE = 0.16f;
-    private static final float LINE_SPACING = 1.2f;
     private static final float GAP = 1.5f;
-    private static final Color CAPTION_COLOR = new Color(0x33, 0x33, 0x33);
     private static final COSName DSS = COSName.getPDFName("DSS");
 
     private SignatureMarks() {}
@@ -90,13 +79,13 @@ public final class SignatureMarks {
     public static void draw(PDDocument document, List<SignatureMark> marks) throws IOException {
         var form = document.getDocumentCatalog().getAcroForm(null);
         if (form == null || marks.isEmpty()) return;
-        PDFont font = PDType0Font.load(document, new ByteArrayInputStream(BundledFont.data()), true);
         for (var mark : marks) {
             if (!(form.getField(mark.fieldName()) instanceof PDSignatureField field)) continue;
+            byte[] png = mark.png();
             for (var widget : field.getWidgets()) {
                 var page = pageOf(document, widget);
-                if (page.isEmpty()) continue;
-                drawInto(document, page.get(), widget.getRectangle(), mark, font);
+                if (page.isEmpty() || png == null) continue;
+                drawInto(document, page.get(), widget.getRectangle(), png);
             }
             remove(document, form, field);
         }
@@ -125,27 +114,11 @@ public final class SignatureMarks {
         return changed || !signed.isEmpty();
     }
 
-    private static void drawInto(PDDocument document, PDPage page, PDRectangle rect, SignatureMark mark, PDFont font)
-            throws IOException {
-        var lines = mark.caption().stream().map(line -> printable(font, line)).toList();
-        float size = fontSize(font, lines, rect);
-        float captionHeight = lines.size() * size * LINE_SPACING;
+    private static void drawInto(PDDocument document, PDPage page, PDRectangle rect, byte[] png) throws IOException {
+        float height = rect.getHeight() - GAP;
+        if (height <= 0) return;
         try (var stream = new PDPageContentStream(document, page, PDPageContentStream.AppendMode.APPEND, true, true)) {
-            byte[] png = mark.png();
-            float pictureHeight = rect.getHeight() - captionHeight - GAP;
-            if (png != null && pictureHeight > 0) {
-                drawPicture(document, stream, png, rect, rect.getLowerLeftY() + captionHeight + GAP, pictureHeight);
-            }
-            stream.setNonStrokingColor(CAPTION_COLOR);
-            float baseline = rect.getLowerLeftY() + captionHeight - size;
-            for (String line : lines) {
-                stream.beginText();
-                stream.setFont(font, size);
-                stream.newLineAtOffset(rect.getLowerLeftX(), baseline);
-                stream.showText(line);
-                stream.endText();
-                baseline -= size * LINE_SPACING;
-            }
+            drawPicture(document, stream, png, rect, rect.getLowerLeftY() + GAP, height);
         }
     }
 
@@ -160,35 +133,6 @@ public final class SignatureMarks {
         float drawnHeight = image.getHeight() * scale;
         float left = rect.getLowerLeftX() + (rect.getWidth() - width) / 2;
         stream.drawImage(image, left, bottom, width, drawnHeight);
-    }
-
-    /** The caption's size: small, no taller than its share of the field, and narrow enough for every line. */
-    private static float fontSize(PDFont font, List<String> lines, PDRectangle rect) throws IOException {
-        float size = Math.min(MAX_FONT_SIZE, rect.getHeight() * CAPTION_SHARE);
-        for (String line : lines) {
-            float width = font.getStringWidth(line) / 1000f;
-            if (width > 0) size = Math.min(size, rect.getWidth() / width);
-        }
-        return Math.max(MIN_FONT_SIZE, size);
-    }
-
-    /** The text with every character the font cannot draw left out. */
-    private static String printable(PDFont font, String text) {
-        var out = new StringBuilder();
-        for (int codePoint : text.codePoints().toArray()) {
-            String character = Character.toString(codePoint);
-            if (drawable(font, character)) out.append(character);
-        }
-        return out.toString();
-    }
-
-    private static boolean drawable(PDFont font, String character) {
-        try {
-            font.encode(character);
-            return true;
-        } catch (IOException | IllegalArgumentException e) {
-            return false;
-        }
     }
 
     /** The page a field's widget sits on, from the widget itself or, where it does not say, by search. */

@@ -7,7 +7,6 @@ package dev.chojo.ember.feature.signing.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.FileResponse;
-import dev.chojo.ember.api.RateLimits;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -25,7 +24,6 @@ import dev.chojo.ember.feature.signing.entity.SigningAnswer;
 import dev.chojo.ember.feature.signing.entity.SigningAttempt;
 import dev.chojo.ember.feature.signing.entity.SigningCircumstances;
 import dev.chojo.ember.feature.signing.entity.SigningOutcome;
-import dev.chojo.ember.feature.signing.entity.SigningPicture;
 import dev.chojo.ember.feature.signing.service.SignatureImages;
 import dev.chojo.ember.feature.signing.service.SignatureRequestService;
 import dev.chojo.ember.feature.signing.service.SigningActService;
@@ -42,12 +40,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.UncheckedIOException;
-import java.nio.charset.StandardCharsets;
 import java.time.Instant;
-import java.util.Base64;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -200,59 +193,21 @@ public class SigningRoutes implements Routes {
             })
     private void complete(Context ctx) {
         var session = StationSession.from(ctx);
-        var body = completeBodyOf(ctx);
+        var body = SigningConfirmations.body(ctx, MAX_COMPLETE_BYTES, SigningCompleteRequest.class);
         String startToken = body.startToken();
         StepUpProof proof = body.proof();
         if (startToken == null || startToken.isBlank() || proof == null) {
             throw DocumentRefusal.SIGNING_ANSWER_MISSING.raise();
         }
-        throttle(ctx, session.accountId(), proof);
+        SigningConfirmations.throttle(ctx, rateLimiter, session.accountId(), proof);
         var outcome = acts.complete(
                 session,
                 pathInt(ctx, "fieldId"),
                 startToken,
                 new SigningAnswer(proof, body.credentialJson(), body.secret()),
-                pictureOf(body),
+                SigningConfirmations.picture(body.signatureImage(), body.signatureSource(), body.keepSignature()),
                 new SigningCircumstances(ctx.ip(), ctx.userAgent()));
         ctx.json(SigningCompleteResponse.of(outcome));
-    }
-
-    /**
-     * The confirmation as sent, read up to {@link #MAX_COMPLETE_BYTES}. The server reads a body only up to a
-     * megabyte, which a photographed signature in Base64 easily passes, so this one route reads its own up
-     * to the largest picture taken.
-     */
-    private static SigningCompleteRequest completeBodyOf(Context ctx) {
-        byte[] raw;
-        try (InputStream content = ctx.bodyInputStream()) {
-            raw = content.readNBytes(MAX_COMPLETE_BYTES + 1);
-        } catch (IOException e) {
-            throw new UncheckedIOException("The signing confirmation could not be read", e);
-        }
-        if (raw.length > MAX_COMPLETE_BYTES) throw DocumentRefusal.SIGNATURE_IMAGE_TOO_LARGE.raise();
-        return ctx.jsonMapper().fromJsonString(new String(raw, StandardCharsets.UTF_8), SigningCompleteRequest.class);
-    }
-
-    /** The signature picture the signer sent, or the saved one where they sent none. */
-    private static SigningPicture pictureOf(SigningCompleteRequest body) {
-        String encoded = body.signatureImage();
-        if (encoded == null || encoded.isBlank()) return SigningPicture.SAVED;
-        try {
-            byte[] made = Base64.getDecoder().decode(encoded.strip());
-            return new SigningPicture(made, body.signatureSource(), Boolean.TRUE.equals(body.keepSignature()));
-        } catch (IllegalArgumentException e) {
-            throw DocumentRefusal.SIGNATURE_IMAGE_NOT_A_PICTURE.raise();
-        }
-    }
-
-    private void throttle(Context ctx, int accountId, StepUpProof proof) {
-        if (proof == StepUpProof.PASSWORD) {
-            RateLimits.enforce(
-                    DocumentRefusal.SIGNING_PASSWORD_TOO_OFTEN, rateLimiter.tryPasswordStepUp(ctx.ip(), accountId));
-            return;
-        }
-        RateLimits.enforce(
-                DocumentRefusal.SIGNING_CONFIRMATION_TOO_OFTEN, rateLimiter.tryTwoFactor(ctx.ip(), accountId));
     }
 
     /**

@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.signing.entity.GuardianLink;
 import dev.chojo.ember.feature.signing.entity.RequestState;
 import dev.chojo.ember.feature.signing.entity.RequestedSignature;
 import dev.chojo.ember.feature.signing.entity.SignatureRequest;
+import dev.chojo.ember.feature.signing.entity.SignedAct;
 import dev.chojo.ember.feature.signing.entity.Signer;
 import dev.chojo.ember.feature.signing.entity.SignerCapacity;
 import dev.chojo.ember.feature.signing.entity.StoredEvidence;
@@ -93,38 +94,7 @@ public class SignatureFieldService {
      * @return the evidence as stored
      */
     public StoredEvidence record(StationSession session, CompletedSigning signed) {
-        var act = signed.evidence().act();
-        if (act.signer().accountId() != session.accountId()) throw DocumentRefusal.SIGNING_FIELD_NOT_YOURS.raise();
-        var request = requestService.requestAt(session, act.requestUid());
-        var stored = Transactions.call(() -> {
-            var field = openField(request, act.fieldName());
-            boolean sameContent = HexFormat.of().formatHex(act.contentSha256()).equals(request.contentSha256());
-            if (!sameContent || !act.statement().equals(field.statement())) {
-                throw DocumentRefusal.SIGNING_CONTENT_DIFFERS.raise();
-            }
-            @Nullable GuardianLink link = linkFor(session, request, field, act.signer());
-            int me = session.member().id();
-            requests.settle(field.id(), FieldState.SIGNED, me, act.accountHolderName());
-            var recorded = evidence.record(
-                    field.id(),
-                    signed.level(),
-                    signed.evidence(),
-                    me,
-                    act.signer().memberId(),
-                    link);
-            requests.closeIfSettled(request.id());
-            return recorded;
-        });
-        log.info(
-                "Field {} of signing request {} signed by member {} with {}",
-                act.fieldName(),
-                request.uid(),
-                session.member().id(),
-                signed.evidence().proof());
-        notices.settled(List.of(stored.fieldId()));
-        notices.signed(request, stored);
-        tellIfCompleted(request.id());
-        return stored;
+        return recordAll(session, List.of(new SignedAct(signed, null))).getFirst();
     }
 
     /** Tells {@link AgreementOutcomes} of a request that completed, logging rather than throwing. */
@@ -137,6 +107,63 @@ public class SignatureFieldService {
             log.warn("Could not carry the completion of signing request {} over", now.uid(), e);
         }
     }
+
+    /**
+     * Stores the evidence of the acts one confirmation gave, each against the field it filled, with the
+     * signature picture it left there, and closes each request once no field of it is open any more.
+     *
+     * <p>All of them or none: a field that is no longer open, or no longer the caller's, refuses every act of
+     * the confirmation, so a confirmation never leaves some of the fields it covered signed and others not.
+     * The notices go out once everything is stored.
+     *
+     * @param session the signer, whose account confirmed the acts
+     * @param acts    what the provider handed back for each field, with its picture
+     * @return the evidence as stored, in the order of the acts
+     */
+    public List<StoredEvidence> recordAll(StationSession session, List<SignedAct> acts) {
+        for (var act : acts) {
+            if (act.signing().evidence().act().signer().accountId() != session.accountId()) {
+                throw DocumentRefusal.SIGNING_FIELD_NOT_YOURS.raise();
+            }
+        }
+        var recorded = Transactions.call(
+                () -> acts.stream().map(act -> recordOne(session, act)).toList());
+        for (var each : recorded) {
+            log.info(
+                    "Field {} of signing request {} signed by member {} with {}",
+                    each.stored().evidence().act().fieldName(),
+                    each.request().uid(),
+                    session.member().id(),
+                    each.stored().evidence().proof());
+        }
+        notices.settled(recorded.stream().map(each -> each.stored().fieldId()).toList());
+        recorded.forEach(each -> notices.signed(each.request(), each.stored()));
+        recorded.stream().map(each -> each.request().id()).distinct().forEach(this::tellIfCompleted);
+        return recorded.stream().map(Recorded::stored).toList();
+    }
+
+    private Recorded recordOne(StationSession session, SignedAct signedAct) {
+        CompletedSigning signed = signedAct.signing();
+        var act = signed.evidence().act();
+        var request = requestService.requestAt(session, act.requestUid());
+        var field = openField(request, act.fieldName());
+        boolean sameContent = HexFormat.of().formatHex(act.contentSha256()).equals(request.contentSha256());
+        if (!sameContent || !act.statement().equals(field.statement())) {
+            throw DocumentRefusal.SIGNING_CONTENT_DIFFERS.raise();
+        }
+        @Nullable GuardianLink link = linkFor(session, request, field, act.signer());
+        int me = session.member().id();
+        requests.settle(field.id(), FieldState.SIGNED, me, act.accountHolderName());
+        var stored = evidence.record(
+                field.id(), signed.level(), signed.evidence(), me, act.signer().memberId(), link);
+        var picture = signedAct.picture();
+        if (picture != null) evidence.storeMark(stored.id(), picture);
+        requests.closeIfSettled(request.id());
+        return new Recorded(request, stored);
+    }
+
+    /** One act as stored, with the request it was on. */
+    private record Recorded(SignatureRequest request, StoredEvidence stored) {}
 
     /**
      * Records that a field was signed on paper.

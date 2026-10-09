@@ -44,8 +44,8 @@ public record SigningEvidenceFile(
         List<Field> fields,
         @Nullable Withdrawal withdrawal) {
 
-    /** The name and version of the layout. */
-    public static final String FORMAT = "ember-signing-evidence-v1";
+    /** The name and version of the layout; the second version adds the batch an act was confirmed in. */
+    public static final String FORMAT = "ember-signing-evidence-v2";
 
     /** The name the file carries inside the document. */
     public static final String FILE_NAME = "signing-evidence.json";
@@ -100,7 +100,9 @@ public record SigningEvidenceFile(
      * @param webAuthn          the authenticator's answer, or null for a proof that is not a passkey or a
      *                          security key
      * @param picture           the signature picture the act left in its field, or null for an act that left
-     *                          none, whose field shows the name and date only
+     *                          none
+     * @param batch             the batch the act was confirmed in together with other fields, or null for an
+     *                          act confirmed on its own, whose challenge has the file's {@code challengeLayout}
      */
     public record Act(
             SignatureLevel level,
@@ -122,7 +124,31 @@ public record SigningEvidenceFile(
             @Nullable String userAgent,
             @Nullable GuardianLink guardianLink,
             @Nullable WebAuthn webAuthn,
-            @Nullable Picture picture) {}
+            @Nullable Picture picture,
+            @Nullable Batch batch) {}
+
+    /**
+     * The batch an act was confirmed in: one proof for several fields, across documents and across the
+     * members in the signer's care. The challenge is recomputed in the batch layout from this act and the
+     * digests here: this act's own digest from the act at its {@code position}, every other field's as
+     * listed. The other fields are named by their request and field, never by what they bound.
+     *
+     * @param layout     the layout of the batch challenge, {@code ember-signing-batch-v1}
+     * @param itemLayout the layout of each field's digest, {@code ember-signing-batch-item-v1}
+     * @param uid        the batch
+     * @param position   where this act stands in the batch, counted from 0
+     * @param items      every field of the batch in the order it was signed, this act's included
+     */
+    public record Batch(String layout, String itemLayout, UUID uid, int position, List<BatchItem> items) {}
+
+    /**
+     * One field of a batch.
+     *
+     * @param requestUid the request the field belongs to
+     * @param fieldName  the field's name in its document
+     * @param digest     its digest as the batch challenge took it, lower-case hexadecimal
+     */
+    public record BatchItem(UUID requestUid, String fieldName, String digest) {}
 
     /**
      * A value the signer typed into a field of the document. The challenge covers the field's name and the
