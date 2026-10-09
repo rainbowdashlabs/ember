@@ -77,13 +77,13 @@ public class IcalEventRenderer {
     }
 
     /**
-     * Whether a status means the member will not be there: turned down, declined, or a confirmed
-     * place taken back again.
+     * Whether a status means the member will not be there: turned down, declined, or a place taken
+     * back again. On an appointment that expects everybody, taking back is taking a refusal back,
+     * which keeps the appointment in the calendar.
      */
-    private static boolean notAttending(RegistrationStatus status) {
-        return status == RegistrationStatus.DECLINED
-                || status == RegistrationStatus.DENIED
-                || status == RegistrationStatus.WITHDRAWN;
+    private static boolean notAttending(StationEvent event, @Nullable RegistrationStatus status) {
+        if (status == null) return false;
+        return status == RegistrationStatus.DENIED || status.saysNotComing(event.requiresRegistration());
     }
 
     /**
@@ -106,9 +106,10 @@ public class IcalEventRenderer {
         var ownStatus = ctx.ownerStatusByEvent().get(event.id());
         var managed = ctx.managedStatusByEvent().getOrDefault(event.id(), List.of());
 
-        boolean ownDeclined = notAttending(ownStatus);
+        boolean ownDeclined = notAttending(event, ownStatus);
 
-        boolean allManagedRefused = !managed.isEmpty() && managed.stream().allMatch(r -> notAttending(r.status()));
+        boolean allManagedRefused =
+                !managed.isEmpty() && managed.stream().allMatch(r -> notAttending(event, r.status()));
 
         if (ownStatus != null && managed.isEmpty()) {
             if (ownDeclined) return false;
