@@ -360,7 +360,8 @@ class PartnerAgreementsTest extends GeneratorTestBase {
                 notices,
                 eventRepo,
                 eventRegistrationRepo,
-                mock(AppointmentSignatures.class));
+                mock(AppointmentSignatures.class),
+                signatures);
         agreementSigners = new AgreementSigners(
                 requestRepo, requirementRepo, eventRegistrationRepo, memberNameResolver, agreementRepo, shareRepo);
         requirementNotices = new PartnerRequirementNotices(
@@ -673,6 +674,38 @@ class PartnerAgreementsTest extends GeneratorTestBase {
         assertEquals(
                 withdrawal.sealedSha256(),
                 linkRepo.forRequest(request.id()).orElseThrow().deliveredSha256());
+    }
+
+    /**
+     * A withdrawn agreement is asked for again at home while the member stays registered with the partner: a new
+     * open request on the same copy, and the organiser keeps it withdrawn until it is signed anew. A member who
+     * gave the place up is not asked again.
+     */
+    @Test
+    void aWithdrawnAgreementIsAskedAgainWhileTheMemberStaysRegistered() {
+        var organiserUid = organiser.station().uid();
+        var member = homeMember("Tara", "Tal");
+        var request = requestOf(register(member).getFirst());
+        sign(request, member);
+
+        withdrawals.requireOwnedThenWithdraw(at(member), request.uid(), null, new SigningCircumstances(null, null));
+
+        var again = linkRepo.live(organiserUid, camp.id(), DAY, member.id(), request.contentSha256())
+                .orElseThrow();
+        assertNotEquals(request.id(), again.requestId());
+        assertEquals(
+                RequestState.OPEN,
+                requestRepo.findById(again.requestId()).orElseThrow().state());
+        assertEquals(PartnerAgreementState.WITHDRAWN, documentOf(member).state());
+
+        var gone = homeMember("Udo", "Ufer");
+        var given = requestOf(register(gone).getFirst());
+        sign(given, gone);
+        assertTrue(events.withdrawRegistration(camp.id(), organiserSide.id(), gone.uid(), DAY));
+
+        withdrawals.requireOwnedThenWithdraw(at(gone), given.uid(), null, new SigningCircumstances(null, null));
+
+        assertFalse(linkRepo.asked(organiserUid, camp.id(), DAY, gone.id(), consent));
     }
 
     /**

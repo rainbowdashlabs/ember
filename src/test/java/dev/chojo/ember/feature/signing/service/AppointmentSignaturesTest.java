@@ -244,7 +244,8 @@ class AppointmentSignaturesTest extends GeneratorTestBase {
                 notices,
                 eventRepo,
                 eventRegistrationRepo,
-                signatures);
+                signatures,
+                mock(PartnerSignatures.class));
         stationMemberRepo.grantPermission(
                 manager.id(),
                 stationMemberRepo

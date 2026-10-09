@@ -749,6 +749,7 @@ class SigningStateSealerTest extends RepositoryTestBase {
                 eventRepo,
                 eventRegistrationRepo,
                 mock(AppointmentSignatures.class),
+                mock(PartnerSignatures.class),
                 clock);
     }
 

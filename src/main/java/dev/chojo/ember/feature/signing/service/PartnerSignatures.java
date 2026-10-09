@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.documents.service.DocumentIntake;
 import dev.chojo.ember.feature.documents.service.DocumentService;
 import dev.chojo.ember.feature.events.entity.PartnerAgreementOffer;
 import dev.chojo.ember.feature.events.entity.PartnerDocumentToSign;
+import dev.chojo.ember.feature.events.route.RemoteEventRoutes;
 import dev.chojo.ember.feature.events.service.PartnerAppointmentSignatures;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.service.FederationEntityResolver;
@@ -201,6 +202,52 @@ public class PartnerSignatures implements PartnerAppointmentSignatures, Federati
         if (taken.isEmpty()) throw EventRefusal.AGREEMENT_NOTHING_TO_SIGN.raise();
         log.info("Member {} took on the agreement of appointment {} of a partner", memberUid, eventId);
         return taken;
+    }
+
+    /**
+     * Asks again for an agreement of a partner's appointment that was withdrawn here, the same way a
+     * registration asks for it, so it is among the member's open signatures again. Only for a date still ahead
+     * in this station's zone, and only while the partner still counts the member as registered for it; an
+     * appointment without registrations offers its agreement on its page again instead.
+     *
+     * @param withdrawn the request whose agreement was withdrawn
+     * @return whether it was asked for again
+     */
+    public boolean askAnew(SignatureRequest withdrawn) {
+        var link = links.forRequest(withdrawn.id()).orElse(null);
+        Integer memberId = withdrawn.memberId();
+        if (link == null || memberId == null) return false;
+        int stationId = withdrawn.stationId();
+        if (link.eventDate().isBefore(today(stationId)) || !keepsDocuments(stationId)) return false;
+        var member = members.findById(memberId).filter(found -> !found.former());
+        var partner = activePartner(stationId, link.partnerStationUid());
+        if (member.isEmpty() || partner.isEmpty() || !stillRegistered(partner.get(), link, member.get())) return false;
+        var agreement = agreementsOf(partner.get(), link.remoteEventId(), link.eventDate()).stream()
+                .filter(handedOut -> handedOut.templateId() == link.remoteTemplateId())
+                .findFirst();
+        boolean asked = agreement.isPresent()
+                && askIfNotAsked(
+                        stationId,
+                        partner.get(),
+                        link.remoteEventId(),
+                        link.eventDate(),
+                        member.get(),
+                        agreement.get());
+        if (asked)
+            log.info("Asked member {} again for the withdrawn agreement of request {}", memberId, withdrawn.uid());
+        return asked;
+    }
+
+    private boolean stillRegistered(FederationPartner partner, PartnerSigning link, StationMember member) {
+        String date = link.eventDate().toString();
+        return transport
+                .getList(
+                        partner,
+                        RemoteEventRoutes.LIST_MEMBER_REGISTRATIONS.at(member.uid()),
+                        RemoteEventRoutes.RemoteMemberRegistration.class)
+                .stream()
+                .anyMatch(registration ->
+                        registration.eventId() == link.remoteEventId() && date.equals(registration.eventDate()));
     }
 
     /**

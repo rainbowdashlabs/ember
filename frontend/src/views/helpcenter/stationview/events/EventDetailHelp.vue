@@ -210,6 +210,7 @@ const sampleCancellation: CancellationNotice = {
         <p>{{ t('helpCenter.eventDetail.documentsToBringScanReviewText') }}</p>
         <p>{{ t('helpCenter.eventDetail.documentsReviewActionsText') }}</p>
         <p>{{ t('helpCenter.eventDetail.documentsToBringPartnersText') }}</p>
+        <p>{{ t('helpCenter.eventDetail.documentsToBringPartnersChangesText') }}</p>
         <DocumentsReviewSample class="mt-3"/>
       </HelpSection>
     </HelpPermissionGuard>

@@ -51,7 +51,8 @@ import java.util.UUID;
  * offered again on the appointment's page. Whoever runs the appointment, or whoever asked for the signatures,
  * is told ({@link SignatureNotices}). An agreement signed here for a partner station's appointment reaches its
  * organiser with the sealed version that records the withdrawal, which travels like every sealed state
- * ({@link PartnerDeliveries}).
+ * ({@link PartnerDeliveries}), and is asked for anew here on a date still ahead while the member stays registered
+ * there ({@link PartnerSignatures#askAnew}).
  */
 @Singleton
 public class SignatureWithdrawals {
@@ -69,6 +70,7 @@ public class SignatureWithdrawals {
     private final EventRepository events;
     private final EventRegistrationRepository registrations;
     private final AppointmentSignatures appointments;
+    private final PartnerSignatures partnerSignatures;
     private final Clock clock;
 
     @Inject
@@ -81,7 +83,8 @@ public class SignatureWithdrawals {
             SignatureNotices notices,
             EventRepository events,
             EventRegistrationRepository registrations,
-            AppointmentSignatures appointments) {
+            AppointmentSignatures appointments,
+            PartnerSignatures partnerSignatures) {
         this(
                 requests,
                 requestService,
@@ -92,6 +95,7 @@ public class SignatureWithdrawals {
                 events,
                 registrations,
                 appointments,
+                partnerSignatures,
                 Clock.systemUTC());
     }
 
@@ -108,6 +112,7 @@ public class SignatureWithdrawals {
             EventRepository events,
             EventRegistrationRepository registrations,
             AppointmentSignatures appointments,
+            PartnerSignatures partnerSignatures,
             Clock clock) {
         this.requests = requests;
         this.requestService = requestService;
@@ -118,6 +123,7 @@ public class SignatureWithdrawals {
         this.events = events;
         this.registrations = registrations;
         this.appointments = appointments;
+        this.partnerSignatures = partnerSignatures;
         this.clock = clock;
     }
 
@@ -158,7 +164,7 @@ public class SignatureWithdrawals {
         seal(request);
         var copy = requests.appointmentOf(request.id()).orElse(null);
         if (copy != null) reopen(copy, withdrawal);
-        // TODO ask a partner appointment's agreement anew at home once it was withdrawn here
+        else askPartnerAnew(request);
         var revoked = requests.findById(request.id()).orElse(request);
         notices.withdrawn(revoked, withdrawal, copy == null ? null : copy.eventId());
         return withdrawal;
@@ -207,6 +213,14 @@ public class SignatureWithdrawals {
      * Opens the requirement of an appointment again: flags the standing registration and asks anew on an
      * appointment that takes registrations. One that takes none offers the agreement on its page again.
      */
+    private void askPartnerAnew(SignatureRequest request) {
+        try {
+            partnerSignatures.askAnew(request);
+        } catch (RuntimeException e) {
+            log.warn("Could not ask for the partner's agreement of signing request {} again", request.uid(), e);
+        }
+    }
+
     private void reopen(AppointmentCopy copy, SignatureWithdrawal withdrawal) {
         var event = events.findById(copy.eventId()).orElse(null);
         if (event == null || !event.requiresRegistration()) return;
