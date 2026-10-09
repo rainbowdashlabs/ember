@@ -190,7 +190,8 @@
     "SIGNATURE_REMINDER": "Signature still missing: {documentTitle} - {memberName}",
     "DOCUMENT_SIGNED": "Signed: {documentTitle} - {signerName}",
     "DOCUMENT_SCAN_REJECTED": "Scan declined: {documentName} - {memberName}",
-    "ACCOUNT_LINK_ACCEPTED": "Account linked: {memberName}"
+    "ACCOUNT_LINK_ACCEPTED": "Account linked: {memberName}",
+    "ASSOCIATION_LINK_ACCEPTED": "Role accepted: {personName}"
   },
   "digest": {
     "subject.one": "{stationName}: 1 new notification",
@@ -261,7 +262,8 @@
     "SIGNATURE_REMINDER": "Signature",
     "DOCUMENT_SIGNED": "Signature",
     "DOCUMENT_SCAN_REJECTED": "Documents to Bring",
-    "ACCOUNT_LINK_ACCEPTED": "Account"
+    "ACCOUNT_LINK_ACCEPTED": "Account",
+    "ASSOCIATION_LINK_ACCEPTED": "Account"
   },
   "message": {
     "notification.newNews": "{title} - by {author}",
@@ -344,6 +346,7 @@
     "notification.documentSigned": "{signerName} signed {documentTitle}",
     "notification.documentSigned.FOR_MEMBER": "{signerName} signed {documentTitle} for {memberName}",
     "notification.documentScanRejected": "The scan of {documentName} for {memberName} for {eventName} on {eventDate} was declined: {reason}",
-    "notification.accountLinkAccepted": "{memberName} linked their own account to the member"
+    "notification.accountLinkAccepted": "{memberName} linked their own account to the member",
+    "notification.associationLinkAccepted": "{personName} accepted the role in the association"
   }
 }

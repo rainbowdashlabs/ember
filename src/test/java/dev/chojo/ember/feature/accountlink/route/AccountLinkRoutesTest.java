@@ -58,7 +58,8 @@ class AccountLinkRoutesTest {
     }
 
     private static LinkPrompt prompt() {
-        return new LinkPrompt(REQUEST, "Wache Nord", "Anna", LinkOrigin.INVITE, "Ina", Instant.EPOCH, Instant.EPOCH);
+        return new LinkPrompt(
+                REQUEST, "Wache Nord", "Anna", null, null, LinkOrigin.INVITE, "Ina", Instant.EPOCH, Instant.EPOCH);
     }
 
     private static LinkState waiting() {

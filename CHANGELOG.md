@@ -35,7 +35,7 @@ Stations turn their own templates and those of their association into documents 
 - **A short profile behind every name.** Resting the pointer on a member's name or picture, or tapping the picture on a phone, opens a small card with their picture, guardians, managed members, tags and groups. Mentions in comments open the same card.
 - **A new name waits for approval.** When members change their own name, it only takes effect once someone allowed to confirm member changes approves it under Members → Changes. A declined name can carry a reason, which the member sees in the notification.
 - **Tags only the member management sees.** A tag can be private: only people allowed to view members see it, and the tagged member does not. A private tag labels members but cannot choose an audience, a restriction or who has access to something.
-- **Requests to link an existing account.** When a station adds a member whose email address already has an account, the owner is asked after signing in and, where the installation sends email, by email, and answers under Account → Links. The member page shows whether the request waits, was declined or ran out after 30 days, and a waiting or lapsed request can be sent again a day later.
+- **Requests to link an existing account.** When a station adds a member or an association adds a person whose email address already has an account, the owner is asked after signing in and, where the installation sends email, by email, and answers under Account → Links. The member page and the association's team page show whether a request waits, was declined or ran out after 30 days, and a waiting or lapsed request can be sent again a day later.
 
 ### Improvements
 

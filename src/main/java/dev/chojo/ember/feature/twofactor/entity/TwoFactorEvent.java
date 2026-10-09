@@ -47,5 +47,10 @@ public enum TwoFactorEvent {
      * The account's owner accepted a station's request to link the account to one of its members. The
      * row names that station; the owner acted, so it names no actor.
      */
-    ACCOUNT_LINK_ACCEPTED
+    ACCOUNT_LINK_ACCEPTED,
+    /**
+     * The account's owner accepted an association's request to take a role there. The owner acted, so
+     * the row names no actor, and no station either.
+     */
+    ASSOCIATION_LINK_ACCEPTED
 }

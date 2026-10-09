@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:ace9285ced56f419b57330a899653aee3e45adbe2aeb42ee31d7e54fb75a028e",
-  "generatedAt": "2026-10-09T00:50:39Z",
+  "schemaHash": "sha256:cbe16ce1bc35c33dc6fedb5ad987e9b761a91ac96ee87b50e77638bdbb7b3005",
+  "generatedAt": "2026-10-09T00:59:14Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -837,7 +837,7 @@
     "account_link_request": {
       "feature": "accountlink",
       "scope": "STATION",
-      "tableHash": "sha256:63e68cdc334e314678e9805544acddb082a3f61a2c38d1f69e5f47087a6d6229",
+      "tableHash": "sha256:e762cbc8b5ff73281d2c4df0c61bf85f01b44e825f4a0bba177eaf253954cc18",
       "columns": [
         {
           "name": "id",
@@ -856,16 +856,16 @@
         {
           "name": "station_id",
           "type": "int4",
-          "nullable": false,
+          "nullable": true,
           "verified": true,
-          "description": "The station that asks."
+          "description": "The station that asks. NULL for a request of an association."
         },
         {
           "name": "station_member_id",
           "type": "int4",
-          "nullable": false,
+          "nullable": true,
           "verified": true,
-          "description": "The member the account would be linked to. The member exists without an account while the request waits."
+          "description": "The member the account would be linked to. The member exists without an account while the request waits. NULL for a request of an association."
         },
         {
           "name": "account_id",
@@ -879,7 +879,7 @@
           "type": "text",
           "nullable": false,
           "verified": true,
-          "description": "How the station came to ask: IMPORT when a station import found the account by its address, INVITE when a member manager invited that address."
+          "description": "How the request came about: IMPORT when a station import found the account by its address, INVITE when a member manager of a station invited that address, ASSOCIATION_INVITE when an association administrator added that address to the association."
         },
         {
           "name": "created_at",
@@ -929,12 +929,39 @@
           "nullable": true,
           "verified": true,
           "description": "ACCEPTED when the person linked their account to the member, DECLINED when they refused, EXPIRED when thirty days passed without an answer. NULL while it waits."
+        },
+        {
+          "name": "cluster_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The association that asks the account to take a role. NULL for a request of a station."
+        },
+        {
+          "name": "user_type",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "The role the association offers: CLUSTER_USER or CLUSTER_ADMIN. Accepting makes the account a member of the association with it. NULL for a request of a station."
+        },
+        {
+          "name": "address",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "The address the association typed, which is how its member page names the request. Kept as typed so a later change of the account's own address never reaches the association. NULL for a request of a station."
         }
       ],
       "foreignKeys": [
         {
           "column": "account_id",
           "refTable": "account",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "cluster_id",
+          "refTable": "cluster",
           "refColumn": "id",
           "onDelete": "CASCADE"
         },
@@ -959,7 +986,7 @@
       ],
       "stationTransfer": {
         "status": "IGNORED",
-        "reason": "A request names an account of this installation, which the destination does not have. An import that finds an account there by its address asks anew on the destination."
+        "reason": "A request names an account of this installation, which the destination does not have. An import that finds an account there by its address asks anew on the destination. An association's request belongs to no station and stays where it is."
       },
       "gdprExport": {
         "status": "TRACKED",
@@ -998,7 +1025,7 @@
           }
         ]
       },
-      "description": "A station asking a person to link their existing account to one of its members. An import that found the account by its address and an invite naming that address both leave the member without an account and ask here instead; only the person signed in to that account can accept. The answered rows stay as the record of what was asked and answered."
+      "description": "A station or an association asking a person to take an existing account in. A station asks to link the account to one of its members: an import that found the account by its address and an invite naming that address both leave the member without an account and ask here instead. An association asks the account to take a role there: adding an address that already has an account asks here instead of making the membership. Only the person signed in to that account can accept. The answered rows stay as the record of what was asked and answered."
     },
     "account_session": {
       "feature": "account",

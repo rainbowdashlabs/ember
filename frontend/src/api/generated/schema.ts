@@ -15986,6 +15986,107 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/cluster/link-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The association's requests that wait, were declined or ran out */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AssociationLinkState"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cluster/link-requests/{uid}/send-again": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send one of the association's requests again */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    uid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AssociationLinkState"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Too Many Requests */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/cluster/look-and-feel": {
         parameters: {
             query?: never;
@@ -16238,8 +16339,26 @@ export interface paths {
                         "application/json": components["schemas"]["ClusterMemberResponse"];
                     };
                 };
+                /** @description Accepted */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AssociationLinkState"];
+                    };
+                };
                 /** @description Bad Request */
                 400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -60469,6 +60588,17 @@ export interface components {
             memberId?: number | null;
             memberName?: string | null;
         };
+        AssociationLinkState: {
+            address: string;
+            answeredAt: components["schemas"]["Instant"] | null;
+            expiresAt: components["schemas"]["Instant"];
+            role: components["schemas"]["ClusterUserType"];
+            sendAgainFrom: components["schemas"]["Instant"] | null;
+            sentAt: components["schemas"]["Instant"];
+            status: components["schemas"]["LinkStatus"];
+            /** Format: uuid */
+            uid: string;
+        };
         AssociationRole: {
             association: string;
             role: components["schemas"]["ClusterUserType"];
@@ -65265,14 +65395,16 @@ export interface components {
             name?: string;
         };
         /** @enum {string} */
-        LinkOrigin: "IMPORT" | "INVITE";
+        LinkOrigin: "IMPORT" | "INVITE" | "ASSOCIATION_INVITE";
         LinkPrompt: {
+            associationName: string | null;
             createdAt: components["schemas"]["Instant"];
             expiresAt: components["schemas"]["Instant"];
             invitedBy: string | null;
-            memberName: string;
+            memberName: string | null;
             origin: components["schemas"]["LinkOrigin"];
-            stationName: string;
+            role: components["schemas"]["ClusterUserType"] | null;
+            stationName: string | null;
             /** Format: uuid */
             uid: string;
         };
@@ -66712,7 +66844,7 @@ export interface components {
             feed: boolean;
         };
         /** @enum {string} */
-        NotificationType: "NEW_NEWS" | "NEWS_COMMENT" | "COMMENT_MENTION" | "EVENT_REGISTRATION_STATUS" | "MOVEMENT_ADVANCED" | "MOVEMENT_RAISED" | "MOVEMENT_DECLINED" | "MOVEMENT_CANCELLED" | "NEW_EVENT" | "NEW_EVENTS_BATCH" | "MEMBER_ADDED_TO_GROUP" | "PROFILE_FIELD_CHANGED" | "PROCUREMENT_REQUESTED" | "PROCUREMENT_FULFILLED" | "NEW_FORM" | "LOST_AND_FOUND_NEW" | "LOST_AND_FOUND_CLAIMED" | "WAITLIST_NEW_ENTRY" | "LENDING_NEW_REQUEST" | "LENDING_STATUS_CHANGE" | "LENDING_NEW_MESSAGE" | "BOARD_TICKET_UPDATE" | "REGISTRATION_DEADLINE_EXPIRED" | "EVENT_CANCELLED" | "EVENT_REMINDER" | "REGISTRATION_CLOSING" | "REGISTRATION_ANSWER_MISSING" | "EVENT_DATE_DROPPED" | "EVENT_MOVED" | "EVENT_DATE_RESTORED" | "PROCEDURE_ASSIGNED" | "PROCEDURE_RESOLVED" | "PROCEDURE_REOPENED" | "PROCEDURE_ITEM_CHECKED" | "SELF_CHECK_ASSIGNED" | "SELF_CHECK_SUBMITTED" | "SELF_CHECK_ROW_REFUSED" | "WAITLIST_PUBLIC_REGISTRATION" | "WAITLIST_INVITATION_ANSWERED" | "STORAGE_WARNING" | "MAILBOX_SUSPENDED" | "MAIL_IMPORT_UNBOUND" | "CLUSTER_APPLICATION_SUBMITTED" | "CLUSTER_APPLICATION_APPROVED" | "CLUSTER_APPLICATION_DENIED" | "CLUSTER_APPLICATION_WITHDRAWN" | "CLUSTER_STATION_RELEASED" | "CLUSTER_MODULE_DENIED" | "CLUSTER_ITEM_ISSUED" | "CLUSTER_ITEM_LOST" | "CLUSTER_QUOTA_CHANGED" | "CLUSTER_MEMBER_ROLE_CHANGED" | "CLUSTER_FIELD_VALUE_CHANGED" | "EXPIRY_REMINDER" | "FEDERATION_REQUEST_RECEIVED" | "FEDERATION_REQUEST_ACCEPTED" | "FEDERATION_REQUEST_DECLINED" | "NAME_CHANGE_REQUESTED" | "NAME_CHANGE_APPROVED" | "NAME_CHANGE_DENIED" | "SIGNATURE_REQUESTED" | "SIGNATURE_REMINDER" | "DOCUMENT_SIGNED" | "DOCUMENT_SCAN_REJECTED" | "ACCOUNT_LINK_ACCEPTED";
+        NotificationType: "NEW_NEWS" | "NEWS_COMMENT" | "COMMENT_MENTION" | "EVENT_REGISTRATION_STATUS" | "MOVEMENT_ADVANCED" | "MOVEMENT_RAISED" | "MOVEMENT_DECLINED" | "MOVEMENT_CANCELLED" | "NEW_EVENT" | "NEW_EVENTS_BATCH" | "MEMBER_ADDED_TO_GROUP" | "PROFILE_FIELD_CHANGED" | "PROCUREMENT_REQUESTED" | "PROCUREMENT_FULFILLED" | "NEW_FORM" | "LOST_AND_FOUND_NEW" | "LOST_AND_FOUND_CLAIMED" | "WAITLIST_NEW_ENTRY" | "LENDING_NEW_REQUEST" | "LENDING_STATUS_CHANGE" | "LENDING_NEW_MESSAGE" | "BOARD_TICKET_UPDATE" | "REGISTRATION_DEADLINE_EXPIRED" | "EVENT_CANCELLED" | "EVENT_REMINDER" | "REGISTRATION_CLOSING" | "REGISTRATION_ANSWER_MISSING" | "EVENT_DATE_DROPPED" | "EVENT_MOVED" | "EVENT_DATE_RESTORED" | "PROCEDURE_ASSIGNED" | "PROCEDURE_RESOLVED" | "PROCEDURE_REOPENED" | "PROCEDURE_ITEM_CHECKED" | "SELF_CHECK_ASSIGNED" | "SELF_CHECK_SUBMITTED" | "SELF_CHECK_ROW_REFUSED" | "WAITLIST_PUBLIC_REGISTRATION" | "WAITLIST_INVITATION_ANSWERED" | "STORAGE_WARNING" | "MAILBOX_SUSPENDED" | "MAIL_IMPORT_UNBOUND" | "CLUSTER_APPLICATION_SUBMITTED" | "CLUSTER_APPLICATION_APPROVED" | "CLUSTER_APPLICATION_DENIED" | "CLUSTER_APPLICATION_WITHDRAWN" | "CLUSTER_STATION_RELEASED" | "CLUSTER_MODULE_DENIED" | "CLUSTER_ITEM_ISSUED" | "CLUSTER_ITEM_LOST" | "CLUSTER_QUOTA_CHANGED" | "CLUSTER_MEMBER_ROLE_CHANGED" | "CLUSTER_FIELD_VALUE_CHANGED" | "EXPIRY_REMINDER" | "FEDERATION_REQUEST_RECEIVED" | "FEDERATION_REQUEST_ACCEPTED" | "FEDERATION_REQUEST_DECLINED" | "NAME_CHANGE_REQUESTED" | "NAME_CHANGE_APPROVED" | "NAME_CHANGE_DENIED" | "SIGNATURE_REQUESTED" | "SIGNATURE_REMINDER" | "DOCUMENT_SIGNED" | "DOCUMENT_SCAN_REJECTED" | "ACCOUNT_LINK_ACCEPTED" | "ASSOCIATION_LINK_ACCEPTED";
         NumberConfig: {
             /**
              * @description discriminator enum property added by openapi-typescript
@@ -71050,7 +71182,7 @@ export interface components {
             trustedDeviceMaxDays: number;
         };
         /** @enum {string} */
-        TwoFactorEvent: "ENROLLED" | "REMOVED" | "LOGIN_VERIFIED" | "STEPUP_VERIFIED" | "BACKUP_CODE_USED" | "BACKUP_CODE_REGENERATED" | "ADMIN_RESET" | "TRUSTED_DEVICE_ADDED" | "TRUSTED_DEVICE_REVOKED" | "POLICY_CHANGED" | "PASSKEY_SIGN_IN" | "PASSKEY_ENROLLED_VIA_DEVICE_CODE" | "PASSKEY_CODE_ISSUED" | "PASSWORD_LOGIN_DISABLED" | "PASSWORD_LOGIN_ENABLED" | "PASSWORD_RETIRED" | "STEPUP_FAILED" | "SIGNED_IN_VIA_DEVICE_CODE" | "STEPUP_VIA_DEVICE_CODE" | "DEVICE_REQUEST_APPROVED" | "ONE_TIME_PASSWORD_ISSUED" | "ACCOUNT_LINK_ACCEPTED";
+        TwoFactorEvent: "ENROLLED" | "REMOVED" | "LOGIN_VERIFIED" | "STEPUP_VERIFIED" | "BACKUP_CODE_USED" | "BACKUP_CODE_REGENERATED" | "ADMIN_RESET" | "TRUSTED_DEVICE_ADDED" | "TRUSTED_DEVICE_REVOKED" | "POLICY_CHANGED" | "PASSKEY_SIGN_IN" | "PASSKEY_ENROLLED_VIA_DEVICE_CODE" | "PASSKEY_CODE_ISSUED" | "PASSWORD_LOGIN_DISABLED" | "PASSWORD_LOGIN_ENABLED" | "PASSWORD_RETIRED" | "STEPUP_FAILED" | "SIGNED_IN_VIA_DEVICE_CODE" | "STEPUP_VIA_DEVICE_CODE" | "DEVICE_REQUEST_APPROVED" | "ONE_TIME_PASSWORD_ISSUED" | "ACCOUNT_LINK_ACCEPTED" | "ASSOCIATION_LINK_ACCEPTED";
         /** @enum {string} */
         TwoFactorKind: "TOTP" | "WEBAUTHN" | "BACKUP_CODES";
         TwoFactorPolicyEntry: {
@@ -71659,6 +71791,7 @@ export type AssignItemRequest = components['schemas']['AssignItemRequest'];
 export type AssignItemsRequest = components['schemas']['AssignItemsRequest'];
 export type AssignmentRequest = components['schemas']['AssignmentRequest'];
 export type AssignRequest = components['schemas']['AssignRequest'];
+export type AssociationLinkState = components['schemas']['AssociationLinkState'];
 export type AssociationRole = components['schemas']['AssociationRole'];
 export type AttachmentOrderRequest = components['schemas']['AttachmentOrderRequest'];
 export type AttachmentRequest = components['schemas']['AttachmentRequest'];
@@ -73778,6 +73911,7 @@ export const LetterPart = {
 } as const;
 
 export const LinkOrigin = {
+    ASSOCIATION_INVITE: "ASSOCIATION_INVITE",
     IMPORT: "IMPORT",
     INVITE: "INVITE",
 } as const;
@@ -73948,6 +74082,7 @@ export const NoteEntityType = {
 
 export const NotificationType = {
     ACCOUNT_LINK_ACCEPTED: "ACCOUNT_LINK_ACCEPTED",
+    ASSOCIATION_LINK_ACCEPTED: "ASSOCIATION_LINK_ACCEPTED",
     BOARD_TICKET_UPDATE: "BOARD_TICKET_UPDATE",
     CLUSTER_APPLICATION_APPROVED: "CLUSTER_APPLICATION_APPROVED",
     CLUSTER_APPLICATION_DENIED: "CLUSTER_APPLICATION_DENIED",
@@ -74690,6 +74825,7 @@ export const TrialOutcome = {
 export const TwoFactorEvent = {
     ACCOUNT_LINK_ACCEPTED: "ACCOUNT_LINK_ACCEPTED",
     ADMIN_RESET: "ADMIN_RESET",
+    ASSOCIATION_LINK_ACCEPTED: "ASSOCIATION_LINK_ACCEPTED",
     BACKUP_CODE_REGENERATED: "BACKUP_CODE_REGENERATED",
     BACKUP_CODE_USED: "BACKUP_CODE_USED",
     DEVICE_REQUEST_APPROVED: "DEVICE_REQUEST_APPROVED",

@@ -11,7 +11,7 @@ import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import BulletList from '@/components/typography/BulletList.vue'
 import LinkRequestCard from '@/components/accountlink/LinkRequestCard.vue'
 import MemberLinkBadge from '@/components/accountlink/MemberLinkBadge.vue'
-import {LinkOrigin, LinkStatus, type LinkPrompt} from '@/api/generated/schema'
+import {ClusterUserType, LinkOrigin, LinkStatus, type LinkPrompt} from '@/api/generated/schema'
 
 const {t} = useI18n()
 
@@ -21,6 +21,20 @@ const EXAMPLE: LinkPrompt = {
   memberName: t('helpCenter.basics.accountLinks.exampleMember'),
   origin: LinkOrigin.INVITE,
   invitedBy: t('helpCenter.basics.accountLinks.exampleInviter'),
+  associationName: null,
+  role: null,
+  createdAt: '2026-10-08T09:00:00Z',
+  expiresAt: '2026-11-07T09:00:00Z',
+}
+
+const ASSOCIATION_EXAMPLE: LinkPrompt = {
+  uid: '00000000-0000-0000-0000-000000000002',
+  stationName: null,
+  memberName: null,
+  associationName: t('helpCenter.basics.accountLinks.exampleAssociation'),
+  role: ClusterUserType.CLUSTER_ADMIN,
+  origin: LinkOrigin.ASSOCIATION_INVITE,
+  invitedBy: null,
   createdAt: '2026-10-08T09:00:00Z',
   expiresAt: '2026-11-07T09:00:00Z',
 }
@@ -56,6 +70,11 @@ const EXAMPLE: LinkPrompt = {
         <MemberLinkBadge :status="LinkStatus.DECLINED"/>
         <MemberLinkBadge :status="LinkStatus.EXPIRED"/>
       </div>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.basics.accountLinks.associationTitle')">
+      <p>{{ t('helpCenter.basics.accountLinks.associationText') }}</p>
+      <LinkRequestCard :prompt="ASSOCIATION_EXAMPLE" :busy="false"/>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.basics.accountLinks.sharedTitle')">

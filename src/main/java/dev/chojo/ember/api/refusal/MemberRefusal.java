@@ -836,7 +836,13 @@ public enum MemberRefusal implements Refusal {
     ACCOUNT_NOT_CONFIRMED_YET(
             225,
             HttpStatus.FORBIDDEN,
-            "The person has not confirmed that account yet, so its address and how it signs in stay as they are until they set it up themselves");
+            "The person has not confirmed that account yet, so its address and how it signs in stay as they are until they set it up themselves"),
+
+    /** An association's request accepted by an account that already holds a role in that association. */
+    LINK_ACCOUNT_ALREADY_IN_ASSOCIATION(
+            240,
+            HttpStatus.CONFLICT,
+            "Your account already holds a role in that association, so it was not given a second one");
 
     private final Definition definition;
 

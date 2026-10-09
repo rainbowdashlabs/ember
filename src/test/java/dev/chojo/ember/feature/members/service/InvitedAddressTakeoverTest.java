@@ -133,7 +133,8 @@ class InvitedAddressTakeoverTest extends RepositoryTestBase {
                 mock(MemberNameResolver.class),
                 new TwoFactorAuditService(twoFactorRepo),
                 mock(Notifier.class),
-                TokenHasher.forTesting(TestAccountLinks.PEPPER));
+                TokenHasher.forTesting(TestAccountLinks.PEPPER),
+                TestAccountLinks.associationAnswers(accountRepo, clusterRepo, twoFactorRepo, mock(Notifier.class)));
         var request = new AccountLinkRepository()
                 .findUnansweredForMember(invited.memberId())
                 .orElseThrow();

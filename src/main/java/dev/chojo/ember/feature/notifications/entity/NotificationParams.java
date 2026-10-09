@@ -346,6 +346,13 @@ public sealed interface NotificationParams {
     record AccountLinkAccepted(String memberName) implements NotificationParams {}
 
     /**
+     * A person accepted the association's request and took the role it offered.
+     *
+     * @param personName the name of the account that took the role
+     */
+    record AssociationLinkAccepted(String personName) implements NotificationParams {}
+
+    /**
      * The name a member asked for was approved and is theirs now.
      *
      * @param newName the name the account carries from now on

@@ -96,6 +96,15 @@ public final class NotificationLinks {
     }
 
     /**
+     * The association's own people, the ones who act for it, with the requests it sent.
+     *
+     * @return the link the news about its own people carries
+     */
+    public static NotificationLink clusterTeam() {
+        return new NotificationLink("cluster-team", Map.of());
+    }
+
+    /**
      * The page of one lending request between two stations, for whichever side is told.
      *
      * @param requestId the lending request

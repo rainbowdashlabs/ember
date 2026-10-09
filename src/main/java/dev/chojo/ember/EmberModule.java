@@ -50,6 +50,7 @@ import dev.chojo.ember.feature.account.route.AvatarRoutes;
 import dev.chojo.ember.feature.account.route.SessionRoutes;
 import dev.chojo.ember.feature.account.service.AuthCleanupSweeper;
 import dev.chojo.ember.feature.accountlink.route.AccountLinkRoutes;
+import dev.chojo.ember.feature.accountlink.route.AssociationLinkRoutes;
 import dev.chojo.ember.feature.accountlink.route.MemberLinkRoutes;
 import dev.chojo.ember.feature.accountlink.service.AccountLinkSweeper;
 import dev.chojo.ember.feature.attendance.handler.EventAnswerRecordedHandler;
@@ -468,6 +469,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(NameChangeRoutes.class);
         routesBinder.addBinding().to(AccountLinkRoutes.class);
         routesBinder.addBinding().to(MemberLinkRoutes.class);
+        routesBinder.addBinding().to(AssociationLinkRoutes.class);
         routesBinder.addBinding().to(SessionRoutes.class);
         routesBinder.addBinding().to(AccountSessionRoutes.class);
         routesBinder.addBinding().to(AvatarRoutes.class);

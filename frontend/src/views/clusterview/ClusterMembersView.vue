@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {computed, ref} from 'vue'
+import {computed, onMounted, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
@@ -17,12 +17,14 @@ import DeleteButton from '@/components/button/DeleteButton.vue'
 import RosterPanel from './clustermembersview/RosterPanel.vue'
 import AddMemberModal from './clustermembersview/AddMemberModal.vue'
 import MemberEditor from './clustermembersview/MemberEditor.vue'
-import {clusterMembers} from '@/api'
-import {ClusterUserType, type ClusterMemberResponse} from '@/api/generated/schema'
+import LinkRequestsPanel from './clustermembersview/LinkRequestsPanel.vue'
+import {accountLinks, clusterMembers} from '@/api'
+import {ClusterUserType, type AssociationLinkState, type ClusterMemberResponse} from '@/api/generated/schema'
 import {ClusterPermission} from '@/api/clusters'
 import {useConfigPanel} from '@/composables/useConfigPanel'
 import {useSession} from '@/composables/useSession'
 import {apiErrorBody} from '@/util/apiError'
+import {showToast} from '@/util/toast'
 
 const {t} = useI18n()
 const {hasClusterPermission} = useSession()
@@ -52,7 +54,12 @@ const selected = computed(() => members.value.find(m => m.id === selectedId.valu
 async function add(email: string, userType: string, firstName: string, lastName: string) {
   await runWith(async () => {
     try {
-      await clusterMembers.addMember(email, userType, firstName && lastName ? {firstName, lastName} : undefined)
+      const addition = await clusterMembers.addMember(
+          email, userType, firstName && lastName ? {firstName, lastName} : undefined)
+      if (addition.kind === 'asked') {
+        showToast(t('clusterMembers.asked'), 'info')
+        await loadRequests()
+      }
     } catch (e: unknown) {
       if (apiErrorBody(e)?.error === clusterMembers.ACCOUNT_NAME_REQUIRED) {
         needsName.value = true
@@ -65,6 +72,15 @@ async function add(email: string, userType: string, firstName: string, lastName:
     return clusterMembers.listMembers()
   }, {busy})
 }
+
+/** The requests to addresses with an account, which are not members until the person accepts. */
+const requests = ref<AssociationLinkState[]>([])
+
+async function loadRequests() {
+  requests.value = await accountLinks.associationRequests().catch(() => [])
+}
+
+onMounted(loadRequests)
 
 async function remove(memberId: number) {
   await runWith(async () => {
@@ -90,6 +106,8 @@ async function changeUserType(memberId: number, userType: string) {
   <ViewContent :subtitle="t('pages.cluster-members.subtitle')" :title="t('pages.cluster-members.title')">
     <div class="space-y-6">
       <FailureAlert :failure="failure"/>
+      <LinkRequestsPanel :requests="requests" :editable="editable" @changed="loadRequests"/>
+
       <Spinner v-if="loading" size="lg"/>
 
       <div v-else class="grid gap-6 lg:grid-cols-2">

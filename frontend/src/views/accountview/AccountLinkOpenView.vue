@@ -12,6 +12,7 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import LinkRequestCard from '@/components/accountlink/LinkRequestCard.vue'
+import {answeredKey, askerOf} from '@/components/accountlink/linkPromptText'
 import {accountLinks} from '@/api'
 import type {LinkPrompt} from '@/api/generated/schema'
 import {useLinkRequests} from '@/composables/useLinkRequests'
@@ -37,8 +38,8 @@ const {loading, failure} = useAsyncLoader(async () => {
   prompt.value = await accountLinks.openedRequest(String(route.params.token))
 })
 
-/** The station that asks, once the request has arrived; the plain wording stands until then. */
-const pageTitle = computed(() => prompt.value?.stationName ?? t('pages.account-link-open.title'))
+/** The station or association that asks, once the request has arrived; the plain wording stands until then. */
+const pageTitle = computed(() => (prompt.value && askerOf(prompt.value)) || t('pages.account-link-open.title'))
 
 async function answer(accepting: boolean) {
   const opened = prompt.value
@@ -48,10 +49,10 @@ async function answer(accepting: boolean) {
   try {
     if (accepting) {
       await links.accept(opened.uid)
-      showToast(t('accountLinks.accepted'), 'success')
+      showToast(t(answeredKey(opened, true)), 'success')
     } else {
       await links.decline(opened.uid)
-      showToast(t('accountLinks.declined'), 'info')
+      showToast(t(answeredKey(opened, false)), 'info')
     }
     await router.push({name: 'account-links'})
   } catch (e) {

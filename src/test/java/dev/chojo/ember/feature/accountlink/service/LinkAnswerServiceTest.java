@@ -95,7 +95,14 @@ class LinkAnswerServiceTest extends RepositoryTestBase {
         var names = mock(MemberNameResolver.class);
         when(names.official(any(Integer.class))).thenReturn("Anna Owner");
         return new LinkAnswerService(
-                links, stationMemberRepo, names, new TwoFactorAuditService(twoFactorRepo), notifier, HASHER, clock);
+                links,
+                stationMemberRepo,
+                names,
+                new TwoFactorAuditService(twoFactorRepo),
+                notifier,
+                HASHER,
+                TestAccountLinks.associationAnswers(accountRepo, clusterRepo, twoFactorRepo, notifier),
+                clock);
     }
 
     private static void assertNotOpen(Executable call) {

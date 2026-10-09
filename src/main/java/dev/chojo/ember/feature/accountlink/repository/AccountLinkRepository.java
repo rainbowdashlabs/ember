@@ -81,7 +81,8 @@ public class AccountLinkRepository {
      */
     public List<LinkPrompt> findWaitingForAccount(int accountId, Instant now) {
         return query("""
-                SELECT r.uid, s.name AS station_name, %s AS member_name, r.origin,
+                SELECT r.uid, s.name AS station_name, %s AS member_name,
+                       NULL::text AS association_name, NULL::text AS user_type, r.origin,
                        %s AS invited_by, r.created_at, r.expires_at
                 FROM account_link_request r
                 JOIN station s ON s.id = r.station_id
@@ -99,26 +100,31 @@ public class AccountLinkRepository {
     }
 
     /**
-     * A request by the uid the person's screens name it by, whatever it stands.
+     * A station's request by the uid the person's screens name it by, whatever it stands.
      *
      * @param uid the request
-     * @return the request, or empty where none carries the uid
+     * @return the request, or empty where no station's request carries the uid
      */
     public Optional<AccountLinkRequest> findByUid(UUID uid) {
-        return query("SELECT %s FROM account_link_request WHERE uid = :uid::uuid;", AccountLinkRequest.COLUMNS)
+        return query("""
+                SELECT %s FROM account_link_request
+                WHERE uid = :uid::uuid AND station_member_id IS NOT NULL;""", AccountLinkRequest.COLUMNS)
                 .single(call().bind("uid", uid, StandardValueConverter.UUID_STRING))
                 .map(AccountLinkRequest.map())
                 .first();
     }
 
     /**
-     * The request a mailed link carries the token of. Answered requests carry no token any more.
+     * The station's request a mailed link carries the token of. Answered requests carry no token any
+     * more.
      *
      * @param tokenHash the hash of the token
-     * @return the request, or empty where no unanswered request carries it
+     * @return the request, or empty where no unanswered request of a station carries it
      */
     public Optional<AccountLinkRequest> findByTokenHash(String tokenHash) {
-        return query("SELECT %s FROM account_link_request WHERE token_hash = :token_hash;", AccountLinkRequest.COLUMNS)
+        return query("""
+                SELECT %s FROM account_link_request
+                WHERE token_hash = :token_hash AND station_member_id IS NOT NULL;""", AccountLinkRequest.COLUMNS)
                 .single(call().bind("token_hash", tokenHash))
                 .map(AccountLinkRequest.map())
                 .first();

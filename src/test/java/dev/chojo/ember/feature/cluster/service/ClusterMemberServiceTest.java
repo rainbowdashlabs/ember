@@ -14,6 +14,8 @@ import dev.chojo.ember.event.events.ClusterMemberRoleChanged;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.service.AccountInviteService;
 import dev.chojo.ember.feature.account.service.AccountNameRequiredException;
+import dev.chojo.ember.feature.accountlink.entity.LinkStatus;
+import dev.chojo.ember.feature.accountlink.service.AssociationLinkService;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -27,6 +29,7 @@ import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -59,8 +62,7 @@ class ClusterMemberServiceTest extends RepositoryTestBase {
     /**
      * The association is the one body that could not take on somebody Ember had never seen, on the
      * reasoning that a cluster member is an account and not a station member. That was true of the
-     * membership and never a reason to refuse the account. An address that is already an account behaves
-     * as it always did, with no name asked for.
+     * membership and never a reason to refuse the account.
      */
     @Test
     void anAddressNobodyHasYetIsRefusedUntilANameComesWithIt() {
@@ -74,13 +76,33 @@ class ClusterMemberServiceTest extends RepositoryTestBase {
         assertTrue(refused.getMessage().contains("first and last name"));
         assertTrue(accountRepo.findByEmail(address).isEmpty(), "and nothing was made in the meantime");
 
-        var member = service.addByEmail(clusterId, address, ClusterUserType.CLUSTER_USER, "Erika", "Neu" + n);
+        var added = service.addByEmail(clusterId, address, ClusterUserType.CLUSTER_USER, "Erika", "Neu" + n);
         assertTrue(accountRepo.findByEmail(address).isPresent(), "the account exists afterwards");
+        var member = assertInstanceOf(ClusterMemberService.Added.class, added).member();
         assertEquals(ClusterUserType.CLUSTER_USER, member.userType());
+    }
 
+    /**
+     * An address that already has an account belongs to a person who has not agreed to act for the
+     * association. They are asked, and until they accept the association has no member for the account.
+     */
+    @Test
+    void anAddressWithAnAccountIsAskedInsteadOfTakenOn() {
+        int clusterId = freshCluster();
         var known = freshAccount();
-        var second = service.addByEmail(clusterId, known.email(), ClusterUserType.CLUSTER_ADMIN, null, null);
-        assertEquals(known.id(), second.accountId());
+
+        var added = service.addByEmail(clusterId, known.email(), ClusterUserType.CLUSTER_ADMIN, null, null);
+
+        var request = assertInstanceOf(ClusterMemberService.Asked.class, added).request();
+        assertEquals(LinkStatus.WAITING, request.status());
+        assertEquals(ClusterUserType.CLUSTER_ADMIN, request.role());
+        assertEquals(known.email(), request.address());
+        assertTrue(clusterRepo.findMember(clusterId, known.id()).isEmpty(), "no membership before the answer");
+
+        var again = assertThrows(
+                RefusalResponse.class,
+                () -> service.addByEmail(clusterId, known.email(), ClusterUserType.CLUSTER_USER, null, null));
+        assertEquals(ClusterRefusal.CLUSTER_LINK_ALREADY_WAITING, again.refusal());
     }
 
     @Test
@@ -228,7 +250,12 @@ class ClusterMemberServiceTest extends RepositoryTestBase {
         int clusterId = freshCluster();
         var bus = mock(DomainEventBus.class);
         var watched = new ClusterMemberService(
-                clusterRepo, clusterService, accountRepo, mock(AccountInviteService.class), bus);
+                clusterRepo,
+                clusterService,
+                accountRepo,
+                mock(AccountInviteService.class),
+                mock(AssociationLinkService.class),
+                bus);
         var first = clusterService.addMember(clusterId, freshAccount().id(), ClusterUserType.CLUSTER_USER);
         var second = clusterService.addMember(clusterId, freshAccount().id(), ClusterUserType.CLUSTER_USER);
         var group = service.createGroup(clusterId, "Aufgelöst");

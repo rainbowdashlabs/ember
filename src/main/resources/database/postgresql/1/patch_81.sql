@@ -2013,3 +2013,49 @@ COMMENT ON CONSTRAINT partner_signing_request_station ON ember_schema.partner_si
     'A row goes with its station. Checked at commit, because deleting a station also empties the partnership column of a row it is about to delete.';
 COMMENT ON CONSTRAINT partner_signing_request_request ON ember_schema.partner_signing_request IS
     'A row goes with its signing request, which the retention sweep deletes. Checked at commit for the same reason as partner_signing_request_station.';
+
+ALTER TABLE ember_schema.account_link_request
+    ALTER COLUMN station_id DROP NOT NULL,
+    ALTER COLUMN station_member_id DROP NOT NULL,
+    ADD COLUMN cluster_id INTEGER NULL REFERENCES ember_schema.cluster (id) ON DELETE CASCADE,
+    ADD COLUMN user_type  TEXT    NULL CHECK (user_type IN ('CLUSTER_USER', 'CLUSTER_ADMIN')),
+    ADD COLUMN address    TEXT    NULL,
+    DROP CONSTRAINT IF EXISTS account_link_request_origin_check,
+    ADD CONSTRAINT account_link_request_origin_check
+        CHECK (origin IN ('IMPORT', 'INVITE', 'ASSOCIATION_INVITE')),
+    ADD CONSTRAINT account_link_request_owner CHECK (
+        (station_id IS NOT NULL AND station_member_id IS NOT NULL
+            AND cluster_id IS NULL AND user_type IS NULL AND address IS NULL
+            AND origin IN ('IMPORT', 'INVITE'))
+        OR
+        (station_id IS NULL AND station_member_id IS NULL AND created_by IS NULL
+            AND cluster_id IS NOT NULL AND user_type IS NOT NULL AND address IS NOT NULL
+            AND origin = 'ASSOCIATION_INVITE'));
+
+CREATE UNIQUE INDEX IF NOT EXISTS account_link_request_cluster_open_idx
+    ON ember_schema.account_link_request (cluster_id, account_id)
+    WHERE answer IS NULL AND cluster_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS account_link_request_cluster_idx
+    ON ember_schema.account_link_request (cluster_id)
+    WHERE cluster_id IS NOT NULL;
+
+COMMENT ON TABLE ember_schema.account_link_request IS
+    'A station or an association asking a person to take an existing account in. A station asks to link the account to one of its members: an import that found the account by its address and an invite naming that address both leave the member without an account and ask here instead. An association asks the account to take a role there: adding an address that already has an account asks here instead of making the membership. Only the person signed in to that account can accept. The answered rows stay as the record of what was asked and answered.';
+COMMENT ON COLUMN ember_schema.account_link_request.station_id IS
+    'The station that asks. NULL for a request of an association.';
+COMMENT ON COLUMN ember_schema.account_link_request.station_member_id IS
+    'The member the account would be linked to. The member exists without an account while the request waits. NULL for a request of an association.';
+COMMENT ON COLUMN ember_schema.account_link_request.cluster_id IS
+    'The association that asks the account to take a role. NULL for a request of a station.';
+COMMENT ON COLUMN ember_schema.account_link_request.user_type IS
+    'The role the association offers: CLUSTER_USER or CLUSTER_ADMIN. Accepting makes the account a member of the association with it. NULL for a request of a station.';
+COMMENT ON COLUMN ember_schema.account_link_request.address IS
+    'The address the association typed, which is how its member page names the request. Kept as typed so a later change of the account''s own address never reaches the association. NULL for a request of a station.';
+COMMENT ON COLUMN ember_schema.account_link_request.origin IS
+    'How the request came about: IMPORT when a station import found the account by its address, INVITE when a member manager of a station invited that address, ASSOCIATION_INVITE when an association administrator added that address to the association.';
+COMMENT ON CONSTRAINT account_link_request_owner ON ember_schema.account_link_request IS
+    'A request belongs to exactly one asker: a station member (station and member set, origin IMPORT or INVITE) or an association role (association, role and address set, origin ASSOCIATION_INVITE).';
+COMMENT ON INDEX ember_schema.account_link_request_cluster_open_idx IS
+    'An association waits for at most one answer per account at a time.';
+
+ALTER TYPE ember_schema.two_factor_event ADD VALUE IF NOT EXISTS 'ASSOCIATION_LINK_ACCEPTED';

@@ -15,6 +15,8 @@ function prompt(overrides: Partial<LinkPrompt> = {}): LinkPrompt {
     uid: '00000000-0000-0000-0000-000000000001',
     stationName: 'Wache Nord',
     memberName: 'Lena Weber',
+    associationName: null,
+    role: null,
     origin: 'INVITE',
     invitedBy: 'Jonas Becker',
     createdAt: '2026-10-08T09:00:00Z',
@@ -37,6 +39,26 @@ describe('LinkRequestCard', () => {
     const card = mount(LinkRequestCard, {props: {prompt: prompt({origin: 'IMPORT', invitedBy: null}), busy: false}})
 
     expect(card.text()).toContain(deDE.accountLinks.fromImport)
+  })
+
+  it('names the association and the role it offers', () => {
+    const card = mount(LinkRequestCard, {
+      props: {
+        prompt: prompt({
+          stationName: null,
+          memberName: null,
+          invitedBy: null,
+          associationName: 'Kreisverband Süd',
+          role: 'CLUSTER_ADMIN',
+          origin: 'ASSOCIATION_INVITE',
+        }),
+        busy: false,
+      },
+    })
+
+    expect(card.text()).toContain('Kreisverband Süd')
+    expect(card.text()).toContain(deDE.accountLinks.role.CLUSTER_ADMIN)
+    expect(card.text()).toContain(deDE.accountLinks.fromAssociation)
   })
 
   it('hands the answer to whoever shows it', async () => {

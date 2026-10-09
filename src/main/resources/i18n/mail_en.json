@@ -28,7 +28,8 @@
     "signature-requested": "Signature requested: {documentTitle}",
     "signature-reminder": "Reminder: {documentTitle} is waiting for a signature",
     "signed-copy": "Signed copy: {documentTitle}",
-    "account-link-request": "{stationName} asks to link your account"
+    "account-link-request": "{stationName} asks to link your account",
+    "association-link-request": "{associationName} offers you a role"
   },
   "body": {
     "twoFactorReset.defaultActor": "an administrator"

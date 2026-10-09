@@ -13,6 +13,7 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import MemberLinkBadge from '@/components/accountlink/MemberLinkBadge.vue'
+import {sendAgainTooSoon} from '@/components/accountlink/sendAgain'
 import {accountLinks} from '@/api'
 import {LinkStatus, type LinkState} from '@/api/generated/schema'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
@@ -56,7 +57,7 @@ const explanation = computed(() => {
 })
 
 const sendAgainFrom = computed(() => state.value?.sendAgainFrom ?? null)
-const tooSoon = computed(() => sendAgainFrom.value !== null && new Date(sendAgainFrom.value).getTime() > Date.now())
+const tooSoon = computed(() => sendAgainTooSoon(sendAgainFrom.value))
 const canSendAgain = computed(() => props.canEdit && sendAgainFrom.value !== null)
 
 async function sendAgain() {

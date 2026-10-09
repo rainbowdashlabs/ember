@@ -639,6 +639,26 @@ public class EmailService implements TaskSource {
                 loadTemplate("account-link-request.html", locale, vars));
     }
 
+    /**
+     * Asks the owner of an account whether they take a role at an association. As with a station's
+     * request, the link only opens the question once they are signed in to that account.
+     *
+     * @param associationName the association that asks
+     * @param administrator   whether the role it offers runs the association
+     * @param token           the token the link carries
+     */
+    public void sendAssociationLinkRequest(
+            String email, String name, String associationName, boolean administrator, String token, String locale) {
+        var vars = baseVars(name, null);
+        vars.put("associationName", associationName);
+        vars.put("administrator", administrator ? "yes" : "");
+        vars.put("url", api.baseUrl() + "/account/link/" + token);
+        enqueueGlobal(
+                email,
+                subject("association-link-request", locale, Map.of("associationName", associationName)),
+                loadTemplate("association-link-request.html", locale, vars));
+    }
+
     public void sendPasswordResetEmail(String email, String name, String token, String locale) {
         String url = api.baseUrl() + "/reset-password?token=" + token;
         var vars = baseVars(name, null);

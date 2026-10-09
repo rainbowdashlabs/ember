@@ -4,9 +4,9 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import client from './client'
-import type {LinkPrompt, LinkState, MemberLink, MemberLinkResponse} from './generated/schema'
+import type {AssociationLinkState, LinkPrompt, LinkState, MemberLink, MemberLinkResponse} from './generated/schema'
 
-/** The requests waiting for the signed-in account, oldest first. */
+/** The requests of stations and associations waiting for the signed-in account, oldest first. */
 export async function waitingRequests(): Promise<LinkPrompt[]> {
     const res = await client.get<LinkPrompt[]>('/account/link-requests')
     return res.data
@@ -43,5 +43,16 @@ export async function memberLink(memberId: number): Promise<LinkState | null> {
 
 export async function sendAgain(memberId: number): Promise<LinkState> {
     const res = await client.post<LinkState>(`/member-links/${memberId}/send-again`)
+    return res.data
+}
+
+/** The association's requests to existing accounts that wait, were declined or ran out, newest first. */
+export async function associationRequests(): Promise<AssociationLinkState[]> {
+    const res = await client.get<AssociationLinkState[]>('/cluster/link-requests')
+    return res.data
+}
+
+export async function sendAssociationRequestAgain(uid: string): Promise<AssociationLinkState> {
+    const res = await client.post<AssociationLinkState>(`/cluster/link-requests/${uid}/send-again`)
     return res.data
 }

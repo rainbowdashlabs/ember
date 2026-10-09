@@ -14,8 +14,8 @@ import {useLinkRequests} from '@/composables/useLinkRequests'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 
 /**
- * The requests stations sent to link the reader's account to one of their members, the place the
- * prompt after sign-in leads back to once it was put off.
+ * The requests stations sent to link the reader's account to one of their members, and the roles
+ * associations offered it: the place the prompt after sign-in leads back to once it was put off.
  */
 const {t} = useI18n()
 const links = useLinkRequests()

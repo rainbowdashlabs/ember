@@ -26,6 +26,14 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.clusterMembers.separateText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.clusterMembers.requestsTitle')">
+      <p>{{ t('helpCenter.clusterMembers.requestsText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.clusterMembers.sendAgainTitle')">
+      <p>{{ t('helpCenter.clusterMembers.sendAgainText') }}</p>
+    </HelpSection>
+
     <HelpTip>{{ t('helpCenter.clusterMembers.tip') }}</HelpTip>
   </HelpArticle>
 </template>

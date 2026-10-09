@@ -9,6 +9,7 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.auth.TokenHasher;
 import dev.chojo.ember.feature.accountlink.entity.AccountLinkRequest;
+import dev.chojo.ember.feature.accountlink.entity.AssociationLinkRequest;
 import dev.chojo.ember.feature.accountlink.entity.LinkAnswer;
 import dev.chojo.ember.feature.accountlink.entity.LinkPrompt;
 import dev.chojo.ember.feature.accountlink.repository.AccountLinkRepository;
@@ -31,12 +32,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Clock;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
  * The person's side of a link request: the requests waiting for their account, and accepting or
- * declining one.
+ * declining one. Stations ask to link the account to one of their members; associations ask it to take
+ * a role, which {@link AssociationLinkAnswers} carries out. The person sees both in one list.
  *
  * <p>Only a signed-in session of the account a request names reaches it. The mailed link carries a
  * token that finds the request, but it only opens the question for that session and answers nothing on
@@ -54,6 +60,7 @@ public class LinkAnswerService {
     private final TwoFactorAuditService auditService;
     private final Notifier notifier;
     private final TokenHasher tokenHasher;
+    private final AssociationLinkAnswers associationAnswers;
     private final Clock clock;
 
     @Inject
@@ -63,8 +70,17 @@ public class LinkAnswerService {
             MemberNameResolver nameResolver,
             TwoFactorAuditService auditService,
             Notifier notifier,
-            TokenHasher tokenHasher) {
-        this(repository, memberRepository, nameResolver, auditService, notifier, tokenHasher, Clock.systemUTC());
+            TokenHasher tokenHasher,
+            AssociationLinkAnswers associationAnswers) {
+        this(
+                repository,
+                memberRepository,
+                nameResolver,
+                auditService,
+                notifier,
+                tokenHasher,
+                associationAnswers,
+                Clock.systemUTC());
     }
 
     /**
@@ -77,6 +93,7 @@ public class LinkAnswerService {
             TwoFactorAuditService auditService,
             Notifier notifier,
             TokenHasher tokenHasher,
+            AssociationLinkAnswers associationAnswers,
             Clock clock) {
         this.repository = repository;
         this.memberRepository = memberRepository;
@@ -84,17 +101,22 @@ public class LinkAnswerService {
         this.auditService = auditService;
         this.notifier = notifier;
         this.tokenHasher = tokenHasher;
+        this.associationAnswers = associationAnswers;
         this.clock = clock;
     }
 
     /**
-     * The requests waiting for this account, oldest first.
+     * The requests of stations and associations waiting for this account, oldest first.
      *
      * @param accountId the signed-in account
      * @return the requests
      */
     public List<LinkPrompt> waitingFor(int accountId) {
-        return repository.findWaitingForAccount(accountId, clock.instant());
+        Instant now = clock.instant();
+        var waiting = new ArrayList<>(repository.findWaitingForAccount(accountId, now));
+        waiting.addAll(associationAnswers.waitingFor(accountId, now));
+        waiting.sort(Comparator.comparing(LinkPrompt::createdAt));
+        return waiting;
     }
 
     /**
@@ -105,22 +127,24 @@ public class LinkAnswerService {
      * @return the request as the person is shown it
      */
     public LinkPrompt opened(int accountId, String token) {
-        var request = repository
-                .findByTokenHash(tokenHasher.hash(token))
+        String tokenHash = tokenHasher.hash(token);
+        UUID uid = repository
+                .findByTokenHash(tokenHash)
                 .filter(found -> isWaitingFor(found, accountId))
+                .map(AccountLinkRequest::uid)
+                .or(() -> associationAnswers
+                        .findOpenedBy(accountId, tokenHash, clock.instant())
+                        .map(AssociationLinkRequest::uid))
                 .orElseThrow(MemberRefusal.LINK_REQUEST_NOT_OPEN::raise);
         return waitingFor(accountId).stream()
-                .filter(prompt -> prompt.uid().equals(request.uid()))
+                .filter(prompt -> prompt.uid().equals(uid))
                 .findFirst()
                 .orElseThrow(MemberRefusal.LINK_REQUEST_NOT_OPEN::raise);
     }
 
     /**
-     * Links the account to the member the station asked about. The member keeps whatever the station
-     * gave it, its permissions among them, which reach the account from now on. The answer and the link
-     * are written together or not at all, while the account is held, so two requests of one station
-     * accepted at once cannot give the account two members there. The account's own audit records it, and whoever edits members
-     * at the station is told.
+     * Accepts a request. A station's links the account to the member it asked about; an association's
+     * makes the account a member there with the role it offered.
      *
      * @param accountId the signed-in account
      * @param uid       the request
@@ -128,7 +152,38 @@ public class LinkAnswerService {
      * @param country   the country it answered from, for the audit
      */
     public void accept(int accountId, UUID uid, @Nullable String userAgent, @Nullable String country) {
-        var request = requireWaiting(accountId, uid);
+        var station = findWaiting(accountId, uid);
+        if (station.isPresent()) {
+            acceptStation(accountId, station.get(), userAgent, country);
+            return;
+        }
+        associationAnswers.accept(accountId, requireAssociationWaiting(accountId, uid), userAgent, country);
+    }
+
+    /**
+     * Declines a request. Nothing is linked or made, and whoever asked sees that it was declined.
+     *
+     * @param accountId the signed-in account
+     * @param uid       the request
+     */
+    public void decline(int accountId, UUID uid) {
+        var station = findWaiting(accountId, uid);
+        if (station.isPresent()) {
+            declineStation(accountId, station.get());
+            return;
+        }
+        associationAnswers.decline(accountId, requireAssociationWaiting(accountId, uid));
+    }
+
+    /**
+     * Links the account to the member the station asked about. The member keeps whatever the station
+     * gave it, its permissions among them, which reach the account from now on. The answer and the link
+     * are written together or not at all, while the account is held, so two requests of one station
+     * accepted at once cannot give the account two members there. The account's own audit records it,
+     * and whoever edits members at the station is told.
+     */
+    private void acceptStation(
+            int accountId, AccountLinkRequest request, @Nullable String userAgent, @Nullable String country) {
         Transactions.run(() -> {
             repository.holdAccount(accountId);
             if (memberRepository
@@ -160,14 +215,8 @@ public class LinkAnswerService {
                 request.stationId());
     }
 
-    /**
-     * Refuses the link. The member stays without an account, and the station sees that it was declined.
-     *
-     * @param accountId the signed-in account
-     * @param uid       the request
-     */
-    public void decline(int accountId, UUID uid) {
-        var request = requireWaiting(accountId, uid);
+    /** Refuses the link. The member stays without an account, and the station sees that it was declined. */
+    private void declineStation(int accountId, AccountLinkRequest request) {
         if (!repository.answer(request.id(), LinkAnswer.DECLINED)) {
             throw MemberRefusal.LINK_REQUEST_NOT_OPEN.raise();
         }
@@ -178,10 +227,13 @@ public class LinkAnswerService {
                 request.stationId());
     }
 
-    private AccountLinkRequest requireWaiting(int accountId, UUID uid) {
-        return repository
-                .findByUid(uid)
-                .filter(found -> isWaitingFor(found, accountId))
+    private Optional<AccountLinkRequest> findWaiting(int accountId, UUID uid) {
+        return repository.findByUid(uid).filter(found -> isWaitingFor(found, accountId));
+    }
+
+    private AssociationLinkRequest requireAssociationWaiting(int accountId, UUID uid) {
+        return associationAnswers
+                .findWaiting(accountId, uid, clock.instant())
                 .orElseThrow(MemberRefusal.LINK_REQUEST_NOT_OPEN::raise);
     }
 

@@ -28,7 +28,8 @@
     "signature-requested": "Bitte unterschreiben: {documentTitle}",
     "signature-reminder": "Erinnerung: {documentTitle} wartet auf eine Unterschrift",
     "signed-copy": "Kopie mit Unterschrift: {documentTitle}",
-    "account-link-request": "{stationName} möchte dein Konto verknüpfen"
+    "account-link-request": "{stationName} möchte dein Konto verknüpfen",
+    "association-link-request": "{associationName} bietet dir eine Rolle an"
   },
   "body": {
     "twoFactorReset.defaultActor": "einem Administrator"

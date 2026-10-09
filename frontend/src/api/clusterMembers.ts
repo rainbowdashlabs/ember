@@ -5,6 +5,7 @@
  */
 import client from './client'
 import type {
+    AssociationLinkState,
     ClusterGroupDetailResponse,
     ClusterGroupResponse,
     ClusterGroupUpdateRequest,
@@ -46,19 +47,29 @@ export async function listMembers(): Promise<ClusterMemberResponse[]> {
     return res.data
 }
 
+/** What adding an address came to: a new member, or a request that waits for the person. */
+export type MemberAddition =
+    | {kind: 'added'; member: ClusterMemberResponse}
+    | {kind: 'asked'; request: AssociationLinkState}
+
 /**
  * Gives somebody a job at the association, which is what makes them a member of it.
  *
  * <p>A first and last name are needed only for an address Ember has never seen; the server refuses
  * with {@link ACCOUNT_NAME_REQUIRED} until it has them, and the dialog asks then rather than up front.
+ * An address that already has an account is not taken on: the server asks the person and answers
+ * with the request instead (202).
  */
 export async function addMember(
     email: string,
     userType: string,
     name?: {firstName: string; lastName: string},
-): Promise<ClusterMemberResponse> {
-    const res = await client.post<ClusterMemberResponse>('/cluster/members', {email, userType, ...name})
-    return res.data
+): Promise<MemberAddition> {
+    const res = await client.post<ClusterMemberResponse | AssociationLinkState>(
+        '/cluster/members', {email, userType, ...name})
+    return res.status === 202
+        ? {kind: 'asked', request: res.data as AssociationLinkState}
+        : {kind: 'added', member: res.data as ClusterMemberResponse}
 }
 
 /** The refusal that means "no account yet, send a name and I will make one". */

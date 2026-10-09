@@ -10,14 +10,19 @@ import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AccountInviteService;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.accountlink.repository.AccountLinkRepository;
+import dev.chojo.ember.feature.accountlink.repository.AssociationLinkRepository;
+import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.mail.service.MailLocaleService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.GroupMembershipService;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService;
+import dev.chojo.ember.feature.notifications.service.Notifier;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.transfer.ImportedAccountLinks;
 import dev.chojo.ember.feature.system.repository.ApplicationSettingRepository;
+import dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository;
+import dev.chojo.ember.feature.twofactor.service.TwoFactorAuditService;
 
 import static org.mockito.Mockito.mock;
 
@@ -44,6 +49,34 @@ public final class TestAccountLinks {
                 mock(EmailService.class),
                 new MailLocaleService(accounts, new ApplicationSettingRepository()),
                 TokenHasher.forTesting(PEPPER));
+    }
+
+    /**
+     * @return an association's link service over the real tables that mails nothing
+     */
+    public static AssociationLinkService associationService(AccountRepository accounts, ClusterRepository clusters) {
+        return new AssociationLinkService(
+                new AssociationLinkRepository(),
+                new AccountLinkRepository(),
+                clusters,
+                accounts,
+                mock(EmailService.class),
+                new MailLocaleService(accounts, new ApplicationSettingRepository()),
+                TokenHasher.forTesting(PEPPER));
+    }
+
+    /**
+     * @return the person's answers to associations over the real tables, telling the given notifier
+     */
+    public static AssociationLinkAnswers associationAnswers(
+            AccountRepository accounts, ClusterRepository clusters, TwoFactorRepository twoFactor, Notifier notifier) {
+        return new AssociationLinkAnswers(
+                new AssociationLinkRepository(),
+                new AccountLinkRepository(),
+                clusters,
+                accounts,
+                new TwoFactorAuditService(twoFactor),
+                notifier);
     }
 
     /**

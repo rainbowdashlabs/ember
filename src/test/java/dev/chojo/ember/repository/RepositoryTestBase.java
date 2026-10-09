@@ -26,6 +26,7 @@ import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AccountInviteService;
 import dev.chojo.ember.feature.account.service.AccountReach;
 import dev.chojo.ember.feature.account.service.AuthService;
+import dev.chojo.ember.feature.accountlink.service.TestAccountLinks;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
 import dev.chojo.ember.feature.attendance.service.AttendanceTemplateGuards;
 import dev.chojo.ember.feature.board.repository.BoardRepository;
@@ -714,6 +715,7 @@ public abstract class RepositoryTestBase {
                 clusterService,
                 accountRepo,
                 new AccountInviteService(accountRepo, org.mockito.Mockito.mock(AuthService.class)),
+                TestAccountLinks.associationService(accountRepo, clusterRepo),
                 new DomainEventBus(Set.of()));
         userSettingsRepo = new UserSettingsRepository();
         userTagRepo = new UserTagRepository();

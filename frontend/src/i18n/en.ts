@@ -46,11 +46,11 @@ export default {
         },
         'account-links': {
             title: 'Links',
-            subtitle: 'Requests from stations to link your account',
+            subtitle: 'Requests from stations and associations to your account',
         },
         'account-link-open': {
-            title: 'A request from a station',
-            subtitle: 'Link your account to a member',
+            title: 'A request to your account',
+            subtitle: 'Accept or decline',
         },
     },
     sidebar: {
@@ -58,11 +58,17 @@ export default {
         accountLinks: 'Links',
     },
     accountLinks: {
-        promptTitle: 'A station asks to link your account',
-        promptIntro: 'A station entered your address or brought it along when it moved here. Only once you agree does your account belong to its member and the station can reach it. If you do not know the station, decline.',
-        pageIntro: 'These are the requests of stations that want to link your account to one of their members. Without an answer a request lapses after 30 days.',
+        promptTitle: 'A request to your account',
+        promptIntro: 'A station or an association entered your address or brought it along when it moved here. Only once you agree does your account belong to them and they can reach it. If you do not know them, decline.',
+        pageIntro: 'These are the requests of stations that want to link your account to one of their members, and of associations that offer you a role. Without an answer a request lapses after 30 days.',
         asks: 'The station asks to link your account to its member {member}.',
+        asksRole: 'The association offers you the role {role}.',
+        role: {
+            CLUSTER_USER: 'member',
+            CLUSTER_ADMIN: 'administrator',
+        },
         fromImport: 'The member came along when the station moved here from another installation.',
+        fromAssociation: 'An administrator of the association entered your address.',
         invitedBy: 'Invited by {name}.',
         invited: 'The station invited your address.',
         until: 'The request is open until {date}.',
@@ -71,7 +77,9 @@ export default {
         later: 'Later',
         accepted: 'Your account is now linked to the member.',
         declined: 'You declined the link.',
-        none: 'No station is waiting for an answer from you.',
+        roleAccepted: 'You now hold the role in the association.',
+        roleDeclined: 'You declined the role.',
+        none: 'No station and no association is waiting for an answer from you.',
         openFailedHint: 'The link only works for the account it was sent to. If you are signed in with another account, sign out and sign in with the right one.',
     },
     memberLinks: {

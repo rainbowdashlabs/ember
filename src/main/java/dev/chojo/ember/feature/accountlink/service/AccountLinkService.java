@@ -227,21 +227,29 @@ public class AccountLinkService {
 
     private LinkState stateOf(AccountLinkRequest request) {
         LinkStatus status = statusOf(request);
-        Instant sendAgainFrom = status == LinkStatus.WAITING || status == LinkStatus.EXPIRED
-                ? request.sentAt().plus(SEND_AGAIN_AFTER)
-                : null;
         return new LinkState(
-                status, request.origin(), request.sentAt(), request.expiresAt(), request.answeredAt(), sendAgainFrom);
+                status,
+                request.origin(),
+                request.sentAt(),
+                request.expiresAt(),
+                request.answeredAt(),
+                sendAgainFrom(status, request.sentAt()));
+    }
+
+    /**
+     * From when a request may be sent again: a day after it last went out, while it waits or once it ran
+     * out. One that was answered is never sent again.
+     *
+     * @param status how the request stands
+     * @param sentAt when it last went out
+     * @return the moment, or null where it may not be sent again at all
+     */
+    static @Nullable Instant sendAgainFrom(LinkStatus status, Instant sentAt) {
+        return status == LinkStatus.WAITING || status == LinkStatus.EXPIRED ? sentAt.plus(SEND_AGAIN_AFTER) : null;
     }
 
     private LinkStatus statusOf(AccountLinkRequest request) {
-        LinkAnswer answer = request.answer();
-        if (answer == null) return request.waits(clock.instant()) ? LinkStatus.WAITING : LinkStatus.EXPIRED;
-        return switch (answer) {
-            case ACCEPTED -> LinkStatus.ACCEPTED;
-            case DECLINED -> LinkStatus.DECLINED;
-            case EXPIRED -> LinkStatus.EXPIRED;
-        };
+        return LinkStatus.of(request.answer(), request.waits(clock.instant()));
     }
 
     private StationMember requireMemberHere(int stationId, int memberId) {
