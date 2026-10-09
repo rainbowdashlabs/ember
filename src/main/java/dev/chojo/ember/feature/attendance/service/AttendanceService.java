@@ -724,6 +724,7 @@ public class AttendanceService {
      * up on it.
      *
      * <p>Where no answer was demanded, silence settles nothing and only what was answered is written.
+     * A refusal taken back there is silence again, so it writes nothing either.
      *
      * @param answer   what the member answered, null where they never did
      * @param demanded whether the appointment asked everybody to answer
@@ -732,9 +733,7 @@ public class AttendanceService {
     private static AttendanceEntry.@Nullable AttendanceStatus attendanceFor(
             @Nullable RegistrationStatus answer, boolean demanded) {
         if (answer == RegistrationStatus.ACCEPTED) return AttendanceEntry.AttendanceStatus.UNCONFIRMED;
-        if (answer == RegistrationStatus.DECLINED || answer == RegistrationStatus.WITHDRAWN) {
-            return AttendanceEntry.AttendanceStatus.DECLINED;
-        }
+        if (answer != null && answer.saysNotComing(demanded)) return AttendanceEntry.AttendanceStatus.DECLINED;
         return demanded ? AttendanceEntry.AttendanceStatus.DECLINED : null;
     }
 

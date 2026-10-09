@@ -553,6 +553,107 @@ class EventServicesTest extends RepositoryTestBase {
         assertEquals(RegistrationStatus.DECLINED, reg.status());
     }
 
+    /** An appointment that expects everybody, which is answered only with a refusal. */
+    private StationEvent appointmentWithoutRegistration(String name, int inDays) {
+        var start = Instant.now().plus(inDays, ChronoUnit.DAYS);
+        return crudService.create(
+                station.id(),
+                name,
+                "desc",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                start,
+                start.plus(2, ChronoUnit.HOURS),
+                null,
+                false,
+                null,
+                false,
+                categoryId,
+                null,
+                null,
+                null,
+                null);
+    }
+
+    /**
+     * Where everybody is expected, taking a refusal back leaves the member expected again. The row is
+     * kept for the list and the undo, but nothing that asks who stays away finds them on it.
+     */
+    @Test
+    @Order(66)
+    void aRefusalTakenBackWhereEverybodyIsExpectedCountsTheMemberIn() {
+        var event = appointmentWithoutRegistration("Refusal Taken Back", 14);
+        LocalDate day = LocalDate.of(2026, 10, 14);
+
+        var refusal = registrationService.decline(event.id(), member.id(), day, null);
+        assertTrue(
+                registrationService.findNotAttendingMemberIds(event.id(), day).contains(member.id()));
+
+        assertTrue(registrationService.withdraw(refusal.id()));
+
+        assertEquals(
+                RegistrationStatus.WITHDRAWN,
+                registrationService.findById(refusal.id()).orElseThrow().status(),
+                "the row is kept as the record of what happened");
+        assertFalse(
+                registrationService.findNotAttendingMemberIds(event.id(), day).contains(member.id()),
+                "the member is expected again");
+    }
+
+    /**
+     * A "no" over a place held on an appointment that expects everybody declines rather than
+     * withdraws, so it still keeps the member away.
+     */
+    @Test
+    @Order(67)
+    void aNoOverAPlaceWhereEverybodyIsExpectedDeclines() {
+        var event = appointmentWithoutRegistration("No Over A Place", 15);
+        LocalDate day = LocalDate.of(2026, 10, 15);
+
+        var place = registrationService.register(event.id(), member.id(), day, true, null);
+        assertTrue(registrationService.refuse(place.id()));
+
+        assertEquals(
+                RegistrationStatus.DECLINED,
+                registrationService.findById(place.id()).orElseThrow().status());
+        assertTrue(
+                registrationService.findNotAttendingMemberIds(event.id(), day).contains(member.id()));
+    }
+
+    /** Where the appointment has to be signed up for, giving a place up still withdraws and keeps the member away. */
+    @Test
+    @Order(68)
+    void aPlaceGivenUpWhereRegistrationIsRequiredKeepsTheMemberAway() {
+        var start = Instant.now().plus(16, ChronoUnit.DAYS);
+        var event = crudService.create(
+                station.id(),
+                "Place Given Up",
+                "desc",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                start,
+                start.plus(2, ChronoUnit.HOURS),
+                null,
+                true,
+                null,
+                false,
+                categoryId,
+                null,
+                null,
+                null,
+                null);
+        LocalDate day = LocalDate.of(2026, 10, 16);
+
+        var place = registrationService.register(event.id(), member.id(), day, true, null);
+        assertTrue(registrationService.refuse(place.id()));
+
+        assertEquals(
+                RegistrationStatus.WITHDRAWN,
+                registrationService.findById(place.id()).orElseThrow().status());
+        assertTrue(
+                registrationService.findNotAttendingMemberIds(event.id(), day).contains(member.id()));
+    }
+
     @Test
     @Order(63)
     void findRegistrationsByDate() {
