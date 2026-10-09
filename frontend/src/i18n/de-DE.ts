@@ -4400,6 +4400,7 @@ export default {
         },
         itemPicker: {
             placeholder: 'Item suchen oder Code scannen…',
+            searchPlaceholder: 'Item suchen…',
             emptyNoMatch: 'Keine passenden Items.',
             heldBy: 'Bei {name}',
             storedAt: 'In {path}',

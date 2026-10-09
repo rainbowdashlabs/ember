@@ -9,12 +9,12 @@ import {useI18n} from 'vue-i18n'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import FieldHint from '@/components/typography/FieldHint.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
-import ItemSearchPicker from '@/components/input/search/ItemSearchPicker.vue'
+import ItemChoicePicker from '@/components/input/search/ItemChoicePicker.vue'
 import ArtSearchPicker from '@/components/input/search/ArtSearchPicker.vue'
 import InventorySearchPicker from '@/components/input/search/InventorySearchPicker.vue'
 import StockHint from './StockHint.vue'
 import {stockByArt, stockByInventory} from '@/util/inventoryStock'
-import type {Inventory, InventoryArt, InventoryItem} from '@/api/generated/schema'
+import type {ArtChoice, InventoryChoice, ItemChoice} from '@/api/generated/schema'
 
 const kind = defineModel<'item' | 'art' | 'inventory'>('kind', {required: true})
 const itemId = defineModel<string>('itemId', {required: true})
@@ -23,9 +23,9 @@ const inventoryId = defineModel<string>('inventoryId', {required: true})
 const quantity = defineModel<number>('quantity', {required: true})
 
 const props = defineProps<{
-  inventories: Inventory[]
-  items: InventoryItem[]
-  arts: InventoryArt[]
+  inventories: InventoryChoice[]
+  items: ItemChoice[]
+  arts: ArtChoice[]
 }>()
 
 const {t} = useI18n()
@@ -65,7 +65,12 @@ const chosenInventoryStock = computed(() =>
   <div class="space-y-4">
     <template v-if="kind === 'item'">
       <FieldLabel>{{ t('inventory.line.item') }}</FieldLabel>
-      <ItemSearchPicker v-model="pickedItem" data-testid="line-target-item"/>
+      <ItemChoicePicker
+          v-model="pickedItem"
+          :items="items"
+          :inventories="inventories"
+          data-testid="line-target-item"
+      />
     </template>
 
     <template v-else-if="kind === 'art'">

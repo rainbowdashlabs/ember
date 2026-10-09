@@ -6,6 +6,7 @@
 import client from './client'
 import type {
     CollectedLine,
+    EquipmentChoices,
     EquipmentHandover,
     EquipmentNeed,
     NeedCoverage,
@@ -25,6 +26,12 @@ export async function list(eventId: number): Promise<EquipmentNeed[]> {
 
 export async function coverage(eventId: number, date: string): Promise<NeedCoverage[]> {
     const res = await client.get<NeedCoverage[]>(`/events/${eventId}/equipment/coverage`, {params: {date}})
+    return res.data
+}
+
+/** What a line of the appointment can ask for, readable by whoever may edit the appointment. */
+export async function choices(eventId: number): Promise<EquipmentChoices> {
+    const res = await client.get<EquipmentChoices>(`/events/${eventId}/equipment/choices`)
     return res.data
 }
 
