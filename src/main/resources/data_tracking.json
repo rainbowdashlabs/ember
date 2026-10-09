@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:c50c33128cf1e067c18221f62a2e4b318ad4cce32bc1b479d590738ac141e619",
-  "generatedAt": "2026-10-09T11:56:31Z",
+  "schemaHash": "sha256:64f1b846d11e80e4af3e7e515ff7f998b143abd2b4843f45bc10016e0e834174",
+  "generatedAt": "2026-10-09T13:06:56Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -9466,7 +9466,7 @@
     "event_federation_registration": {
       "feature": "events",
       "scope": "STATION",
-      "tableHash": "sha256:8fa8893640a96f7acb2828bc6580e2856ecf6460513a600bf502a66b9525e535",
+      "tableHash": "sha256:dc5f484935eb06cf29de79d73296af12673b26312caf24ab1d67963dfedb21bf",
       "columns": [
         {
           "name": "id",
@@ -9530,6 +9530,13 @@
           "nullable": true,
           "verified": true,
           "description": "What was held immediately before the current status, for as long as a withdrawal can be taken back."
+        },
+        {
+          "name": "agreement_withdrawn_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When the partner reported a signed agreement for this date, which one of the appointment's documents asked its member to sign, withdrawn there while the registration stood. Flags the registration for whoever runs the appointment. NULL where none was, and again once a complete signed copy comes back."
         }
       ],
       "foreignKeys": [

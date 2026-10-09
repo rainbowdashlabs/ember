@@ -70,6 +70,7 @@ import dev.chojo.ember.feature.signing.entity.SignatureLevel;
 import dev.chojo.ember.feature.signing.entity.SignatureRequest;
 import dev.chojo.ember.feature.signing.entity.Signer;
 import dev.chojo.ember.feature.signing.entity.SigningAct;
+import dev.chojo.ember.feature.signing.entity.SigningCircumstances;
 import dev.chojo.ember.feature.signing.entity.SigningEvidence;
 import dev.chojo.ember.feature.signing.repository.PartnerAgreementRepository;
 import dev.chojo.ember.feature.signing.repository.PartnerAuthorityRepository;
@@ -107,12 +108,15 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static de.chojo.sadu.queries.api.call.Call.call;
+import static de.chojo.sadu.queries.api.query.Query.query;
 import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.letter;
 import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.row;
 import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.signature;
 import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.text;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -167,6 +171,7 @@ class PartnerAgreementsTest extends GeneratorTestBase {
     private static PartnerSignatures signatures;
     private static SignatureFieldService fields;
     private static SigningStateSealer sealer;
+    private static SignatureWithdrawals withdrawals;
     private static StationMember manager;
     private static int loginPermission;
 
@@ -185,6 +190,12 @@ class PartnerAgreementsTest extends GeneratorTestBase {
                 organiser.station().id(),
                 accountRepo
                         .create("organiser-manager-" + System.nanoTime() + "@example.com", "Maria", "Leitung")
+                        .id());
+        stationMemberRepo.grantPermission(
+                manager.id(),
+                stationMemberRepo
+                        .findPermissionByName(StationPermission.EVENT_MANAGER)
+                        .orElseThrow()
                         .id());
 
         StationKeyStore federationKeys = TestStationKeys.store();
@@ -263,6 +274,8 @@ class PartnerAgreementsTest extends GeneratorTestBase {
                 organiser.issuers(),
                 new EventRestrictionService(eventRepo, restrictionService),
                 RequirementSignatures.NONE);
+        var notices = TestNotices.notices(
+                newNotifier(), emailQueueRepo, stationRepo, stationMemberRepo, accountRepo, memberDocumentRepo);
         agreements = new PartnerAgreements(
                 crud,
                 events,
@@ -274,15 +287,14 @@ class PartnerAgreementsTest extends GeneratorTestBase {
                 agreementRepo,
                 validator,
                 federationRepo,
-                memberNameResolver);
+                memberNameResolver,
+                notices);
 
         var documents = organiser.documents();
         var guards = new SigningGuards(
                 new DocumentAccessService(memberDocumentRepo, documents, guardianPolicy),
                 memberDocumentRepo,
                 guardianPolicy);
-        var notices = TestNotices.notices(
-                newNotifier(), emailQueueRepo, stationRepo, stationMemberRepo, accountRepo, memberDocumentRepo);
         var requests = new SignatureRequestService(
                 requestRepo,
                 evidenceRepo,
@@ -329,6 +341,16 @@ class PartnerAgreementsTest extends GeneratorTestBase {
                 deliveries,
                 new RequirementSignatureStates(requestRepo, requests, new WithdrawalRights(guardianPolicy)));
         sealer = TestSealing.stateSealer(memberDocumentRepo, documents, stationRepo, memberNameResolver, deliveries);
+        withdrawals = new SignatureWithdrawals(
+                requestRepo,
+                requests,
+                new WithdrawalRights(guardianPolicy),
+                memberNameResolver,
+                sealer,
+                notices,
+                eventRepo,
+                eventRegistrationRepo,
+                mock(AppointmentSignatures.class));
 
         endpoints = transport.serve(events, authorities, agreements);
         routeOverHttp(httpClient);
@@ -551,12 +573,7 @@ class PartnerAgreementsTest extends GeneratorTestBase {
                 EventRefusal.PARTNER_AGREEMENT_SEAL_REFUSED,
                 () -> agreements.take(
                         serving, camp.id(), signed(member.uid(), handedOut.sha256(), encoded(handedOut.content()))));
-        var sealedByOrganiser = TestSealing.withoutTimestamps()
-                .sealWithoutTimestamp(
-                        handedOut.content(),
-                        organiserKey().privateKey(),
-                        organiserKey().chain())
-                .pdf();
+        var sealedByOrganiser = sealedByOrganiser(handedOut.content());
         refused(
                 EventRefusal.PARTNER_AGREEMENT_SEAL_REFUSED,
                 () -> agreements.take(
@@ -604,6 +621,7 @@ class PartnerAgreementsTest extends GeneratorTestBase {
                 mock(PartnerSealValidator.class),
                 federationRepo,
                 memberNameResolver,
+                mock(SignatureNotices.class),
                 Clock.systemUTC());
         early.sweep();
         assertNotNull(agreementRepo
@@ -634,6 +652,82 @@ class PartnerAgreementsTest extends GeneratorTestBase {
         assertNotNull(agreementRepo
                 .find(organiser.station().id(), standing.agreementId())
                 .orElse(null));
+    }
+
+    /**
+     * A member who signed at home withdraws the agreement there while the organiser cannot be reached: the
+     * sealed version recording the withdrawal goes out again later, is checked and kept beside the signed copy,
+     * which stays, the document shows as withdrawn, the registration is flagged, and whoever runs the
+     * appointment is told.
+     */
+    @Test
+    void aWithdrawalAtHomeReachesTheOrganiserOnceItIsUpAgain() {
+        var member = homeMember("Karla", "Klee");
+        var request = requestOf(register(member).getFirst());
+        sign(request, member);
+        var signed = documentOf(member);
+        byte[] signedCopy =
+                agreements.latestCopy(managing(), signed.agreementId()).pdf();
+        ORGANISER_DOWN.set(true);
+
+        withdrawals.requireOwnedThenWithdraw(
+                at(member), request.uid(), "Ich fahre doch nicht mit.", new SigningCircumstances(null, null));
+
+        assertEquals(PartnerAgreementState.SIGNED, documentOf(member).state());
+        assertEquals(1, linkRepo.forRequest(request.id()).orElseThrow().deliveryAttempts());
+        ORGANISER_DOWN.set(false);
+        organiser.clock().advance(PartnerDeliveries.delayAfter(0).plusSeconds(1));
+        assertTrue(deliveries.sweep() >= 1);
+
+        var withdrawn = documentOf(member);
+        assertEquals(PartnerAgreementState.WITHDRAWN, withdrawn.state());
+        assertEquals(2, withdrawn.copies(), "the signed copy stays beside the withdrawal");
+        var withdrawal = requestRepo.withdrawalOf(request.id()).orElseThrow();
+        byte[] kept = agreements.latestCopy(managing(), withdrawn.agreementId()).pdf();
+        assertEquals(withdrawal.sealedSha256(), Sha256.hex(kept));
+        assertNotEquals(Sha256.hex(signedCopy), Sha256.hex(kept));
+        assertNotNull(events.findRegistration(camp.id(), organiserSide.id(), member.uid(), DAY)
+                .orElseThrow()
+                .agreementWithdrawnAt());
+        assertTrue(notificationsOf(manager).contains("PARTNER_SIGNATURE_WITHDRAWN"));
+        assertEquals(
+                withdrawal.sealedSha256(),
+                linkRepo.forRequest(request.id()).orElseThrow().deliveredSha256());
+    }
+
+    /**
+     * A withdrawal is taken only with the partner's own seal on it: an unsealed file or one sealed by somebody
+     * else is refused, and the agreement stays signed with the registration unflagged.
+     */
+    @Test
+    void aWithdrawalWithoutThePartnersSealIsRefused() throws IOException {
+        var member = homeMember("Lars", "Lind");
+        sign(requestOf(register(member).getFirst()), member);
+        var serving = new ServingPartner(organiserSide, home.uid());
+        var handedOut = agreementRepo.handedOut(camp.id(), DAY, consent, 1).orElseThrow();
+
+        refused(
+                EventRefusal.PARTNER_AGREEMENT_SEAL_REFUSED,
+                () -> agreements.take(
+                        serving,
+                        camp.id(),
+                        notice(
+                                AgreementNoticeKind.WITHDRAWN,
+                                member.uid(),
+                                handedOut.sha256(),
+                                encoded(handedOut.content()))));
+        var forged = encoded(sealedByOrganiser(handedOut.content()));
+        refused(
+                EventRefusal.PARTNER_AGREEMENT_SEAL_REFUSED,
+                () -> agreements.take(
+                        serving,
+                        camp.id(),
+                        notice(AgreementNoticeKind.WITHDRAWN, member.uid(), handedOut.sha256(), forged)));
+
+        assertEquals(PartnerAgreementState.SIGNED, documentOf(member).state());
+        assertNull(events.findRegistration(camp.id(), organiserSide.id(), member.uid(), DAY)
+                .orElseThrow()
+                .agreementWithdrawnAt());
     }
 
     private List<PartnerDocumentToSign> register(StationMember member) {
@@ -681,13 +775,18 @@ class PartnerAgreementsTest extends GeneratorTestBase {
     }
 
     private RemoteAgreementNotice signed(UUID member, String contentSha256, String sealedPdf) {
+        return notice(AgreementNoticeKind.SIGNED, member, contentSha256, sealedPdf);
+    }
+
+    private RemoteAgreementNotice notice(
+            AgreementNoticeKind kind, UUID member, String contentSha256, String sealedPdf) {
         return new RemoteAgreementNotice(
                 member,
                 DAY,
                 consent,
                 1,
                 contentSha256,
-                AgreementNoticeKind.SIGNED,
+                kind,
                 sealedPdf,
                 List.of(new RemoteAgreementField("participant", FieldState.SIGNED, Instant.now())),
                 true);
@@ -695,6 +794,21 @@ class PartnerAgreementsTest extends GeneratorTestBase {
 
     private static String encoded(byte[] pdf) {
         return Base64.getEncoder().encodeToString(pdf);
+    }
+
+    private static byte[] sealedByOrganiser(byte[] content) throws IOException {
+        var key = organiserKey();
+        return TestSealing.withoutTimestamps()
+                .sealWithoutTimestamp(content, key.privateKey(), key.chain())
+                .pdf();
+    }
+
+    private static String notificationsOf(StationMember member) {
+        return query("SELECT string_agg(type, ',') AS types FROM notification WHERE member_id = :member_id;")
+                .single(call().bind("member_id", member.id()))
+                .map(row -> String.valueOf(row.getString("types")))
+                .first()
+                .orElse("");
     }
 
     private static SealingKey organiserKey() {

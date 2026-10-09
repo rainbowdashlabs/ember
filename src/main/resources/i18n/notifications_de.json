@@ -192,7 +192,8 @@
     "DOCUMENT_SCAN_REJECTED": "Scan abgelehnt: {documentName} - {memberName}",
     "ACCOUNT_LINK_ACCEPTED": "Konto verknüpft: {memberName}",
     "ASSOCIATION_LINK_ACCEPTED": "Rolle angenommen: {personName}",
-    "SIGNATURE_WITHDRAWN": "Unterschrift widerrufen: {documentTitle} - {memberName}"
+    "SIGNATURE_WITHDRAWN": "Unterschrift widerrufen: {documentTitle} - {memberName}",
+    "PARTNER_SIGNATURE_WITHDRAWN": "Unterschrift widerrufen: {documentTitle} - {stationName}"
   },
   "digest": {
     "subject.one": "{stationName}: 1 neue Benachrichtigung",
@@ -265,7 +266,8 @@
     "DOCUMENT_SCAN_REJECTED": "Mitzubringende Dokumente",
     "ACCOUNT_LINK_ACCEPTED": "Konto",
     "ASSOCIATION_LINK_ACCEPTED": "Konto",
-    "SIGNATURE_WITHDRAWN": "Unterschrift"
+    "SIGNATURE_WITHDRAWN": "Unterschrift",
+    "PARTNER_SIGNATURE_WITHDRAWN": "Unterschrift"
   },
   "message": {
     "notification.newNews": "{title} - von {author}",
@@ -350,6 +352,8 @@
     "notification.documentScanRejected": "Der Scan von {documentName} für {memberName} zu {eventName} am {eventDate} wurde abgelehnt: {reason}",
     "notification.accountLinkAccepted": "{memberName} hat das eigene Konto mit dem Mitglied verknüpft",
     "notification.associationLinkAccepted": "{personName} hat die Rolle im Verband angenommen",
-    "notification.signatureWithdrawn": "{withdrawnByName} hat die Unterschrift unter {documentTitle} für {memberName} widerrufen"
+    "notification.signatureWithdrawn": "{withdrawnByName} hat die Unterschrift unter {documentTitle} für {memberName} widerrufen",
+    "notification.partnerSignatureWithdrawn": "Bei {stationName} wurde eine Unterschrift unter {documentTitle} widerrufen",
+    "notification.partnerSignatureWithdrawn.NAMED": "Bei {stationName} wurde die Unterschrift unter {documentTitle} für {memberName} widerrufen"
   }
 }

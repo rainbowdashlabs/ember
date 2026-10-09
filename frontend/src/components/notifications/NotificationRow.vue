@@ -85,6 +85,7 @@ const typeIcons: Partial<Record<NotificationType, string>> = {
   ACCOUNT_LINK_ACCEPTED: 'link',
   ASSOCIATION_LINK_ACCEPTED: 'user-shield',
   SIGNATURE_WITHDRAWN: 'file-signature',
+  PARTNER_SIGNATURE_WITHDRAWN: 'file-signature',
 }
 
 /** A day as the database writes one, which is not how anybody here reads one. */

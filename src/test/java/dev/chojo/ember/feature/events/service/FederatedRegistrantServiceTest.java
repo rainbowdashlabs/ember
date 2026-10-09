@@ -37,7 +37,7 @@ class FederatedRegistrantServiceTest {
     private static final UUID PARTNER_STATION = UUID.fromString("00000000-0000-0000-0000-000000000099");
     private static final UUID REMOTE_MEMBER = UUID.fromString("00000000-0000-0000-0000-000000000077");
     private static final EventFederationRegistration REGISTRATION = new EventFederationRegistration(
-            1, 4, 7, REMOTE_MEMBER, LocalDate.of(2026, 5, 1), RegistrationStatus.PENDING, Instant.EPOCH);
+            1, 4, 7, REMOTE_MEMBER, LocalDate.of(2026, 5, 1), RegistrationStatus.PENDING, Instant.EPOCH, null);
 
     private FederationRepository partners;
     private StationRepository stations;

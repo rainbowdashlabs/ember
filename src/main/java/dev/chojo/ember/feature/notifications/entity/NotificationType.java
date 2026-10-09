@@ -90,7 +90,9 @@ public enum NotificationType {
     DOCUMENT_SCAN_REJECTED(NotificationParams.DocumentScanRejected.class, "notification.documentScanRejected"),
     ACCOUNT_LINK_ACCEPTED(NotificationParams.AccountLinkAccepted.class, "notification.accountLinkAccepted"),
     ASSOCIATION_LINK_ACCEPTED(NotificationParams.AssociationLinkAccepted.class, "notification.associationLinkAccepted"),
-    SIGNATURE_WITHDRAWN(NotificationParams.SignatureWithdrawn.class, "notification.signatureWithdrawn");
+    SIGNATURE_WITHDRAWN(NotificationParams.SignatureWithdrawn.class, "notification.signatureWithdrawn"),
+    PARTNER_SIGNATURE_WITHDRAWN(
+            NotificationParams.PartnerSignatureWithdrawn.class, "notification.partnerSignatureWithdrawn");
 
     private final Class<? extends NotificationParams> paramsType;
     private final String localeKey;

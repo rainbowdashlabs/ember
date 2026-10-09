@@ -652,9 +652,8 @@ class SigningStateSealerTest extends RepositoryTestBase {
         var sealer = sealer(SealedPdfs.noTimestamps());
         sealer.sealLatest(request.id());
         var notices = mock(SignatureNotices.class);
-        WithdrawalRelay relay = mock(WithdrawalRelay.class);
 
-        var withdrawal = withdrawals(sealer, notices, relay, Clock.systemUTC())
+        var withdrawal = withdrawals(sealer, notices, Clock.systemUTC())
                 .requireOwnedThenWithdraw(
                         at(signer),
                         request.uid(),
@@ -692,7 +691,6 @@ class SigningStateSealerTest extends RepositoryTestBase {
         assertEquals(SignerCapacity.ACCOUNT_HOLDER, withdrawal.capacity());
         assertEquals("2001:db8:0:0:0:0:0:0", withdrawal.truncatedIp());
         verify(notices).withdrawn(any(), any(), isNull());
-        verify(relay).withdrawn(any(), any());
         assertFalse(sealer.sealLatest(request.id()), "nothing new to seal");
     }
 
@@ -709,7 +707,7 @@ class SigningStateSealerTest extends RepositoryTestBase {
         sealer.sealLatest(request.id());
         var document = documentOf(request);
         var stranger = member("Fritz", "Fremd");
-        var before = withdrawals(sealer, mock(SignatureNotices.class), (r, w) -> {}, Clock.systemUTC());
+        var before = withdrawals(sealer, mock(SignatureNotices.class), Clock.systemUTC());
         assertTrue(before.requireOwnedAgreements(at(signer), document.id())
                 .getFirst()
                 .withdrawable());
@@ -717,7 +715,7 @@ class SigningStateSealerTest extends RepositoryTestBase {
         var failing = mock(SigningStateSealer.class);
         when(failing.sealLatest(anyInt())).thenThrow(new IllegalStateException("no key"));
 
-        withdrawals(failing, mock(SignatureNotices.class), (r, w) -> {}, Clock.systemUTC())
+        withdrawals(failing, mock(SignatureNotices.class), Clock.systemUTC())
                 .requireOwnedThenWithdraw(at(signer), request.uid(), " ", new SigningCircumstances(null, null));
 
         assertEquals(1, versions.versionsOf(document.id()).size());
@@ -739,8 +737,7 @@ class SigningStateSealerTest extends RepositoryTestBase {
         assertSealIntact(documents.read(document).orElseThrow());
     }
 
-    private static SignatureWithdrawals withdrawals(
-            SigningStateSealer sealer, SignatureNotices notices, WithdrawalRelay relay, Clock clock) {
+    private static SignatureWithdrawals withdrawals(SigningStateSealer sealer, SignatureNotices notices, Clock clock) {
         var guardianPolicy = new GuardianPolicy(stationMemberRepo);
         return new SignatureWithdrawals(
                 requestRepo,
@@ -752,7 +749,6 @@ class SigningStateSealerTest extends RepositoryTestBase {
                 eventRepo,
                 eventRegistrationRepo,
                 mock(AppointmentSignatures.class),
-                relay,
                 clock);
     }
 

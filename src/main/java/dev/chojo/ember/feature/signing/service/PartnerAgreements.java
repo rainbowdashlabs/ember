@@ -75,6 +75,12 @@ import java.util.UUID;
  * pinned authorities alone; it is kept locked beside the copies before. The station holding the appointment
  * never holds evidence about the partner's member beyond the copy itself.
  *
+ * <p><b>Withdrawn at home.</b> A signed agreement withdrawn at the partner comes back as the sealed version that
+ * records the withdrawal, checked like every sealed copy and kept locked beside the signed one, which stays.
+ * The first such report marks the document withdrawn, flags the member's standing registration for the date,
+ * and tells whoever runs the appointment; a complete signed copy that comes back afterwards takes the flag off.
+ * A withdrawal is taken for a document already reported on even where the registration was given up since.
+ *
  * <p><b>Partners that cannot sign.</b> A partner whose installation never reports anything, because it is older,
  * cannot seal, or failed to take the document on, still registers its members. Each of them counts as
  * signature missing, and whoever manages the registrations can confirm a signed paper copy for them.
@@ -103,6 +109,7 @@ public class PartnerAgreements implements FederationServer, TaskSource {
     private final PartnerSealValidator validator;
     private final FederationRepository partners;
     private final MemberNameResolver names;
+    private final SignatureNotices notices;
     private final Clock clock;
 
     @Inject
@@ -116,7 +123,8 @@ public class PartnerAgreements implements FederationServer, TaskSource {
             PartnerAgreementRepository agreements,
             PartnerSealValidator validator,
             FederationRepository partners,
-            MemberNameResolver names) {
+            MemberNameResolver names,
+            SignatureNotices notices) {
         this(
                 events,
                 federation,
@@ -128,6 +136,7 @@ public class PartnerAgreements implements FederationServer, TaskSource {
                 validator,
                 partners,
                 names,
+                notices,
                 Clock.systemUTC());
     }
 
@@ -143,6 +152,7 @@ public class PartnerAgreements implements FederationServer, TaskSource {
             PartnerSealValidator validator,
             FederationRepository partners,
             MemberNameResolver names,
+            SignatureNotices notices,
             Clock clock) {
         this.events = events;
         this.federation = federation;
@@ -154,6 +164,7 @@ public class PartnerAgreements implements FederationServer, TaskSource {
         this.validator = validator;
         this.partners = partners;
         this.names = names;
+        this.notices = notices;
         this.clock = clock;
     }
 
@@ -193,8 +204,8 @@ public class PartnerAgreements implements FederationServer, TaskSource {
     }
 
     /**
-     * Takes what a partner reports about a document for one of its members: taken on, or signed with a sealed
-     * copy, which is kept only when its seal is the partner's.
+     * Takes what a partner reports about a document for one of its members: taken on, or signed or withdrawn
+     * with a sealed copy, which is kept only when its seal is the partner's.
      *
      * @param partner the partnership the request arrived on
      * @param eventId the appointment
@@ -203,7 +214,8 @@ public class PartnerAgreements implements FederationServer, TaskSource {
     void take(ServingPartner partner, int eventId, RemoteAgreementNotice notice) {
         var event = sharedEvent(partner, eventId, EventRefusal.PARTNER_AGREEMENT_NOTICE_NOT_SHARED);
         if (event.requiresRegistration()
-                && registrationOf(partner.row(), event, notice).isEmpty()) {
+                && registrationOf(partner.row(), event, notice).isEmpty()
+                && !withdrawsAKnownAgreement(partner.row(), eventId, notice)) {
             throw EventRefusal.PARTNER_AGREEMENT_NOTICE_NOT_REGISTERED.raise();
         }
         var handedOut = agreements
@@ -233,10 +245,14 @@ public class PartnerAgreements implements FederationServer, TaskSource {
         var state = notice.kind() == AgreementNoticeKind.WITHDRAWN
                 ? PartnerAgreementState.WITHDRAWN
                 : PartnerAgreementState.SIGNED;
-        boolean kept = Transactions.call(() -> {
+        var taken = Transactions.call(() -> {
+            var before = agreements.lockState(key);
             int id = agreements.report(key, state, handedOut.sha256(), notice.complete());
-            return agreements.addCopy(
+            boolean kept = agreements.addCopy(
                     id, Sha256.hex(sealed), sealed, Json.MAPPER.writeValueAsString(notice.fields()), notice.complete());
+            boolean newlyWithdrawn = state == PartnerAgreementState.WITHDRAWN
+                    && before.filter(PartnerAgreementState.WITHDRAWN::equals).isEmpty();
+            return new TakenCopy(kept, newlyWithdrawn);
         });
         log.info(
                 "Took a {} copy of document {} from partner {} for appointment {} on {} ({})",
@@ -245,7 +261,53 @@ public class PartnerAgreements implements FederationServer, TaskSource {
                 partner.partnerId(),
                 eventId,
                 notice.eventDate(),
-                kept ? "new" : "already kept");
+                taken.kept() ? "new" : "already kept");
+        if (taken.newlyWithdrawn()) {
+            withdrawn(partner.row(), event, notice, template);
+        } else if (state == PartnerAgreementState.SIGNED && notice.complete()) {
+            federation.clearAgreementWithdrawn(eventId, partner.partnerId(), notice.memberUid(), notice.eventDate());
+        }
+    }
+
+    /**
+     * What taking a sealed copy changed.
+     *
+     * @param kept           whether the copy was new
+     * @param newlyWithdrawn whether it is the first report of the agreement withdrawn
+     */
+    private record TakenCopy(boolean kept, boolean newlyWithdrawn) {}
+
+    /** Flags the member's standing registration for the date and tells whoever runs the appointment. */
+    private void withdrawn(
+            FederationPartner partner, StationEvent event, RemoteAgreementNotice notice, DocumentTemplate template) {
+        boolean flagged = federation.flagAgreementWithdrawn(
+                event.id(), partner.id(), notice.memberUid(), notice.eventDate(), clock.instant());
+        notices.partnerWithdrawn(
+                event.stationId(),
+                event.id(),
+                template.name(),
+                Objects.requireNonNullElse(
+                        partner.partnerStationName(), partner.partnerStationId().toString()),
+                federation.getCachedName(partner.id(), notice.memberUid()).orElse(null));
+        log.info(
+                "Partner {} withdrew document {} of appointment {} on {}{}",
+                partner.id(),
+                template.id(),
+                event.id(),
+                notice.eventDate(),
+                flagged ? ", registration flagged" : "");
+    }
+
+    private boolean withdrawsAKnownAgreement(FederationPartner partner, int eventId, RemoteAgreementNotice notice) {
+        return notice.kind() == AgreementNoticeKind.WITHDRAWN
+                && agreements
+                        .find(
+                                eventId,
+                                notice.eventDate(),
+                                notice.templateId(),
+                                partner.partnerStationId(),
+                                notice.memberUid())
+                        .isPresent();
     }
 
     /**

@@ -46,7 +46,7 @@ class EventSharingRoutesTest {
         when(crud.findById(4)).thenReturn(Optional.of(event));
         var member = UUID.fromString("00000000-0000-0000-0000-000000000077");
         var registration = new EventFederationRegistration(
-                1, 4, 7, member, LocalDate.of(2026, 5, 1), RegistrationStatus.PENDING, Instant.EPOCH);
+                1, 4, 7, member, LocalDate.of(2026, 5, 1), RegistrationStatus.PENDING, Instant.EPOCH, null);
         when(events.findRegistrations(4, LocalDate.of(2026, 5, 1))).thenReturn(List.of(registration));
         when(registrants.identify(registration))
                 .thenReturn(new MemberIdentity(UUID.fromString("00000000-0000-0000-0000-000000000099"), member)

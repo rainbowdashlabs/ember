@@ -65,7 +65,9 @@ import java.util.Optional;
  * gave it themselves; their digest mails it where they chose so.
  *
  * <p><b>Withdrawn.</b> A withdrawn agreement is told in the app to whoever runs the appointment that asked for
- * it, or to whoever asked for the signatures, except to whoever withdrew it.
+ * it, or to whoever asked for the signatures, except to whoever withdrew it. One a partner station reports
+ * withdrawn by its member is told to whoever runs the appointment here, naming the member only where the
+ * partner shares the name.
  *
  * <p><b>Settled.</b> Once a field no longer waits, by a signature, on paper, waived or withdrawn, the unread
  * requests and reminders for it are taken back, since there is nothing left to do about them.
@@ -185,6 +187,32 @@ public class SignatureNotices {
                     Delivery.EVERY_TIME);
         } catch (RuntimeException e) {
             log.warn("Could not tell that the agreement of signing request {} was withdrawn", request.uid(), e);
+        }
+    }
+
+    /**
+     * Tells whoever runs an appointment that a partner station reported a signed agreement of one of its
+     * members withdrawn there.
+     *
+     * @param stationId     the station holding the appointment
+     * @param eventId       the appointment
+     * @param documentTitle what the document is called
+     * @param stationName   the partner station's name
+     * @param memberName    the name the partner shares for the member, or null where it shares none
+     */
+    public void partnerWithdrawn(
+            int stationId, int eventId, String documentTitle, String stationName, @Nullable String memberName) {
+        try {
+            notifier.notify(
+                    StationAudience.holders(stationId, StationPermission.EVENT_MANAGER),
+                    NotificationType.PARTNER_SIGNATURE_WITHDRAWN,
+                    NotificationData.of(
+                            new NotificationParams.PartnerSignatureWithdrawn(documentTitle, stationName, memberName),
+                            NotificationLinks.event(eventId)),
+                    Delivery.EVERY_TIME);
+        } catch (RuntimeException e) {
+            log.warn(
+                    "Could not tell that partner {} withdrew an agreement for appointment {}", stationName, eventId, e);
         }
     }
 

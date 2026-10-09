@@ -2202,3 +2202,9 @@ COMMENT ON COLUMN ember_schema.signing_evidence.mark_image IS
     'The signature picture drawn into the signed field, a transparent PNG as the signer gave it at the act: their saved picture or one drawn on the spot. Every sealed version of the document draws it from here and shows nothing beside it, so a later change of the saved picture never changes an earlier signature. NULL for acts recorded before signature pictures, whose field is left empty.';
 COMMENT ON COLUMN ember_schema.signing_evidence.mark_source IS
     'How mark_image came to the act: DRAWN, TYPED or UPLOADED when it was made for the act, SAVED when it was the picture the signer''s account kept. The evidence attached to each sealed version, and the record built from it on request, name it beside the picture''s SHA-256. NULL exactly when mark_image is.';
+
+ALTER TABLE ember_schema.event_federation_registration
+    ADD COLUMN agreement_withdrawn_at TIMESTAMPTZ NULL;
+
+COMMENT ON COLUMN ember_schema.event_federation_registration.agreement_withdrawn_at IS
+    'When the partner reported a signed agreement for this date, which one of the appointment''s documents asked its member to sign, withdrawn there while the registration stood. Flags the registration for whoever runs the appointment. NULL where none was, and again once a complete signed copy comes back.';

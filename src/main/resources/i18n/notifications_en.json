@@ -192,7 +192,8 @@
     "DOCUMENT_SCAN_REJECTED": "Scan declined: {documentName} - {memberName}",
     "ACCOUNT_LINK_ACCEPTED": "Account linked: {memberName}",
     "ASSOCIATION_LINK_ACCEPTED": "Role accepted: {personName}",
-    "SIGNATURE_WITHDRAWN": "Signature withdrawn: {documentTitle} - {memberName}"
+    "SIGNATURE_WITHDRAWN": "Signature withdrawn: {documentTitle} - {memberName}",
+    "PARTNER_SIGNATURE_WITHDRAWN": "Signature withdrawn: {documentTitle} - {stationName}"
   },
   "digest": {
     "subject.one": "{stationName}: 1 new notification",
@@ -265,7 +266,8 @@
     "DOCUMENT_SCAN_REJECTED": "Documents to Bring",
     "ACCOUNT_LINK_ACCEPTED": "Account",
     "ASSOCIATION_LINK_ACCEPTED": "Account",
-    "SIGNATURE_WITHDRAWN": "Signature"
+    "SIGNATURE_WITHDRAWN": "Signature",
+    "PARTNER_SIGNATURE_WITHDRAWN": "Signature"
   },
   "message": {
     "notification.newNews": "{title} - by {author}",
@@ -350,6 +352,8 @@
     "notification.documentScanRejected": "The scan of {documentName} for {memberName} for {eventName} on {eventDate} was declined: {reason}",
     "notification.accountLinkAccepted": "{memberName} linked their own account to the member",
     "notification.associationLinkAccepted": "{personName} accepted the role in the association",
-    "notification.signatureWithdrawn": "{withdrawnByName} withdrew the signature on {documentTitle} for {memberName}"
+    "notification.signatureWithdrawn": "{withdrawnByName} withdrew the signature on {documentTitle} for {memberName}",
+    "notification.partnerSignatureWithdrawn": "A signature on {documentTitle} was withdrawn at {stationName}",
+    "notification.partnerSignatureWithdrawn.NAMED": "The signature on {documentTitle} for {memberName} was withdrawn at {stationName}"
   }
 }

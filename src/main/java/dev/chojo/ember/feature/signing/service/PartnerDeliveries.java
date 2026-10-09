@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.signing.entity.RemoteAgreementField;
 import dev.chojo.ember.feature.signing.entity.RemoteAgreementNotice;
 import dev.chojo.ember.feature.signing.entity.RequestState;
 import dev.chojo.ember.feature.signing.entity.SignatureRequest;
+import dev.chojo.ember.feature.signing.entity.SignatureWithdrawal;
 import dev.chojo.ember.feature.signing.repository.PartnerSigningRepository;
 import dev.chojo.ember.feature.signing.repository.SignatureRequestRepository;
 import dev.chojo.ember.feature.signing.route.RemoteSigningRoutes;
@@ -30,6 +31,7 @@ import dev.chojo.ember.lifecycle.TaskSource;
 import dev.chojo.ember.util.Sha256;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,7 +48,9 @@ import java.util.concurrent.Executor;
  *
  * <p>Every notice is a federation request, signed with this station's federation key. A sealed copy carries
  * the signers' official names on its record page and its evidence attached; the notice says nothing more of
- * the member than the id the registration names.
+ * the member than the id the registration names. The sealed version that records a withdrawal of the agreement
+ * here ({@link SignatureWithdrawals}) is sent as a withdrawal, so the partner marks it and flags the
+ * registration; every other sealed state is sent as signed.
  *
  * <p>A new sealed state is sent at once, outside the transaction that filed it ({@link SealedStateFollowUp}).
  * Whatever did not reach the partner, because it was unreachable or refused, is tried again by a sweep, later
@@ -215,10 +219,25 @@ public class PartnerDeliveries implements SealedStateFollowUp, TaskSource {
                 link.remoteTemplateId(),
                 link.templateVersion(),
                 request.contentSha256(),
-                sealed == null ? AgreementNoticeKind.ASKED : AgreementNoticeKind.SIGNED,
+                kindOf(request, sealed),
                 sealed == null ? null : Base64.getEncoder().encodeToString(sealed),
                 fields,
                 request.state() == RequestState.COMPLETE);
+    }
+
+    private AgreementNoticeKind kindOf(SignatureRequest request, byte @Nullable [] sealed) {
+        if (sealed == null) return AgreementNoticeKind.ASKED;
+        return recordsTheWithdrawal(request, sealed) ? AgreementNoticeKind.WITHDRAWN : AgreementNoticeKind.SIGNED;
+    }
+
+    /** Whether the sealed copy is the version that records the agreement's withdrawal. */
+    private boolean recordsTheWithdrawal(SignatureRequest request, byte[] sealed) {
+        if (request.state() != RequestState.REVOKED) return false;
+        String sha256 = Sha256.hex(sealed);
+        return requests.withdrawalOf(request.id())
+                .map(SignatureWithdrawal::sealedSha256)
+                .filter(sha256::equals)
+                .isPresent();
     }
 
     /** Five minutes after the first failure, doubling with every further one up to six hours. */

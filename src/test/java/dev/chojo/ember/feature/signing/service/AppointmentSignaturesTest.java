@@ -237,8 +237,7 @@ class AppointmentSignaturesTest extends GeneratorTestBase {
                 notices,
                 eventRepo,
                 eventRegistrationRepo,
-                signatures,
-                (request, withdrawal) -> {});
+                signatures);
         stationMemberRepo.grantPermission(
                 manager.id(),
                 stationMemberRepo

@@ -163,6 +163,28 @@ public class PartnerAgreementRepository {
     }
 
     /**
+     * Where a document stands for a member of a partner station, holding the row until the transaction ends,
+     * so two reports about it are taken one after the other.
+     *
+     * @param key the row
+     * @return its state, where the row was written
+     */
+    public Optional<PartnerAgreementState> lockState(PartnerAgreement.Key key) {
+        return query("""
+                        SELECT state FROM partner_agreement
+                        WHERE event_id = :event_id AND event_date = :event_date AND template_id = :template_id
+                          AND partner_station_uid = :partner_uid::UUID AND remote_member_id = :member_uid::UUID
+                        FOR UPDATE;""")
+                .single(call().bind("event_id", key.eventId())
+                        .bind("event_date", key.eventDate())
+                        .bind("template_id", key.templateId())
+                        .bind("partner_uid", key.partnerStationUid(), UUID_STRING)
+                        .bind("member_uid", key.remoteMemberId(), UUID_STRING))
+                .map(row -> row.getEnum("state", PartnerAgreementState.class))
+                .first();
+    }
+
+    /**
      * Records a signed paper copy confirmed here for a member of a partner station.
      *
      * @param key               the row

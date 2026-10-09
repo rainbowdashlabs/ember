@@ -49,8 +49,9 @@ import java.util.UUID;
  * registrations, the member's standing registration for the date is flagged and the agreement is asked for
  * anew on a fresh copy, so it is among the open signatures again; on one that takes none, the agreement is
  * offered again on the appointment's page. Whoever runs the appointment, or whoever asked for the signatures,
- * is told ({@link SignatureNotices}), and the withdrawal is handed on beyond the station where it has to
- * travel ({@link WithdrawalRelay}).
+ * is told ({@link SignatureNotices}). An agreement signed here for a partner station's appointment reaches its
+ * organiser with the sealed version that records the withdrawal, which travels like every sealed state
+ * ({@link PartnerDeliveries}).
  */
 @Singleton
 public class SignatureWithdrawals {
@@ -68,7 +69,6 @@ public class SignatureWithdrawals {
     private final EventRepository events;
     private final EventRegistrationRepository registrations;
     private final AppointmentSignatures appointments;
-    private final WithdrawalRelay relay;
     private final Clock clock;
 
     @Inject
@@ -81,8 +81,7 @@ public class SignatureWithdrawals {
             SignatureNotices notices,
             EventRepository events,
             EventRegistrationRepository registrations,
-            AppointmentSignatures appointments,
-            WithdrawalRelay relay) {
+            AppointmentSignatures appointments) {
         this(
                 requests,
                 requestService,
@@ -93,7 +92,6 @@ public class SignatureWithdrawals {
                 events,
                 registrations,
                 appointments,
-                relay,
                 Clock.systemUTC());
     }
 
@@ -110,7 +108,6 @@ public class SignatureWithdrawals {
             EventRepository events,
             EventRegistrationRepository registrations,
             AppointmentSignatures appointments,
-            WithdrawalRelay relay,
             Clock clock) {
         this.requests = requests;
         this.requestService = requestService;
@@ -121,7 +118,6 @@ public class SignatureWithdrawals {
         this.events = events;
         this.registrations = registrations;
         this.appointments = appointments;
-        this.relay = relay;
         this.clock = clock;
     }
 
@@ -162,9 +158,9 @@ public class SignatureWithdrawals {
         seal(request);
         var copy = requests.appointmentOf(request.id()).orElse(null);
         if (copy != null) reopen(copy, withdrawal);
+        // TODO ask a partner appointment's agreement anew at home once it was withdrawn here
         var revoked = requests.findById(request.id()).orElse(request);
         notices.withdrawn(revoked, withdrawal, copy == null ? null : copy.eventId());
-        relay(revoked, withdrawal);
         return withdrawal;
     }
 
@@ -225,14 +221,6 @@ public class SignatureWithdrawals {
                     copy.eventId(),
                     copy.eventDate(),
                     e);
-        }
-    }
-
-    private void relay(SignatureRequest request, SignatureWithdrawal withdrawal) {
-        try {
-            relay.withdrawn(request, withdrawal);
-        } catch (RuntimeException e) {
-            log.warn("Could not hand the withdrawal of signing request {} on", request.uid(), e);
         }
     }
 

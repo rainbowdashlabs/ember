@@ -426,4 +426,23 @@ public sealed interface NotificationParams {
      */
     record SignatureWithdrawn(String documentTitle, String withdrawnByName, String memberName)
             implements NotificationParams {}
+
+    /**
+     * A partner station reported a signed agreement of one of its members withdrawn there, told to whoever
+     * runs the appointment that asked for it. Who withdrew it stays with the partner; the member is named only
+     * where the partner shares their name.
+     *
+     * @param documentTitle the document's title
+     * @param stationName   the partner station's name
+     * @param memberName    the name the partner shares for the member, or null where it shares none
+     */
+    record PartnerSignatureWithdrawn(
+            String documentTitle,
+            String stationName,
+            @Nullable String memberName) implements NotificationParams {
+        @Override
+        public @Nullable String variant() {
+            return memberName == null ? null : "NAMED";
+        }
+    }
 }

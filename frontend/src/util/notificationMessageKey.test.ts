@@ -58,4 +58,13 @@ describe('notificationMessageKey', () => {
             {documentTitle: 'Einverständnis', signerName: 'Mia Muster'}))
             .toBe('notification.documentSigned')
     })
+
+    it('names the member of a withdrawal at a partner station only where the partner shares the name', () => {
+        expect(notificationMessageKey('PARTNER_SIGNATURE_WITHDRAWN', 'notification.partnerSignatureWithdrawn',
+            {documentTitle: 'Einverständnis', stationName: 'Wache Nord', memberName: 'Mia Muster'}))
+            .toBe('notification.partnerSignatureWithdrawnNamed')
+        expect(notificationMessageKey('PARTNER_SIGNATURE_WITHDRAWN', 'notification.partnerSignatureWithdrawn',
+            {documentTitle: 'Einverständnis', stationName: 'Wache Nord'}))
+            .toBe('notification.partnerSignatureWithdrawn')
+    })
 })
