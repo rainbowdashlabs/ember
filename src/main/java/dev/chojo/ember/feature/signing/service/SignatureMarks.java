@@ -35,8 +35,8 @@ import javax.imageio.ImageIO;
  *
  * <p>A mark is the signature picture alone, drawn onto the page inside the rectangle of the field it belongs
  * to and nowhere else, scaled to fit and centred, resting just above the line the field sits on. Nothing is
- * printed beside it: a template that wants the signer's name under the line prints it as the field's own
- * text. The field itself is taken out afterwards, so no reader offers to sign an empty field over a signature
+ * printed beside it: the signer's name was printed under the line when the document was generated, outside
+ * the field, so the picture never covers it. The field itself is taken out afterwards, so no reader offers to sign an empty field over a signature
  * that is already there; every other field stays as it was. Drawing onto the page rather than into the
  * field's own appearance is what makes the mark show in every viewer and on paper, since browser viewers
  * leave signature fields out.

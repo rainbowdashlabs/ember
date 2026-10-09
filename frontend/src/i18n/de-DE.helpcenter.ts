@@ -2059,9 +2059,12 @@ volumes:
             signatureTitle: 'Unterschriften',
             signatureText: 'Eine Unterschriftszeile setzt du im Text als eigenen Baustein. Wähle, wer unterschreibt: '
                 + 'die teilnehmende Person, die ausstellende Person, die erste oder zweite erziehungsberechtigte Person, '
-                + 'alle Erziehungsberechtigten mit je einer eigenen Linie oder eine beliebige von ihnen. Darunter '
-                + 'steht ein kurzer Text mit Platzhaltern, etwa Name und Funktion. Im Dokument steht eine Linie zum '
-                + 'Unterschreiben, und das PDF enthält dort ein leeres Unterschriftsfeld.',
+                + 'alle Erziehungsberechtigten mit je einer eigenen Linie oder eine beliebige von ihnen. Im Dokument '
+                + 'steht eine Linie zum Unterschreiben, und das PDF enthält dort ein leeres Unterschriftsfeld. Direkt '
+                + 'unter der Linie druckt Ember immer den Namen der Person, die dort unterschreibt, bei einer '
+                + 'beliebigen erziehungsberechtigten Person mit dem Namen des Mitglieds. Ist niemand bekannt, steht '
+                + 'dort die Rolle. Darunter folgt ein kurzer Text mit Platzhaltern, etwa die Funktion. Nennt dieser '
+                + 'Text den Namen schon, steht er nur einmal da.',
             signatureGuardiansText: 'Hat ein Mitglied nur eine erziehungsberechtigte Person, fällt die Zeile für die '
                 + 'zweite weg, und ihre Angaben bleiben leer, ohne als fehlend zu gelten. Fehlt jede '
                 + 'erziehungsberechtigte Person, nennt Ember die Angaben der ersten als fehlend.',

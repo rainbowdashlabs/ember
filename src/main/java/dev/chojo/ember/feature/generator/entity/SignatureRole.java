@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.generator.entity;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.OptionalInt;
 import java.util.stream.IntStream;
 
 /**
@@ -43,6 +44,8 @@ public enum SignatureRole {
      * show each field it can ask for beside another signer.
      */
     public static final int GUARDIANS_CHECKED = 2;
+
+    private static final String GUARDIAN_PREFIX = "guardian";
 
     /**
      * The signature fields this signer asks for in the document of one member.
@@ -83,7 +86,22 @@ public enum SignatureRole {
                         .toList()));
     }
 
+    /**
+     * @param fieldName the name of a signature field
+     * @return the place in the member's order of the guardian the field names, counted from one, or empty
+     *         where it names no particular guardian
+     */
+    public static OptionalInt guardianPlace(String fieldName) {
+        if (!fieldName.startsWith(GUARDIAN_PREFIX)) return OptionalInt.empty();
+        try {
+            int place = Integer.parseInt(fieldName.substring(GUARDIAN_PREFIX.length()));
+            return place > 0 ? OptionalInt.of(place) : OptionalInt.empty();
+        } catch (NumberFormatException e) {
+            return OptionalInt.empty();
+        }
+    }
+
     private static String guardian(int place) {
-        return "guardian" + place;
+        return GUARDIAN_PREFIX + place;
     }
 }

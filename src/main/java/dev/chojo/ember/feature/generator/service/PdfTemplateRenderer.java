@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.generator.service;
 
 import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.feature.generator.entity.PdfContent;
+import dev.chojo.ember.feature.generator.entity.SignerCaptions;
 import dev.chojo.ember.feature.generator.service.font.FontLibrary;
 import dev.chojo.ember.feature.generator.service.pdf.PdfStamper;
 import dev.chojo.ember.feature.generator.service.pdf.StampFonts;
@@ -83,10 +84,12 @@ public class PdfTemplateRenderer {
      * @param content   the PDF and what is laid over it
      * @param guardians how many guardians the member has, which decides how many of them sign
      * @param fill      fills the placeholders of a text
+     * @param signers   the names printed under the signature fields
      * @return the filled-in PDF and the characters no font could print
      */
-    public PdfStamper.Stamped render(Owner owner, PdfContent content, int guardians, UnaryOperator<String> fill) {
-        return render(original(owner, content), guardians, fill);
+    public PdfStamper.Stamped render(
+            Owner owner, PdfContent content, int guardians, UnaryOperator<String> fill, SignerCaptions signers) {
+        return render(original(owner, content), guardians, fill, signers);
     }
 
     /**
@@ -95,11 +98,14 @@ public class PdfTemplateRenderer {
      * @param original  what the document is filled from
      * @param guardians how many guardians the member has, which decides how many of them sign
      * @param fill      fills the placeholders of a text
+     * @param signers   the names printed under the signature fields
      * @return the filled-in PDF and the characters no font could print
      */
-    public PdfStamper.Stamped render(Original original, int guardians, UnaryOperator<String> fill) {
+    public PdfStamper.Stamped render(
+            Original original, int guardians, UnaryOperator<String> fill, SignerCaptions signers) {
         try {
-            return stamper.stamp(original.data(), original.content().layout(), guardians, fill, original.fieldFonts());
+            return stamper.stamp(
+                    original.data(), original.content().layout(), guardians, fill, signers, original.fieldFonts());
         } catch (IOException e) {
             log.error("The PDF of {} could not be filled", original.owner(), e);
             throw DocumentRefusal.DOCUMENT_RENDER_FAILED.raise();

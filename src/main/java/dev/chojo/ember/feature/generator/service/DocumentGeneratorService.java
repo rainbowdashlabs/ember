@@ -24,6 +24,7 @@ import dev.chojo.ember.feature.generator.entity.Placeholder;
 import dev.chojo.ember.feature.generator.entity.PlaceholderTokens;
 import dev.chojo.ember.feature.generator.entity.ResolvedValues;
 import dev.chojo.ember.feature.generator.entity.SignatureRole;
+import dev.chojo.ember.feature.generator.entity.SignerCaptions;
 import dev.chojo.ember.feature.generator.entity.TemplateContent;
 import dev.chojo.ember.feature.generator.service.pdf.PdfStamper;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
@@ -140,6 +141,7 @@ public class DocumentGeneratorService {
      * @param view      which blocks of a letter the member sees and how many guardians sign for them
      * @param resolved  the values and what is missing
      * @param issuer    the issuer as the document names them
+     * @param signers   the names printed under the signature fields
      * @param missing   the placeholders without a value, in the words of the template's owner
      */
     public record Prepared(
@@ -148,6 +150,7 @@ public class DocumentGeneratorService {
             MemberView view,
             ResolvedValues resolved,
             IssuerUse issuer,
+            SignerCaptions signers,
             List<MissingValue> missing) {}
 
     /**
@@ -448,7 +451,8 @@ public class DocumentGeneratorService {
         String title = title(source, values);
         var labels = new LinkedHashMap<String, String>();
         prepared.missing().forEach(missing -> labels.put(missing.key(), missing.label()));
-        var drawn = drawing.draw(new Sheet(prepared.stationId(), prepared.view(), title, values, labels, false, today));
+        var drawn = drawing.draw(new Sheet(
+                prepared.stationId(), prepared.view(), title, values, labels, false, prepared.signers(), today));
         return new Rendered(drawn.pdf(), title, fileName(source, values), prepared.resolved(), drawn.unprintable());
     }
 
@@ -473,7 +477,13 @@ public class DocumentGeneratorService {
                 .map(key -> new MissingValue(key, PlaceholderCatalogue.labelOf(known, key)))
                 .toList();
         var prepared = new Prepared(
-                source, stationId, view, resolved, new IssuerUse(DocumentIssuer.NONE, false, false, null), missing);
+                source,
+                stationId,
+                view,
+                resolved,
+                new IssuerUse(DocumentIssuer.NONE, false, false, null),
+                SignerCaptions.roles(source.language()),
+                missing);
         return render(prepared);
     }
 
@@ -536,6 +546,7 @@ public class DocumentGeneratorService {
                         values,
                         labels,
                         true,
+                        SignerCaptions.roles(source.language()),
                         () -> today(stationId)));
     }
 
@@ -591,9 +602,11 @@ public class DocumentGeneratorService {
             boolean named = signs || BuiltInPlaceholder.namesIssuer(keys);
             if (named) keys.add(BuiltInPlaceholder.ISSUER_FULL_NAME.key());
             var resolved = values.resolve(stationId, memberId, keys, source.language(), context);
-            var issuer = new IssuerUse(
-                    context.issuer(), named, signs, resolved.values().get(BuiltInPlaceholder.ISSUER_FULL_NAME.key()));
-            return new Prepared(source, stationId, view, resolved, issuer, missingOf(source.owner(), resolved));
+            String issuerName = resolved.values().get(BuiltInPlaceholder.ISSUER_FULL_NAME.key());
+            var issuer = new IssuerUse(context.issuer(), named, signs, issuerName);
+            var signers = values.captions(memberId, source.language(), issuerName);
+            return new Prepared(
+                    source, stationId, view, resolved, issuer, signers, missingOf(source.owner(), resolved));
         }
 
         /**
@@ -670,6 +683,7 @@ public class DocumentGeneratorService {
      * @param values     the value of every placeholder that has one
      * @param labels     the words of the placeholders shown where there is no value
      * @param showLabels whether a placeholder without a value shows its label
+     * @param signers    the names printed under the signature fields
      * @param today      the day the document is dated, read only where it prints one
      */
     private record Sheet(
@@ -679,6 +693,7 @@ public class DocumentGeneratorService {
             Map<String, String> values,
             Map<String, String> labels,
             boolean showLabels,
+            SignerCaptions signers,
             Supplier<LocalDate> today) {}
 
     /** What a template is drawn with, read once for as many documents as are drawn from it. */
@@ -709,6 +724,7 @@ public class DocumentGeneratorService {
                     sheet.values(),
                     sheet.labels(),
                     sheet.showLabels(),
+                    sheet.signers(),
                     sheet.today().get());
             return new PdfStamper.Stamped(letters.render(job, setting), List.of());
         }
@@ -730,7 +746,8 @@ public class DocumentGeneratorService {
                         String value = sheet.values().get(key);
                         if (value != null) return value;
                         return sheet.showLabels() ? "[" + sheet.labels().getOrDefault(key, key) + "]" : "";
-                    }));
+                    }),
+                    sheet.signers());
         }
     }
 

@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.generator.entity.GenerationContext;
 import dev.chojo.ember.feature.generator.entity.PlaceholderKey;
 import dev.chojo.ember.feature.generator.entity.PronounKey;
 import dev.chojo.ember.feature.generator.entity.ResolvedValues;
+import dev.chojo.ember.feature.generator.entity.SignerCaptions;
 import dev.chojo.ember.feature.generator.entity.SubjectRole;
 import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.NameParts;
@@ -278,6 +279,22 @@ public class PlaceholderResolver {
          */
         public int guardians(int memberId) {
             return guardiansOf(memberId).size();
+        }
+
+        /**
+         * The names printed under the signature fields of a member's document: the member's, their
+         * guardians' in their set order and the issuer's, each the official name.
+         *
+         * @param memberId a member
+         * @param language the language the document is written in
+         * @param issuer   the issuer's name as the document prints it, or null where it names none
+         * @return the captions
+         */
+        public SignerCaptions captions(int memberId, DocumentLanguage language, @Nullable String issuer) {
+            var guardianNames = guardiansOf(memberId).stream()
+                    .map(guardian -> names.official(guardian.id()))
+                    .toList();
+            return new SignerCaptions(language, names.official(memberId), guardianNames, issuer);
         }
 
         /**

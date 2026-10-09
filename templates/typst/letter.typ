@@ -70,15 +70,21 @@
   )
 })
 
+#let signer-caption(c, index) = {
+  let caption = c.at("captions", default: ()).at(index, default: "")
+  if caption != "" { block(above: 0.3em, below: 0pt, text(size: 0.8em, caption)) }
+}
+
 #let signature(c, max-height) = grid(
   columns: c.fields.len() * (1fr,),
   column-gutter: 1.2em,
-  ..c.fields.map(field => [
+  ..c.fields.enumerate().map(((index, field)) => [
     #box(
       width: 100%,
       height: 1.6cm,
       link(data.signatureMarker + field, box(width: 100%, height: 100%, stroke: (bottom: 0.6pt + black))),
     )
+    #signer-caption(c, index)
     #block(above: 0.3em, text(size: 0.85em, text-block(c, max-height)))
   ]),
 )

@@ -580,31 +580,50 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
             String xmp = new String(document.getDocumentCatalog().getMetadata().toByteArray(), StandardCharsets.UTF_8);
             assertTrue(xmp.contains("pdfaid:part>3<") || xmp.contains("pdfaid:part=\"3\""), xmp);
         }
-        assertTrue(PdfText.extract(fileOf(generated.documentId())).contains("Nora Fülling, Jugendwartin"));
+        String text = PdfText.extract(fileOf(generated.documentId()));
+        assertTrue(text.contains("Nora Fülling, Jugendwartin"), text);
+        assertEquals(1, text.split("Nora Fülling", -1).length - 1, "the line's text already names the issuer");
     }
 
-    /** Every guardian signs in a field of their own; a member without any keeps a line for the first. */
+    /** Under the issuer's line the issuer's name, under any one guardian's the member they sign for. */
+    @Test
+    void everySignatureLineNamesItsSigner() throws IOException {
+        int templateId = templateOf(
+                "Mit Namen",
+                row(signature(SignatureRole.ISSUER, "Unterschrift"), signature(SignatureRole.ANY_GUARDIAN, "")));
+
+        var generated = generation.generate(
+                as(manager), templateId, withTwoGuardians("Uwe").id(), null);
+
+        String text = PdfText.extract(fileOf(generated.documentId()));
+        assertTrue(text.contains("Nora Fülling"), text);
+        assertTrue(text.contains("Eine erziehungsberechtigte Person von Uwe Zwei"), text);
+    }
+
+    /**
+     * Every guardian signs in a field of their own, each named under it; a member without any keeps a line
+     * for the first, which names the role.
+     */
     @Test
     void eachGuardianSignsInAFieldOfTheirOwn() throws IOException {
         int templateId =
                 templateOf("Alle Eltern", row(signature(SignatureRole.EACH_GUARDIAN, "Erziehungsberechtigte")));
         var kim = withTwoGuardians("Kim");
 
-        assertEquals(
-                List.of("guardian1", "guardian2"),
-                signatureFields(generation
-                        .generate(as(manager), templateId, kim.id(), null)
-                        .documentId()));
+        var forKim = generation.generate(as(manager), templateId, kim.id(), null);
+        assertEquals(List.of("guardian1", "guardian2"), signatureFields(forKim.documentId()));
+        String kimText = PdfText.extract(fileOf(forKim.documentId()));
+        assertTrue(kimText.contains("Erste Zwei"), kimText);
+        assertTrue(kimText.contains("Zweite Zwei"), kimText);
         assertEquals(
                 List.of("guardian1"),
                 signatureFields(generation
                         .generate(as(manager), templateId, lena.id(), null)
                         .documentId()));
-        assertEquals(
-                List.of("guardian1"),
-                signatureFields(generation
-                        .generate(as(manager), templateId, max.id(), null)
-                        .documentId()));
+        var forMax = generation.generate(as(manager), templateId, max.id(), null);
+        assertEquals(List.of("guardian1"), signatureFields(forMax.documentId()));
+        String maxText = PdfText.extract(fileOf(forMax.documentId()));
+        assertTrue(maxText.contains("Erziehungsberechtigte Person 1"), maxText);
     }
 
     /**
