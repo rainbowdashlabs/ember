@@ -26,7 +26,6 @@ import {useSidebarCounts} from '@/composables/useSidebarCounts'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useSignupMemberSet} from '@/composables/useSignupMemberSet'
 import {useConfirmAction} from '@/composables/useConfirmAction'
-import {showToast} from '@/util/toast'
 import SignOffConfirm from '@/views/stationview/events/eventshared/eventregistrationactions/SignOffConfirm.vue'
 import RegistrationsPanel from './RegistrationsPanel.vue'
 import {useRegistrationsInView} from './useRegistrationsInView'
@@ -35,6 +34,9 @@ import AgreementSignersPanel from './AgreementSignersPanel.vue'
 import SignupListsMenu from './signuplists/SignupListsMenu.vue'
 import RegistrationFieldsModal from '../eventshared/RegistrationFieldsModal.vue'
 import EventAnswerDialog from '../eventshared/EventAnswerDialog.vue'
+import RegistrationSigningStep from '../eventshared/RegistrationSigningStep.vue'
+import {useRegistrationSigningStep} from '@/composables/useRegistrationSigningStep'
+import {useHouseholdSignOff} from './useHouseholdSignOff'
 import {isStandingAnswer, membersToRegister, notOpenLabelKey, type AnswerablePerson, type PersonAnswer} from '@/util/eventAnswers'
 
 const props = defineProps<{
@@ -198,12 +200,24 @@ const {running: registering, failure: registrationFailure, run: runRegistration}
       await reloadAndRefresh()
     })
 
+const {signingStep, offerSigning, closeSigningStep} = useRegistrationSigningStep()
+
+/**
+ * Signs up people of the reader's own household, then offers the documents to bring they still have
+ * to sign, as signing up anywhere else does. Whoever is signed up by hand for somebody else is not
+ * offered them: they are not the one who signs.
+ */
+async function registerHousehold(people: {key: number; fields?: EventRegistrationFieldValue[]}[]) {
+  for (const person of people) await runRegistration('register', person.key, person.fields)
+  if (props.effectiveDate) await offerSigning(props.eventId, props.effectiveDate, people.map(person => person.key))
+}
+
 /**
  * Registering asks the event's questions first. Without questions the button stays a button -
  * an event that asks nothing must not gain a dialog.
  */
 function registerMember(memberId: number) {
-  if (registrationFields.value.length === 0) return runRegistration('register', memberId)
+  if (registrationFields.value.length === 0) return registerHousehold([{key: memberId}])
   pendingRegistrationMemberId.value = memberId
   showFieldsModal.value = true
 }
@@ -217,36 +231,10 @@ async function confirmRegistrationFields(values: EventRegistrationFieldValue[]) 
     await manualRegister(values)
     return
   }
-  await runRegistration('register', memberId, values)
+  await registerHousehold([{key: memberId, fields: values}])
 }
 
-/**
- * Gives one person's place back, and remembers what was given up.
- *
- * <p>The ids are collected rather than acted on one at a time, because this screen gives up a whole
- * household at once and one offer to put them all back reads better than three.
- */
-async function undoAnswerFor(memberId: number, givenUp: GivenUp[] = []) {
-  const registration = getRegistrationForMember(memberId)
-  if (!registration) return
-  const withdrawal = await events.withdrawRegistration(registration.id)
-  givenUp.push({id: registration.id, undoUntil: withdrawal.undoUntil})
-  await reloadAndRefresh()
-}
-
-/** A place just given up, and how long the server said it would take it back. */
-interface GivenUp {
-  id: number
-  undoUntil: string
-}
-
-/** Puts back everything the one press gave up, for as long as the server still takes them back. */
-async function undoWithdrawals(givenUp: GivenUp[]) {
-  for (const place of givenUp) {
-    await events.undoWithdrawal(place.id).catch(() => undefined)
-  }
-  await reloadAndRefresh()
-}
+const {withdrawAll} = useHouseholdSignOff(getRegistrationForMember, reloadAndRefresh)
 
 const showAnswerDialog = ref(false)
 
@@ -305,29 +293,14 @@ const {
   failure,
 })
 
-/**
- * Gives up every place the household holds, which is what the one button beside them offers, and
- * offers all of them back together for as long as the server would take them.
- */
-async function withdrawHousehold() {
-  const givenUp: GivenUp[] = []
-  for (const person of withPlace.value) {
-    await undoAnswerFor(person.key, givenUp)
-  }
-  if (givenUp.length === 0) return
-  const remaining = new Date(givenUp[0]!.undoUntil).getTime() - Date.now()
-  if (remaining <= 0) return
-  showToast(t('eventsUpcoming.signedOff'), 'info', remaining, {
-    label: t('eventsUpcoming.undoSignOff'),
-    run: () => undoWithdrawals(givenUp),
-  })
+/** Gives up every place the household holds, which is what the one button beside them offers. */
+function withdrawHousehold() {
+  return withdrawAll(withPlace.value.map(person => person.key))
 }
 
 async function confirmHouseholdAnswer(answers: PersonAnswer[]) {
   showAnswerDialog.value = false
-  for (const answer of answers) {
-    await runRegistration('register', answer.key, answer.fields)
-  }
+  await registerHousehold(answers)
 }
 
 const editingRegistration = ref<RegistrationResponse | null>(null)
@@ -439,6 +412,8 @@ onMounted(loadRegistrations)
         :failure="registrationFailure"
         @confirm="confirmHouseholdAnswer"
     />
+    <RegistrationSigningStep v-if="signingStep" :model-value="true" :step="signingStep"
+                             @update:model-value="shown => { if (!shown) closeSigningStep() }"/>
 
     <RegistrationsPanel
         v-model:manual-register-member-id="manualRegisterMemberId"
