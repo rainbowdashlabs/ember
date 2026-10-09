@@ -9,9 +9,11 @@ import dev.chojo.ember.feature.storage.backend.tree.FileInfo;
 import dev.chojo.ember.feature.storage.backend.tree.FileTree;
 import dev.chojo.ember.feature.storage.backend.tree.OpenFile;
 import org.apache.sshd.sftp.client.SftpClient;
+import org.apache.sshd.sftp.client.extensions.CopyDataExtension;
 import org.apache.sshd.sftp.client.extensions.openssh.OpenSSHPosixRenameExtension;
 import org.apache.sshd.sftp.common.SftpConstants;
 import org.apache.sshd.sftp.common.SftpException;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,12 +38,15 @@ final class SftpFileTree implements FileTree {
             EnumSet.of(SftpClient.OpenMode.Create, SftpClient.OpenMode.Write, SftpClient.OpenMode.Truncate);
 
     private final SftpClient sftp;
-    private final OpenSSHPosixRenameExtension posixRename;
+    private final @Nullable OpenSSHPosixRenameExtension posixRename;
+    private final @Nullable CopyDataExtension copyData;
 
     SftpFileTree(SftpClient sftp) {
         this.sftp = sftp;
-        var extension = sftp.getExtension(OpenSSHPosixRenameExtension.class);
-        this.posixRename = extension != null && extension.isSupported() ? extension : null;
+        var rename = sftp.getExtension(OpenSSHPosixRenameExtension.class);
+        this.posixRename = rename != null && rename.isSupported() ? rename : null;
+        var copy = sftp.getExtension(CopyDataExtension.class);
+        this.copyData = copy != null && copy.isSupported() ? copy : null;
     }
 
     private static String absolute(String path) {
@@ -94,6 +99,26 @@ final class SftpFileTree implements FileTree {
         }
         remove(target);
         sftp.rename(absolute(source), absolute(target));
+    }
+
+    /**
+     * A server-side copy through the {@code copy-data} extension where the server offers it, as recent
+     * OpenSSH servers do. Elsewhere the bytes are streamed through the channel.
+     */
+    @Override
+    public void copy(String source, String target) throws IOException {
+        var extension = copyData;
+        if (extension == null) {
+            FileTree.super.copy(source, target);
+            return;
+        }
+        try (var from = sftp.open(absolute(source), SftpClient.OpenMode.Read);
+                var to = sftp.open(absolute(target), WRITE)) {
+            extension.copyData(from, 0, 0, to, 0);
+        } catch (SftpException e) {
+            if (isMissing(e)) throw new NoSuchFileException(target);
+            throw e;
+        }
     }
 
     @Override

@@ -15,14 +15,18 @@ import dev.chojo.ember.api.auth.StepUpGuard;
 import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.account.entity.AccountAction;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AccountEmailService;
+import dev.chojo.ember.feature.account.service.AccountReach;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.account.service.LoginNameService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
+
+import java.util.Objects;
 
 /**
  * The accounts behind the members of a station, as whoever manages the members acts on them:
@@ -39,6 +43,7 @@ public class MemberAccountService {
     private final StepUpGuard stepUpGuard;
     private final MemberNameResolver nameResolver;
     private final NameChangeService nameChanges;
+    private final AccountReach accountReach;
 
     @Inject
     public MemberAccountService(
@@ -49,7 +54,8 @@ public class MemberAccountService {
             AccountEmailService accountEmailService,
             StepUpGuard stepUpGuard,
             MemberNameResolver nameResolver,
-            NameChangeService nameChanges) {
+            NameChangeService nameChanges,
+            AccountReach accountReach) {
         this.accountRepository = accountRepository;
         this.memberRepository = memberRepository;
         this.authService = authService;
@@ -58,6 +64,7 @@ public class MemberAccountService {
         this.stepUpGuard = stepUpGuard;
         this.nameResolver = nameResolver;
         this.nameChanges = nameChanges;
+        this.accountReach = accountReach;
     }
 
     /**
@@ -78,17 +85,19 @@ public class MemberAccountService {
     }
 
     /**
-     * The account of a member of the caller's station that the caller may act on.
+     * The account of a member of the caller's station that the caller may act on in this way.
      *
      * @param accountId the account
      * @param session   who is asking
      * @param missing   the refusal for an account that is gone
+     * @param action    what the caller does to the account
      * @return the account
      */
-    public Account actionableAccount(int accountId, StationSession session, Refusal missing) {
+    public Account actionableAccount(int accountId, StationSession session, Refusal missing, AccountAction action) {
         requireStationAccount(accountId, session.stationId());
         Account target = accountRepository.findById(accountId).orElseThrow(missing::raise);
         requireNotAboveActor(target, session.user());
+        accountReach.require(session.stationId(), accountId, action);
         return target;
     }
 
@@ -102,7 +111,8 @@ public class MemberAccountService {
      * @return the account
      */
     public Account addresslessAccount(int accountId, StationSession session) {
-        Account target = actionableAccount(accountId, session, MemberRefusal.ACCOUNT_NOT_HERE_ON_PASSKEY_CODE);
+        Account target = actionableAccount(
+                accountId, session, MemberRefusal.ACCOUNT_NOT_HERE_ON_PASSKEY_CODE, AccountAction.PASSKEY_CODE);
         if (target.hasRealEmail()) {
             throw MemberRefusal.MEMBER_HAS_OWN_ADDRESS.raise();
         }
@@ -138,7 +148,9 @@ public class MemberAccountService {
      * changing an address are the only things that ever move it. Somebody putting their own
      * address right confirms it from both ends, which is what stops a stolen session walking off
      * with the account. Moving somebody else's address aims every later mail at whoever chose it,
-     * so it takes a fresh proof, never reaches upwards, and is committed at once.
+     * so it takes a fresh proof, never reaches upwards, and is committed at once. A station may move
+     * it, or change the sign-in name, only where the account is the station's alone and confirmed by
+     * its owner, as {@link AccountReach} decides, and that is checked before anything is written.
      *
      * @param session   who is asking
      * @param stationId the station they ask from, or null when none is chosen
@@ -149,14 +161,23 @@ public class MemberAccountService {
     public UpdateAccountResponse update(
             UserSession session, @Nullable Integer stationId, int accountId, UpdateAccountRequest request) {
         boolean actsForSomebodyElse = session.accountId() != accountId;
-        if (actsForSomebodyElse && !session.hasInstancePermission(InstancePermission.ADMINISTRATOR)) {
+        boolean actsForTheStation =
+                actsForSomebodyElse && !session.hasInstancePermission(InstancePermission.ADMINISTRATOR);
+        if (actsForTheStation) {
             if (!session.hasPermission(StationPermission.MEMBER_EDIT)) {
                 throw MemberRefusal.ACCOUNT_NOT_YOURS_TO_CHANGE.raise();
             }
             requireStationAccount(accountId, stationId);
+            if (stationId != null) accountReach.require(stationId, accountId, AccountAction.RENAME);
         }
         var existing =
                 accountRepository.findById(accountId).orElseThrow(MemberRefusal.ACCOUNT_NOT_HERE_ON_CHANGE::raise);
+        if (actsForTheStation && stationId != null && changesAddress(existing, request.email())) {
+            accountReach.require(stationId, accountId, AccountAction.EMAIL_CHANGE);
+        }
+        if (actsForTheStation && stationId != null && changesUsername(existing, request.username())) {
+            accountReach.require(stationId, accountId, AccountAction.USERNAME_CHANGE);
+        }
         boolean nameWaits =
                 !actsForSomebodyElse && changesName(existing, request) && nameChanges.needsApproval(session);
         String firstName = nameWaits ? existing.firstName() : request.firstName();
@@ -192,6 +213,12 @@ public class MemberAccountService {
 
     private static boolean changesAddress(Account existing, String email) {
         return email != null && !email.isBlank() && !email.equalsIgnoreCase(existing.email());
+    }
+
+    private static boolean changesUsername(Account existing, @Nullable String username) {
+        if (username == null) return false;
+        String typed = username.isBlank() ? null : username.trim();
+        return !Objects.equals(typed, existing.username());
     }
 
     /**

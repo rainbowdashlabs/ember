@@ -52,6 +52,19 @@ describe('PDF fields in the editor', () => {
         expect(freeSigner([...four, {...first, role: SignatureRole.ANY_GUARDIAN}])).toBeNull()
     })
 
+    it('gives a new field to fill in the signer of the first signature field, without taking a signer away', () => {
+        const alone = newField(PdfFieldKind.FILL_IN, 1, upright, [])
+        const guardian = {...newField(PdfFieldKind.SIGNATURE, 1, upright, []), role: SignatureRole.GUARDIAN_1}
+        const beside = newField(PdfFieldKind.FILL_IN, 1, upright, [guardian])
+
+        expect(alone.role).toBe(SignatureRole.PARTICIPANT)
+        expect(alone.text).toBe('')
+        expect(alone.required).toBe(false)
+        expect(alone.maxLength).toBeNull()
+        expect(beside.role).toBe(SignatureRole.GUARDIAN_1)
+        expect(freeSigner([alone])).toBe(SignatureRole.PARTICIPANT)
+    })
+
     it('never offers every guardian beside the first or the second guardian', () => {
         const field = newField(PdfFieldKind.SIGNATURE, 1, upright, [])
 

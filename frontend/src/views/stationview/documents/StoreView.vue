@@ -226,6 +226,11 @@ async function act(action: Promise<unknown>) {
   if (!opened.value) showDocument.value = false
 }
 
+/** Shows how the signatures stand after a manager changed them in the open document. */
+function signaturesChanged() {
+  void act(Promise.resolve())
+}
+
 /** Deletes the chosen documents once the reader confirmed it, and shows the store without them. */
 async function prune() {
   failure.value = null
@@ -325,6 +330,9 @@ async function selectAll() {
         :all-members="members"
         :all-tags="allTags"
         :can-edit="canEdit"
+        :version-url="documentsApi.versionUrl"
+        :manage-signatures="canEdit"
+        :on-signatures-changed="signaturesChanged"
         @members="(id, ids) => act(documentsApi.setMembers(id, ids))"
         @tags="(id, tags) => act(documentsApi.setTags(id, tags))"
         @remove="document => act(documentsApi.remove(document.id))"

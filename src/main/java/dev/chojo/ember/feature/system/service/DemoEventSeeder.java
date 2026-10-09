@@ -49,6 +49,12 @@ import java.util.Map;
 public class DemoEventSeeder implements DemoPerStationSeeder {
     private static final Logger log = LoggerFactory.getLogger(DemoEventSeeder.class);
 
+    /** What the citizens' festival a week ahead is called, the appointment still open for registration. */
+    static final String BUERGERFEST = "Blaulichtmeile Bürgerfest";
+
+    /** Where the citizens' festival takes place. */
+    static final String BUERGERFEST_PLACE = "Rathausplatz Musterstadt";
+
     private final EventCategoryRepository categoryRepository;
     private final EventRegistrationRepository registrationRepository;
     private final EventFieldRepository eventFieldRepository;
@@ -554,7 +560,7 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
         Instant openDeadline = days.at(today.plusDays(3), 23, 59);
         var oeOpen = crudService.create(
                 stationId,
-                "Blaulichtmeile Bürgerfest",
+                BUERGERFEST,
                 "Öffentlichkeitsarbeit - Anmeldung offen",
                 StationEvent.EventType.ONE_TIME,
                 null,
@@ -574,7 +580,7 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
                 "Ort",
                 FieldType.LOCATION,
                 EventQuestionSettings.empty(),
-                "Rathausplatz Musterstadt",
+                BUERGERFEST_PLACE,
                 0,
                 true,
                 null,
@@ -738,7 +744,13 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
 
         log.info("Demo: Created events, categories, attendance templates, and event fields");
         return new SeedResult(
-                templateUebung, templateGesamt, evUebung, evGesamt, tagDerOffenenTuer.id(), stadtfest.id());
+                templateUebung,
+                templateGesamt,
+                evUebung,
+                evGesamt,
+                tagDerOffenenTuer.id(),
+                stadtfest.id(),
+                new Appointment(oeOpen, openDate));
     }
 
     /**
@@ -937,7 +949,18 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
     }
 
     /**
-     * Result of event seeding, containing references needed by attendance seeder and notification seeder.
+     * One appointment on the one day it takes place.
+     *
+     * @param event the appointment
+     * @param day   the day it is held, in the station's calendar
+     */
+    public record Appointment(StationEvent event, LocalDate day) {}
+
+    /**
+     * Result of event seeding, containing references needed by the seeders of later bands.
+     *
+     * @param buergerfest the citizens' festival a week ahead, open for registration, which the photo consent
+     *                    hangs on
      */
     public record SeedResult(
             AttendanceTemplate templateUebung,
@@ -945,5 +968,6 @@ public class DemoEventSeeder implements DemoPerStationSeeder {
             StationEvent evUebung,
             StationEvent evGesamt,
             int tagDerOffenenTuerId,
-            int stadtfestId) {}
+            int stadtfestId,
+            Appointment buergerfest) {}
 }

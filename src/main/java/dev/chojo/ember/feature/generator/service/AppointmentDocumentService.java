@@ -8,17 +8,26 @@ package dev.chojo.ember.feature.generator.service;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.feature.events.entity.AppointmentField;
+import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
+import dev.chojo.ember.feature.generator.entity.DocumentTemplate;
+import dev.chojo.ember.feature.generator.entity.FieldStatements;
 import dev.chojo.ember.feature.generator.entity.GenerationContext;
 import dev.chojo.ember.feature.generator.entity.GenerationOrigin;
+import dev.chojo.ember.feature.generator.entity.PaperState;
+import dev.chojo.ember.feature.generator.entity.PaperSubmission;
 import dev.chojo.ember.feature.generator.entity.RequiredTemplate;
 import dev.chojo.ember.feature.generator.entity.RequirementGeneration;
+import dev.chojo.ember.feature.generator.entity.RequirementSignature;
+import dev.chojo.ember.feature.generator.entity.RequirementSignatureState;
 import dev.chojo.ember.feature.generator.entity.RequirementStatus;
 import dev.chojo.ember.feature.generator.repository.EventRequirementRepository;
+import dev.chojo.ember.feature.generator.repository.PaperSubmissionRepository;
 import dev.chojo.ember.feature.generator.service.DocumentGenerationService.GeneratedDocumentResponse;
+import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import jakarta.inject.Inject;
@@ -28,8 +37,11 @@ import org.jspecify.annotations.Nullable;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -44,13 +56,20 @@ import java.util.Set;
  * profile lacks is left as a gap to fill in by hand, which is what a form to print is for. The copy is
  * issued by the template's issuer at the station.
  *
- * <p>The status per participant and document is what the signing of these documents builds on later:
- * for now a copy is generated or it is not, and a copy from an older version of the template is marked
- * as such so a new one can be generated.
+ * <p>The status per participant and document: a copy is generated or it is not, and a copy from an older
+ * version of the template is marked as such so a new one can be generated. Beside it stands the latest
+ * scan of a signed paper copy handed in for it, whether it waits, was confirmed or was turned down, and
+ * where signatures were asked for on the copy, where each of them stands ({@link RequirementSignatures}). On an
+ * appointment that takes no registrations, a document the participant or a guardian signs is offered to sign
+ * online wherever nothing stands for it yet, since no registration asks for it.
  */
 @Singleton
 public class AppointmentDocumentService {
+    private static final Set<RegistrationStatus> STANDING =
+            Set.of(RegistrationStatus.PENDING, RegistrationStatus.ACCEPTED);
+
     private final EventRequirementRepository requirements;
+    private final PaperSubmissionRepository submissions;
     private final DocumentTemplateService templates;
     private final DocumentGeneratorService generator;
     private final DocumentGenerationService generation;
@@ -60,10 +79,13 @@ public class AppointmentDocumentService {
     private final MemberNameResolver names;
     private final DocumentIssuerService issuers;
     private final EventRestrictionService audience;
+    private final RequirementSignatures signatures;
+    private final StationMemberRepository members;
 
     @Inject
     public AppointmentDocumentService(
             EventRequirementRepository requirements,
+            PaperSubmissionRepository submissions,
             DocumentTemplateService templates,
             DocumentGeneratorService generator,
             DocumentGenerationService generation,
@@ -72,9 +94,14 @@ public class AppointmentDocumentService {
             EventFieldRepository fields,
             MemberNameResolver names,
             DocumentIssuerService issuers,
-            EventRestrictionService audience) {
+            EventRestrictionService audience,
+            RequirementSignatures signatures,
+            StationMemberRepository members) {
         this.audience = audience;
+        this.signatures = signatures;
+        this.members = members;
         this.requirements = requirements;
+        this.submissions = submissions;
         this.templates = templates;
         this.generator = generator;
         this.generation = generation;
@@ -94,6 +121,12 @@ public class AppointmentDocumentService {
      * @param documentId  the copy filed with the participant, or null
      * @param generatedAt when that copy was generated, or null
      * @param outdated    whether the template changed since that copy was generated
+     * @param paper       the latest scan of a signed paper copy handed in for the participant, or null
+     *                    where none was
+     * @param signature   the latest signatures asked for on the participant's copy, or null where none were
+     * @param agreementOffered whether the reader can sign the document's agreement online for the participant
+     *                    now: the appointment takes no registrations, the document asks the participant or a
+     *                    guardian to sign, and nothing signed or still open on a copy stands for it
      */
     public record RequiredDocumentStatus(
             int templateId,
@@ -101,7 +134,10 @@ public class AppointmentDocumentService {
             RequirementStatus status,
             @Nullable Integer documentId,
             @Nullable Instant generatedAt,
-            boolean outdated) {}
+            boolean outdated,
+            @Nullable PaperSubmission paper,
+            @Nullable RequirementSignature signature,
+            boolean agreementOffered) {}
 
     /**
      * The documents one participant is asked to bring.
@@ -109,17 +145,24 @@ public class AppointmentDocumentService {
      * @param memberId  the participant
      * @param name      their name
      * @param documents every document the appointment asks for, in its order
+     * @param agreementWithdrawnAt when a signed agreement was withdrawn while their registration stood, until
+     *                  it is signed anew; shown to whoever manages the registrations only, null for anybody else
      */
-    public record ParticipantDocuments(int memberId, String name, List<RequiredDocumentStatus> documents) {}
+    public record ParticipantDocuments(
+            int memberId,
+            String name,
+            List<RequiredDocumentStatus> documents,
+            @Nullable Instant agreementWithdrawnAt) {}
 
     /**
      * What an appointment asks participants to bring on a date, as one reader sees it.
      *
      * @param required     every document the appointment asks for, in its order, which anybody who sees
      *                     the appointment may know
-     * @param own          the documents of the reader and every member in their care who takes part
-     * @param participants the documents of every participant, for whoever manages the registrations;
-     *                     null for anybody else
+     * @param own          the documents of the reader and every member in their care who takes part, where
+     *                     the issuer's open field shows as the station's to sign
+     * @param participants the documents of every participant, for whoever manages the registrations, where
+     *                     the issuer's open field shows as open; null for anybody else
      */
     public record AppointmentDocuments(
             List<RequiredTemplate> required,
@@ -154,11 +197,88 @@ public class AppointmentDocumentService {
         }
         var asked = new LinkedHashSet<>(own);
         if (overview) asked.addAll(everyone);
-        var copies = asked.isEmpty() ? List.<RequirementGeneration>of() : requirements.latest(event.id(), date, asked);
+        var copies = asked.isEmpty()
+                ? new Copies(List.of(), List.of(), List.of())
+                : new Copies(
+                        requirements.latest(event.id(), date, asked),
+                        submissions.latest(event.id(), date, asked),
+                        signatures.of(session, event.id(), date, asked));
+        var offers = event.requiresRegistration() ? Set.<Offer>of() : offers(event, own);
         return new AppointmentDocuments(
                 required,
-                participantsOf(own, required, copies),
-                overview ? participantsOf(everyone, required, copies) : null);
+                participantsOf(own, required, copies.asParticipantsSee(), offers, Map.of()),
+                overview ? participantsOf(everyone, required, copies, Set.of(), withdrawals(event, date)) : null);
+    }
+
+    /** When each participant whose registration is flagged withdrew a signed agreement, by participant. */
+    private Map<Integer, Instant> withdrawals(StationEvent event, LocalDate date) {
+        if (!event.requiresRegistration()) return Map.of();
+        var withdrawn = new HashMap<Integer, Instant>();
+        for (var registration : registrations.findByEventAndDate(event.id(), date)) {
+            var at = registration.agreementWithdrawnAt();
+            if (at != null && STANDING.contains(registration.status())) withdrawn.put(registration.memberId(), at);
+        }
+        return withdrawn;
+    }
+
+    /** A document whose agreement could be signed for a participant, where nothing stands for it yet. */
+    private record Offer(int memberId, int templateId) {}
+
+    /** The documents of an appointment without registrations each participant the reader acts for signs. */
+    private Set<Offer> offers(StationEvent event, Collection<Integer> own) {
+        var offers = new HashSet<Offer>();
+        for (int memberId : own) {
+            signableFor(event, memberId).forEach(template -> offers.add(new Offer(memberId, template.id())));
+        }
+        return offers;
+    }
+
+    /** The generated copies, the scans handed in and the signatures asked for, for the participants asked about. */
+    private record Copies(
+            List<RequirementGeneration> generated, List<PaperSubmission> scans, List<RequirementSignature> signed) {
+
+        /** The copies as participants and guardians see them, the issuer's field as the station's to sign. */
+        Copies asParticipantsSee() {
+            return new Copies(
+                    generated,
+                    scans,
+                    signed.stream().map(RequirementSignature::asParticipantsSee).toList());
+        }
+    }
+
+    /**
+     * Refuses a scan to be handed in for a member by somebody who may not: the member has to be a current
+     * member of the appointment's station, the reader has to act for them or manage the registrations, and
+     * the member has to take part on the date. Taking part alone does not prove the station: an appointment
+     * without registrations and without an audience is meant for anybody, and a manager could otherwise
+     * name a member of any station by their number.
+     *
+     * @param session  the reader
+     * @param event    the appointment, already checked to be one the reader may see
+     * @param date     the date of the appointment
+     * @param memberId the participant
+     * @param manages  whether the reader manages the registrations of the station
+     */
+    void requireMayHandIn(StationSession session, StationEvent event, LocalDate date, int memberId, boolean manages) {
+        boolean ofTheStation = members.findById(memberId)
+                .filter(member -> member.stationId() == event.stationId() && !member.former())
+                .isPresent();
+        boolean actsFor = manages || guardians.mayActFor(session.user(), memberId);
+        if (!ofTheStation || !actsFor || !takesPart(event, date, memberId)) {
+            throw DocumentRefusal.DOCUMENT_REQUIREMENT_NOT_YOURS.raise();
+        }
+    }
+
+    /**
+     * @param stationId  the station
+     * @param eventId    the appointment
+     * @param templateId the template
+     * @return the template, refusing one the appointment does not ask for
+     */
+    DocumentTemplate requireAsked(int stationId, int eventId, int templateId) {
+        boolean required = inUse(eventId).stream().anyMatch(template -> template.templateId() == templateId);
+        if (!required) throw DocumentRefusal.DOCUMENT_REQUIREMENT_NOT_REQUIRED.raise();
+        return templates.requireInUse(stationId, templateId);
     }
 
     /**
@@ -181,10 +301,17 @@ public class AppointmentDocumentService {
     }
 
     private List<ParticipantDocuments> participantsOf(
-            Collection<Integer> memberIds, List<RequiredTemplate> required, List<RequirementGeneration> copies) {
+            Collection<Integer> memberIds,
+            List<RequiredTemplate> required,
+            Copies copies,
+            Set<Offer> offers,
+            Map<Integer, Instant> withdrawn) {
         return memberIds.stream()
                 .map(memberId -> new ParticipantDocuments(
-                        memberId, names.identified(memberId), statuses(required, copies, memberId)))
+                        memberId,
+                        names.identified(memberId),
+                        statuses(required, copies, memberId, offers),
+                        withdrawn.get(memberId)))
                 .toList();
     }
 
@@ -200,17 +327,77 @@ public class AppointmentDocumentService {
      */
     public GeneratedDocumentResponse generate(
             StationSession session, StationEvent event, LocalDate date, int templateId, int memberId) {
-        if (!guardians.mayActFor(session.user(), memberId) || !takesPart(event, date, memberId)) {
-            throw DocumentRefusal.DOCUMENT_REQUIREMENT_NOT_YOURS.raise();
-        }
-        boolean required = inUse(event.id()).stream().anyMatch(template -> template.templateId() == templateId);
-        if (!required) throw DocumentRefusal.DOCUMENT_REQUIREMENT_NOT_REQUIRED.raise();
-        var template = templates.requireInUse(session.stationId(), templateId);
-        var context = new GenerationContext(
-                session.member().id(), facts(event, date), issuers.ofTemplate(template, session.stationId()));
+        requireMayHandIn(session, event, date, memberId, false);
+        var template = requireAsked(session.stationId(), event.id(), templateId);
+        return generateFor(event, date, template, memberId, session.member().id());
+    }
+
+    /**
+     * Generates a copy of a document the appointment asks for and files it with the participant, for a
+     * caller that already knows the member takes part, such as their registration. The copy is issued by
+     * the template's issuer at the appointment's station.
+     *
+     * @param event       the appointment
+     * @param date        the date of the appointment
+     * @param template    the document asked for
+     * @param memberId    the participant
+     * @param generatedBy the member the copy is generated by: whoever registered the participant
+     * @return the filed copy and the data it left as gaps
+     */
+    public GeneratedDocumentResponse generateFor(
+            StationEvent event, LocalDate date, DocumentTemplate template, int memberId, int generatedBy) {
+        var context =
+                new GenerationContext(generatedBy, facts(event, date), issuers.ofTemplate(template, event.stationId()));
         var prepared = generator.prepare(template, memberId, context);
         return generation.file(
-                template, memberId, session.member().id(), GenerationOrigin.appointment(event.id(), date), prepared);
+                template, memberId, generatedBy, GenerationOrigin.appointment(event.id(), date), prepared);
+    }
+
+    /**
+     * The documents an appointment asks for whose copy for the member asks the member or a guardian to
+     * sign, in the appointment's order. A document only the issuer signs is not among them.
+     *
+     * @param event    the appointment
+     * @param memberId the participant
+     * @return the templates, none where the appointment asks for nothing to sign
+     */
+    public List<DocumentTemplate> signableFor(StationEvent event, int memberId) {
+        return inUse(event.id()).stream()
+                .flatMap(required -> templates.find(required.templateId()).stream())
+                .filter(template -> generator.asksMemberSideToSign(template, memberId))
+                .toList();
+    }
+
+    /**
+     * Draws the one copy of a document the appointment asks for that partner stations' members sign alike on
+     * a date: about nobody in particular, with the appointment's values for that date and the station's.
+     *
+     * @param event    the appointment
+     * @param date     the date
+     * @param template the document, which partners can sign ({@link MemberNeutralTemplates})
+     * @return the document, not filed anywhere
+     */
+    public DocumentGeneratorService.Rendered drawForPartners(
+            StationEvent event, LocalDate date, DocumentTemplate template) {
+        return generator.drawForAppointment(template, event.stationId(), facts(event, date));
+    }
+
+    /**
+     * @param template a document partner stations sign
+     * @return what its signers confirm, as {@link #drawForPartners} draws it
+     */
+    public FieldStatements statementsForPartners(DocumentTemplate template) {
+        return generator.statementsForAppointment(template);
+    }
+
+    /**
+     * @param eventId the appointment
+     * @return the templates it asks participants to bring and still offers, in its order
+     */
+    public List<DocumentTemplate> templatesAskedFor(int eventId) {
+        return inUse(eventId).stream()
+                .flatMap(required -> templates.find(required.templateId()).stream())
+                .toList();
     }
 
     private List<RequiredTemplate> inUse(int eventId) {
@@ -220,22 +407,47 @@ public class AppointmentDocumentService {
     }
 
     private static List<RequiredDocumentStatus> statuses(
-            List<RequiredTemplate> required, List<RequirementGeneration> copies, int memberId) {
+            List<RequiredTemplate> required, Copies copies, int memberId, Set<Offer> offers) {
         return required.stream()
                 .map(template -> status(
                         template,
-                        copies.stream()
+                        offers.contains(new Offer(memberId, template.templateId())),
+                        copies.generated().stream()
                                 .filter(copy ->
                                         copy.memberId() == memberId && copy.templateId() == template.templateId())
+                                .findFirst()
+                                .orElse(null),
+                        copies.scans().stream()
+                                .filter(scan ->
+                                        scan.memberId() == memberId && scan.templateId() == template.templateId())
+                                .findFirst()
+                                .orElse(null),
+                        copies.signed().stream()
+                                .filter(signed ->
+                                        signed.memberId() == memberId && signed.templateId() == template.templateId())
                                 .findFirst()
                                 .orElse(null)))
                 .toList();
     }
 
-    private static RequiredDocumentStatus status(RequiredTemplate template, @Nullable RequirementGeneration copy) {
+    private static RequiredDocumentStatus status(
+            RequiredTemplate template,
+            boolean signable,
+            @Nullable RequirementGeneration copy,
+            @Nullable PaperSubmission scan,
+            @Nullable RequirementSignature signature) {
+        boolean offered = signable && nothingStands(signature, scan);
         if (copy == null) {
             return new RequiredDocumentStatus(
-                    template.templateId(), template.name(), RequirementStatus.NOT_GENERATED, null, null, false);
+                    template.templateId(),
+                    template.name(),
+                    RequirementStatus.NOT_GENERATED,
+                    null,
+                    null,
+                    false,
+                    scan,
+                    signature,
+                    offered);
         }
         return new RequiredDocumentStatus(
                 template.templateId(),
@@ -243,7 +455,21 @@ public class AppointmentDocumentService {
                 RequirementStatus.GENERATED,
                 copy.documentId(),
                 copy.generatedAt(),
-                copy.templateVersion() < template.version());
+                copy.templateVersion() < template.version(),
+                scan,
+                signature,
+                offered);
+    }
+
+    /**
+     * Whether nothing stands for a document yet: no signatures asked for, or only ones withdrawn by a signer
+     * or let go, and no signed paper copy confirmed.
+     */
+    private static boolean nothingStands(@Nullable RequirementSignature signature, @Nullable PaperSubmission scan) {
+        if (scan != null && scan.state() == PaperState.CONFIRMED) return false;
+        if (signature == null) return true;
+        return signature.state() == RequirementSignatureState.REVOKED
+                || signature.state() == RequirementSignatureState.WAIVED;
     }
 
     /** What a document says about the appointment on the date: its name, its times and its place. */

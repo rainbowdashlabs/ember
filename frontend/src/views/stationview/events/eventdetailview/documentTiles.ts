@@ -3,7 +3,10 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import type {AppointmentDocuments, ParticipantDocuments, RequiredDocumentStatus, RequiredTemplate} from '@/api/generated/schema'
+import type {AppointmentDocuments, ParticipantDocuments, RequiredDocumentStatus} from '@/api/generated/schema'
+
+/** What a scan of a signed paper copy may be: a PDF or a photo. */
+export const SCAN_TYPES = 'application/pdf,image/*'
 
 /** One participant's copy of one document. */
 export interface ParticipantCopy {
@@ -13,33 +16,23 @@ export interface ParticipantCopy {
 }
 
 /**
- * One document an appointment asks for, as its tile shows it: the copies of the participants the
- * reader acts for, and for an event manager every participant's.
+ * One person's documents as copies, each naming the person.
+ *
+ * @param person the person and their documents
+ * @returns one copy per document, in the order the appointment asks for them
  */
-export interface DocumentTile {
-    template: RequiredTemplate
-    own: ParticipantCopy[]
-    /** Every participant's copy, or null where the reader is no event manager. */
-    participants: ParticipantCopy[] | null
-}
-
-function copiesOf(participants: readonly ParticipantDocuments[], templateId: number): ParticipantCopy[] {
-    return participants.flatMap(participant => {
-        const document = participant.documents.find(candidate => candidate.templateId === templateId)
-        return document ? [{memberId: participant.memberId, name: participant.name, document}] : []
-    })
+export function copiesOf(person: ParticipantDocuments): ParticipantCopy[] {
+    return person.documents.map(document => ({memberId: person.memberId, name: person.name, document}))
 }
 
 /**
- * The documents of an appointment turned from one list per participant into one tile per document.
+ * Whether any copy of the people the reader acts for can be signed online, which the hint above the
+ * documents then leads with.
  *
  * @param documents what the server answered for the reader
- * @returns one tile per document, in the order the appointment asks for them
+ * @returns true where a copy carries signature fields or offers its agreement to sign
  */
-export function documentTiles(documents: AppointmentDocuments): DocumentTile[] {
-    return documents.required.map(template => ({
-        template,
-        own: copiesOf(documents.own, template.templateId),
-        participants: documents.participants ? copiesOf(documents.participants, template.templateId) : null,
-    }))
+export function signsOnline(documents: AppointmentDocuments): boolean {
+    return documents.own.some(person => person.documents.some(document =>
+        document.signature !== null || document.agreementOffered))
 }

@@ -35,6 +35,7 @@ import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.conf.file.elements.Metrics;
 import dev.chojo.ember.conf.file.elements.Network;
 import dev.chojo.ember.conf.file.elements.PasskeySettings;
+import dev.chojo.ember.conf.file.elements.Signing;
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.conf.file.elements.TwoFactorSettings;
 import dev.chojo.ember.conf.file.elements.Updates;
@@ -48,6 +49,10 @@ import dev.chojo.ember.feature.account.route.AuthRoutes;
 import dev.chojo.ember.feature.account.route.AvatarRoutes;
 import dev.chojo.ember.feature.account.route.SessionRoutes;
 import dev.chojo.ember.feature.account.service.AuthCleanupSweeper;
+import dev.chojo.ember.feature.accountlink.route.AccountLinkRoutes;
+import dev.chojo.ember.feature.accountlink.route.AssociationLinkRoutes;
+import dev.chojo.ember.feature.accountlink.route.MemberLinkRoutes;
+import dev.chojo.ember.feature.accountlink.service.AccountLinkSweeper;
 import dev.chojo.ember.feature.attendance.handler.EventAnswerRecordedHandler;
 import dev.chojo.ember.feature.attendance.route.AttendanceRoutes;
 import dev.chojo.ember.feature.beacon.route.BeaconAdminRoutes;
@@ -134,6 +139,7 @@ import dev.chojo.ember.feature.events.service.EventFeedDetails;
 import dev.chojo.ember.feature.events.service.EventReminderChecker;
 import dev.chojo.ember.feature.events.service.EventThresholdChecker;
 import dev.chojo.ember.feature.events.service.FieldRegistrationSweeper;
+import dev.chojo.ember.feature.events.service.PartnerAppointmentSignatures;
 import dev.chojo.ember.feature.events.service.RegistrationDeadlineChecker;
 import dev.chojo.ember.feature.events.service.SettledRefusalSweeper;
 import dev.chojo.ember.feature.federation.handler.FederationRequestAnsweredHandler;
@@ -173,8 +179,12 @@ import dev.chojo.ember.feature.generator.route.DocumentGenerationRoutes;
 import dev.chojo.ember.feature.generator.route.DocumentTemplateRoutes;
 import dev.chojo.ember.feature.generator.route.GenerationJobRoutes;
 import dev.chojo.ember.feature.generator.route.GenerationLogRoutes;
+import dev.chojo.ember.feature.generator.route.PaperSubmissionRoutes;
 import dev.chojo.ember.feature.generator.route.TemplatePictureRoutes;
 import dev.chojo.ember.feature.generator.service.GenerationJobRunner;
+import dev.chojo.ember.feature.generator.service.IssuerSigning;
+import dev.chojo.ember.feature.generator.service.RequirementSignatures;
+import dev.chojo.ember.feature.generator.service.ScanConfirmations;
 import dev.chojo.ember.feature.generator.service.font.DefaultFont;
 import dev.chojo.ember.feature.insights.route.StationInsightsRoutes;
 import dev.chojo.ember.feature.insights.service.PageHitRecorder;
@@ -293,6 +303,38 @@ import dev.chojo.ember.feature.quiz.route.QuizQuestionRoutes;
 import dev.chojo.ember.feature.quiz.route.QuizTestRoutes;
 import dev.chojo.ember.feature.quiz.route.RemoteQuizRoutes;
 import dev.chojo.ember.feature.quiz.service.QuizFederationService;
+import dev.chojo.ember.feature.signing.handler.RegistrationSignaturesHandler;
+import dev.chojo.ember.feature.signing.handler.RequirementChangeSignaturesHandler;
+import dev.chojo.ember.feature.signing.route.AgreementRoutes;
+import dev.chojo.ember.feature.signing.route.PartnerAgreementRoutes;
+import dev.chojo.ember.feature.signing.route.PublicSigningRoutes;
+import dev.chojo.ember.feature.signing.route.RemoteSigningRoutes;
+import dev.chojo.ember.feature.signing.route.SignatureImageRoutes;
+import dev.chojo.ember.feature.signing.route.SignatureRecordRoutes;
+import dev.chojo.ember.feature.signing.route.SignatureRequestRoutes;
+import dev.chojo.ember.feature.signing.route.SigningBatchRoutes;
+import dev.chojo.ember.feature.signing.route.SigningKeyAdminRoutes;
+import dev.chojo.ember.feature.signing.route.SigningRoutes;
+import dev.chojo.ember.feature.signing.service.AgreementAttendance;
+import dev.chojo.ember.feature.signing.service.AgreementOutcomes;
+import dev.chojo.ember.feature.signing.service.CredentialKeyStamps;
+import dev.chojo.ember.feature.signing.service.DocumentStatements;
+import dev.chojo.ember.feature.signing.service.InEmberSignatureProvider;
+import dev.chojo.ember.feature.signing.service.IssuedLetterSigner;
+import dev.chojo.ember.feature.signing.service.PartnerAgreements;
+import dev.chojo.ember.feature.signing.service.PartnerAuthorities;
+import dev.chojo.ember.feature.signing.service.PartnerDeliveries;
+import dev.chojo.ember.feature.signing.service.PartnerRequirementNotices;
+import dev.chojo.ember.feature.signing.service.PartnerSignatures;
+import dev.chojo.ember.feature.signing.service.RequirementSignatureStates;
+import dev.chojo.ember.feature.signing.service.ScanSignatures;
+import dev.chojo.ember.feature.signing.service.SealedStateFollowUp;
+import dev.chojo.ember.feature.signing.service.SealedVersionTimestamps;
+import dev.chojo.ember.feature.signing.service.SignatureProvider;
+import dev.chojo.ember.feature.signing.service.SignatureReminders;
+import dev.chojo.ember.feature.signing.service.SignatureRetentionSweeper;
+import dev.chojo.ember.feature.signing.service.SigningStateSweeper;
+import dev.chojo.ember.feature.signing.service.TemplateDocumentStatements;
 import dev.chojo.ember.feature.station.route.DiscoveryRoutes;
 import dev.chojo.ember.feature.station.route.FirstStationRoutes;
 import dev.chojo.ember.feature.station.route.PublicStationRoutes;
@@ -304,6 +346,7 @@ import dev.chojo.ember.feature.station.service.TransferTimeoutWatchdog;
 import dev.chojo.ember.feature.station.transfer.AccountCredentialTableImporter;
 import dev.chojo.ember.feature.station.transfer.AccountTableImporter;
 import dev.chojo.ember.feature.station.transfer.DisabledModuleTableImporter;
+import dev.chojo.ember.feature.station.transfer.DocumentSearchTableImporter;
 import dev.chojo.ember.feature.station.transfer.StationTableImporter;
 import dev.chojo.ember.feature.station.transfer.TableImporter;
 import dev.chojo.ember.feature.statistics.route.StatisticsRoutes;
@@ -353,6 +396,7 @@ import dev.chojo.ember.feature.system.service.DemoMirrorStationSeeder;
 import dev.chojo.ember.feature.system.service.DemoNewsSeeder;
 import dev.chojo.ember.feature.system.service.DemoNotificationSeeder;
 import dev.chojo.ember.feature.system.service.DemoPageSeeder;
+import dev.chojo.ember.feature.system.service.DemoPhotoConsentSeeder;
 import dev.chojo.ember.feature.system.service.DemoProcedureSeeder;
 import dev.chojo.ember.feature.system.service.DemoProtocolSeeder;
 import dev.chojo.ember.feature.system.service.DemoQuizSeeder;
@@ -431,6 +475,9 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(AuthRoutes.class);
         routesBinder.addBinding().to(MemberRoutes.class);
         routesBinder.addBinding().to(NameChangeRoutes.class);
+        routesBinder.addBinding().to(AccountLinkRoutes.class);
+        routesBinder.addBinding().to(MemberLinkRoutes.class);
+        routesBinder.addBinding().to(AssociationLinkRoutes.class);
         routesBinder.addBinding().to(SessionRoutes.class);
         routesBinder.addBinding().to(AccountSessionRoutes.class);
         routesBinder.addBinding().to(AvatarRoutes.class);
@@ -452,12 +499,21 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(GenerationJobRoutes.class);
         routesBinder.addBinding().to(GenerationLogRoutes.class);
         routesBinder.addBinding().to(AppointmentDocumentRoutes.class);
+        routesBinder.addBinding().to(PaperSubmissionRoutes.class);
         routesBinder.addBinding().to(AssociationDocumentTemplateRoutes.class);
         routesBinder.addBinding().to(MailImportRoutes.class);
         routesBinder.addBinding().to(AdminMonitoringCountRoutes.class);
         bind(MailFilingService.MemberNaming.class).to(StationMemberNaming.class);
         bind(MemberEligibility.class).to(StationMemberEligibility.class);
         bind(CellDescriptions.PageAddressing.class).to(StationPageAddressing.class);
+        bind(SignatureProvider.class).to(InEmberSignatureProvider.class);
+        bind(IssuerSigning.class).to(IssuedLetterSigner.class);
+        bind(DocumentStatements.class).to(TemplateDocumentStatements.class);
+        bind(RequirementSignatures.class).to(RequirementSignatureStates.class);
+        bind(ScanConfirmations.class).to(ScanSignatures.class);
+        bind(PartnerAppointmentSignatures.class).to(PartnerSignatures.class);
+        bind(SealedStateFollowUp.class).to(PartnerDeliveries.class);
+        bind(AgreementOutcomes.class).to(AgreementAttendance.class);
         Multibinder<BlockReferences> blockReferencesBinder = Multibinder.newSetBinder(binder(), BlockReferences.class);
         blockReferencesBinder.addBinding().to(NewsBlockReferences.class);
         blockReferencesBinder.addBinding().to(EventBlockReferences.class);
@@ -551,6 +607,16 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(PublicKnowledgeBaseRoutes.class);
         routesBinder.addBinding().to(PublicEventRoutes.class);
         routesBinder.addBinding().to(PublicStationRoutes.class);
+        routesBinder.addBinding().to(PublicSigningRoutes.class);
+        routesBinder.addBinding().to(RemoteSigningRoutes.class);
+        routesBinder.addBinding().to(SigningRoutes.class);
+        routesBinder.addBinding().to(SigningBatchRoutes.class);
+        routesBinder.addBinding().to(SignatureRecordRoutes.class);
+        routesBinder.addBinding().to(SignatureRequestRoutes.class);
+        routesBinder.addBinding().to(PartnerAgreementRoutes.class);
+        routesBinder.addBinding().to(SigningKeyAdminRoutes.class);
+        routesBinder.addBinding().to(SignatureImageRoutes.class);
+        routesBinder.addBinding().to(AgreementRoutes.class);
         routesBinder.addBinding().to(UtilRoutes.class);
         routesBinder.addBinding().to(TestProtocolExaminerRoutes.class);
         routesBinder.addBinding().to(TestProtocolRoutes.class);
@@ -611,6 +677,7 @@ public class EmberModule extends AbstractModule {
         tableImporterBinder.addBinding().to(AccountTableImporter.class);
         tableImporterBinder.addBinding().to(AccountCredentialTableImporter.class);
         tableImporterBinder.addBinding().to(DisabledModuleTableImporter.class);
+        tableImporterBinder.addBinding().to(DocumentSearchTableImporter.class);
 
         Multibinder<DemoSeeder> demoSeederBinder = Multibinder.newSetBinder(binder(), DemoSeeder.class);
         demoSeederBinder.addBinding().to(DemoStationSeeder.class);
@@ -636,6 +703,7 @@ public class EmberModule extends AbstractModule {
         demoSeederBinder.addBinding().to(DemoSettingsSeeder.class);
         demoSeederBinder.addBinding().to(DemoChecklistSeeder.class);
         demoSeederBinder.addBinding().to(DemoDocumentTemplateSeeder.class);
+        demoSeederBinder.addBinding().to(DemoPhotoConsentSeeder.class);
         demoSeederBinder.addBinding().to(DemoBoardSeeder.class);
         demoSeederBinder.addBinding().to(DemoPageSeeder.class);
         demoSeederBinder.addBinding().to(DemoLendingSeeder.class);
@@ -700,6 +768,8 @@ public class EmberModule extends AbstractModule {
         eventBinder.addBinding().to(EventCancelledHandler.class);
         eventBinder.addBinding().to(EventDateRestoredHandler.class);
         eventBinder.addBinding().to(EventAnswerRecordedHandler.class);
+        eventBinder.addBinding().to(RegistrationSignaturesHandler.class);
+        eventBinder.addBinding().to(RequirementChangeSignaturesHandler.class);
         eventBinder.addBinding().to(ProcedureAssignedHandler.class);
         eventBinder.addBinding().to(ProcedureResolvedHandler.class);
         eventBinder.addBinding().to(ProcedureReopenedHandler.class);
@@ -722,6 +792,9 @@ public class EmberModule extends AbstractModule {
         federationServers.addBinding().to(FederatedTicketProxy.class);
         federationServers.addBinding().to(FederatedTicketDetailProxy.class);
         federationServers.addBinding().to(FederatedBoardNotificationService.class);
+        federationServers.addBinding().to(PartnerAuthorities.class);
+        federationServers.addBinding().to(PartnerAgreements.class);
+        federationServers.addBinding().to(PartnerSignatures.class);
 
         Multibinder<FeedDetailsContributor> feedDetailsBinder =
                 Multibinder.newSetBinder(binder(), FeedDetailsContributor.class);
@@ -772,6 +845,16 @@ public class EmberModule extends AbstractModule {
         taskSources.addBinding().to(TransferTimeoutWatchdog.class);
         taskSources.addBinding().to(FeedMetricsService.class);
         taskSources.addBinding().to(GenerationJobRunner.class);
+        taskSources.addBinding().to(SignatureRetentionSweeper.class);
+        taskSources.addBinding().to(SigningStateSweeper.class);
+        taskSources.addBinding().to(SealedVersionTimestamps.class);
+        taskSources.addBinding().to(SignatureReminders.class);
+        taskSources.addBinding().to(PartnerAuthorities.class);
+        taskSources.addBinding().to(PartnerAgreements.class);
+        taskSources.addBinding().to(PartnerDeliveries.class);
+        taskSources.addBinding().to(PartnerRequirementNotices.class);
+        taskSources.addBinding().to(CredentialKeyStamps.class);
+        taskSources.addBinding().to(AccountLinkSweeper.class);
 
         Multibinder<ShutdownFlush> flushes = Multibinder.newSetBinder(binder(), ShutdownFlush.class);
         flushes.addBinding().to(PageHitRecorder.class);
@@ -899,6 +982,12 @@ public class EmberModule extends AbstractModule {
     @Singleton
     Updates updates(File config) {
         return config.updates();
+    }
+
+    @Provides
+    @Singleton
+    Signing signing(File config) {
+        return config.signing();
     }
 
     @Provides

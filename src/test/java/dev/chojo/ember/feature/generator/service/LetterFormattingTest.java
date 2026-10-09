@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.generator.entity.DocumentLanguage;
 import dev.chojo.ember.feature.generator.entity.LetterContent;
 import dev.chojo.ember.feature.generator.entity.LetterPage;
 import dev.chojo.ember.feature.generator.entity.MemberView;
+import dev.chojo.ember.feature.generator.entity.SignerCaptions;
 import dev.chojo.ember.feature.generator.service.pdf.TestPdfs;
 import dev.chojo.ember.feature.knowledgebase.service.KbPdfPictures;
 import dev.chojo.ember.feature.media.service.MediaLibraryService;
@@ -226,6 +227,7 @@ class LetterFormattingTest extends RepositoryTestBase {
                 Map.of(),
                 Map.of(),
                 false,
+                SignerCaptions.roles(DocumentLanguage.DE),
                 LocalDate.of(2026, 10, 3));
     }
 

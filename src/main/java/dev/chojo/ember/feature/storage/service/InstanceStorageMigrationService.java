@@ -128,7 +128,9 @@ public class InstanceStorageMigrationService {
         }
         for (Account account : accountRepository.findAll()) {
             var scope = new StorageScope.Account(account.uid());
-            stats = stats.plus(copyCategory(source, target, scope, StorageCategory.IMAGE_AVATAR, keys));
+            for (StorageCategory category : movable(StorageScope.Kind.ACCOUNT)) {
+                stats = stats.plus(copyCategory(source, target, scope, category, keys));
+            }
         }
         BackendCopy.sampleVerify(target, keys);
         return new CopyOutcome(stats, keys);

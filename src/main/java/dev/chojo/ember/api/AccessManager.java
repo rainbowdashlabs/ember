@@ -9,6 +9,7 @@ import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.api.auth.InstanceUserType;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.StationRefusal;
 import dev.chojo.ember.auth.signing.MemoryReplayStore;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.entity.AccountSession;
@@ -379,11 +380,34 @@ public class AccessManager {
             return Optional.empty();
         }
 
+        refuseForTheCopyLeftBehind(p);
+
         if (presentsUnknownContract(ctx, p)) {
             contractRefreshService.refreshAsync(p);
         }
 
         return Optional.of(new FederationSession(p, remoteStationUid));
+    }
+
+    /**
+     * Refuses a partner's request that reached the copy a station left here when it moved to another
+     * installation. The copy holds what the station had on the day it left and nothing it does since,
+     * so answering for it would hand the partner stale data and take changes nobody will see. The
+     * refusal names the new address, so the partner can follow the station there.
+     *
+     * <p>Only a verified partner gets this far, so the address goes to nobody but the station's own
+     * partners.
+     */
+    private void refuseForTheCopyLeftBehind(FederationPartner partner) {
+        var moved = stationRepository.movedAway(partner.stationId());
+        if (moved.isEmpty()) return;
+        String movedTo = moved.get().movedTo();
+        log.info(
+                "Refusing federation request from partner {}: station {} moved to {}",
+                partner.id(),
+                partner.stationId(),
+                movedTo);
+        throw StationRefusal.STATION_MOVED_AWAY.raise(movedTo);
     }
 
     /**

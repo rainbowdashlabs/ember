@@ -339,6 +339,20 @@ public sealed interface NotificationParams {
     record NameChangeRequested(String memberName, String requestedName) implements NotificationParams {}
 
     /**
+     * The person behind a member accepted the station's request and linked their account to the member.
+     *
+     * @param memberName the name the station knows the member by
+     */
+    record AccountLinkAccepted(String memberName) implements NotificationParams {}
+
+    /**
+     * A person accepted the association's request and took the role it offered.
+     *
+     * @param personName the name of the account that took the role
+     */
+    record AssociationLinkAccepted(String personName) implements NotificationParams {}
+
+    /**
      * The name a member asked for was approved and is theirs now.
      *
      * @param newName the name the account carries from now on
@@ -356,6 +370,79 @@ public sealed interface NotificationParams {
         @Override
         public @Nullable String variant() {
             return reason == null ? null : "WITH_REASON";
+        }
+    }
+
+    /**
+     * A document waits for a signature, asked for the first time or as a reminder. It goes to everybody who
+     * may give that signature, the member and the guardians alike, so it names the member rather than
+     * addressing anybody.
+     *
+     * @param documentTitle the document's title
+     * @param memberName    the official name of the member the document is about
+     */
+    record SignatureRequested(String documentTitle, String memberName) implements NotificationParams {}
+
+    /**
+     * A field of a document was signed, told to whoever asked for the signatures. The text names the member
+     * the document is about only where somebody else signed, since "Lea signed it for Lea" says nothing.
+     *
+     * @param documentTitle the document's title
+     * @param signerName    the official name of whoever signed
+     * @param memberName    the official name of the member the document is about, or null where they signed
+     *                      it themselves
+     */
+    record DocumentSigned(
+            String documentTitle,
+            String signerName,
+            @Nullable String memberName) implements NotificationParams {
+        @Override
+        public @Nullable String variant() {
+            return memberName == null ? null : "FOR_MEMBER";
+        }
+    }
+
+    /**
+     * The scan of a signed paper copy handed in for a document an appointment asks for was turned down,
+     * so the document is open again.
+     *
+     * @param documentName the document asked for
+     * @param memberName   the participant the scan was for
+     * @param eventName    the appointment
+     * @param eventDate    the date of the appointment
+     * @param reason       why it was turned down
+     */
+    record DocumentScanRejected(
+            String documentName, String memberName, String eventName, LocalDate eventDate, String reason)
+            implements NotificationParams {}
+
+    /**
+     * A signed agreement was withdrawn, told to whoever runs the appointment that asked for it, or to whoever
+     * asked for the signatures.
+     *
+     * @param documentTitle   the document's title
+     * @param withdrawnByName the official name of whoever withdrew it
+     * @param memberName      the official name of the member the document is about
+     */
+    record SignatureWithdrawn(String documentTitle, String withdrawnByName, String memberName)
+            implements NotificationParams {}
+
+    /**
+     * A partner station reported a signed agreement of one of its members withdrawn there, told to whoever
+     * runs the appointment that asked for it. Who withdrew it stays with the partner; the member is named only
+     * where the partner shares their name.
+     *
+     * @param documentTitle the document's title
+     * @param stationName   the partner station's name
+     * @param memberName    the name the partner shares for the member, or null where it shares none
+     */
+    record PartnerSignatureWithdrawn(
+            String documentTitle,
+            String stationName,
+            @Nullable String memberName) implements NotificationParams {
+        @Override
+        public @Nullable String variant() {
+            return memberName == null ? null : "NAMED";
         }
     }
 }

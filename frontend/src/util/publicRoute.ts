@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 /** Addresses a reader without a session may open, matched as a whole path. */
-export const PUBLIC_EXACT_PATHS: readonly string[] = ['/', '/login', '/2fa-verify', '/pitch']
+export const PUBLIC_EXACT_PATHS: readonly string[] = ['/', '/login', '/2fa-verify', '/pitch', '/verify']
 
 /**
  * Areas a reader without a session may open, matched as the path itself and everything below it.

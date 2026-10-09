@@ -352,13 +352,30 @@ public class TwoFactorService {
     }
 
     public boolean verifyTotp(int accountId, String code) {
+        return verifyTotp(accountId, code, true);
+    }
+
+    /**
+     * Checks an authenticator app code against the account's secret alone. The fixed code a development
+     * instance accepts in place of the real one never passes here: what this confirms is recorded as
+     * proof that the account holder acted, as for a signature.
+     *
+     * @param accountId the account
+     * @param code      the code as typed
+     * @return whether the code is the current one of the account's authenticator app and was not used yet
+     */
+    public boolean verifyAuthenticatorCode(int accountId, String code) {
+        return verifyTotp(accountId, code, false);
+    }
+
+    private boolean verifyTotp(int accountId, String code, boolean developmentCodeAccepted) {
         var factor = repository.findActiveFactor(accountId, TwoFactorKind.TOTP);
         if (factor.isEmpty()) {
             log.info("TOTP verification failed for account {}: no active factor", accountId);
             return false;
         }
 
-        if (totpService.isDevCode(code)) {
+        if (developmentCodeAccepted && totpService.isDevCode(code)) {
             log.warn("TOTP of account {} passed with the development code", accountId);
             repository.touchFactorUsed(factor.get().id());
             return true;

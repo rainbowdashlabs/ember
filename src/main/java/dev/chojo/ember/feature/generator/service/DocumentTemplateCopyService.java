@@ -106,7 +106,8 @@ public class DocumentTemplateCopyService {
                 source.language(),
                 issuer.memberId(),
                 issuer.function(),
-                content);
+                content,
+                source.signing());
         var copy = Transactions.call(() -> {
             var written = templates.write(owner, draft, selfService.audience(), authorId);
             pdfs.copyCurrent(source, owner, written.id(), authorId);

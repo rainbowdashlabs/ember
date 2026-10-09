@@ -7,7 +7,13 @@
 import {mount} from '@vue/test-utils'
 import {defineComponent, ref, type Ref} from 'vue'
 import {beforeEach, describe, expect, it, vi} from 'vitest'
-import type {EventSummary} from '@/api/generated/schema'
+import {
+    RequirementSignatureState,
+    RequirementStatus,
+    type AppointmentDocuments,
+    type EventSummary,
+    type ParticipantDocuments,
+} from '@/api/generated/schema'
 import type {Failure} from '@/util/failure'
 import {useEventAnswer} from './useEventAnswer'
 
@@ -16,12 +22,17 @@ const declineEvent = vi.fn()
 const withdrawRegistration = vi.fn()
 const listRegistrationFields = vi.fn()
 
+const documentsToBring = vi.fn()
+
 vi.mock('@/api', () => ({
     events: {
         registerForEvent: (...args: unknown[]) => registerForEvent(...args),
         declineEvent: (...args: unknown[]) => declineEvent(...args),
         withdrawRegistration: (...args: unknown[]) => withdrawRegistration(...args),
         listRegistrationFields: (...args: unknown[]) => listRegistrationFields(...args),
+    },
+    appointmentDocuments: {
+        documentsToBring: (...args: unknown[]) => documentsToBring(...args),
     },
 }))
 
@@ -72,6 +83,8 @@ describe('useEventAnswer', () => {
         listRegistrationFields.mockResolvedValue([])
         registerForEvent.mockResolvedValue(undefined)
         declineEvent.mockResolvedValue(undefined)
+        documentsToBring.mockReset()
+        documentsToBring.mockResolvedValue({required: [], own: [], participants: null})
     })
 
     /**
@@ -178,4 +191,101 @@ describe('useEventAnswer', () => {
         expect(answer.answerPrompt.value).toBeNull()
         expect(registerForEvent).toHaveBeenCalledTimes(1)
     })
+
+    /**
+     * Registering ends on the signing step where a document to bring of the person just registered still
+     * waits for a signature, and nowhere else.
+     */
+    it('ends a registration on the signing step where a document waits for a signature', async () => {
+        const failure = ref<Failure | null>(null)
+        const answer = answerWith(failure)
+        documentsToBring.mockResolvedValue(withCopies(
+            participant(child, RequirementSignatureState.OPEN),
+            participant(sibling, RequirementSignatureState.OPEN)))
+
+        await answer.registerFor(appointment, date, [child])
+
+        expect(documentsToBring).toHaveBeenCalledWith(appointment.id, date)
+        expect(answer.signingStep.value?.copies.map(copy => copy.memberId), 'only the one just registered').toEqual([11])
+        answer.closeSigningStep()
+        expect(answer.signingStep.value).toBeNull()
+    })
+
+    it('ends a registration without a step where nothing waits for a signature', async () => {
+        const failure = ref<Failure | null>(null)
+        const answer = answerWith(failure)
+        documentsToBring.mockResolvedValue(withCopies(participant(child, RequirementSignatureState.SIGNED)))
+
+        await answer.registerFor(appointment, date, [child])
+
+        expect(answer.signingStep.value).toBeNull()
+    })
+
+    it('offers no step for a registration that was refused', async () => {
+        const failure = ref<Failure | null>(null)
+        const answer = answerWith(failure)
+        registerForEvent.mockRejectedValue(new Error('nope'))
+
+        await answer.registerFor(appointment, date, [child])
+
+        expect(documentsToBring).not.toHaveBeenCalled()
+        expect(answer.signingStep.value).toBeNull()
+    })
+
+    it('offers the household one step for everybody whose registration landed', async () => {
+        const failure = ref<Failure | null>(null)
+        const answer = answerWith(failure)
+        registerForEvent.mockRejectedValueOnce(new Error('nope'))
+        documentsToBring.mockResolvedValue(withCopies(
+            participant(child, RequirementSignatureState.OPEN),
+            participant(sibling, RequirementSignatureState.OPEN)))
+
+        await answer.registerFor(appointment, date, [child, sibling])
+        await answer.confirmAnswerPrompt([{key: child.key, fields: []}, {key: sibling.key, fields: []}])
+
+        expect(documentsToBring).toHaveBeenCalledTimes(1)
+        expect(answer.signingStep.value?.copies.map(copy => copy.memberId)).toEqual([12])
+    })
+
+    it('lets the registration stand without a step where the documents cannot be read', async () => {
+        const failure = ref<Failure | null>(null)
+        const answer = answerWith(failure)
+        documentsToBring.mockRejectedValue(new Error('nope'))
+
+        await answer.registerFor(appointment, date, [child])
+
+        expect(answer.signingStep.value).toBeNull()
+        expect(failure.value).toBeNull()
+    })
 })
+
+function participant(person: {key: number; name: string}, state: RequirementSignatureState): ParticipantDocuments {
+    return {
+        memberId: person.key,
+        name: person.name,
+        documents: [{
+            templateId: 8,
+            name: 'Einverständnis',
+            status: RequirementStatus.GENERATED,
+            documentId: 40 + person.key,
+            generatedAt: '2026-09-01T10:00:00Z',
+            outdated: false,
+            paper: null,
+            signature: {
+                templateId: 8,
+                memberId: person.key,
+                requestUid: `0b9f5c1e-8f6d-4a39-9d55-2c1b7f3d4e${person.key}`,
+                state,
+                fields: [{id: 70 + person.key, name: 'participant', signerName: person.name, state, yours: true, nobodyCanSign: false}],
+                withdrawable: false,
+                withdrawnAt: null,
+            },
+            agreementOffered: false,
+        }],
+        agreementWithdrawnAt: null,
+    }
+}
+
+function withCopies(...own: ParticipantDocuments[]): AppointmentDocuments {
+    return {required: [], own, participants: null}
+}

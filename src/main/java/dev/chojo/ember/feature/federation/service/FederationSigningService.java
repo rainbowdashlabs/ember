@@ -183,6 +183,42 @@ public class FederationSigningService {
     }
 
     /**
+     * Signs a statement a station makes about itself, such as the signing authorities it names, so a
+     * partner can check it later against the key it holds from the pairing, whatever carried it.
+     *
+     * <p>A statement is signed over its text exactly as given, the way a handshake payload is. The
+     * text has to start with a line naming the kind of statement and its version, which no handshake
+     * or pairing payload can start with, so a signature over one is never taken for the other.
+     *
+     * @param statement  the statement's text
+     * @param privateKey the station's federation key
+     * @return the Base64 signature
+     */
+    public String signStatement(String statement, PrivateKey privateKey) {
+        return SignedRequests.sign(ALGORITHM, privateKey, new RawBodyEnvelope(statement));
+    }
+
+    /**
+     * Whether a statement's signature fits the key it is checked against. Never throws: a missing part, a
+     * key that does not decode and a signature that does not read all answer {@code false}.
+     *
+     * @param statement  the statement's text, rebuilt by the reader from what it received
+     * @param signature  the signature, as sent
+     * @param encodedKey the Base64 public key the reader holds for the station
+     * @return true when the signature fits
+     */
+    public boolean statementHolds(String statement, @Nullable String signature, @Nullable String encodedKey) {
+        if (signature == null || encodedKey == null) return false;
+        try {
+            return SignedRequests.verify(
+                    ALGORITHM, decodePublicKey(encodedKey), new RawBodyEnvelope(statement), signature);
+        } catch (RuntimeException e) {
+            log.warn("A station statement came with a signature or for a key that could not be read");
+            return false;
+        }
+    }
+
+    /**
      * Decodes a Base64-encoded RSA public key. Rejects keys weaker than
      * {@value #MIN_RSA_KEY_BITS} bits so a partner cannot register a trivially
      * factorable key.

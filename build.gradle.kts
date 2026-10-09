@@ -68,6 +68,8 @@ dependencies {
     implementation(libs.sshd.sftp)
     implementation(libs.aws.s3)
     implementation(libs.pdfbox)
+    implementation(platform(libs.dss.bom))
+    implementation(libs.bundles.dss) { exclude(group = "com.sun.activation", module = "jakarta.activation") }
     implementation(libs.ical4j)
     implementation(libs.rome)
     implementation(libs.rome.modules)
@@ -110,7 +112,9 @@ fun testForks(): Int {
  * the codebase for them takes a few hundred megabytes of a fork's heap, and a fork that had already
  * spent its heap on database tests ran out of memory halfway through the import. Only the suite
  * without a database keeps them, and it gets a larger heap: the same forks also decode and draw full
- * size pictures and pages, and the import plus one such picture outgrew the default.
+ * size pictures and pages, and the import plus one such picture outgrew the default. The signing route
+ * tests send signature pictures of up to 5 MB and seal checks of up to 25 MB on top, and a fork of
+ * 1.5 GB ran out of heap late in the suite.
  *
  * A suite may hand part of what its packages match to another suite through [excludes], which is how
  * one layer is split in two once a single job of it takes too long. The excluded patterns have to be
@@ -155,7 +159,7 @@ val testSuites = listOf(
         "testOther",
         "Runs every test the other suites leave, the architecture rules included",
         architectureRules = true,
-        heap = "1536m",
+        heap = "2g",
     ),
 )
 

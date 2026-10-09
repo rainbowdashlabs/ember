@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.events.repository;
 
+import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.feature.events.entity.EventFederationRegistration;
 import dev.chojo.ember.feature.events.entity.EventFederationShare;
@@ -19,6 +20,7 @@ import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -26,6 +28,7 @@ import java.util.UUID;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
+import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIMESTAMP;
 
 /**
  * Repository for managing federated event sharing, registrations, and member name caching.
@@ -34,7 +37,7 @@ import static de.chojo.sadu.queries.api.query.Query.query;
 public class EventFederationRepository {
     private static final String EVENT_FEDERATION_SHARE_COLUMNS = "id, event_id, scope";
     private static final String EVENT_FEDERATION_REGISTRATION_COLUMNS =
-            "id, event_id, partner_id, remote_member_id, event_date, status, created_at";
+            "id, event_id, partner_id, remote_member_id, event_date, status, created_at, agreement_withdrawn_at";
 
     /**
      * Finds the federation share configuration for an event.
@@ -191,6 +194,64 @@ public class EventFederationRepository {
                 .single(call().bind("status", status).bind("id", id))
                 .update()
                 .changed();
+    }
+
+    /**
+     * Flags a partner's standing registration of a member for a date: the partner reported a signed
+     * agreement the appointment asked for withdrawn.
+     *
+     * @param eventId        the appointment
+     * @param partnerId      the partnership the registration came on
+     * @param remoteMemberId the member
+     * @param eventDate      the date
+     * @param at             when the report came in
+     * @return whether a standing registration was flagged
+     */
+    public boolean flagAgreementWithdrawn(
+            int eventId, int partnerId, UUID remoteMemberId, LocalDate eventDate, Instant at) {
+        return query("""
+                        UPDATE event_federation_registration
+                        SET agreement_withdrawn_at = :at
+                        WHERE event_id = :event_id
+                          AND partner_id = :partner_id
+                          AND remote_member_id = :remote_member_id::UUID
+                          AND event_date = :event_date
+                          AND status IN ('PENDING', 'ACCEPTED');""")
+                .single(registrationKey(eventId, partnerId, remoteMemberId, eventDate)
+                        .bind("at", at, INSTANT_TIMESTAMP))
+                .update()
+                .changed();
+    }
+
+    /**
+     * Takes the flag of a withdrawn agreement off a partner's registration of a member for a date, once a
+     * complete signed copy came back.
+     *
+     * @param eventId        the appointment
+     * @param partnerId      the partnership the registration came on
+     * @param remoteMemberId the member
+     * @param eventDate      the date
+     * @return whether a flag was taken off
+     */
+    public boolean clearAgreementWithdrawn(int eventId, int partnerId, UUID remoteMemberId, LocalDate eventDate) {
+        return query("""
+                        UPDATE event_federation_registration
+                        SET agreement_withdrawn_at = NULL
+                        WHERE event_id = :event_id
+                          AND partner_id = :partner_id
+                          AND remote_member_id = :remote_member_id::UUID
+                          AND event_date = :event_date
+                          AND agreement_withdrawn_at IS NOT NULL;""")
+                .single(registrationKey(eventId, partnerId, remoteMemberId, eventDate))
+                .update()
+                .changed();
+    }
+
+    private static Call registrationKey(int eventId, int partnerId, UUID remoteMemberId, LocalDate eventDate) {
+        return call().bind("event_id", eventId)
+                .bind("partner_id", partnerId)
+                .bind("remote_member_id", remoteMemberId, StandardValueConverter.UUID_STRING)
+                .bind("event_date", eventDate);
     }
 
     /**

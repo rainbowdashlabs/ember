@@ -39,9 +39,11 @@ import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.BiFunction;
@@ -280,7 +282,9 @@ public class AuthService {
      * switching it off recoverable. On a passwordless instance no path may mint a password: the
      * refusal keys on the mode, so a legacy member still rotates the password they hold, while an
      * account that never had one is onboarded again instead. The token type that triggered the
-     * rotation is logged so operators can correlate the flow without an audit table.
+     * rotation is logged so operators can correlate the flow without an audit table. Setting the
+     * password may also confirm an account a station import created, as {@link #confirmsOwnership}
+     * decides.
      *
      * @param token    the password setup or reset token
      * @param password the new plaintext password
@@ -338,9 +342,33 @@ public class AuthService {
         }
 
         invalidateAfterPasswordRotation(accountToken.accountId(), null);
+        if (confirmsOwnership(type, accountToken.accountId()) && accountRepository.confirm(accountToken.accountId())) {
+            log.info("Account {} confirmed by its owner through a {} step", accountToken.accountId(), type);
+        }
         notifyPasswordChanged(account.get());
         log.info("Password set via {} for account {}", type, accountToken.accountId());
         return SetPasswordOutcome.OK;
+    }
+
+    /**
+     * Whether setting a password through this kind of token confirms an account a station import
+     * created.
+     *
+     * <p>A setup or reset link went to the account's address, so following it is the owner's answer.
+     * The forced change after signing in with an imported password proves nothing about the address,
+     * so where a link can reach somebody it leaves the account waiting for that link. Where none can,
+     * because the installation sends no mail (the same check that decides whether a link request goes
+     * out by mail) or because the account has no address and no guardian with one, signing in with the
+     * password the owner brought along and replacing it is the most they can show.
+     *
+     * @param type      the token the password was set with
+     * @param accountId the account the password was set for
+     * @return true where setting the password confirms the account
+     */
+    private boolean confirmsOwnership(TokenType type, int accountId) {
+        return type != TokenType.FORCE_PASSWORD_CHANGE
+                || !emailService.isGlobalMailConfigured()
+                || !mailRecipientService.isReachable(accountId);
     }
 
     /**
@@ -1497,6 +1525,26 @@ public class AuthService {
         return (demo.dev() || demo.enabled()) && demo.stableSessionTokens();
     }
 
+    /**
+     * The stable token of an account: its address, with every byte a cookie cannot carry
+     * percent-encoded. A cookie value is printable ASCII without quotes, commas, semicolons and
+     * backslashes, so an address such as {@code jürgen@könig.local} as it stands reaches the browser
+     * and comes back as other bytes, and every request after signing in is refused. A plain address
+     * stays exactly as it is.
+     *
+     * @param email the account's address
+     * @return the token, readable and safe in a cookie
+     */
+    static String stableTokenOf(String email) {
+        var token = new StringBuilder();
+        for (byte b : email.getBytes(StandardCharsets.UTF_8)) {
+            int value = b & 0xFF;
+            if (value > 0x20 && value < 0x7F && "\",;\\%".indexOf(value) < 0) token.append((char) value);
+            else token.append('%').append(String.format(Locale.ROOT, "%02X", value));
+        }
+        return token.toString();
+    }
+
     private LoginResult createSession(
             int accountId, @Nullable String userAgent, @Nullable String location, boolean trustedDevice) {
         return createSession(accountId, userAgent, location, null, null, trustedDevice);
@@ -1520,8 +1568,10 @@ public class AuthService {
             @Nullable Integer deviceTrustId,
             boolean trustedDevice) {
         if (stableSessionTokens()) {
-            String stableToken =
-                    accountRepository.findById(accountId).map(Account::email).orElseGet(this::generateToken);
+            String stableToken = accountRepository
+                    .findById(accountId)
+                    .map(account -> stableTokenOf(account.email()))
+                    .orElseGet(this::generateToken);
             Instant stableExpiry = Instant.now().plus(365, ChronoUnit.DAYS);
             accountRepository.createOrReplaceSession(
                     accountId,

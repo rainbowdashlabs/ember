@@ -11,6 +11,7 @@ import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.auth.OneTimePasswords;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.account.entity.AccountAction;
 import dev.chojo.ember.feature.account.entity.IssuedOneTimePassword;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.members.entity.NameParts;
@@ -48,6 +49,7 @@ public class OneTimePasswordService {
     private final StationMemberRepository memberRepository;
     private final AuthService authService;
     private final TwoFactorAuditService auditService;
+    private final AccountReach accountReach;
     private final Clock clock;
 
     @Inject
@@ -55,8 +57,9 @@ public class OneTimePasswordService {
             AccountRepository accountRepository,
             StationMemberRepository memberRepository,
             AuthService authService,
-            TwoFactorAuditService auditService) {
-        this(accountRepository, memberRepository, authService, auditService, Clock.systemUTC());
+            TwoFactorAuditService auditService,
+            AccountReach accountReach) {
+        this(accountRepository, memberRepository, authService, auditService, accountReach, Clock.systemUTC());
     }
 
     /**
@@ -67,11 +70,13 @@ public class OneTimePasswordService {
             StationMemberRepository memberRepository,
             AuthService authService,
             TwoFactorAuditService auditService,
+            AccountReach accountReach,
             Clock clock) {
         this.accountRepository = accountRepository;
         this.memberRepository = memberRepository;
         this.authService = authService;
         this.auditService = auditService;
+        this.accountReach = accountReach;
         this.clock = clock;
     }
 
@@ -130,13 +135,7 @@ public class OneTimePasswordService {
         if (account.instanceUserType() == InstanceUserType.ADMINISTRATOR) {
             throw MemberRefusal.ONE_TIME_PASSWORD_FOR_INSTANCE_ADMINISTRATOR.raise();
         }
-        var ties = accountRepository.findTies(account.id(), stationId);
-        if (ties.association()) {
-            throw MemberRefusal.ONE_TIME_PASSWORD_FOR_ASSOCIATION_ACCOUNT.raise();
-        }
-        if (ties.elsewhere()) {
-            throw MemberRefusal.ONE_TIME_PASSWORD_FOR_SHARED_ACCOUNT.raise();
-        }
+        accountReach.require(stationId, account.id(), AccountAction.ONE_TIME_PASSWORD);
     }
 
     private IssuedOneTimePassword issue(

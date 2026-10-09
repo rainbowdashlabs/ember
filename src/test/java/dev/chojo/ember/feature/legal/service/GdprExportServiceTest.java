@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.knowledgebase.service.KbFileStorageService;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.question.FieldType;
+import dev.chojo.ember.feature.signing.service.SignatureImageService;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
@@ -22,14 +23,20 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import tools.jackson.databind.node.StringNode;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.zip.ZipInputStream;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class GdprExportServiceTest extends RepositoryTestBase {
@@ -47,7 +54,8 @@ class GdprExportServiceTest extends RepositoryTestBase {
                 memberLookupService,
                 mock(KbFileStorageService.class),
                 memberDocumentRepo,
-                mock(DocumentService.class));
+                mock(DocumentService.class),
+                mock(SignatureImageService.class));
 
         account = accountRepo.create("gdpr-test@example.com", "Max", "Mustermann", true);
         assertNotNull(account);
@@ -272,5 +280,32 @@ class GdprExportServiceTest extends RepositoryTestBase {
         var titles = documents.stream().map(document -> document.get("title")).toList();
         assertTrue(titles.contains("Einverstaendnis"));
         assertTrue(titles.contains("Vermerk"), "a document withheld in the interface is still data held about them");
+    }
+
+    /** The signature picture is kept in the account's file store, so the archive carries it as a file of its own. */
+    @Test
+    @Order(42)
+    void theArchiveCarriesTheSavedSignaturePicture() throws IOException {
+        byte[] picture = {(byte) 0x89, 'P', 'N', 'G'};
+        var signatureImages = mock(SignatureImageService.class);
+        when(signatureImages.image(account.id())).thenReturn(Optional.of(picture));
+        var withPicture = new GdprExportService(
+                accountRepo,
+                stationMemberRepo,
+                memberLookupService,
+                mock(KbFileStorageService.class),
+                memberDocumentRepo,
+                mock(DocumentService.class),
+                signatureImages);
+
+        var entries = new HashMap<String, byte[]>();
+        try (var zip =
+                new ZipInputStream(new ByteArrayInputStream(withPicture.exportAccountDataAsZip(account.id(), "de")))) {
+            for (var entry = zip.getNextEntry(); entry != null; entry = zip.getNextEntry()) {
+                entries.put(entry.getName(), zip.readAllBytes());
+            }
+        }
+
+        assertArrayEquals(picture, entries.get("files/signature.png"));
     }
 }

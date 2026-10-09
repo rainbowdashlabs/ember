@@ -11,9 +11,12 @@ import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.ClusterPermission;
 import dev.chojo.ember.api.auth.ClusterUserType;
 import dev.chojo.ember.api.refusal.ClusterRefusal;
+import dev.chojo.ember.feature.accountlink.entity.AssociationLinkState;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.entity.ClusterMember;
 import dev.chojo.ember.feature.cluster.service.ClusterMemberService;
+import dev.chojo.ember.feature.cluster.service.ClusterMemberService.Added;
+import dev.chojo.ember.feature.cluster.service.ClusterMemberService.Asked;
 import dev.chojo.ember.feature.cluster.service.ClusterMemberService.ClusterMemberResponse;
 import dev.chojo.ember.feature.cluster.service.ClusterMemberService.GroupChange;
 import dev.chojo.ember.feature.cluster.service.ClusterService;
@@ -120,22 +123,29 @@ public class ClusterMemberRoutes implements Routes {
             path = "/api/v1/cluster/members",
             methods = HttpMethod.POST,
             summary = "Take an account on as a cluster member",
+            description =
+                    "An address without an account gets one and is taken on (201). An address that already has an account is not taken on: its owner is asked first, and the answer is where that request stands (202).",
             tags = {"Cluster"},
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = NewClusterMemberRequest.class)),
             responses = {
                 @OpenApiResponse(status = "201", content = @OpenApiContent(from = ClusterMemberResponse.class)),
-                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+                @OpenApiResponse(status = "202", content = @OpenApiContent(from = AssociationLinkState.class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "409", content = @OpenApiContent(from = ErrorResponseWrapper.class))
             })
     private void add(Context ctx) {
         Cluster cluster = requireActive(ctx);
         var request = ctx.bodyAsClass(NewClusterMemberRequest.class);
-        ClusterMember member = memberService.addByEmail(
+        var addition = memberService.addByEmail(
                 cluster.id(),
                 request.email(),
                 parseUserType(request.userType()),
                 request.firstName(),
                 request.lastName());
-        ctx.status(HttpStatus.CREATED).json(toResponse(member));
+        switch (addition) {
+            case Added added -> ctx.status(HttpStatus.CREATED).json(toResponse(added.member()));
+            case Asked asked -> ctx.status(HttpStatus.ACCEPTED).json(asked.request());
+        }
     }
 
     @OpenApi(

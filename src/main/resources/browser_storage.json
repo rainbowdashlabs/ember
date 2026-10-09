@@ -322,6 +322,15 @@
       }
     },
     {
+      "key": "document_groups",
+      "necessity": "COMFORT",
+      "retention": "UNTIL_CLEARED",
+      "purpose": {
+        "de": "Welche Gruppen Sie bei den Dokumenten der Teilnehmenden eines Termins auf- oder zugeklappt haben.",
+        "en": "Which groups you have opened or closed in the participants' documents of an appointment."
+      }
+    },
+    {
       "key": "page_drafts",
       "necessity": "FUNCTIONAL",
       "retention": "UNTIL_CLEARED",

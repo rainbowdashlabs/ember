@@ -12,6 +12,7 @@ import dev.chojo.ember.api.refusal.StationRefusal;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.service.AccountInviteService;
 import dev.chojo.ember.feature.account.service.AuthService;
+import dev.chojo.ember.feature.accountlink.service.TestAccountLinks;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService;
@@ -47,7 +48,8 @@ class StationServiceTest extends RepositoryTestBase {
                 new StationMemberInviteService(
                         stationMemberRepo,
                         newGroupMemberships(),
-                        new AccountInviteService(accountRepo, mock(AuthService.class))),
+                        new AccountInviteService(accountRepo, mock(AuthService.class)),
+                        TestAccountLinks.service(accountRepo, stationRepo, stationMemberRepo)),
                 clusterRepo);
     }
 

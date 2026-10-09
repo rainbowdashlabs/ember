@@ -42,7 +42,17 @@ public class CredentialCipher {
 
     @Inject
     public CredentialCipher(Storage storageConfig) {
-        this(new EncryptionKeyFile(EncryptionKeyFile.DEFAULT_PATH).keyFor(storageConfig.credentialEncryptionKey()));
+        this(atRestKey(storageConfig));
+    }
+
+    /**
+     * The base64 secret this installation encrypts at rest with: {@code storage.credentialEncryptionKey}
+     * when configured, else the key in {@link EncryptionKeyFile#DEFAULT_PATH}, generated on first use.
+     *
+     * @throws java.io.UncheckedIOException when the key file can be neither read nor created
+     */
+    public static String atRestKey(Storage storageConfig) {
+        return new EncryptionKeyFile(EncryptionKeyFile.DEFAULT_PATH).keyFor(storageConfig.credentialEncryptionKey());
     }
 
     /**

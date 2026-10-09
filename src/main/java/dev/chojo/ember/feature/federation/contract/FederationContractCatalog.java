@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.knowledgebase.route.RemoteKnowledgeBaseRoutes;
 import dev.chojo.ember.feature.news.route.RemoteNewsRoutes;
 import dev.chojo.ember.feature.protocol.route.RemoteTestProtocolRoutes;
 import dev.chojo.ember.feature.quiz.route.RemoteQuizRoutes;
+import dev.chojo.ember.feature.signing.route.RemoteSigningRoutes;
 import io.javalin.http.HandlerType;
 
 import java.util.List;
@@ -45,7 +46,8 @@ public final class FederationContractCatalog {
                     RemoteBoardRoutes.CONTRACT,
                     RemoteBoardTicketRoutes.CONTRACT,
                     RemoteBoardTicketDetailRoutes.CONTRACT,
-                    RemoteBoardTicketLinkRoutes.CONTRACT)
+                    RemoteBoardTicketLinkRoutes.CONTRACT,
+                    RemoteSigningRoutes.CONTRACT)
             .flatMap(List::stream)
             .toList();
 

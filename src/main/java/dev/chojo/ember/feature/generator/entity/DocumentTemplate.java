@@ -44,6 +44,7 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param createdAt        when it was created
  * @param updatedAt        when it was last changed
  * @param archivedAt       when it was archived, or null while it is in use
+ * @param signing          how its documents are kept and sent once they are signed
  */
 public record DocumentTemplate(
         int id,
@@ -66,13 +67,25 @@ public record DocumentTemplate(
         int version,
         Instant createdAt,
         Instant updatedAt,
-        @Nullable Instant archivedAt) {
+        @Nullable Instant archivedAt,
+        TemplateSigning signing) {
+
+    /**
+     * How many months a new legal template keeps the signatures asked for on its documents, their evidence
+     * and the signed document after the member has gone. Claims about a signed document fall due within
+     * the three years of the regular limitation period (section 195 BGB), which only starts at the end of
+     * the year they arose in (section 199 BGB), so four years cover a claim from the member's last year.
+     * Any other template keeps them only while the member is a member, since its documents are not kept
+     * as evidence.
+     */
+    public static final int LEGAL_SIGNATURE_RETENTION_MONTHS = 48;
 
     /** The columns {@link #map()} reads, in a form a query can splice in. */
     public static final String COLUMNS = """
             id, station_id, cluster_id, kind, name, title_pattern, file_name_pattern, tags, hidden, keep_on_archive,
             legal, for_appointments, self_service, self_service_cooldown_days, restriction_mode, language, issuer_id,
-            issuer_function, version, created_at, updated_at, archived_at""";
+            issuer_function, version, created_at, updated_at, archived_at, signature_retention_months,
+            signed_copy_attached""";
 
     /** @return the issuer the template names itself, nobody for a template of an association */
     public DocumentIssuer issuer() {
@@ -111,7 +124,10 @@ public record DocumentTemplate(
                 row.getInt("version"),
                 row.get("created_at", INSTANT_TIMESTAMP),
                 row.get("updated_at", INSTANT_TIMESTAMP),
-                row.get("archived_at", INSTANT_TIMESTAMP));
+                row.get("archived_at", INSTANT_TIMESTAMP),
+                new TemplateSigning(
+                        row.getObject("signature_retention_months", Integer.class),
+                        row.getBoolean("signed_copy_attached")));
     }
 
     /**

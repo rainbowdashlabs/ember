@@ -44,6 +44,7 @@ const sendSetupMail = ref(true)
 const issueOneTimePassword = ref(true)
 const oneTimePassword = ref<IssuedOneTimePassword | null>(null)
 const oneTimePasswordFailure = ref<Failure | null>(null)
+const linkPending = ref(false)
 
 const {sessionInfo, hasPermission} = useSession()
 
@@ -141,7 +142,7 @@ async function createNewManager(data: { firstName: string; lastName: string; ema
 
   let invitedId: number
   try {
-    invitedId = (await members.invite({...data, sendSetupMail: sendSetupMail.value})).id
+    invitedId = (await members.invite({...data, sendSetupMail: sendSetupMail.value})).memberId
   } catch (e) {
     failure.value = describeFailure(e, t)
     return
@@ -149,7 +150,7 @@ async function createNewManager(data: { firstName: string; lastName: string; ema
 
   try {
     const membersList = await stationMembers.listMembers()
-    const newMember = membersList.find(m => m.accountId === invitedId)
+    const newMember = membersList.find(m => m.id === invitedId)
     if (!newMember) {
       failure.value = {
         kind: FailureKind.UNKNOWN,
@@ -210,9 +211,10 @@ const {running: saving, failure: createFailure, run: createAccount, clearError: 
   })
 
   accountMade = true
+  linkPending.value = invited.linkPending
 
   const membersList = await stationMembers.listMembers()
-  const newMember = membersList.find(m => m.accountId === invited.id)
+  const newMember = membersList.find(m => m.id === invited.memberId)
   if (!newMember) throw new Error('Member not found after invite')
 
   if (selectedUserType.value !== StationUserType.MEMBER) {
@@ -235,7 +237,7 @@ const {running: saving, failure: createFailure, run: createAccount, clearError: 
     await stationMembers.setManagers(newMember.id, {managerIds: [...selectedManagerIds.value]})
   }
 
-  if (handsOverOneTimePassword.value) {
+  if (handsOverOneTimePassword.value && invited.id !== null) {
     await handOverOneTimePassword(invited.id)
   }
 
@@ -257,6 +259,7 @@ function startOver() {
   issueOneTimePassword.value = true
   oneTimePassword.value = null
   oneTimePasswordFailure.value = null
+  linkPending.value = false
   fieldValues.value = new Map()
   selectedGroupIds.value = new Set()
   selectedManagerIds.value = new Set()
@@ -302,6 +305,7 @@ function startOver() {
           :offer-one-time-password="offerOneTimePassword"
           :one-time-password="oneTimePassword"
           :one-time-password-failure="oneTimePasswordFailure"
+          :link-pending="linkPending"
           @next-from-identity="nextFromIdentity"
           @next-from-groups="nextFromGroups"
           @set-field-value="setFieldValue"

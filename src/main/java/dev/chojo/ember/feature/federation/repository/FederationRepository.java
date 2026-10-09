@@ -274,6 +274,88 @@ public class FederationRepository {
                 .changed();
     }
 
+    /**
+     * The active partnerships stations of this instance hold with the given station as a station of
+     * this instance, cluster pairs aside.
+     *
+     * @param partnerStationUid the station on the other end
+     * @return the rows naming it as partner
+     */
+    public List<FederationPartner> findLocalPartnershipsWith(UUID partnerStationUid) {
+        return query("""
+                SELECT %s FROM federation_partner
+                WHERE partner_station_id = :partner_station_id::UUID
+                  AND remote_host IS NULL
+                  AND status = 'ACTIVE'
+                  AND NOT cluster_managed
+                ORDER BY id;""", FEDERATION_PARTNER_COLUMNS)
+                .single(call().bind("partner_station_id", partnerStationUid, UUID_STRING))
+                .map(FederationPartner.map())
+                .all();
+    }
+
+    /**
+     * The active partnerships a station holds with stations of this instance, cluster pairs aside.
+     *
+     * @param stationId the station holding them
+     * @return the rows, in the order they were made
+     */
+    public List<FederationPartner> findLocalPartnerships(int stationId) {
+        return query("""
+                SELECT %s FROM federation_partner
+                WHERE station_id = :station_id
+                  AND remote_host IS NULL
+                  AND status = 'ACTIVE'
+                  AND NOT cluster_managed
+                ORDER BY id;""", FEDERATION_PARTNER_COLUMNS)
+                .single(call().bind("station_id", stationId))
+                .map(FederationPartner.map())
+                .all();
+    }
+
+    /**
+     * A station's partnership with a station on another instance, cluster pairs aside.
+     *
+     * @param stationId         the station holding it
+     * @param partnerStationUid the station on the other end
+     * @return the row, or empty when the two are not partners across instances
+     */
+    public Optional<FederationPartner> findRemotePartnership(int stationId, UUID partnerStationUid) {
+        return query("""
+                SELECT %s FROM federation_partner
+                WHERE station_id = :station_id
+                  AND partner_station_id = :partner_station_id::UUID
+                  AND remote_host IS NOT NULL
+                  AND NOT cluster_managed;""", FEDERATION_PARTNER_COLUMNS)
+                .single(call().bind("station_id", stationId).bind("partner_station_id", partnerStationUid, UUID_STRING))
+                .map(FederationPartner.map())
+                .first();
+    }
+
+    /**
+     * Records the key a partner signs with and, where the row has none, its name.
+     *
+     * <p>Between two stations of this instance nothing is signed, so the row may hold no key or a key
+     * nobody signs with. Once one of the two has moved to another instance, every request between them
+     * is verified against this key.
+     *
+     * @param id                 the partnership
+     * @param partnerPublicKey   the partner's public key
+     * @param partnerStationName the partner's name, kept only where the row records none
+     * @return {@code true} when the row was updated
+     */
+    public boolean adoptPartnerKey(int id, String partnerPublicKey, String partnerStationName) {
+        return query("""
+                UPDATE federation_partner
+                SET partner_public_key   = :key,
+                    partner_station_name = coalesce(nullif(partner_station_name, ''), :name),
+                    updated_at           = now()
+                WHERE id = :id;""")
+                .single(call().bind("id", id).bind("key", partnerPublicKey).bind("name", partnerStationName))
+                .update()
+                .changed();
+    }
+
     public void updateFederationContract(int id, FederationContract contract) {
         query(
                         "UPDATE federation_partner SET federation_contract = :contract::jsonb, updated_at = now() WHERE id = :id;")

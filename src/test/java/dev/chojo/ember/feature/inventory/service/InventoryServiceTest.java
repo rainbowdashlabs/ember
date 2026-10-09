@@ -9,6 +9,7 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.federation.repository.LendingRepository;
+import dev.chojo.ember.feature.inventory.entity.BorrowedPiece;
 import dev.chojo.ember.feature.inventory.entity.Glyph;
 import dev.chojo.ember.feature.inventory.entity.InventoryItemMetadata;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
@@ -497,7 +498,12 @@ class InventoryServiceTest extends RepositoryTestBase {
                 station.uid(), partner.uid(), LocalDate.now(), LocalDate.now(), member.id(), null, null, "Umstellung");
         var line = lendingRepo.addRequestItem(request.id(), null, null, null, 1, null);
         int borrowed = inventoryRepo
-                .createBorrowedItem(inv.id(), "U-2", "Funke", InventoryItemMetadata.empty(), partner.id(), line.id())
+                .createBorrowedItem(
+                        inv.id(),
+                        new BorrowedPiece("U-2", "Funke", InventoryItemMetadata.empty()),
+                        partner.uid(),
+                        partner.id(),
+                        line.id())
                 .id();
 
         service.update(inv.id(), "Umsteller", InventoryType.EXTERNAL, false, true);

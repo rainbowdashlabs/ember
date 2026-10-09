@@ -5,17 +5,25 @@
  */
 package dev.chojo.ember.feature.federation.service;
 
+import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
 import dev.chojo.ember.feature.federation.route.RemoteFederationRoutes;
+import dev.chojo.ember.lifecycle.TaskScheduler;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.security.MessageDigest;
+import java.time.Duration;
+import java.util.Base64;
+import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
@@ -44,14 +52,25 @@ public class FederationPartnerTransferFixupService {
 
     private static final Logger log = LoggerFactory.getLogger(FederationPartnerTransferFixupService.class);
 
+    /** The waits before each further attempt to tell a remote partner where a moved station runs now. */
+    static final List<Duration> ANNOUNCE_RETRIES =
+            List.of(Duration.ofMinutes(1), Duration.ofMinutes(15), Duration.ofHours(2), Duration.ofHours(12));
+
     private final FederationRepository federationRepository;
     private final FederationHttpClient federationHttpClient;
+    private final StationKeyStore stationKeys;
+    private final TaskScheduler scheduler;
 
     @Inject
     public FederationPartnerTransferFixupService(
-            FederationRepository federationRepository, FederationHttpClient federationHttpClient) {
+            FederationRepository federationRepository,
+            FederationHttpClient federationHttpClient,
+            StationKeyStore stationKeys,
+            TaskScheduler scheduler) {
         this.federationRepository = federationRepository;
         this.federationHttpClient = federationHttpClient;
+        this.stationKeys = stationKeys;
+        this.scheduler = scheduler;
     }
 
     /**
@@ -70,6 +89,7 @@ public class FederationPartnerTransferFixupService {
                         FROM station s
                         WHERE fp.station_id = :station_id
                           AND s.uid = fp.partner_station_id
+                          AND s.moved_away_at IS NULL
                           AND (fp.partner_station_name IS NULL OR fp.partner_station_name = '');
                         """).single(call().bind("station_id", stationId)).update();
 
@@ -80,9 +100,12 @@ public class FederationPartnerTransferFixupService {
                         WHERE station_id = :station_id
                           AND NOT cluster_managed
                           AND EXISTS (
-                              SELECT 1 FROM station s WHERE s.uid = federation_partner.partner_station_id
+                              SELECT 1 FROM station s
+                              WHERE s.uid = federation_partner.partner_station_id
+                                AND s.moved_away_at IS NULL
                           );
                         """).single(call().bind("station_id", stationId)).update().rows();
+        int welcomed = welcomeHome(stationId);
 
         String url = sourceInstanceUrl == null ? null : sourceInstanceUrl.trim();
         int retargeted = 0;
@@ -94,7 +117,9 @@ public class FederationPartnerTransferFixupService {
                               AND NOT cluster_managed
                               AND remote_host IS NULL
                               AND NOT EXISTS (
-                                  SELECT 1 FROM station s WHERE s.uid = federation_partner.partner_station_id
+                                  SELECT 1 FROM station s
+                                  WHERE s.uid = federation_partner.partner_station_id
+                                    AND s.moved_away_at IS NULL
                               );
                             """)
                     .single(call().bind("station_id", stationId).bind("url", url))
@@ -102,11 +127,63 @@ public class FederationPartnerTransferFixupService {
                     .rows();
         }
         log.info(
-                "destination-side partner fixup for station {}: cleared {} intra-instance partner(s), pointed {} cross-instance partner(s) back at {}",
+                "destination-side partner fixup for station {}: cleared {} intra-instance partner(s), {} partner(s) here reach it here now, pointed {} cross-instance partner(s) back at {}",
                 stationId,
                 cleared,
+                welcomed,
                 retargeted,
                 url == null || url.isEmpty() ? "<unknown>" : url);
+    }
+
+    /**
+     * Turns the partnerships stations of this instance already had with the station that just
+     * arrived into partnerships on this instance: they reached it at its old address until now.
+     *
+     * <p>The uid the station arrived under is only what its bundle claims, and whoever runs the source
+     * writes the bundle. What proves it is the station those partnerships were made with is the key it
+     * brought: a partnership is turned only where the public key it verifies the partner by belongs to
+     * the key the station signs with here. A station that claims somebody else's uid has no such key,
+     * and the partnerships stay where they reach the real one.
+     *
+     * @param stationId the station that arrived
+     * @return how many partner rows now reach it here
+     */
+    private int welcomeHome(int stationId) {
+        var publicKey = stationKeys.privateKey(stationId).map(StationKeyStore::publicKeyOf);
+        if (publicKey.isEmpty()) return 0;
+        var proven = query("""
+                        SELECT fp.id, fp.partner_public_key
+                        FROM federation_partner fp
+                                 JOIN station arrived ON arrived.id = :station_id
+                                 JOIN station holder ON holder.id = fp.station_id
+                        WHERE fp.partner_station_id = arrived.uid
+                          AND fp.station_id <> arrived.id
+                          AND holder.moved_away_at IS NULL
+                          AND fp.remote_host IS NOT NULL
+                          AND NOT fp.cluster_managed;
+                        """)
+                .single(call().bind("station_id", stationId))
+                .map(row -> new PartnerKey(row.getInt("id"), row.getString("partner_public_key")))
+                .all()
+                .stream()
+                .filter(partner -> sameKey(partner.publicKey(), publicKey.get()))
+                .map(PartnerKey::id)
+                .toList();
+        if (proven.isEmpty()) return 0;
+        return query("UPDATE federation_partner SET remote_host = NULL WHERE id = ANY(:ids::INT[]);")
+                .single(call().bind("ids", proven, PostgreSqlTypes.INTEGER))
+                .update()
+                .rows();
+    }
+
+    private static boolean sameKey(@Nullable String stored, String expected) {
+        if (stored == null || stored.isBlank()) return false;
+        try {
+            var decoder = Base64.getMimeDecoder();
+            return MessageDigest.isEqual(decoder.decode(stored), decoder.decode(expected));
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
     }
 
     /**
@@ -115,8 +192,11 @@ public class FederationPartnerTransferFixupService {
      * the next protocol ping. Runs immediately after {@link #rewriteAfterImport(int, String)}
      * has settled the local rows. Each call is a signed {@code POST /remote/announce} sent under
      * the moved station's identity; receivers verify the signature, look up the partnership by
-     * the moved station's UID, and update their stored host. Failures are swallowed - the
-     * version-ping fallback will eventually carry the change anyway.
+     * the moved station's UID, and update their stored host.
+     *
+     * <p>A partner that could not be told is asked again later, after each of
+     * {@link #ANNOUNCE_RETRIES} in turn, as long as the partnership still stands. Until it hears, it
+     * keeps calling the copy the station left at its old address, which refuses it with the new one.
      */
     public void announceNewHostToRemotePartners(int stationId, String newInstanceUrl) {
         String url = newInstanceUrl == null ? null : newInstanceUrl.trim();
@@ -124,15 +204,7 @@ public class FederationPartnerTransferFixupService {
             log.warn("skip new-host announce for station {}: destination instance URL not configured", stationId);
             return;
         }
-        var partners = federationRepository.findPartners(stationId);
-        var remote = partners.stream()
-                .filter(partner -> partner.status() == FederationPartner.FederationStatus.ACTIVE)
-                .filter(partner -> {
-                    String host = partner.remoteHost();
-                    return host != null && !host.isBlank();
-                })
-                .toList();
-        int skipped = partners.size() - remote.size();
+        var remote = remotePartners(stationId);
         if (remote.isEmpty()) {
             log.info("no remote partner to announce new host {} to for station {}", url, stationId);
             return;
@@ -143,35 +215,72 @@ public class FederationPartnerTransferFixupService {
                     stationId);
             return;
         }
+        announce(stationId, url, remote, 0);
+    }
+
+    private List<FederationPartner> remotePartners(int stationId) {
+        return federationRepository.findPartners(stationId).stream()
+                .filter(partner -> partner.status() == FederationPartner.FederationStatus.ACTIVE)
+                .filter(partner -> {
+                    String host = partner.remoteHost();
+                    return host != null && !host.isBlank();
+                })
+                .toList();
+    }
+
+    private void announce(int stationId, String url, List<FederationPartner> partners, int retriesSpent) {
         var payload = new AnnounceBody(url);
-        int sent = 0;
-        for (FederationPartner partner : remote) {
-            try {
-                boolean ok = federationHttpClient.post(
-                        partner.requireRemoteHost(),
-                        RemoteFederationRoutes.ANNOUNCE.at(),
-                        payload,
-                        partner.partnerStationId(),
-                        stationId);
-                if (ok) {
-                    sent++;
-                } else {
-                    log.warn("new-host announce to partner {} at {} failed", partner.id(), partner.remoteHost());
-                }
-            } catch (Exception e) {
-                log.warn(
-                        "new-host announce to partner {} at {} threw: {}",
-                        partner.id(),
-                        partner.remoteHost(),
-                        e.getMessage());
-            }
-        }
+        var unheard = partners.stream()
+                .filter(partner -> !told(stationId, partner, payload))
+                .map(FederationPartner::id)
+                .collect(Collectors.toSet());
         log.info(
-                "announced new host {} to {} remote partner(s) for station {} (skipped {} local/inactive)",
+                "announced new host {} to {} of {} remote partner(s) for station {}",
                 url,
-                sent,
-                stationId,
-                skipped);
+                partners.size() - unheard.size(),
+                partners.size(),
+                stationId);
+        if (unheard.isEmpty()) return;
+        if (retriesSpent >= ANNOUNCE_RETRIES.size()) {
+            log.warn(
+                    "gave up announcing new host {} for station {} to partner(s) {}; they learn it from the copy at the old address",
+                    url,
+                    stationId,
+                    unheard);
+            return;
+        }
+        scheduler.later(
+                "new-host announce for station " + stationId,
+                ANNOUNCE_RETRIES.get(retriesSpent),
+                () -> announceAgain(stationId, url, unheard, retriesSpent + 1));
+    }
+
+    private void announceAgain(int stationId, String url, Set<Integer> unheard, int retriesSpent) {
+        var still = remotePartners(stationId).stream()
+                .filter(partner -> unheard.contains(partner.id()))
+                .toList();
+        if (still.isEmpty() || !federationHttpClient.canSign(stationId)) return;
+        announce(stationId, url, still, retriesSpent);
+    }
+
+    private boolean told(int stationId, FederationPartner partner, AnnounceBody payload) {
+        try {
+            boolean ok = federationHttpClient.post(
+                    partner.requireRemoteHost(),
+                    RemoteFederationRoutes.ANNOUNCE.at(),
+                    payload,
+                    partner.partnerStationId(),
+                    stationId);
+            if (!ok) log.warn("new-host announce to partner {} at {} failed", partner.id(), partner.remoteHost());
+            return ok;
+        } catch (Exception e) {
+            log.warn(
+                    "new-host announce to partner {} at {} threw: {}",
+                    partner.id(),
+                    partner.remoteHost(),
+                    e.getMessage());
+            return false;
+        }
     }
 
     /**
@@ -206,4 +315,6 @@ public class FederationPartnerTransferFixupService {
     }
 
     private record AnnounceBody(String newHost) {}
+
+    private record PartnerKey(int id, @Nullable String publicKey) {}
 }

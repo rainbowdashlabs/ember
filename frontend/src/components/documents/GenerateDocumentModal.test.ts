@@ -6,6 +6,7 @@
 import {beforeEach, describe, expect, it, vi} from 'vitest'
 import {flushPromises, type VueWrapper} from '@vue/test-utils'
 import {mountSuspended} from '@nuxt/test-utils/runtime'
+import {FieldRole, FieldState, RequestState, SignerCapacity} from '@/api/generated/schema'
 import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
 import GenerateDocumentModal from './GenerateDocumentModal.vue'
 import IssuerOverride from './IssuerOverride.vue'
@@ -13,11 +14,17 @@ import TemplateChoice from './TemplateChoice.vue'
 
 const previewForMember = vi.fn()
 const generateForMember = vi.fn()
+const getSignatureAsk = vi.fn()
+const requestSignatures = vi.fn()
 
 vi.mock('@/api', () => ({
     documentTemplates: {
         previewForMember: (...args: unknown[]) => previewForMember(...args),
         generateForMember: (...args: unknown[]) => generateForMember(...args),
+    },
+    signing: {
+        getSignatureAsk: (...args: unknown[]) => getSignatureAsk(...args),
+        requestSignatures: (...args: unknown[]) => requestSignatures(...args),
     },
     stationMembers: {
         listCompletions: vi.fn(async () => []),
@@ -48,6 +55,46 @@ describe('GenerateDocumentModal', () => {
         vi.clearAllMocks()
         previewForMember.mockResolvedValue({missing: [], pdfBase64: '', unprintable: []})
         generateForMember.mockResolvedValue({documentId: 42, generationId: 7, missing: [], title: 'Ausweis'})
+        getSignatureAsk.mockResolvedValue({request: null, fields: []})
+    })
+
+    it('closes once a document without fields to sign is filed', async () => {
+        const dialog = await mountDialog({memberId: 4})
+        await chooseTemplate(dialog, 3)
+
+        await dialog.find('[data-testid="generate-file"]').trigger('click')
+        await flushPromises()
+
+        expect(getSignatureAsk).toHaveBeenCalledWith(7)
+        expect(dialog.emitted('update:modelValue')).toEqual([[false]])
+        expect(requestSignatures).not.toHaveBeenCalled()
+    })
+
+    it('leads on to asking for the signatures a filed document calls for, and asks on request', async () => {
+        const field = {
+            fieldName: 'guardian1', role: FieldRole.GUARDIAN, signerName: 'Gerda Erste',
+            capacity: SignerCapacity.GUARDIAN, statement: 'Wir sind einverstanden.', state: null,
+        }
+        getSignatureAsk.mockResolvedValue({request: null, fields: [field]})
+        requestSignatures.mockResolvedValue({
+            request: {uid: 'u', state: RequestState.OPEN, retentionMonths: 48, copyAttached: false},
+            fields: [{...field, state: FieldState.OPEN}],
+        })
+        const dialog = await mountDialog({memberId: 4})
+        await chooseTemplate(dialog, 3)
+        await dialog.find('[data-testid="generate-file"]').trigger('click')
+        await flushPromises()
+
+        const ask = dialog.find('[data-testid="signature-ask"]')
+        expect(ask.text()).toContain('Gerda Erste')
+        expect(ask.text()).toContain('Wir sind einverstanden.')
+        expect(dialog.emitted('update:modelValue')).toBeUndefined()
+
+        await dialog.find('[data-testid="signature-ask-request"]').trigger('click')
+        await flushPromises()
+
+        expect(requestSignatures).toHaveBeenCalledWith(7)
+        expect(dialog.emitted('update:modelValue')).toEqual([[false]])
     })
 
     it('asks the picker to leave out the templates for appointments', async () => {

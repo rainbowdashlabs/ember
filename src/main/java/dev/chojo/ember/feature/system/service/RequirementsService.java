@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.quiz.service.QuizService;
+import dev.chojo.ember.feature.signing.service.SignatureRequestService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -20,6 +21,7 @@ import org.jspecify.annotations.Nullable;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * The work a member still owes the station.
@@ -28,8 +30,8 @@ import java.util.List;
  * landing after signing in is a forced form, a forced quiz or an incomplete profile: each is
  * something the station needs before the member does anything else. A self-check due in four weeks
  * is not that, and neither is a registration short of an answer to a question its appointment
- * gained later. Both count towards the badge and are listed so a screen can offer them, and the
- * landing lets the member past them.
+ * gained later, and neither is a document waiting for a signature. All three count towards the badge
+ * and are listed so a screen can offer them, and the landing lets the member past them.
  */
 @Singleton
 public class RequirementsService {
@@ -40,6 +42,7 @@ public class RequirementsService {
     private final EventRegistrationService registrationService;
     private final StationMemberService stationMemberService;
     private final MemberNameResolver memberNameResolver;
+    private final SignatureRequestService signatureRequests;
 
     @Inject
     public RequirementsService(
@@ -49,7 +52,8 @@ public class RequirementsService {
             SelfCheckService selfCheckService,
             EventRegistrationService registrationService,
             StationMemberService stationMemberService,
-            MemberNameResolver memberNameResolver) {
+            MemberNameResolver memberNameResolver,
+            SignatureRequestService signatureRequests) {
         this.formService = formService;
         this.quizService = quizService;
         this.profileFieldService = profileFieldService;
@@ -57,6 +61,7 @@ public class RequirementsService {
         this.registrationService = registrationService;
         this.stationMemberService = stationMemberService;
         this.memberNameResolver = memberNameResolver;
+        this.signatureRequests = signatureRequests;
     }
 
     public RequirementsResponse getRequirements(int memberId, int stationId, List<String> roleNames) {
@@ -68,7 +73,8 @@ public class RequirementsService {
                 forcedQuizzes,
                 profileIncomplete,
                 selfChecks(memberId, roleNames),
-                registrationUpdates(memberId, guardian(roleNames)));
+                registrationUpdates(memberId, guardian(roleNames)),
+                pendingSignatures(memberId, stationId));
     }
 
     public int countPending(int memberId, int stationId, List<String> roleNames) {
@@ -80,7 +86,24 @@ public class RequirementsService {
         if (!profileFieldService.isProfileComplete(memberId)) count++;
         count += selfCheckService.countOutstandingFor(memberId, guardian(roleNames));
         count += registrationUpdates(memberId, guardian(roleNames)).size();
+        count += signatureRequests.pendingFor(stationId, memberId).size();
         return count;
+    }
+
+    /**
+     * The signature fields waiting for the reader, their own and those they sign for or lend their
+     * account to the members in their care.
+     *
+     * <p>Whose document it is rides along only where it is not the reader's own, as for the
+     * registrations.
+     */
+    private List<SignatureItem> pendingSignatures(int memberId, int stationId) {
+        return signatureRequests.pendingFor(stationId, memberId).stream()
+                .map(pending -> new SignatureItem(
+                        pending.field().id(),
+                        pending.documentTitle(),
+                        Objects.equals(pending.field().memberId(), memberId) ? null : pending.memberName()))
+                .toList();
     }
 
     /**
@@ -150,6 +173,19 @@ public class RequirementsService {
             @Nullable String memberName) {}
 
     /**
+     * One signature field waiting for the reader.
+     *
+     * @param fieldId       the field, which is what the signing screen opens
+     * @param documentTitle the title the document is filed under, or null once it was deleted
+     * @param memberName    the official name of the member the document is about, named only where it is
+     *                      not the reader's own
+     */
+    public record SignatureItem(
+            int fieldId,
+            @Nullable String documentTitle,
+            @Nullable String memberName) {}
+
+    /**
      * What a member still owes.
      *
      * @param selfChecks          the self-checks they are answerable for. Unlike the three fields
@@ -158,11 +194,20 @@ public class RequirementsService {
      * @param registrationUpdates the registrations still owing an answer to a question added after
      *                            the sign-up. Listed and counted like the self-checks, and just as
      *                            unable to hold the reader on the landing.
+     * @param pendingSignatures   the signature fields waiting for the reader or a member in their care.
+     *                            Listed and counted, never holding the reader on the landing.
      */
     public record RequirementsResponse(
             List<RequirementItem> forcedForms,
             List<RequirementItem> forcedQuizzes,
             boolean profileIncomplete,
             List<SelfCheckItem> selfChecks,
-            List<RegistrationUpdateItem> registrationUpdates) {}
+            List<RegistrationUpdateItem> registrationUpdates,
+            List<SignatureItem> pendingSignatures) {
+
+        /** What a reader owes who is at no station: nothing. */
+        public static RequirementsResponse none() {
+            return new RequirementsResponse(List.of(), List.of(), false, List.of(), List.of(), List.of());
+        }
+    }
 }

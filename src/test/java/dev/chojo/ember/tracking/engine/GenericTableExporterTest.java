@@ -5,7 +5,9 @@
  */
 package dev.chojo.ember.tracking.engine;
 
+import dev.chojo.ember.feature.federation.repository.LendingRepository;
 import dev.chojo.ember.feature.inventory.entity.InventoryType;
+import dev.chojo.ember.feature.knowledgebase.entity.KbFileType;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import dev.chojo.ember.tracking.DataTracking;
@@ -18,9 +20,12 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -92,7 +97,7 @@ class GenericTableExporterTest extends RepositoryTestBase {
                 original.outputShape(),
                 original.flatField(),
                 original.customScope(),
-                new TransferContext(TrackingStatus.TRACKED, null, List.of("station_id"), null),
+                new TransferContext(TrackingStatus.TRACKED, null, List.of("station_id"), List.of(), null),
                 original.gdprExport(),
                 original.gdprDeletion());
         var customTables = new LinkedHashMap<>(tracking.tables());
@@ -134,6 +139,116 @@ class GenericTableExporterTest extends RepositoryTestBase {
             assertTrue(row.containsKey("station_name"), "lookup should add 'station_name' field");
             assertEquals("ExporterTestStation", row.get("station_name"));
         }
+    }
+
+    /**
+     * A visibility override names a folder or a file. Both reach the station, each through its own
+     * reference, and another station's override reaches neither.
+     */
+    @Test
+    void aRowNamingEitherOfTwoParentsIsReachedThroughEither() {
+        Station elsewhere = stationRepo.create("ExporterOtherStation");
+        int author = stationMemberRepo
+                .create(
+                        station.id(),
+                        accountRepo
+                                .create("kb-export@test.com", "Kim", "Wiki", true)
+                                .id())
+                .id();
+        var folder = knowledgeBaseRepo.createFolder(station.id(), null, "Handbuch", "", author);
+        var file = knowledgeBaseRepo.createFile(
+                station.id(), folder.id(), "Lageplan", "", KbFileType.TEXT, "text/plain", 1, null, author);
+        var otherFolder = knowledgeBaseRepo.createFolder(elsewhere.id(), null, "Fremd", "", author);
+        knowledgeBaseRepo.setPublicVisibility(folder.id(), null, true);
+        knowledgeBaseRepo.setPublicVisibility(null, file.id(), false);
+        knowledgeBaseRepo.setPublicVisibility(otherFolder.id(), null, true);
+
+        var rows = exporter.export("kb_public_visibility", station.id(), 0, 100);
+
+        assertEquals(2, rows.size());
+        assertTrue(rows.stream().anyMatch(row -> Integer.valueOf(folder.id()).equals(row.get("folder_id"))));
+        assertTrue(rows.stream().anyMatch(row -> Integer.valueOf(file.id()).equals(row.get("file_id"))));
+    }
+
+    /**
+     * A lending request belongs to both of its stations, so it goes with the one asking and with the
+     * one lending, and its lines go with it. A request between two other stations goes with neither.
+     */
+    @Test
+    void aLendingRequestGoesWithEitherOfItsStations() {
+        Station asking = stationRepo.create("ExporterAsking");
+        Station lending = stationRepo.create("ExporterLending");
+        Station other = stationRepo.create("ExporterOther");
+        var requests = new LendingRepository();
+        var request = requests.createRequest(
+                UUID.randomUUID(),
+                asking.uid(),
+                lending.uid(),
+                LocalDate.now(),
+                LocalDate.now(),
+                null,
+                null,
+                null,
+                "Übung");
+        requests.addRequestItem(request.id(), null, null, null, 2, null);
+        requests.createRequest(
+                UUID.randomUUID(), other.uid(), asking.uid(), LocalDate.now(), LocalDate.now(), null, null, null, "");
+
+        assertEquals(
+                List.of(request.id()),
+                exporter.export("federation_lending_request", lending.id(), 0, 100).stream()
+                        .map(row -> row.get("id"))
+                        .toList());
+        assertEquals(
+                2,
+                exporter.export("federation_lending_request", asking.id(), 0, 100)
+                        .size());
+        assertEquals(
+                1,
+                exporter.export("federation_lending_request_item", lending.id(), 0, 100)
+                        .size());
+        assertEquals(
+                1,
+                exporter.export("federation_lending_request_item", asking.id(), 0, 100)
+                        .size());
+    }
+
+    /**
+     * A table without an id of its own, whose rows all share their first column, still pages through every
+     * row exactly once: the order runs over every column, its key among them.
+     */
+    @Test
+    void pagesOfATableWithoutAnIdNeitherSkipNorRepeatARow() {
+        Station grouped = stationRepo.create("Paged Entries");
+        int group = memberGroupRepo.create(grouped.id(), "Alle").id();
+        for (int i = 0; i < 23; i++) {
+            var account = accountRepo.create("paged-" + i + "@export.test", "Page", "Member " + i, true);
+            memberGroupRepo.addMember(
+                    group, stationMemberRepo.create(grouped.id(), account.id()).id());
+        }
+
+        List<Object> seen = new ArrayList<>();
+        for (int offset = 0; offset < 30; offset += 5) {
+            exporter.export("member_group_entry", grouped.id(), offset, 5)
+                    .forEach(row -> seen.add(row.get("member_id")));
+        }
+
+        assertEquals(23, seen.size());
+        assertEquals(23, seen.stream().distinct().count(), "no row comes twice, so none is skipped");
+    }
+
+    @Test
+    void ordersByTheIdWhereThereIsOneAndByEverySortableColumnOtherwise() {
+        assertEquals(
+                List.of("t.id"),
+                GenericTableExporter.orderColumns(tracking.tables().get("account")));
+        assertEquals(
+                List.of("t.group_id", "t.member_id", "t.group_set_id"),
+                GenericTableExporter.orderColumns(tracking.tables().get("member_group_entry")));
+        assertEquals(
+                List.of("t.document_id", "t.source_text"),
+                GenericTableExporter.orderColumns(tracking.tables().get("member_document_search")),
+                "a text search vector cannot be sorted");
     }
 
     @Test

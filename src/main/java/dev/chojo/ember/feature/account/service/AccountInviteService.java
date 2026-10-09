@@ -12,6 +12,8 @@ import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Optional;
+
 /**
  * The account behind an address somebody was just named at, created when Ember has never seen it.
  *
@@ -64,12 +66,7 @@ public class AccountInviteService {
         String address = email.trim();
         boolean synthetic = address.endsWith(SYNTHETIC_EMAIL_SUFFIX);
 
-        Account existing = accountRepository.findByEmail(address).orElse(null);
-        if (existing != null && synthetic) {
-            log.warn("Made-up address {} is already taken, station {} cannot use it", address, stationId);
-            throw new EmailInUseException(address);
-        }
-
+        Account existing = existing(stationId, address).orElse(null);
         boolean created = existing == null;
         Account account = created ? accountRepository.create(address, firstName, lastName, true, stationId) : existing;
         if (created) log.info("Account {} created by invitation from station {}", account.id(), stationId);
@@ -78,6 +75,25 @@ public class AccountInviteService {
             authService.sendPasswordSetup(account.id());
         }
         return new Invited(account, created);
+    }
+
+    /**
+     * The account that already carries this address, which a station inviting it must ask the owner
+     * about rather than attach.
+     *
+     * @param stationId the station that names the address, for the log
+     * @param email     the address, trimmed or not
+     * @return the account, or empty where nobody carries the address yet
+     * @throws EmailInUseException when a made-up address already belongs to somebody
+     */
+    public Optional<Account> existing(int stationId, String email) {
+        String address = email.trim();
+        var existing = accountRepository.findByEmail(address);
+        if (existing.isPresent() && address.endsWith(SYNTHETIC_EMAIL_SUFFIX)) {
+            log.warn("Made-up address {} is already taken, station {} cannot use it", address, stationId);
+            throw new EmailInUseException(address);
+        }
+        return existing;
     }
 
     /**

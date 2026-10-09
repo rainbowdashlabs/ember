@@ -77,6 +77,19 @@ public class StationSigner {
     }
 
     /**
+     * Signs a statement the station makes about itself, see
+     * {@link FederationSigningService#signStatement(String, PrivateKey)}.
+     *
+     * @param stationId the station making the statement
+     * @param statement the statement's text
+     * @return the Base64 signature
+     * @throws IllegalStateException when the station has no key
+     */
+    public String signStatement(int stationId, String statement) {
+        return signing.signStatement(statement, requireKey(stationId));
+    }
+
+    /**
      * The public key partners verify the station's signatures with, creating the station's key pair
      * first when it has none.
      *

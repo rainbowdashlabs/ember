@@ -14,6 +14,7 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import UpcomingBody from './upcomingview/UpcomingBody.vue'
 import {registrationAudienceNote} from './upcomingview/registrationAudience'
 import EventAnswerDialog from './eventshared/EventAnswerDialog.vue'
+import RegistrationSigningStep from './eventshared/RegistrationSigningStep.vue'
 import {isRecurringEvent} from '@/api/events'
 import {RegistrationStatus, type EventSummary} from '@/api/generated/schema'
 import {useSession} from '@/composables/useSession'
@@ -35,7 +36,7 @@ const {
   tab, isPast, searchInput, categoryId, from, to, showNeedsAction,
   registering, occurrences, multiDayEndDate,
   loading, failure,
-  answerPrompt, confirmAnswerPrompt, cancelAnswerPrompt,
+  answerPrompt, confirmAnswerPrompt, cancelAnswerPrompt, signingStep, closeSigningStep,
 } = upcoming
 
 const VIEW_MODE_STORAGE_KEY = 'eventsUpcoming.viewMode'
@@ -175,5 +176,7 @@ watch(loaded, (isLoaded) => {
         @update:model-value="shown => { if (!shown) cancelAnswerPrompt() }"
         @confirm="confirmAnswerPrompt"
     />
+    <RegistrationSigningStep v-if="signingStep" :model-value="true" :step="signingStep"
+                             @update:model-value="shown => { if (!shown) closeSigningStep() }"/>
   </ViewContent>
 </template>

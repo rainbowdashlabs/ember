@@ -1347,7 +1347,7 @@ class EventFederationServiceTest extends RepositoryTestBase {
     @Order(91)
     void registerForFederatedEvent() {
         var accepted = new EventFederationRegistration(
-                1, 1, 1, REMOTE_MEMBER_1, LocalDate.of(2026, 7, 1), RegistrationStatus.ACCEPTED, Instant.now());
+                1, 1, 1, REMOTE_MEMBER_1, LocalDate.of(2026, 7, 1), RegistrationStatus.ACCEPTED, Instant.now(), null);
         when(httpClient.post(
                         eq("https://remote-event.example.com"),
                         pathIs("/remote/events/1/register"),

@@ -49,4 +49,22 @@ describe('notificationMessageKey', () => {
         expect(notificationMessageKey('NAME_CHANGE_DENIED', 'notification.nameChangeDenied', {requestedName: 'Mia Neu'}))
             .toBe('notification.nameChangeDenied')
     })
+
+    it('names the member of a signed document only where somebody else signed it', () => {
+        expect(notificationMessageKey('DOCUMENT_SIGNED', 'notification.documentSigned',
+            {documentTitle: 'Einverständnis', signerName: 'Eva Muster', memberName: 'Mia Muster'}))
+            .toBe('notification.documentSignedForMember')
+        expect(notificationMessageKey('DOCUMENT_SIGNED', 'notification.documentSigned',
+            {documentTitle: 'Einverständnis', signerName: 'Mia Muster'}))
+            .toBe('notification.documentSigned')
+    })
+
+    it('names the member of a withdrawal at a partner station only where the partner shares the name', () => {
+        expect(notificationMessageKey('PARTNER_SIGNATURE_WITHDRAWN', 'notification.partnerSignatureWithdrawn',
+            {documentTitle: 'Einverständnis', stationName: 'Wache Nord', memberName: 'Mia Muster'}))
+            .toBe('notification.partnerSignatureWithdrawnNamed')
+        expect(notificationMessageKey('PARTNER_SIGNATURE_WITHDRAWN', 'notification.partnerSignatureWithdrawn',
+            {documentTitle: 'Einverständnis', stationName: 'Wache Nord'}))
+            .toBe('notification.partnerSignatureWithdrawn')
+    })
 })

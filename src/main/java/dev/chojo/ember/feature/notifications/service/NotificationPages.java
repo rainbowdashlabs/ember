@@ -47,6 +47,8 @@ final class NotificationPages {
             Map.entry("account-avatar", "/account/avatar"),
             Map.entry("members-list", "/station/members/list"),
             Map.entry("documents-store", "/station/documents/store"),
+            Map.entry("documents-own", "/station/documents"),
+            Map.entry("station-signing", "/station/signing/{fieldId}"),
             Map.entry("waiting-lists", "/station/members/waiting-lists"),
             Map.entry("profile", "/station/profile"),
             Map.entry("profile-managed", "/station/profile/managed"),
@@ -63,6 +65,7 @@ final class NotificationPages {
             Map.entry("cluster-overview", CLUSTER_LANDING),
             Map.entry("cluster-applications", "/cluster/applications"),
             Map.entry("cluster-members", "/cluster/members"),
+            Map.entry("cluster-team", "/cluster/team"),
             Map.entry("cluster-inventory", "/cluster/inventory"),
             Map.entry("cluster-movements", "/cluster/inventory/movements"));
 

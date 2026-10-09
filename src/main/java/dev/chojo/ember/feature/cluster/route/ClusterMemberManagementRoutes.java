@@ -297,7 +297,8 @@ public class ClusterMemberManagementRoutes implements Routes {
         try {
             var made = managementService.createMember(
                     cluster.id(), stationUid, request.firstName(), request.lastName(), request.email(), userType);
-            ctx.status(HttpStatus.CREATED).json(new NewMemberResponse(made.memberId(), made.accountId(), made.email()));
+            ctx.status(HttpStatus.CREATED)
+                    .json(new NewMemberResponse(made.memberId(), made.accountId(), made.email(), made.linkPending()));
         } catch (StationMemberInviteService.ProvisionException e) {
             log.warn("A member could not be taken on at a station of a cluster", e);
             throw ClusterRefusal.CLUSTER_MEMBER_ALREADY_TAKEN_ON.raise();
@@ -479,6 +480,16 @@ public class ClusterMemberManagementRoutes implements Routes {
      */
     public record NewMemberRequest(String firstName, String lastName, String email, StationUserType userType) {}
 
+    /**
+     * The member taken on.
+     *
+     * @param accountId   the account, or null while the member waits for the owner of an existing
+     *                    account to link it
+     * @param linkPending whether the member waits for that owner to accept
+     */
     public record NewMemberResponse(
-            int memberId, int accountId, @Nullable String email) {}
+            int memberId,
+            @Nullable Integer accountId,
+            @Nullable String email,
+            boolean linkPending) {}
 }

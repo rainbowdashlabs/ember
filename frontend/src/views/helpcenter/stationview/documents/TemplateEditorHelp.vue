@@ -49,6 +49,10 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.documentTemplateEditor.signatureText') }}</p>
       <p>{{ t('helpCenter.documentTemplateEditor.signatureGuardiansText') }}</p>
       <p>{{ t('helpCenter.documentTemplateEditor.signatureTwiceText') }}</p>
+      <p>{{ t('helpCenter.documentTemplateEditor.signatureStatementText') }}</p>
+      <p>{{ t('helpCenter.documentTemplateEditor.fillInText') }}</p>
+      <p>{{ t('helpCenter.documentTemplateEditor.signatureRequestText') }}</p>
+      <p>{{ t('helpCenter.documentTemplateEditor.signatureKeepText') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.documentTemplateEditor.pdfTitle')">

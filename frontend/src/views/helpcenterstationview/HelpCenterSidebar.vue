@@ -106,6 +106,18 @@ function highlightSnippet(result: (typeof searchResults.value)[number]): string 
                    to="/helpcenter/station/basics/federation" @navigate="close">
         {{ t('helpCenter.basics.sidebarFederation') }}
       </SidebarLink>
+      <SidebarLink :icon="['fas', 'file-signature']" name="help-basics-seals"
+                   to="/helpcenter/station/basics/seals" @navigate="close">
+        {{ t('helpCenter.basics.sidebarSeals') }}
+      </SidebarLink>
+      <SidebarLink :icon="['fas', 'signature']" name="help-basics-signature"
+                   to="/helpcenter/station/basics/signature" @navigate="close">
+        {{ t('helpCenter.basics.sidebarSignature') }}
+      </SidebarLink>
+      <SidebarLink :icon="['fas', 'link']" name="help-basics-account-links"
+                   to="/helpcenter/station/basics/account-links" @navigate="close">
+        {{ t('helpCenter.basics.sidebarAccountLinks') }}
+      </SidebarLink>
     </SidebarGroup>
 
     <SidebarGroup :icon="['fas', 'rocket']" :label="t('setup.headerTitle')" prefix="/helpcenter/station/setup"
@@ -129,7 +141,12 @@ function highlightSnippet(result: (typeof searchResults.value)[number]): string 
     </SidebarGroup>
 
     <SidebarGroup :icon="['fas', 'clipboard-check']" :label="t('sidebar.requirements')"
-                  to="/helpcenter/station/requirements" name="help-station-requirements" @navigate="close"/>
+                  to="/helpcenter/station/requirements" name="help-station-requirements" @navigate="close">
+      <SidebarLink :icon="['fas', 'file-signature']" name="help-station-signing-all"
+                   to="/helpcenter/station/signing" @navigate="close">
+        {{ t('helpCenter.signing.title') }}
+      </SidebarLink>
+    </SidebarGroup>
 
     <SidebarGroup :icon="['fas', 'newspaper']" :label="t('sidebar.news')"
                   to="/helpcenter/station/news" name="help-news-module-overview" @navigate="close">

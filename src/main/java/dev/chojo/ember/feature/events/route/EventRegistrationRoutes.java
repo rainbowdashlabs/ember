@@ -244,7 +244,8 @@ public class EventRegistrationRoutes implements Routes {
                 lookups.eventName(r.eventId()),
                 answersMissing,
                 r.fromField(),
-                r.fromField() ? lookups.namingField(r) : null);
+                r.fromField() ? lookups.namingField(r) : null,
+                r.agreementWithdrawnAt());
     }
 
     /**
@@ -977,7 +978,13 @@ public class EventRegistrationRoutes implements Routes {
              */
             boolean fromField,
             /** The question that names them, where one does. */
-            @Nullable String fieldName) {}
+            @Nullable String fieldName,
+            /**
+             * When a signed agreement one of the appointment's documents to bring asked for was withdrawn
+             * while the registration stood, which flags it for whoever runs the appointment; null where none
+             * was, or once it was signed anew.
+             */
+            @Nullable Instant agreementWithdrawnAt) {}
 
     public record EventRegisterRequest(String eventDate, Integer memberId, List<EventRegistrationFieldValue> fields) {}
 

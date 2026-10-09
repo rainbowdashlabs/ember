@@ -229,7 +229,8 @@ public class ContentBlockService {
         ARTICLE(BlockAudience.MEMBERS, PageRefusal.CONTENT_BLOCK_ONLY_ON_PAGES),
         /**
          * A letter template, printed for one member at a time: text, pictures, lines, gaps, signature
-         * lines and blocks stacked in a column, nothing that only works on a screen.
+         * lines, boxes a signer fills in and blocks stacked in a column, nothing that only works on a
+         * screen.
          */
         LETTER(BlockAudience.MEMBERS, DocumentRefusal.DOCUMENT_TEMPLATE_BLOCK_NOT_TAKEN);
 
@@ -240,6 +241,7 @@ public class ContentBlockService {
                 CellContentType.DIVIDER,
                 CellContentType.SPACER,
                 CellContentType.SIGNATURE,
+                CellContentType.FILL_IN,
                 CellContentType.NESTED_ROWS);
 
         private final BlockAudience audience;

@@ -11,6 +11,7 @@ import {showToast} from '@/util/toast'
 import type {AnyEvent} from '@/api/events'
 import type {EventRegistrationFieldValue, EventRegistrationField} from '@/api/generated/schema'
 import {useSidebarCounts} from '@/composables/useSidebarCounts'
+import {useRegistrationSigningStep} from '@/composables/useRegistrationSigningStep'
 import {describeFailure, type Failure} from '@/util/failure'
 import type {AnswerablePerson} from '@/util/eventAnswers'
 
@@ -34,6 +35,9 @@ export interface AnswerPrompt {
  * appointment's questions before they can sign anybody up, and a second copy of that would be a
  * second chance to get it wrong.
  *
+ * <p>A sign-up ends on the signing step where the appointment's documents to bring still wait for a
+ * signature of the people just registered (`signingStep`), which the screen renders and closes.
+ *
  * @param currentMemberId the acting member, whose own answer is sent without naming an id
  * @param afterChange     run once an answer has landed, to reload whatever the screen shows
  * @param failure         the screen's failure channel, written to rather than thrown at
@@ -55,6 +59,8 @@ export function useEventAnswer(
      * dialog the screen renders for it is confirmed or dismissed.
      */
     const answerPrompt = ref<AnswerPrompt | null>(null)
+
+    const {signingStep, offerSigning, closeSigningStep} = useRegistrationSigningStep()
 
     /**
      * Opens a gesture the reader has just made. The screen's failure belongs to that gesture and not to
@@ -92,21 +98,21 @@ export function useEventAnswer(
      * presses the same button again. An earlier refusal in the same gesture is left standing, because
      * a guardian answering for three children has to see the one that did not land.
      */
-    async function changeRegistration(action: () => Promise<unknown>, refusedMessage?: string) {
+    async function changeRegistration(action: () => Promise<unknown>, refusedMessage?: string): Promise<boolean> {
         try {
             await action()
         } catch (e) {
             failure.value = refusalFor(e, refusedMessage)
-            return
+            return false
         }
 
         try {
             await afterChange()
             refreshSidebarCounts()
         } catch (e) {
-            if (failure.value) return
-            failure.value = {...describeFailure(e, t), message: t('failure.staleAfterAction')}
+            if (!failure.value) failure.value = {...describeFailure(e, t), message: t('failure.staleAfterAction')}
         }
+        return true
     }
 
     /** The member id to send: omitted for the acting member, explicit for a managed one. */
@@ -114,15 +120,16 @@ export function useEventAnswer(
         return memberId !== currentMemberId.value ? memberId : undefined
     }
 
+    /** Signs one person up, answering whether the registration landed. */
     async function sendRegistration(
         ev: AnyEvent,
         date: string,
         memberId: number,
         fields?: EventRegistrationFieldValue[],
-    ) {
+    ): Promise<boolean> {
         registering.value = `${ev.id}-${date}-${memberId}`
         try {
-            await changeRegistration(
+            return await changeRegistration(
                 () => events.registerForEvent(ev.id, {eventDate: date, memberId: memberIdParam(memberId), fields}),
                 t('eventsUpcoming.registrationClosedAskLead'))
         } finally {
@@ -142,7 +149,8 @@ export function useEventAnswer(
         beginAnswer()
         const fields = await events.listRegistrationFields(ev.id).catch(() => [])
         if (people.length === 1 && fields.length === 0) {
-            await sendRegistration(ev, date, people[0]!.key)
+            const memberId = people[0]!.key
+            if (await sendRegistration(ev, date, memberId)) await offerSigning(ev.id, date, [memberId])
             return
         }
         answerPrompt.value = {event: ev, date, people, fields, attending: true}
@@ -176,13 +184,17 @@ export function useEventAnswer(
         if (!prompt) return
         answerPrompt.value = null
         beginAnswer()
+        const registered: number[] = []
         for (const answer of answers) {
             if (prompt.attending) {
-                await sendRegistration(prompt.event, prompt.date, answer.key, answer.fields)
+                if (await sendRegistration(prompt.event, prompt.date, answer.key, answer.fields)) {
+                    registered.push(answer.key)
+                }
             } else {
                 await sendDecline(prompt.event, prompt.date, answer.key)
             }
         }
+        await offerSigning(prompt.event.id, prompt.date, registered)
     }
 
     function cancelAnswerPrompt() {
@@ -234,5 +246,7 @@ export function useEventAnswer(
         withdrawRegistration,
         confirmAnswerPrompt,
         cancelAnswerPrompt,
+        signingStep,
+        closeSigningStep,
     }
 }

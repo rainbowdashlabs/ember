@@ -73,30 +73,49 @@ public final class GenericGdprExporter {
         Set<String> ignored = Set.copyOf(ctx.ignoredColumns());
         var lookups = LookupSql.of(tableName, table);
 
+        String cast = type == IdentityType.MEMBER_UID ? "::uuid" : "";
+
         var sb = new StringBuilder("SELECT ");
         boolean firstCol = true;
         for (ColumnEntry col : table.columns()) {
             if (ignored.contains(col.name())) continue;
             if (!firstCol) sb.append(", ");
             firstCol = false;
-            sb.append("t.").append(col.name());
+            sb.append(selected(col.name(), matching, cast));
         }
 
         lookups.appendSelect(sb);
         sb.append(" FROM ").append(tableName).append(" t");
         lookups.appendJoins(sb);
 
-        String cast = type == IdentityType.MEMBER_UID ? "::uuid" : "";
+        sb.append(" WHERE ").append(foundThrough(matching, cast)).append(';');
+        return sb.toString();
+    }
 
-        sb.append(" WHERE ");
-        for (int i = 0; i < matching.size(); i++) {
+    /**
+     * A column as the export selects it: as it stands, or, where an identity column withholds it, only
+     * for a row found through an identity column that does not.
+     */
+    private static String selected(String column, List<IdentityColumn> matching, String cast) {
+        if (matching.stream().noneMatch(identity -> identity.withholds(column))) return "t." + column;
+        var granting = matching.stream()
+                .filter(identity -> !identity.withholds(column))
+                .toList();
+        if (granting.isEmpty()) return "NULL AS " + column;
+        return "CASE WHEN " + foundThrough(granting, cast) + " THEN t." + column + " END AS " + column;
+    }
+
+    /** The condition that finds a row of the identity through any of the given identity columns. */
+    private static String foundThrough(List<IdentityColumn> identities, String cast) {
+        var sb = new StringBuilder();
+        for (int i = 0; i < identities.size(); i++) {
             if (i > 0) sb.append(" OR ");
-            sb.append("t.").append(matching.get(i).column()).append(" = :id").append(cast);
-            String filter = matching.get(i).filter();
+            sb.append("(t.").append(identities.get(i).column()).append(" = :id").append(cast);
+            String filter = identities.get(i).filter();
             if (filter != null && !filter.isBlank())
                 sb.append(" AND (").append(filter).append(')');
+            sb.append(')');
         }
-        sb.append(';');
         return sb.toString();
     }
 
@@ -146,6 +165,8 @@ public final class GenericGdprExporter {
                         String typeName = meta.getColumnTypeName(i);
                         if ("jsonb".equals(typeName) || "json".equals(typeName)) {
                             out.put(meta.getColumnLabel(i), row.getString(i));
+                        } else if (ArrayValues.isArray(typeName)) {
+                            out.put(meta.getColumnLabel(i), ArrayValues.read(row.getArray(i)));
                         } else {
                             out.put(meta.getColumnLabel(i), row.getObject(i));
                         }

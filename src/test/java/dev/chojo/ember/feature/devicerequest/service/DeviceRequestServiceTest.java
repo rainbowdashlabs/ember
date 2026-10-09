@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.mail.service.MailLocaleService;
 import dev.chojo.ember.feature.passkey.service.PasskeyService;
 import dev.chojo.ember.feature.passkey.service.TestAuthenticator;
+import dev.chojo.ember.feature.signing.service.TestKeyStamps;
 import dev.chojo.ember.feature.system.repository.ApplicationSettingRepository;
 import dev.chojo.ember.feature.twofactor.entity.StepUpProof;
 import dev.chojo.ember.feature.twofactor.repository.WebAuthnChallengeRepository;
@@ -75,7 +76,12 @@ class DeviceRequestServiceTest extends RepositoryTestBase {
                 settings, api, store, new SecondFactorCredentialStore(twoFactorRepo, store));
         var challengeRepo = new WebAuthnChallengeRepository(TokenHasher.forTesting("repository-test-pepper"));
         var passkeyService = new PasskeyService(
-                parties, twoFactorRepo, new TwoFactorAuditService(twoFactorRepo), challengeRepo, settings);
+                parties,
+                twoFactorRepo,
+                new TwoFactorAuditService(twoFactorRepo),
+                challengeRepo,
+                settings,
+                TestKeyStamps.off(twoFactorRepo));
         var twoFactorSettings = new TwoFactorSettings();
         setField(twoFactorSettings, "enabled", true);
         setField(twoFactorSettings, "secretKey", validKey());

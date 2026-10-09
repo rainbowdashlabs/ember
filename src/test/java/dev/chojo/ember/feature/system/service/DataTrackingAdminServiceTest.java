@@ -82,7 +82,8 @@ class DataTrackingAdminServiceTest {
         var update = new TableUpdate(
                 null,
                 null,
-                new TransferContext(TrackingStatus.TRACKED, null, List.of("station_id"), "promoted from UNVERIFIED"),
+                new TransferContext(
+                        TrackingStatus.TRACKED, null, List.of("station_id"), List.of(), "promoted from UNVERIFIED"),
                 null,
                 null);
         var result = service.updateTable("station_member", update);
@@ -155,6 +156,7 @@ class DataTrackingAdminServiceTest {
                 null,
                 null,
                 null,
+                null,
                 TransferContext.tracked(),
                 GdprExportContext.ignored("aggregate"),
                 GdprDeletionContext.ignored("aggregate"),
@@ -165,6 +167,7 @@ class DataTrackingAdminServiceTest {
                 "sha256:sm",
                 memberCols,
                 List.of(),
+                null,
                 null,
                 null,
                 null,

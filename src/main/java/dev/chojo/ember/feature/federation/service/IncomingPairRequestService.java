@@ -167,8 +167,8 @@ public class IncomingPairRequestService {
     public PairRequestAnswer status(PairRequestStatusQuery query) {
         PairRequestGuards.requireComplete(query);
         PairRequestGuards.requireInTime(query.issuedAt());
-        var station =
-                stations.findByUid(query.targetStationUid()).orElseThrow(FederationRefusal.PAIR_STATUS_NOT_HERE::raise);
+        var station = stations.findHereByUid(query.targetStationUid())
+                .orElseThrow(FederationRefusal.PAIR_STATUS_NOT_HERE::raise);
         var request = requests.find(station.id(), PairRequestDirection.INCOMING, query.requesterStationUid())
                 .orElseThrow(FederationRefusal.PAIR_STATUS_NOT_HERE::raise);
         if (!signatures.holds(query, request.requireRemotePublicKey(), request.remoteInstanceKey())) {
@@ -286,7 +286,7 @@ public class IncomingPairRequestService {
      * answered the same way as a station that does not exist.
      */
     private Station requireOpenStation(UUID targetStationUid, UUID requesterStationUid) {
-        return stations.findByUid(targetStationUid)
+        return stations.findHereByUid(targetStationUid)
                 .filter(station -> station.discoveryVisibility() == DiscoveryVisibility.PUBLIC)
                 .filter(station -> station.stationKind() == StationKind.REGULAR)
                 .filter(station -> !station.uid().equals(requesterStationUid))

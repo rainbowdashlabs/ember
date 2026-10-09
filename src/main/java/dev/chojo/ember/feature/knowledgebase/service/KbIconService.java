@@ -27,6 +27,9 @@ import java.util.UUID;
  */
 @Singleton
 public class KbIconService {
+    /** What a folder's icon key starts with, before the folder's id. */
+    public static final String KEY_PREFIX = "folder-";
+
     private static final Logger log = LoggerFactory.getLogger(KbIconService.class);
     private static final ImageProfile PROFILE = ImageProfile.ICON_SET;
     private static final StorageCategory CATEGORY = StorageCategory.IMAGE_KB_ICON;
@@ -79,7 +82,7 @@ public class KbIconService {
      * The key string used for a folder's icon. Exposed so callers can persist the same name in the folder row.
      */
     public String key(int folderId) {
-        return "folder-" + folderId;
+        return KEY_PREFIX + folderId;
     }
 
     private StorageScope.Station scope(int stationId) {

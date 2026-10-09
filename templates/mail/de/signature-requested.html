@@ -1,0 +1,8 @@
+{% extends '_layout.html' %}
+{% block body %}
+      <h2>Hallo {{ name }},</h2>
+      <p><strong>{{ stationName }}</strong> bittet um eine Unterschrift für das Dokument <strong>{{ documentTitle }}</strong> ({{ memberName }}).</p>
+      <p>Das Dokument wird in Ember gelesen und dort mit dem eigenen Konto unterschrieben. Es steht auch bei den offenen Aufgaben.</p>
+      {% if guardian %}<p>Diese Nachricht geht an dich, weil du dich um {{ name }} kümmerst.</p>{% endif %}
+      <div class="btn-wrap"><a class="btn" href="{{ url }}">Dokument lesen und unterschreiben</a></div>
+{% endblock %}

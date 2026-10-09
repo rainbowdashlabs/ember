@@ -59,7 +59,7 @@ public class FederatedBoardLocator {
         var partner = federationRepository.findPartnerById(partnerId).orElse(null);
         if (partner == null) return null;
         return stationRepository
-                .findByUid(partner.partnerStationId())
+                .findHereByUid(partner.partnerStationId())
                 .flatMap(station -> boardService.findByShortKey(station.id(), boardKey))
                 .orElse(null);
     }
@@ -84,7 +84,7 @@ public class FederatedBoardLocator {
      */
     public String partnerStationName(FederationPartner partner) {
         return stationRepository
-                .findByUid(partner.partnerStationId())
+                .findHereByUid(partner.partnerStationId())
                 .map(Station::name)
                 .orElse("Partner #" + partner.id());
     }

@@ -16,6 +16,12 @@ import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.ProfileFieldService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.quiz.service.QuizService;
+import dev.chojo.ember.feature.signing.entity.FieldRole;
+import dev.chojo.ember.feature.signing.entity.FieldState;
+import dev.chojo.ember.feature.signing.entity.PendingSignature;
+import dev.chojo.ember.feature.signing.entity.RequestedSignature;
+import dev.chojo.ember.feature.signing.entity.SignerCapacity;
+import dev.chojo.ember.feature.signing.service.SignatureRequestService;
 import dev.chojo.ember.feature.system.service.RequirementsService.RequirementItem;
 import dev.chojo.ember.feature.system.service.RequirementsService.RequirementsResponse;
 import org.junit.jupiter.api.BeforeEach;
@@ -24,6 +30,7 @@ import org.junit.jupiter.api.Test;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -36,6 +43,7 @@ class RequirementsServiceTest {
     private EventRegistrationService registrationService;
     private StationMemberService stationMemberService;
     private MemberNameResolver memberNameResolver;
+    private SignatureRequestService signatureRequests;
     private RequirementsService requirementsService;
 
     @BeforeEach
@@ -47,6 +55,7 @@ class RequirementsServiceTest {
         registrationService = mock(EventRegistrationService.class);
         stationMemberService = mock(StationMemberService.class);
         memberNameResolver = mock(MemberNameResolver.class);
+        signatureRequests = mock(SignatureRequestService.class);
         requirementsService = new RequirementsService(
                 formService,
                 quizService,
@@ -54,7 +63,8 @@ class RequirementsServiceTest {
                 selfCheckService,
                 registrationService,
                 stationMemberService,
-                memberNameResolver);
+                memberNameResolver,
+                signatureRequests);
     }
 
     @Test
@@ -120,7 +130,7 @@ class RequirementsServiceTest {
     void requirementsResponseRecord() {
         var forms = List.of(new RequirementItem(1, "Form"));
         var quizzes = List.of(new RequirementItem(2, "Quiz"));
-        var response = new RequirementsResponse(forms, quizzes, true, List.of(), List.of());
+        var response = new RequirementsResponse(forms, quizzes, true, List.of(), List.of(), List.of());
 
         assertEquals(forms, response.forcedForms());
         assertEquals(quizzes, response.forcedQuizzes());
@@ -129,7 +139,7 @@ class RequirementsServiceTest {
 
     @Test
     void requirementsResponseWithNoRequirements() {
-        var response = new RequirementsResponse(List.of(), List.of(), false, List.of(), List.of());
+        var response = RequirementsResponse.none();
 
         assertTrue(response.forcedForms().isEmpty());
         assertTrue(response.forcedQuizzes().isEmpty());
@@ -273,6 +283,59 @@ class RequirementsServiceTest {
 
         assertEquals(1, result.forcedForms().size());
         assertEquals("Übungszeit", result.forcedForms().getFirst().title());
+    }
+
+    /**
+     * A field waiting for a signature is listed with the document's title and counted, naming whose
+     * document it is only where it is not the reader's own, and never holds the reader on the landing.
+     */
+    @Test
+    void signaturesWaitingAreListedAndCountedWithoutBlockingTheLanding() {
+        when(formService.findForcedPending(1, List.of(10))).thenReturn(List.of());
+        when(quizService.findForcedPending(1, 10)).thenReturn(List.of());
+        when(profileFieldService.isProfileComplete(10)).thenReturn(true);
+        when(signatureRequests.pendingFor(1, 10))
+                .thenReturn(List.of(
+                        waiting(31, 10, "Einverständnis Zeltlager", "Alex Muster"),
+                        waiting(32, 11, null, "Kim Muster")));
+
+        var result = requirementsService.getRequirements(10, 1, List.of("USER"));
+
+        assertEquals(2, result.pendingSignatures().size());
+        var own = result.pendingSignatures().getFirst();
+        assertEquals(31, own.fieldId());
+        assertEquals("Einverständnis Zeltlager", own.documentTitle());
+        assertNull(own.memberName());
+        var ward = result.pendingSignatures().get(1);
+        assertEquals(32, ward.fieldId());
+        assertNull(ward.documentTitle());
+        assertEquals("Kim Muster", ward.memberName());
+        assertFalse(result.profileIncomplete());
+        assertTrue(result.forcedForms().isEmpty());
+        assertEquals(2, requirementsService.countPending(10, 1, List.of("USER")));
+    }
+
+    private static PendingSignature waiting(int fieldId, int memberId, String title, String memberName) {
+        return new PendingSignature(
+                UUID.randomUUID(),
+                title == null ? null : 7,
+                title,
+                memberName,
+                new RequestedSignature(
+                        fieldId,
+                        3,
+                        "participant",
+                        FieldRole.PARTICIPANT,
+                        memberId,
+                        memberId,
+                        memberName,
+                        SignerCapacity.ACCOUNT_HOLDER,
+                        "Ich stimme zu.",
+                        FieldState.OPEN,
+                        null,
+                        null,
+                        null,
+                        null));
     }
 
     @Test

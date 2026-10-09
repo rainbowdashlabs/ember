@@ -13,6 +13,7 @@ import com.hierynomus.mssmb2.SMB2CreateDisposition;
 import com.hierynomus.mssmb2.SMB2CreateOptions;
 import com.hierynomus.mssmb2.SMB2ShareAccess;
 import com.hierynomus.mssmb2.SMBApiException;
+import com.hierynomus.protocol.commons.buffer.Buffer;
 import com.hierynomus.smbj.common.SMBRuntimeException;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.share.DiskShare;
@@ -44,6 +45,8 @@ final class SmbFileTree implements FileTree {
     private static final Logger log = LoggerFactory.getLogger(SmbFileTree.class);
     private static final Set<NtStatus> MISSING = EnumSet.of(
             NtStatus.STATUS_OBJECT_NAME_NOT_FOUND, NtStatus.STATUS_OBJECT_PATH_NOT_FOUND, NtStatus.STATUS_NO_SUCH_FILE);
+    private static final Set<NtStatus> COPY_REFUSED =
+            EnumSet.of(NtStatus.STATUS_NOT_SUPPORTED, NtStatus.STATUS_NOT_IMPLEMENTED);
 
     private final Session session;
     private final DiskShare share;
@@ -146,6 +149,39 @@ final class SmbFileTree implements FileTree {
                 SMB2CreateDisposition.FILE_OPEN,
                 null)) {
             file.rename(smb(target), true);
+        } catch (SMBRuntimeException e) {
+            throw failure(e);
+        }
+    }
+
+    /**
+     * A server-side copy in chunks the server reads and writes itself. A server that does not offer it
+     * gets the bytes streamed through the share instead.
+     */
+    @Override
+    public void copy(String source, String target) throws IOException {
+        try (File from = share.openFile(
+                        smb(source),
+                        EnumSet.of(AccessMask.GENERIC_READ),
+                        null,
+                        SMB2ShareAccess.ALL,
+                        SMB2CreateDisposition.FILE_OPEN,
+                        null);
+                File to = share.openFile(
+                        smb(target),
+                        EnumSet.of(AccessMask.GENERIC_READ, AccessMask.GENERIC_WRITE),
+                        EnumSet.of(FileAttributes.FILE_ATTRIBUTE_NORMAL),
+                        SMB2ShareAccess.ALL,
+                        SMB2CreateDisposition.FILE_OVERWRITE_IF,
+                        EnumSet.noneOf(SMB2CreateOptions.class))) {
+            from.remoteCopyTo(to);
+        } catch (Buffer.BufferException e) {
+            throw new IOException("Malformed answer to a server-side copy: " + e.getMessage(), e);
+        } catch (SMBApiException e) {
+            if (isMissing(e)) throw new NoSuchFileException(target);
+            if (!COPY_REFUSED.contains(e.getStatus())) throw failure(e);
+            log.debug("The SMB server does not copy by itself, streaming {} instead", source);
+            FileTree.super.copy(source, target);
         } catch (SMBRuntimeException e) {
             throw failure(e);
         }

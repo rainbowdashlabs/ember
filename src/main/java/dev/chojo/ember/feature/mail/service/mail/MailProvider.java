@@ -5,7 +5,10 @@
  */
 package dev.chojo.ember.feature.mail.service.mail;
 
+import dev.chojo.ember.feature.mail.entity.MailAttachment;
 import org.jspecify.annotations.Nullable;
+
+import java.util.List;
 
 /**
  * Abstraction for sending emails through different providers.
@@ -58,7 +61,27 @@ public interface MailProvider {
      * @param correlationId our own identifier for this message, or null to send it untagged
      * @return the outcome of the send attempt
      */
-    SendResult send(String to, String subject, String htmlBody, @Nullable String correlationId);
+    default SendResult send(String to, String subject, String htmlBody, @Nullable String correlationId) {
+        return send(to, subject, htmlBody, correlationId, List.of());
+    }
+
+    /**
+     * Sends an HTML email with files beside its text, tagged like {@link #send(String, String, String,
+     * String)}.
+     *
+     * @param to            the recipient email address
+     * @param subject       the email subject
+     * @param htmlBody      the HTML email body
+     * @param correlationId our own identifier for this message, or null to send it untagged
+     * @param attachments   the files it carries, none for a plain mail
+     * @return the outcome of the send attempt
+     */
+    SendResult send(
+            String to,
+            String subject,
+            String htmlBody,
+            @Nullable String correlationId,
+            List<MailAttachment> attachments);
 
     /**
      * Outcome of a connection test.

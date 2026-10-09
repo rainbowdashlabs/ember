@@ -41,6 +41,7 @@ import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
+import org.mockito.ArgumentCaptor;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -1381,5 +1382,166 @@ class LendingServiceTest extends RepositoryTestBase {
     void aStationIsNamedAsTheViewerKnowsIt() {
         assertEquals("LendSvcTestStationA", service.stationName(stationA.uid(), stationB.id()));
         assertEquals("Unknown", service.stationName(UUID.randomUUID(), stationB.id()));
+    }
+
+    /**
+     * Gear lent to a partner on another instance is listed in the notice that it was handed over,
+     * line by line, for the partner to write down; every line is labelled when it is asked for.
+     */
+    @Test
+    @Order(604)
+    void gearLentElsewhereIsListedForThePartnerToWriteDown() {
+        UUID elsewhere = UUID.randomUUID();
+        var row = partnerElsewhere(elsewhere);
+        var inventory = inventoryRepo.create(stationA.id(), "LendSvcLadders", InventoryType.INTERNAL, false);
+        var first = inventoryRepo.createItem(inventory.id(), "LD-1", "Leiter 1", null, null);
+        var second = inventoryRepo.createItem(inventory.id(), "LD-2", "Leiter 2", null, null);
+        UUID uid = UUID.randomUUID();
+        service.serveRequest(
+                new ServingPartner(row, elsewhere),
+                new RemoteLendingRoutes.RemoteLendingRequest(
+                        uid,
+                        LocalDate.now(),
+                        LocalDate.now().plusDays(1),
+                        "Übung",
+                        List.of(new RemoteLendingRoutes.RemoteLendingLine(inventory.id(), null, null, 2))));
+        var copy = lendingRepo.findRequestByUid(uid).orElseThrow();
+        var line = lendingRepo.findItemsByRequest(copy.id()).getFirst();
+        assertEquals("LendSvcLadders", line.label(), "the line is labelled when it is asked for");
+        lendingRepo.assignItem(line.id(), first.id());
+        lendingRepo.assignItem(line.id(), second.id());
+        when(httpClient.canSign(stationA.id())).thenReturn(true);
+        when(httpClient.post(any(), any(), any(), any(), eq(stationA.id()))).thenReturn(true);
+
+        assertTrue(service.markLent(copy.id(), stationA.id()));
+
+        var sent = ArgumentCaptor.forClass(Object.class);
+        verify(httpClient)
+                .post(
+                        eq("https://lending-elsewhere.example.com"),
+                        pathIs("/remote/lending/requests/" + uid + "/status"),
+                        sent.capture(),
+                        eq(elsewhere),
+                        eq(stationA.id()));
+        var status = (RemoteLendingRoutes.RemoteLendingStatus) sent.getValue();
+        assertEquals(LendingStatus.LENT, status.status());
+        assertEquals(
+                List.of(
+                        new RemoteLendingRoutes.RemoteLendingPiece(0, "LD-1", "Leiter 1"),
+                        new RemoteLendingRoutes.RemoteLendingPiece(0, "LD-2", "Leiter 2")),
+                status.handedOver());
+        var lent = inventoryRepo.findItemById(first.id()).orElseThrow();
+        assertEquals(ItemCustody.WITH_PARTNER, lent.custody());
+        assertNull(lent.custodyPartnerStationId(), "the partner holding it has no row here");
+
+        assertTrue(service.markReturned(copy.id(), stationA.id()));
+        federationRepo.deletePartner(row.id());
+    }
+
+    /**
+     * Gear borrowed from a partner on another instance is written down at the borrower from what the
+     * partner listed, owned by the partner's uid, and goes again when it is handed back.
+     */
+    @Test
+    @Order(605)
+    void gearBorrowedFromElsewhereIsWrittenDownAndHandedBack() {
+        UUID elsewhere = UUID.randomUUID();
+        var row = partnerElsewhere(elsewhere);
+        UUID uid = UUID.randomUUID();
+        var request = lendingRepo.createRequest(
+                uid,
+                stationA.uid(),
+                elsewhere,
+                LocalDate.now(),
+                LocalDate.now().plusDays(3),
+                memberA.id(),
+                null,
+                null,
+                "Übung");
+        var ropes = lendingRepo.addRequestItem(request.id(), null, null, null, 2, null);
+        var pump = lendingRepo.addRequestItem(request.id(), null, null, null, 1, null);
+        lendingRepo.labelItems(request.id(), List.of("Seile", "Pumpe"));
+        var asking = new ServingPartner(row, elsewhere);
+
+        service.serveStatus(
+                asking,
+                uid,
+                new RemoteLendingRoutes.RemoteLendingStatus(
+                        LendingStatus.LENT,
+                        null,
+                        List.of(
+                                new RemoteLendingRoutes.RemoteLendingPiece(0, "S-1", "Seil 1"),
+                                new RemoteLendingRoutes.RemoteLendingPiece(0, "S-2", "Seil 2"),
+                                new RemoteLendingRoutes.RemoteLendingPiece(1, null, "Pumpe 1"),
+                                new RemoteLendingRoutes.RemoteLendingPiece(7, "X-1", "Ohne Zeile"))));
+
+        var borrowed = inventoryRepo.findBorrowedItems(stationA.id()).stream()
+                .filter(piece -> piece.loanRequestId() == request.id())
+                .toList();
+        assertEquals(3, borrowed.size(), "a piece naming no line of the request is not written down");
+        assertTrue(borrowed.stream().allMatch(piece -> elsewhere.equals(piece.ownerStationUid())));
+        assertTrue(borrowed.stream().allMatch(piece -> piece.ownerStationId() == null));
+        assertEquals(
+                List.of(pump.id(), ropes.id(), ropes.id()),
+                borrowed.stream()
+                        .map(piece -> piece.item().loanRequestItemId())
+                        .sorted((left, right) -> Integer.compare(right, left))
+                        .toList());
+        when(httpClient.canSign(stationA.id())).thenReturn(true);
+        when(httpClient.post(any(), any(), any(), any(), eq(stationA.id()))).thenReturn(true);
+
+        assertTrue(service.markReturned(request.id(), stationA.id()));
+
+        assertTrue(inventoryRepo.findBorrowedItems(stationA.id()).stream()
+                .noneMatch(piece -> piece.loanRequestId() == request.id()));
+        verify(httpClient)
+                .post(
+                        eq("https://lending-elsewhere.example.com"),
+                        pathIs("/remote/lending/requests/" + uid + "/status"),
+                        any(),
+                        eq(elsewhere),
+                        eq(stationA.id()));
+        federationRepo.deletePartner(row.id());
+    }
+
+    /**
+     * A piece the partner listed without a name is written down under the label of its line, so the
+     * hand-over the request already moved to arrives with its gear.
+     */
+    @Test
+    @Order(606)
+    void gearHandedOverWithoutANameTakesTheLabelOfItsLine() {
+        UUID elsewhere = UUID.randomUUID();
+        var row = partnerElsewhere(elsewhere);
+        UUID uid = UUID.randomUUID();
+        var request = lendingRepo.createRequest(
+                uid,
+                stationA.uid(),
+                elsewhere,
+                LocalDate.now(),
+                LocalDate.now().plusDays(3),
+                memberA.id(),
+                null,
+                null,
+                "Übung");
+        lendingRepo.addRequestItem(request.id(), null, null, null, 1, null);
+        lendingRepo.labelItems(request.id(), List.of("Leiter"));
+
+        service.serveStatus(
+                new ServingPartner(row, elsewhere),
+                uid,
+                new RemoteLendingRoutes.RemoteLendingStatus(
+                        LendingStatus.LENT, null, List.of(new RemoteLendingRoutes.RemoteLendingPiece(0, "L-9", null))));
+
+        var borrowed = inventoryRepo.findBorrowedItems(stationA.id()).stream()
+                .filter(piece -> piece.loanRequestId() == request.id())
+                .toList();
+        assertEquals(
+                List.of("Leiter"),
+                borrowed.stream().map(piece -> piece.item().name()).toList());
+        assertEquals(
+                LendingStatus.LENT,
+                lendingRepo.findRequestById(request.id()).orElseThrow().status());
+        federationRepo.deletePartner(row.id());
     }
 }

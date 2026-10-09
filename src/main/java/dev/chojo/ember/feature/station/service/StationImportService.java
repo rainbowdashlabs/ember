@@ -11,17 +11,26 @@ import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.cluster.entity.StationKind;
 import dev.chojo.ember.feature.federation.service.FederationPartnerTransferFixupService;
+import dev.chojo.ember.feature.federation.service.LendingUidClashes;
 import dev.chojo.ember.feature.federation.service.OutboundHttp;
+import dev.chojo.ember.feature.federation.service.PartnersLeftBehind;
+import dev.chojo.ember.feature.federation.service.PartnersLeftBehind.LeftBehindPartner;
 import dev.chojo.ember.feature.federation.service.RemoteUrlValidator;
 import dev.chojo.ember.feature.federation.service.StationKeyTransfer;
+import dev.chojo.ember.feature.knowledgebase.service.KbIconService;
 import dev.chojo.ember.feature.quiz.service.StationAiKeyTransfer;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.station.transfer.ActiveImports;
 import dev.chojo.ember.feature.station.transfer.ImportProgress;
+import dev.chojo.ember.feature.station.transfer.ImportedAccountLinks;
+import dev.chojo.ember.feature.station.transfer.LendingRowScope;
+import dev.chojo.ember.feature.station.transfer.SharedStorageFiles;
 import dev.chojo.ember.feature.station.transfer.StationImportContext;
 import dev.chojo.ember.feature.station.transfer.StationTableImporter;
 import dev.chojo.ember.feature.station.transfer.TableImporter;
 import dev.chojo.ember.feature.station.transfer.TransferFileImporter;
+import dev.chojo.ember.feature.station.transfer.TransferPace;
 import dev.chojo.ember.feature.station.transfer.TransferSourceClient;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageScope;
@@ -46,7 +55,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -63,7 +71,8 @@ import static dev.chojo.ember.feature.station.transfer.WireValues.asString;
  * <p>The service owns the run itself: it creates or picks the destination station, resolves the
  * foreign-key-safe table order from the tracking metadata, and walks it. Each table is handed to
  * the {@link TableImporter} that claims it, or to {@link GenericTableImporter} when none does.
- * The file side of a remote transfer is delegated to {@link TransferFileImporter}, and every
+ * The file side of a remote transfer is delegated to {@link TransferFileImporter}, or to
+ * {@link SharedStorageFiles} when the destination takes over the source's own storage, and every
  * request to the source instance goes through a {@link TransferSourceClient}.
  */
 @Singleton
@@ -71,6 +80,9 @@ public class StationImportService {
 
     private static final Logger log = LoggerFactory.getLogger(StationImportService.class);
     private static final int PAGE_SIZE = 500;
+    private static final String LENDING_REQUESTS = "federation_lending_request";
+    private static final String LENDING_MESSAGES = "federation_lending_message";
+    private static final String LENDING_LINES = "federation_lending_request_item";
 
     private final AccountRepository accountRepository;
     private final AuthService authService;
@@ -79,18 +91,23 @@ public class StationImportService {
     private final Api api;
     private final TransferBackendImporter backendImporter;
     private final TransferFileImporter fileImporter;
+    private final SharedStorageFiles sharedFiles;
     private final FederationPartnerTransferFixupService federationFixup;
     private final StationKeyTransfer keyTransfer;
+    private final PartnersLeftBehind partnersLeftBehind;
+    private final LendingUidClashes lendingClashes;
     private final StationAiKeyTransfer aiKeyTransfer;
     private final RemoteUrlValidator urlValidator;
     private final OutboundHttp outbound;
+    private final TransferPace pace;
     private final StationTableImporter stationImporter;
     private final Map<String, TableImporter> importers;
     private final GenericTableImporter engine;
     private final List<String> tableOrder;
     private final DataTracking tracking;
+    private final ImportedAccountLinks importedLinks;
 
-    private final ConcurrentHashMap<Integer, ImportProgress> activeImports = new ConcurrentHashMap<>();
+    private final ActiveImports activeImports;
     private final SerialLane importLane;
 
     @Inject
@@ -100,17 +117,25 @@ public class StationImportService {
             Api api,
             TransferBackendImporter backendImporter,
             TransferFileImporter fileImporter,
+            SharedStorageFiles sharedFiles,
             FederationPartnerTransferFixupService federationFixup,
             StationKeyTransfer keyTransfer,
+            PartnersLeftBehind partnersLeftBehind,
+            LendingUidClashes lendingClashes,
             StationAiKeyTransfer aiKeyTransfer,
             RemoteUrlValidator urlValidator,
             OutboundHttp outbound,
+            TransferPace pace,
             StationTableImporter stationImporter,
             Set<TableImporter> importers,
             AccountRepository accountRepository,
             AuthService authService,
+            ImportedAccountLinks importedLinks,
+            ActiveImports activeImports,
             TaskScheduler scheduler) {
         this.importLane = scheduler.lane("station-import");
+        this.activeImports = activeImports;
+        this.importedLinks = importedLinks;
         this.accountRepository = accountRepository;
         this.authService = authService;
         this.stationRepository = stationRepository;
@@ -118,11 +143,15 @@ public class StationImportService {
         this.api = api;
         this.backendImporter = backendImporter;
         this.fileImporter = fileImporter;
+        this.sharedFiles = sharedFiles;
         this.federationFixup = federationFixup;
         this.keyTransfer = keyTransfer;
+        this.partnersLeftBehind = partnersLeftBehind;
+        this.lendingClashes = lendingClashes;
         this.aiKeyTransfer = aiKeyTransfer;
         this.urlValidator = urlValidator;
         this.outbound = outbound;
+        this.pace = pace;
         this.stationImporter = stationImporter;
         this.importers = importers.stream().collect(Collectors.toMap(TableImporter::table, Function.identity()));
         DataTracking t;
@@ -159,10 +188,12 @@ public class StationImportService {
      */
     public ImportResult importStation(Map<String, Object> bundle) {
         Map<String, Object> stationData = asMap(bundle.get("station"));
+        refuseWhileItsMovedAwayCopyIsHere(stationData);
         String name = stationData == null ? "Imported Station" : asString(stationData.get("name"), "Imported Station");
         Station station = stationRepository.create(name);
         int stationId = station.id();
         stationImporter.applyFields(stationId, stationData);
+        stationImporter.adoptSourceUid(stationId, stationData);
         var context = newContext(stationId, stationData);
         int total = 1 + runImport(context, bundle);
         log.info("Station import complete: created station id={} ('{}'), {} rows imported", stationId, name, total);
@@ -172,7 +203,7 @@ public class StationImportService {
     /**
      * Synchronously merges a bundle into an existing station. The station's own settings get
      * applied (timezone, locale, themes, public toggles); all other TRACKED tables are inserted
-     * alongside the station's existing data.
+     * alongside the station's existing data. The station keeps its own uid.
      *
      * <p>A cluster's home station is refused: it holds what its cluster owns, and a merge would hand
      * that cluster content nobody gave it.
@@ -202,7 +233,7 @@ public class StationImportService {
      * @param stationId the destination station
      * @return the progress, or {@code null} when no import ran for that station
      */
-    public ImportProgress getProgress(int stationId) {
+    public @Nullable ImportProgress getProgress(int stationId) {
         return activeImports.get(stationId);
     }
 
@@ -216,10 +247,7 @@ public class StationImportService {
      * @return the progress, or {@code null}
      */
     public @Nullable ImportProgress getProgressByUid(UUID stationUid) {
-        for (var progress : activeImports.values()) {
-            if (stationUid.equals(progress.stationUid())) return progress;
-        }
-        return null;
+        return activeImports.byUid(stationUid);
     }
 
     /**
@@ -235,7 +263,7 @@ public class StationImportService {
     public ImportResult startRemoteImport(String sourceUrl, String token) {
         String baseUrl = normalizeSource(sourceUrl);
         log.info("start remote-import-as-new-station from source {}", baseUrl);
-        var client = new TransferSourceClient(baseUrl, token, api.baseUrl(), outbound);
+        var client = new TransferSourceClient(baseUrl, token, api.baseUrl(), outbound, pace);
         verifyRemoteSchemaHash(client, baseUrl);
 
         Map<String, Object> stationPage = fetchStationPage(client);
@@ -243,24 +271,32 @@ public class StationImportService {
         if (stationData == null) {
             throw StationRefusal.STATION_IMPORT_SOURCE_HAS_NO_STATION.raise();
         }
+        refuseWhileItsMovedAwayCopyIsHere(stationData);
 
         String stationName = asString(stationData.get("name"), "Imported Station");
         Station station = stationRepository.create(stationName);
         int stationId = station.id();
         stationImporter.applyFields(stationId, stationData);
+        stationImporter.adoptSourceUid(stationId, stationData);
         keyTransfer.adopt(stationId, stationPage, stationData, token);
         aiKeyTransfer.adopt(stationId, stationPage, token);
 
         UUID currentUid =
                 stationRepository.findById(stationId).map(Station::uid).orElse(station.uid());
-        var progress = new ImportProgress(stationId, currentUid, stationName, buildPhases(), baseUrl, token);
-        activeImports.put(stationId, progress);
-        importLane.submit(() -> runRemoteImport(stationId, stationData, client, progress));
+        var progress = new ImportProgress(
+                stationId, currentUid, stationName, buildPhases(), baseUrl, token, ImportProgress.Target.NEW_STATION);
+        activeImports.start(progress);
+        var leftBehind = PartnersLeftBehind.read(stationPage);
+        importLane.submit(() -> runRemoteImport(stationId, stationData, leftBehind, client, progress));
         return new ImportResult(stationId, stationName, 0);
     }
 
     /**
      * Pulls a station bundle from a remote Ember instance and merges it INTO an existing station.
+     *
+     * <p>The station keeps its identity: its uid, under which its files are kept and its partners
+     * know it, and the federation key its partners verify it by. Neither the source's uid nor its key
+     * would make it the station the bundle came from, they would only cut it off from its own.
      *
      * @param stationId the station to merge into
      * @param sourceUrl the source instance's base URL
@@ -269,29 +305,35 @@ public class StationImportService {
     public void startRemoteImportInto(int stationId, String sourceUrl, String token) {
         String baseUrl = normalizeSource(sourceUrl);
         log.info("start remote-import-into-station {} from source {}", stationId, baseUrl);
-        var client = new TransferSourceClient(baseUrl, token, api.baseUrl(), outbound);
+        var client = new TransferSourceClient(baseUrl, token, api.baseUrl(), outbound, pace);
         verifyRemoteSchemaHash(client, baseUrl);
 
         Map<String, Object> stationPage = fetchStationPage(client);
         Map<String, Object> stationData = asMap(stationPage.get("station"));
-        if (stationData != null) {
-            stationImporter.applyFields(stationId, stationData);
-            keyTransfer.adopt(stationId, stationPage, stationData, token);
-        }
+        if (stationData != null) stationImporter.applyFields(stationId, stationData);
         aiKeyTransfer.adopt(stationId, stationPage, token);
 
         Station target =
                 stationRepository.findById(stationId).orElseThrow(StationRefusal.STATION_IMPORT_TARGET_NOT_HERE::raise);
-        var progress = new ImportProgress(stationId, target.uid(), target.name(), buildPhases(), baseUrl, token);
-        activeImports.put(stationId, progress);
-        importLane.submit(() -> runRemoteImport(stationId, stationData, client, progress));
+        var progress = new ImportProgress(
+                stationId,
+                target.uid(),
+                target.name(),
+                buildPhases(),
+                baseUrl,
+                token,
+                ImportProgress.Target.EXISTING_STATION);
+        activeImports.start(progress);
+        var leftBehind = PartnersLeftBehind.read(stationPage);
+        importLane.submit(() -> runRemoteImport(stationId, stationData, leftBehind, client, progress));
     }
 
     /**
      * Cleans up the destination side of a failed import and starts a fresh run with the same
      * token: deletes the half-imported station (if it still exists) and re-invokes
      * {@link #startRemoteImport(String, String)} with the source URL and token captured on the
-     * original attempt. Throws when the original progress is not in FAILED state.
+     * original attempt. Throws when the original progress is not in FAILED state, and for an import
+     * into a station that was here before, which a retry would delete.
      *
      * @param stationUid the destination station UUID of the failed run
      * @return the freshly minted import result
@@ -304,12 +346,15 @@ public class StationImportService {
         if (failed.status() != ImportProgress.Status.FAILED) {
             throw StationRefusal.STATION_IMPORT_NOT_FAILED.raise();
         }
+        if (failed.target() == ImportProgress.Target.EXISTING_STATION) {
+            throw StationRefusal.STATION_IMPORT_INTO_NOT_RETRIED.raise();
+        }
         try {
             stationRepository.delete(failed.stationId());
         } catch (Exception ignored) {
             log.info("Station {} already gone before retry", failed.stationId());
         }
-        activeImports.remove(failed.stationId());
+        activeImports.forget(failed.stationId());
         return startRemoteImport(failed.sourceUrl(), failed.token());
     }
 
@@ -390,8 +435,31 @@ public class StationImportService {
             if (payload == null) continue;
             total += importTable(context, table, payload);
         }
+        total += engine.settle(context.stationId(), context.idMap(), context.waitingRows());
+        mergeLendingClashes(context);
+        relinkFolderIcons(context.stationId());
         assignDefaultOwnerIfNeeded(context.stationId());
+        importedLinks.ask(context);
         return total;
+    }
+
+    private void mergeLendingClashes(StationImportContext context) {
+        lendingClashes.merge(context.lendingStandIns(), context.idMap().sourceIds(LENDING_LINES));
+    }
+
+    /**
+     * Points the icon of every imported wiki folder that has one at the folder's new id. The folder
+     * row brings the icon's key along, but that key still names the id the folder had at the source,
+     * while the icon file itself moves to the new id.
+     */
+    private void relinkFolderIcons(int stationId) {
+        query("""
+                UPDATE kb_folder
+                   SET icon_url = :prefix || id
+                 WHERE station_id = :station_id
+                   AND icon_url IS NOT NULL;""")
+                .single(call().bind("prefix", KbIconService.KEY_PREFIX).bind("station_id", stationId))
+                .update();
     }
 
     /**
@@ -411,13 +479,18 @@ public class StationImportService {
     }
 
     private void runRemoteImport(
-            int stationId, Map<String, Object> stationData, TransferSourceClient client, ImportProgress p) {
+            int stationId,
+            Map<String, Object> stationData,
+            List<LeftBehindPartner> leftBehind,
+            TransferSourceClient client,
+            ImportProgress p) {
         log.info(
                 "async run starting for station {} ('{}'), {} tables in topological order",
                 stationId,
                 p.stationName(),
                 tableOrder.size());
         var context = newContext(stationId, stationData);
+        SharedStorageFiles.@Nullable Run sharedStorage = null;
         try {
             int i = 0;
             for (String table : tableOrder) {
@@ -435,51 +508,143 @@ public class StationImportService {
                 fetchAndImportPaginated(context, table, client);
                 p.completePhase();
             }
-            copyFiles(context, client, p);
+            engine.settle(stationId, context.idMap(), context.waitingRows());
+            mergeLendingClashes(context);
+            relinkFolderIcons(stationId);
+            importedLinks.ask(context);
+            sharedStorage = adoptStorage(context, client, p, stationData);
+            copyFiles(context, client, p, sharedStorage);
             federationFixup.rewriteAfterImport(stationId, p.sourceUrl());
+            partnersLeftBehind.adopt(stationId, leftBehind);
             federationFixup.announceNewHostToRemotePartners(stationId, api.baseUrl());
             client.notifyComplete();
+            releaseStaging(sharedStorage);
             p.complete();
             log.info("completed for station '{}' (id={})", p.stationName(), stationId);
         } catch (Exception e) {
             log.error("failed for station {}", stationId, e);
-            p.fail(e.getMessage());
+            settleSharedStorage(sharedStorage, p);
             client.notifyAbort();
-            try {
-                stationRepository.delete(stationId);
-                log.warn("deleted half-imported station {} after failure", stationId);
-            } catch (Exception deleteErr) {
-                log.error("could not clean up failed station {}", stationId, deleteErr);
-            }
+            removeStationMadeFor(p);
+            p.fail(e.getMessage());
         }
     }
 
     /**
-     * Installs the source's storage backend and, when the destination did not adopt the source's
-     * remote backend, byte-copies every movable category before carrying over the avatars of the
-     * accounts this run created.
+     * Takes away the station of a failed import where the import made it. A station that was here
+     * before keeps everything it had, and what the import merged into it stays with it, logged.
      */
-    private void copyFiles(StationImportContext context, TransferSourceClient client, ImportProgress p) {
+    private void removeStationMadeFor(ImportProgress p) {
+        int stationId = p.stationId();
+        if (p.target() == ImportProgress.Target.EXISTING_STATION) {
+            log.warn("import into existing station {} failed; the station stays with what arrived so far", stationId);
+            return;
+        }
+        try {
+            stationRepository.delete(stationId);
+            log.warn("deleted half-imported station {} after failure", stationId);
+        } catch (Exception deleteErr) {
+            log.error("could not clean up failed station {}", stationId, deleteErr);
+        }
+    }
+
+    /**
+     * Removes the staged copies of an import that finished. Every file already lies under its new key and
+     * the source has been told the move is complete, so copies left behind fail neither: they are reported
+     * as an error naming where they lie, and no later move reads them, since each move stages apart.
+     */
+    private void releaseStaging(SharedStorageFiles.@Nullable Run sharedStorage) {
+        if (sharedStorage == null) return;
+        try {
+            sharedFiles.release(sharedStorage);
+        } catch (RuntimeException e) {
+            log.error("The import finished but its staged copies stay in the shared storage", e);
+        }
+    }
+
+    /**
+     * Gives the source back the files a failed import copied over in the storage both share, when the
+     * import takes away the station it made. A station that was here before keeps what arrived, so only
+     * the staged copies go. When that fails it is reported as an error, and the source is still told and the
+     * station still taken away.
+     */
+    private void settleSharedStorage(SharedStorageFiles.@Nullable Run sharedStorage, ImportProgress p) {
+        if (sharedStorage == null) return;
+        try {
+            if (p.target() == ImportProgress.Target.NEW_STATION) {
+                sharedFiles.restore(sharedStorage);
+            } else {
+                sharedFiles.release(sharedStorage);
+            }
+        } catch (RuntimeException e) {
+            log.error("The files of the failed import into station {} could not be settled", p.stationId(), e);
+        }
+    }
+
+    /**
+     * Installs the source's storage backend on the destination.
+     *
+     * @return the copy within the storage the destination took over from the source, or null when the source
+     * used local storage and its files are pulled over the wire
+     */
+    private SharedStorageFiles.@Nullable Run adoptStorage(
+            StationImportContext context,
+            TransferSourceClient client,
+            ImportProgress p,
+            @Nullable Map<String, Object> stationData) {
         int stationId = context.stationId();
         log.info("tables done, applying source storage backend");
         p.startPhase("storage_backend");
         var descriptor = client.fetchBackendDescriptor();
         boolean installedRemote = backendImporter.apply(stationId, descriptor);
-        if (installedRemote) {
-            log.info(
-                    "Imported source storage backend ({}) for station {}",
-                    descriptor.getClass().getSimpleName(),
-                    stationId);
-        }
         p.completePhase();
-        Station targetStation = stationRepository
+        if (!installedRemote) return null;
+        log.info(
+                "Imported source storage backend ({}) for station {}",
+                descriptor.getClass().getSimpleName(),
+                stationId);
+        UUID sourceUid = StationTableImporter.sourceUid(stationData)
+                .orElseThrow(() -> new IllegalStateException(
+                        "The source did not name its station, so its files cannot be found in its storage"));
+        return SharedStorageFiles.Run.forTransfer(scopeOf(stationId), sourceUid, p.token());
+    }
+
+    /**
+     * Refuses to bring a station back to the installation that still keeps the copy it left when it
+     * moved away. The copy holds its uid, so the station would arrive under a fresh one that none of
+     * its partners knows.
+     */
+    private void refuseWhileItsMovedAwayCopyIsHere(@Nullable Map<String, Object> stationData) {
+        boolean copyHere = StationTableImporter.sourceUid(stationData)
+                .flatMap(stationRepository::resolveId)
+                .flatMap(stationRepository::movedAway)
+                .isPresent();
+        if (copyHere) throw StationRefusal.STATION_IMPORT_MOVED_AWAY_COPY_HERE.raise();
+    }
+
+    private StorageScope.Station scopeOf(int stationId) {
+        Station station = stationRepository
                 .findById(stationId)
                 .orElseThrow(() -> new RuntimeException("Station " + stationId + " not found after table import"));
-        StorageScope.Station scope = new StorageScope.Station(stationId, targetStation.uid());
+        return new StorageScope.Station(stationId, station.uid());
+    }
+
+    /**
+     * Copies every movable category, within the storage taken over from the source when there is one and
+     * over the wire otherwise, before carrying over the avatars of the accounts this run created.
+     */
+    private void copyFiles(
+            StationImportContext context,
+            TransferSourceClient client,
+            ImportProgress p,
+            SharedStorageFiles.@Nullable Run sharedStorage) {
+        StorageScope.Station scope = scopeOf(context.stationId());
         for (StorageCategory category : TransferFileImporter.transferrableStationCategories()) {
             p.startPhase("files_" + category.name().toLowerCase());
-            if (!installedRemote) {
-                fileImporter.copyCategory(client, scope, category, p);
+            if (sharedStorage != null) {
+                sharedFiles.copyCategory(sharedStorage, category, context.idMap(), p);
+            } else {
+                fileImporter.copyCategory(client, scope, category, context.idMap(), p);
             }
             p.completePhase();
         }
@@ -522,6 +687,11 @@ public class StationImportService {
         }
     }
 
+    /**
+     * Pulls a table page by page until the source sends a short one. The page the source sent decides
+     * this, not the rows written from it: rows left behind and accounts merged into existing ones count
+     * as fewer, and must not end the table early.
+     */
     private void fetchAndImportPaginated(StationImportContext context, String table, TransferSourceClient client) {
         OutputShape shape = shapeOf(table);
         int offset = 0;
@@ -529,22 +699,39 @@ public class StationImportService {
             var page = client.fetchPage(table, offset, PAGE_SIZE);
             Object payload = page.get(table);
             if (payload == null) return;
-            int imported = importTable(context, table, payload);
+            importTable(context, table, payload);
             if (shape != OutputShape.ROWS) return;
-            if (imported < PAGE_SIZE) return;
+            if (!(payload instanceof List<?> rows) || rows.size() < PAGE_SIZE) return;
             offset += PAGE_SIZE;
         }
     }
 
     /**
      * Dispatches a single wire payload (already extracted from the page envelope) to the importer
-     * that claims the table, falling back to the metadata-driven engine.
+     * that claims the table, falling back to the metadata-driven engine, and then writes the rows that
+     * were waiting for what this payload brought. Lending requests and their messages arrive only where
+     * they are the imported station's ({@link LendingRowScope}). A lending request whose uid the
+     * partner's copy here already carries arrives under a stand-in and is merged into that copy once the
+     * run has settled. Members whose account the run found here by its address are noted, so their
+     * owners can be asked once the run has settled ({@link ImportedAccountLinks}).
      */
     @SuppressWarnings("unchecked")
     private int importTable(StationImportContext context, String table, Object payload) {
         TableImporter importer = importers.get(table);
-        if (importer != null) return importer.importRows(context, payload);
-        return engine.importRows(context.stationId(), table, (List<Map<String, Object>>) payload, context.idMap());
+        if (importer != null) {
+            return importer.importRows(context, payload)
+                    + engine.admitWaiting(context.stationId(), context.idMap(), context.waitingRows());
+        }
+        var rows = (List<Map<String, Object>>) payload;
+        if (LENDING_REQUESTS.equals(table)) {
+            UUID importedUid = stationRepository.requireUid(context.stationId());
+            rows = lendingClashes.setAside(
+                    LendingRowScope.requests(context, importedUid, rows), context.lendingStandIns());
+        }
+        if (LENDING_MESSAGES.equals(table)) rows = LendingRowScope.messages(context, rows);
+        if (ImportedAccountLinks.isMembers(table)) importedLinks.note(context, rows);
+        int imported = engine.importRows(context.stationId(), table, rows, context.idMap(), context.waitingRows());
+        return imported + engine.admitWaiting(context.stationId(), context.idMap(), context.waitingRows());
     }
 
     private OutputShape shapeOf(String table) {

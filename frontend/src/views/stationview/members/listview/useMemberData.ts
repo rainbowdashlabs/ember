@@ -6,9 +6,10 @@
 import { ref, computed } from 'vue'
 import {parseFieldConfig} from '@/api/profileFields'
 import {calculatedAnswer} from '@/util/profileFields'
-import { profileFields, stationMembers } from '@/api'
+import { accountLinks, profileFields, stationMembers } from '@/api'
 import type {
   GroupEntry,
+  LinkStatus,
   MemberIdentity,
   MemberWithName,
   Permission,
@@ -62,7 +63,7 @@ export type RosterMember = Pick<RichMember,
     'id' | 'stationId' | 'accountId' | 'name' | 'firstName' | 'lastName' | 'email' | 'accountSetupPending'
     | 'setupMailExpiresAt' | 'mailReaches' | 'former' | 'roles' | 'groups' | 'tags' | 'profileValues'>
     & Partial<Pick<RichMember, 'profileComplete'>>
-    & {userType: string; identity: MemberIdentity}
+    & {userType: string; identity: MemberIdentity; linkStatus?: LinkStatus}
 
 /**
  * Where a member list gets its people, its questions and its grants.
@@ -85,16 +86,21 @@ export interface MemberDataSource {
   loadManagers?(memberId: number): Promise<MemberWithName[]>
 }
 
-/** The station's own roll, which is what this screen has always shown. */
+/**
+ * The station's own roll, which is what this screen has always shown, with where the station's request
+ * to link an existing account stands for each member that has one.
+ */
 export const STATION_MEMBER_SOURCE: MemberDataSource = {
   load: async () => {
-    const [members, fields, assignments, roles] = await Promise.all([
+    const [members, fields, assignments, roles, links] = await Promise.all([
       stationMembers.listRichMembers(),
       profileFields.listFields(),
       profileFields.listAssignments(),
       stationMembers.listAllPermissions(),
+      accountLinks.memberLinks(),
     ])
-    return {members, fields, assignments, roles}
+    const statusOf = new Map(links.map(entry => [entry.memberId, entry.link.status]))
+    return {members: members.map(member => ({...member, linkStatus: statusOf.get(member.id)})), fields, assignments, roles}
   },
   loadManagers: (memberId) => stationMembers.getManagers(memberId),
 }

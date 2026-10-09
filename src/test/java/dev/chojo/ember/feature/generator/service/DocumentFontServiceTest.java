@@ -28,6 +28,7 @@ import dev.chojo.ember.feature.generator.entity.PdfField;
 import dev.chojo.ember.feature.generator.entity.PdfFieldKind;
 import dev.chojo.ember.feature.generator.entity.PdfLayout;
 import dev.chojo.ember.feature.generator.entity.PdfOriginal;
+import dev.chojo.ember.feature.generator.entity.SignerCaptions;
 import dev.chojo.ember.feature.generator.entity.TextAlign;
 import dev.chojo.ember.feature.generator.repository.DocumentFontRepository;
 import dev.chojo.ember.feature.generator.repository.DocumentTemplateRepository;
@@ -489,7 +490,8 @@ class DocumentFontServiceTest extends RepositoryTestBase {
         var content = new PdfContent(
                 mock(PdfOriginal.class), new PdfLayout(List.of(fieldIn("Liberation Mono", FontStyle.BOLD)), List.of()));
 
-        var stamped = renderer.render(outsider, content, 0, UnaryOperator.identity());
+        var stamped = renderer.render(
+                outsider, content, 0, UnaryOperator.identity(), SignerCaptions.roles(DocumentLanguage.DE));
 
         assertTrue(stamped.unprintable().isEmpty(), stamped.unprintable()::toString);
         var names = PdfFonts.namesIn(stamped.pdf());
@@ -656,6 +658,7 @@ class DocumentFontServiceTest extends RepositoryTestBase {
                 Map.of(),
                 Map.of(),
                 false,
+                SignerCaptions.roles(DocumentLanguage.DE),
                 LocalDate.of(2026, 10, 3));
     }
 

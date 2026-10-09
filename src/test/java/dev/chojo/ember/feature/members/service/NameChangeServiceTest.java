@@ -15,6 +15,7 @@ import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.account.service.AccountReach;
 import dev.chojo.ember.feature.members.entity.NameChangeOutcome;
 import dev.chojo.ember.feature.members.entity.NameChangeRequest;
 import dev.chojo.ember.feature.members.entity.PendingNameChange;
@@ -118,7 +119,15 @@ class NameChangeServiceTest {
         var identities = mock(MemberIdentityFactory.class);
         when(identities.enrich(any())).thenAnswer(call -> call.getArgument(0));
         service = new NameChangeService(
-                requests, accounts, memberService, memberRepository, permissions, nameResolver, identities, notifier);
+                requests,
+                accounts,
+                memberService,
+                memberRepository,
+                permissions,
+                nameResolver,
+                identities,
+                notifier,
+                mock(AccountReach.class));
         when(permissions.resolve(any(StationMember.class))).thenReturn(EnumSet.noneOf(StationPermission.class));
     }
 

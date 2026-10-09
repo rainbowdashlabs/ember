@@ -28,6 +28,7 @@ import java.util.List;
  * @param issuerId        the member of the station who issues its documents, or null for nobody
  * @param issuerFunction  what the issuer does at the station, or null where nothing is said
  * @param content         the letter, or the fields laid over the PDF
+ * @param signing         how its documents are kept and sent once they are signed
  */
 public record DocumentTemplateDraft(
         String name,
@@ -44,7 +45,44 @@ public record DocumentTemplateDraft(
         DocumentLanguage language,
         @Nullable Integer issuerId,
         @Nullable String issuerFunction,
-        TemplateContent content) {
+        TemplateContent content,
+        TemplateSigning signing) {
+
+    /** A draft whose signed documents are kept and sent as a new template's are ({@link TemplateSigning#startingWith}). */
+    public DocumentTemplateDraft(
+            String name,
+            String titlePattern,
+            String fileNamePattern,
+            List<String> tags,
+            boolean hidden,
+            boolean keepOnArchive,
+            boolean legal,
+            boolean forAppointments,
+            boolean selfService,
+            int cooldownDays,
+            RestrictionMode restrictionMode,
+            DocumentLanguage language,
+            @Nullable Integer issuerId,
+            @Nullable String issuerFunction,
+            TemplateContent content) {
+        this(
+                name,
+                titlePattern,
+                fileNamePattern,
+                tags,
+                hidden,
+                keepOnArchive,
+                legal,
+                forAppointments,
+                selfService,
+                cooldownDays,
+                restrictionMode,
+                language,
+                issuerId,
+                issuerFunction,
+                content,
+                TemplateSigning.startingWith(legal));
+    }
 
     /** @return the kind of template the draft makes */
     public DocumentTemplateKind kind() {

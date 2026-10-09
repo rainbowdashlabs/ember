@@ -5,18 +5,26 @@
  */
 package dev.chojo.ember.feature.legal.service;
 
+import dev.chojo.ember.api.auth.ClusterUserType;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.account.service.AccountReach;
 import dev.chojo.ember.feature.account.service.AvatarService;
 import dev.chojo.ember.feature.documents.entity.Uploader;
 import dev.chojo.ember.feature.media.service.ImageVariants;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.question.FieldType;
+import dev.chojo.ember.feature.signing.entity.SignatureImageSource;
+import dev.chojo.ember.feature.signing.repository.AccountSignatureRepository;
+import dev.chojo.ember.feature.signing.service.SignatureImageService;
+import dev.chojo.ember.feature.signing.service.TestSignatures;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
+import dev.chojo.ember.feature.storage.entity.StorageCategory;
+import dev.chojo.ember.feature.storage.entity.StorageScope;
 import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.BeforeAll;
@@ -34,16 +42,25 @@ import static org.junit.jupiter.api.Assertions.*;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class GdprDeletionServiceTest extends RepositoryTestBase {
     private static GdprDeletionService service;
+    private static StorageService storage;
+    private static SignatureImageService signatureImages;
     private static Station station;
     private static StationMember member;
 
     @BeforeAll
     static void setup() {
         var backend = localStorage();
-        var storage = new StorageService(new StorageBackendResolver(backend), backend);
+        storage = new StorageService(new StorageBackendResolver(backend), backend);
         var avatars = new AvatarService(new ImageVariants(storage));
+        signatureImages = new SignatureImageService(new AccountSignatureRepository(), accountRepo, storage);
         service = new GdprDeletionService(
-                accountRepo, stationMemberRepo, memberLookupService, avatars, newDocumentService(storage));
+                accountRepo,
+                stationMemberRepo,
+                memberLookupService,
+                avatars,
+                newDocumentService(storage),
+                signatureImages,
+                new AccountReach(accountRepo));
         station = stationRepo.create("GdprStation");
         Account account = accountRepo.create("gdpr-del@test.com", "Delete", "Me");
         accountRepo.createCredential(account.id(), "hash");
@@ -107,6 +124,33 @@ class GdprDeletionServiceTest extends RepositoryTestBase {
     }
 
     @Test
+    @Order(21)
+    void deletingTheLastMembershipTakesTheAccountAlong() {
+        var alone = accountRepo.create("gdpr-alone@test.com", "Only", "Here");
+        var aloneMember = stationMemberRepo.create(station.id(), alone.id());
+
+        service.anonymizeMember(aloneMember.id());
+
+        assertTrue(accountRepo.findById(alone.id()).isEmpty());
+    }
+
+    /** An association still needs the account of somebody who holds a role in it, so only the member goes. */
+    @Test
+    @Order(22)
+    void deletingTheLastMembershipKeepsAnAccountWithAnAssociationRole() {
+        var held = accountRepo.create("gdpr-association@test.com", "Still", "Needed");
+        var heldMember = stationMemberRepo.create(station.id(), held.id());
+        var association = clusterRepo.create("GdprAssociation " + System.nanoTime(), null, station.id());
+        clusterRepo.addMember(association.id(), held.id(), ClusterUserType.CLUSTER_USER);
+
+        service.anonymizeMember(heldMember.id());
+
+        assertTrue(stationMemberRepo.findById(heldMember.id()).isEmpty(), "the member is gone");
+        assertTrue(accountRepo.findById(held.id()).isPresent(), "the account stays");
+        assertTrue(clusterRepo.findMember(association.id(), held.id()).isPresent(), "and so does its role");
+    }
+
+    @Test
     @Order(30)
     void aStationAdministratorCannotDeleteTheirOwnAccount() {
         var admin = accountRepo.create("gdpr-own-admin@test.com", "Still", "Admin");
@@ -130,6 +174,24 @@ class GdprDeletionServiceTest extends RepositoryTestBase {
         service.deleteOwnAccount(own.id());
 
         assertTrue(accountRepo.findById(own.id()).isEmpty());
+    }
+
+    /** The signature picture lives in the account's file store, outside the rows the deletion removes. */
+    @Test
+    @Order(32)
+    void aDeletedAccountTakesItsSignaturePictureAlong() {
+        var signer = accountRepo.create("gdpr-signature@test.com", "Unter", "Schrift");
+        stationMemberRepo.create(station.id(), signer.id());
+        signatureImages.save(signer.id(), TestSignatures.drawn(), SignatureImageSource.DRAWN);
+        var scope = new StorageScope.Account(signer.uid());
+        assertTrue(storage.readAllBytes(scope, StorageCategory.IMAGE_SIGNATURE, "signature.png")
+                .isPresent());
+
+        service.deleteAccount(signer.id());
+
+        assertTrue(storage.readAllBytes(scope, StorageCategory.IMAGE_SIGNATURE, "signature.png")
+                .isEmpty());
+        assertTrue(new AccountSignatureRepository().find(signer.id()).isEmpty());
     }
 
     private static StationMember memberWithDocuments(String address, boolean keptForTheRecord) {

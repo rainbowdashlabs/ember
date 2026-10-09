@@ -12,6 +12,7 @@ import com.yubico.webauthn.data.ByteArray;
 import dev.chojo.ember.auth.TokenHasher;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.WebAuthnSettings;
+import dev.chojo.ember.feature.signing.service.TestKeyStamps;
 import dev.chojo.ember.feature.twofactor.entity.ChallengePurpose;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorKind;
 import dev.chojo.ember.feature.twofactor.repository.WebAuthnChallengeRepository;
@@ -67,7 +68,12 @@ class PasskeyServiceTest extends RepositoryTestBase {
         realParties = WebAuthnRelyingPartyFactory.build(settings, api, store, secondFactorStore);
         challengeRepo = new WebAuthnChallengeRepository(TokenHasher.forTesting("repository-test-pepper"));
         service = new PasskeyService(
-                realParties, twoFactorRepo, new TwoFactorAuditService(twoFactorRepo), challengeRepo, settings);
+                realParties,
+                twoFactorRepo,
+                new TwoFactorAuditService(twoFactorRepo),
+                challengeRepo,
+                settings,
+                TestKeyStamps.off(twoFactorRepo));
     }
 
     private static void setField(Object target, String name, Object value) throws Exception {
@@ -83,7 +89,8 @@ class PasskeyServiceTest extends RepositoryTestBase {
                 twoFactorRepo,
                 new TwoFactorAuditService(twoFactorRepo),
                 challengeRepo,
-                new WebAuthnSettings());
+                new WebAuthnSettings(),
+                TestKeyStamps.off(twoFactorRepo));
     }
 
     private int newAccount() {

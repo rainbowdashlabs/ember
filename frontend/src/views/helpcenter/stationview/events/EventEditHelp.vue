@@ -165,6 +165,7 @@ const SHIRT_SIZE: RegistrationFieldDefinition[] = [{
     <HelpSection :title="t('helpCenter.eventEdit.documentsTitle')">
       <p>{{ t('helpCenter.eventEdit.documentsText') }}</p>
       <p>{{ t('helpCenter.eventEdit.documentsTemplateText') }}</p>
+      <p>{{ t('helpCenter.eventEdit.documentsPartnersText') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.eventEdit.fieldDefaultsTitle')">

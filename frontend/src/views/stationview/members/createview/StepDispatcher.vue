@@ -31,6 +31,7 @@ const props = defineProps<{
   offerOneTimePassword: boolean
   oneTimePassword: IssuedOneTimePassword | null
   oneTimePasswordFailure: Failure | null
+  linkPending: boolean
   email: string
   firstName: string
   lastName: string
@@ -132,6 +133,7 @@ const submitLabel = () =>
     v-if="step === 'done'"
     :one-time-password="oneTimePassword"
     :one-time-password-failure="oneTimePasswordFailure"
+    :link-pending="linkPending"
     @create-another="emit('start-over')"
     @to-list="emit('to-list')"
   />

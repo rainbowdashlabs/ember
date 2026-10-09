@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.generator.service.pdf;
 
 import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
+import dev.chojo.ember.feature.generator.entity.DocumentLanguage;
 import dev.chojo.ember.feature.generator.entity.FieldRect;
 import dev.chojo.ember.feature.generator.entity.FontStyle;
 import dev.chojo.ember.feature.generator.entity.FormBinding;
@@ -15,6 +16,7 @@ import dev.chojo.ember.feature.generator.entity.PdfFieldKind;
 import dev.chojo.ember.feature.generator.entity.PdfLayout;
 import dev.chojo.ember.feature.generator.entity.PlaceholderTokens;
 import dev.chojo.ember.feature.generator.entity.SignatureRole;
+import dev.chojo.ember.feature.generator.entity.SignerCaptions;
 import dev.chojo.ember.feature.generator.entity.TextAlign;
 import dev.chojo.ember.feature.generator.service.font.DefaultFont;
 import dev.chojo.ember.feature.generator.service.font.TestFonts;
@@ -45,7 +47,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Filling an uploaded PDF: where a text lands on plain, cropped and turned pages, the fallback for a
  * glyph the font lacks, the default font, check marks, the PDF's own form filled and flattened, and the
- * empty signature fields by role. Every result is read back from the file.
+ * empty signature fields by role with the name of their signer under them. Every result is read back from
+ * the file.
  */
 class PdfStamperTest {
     private static final Map<String, String> VALUES = Map.of(
@@ -53,6 +56,11 @@ class PdfStamperTest {
             "yes", "Ja",
             "no", "Nein");
     private static final UnaryOperator<String> FILL = text -> PlaceholderTokens.fill(text, VALUES);
+    private static final SignerCaptions SIGNERS = new SignerCaptions(
+            DocumentLanguage.DE, "Lena Schmidt", List.of("Hans Schmidt", "Eva Schmidt"), "Anna Weber");
+
+    /** Where the line of a signature field 40 points high at the bottom of the page lands over its name. */
+    private static final float LINE_OVER_NAME = 111.3f;
 
     private final PdfStamper stamper = new PdfStamper(new StampFonts(DefaultFont.absent()));
 
@@ -73,7 +81,12 @@ class PdfStamperTest {
     }
 
     private PdfStamper.Stamped stamp(byte[] original, int guardians, PdfField... fields) throws IOException {
-        return stamper.stamp(original, new PdfLayout(List.of(fields), List.of()), guardians, FILL);
+        return stamp(original, guardians, SIGNERS, fields);
+    }
+
+    private PdfStamper.Stamped stamp(byte[] original, int guardians, SignerCaptions signers, PdfField... fields)
+            throws IOException {
+        return stamper.stamp(original, new PdfLayout(List.of(fields), List.of()), guardians, FILL, signers);
     }
 
     private static String drawn(List<TextPosition> positions) {
@@ -255,12 +268,85 @@ class PdfStamperTest {
             assertTrue(widget.isPrinted());
             assertEquals(300, widget.getRectangle().getLowerLeftX(), 0.01);
             assertEquals(150, widget.getRectangle().getWidth(), 0.01);
+            assertTrue(widget.getRectangle().getLowerLeftY() > 110, "the field sits above the name");
             assertTrue(document.getPage(1).getAnnotations().stream()
                     .anyMatch(annotation -> annotation.getCOSObject() == widget.getCOSObject()));
             assertNotNull(form.getField("participant"));
             assertFalse(form.getNeedAppearances());
         }
-        assertTrue(TestPdfs.darkAt(TestPdfs.picture(stamped.pdf()), 130, 100.3f), "the line to sign on");
+        assertTrue(TestPdfs.darkAt(TestPdfs.picture(stamped.pdf()), 130, LINE_OVER_NAME), "the line to sign on");
+        assertEquals("Lena Schmidt", drawn(TestPdfs.positions(stamped.pdf(), 1)).strip());
+        assertEquals("Hans Schmidt", drawn(TestPdfs.positions(stamped.pdf(), 2)).strip());
+    }
+
+    /**
+     * Under every field the name of whoever signs there: the issuer, each guardian under their own part,
+     * and any one guardian by the member's name.
+     */
+    @Test
+    void everyFieldNamesItsSigner() throws IOException {
+        var stamped = stamp(
+                TestPdfs.plain(3),
+                signature(new FieldRect(1, 60, 100, 200, 40), SignatureRole.ISSUER),
+                signature(new FieldRect(2, 60, 100, 400, 40), SignatureRole.EACH_GUARDIAN),
+                signature(new FieldRect(3, 60, 100, 300, 40), SignatureRole.ANY_GUARDIAN));
+
+        assertEquals("Anna Weber", drawn(TestPdfs.positions(stamped.pdf(), 1)).strip());
+        var guardians = TestPdfs.positions(stamped.pdf(), 2);
+        assertTrue(drawn(guardians).contains("Hans Schmidt"), drawn(guardians));
+        assertTrue(drawn(guardians).contains("Eva Schmidt"), drawn(guardians));
+        assertTrue(
+                guardians.stream()
+                        .filter(position -> position.getUnicode().equals("E"))
+                        .allMatch(position -> position.getTextMatrix().getTranslateX() > 260),
+                "the second guardian's name stands under the second part");
+        assertEquals(
+                "Eine erziehungsberechtigte Person von Lena Schmidt",
+                drawn(TestPdfs.positions(stamped.pdf(), 3)).strip());
+    }
+
+    /** A guardian place nobody holds, and a document about nobody, print the role in plain words. */
+    @Test
+    void anUnknownSignerPrintsTheRole() throws IOException {
+        var withoutGuardian = stamp(
+                TestPdfs.plain(1),
+                0,
+                new SignerCaptions(DocumentLanguage.DE, "Lena Schmidt", List.of(), "Anna Weber"),
+                signature(new FieldRect(1, 60, 100, 200, 40), SignatureRole.GUARDIAN_1));
+        var aboutNobody = stamp(
+                TestPdfs.plain(1),
+                1,
+                SignerCaptions.roles(DocumentLanguage.EN),
+                signature(new FieldRect(1, 60, 100, 200, 40), SignatureRole.PARTICIPANT));
+
+        assertEquals(
+                "Erziehungsberechtigte Person 1",
+                drawn(TestPdfs.positions(withoutGuardian.pdf(), 1)).strip());
+        assertEquals(
+                "Participant", drawn(TestPdfs.positions(aboutNobody.pdf(), 1)).strip());
+    }
+
+    /** A field whose own text already prints the signer's name does not print it a second time. */
+    @Test
+    void aNameTheTextAlreadyPrintsStandsOnce() throws IOException {
+        var field = new PdfField(
+                PdfFieldKind.SIGNATURE,
+                new FieldRect(1, 60, 100, 300, 40),
+                "Teilnehmende Person: {{member.fullName}}",
+                10,
+                TextAlign.LEFT,
+                false,
+                SignatureRole.PARTICIPANT,
+                null,
+                FontStyle.REGULAR,
+                false,
+                true);
+
+        var stamped = stamp(TestPdfs.plain(1), field);
+
+        assertEquals(
+                "Teilnehmende Person: Lena Schmidt",
+                drawn(TestPdfs.positions(stamped.pdf(), 1)).strip());
     }
 
     /** Every guardian signs in a field of their own, the box shared out side by side. */
@@ -316,20 +402,28 @@ class PdfStamperTest {
         try (var document = Loader.loadPDF(stamped.pdf())) {
             assertNotNull(document.getDocumentCatalog().getAcroForm(null).getField("participant"));
         }
-        assertFalse(TestPdfs.darkAt(TestPdfs.picture(stamped.pdf()), 130, 100.3f), "no line of its own");
+        assertFalse(TestPdfs.darkAt(TestPdfs.picture(stamped.pdf()), 130, LINE_OVER_NAME), "no line of its own");
     }
 
-    /** The text of a signature field prints under the line only where it is asked to, the line above it. */
+    /**
+     * The text of a signature field prints under the signer's name only where it is asked to; the line
+     * stands above them, raised by the text where it prints.
+     */
     @Test
     void aSignatureFieldPrintsItsTextUnderTheLineWhereAsked() throws IOException {
         var rect = new FieldRect(1, 60, 100, 150, 40);
         var printed = stamp(TestPdfs.plain(1), signatureWithText(rect, true));
         var kept = stamp(TestPdfs.plain(1), signatureWithText(rect, false));
 
-        assertEquals("Unterschrift", drawn(TestPdfs.positions(printed.pdf(), 1)).strip());
-        assertTrue(TestPdfs.darkAt(TestPdfs.picture(printed.pdf()), 130, 113.3f), "the line raised above the text");
-        assertEquals("", drawn(TestPdfs.positions(kept.pdf(), 1)).strip());
-        assertTrue(TestPdfs.darkAt(TestPdfs.picture(kept.pdf()), 130, 100.3f), "the line at the bottom");
+        var printedText = drawn(TestPdfs.positions(printed.pdf(), 1));
+        assertTrue(printedText.contains("Lena Schmidt"), printedText);
+        assertTrue(printedText.contains("Unterschrift"), printedText);
+        assertTrue(
+                printedText.indexOf("Lena Schmidt") < printedText.indexOf("Unterschrift"),
+                "the name right under the line");
+        assertTrue(TestPdfs.darkAt(TestPdfs.picture(printed.pdf()), 130, 120.3f), "the line raised above both texts");
+        assertEquals("Lena Schmidt", drawn(TestPdfs.positions(kept.pdf(), 1)).strip());
+        assertTrue(TestPdfs.darkAt(TestPdfs.picture(kept.pdf()), 130, LINE_OVER_NAME), "the line over the name");
     }
 
     private static PdfField signatureWithText(FieldRect rect, boolean printText) {
@@ -370,7 +464,7 @@ class PdfStamperTest {
         var bindings =
                 List.of(new FormBinding("person.name", "{{member.fullName}}"), new FormBinding("agree", "{{yes}}"));
 
-        var stamped = stamper.stamp(TestPdfs.withForm(), new PdfLayout(List.of(), bindings), 0, FILL);
+        var stamped = stamper.stamp(TestPdfs.withForm(), new PdfLayout(List.of(), bindings), 0, FILL, SIGNERS);
 
         try (var document = Loader.loadPDF(stamped.pdf())) {
             var form = document.getDocumentCatalog().getAcroForm(null);
@@ -388,7 +482,11 @@ class PdfStamperTest {
     @Test
     void anUnboundFormKeepsWhatItShowsAndIsFlattenedAllTheSame() throws IOException {
         var stamped = stamper.stamp(
-                TestPdfs.withForm(), new PdfLayout(List.of(), List.of(new FormBinding("agree", "{{no}}"))), 0, FILL);
+                TestPdfs.withForm(),
+                new PdfLayout(List.of(), List.of(new FormBinding("agree", "{{no}}"))),
+                0,
+                FILL,
+                SIGNERS);
 
         String text = Objects.requireNonNull(PdfText.extract(stamped.pdf()));
         assertTrue(text.contains("Alt"), text);
@@ -456,7 +554,7 @@ class PdfStamperTest {
                         inFamily(new FieldRect(1, 100, 600, 300, 20), "Lena", "Weg", FontStyle.REGULAR)),
                 List.of());
 
-        var stamped = stamper.stamp(TestPdfs.plain(1), layout, 0, FILL, fonts);
+        var stamped = stamper.stamp(TestPdfs.plain(1), layout, 0, FILL, SIGNERS, fonts);
 
         assertEquals(List.of("漢"), stamped.unprintable());
         assertEquals(List.of("Lisu/BOLD", "Weg/REGULAR"), asked);
@@ -491,6 +589,7 @@ class PdfStamperTest {
                         List.of()),
                 0,
                 FILL,
+                SIGNERS,
                 (family, style) -> Optional.of(whole));
         assertTrue(stamped.unprintable().isEmpty());
         assertTrue(PdfFonts.namesIn(stamped.pdf()).contains(TestFonts.LISU_POSTSCRIPT));
@@ -503,7 +602,12 @@ class PdfStamperTest {
     private static PdfStamper.Stamped stampWithDefault(Path directory, PdfField field) throws IOException {
         var stamper = new PdfStamper(new StampFonts(TestFonts.defaultFontIn(directory)));
         return stamper.stamp(
-                TestPdfs.plain(1), new PdfLayout(List.of(field), List.of()), 0, FILL, StampFonts.FieldFonts.NONE);
+                TestPdfs.plain(1),
+                new PdfLayout(List.of(field), List.of()),
+                0,
+                FILL,
+                SIGNERS,
+                StampFonts.FieldFonts.NONE);
     }
 
     private static boolean embedsLisu(PdfStamper.Stamped stamped) throws IOException {

@@ -24,7 +24,9 @@ import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AccountInviteService;
+import dev.chojo.ember.feature.account.service.AccountReach;
 import dev.chojo.ember.feature.account.service.AuthService;
+import dev.chojo.ember.feature.accountlink.service.TestAccountLinks;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
 import dev.chojo.ember.feature.attendance.service.AttendanceTemplateGuards;
 import dev.chojo.ember.feature.board.repository.BoardRepository;
@@ -66,6 +68,7 @@ import dev.chojo.ember.feature.discovery.repository.DiscoveryPeerRepository;
 import dev.chojo.ember.feature.discovery.repository.DiscoveryPingRepository;
 import dev.chojo.ember.feature.discovery.repository.DiscoveryStationCacheRepository;
 import dev.chojo.ember.feature.documents.repository.DocumentRepository;
+import dev.chojo.ember.feature.documents.repository.SealedVersionRepository;
 import dev.chojo.ember.feature.documents.service.DocumentIntake;
 import dev.chojo.ember.feature.documents.service.DocumentService;
 import dev.chojo.ember.feature.equipment.repository.EquipmentAvailabilityRepository;
@@ -252,6 +255,7 @@ import static org.mockito.Mockito.mock;
 @Tag("database")
 public abstract class RepositoryTestBase {
     private static final AtomicInteger SCHEMA_COUNTER = new AtomicInteger(0);
+    private static final long SHARED_MEMORY_BYTES = 1024L * 1024 * 1024;
 
     /**
      * A single PostgreSQL container per JVM (Gradle test fork), started lazily on the first test
@@ -266,11 +270,17 @@ public abstract class RepositoryTestBase {
      * would poison this class for the whole fork ({@code NoClassDefFoundError} on every later
      * class). From {@code @BeforeAll} a failure fails only the current class and the next one
      * retries the start.
+     *
+     * <p>The server keeps statistics for every table of every schema the fork creates in dynamic
+     * shared memory, which grows with each test class. Docker's default of 64 MB for that memory ran
+     * out late in a long suite, crashed the server and failed every class after it, so the container
+     * gets far more than a fork needs.
      */
     static final PostgreSQLContainer PG = new PostgreSQLContainer(TestContainers.POSTGRES_IMAGE)
             .withDatabaseName("ember_test")
             .withUsername("test")
             .withPassword("test")
+            .withSharedMemorySize(SHARED_MEMORY_BYTES)
             .withStartupAttempts(8);
 
     protected static AccountRepository accountRepo;
@@ -505,7 +515,23 @@ public abstract class RepositoryTestBase {
      */
     protected static DocumentService newDocumentService(StorageService storage) {
         return new DocumentService(
-                memberDocumentRepo, storage, new ImageVariants(storage), stationRepo, newDocumentIntake());
+                memberDocumentRepo,
+                new SealedVersionRepository(),
+                storage,
+                new ImageVariants(storage),
+                stationRepo,
+                newDocumentIntake());
+    }
+
+    /**
+     * A member document store over this class's local storage, for tests that only need members to be
+     * able to leave.
+     *
+     * @return the store
+     */
+    protected static DocumentService newDocumentService() {
+        var backend = localStorage();
+        return newDocumentService(new StorageService(new StorageBackendResolver(backend), backend));
     }
 
     /**
@@ -689,6 +715,7 @@ public abstract class RepositoryTestBase {
                 clusterService,
                 accountRepo,
                 new AccountInviteService(accountRepo, org.mockito.Mockito.mock(AuthService.class)),
+                TestAccountLinks.associationService(accountRepo, clusterRepo),
                 new DomainEventBus(Set.of()));
         userSettingsRepo = new UserSettingsRepository();
         userTagRepo = new UserTagRepository();
@@ -1022,7 +1049,13 @@ public abstract class RepositoryTestBase {
     protected static StationMemberService newStationMemberService(
             AccountRepository accountRepository, AuthService authService, DocumentService documentService) {
         return new StationMemberService(
-                stationMemberRepo, stationRepo, accountRepository, authService, memberLookupService, documentService);
+                stationMemberRepo,
+                stationRepo,
+                accountRepository,
+                authService,
+                memberLookupService,
+                documentService,
+                new AccountReach(accountRepository));
     }
 
     /**

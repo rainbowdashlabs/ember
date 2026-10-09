@@ -54,6 +54,9 @@ const {t} = useI18n()
           <SuccessBadge v-if="fr.registration.status === 'ACCEPTED'">{{ t('eventsUpcoming.statusAccepted') }}</SuccessBadge>
           <InfoBadge v-else-if="fr.registration.status === 'PENDING'">{{ t('eventsUpcoming.statusPending') }}</InfoBadge>
           <ErrorBadge v-else-if="fr.registration.status === 'DENIED'">{{ t('eventsUpcoming.statusDenied') }}</ErrorBadge>
+          <ErrorBadge v-if="fr.registration.agreementWithdrawnAt" data-testid="federated-agreement-withdrawn">
+            {{ t('eventDetail.federatedAgreementWithdrawn') }}
+          </ErrorBadge>
         </div>
         <MutedText v-if="partnerDecides(fr.registration.partnerId)" size="sm">
           {{ t('eventDetail.federatedPartnerDecides') }}

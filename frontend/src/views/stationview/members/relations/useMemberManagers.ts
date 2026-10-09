@@ -143,7 +143,7 @@ export function useMemberManagers(
         firstName: data.firstName,
         lastName: data.lastName,
         sendSetupMail: data.sendSetupMail,
-      })).id
+      })).memberId
     } catch (e) {
       failure.value = describeFailure(e, t)
       return
@@ -151,7 +151,7 @@ export function useMemberManagers(
 
     try {
       const updatedMembers = await stationMembers.listMembers()
-      const newMember = updatedMembers.find(m => m.accountId === invitedId)
+      const newMember = updatedMembers.find(m => m.id === invitedId)
       if (!newMember) {
         failure.value = {
           kind: FailureKind.UNKNOWN,

@@ -24,7 +24,12 @@
     "test-mail": "Test email from Ember",
     "passkey-device-approved": "A new device can now sign in to your account",
     "device-signed-in": "A device was signed in to your account",
-    "passkey-code-issued": "A passkey code for {name} was issued"
+    "passkey-code-issued": "A passkey code for {name} was issued",
+    "signature-requested": "Signature requested: {documentTitle}",
+    "signature-reminder": "Reminder: {documentTitle} is waiting for a signature",
+    "signed-copy": "Signed copy: {documentTitle}",
+    "account-link-request": "{stationName} asks to link your account",
+    "association-link-request": "{associationName} offers you a role"
   },
   "body": {
     "twoFactorReset.defaultActor": "an administrator"

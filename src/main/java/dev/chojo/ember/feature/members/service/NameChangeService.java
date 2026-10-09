@@ -11,7 +11,9 @@ import dev.chojo.ember.api.auth.InstancePermission;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.account.entity.AccountAction;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.account.service.AccountReach;
 import dev.chojo.ember.feature.members.entity.NameChangeOutcome;
 import dev.chojo.ember.feature.members.entity.NameChangeRequest;
 import dev.chojo.ember.feature.members.entity.NameChangeView;
@@ -58,6 +60,7 @@ public class NameChangeService {
     private final MemberNameResolver nameResolver;
     private final MemberIdentityFactory identityFactory;
     private final Notifier notifier;
+    private final AccountReach accountReach;
 
     @Inject
     public NameChangeService(
@@ -68,7 +71,8 @@ public class NameChangeService {
             MemberPermissionResolver permissionResolver,
             MemberNameResolver nameResolver,
             MemberIdentityFactory identityFactory,
-            Notifier notifier) {
+            Notifier notifier,
+            AccountReach accountReach) {
         this.requests = requests;
         this.accounts = accounts;
         this.memberService = memberService;
@@ -77,6 +81,7 @@ public class NameChangeService {
         this.nameResolver = nameResolver;
         this.identityFactory = identityFactory;
         this.notifier = notifier;
+        this.accountReach = accountReach;
     }
 
     /**
@@ -146,6 +151,7 @@ public class NameChangeService {
      */
     public void approve(int stationId, int deciderId, int requestId) {
         var request = requireOpenAt(stationId, requestId);
+        accountReach.require(stationId, request.accountId(), AccountAction.NAME_CHANGE_APPROVAL);
         decide(request, NameChangeOutcome.APPROVED, deciderId, null);
         var account = accounts.findById(request.accountId()).orElseThrow(MemberRefusal.NAME_CHANGE_NOT_OPEN::raise);
         accounts.update(account.id(), account.email(), request.firstName(), request.lastName());

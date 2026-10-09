@@ -83,7 +83,16 @@ public enum NotificationType {
             NotificationParams.FederationRequestAnswered.class, "notification.federationRequestDeclined"),
     NAME_CHANGE_REQUESTED(NotificationParams.NameChangeRequested.class, "notification.nameChangeRequested"),
     NAME_CHANGE_APPROVED(NotificationParams.NameChangeApproved.class, "notification.nameChangeApproved"),
-    NAME_CHANGE_DENIED(NotificationParams.NameChangeDenied.class, "notification.nameChangeDenied");
+    NAME_CHANGE_DENIED(NotificationParams.NameChangeDenied.class, "notification.nameChangeDenied"),
+    SIGNATURE_REQUESTED(NotificationParams.SignatureRequested.class, "notification.signatureRequested"),
+    SIGNATURE_REMINDER(NotificationParams.SignatureRequested.class, "notification.signatureReminder"),
+    DOCUMENT_SIGNED(NotificationParams.DocumentSigned.class, "notification.documentSigned"),
+    DOCUMENT_SCAN_REJECTED(NotificationParams.DocumentScanRejected.class, "notification.documentScanRejected"),
+    ACCOUNT_LINK_ACCEPTED(NotificationParams.AccountLinkAccepted.class, "notification.accountLinkAccepted"),
+    ASSOCIATION_LINK_ACCEPTED(NotificationParams.AssociationLinkAccepted.class, "notification.associationLinkAccepted"),
+    SIGNATURE_WITHDRAWN(NotificationParams.SignatureWithdrawn.class, "notification.signatureWithdrawn"),
+    PARTNER_SIGNATURE_WITHDRAWN(
+            NotificationParams.PartnerSignatureWithdrawn.class, "notification.partnerSignatureWithdrawn");
 
     private final Class<? extends NotificationParams> paramsType;
     private final String localeKey;

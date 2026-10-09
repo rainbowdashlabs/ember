@@ -23,6 +23,9 @@ const open: RequiredDocumentStatus = {
     documentId: null,
     generatedAt: null,
     outdated: false,
+    paper: null,
+    signature: null,
+    agreementOffered: false,
 }
 const generated: RequiredDocumentStatus = {
     ...open,

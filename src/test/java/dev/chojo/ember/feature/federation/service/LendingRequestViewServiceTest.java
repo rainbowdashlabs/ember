@@ -222,7 +222,7 @@ class LendingRequestViewServiceTest {
     @Test
     void aMessageWrittenHereNamesItsWriter() {
         var station = mock(Station.class);
-        when(stations.findByUid(HERE)).thenReturn(Optional.of(station));
+        when(stations.findHereByUid(HERE)).thenReturn(Optional.of(station));
         when(members.findById(21))
                 .thenReturn(Optional.of(new StationMember(
                         21, STATION, null, null, false, null, "Mara", StationUserType.MEMBER, LocalDate.EPOCH)));
@@ -248,7 +248,7 @@ class LendingRequestViewServiceTest {
     @Test
     void aMessageFromElsewhereOrFromTheSystemNamesNoWriter() {
         assertNull(service.describe(message(21, PARTNER, false), STATION).senderName());
-        when(stations.findByUid(HERE)).thenReturn(Optional.of(mock(Station.class)));
+        when(stations.findHereByUid(HERE)).thenReturn(Optional.of(mock(Station.class)));
         assertNull(service.describe(message(21, HERE, true), STATION).senderName());
         assertNull(service.describe(message(null, HERE, false), STATION).senderName());
     }

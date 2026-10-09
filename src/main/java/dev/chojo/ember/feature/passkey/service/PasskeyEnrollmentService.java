@@ -188,7 +188,8 @@ public class PasskeyEnrollmentService {
     /**
      * Spends the token and creates the credential: consumed first, fail-closed, so it cannot be
      * spent twice however the ceremony ends. A door that came through the verification mail also
-     * verifies the address, because reaching it proved the same thing the mail was for.
+     * verifies the address, because reaching it proved the same thing the mail was for. Any door that
+     * came through a mail confirms an account a station import created, for the same reason.
      */
     public boolean finish(String rawToken, String challengeToken, String credentialJson, @Nullable String country) {
         Optional<Door> doorOpt = findDoor(rawToken);
@@ -202,6 +203,9 @@ public class PasskeyEnrollmentService {
 
         if (door.token().tokenType() == TokenType.VERIFY_EMAIL) {
             accountRepository.setEmailVerified(door.token().accountId());
+        }
+        if (PASSWORDLESS_DOORS.contains(door.token().tokenType())) {
+            accountRepository.confirm(door.token().accountId());
         }
         log.info(
                 "Passkey enrolled for account {} through a {} token",

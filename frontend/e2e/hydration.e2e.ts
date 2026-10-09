@@ -23,6 +23,7 @@ const PAGES: [string, string][] = [
     ['a public station', '/public/station/jugendfeuerwehr-musterstadt'],
     ['a help page', '/helpcenter/station/basics'],
     ['the pitch deck', '/pitch'],
+    ['the document check', '/verify'],
 ]
 
 /** Collects what the browser reports about hydration while the page is taken up. */

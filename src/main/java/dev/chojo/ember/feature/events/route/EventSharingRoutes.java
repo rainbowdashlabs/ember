@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventFederationService;
 import dev.chojo.ember.feature.events.service.FederatedRegistrantService;
 import dev.chojo.ember.feature.federation.entity.ShareScope;
+import dev.chojo.ember.feature.generator.service.EventRequirementService;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -46,15 +47,18 @@ public class EventSharingRoutes implements Routes {
     private final EventCrudService crudService;
     private final EventFederationService eventFederationService;
     private final FederatedRegistrantService registrants;
+    private final EventRequirementService requirements;
 
     @Inject
     public EventSharingRoutes(
             EventCrudService crudService,
             EventFederationService eventFederationService,
-            FederatedRegistrantService registrants) {
+            FederatedRegistrantService registrants,
+            EventRequirementService requirements) {
         this.crudService = crudService;
         this.eventFederationService = eventFederationService;
         this.registrants = registrants;
+        this.requirements = requirements;
     }
 
     @Override
@@ -104,6 +108,9 @@ public class EventSharingRoutes implements Routes {
      * <p>An event that not every member here may know about is not handed over. The audiences name
      * groups, tags and members of this station, and none of those mean anything at the partner, so a
      * shared event would stand open to everybody there: the opposite of what restricting it said.
+     *
+     * <p>Nor is one whose documents to bring partners could not sign alike: such a document names a
+     * person, or reads differently for some members, and the partner's members would each need their own.
      */
     @OpenApi(
             path = "/api/v1/events/{id}/federation",
@@ -119,6 +126,7 @@ public class EventSharingRoutes implements Routes {
         if (event.restricted()) {
             throw EventRefusal.RESTRICTED_EVENT_NOT_SHARED.raise();
         }
+        requirements.requireShareable(id);
         var req = ctx.bodyAsClass(SetFederationShareRequest.class);
         eventFederationService.setShare(id, req.scope(), req.partnerIds() != null ? req.partnerIds() : List.of());
         ctx.json(new FederationShareResponse(true, req.scope(), null));

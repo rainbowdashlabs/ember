@@ -620,10 +620,37 @@ public sealed interface CellConfig {
      * A line to sign on in a letter, with an empty signature field on it for whoever signs. The short
      * text printed below the line, with placeholders, lives in cell.content.
      *
-     * @param signer who signs on the line; a block without one is refused when the letter is saved
+     * @param signer    who signs on the line; a block without one is refused when the letter is saved
+     * @param statement what the signer confirms when they sign the line, or null for the default statement
+     *                  of the signer in the letter's language
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    record SignatureConfig(@Nullable SignatureRole signer) implements CellConfig {}
+    record SignatureConfig(
+            @Nullable SignatureRole signer, @Nullable String statement) implements CellConfig {
+
+        /** @param signer who signs on the line, confirming the default statement */
+        public SignatureConfig(@Nullable SignatureRole signer) {
+            this(signer, null);
+        }
+    }
+
+    /**
+     * A box in a letter that the signer of a signature line types into when they sign, with its label
+     * printed above it. It becomes one empty text field for each signature field its signer has in the
+     * member's letter, side by side like the lines of a signature block.
+     *
+     * @param signer    who fills it in; a block without one is refused when the letter is saved
+     * @param label     what it asks for, printed above the box and shown to the signer
+     * @param required  whether the signer has to fill it in to sign
+     * @param maxLength the most characters the value may have, or null for the most any field takes
+     */
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    record FillInConfig(
+            @Nullable SignatureRole signer,
+            @Nullable String label,
+            @Nullable Boolean required,
+            @Nullable Integer maxLength)
+            implements CellConfig {}
 
     /**
      * Cell that contains nested rows. The rows are stored opaquely as JSON nodes so the existing

@@ -364,4 +364,76 @@ class LendingRepositoryTest extends RepositoryTestBase {
         assertFalse(lendingRepo.deleteRequest(uid));
         assertTrue(lendingRepo.findRequestByUid(uid).isEmpty());
     }
+
+    /** A line is labelled with what it names when it is asked for. */
+    @Test
+    @Order(61)
+    void aLineIsLabelledWhenItIsAskedFor() {
+        var request = lendingRepo.createRequest(
+                UUID.randomUUID(), stationB.uid(), stationA.uid(), LocalDate.now(), null, null, null, null, "");
+
+        assertEquals(
+                "Lend Item",
+                lendingRepo
+                        .addRequestItem(request.id(), inventoryIdA, itemIdA, null, 1, null)
+                        .label());
+        assertEquals(
+                "LendRepoInventory",
+                lendingRepo
+                        .addRequestItem(request.id(), inventoryIdA, null, null, 1, null)
+                        .label());
+        assertEquals(
+                "",
+                lendingRepo
+                        .addRequestItem(request.id(), null, null, null, 1, null)
+                        .label());
+
+        lendingRepo.deleteRequest(request.uid());
+    }
+
+    /**
+     * A copy that arrived with a moved station joins the copy its partner keeps: lines by position,
+     * the pieces and messages over, the empty fields filled, extra lines moved, the arrived copy gone.
+     */
+    @Test
+    @Order(62)
+    void anArrivedCopyJoinsTheCopyThePartnerKeeps() {
+        var kept = lendingRepo.createRequest(
+                UUID.randomUUID(), stationB.uid(), stationA.uid(), LocalDate.now(), null, memberB.id(), null, null, "");
+        int keptLine =
+                lendingRepo.addRequestItem(kept.id(), null, null, null, 1, null).id();
+        lendingRepo.labelItems(kept.id(), List.of("Lend Item"));
+        var arrived = lendingRepo.createRequest(
+                UUID.randomUUID(), stationB.uid(), stationA.uid(), LocalDate.now(), null, null, null, null, "Übung");
+        int arrivedLine = lendingRepo
+                .addRequestItem(arrived.id(), inventoryIdA, itemIdA, null, 1, null)
+                .id();
+        int extraLine = lendingRepo
+                .addRequestItem(arrived.id(), inventoryIdA, null, null, 2, null)
+                .id();
+        lendingRepo.assignItem(arrivedLine, itemIdA);
+        lendingRepo.createMessage(arrived.id(), stationA.uid(), null, "Liegt bereit", false);
+        lendingRepo.updateRequestStatus(arrived.id(), LendingStatus.LENT);
+
+        lendingRepo.joinLine(arrivedLine, keptLine);
+        lendingRepo.moveLine(extraLine, kept.id());
+        lendingRepo.joinRequest(arrived.id(), kept.id());
+        lendingRepo.nameStationsHere(kept.id());
+
+        var lines = lendingRepo.findItemsByRequest(kept.id());
+        assertEquals(
+                List.of(keptLine, extraLine),
+                lines.stream().map(LendingRequestItem::id).toList());
+        assertEquals(itemIdA, lines.getFirst().itemId());
+        assertEquals("Lend Item", lines.getFirst().label());
+        assertEquals(List.of(itemIdA), lendingRepo.findAssignedItems(keptLine));
+        var joined = lendingRepo.findRequestById(kept.id()).orElseThrow();
+        assertEquals(memberB.id(), joined.createdBy());
+        assertEquals("Übung", joined.occasion());
+        assertEquals(LendingStatus.LENT, joined.status(), "the state changed later wins");
+        assertEquals(1, lendingRepo.findMessagesByRequest(kept.id()).size());
+        assertTrue(lendingRepo.findRequestById(arrived.id()).isEmpty());
+
+        lendingRepo.deleteRequest(kept.uid());
+    }
 }

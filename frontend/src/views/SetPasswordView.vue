@@ -23,6 +23,7 @@ import LinkNoLongerGood from './setpasswordview/LinkNoLongerGood.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import ConsentStep from '@/components/consent/ConsentStep.vue'
 import {useLoginConsent} from '@/composables/useLoginConsent'
+import {useLinkRequests} from '@/composables/useLinkRequests'
 import type {TokenStatus} from '@/api/generated/schema'
 
 const {t} = useI18n()
@@ -37,6 +38,7 @@ const {setActiveCluster, clearActiveCluster} = useCluster()
  * without ever having been asked.
  */
 const legal = useLoginConsent()
+const linkRequests = useLinkRequests()
 const {consent} = legal
 
 const newPassword = ref('')
@@ -114,6 +116,7 @@ const {running: loading, error: submitError, run: runSetPassword} = useAsyncActi
   }
 
   await legal.recordAfterLogin()
+  await linkRequests.checkAfterSignIn()
   clearActiveStation()
   clearActiveCluster()
   const landing = await decideSignInLanding()

@@ -185,7 +185,15 @@
     "FEDERATION_REQUEST_DECLINED": "Partnerschaft mit {stationName} abgelehnt",
     "NAME_CHANGE_REQUESTED": "Namensänderung: {memberName}",
     "NAME_CHANGE_APPROVED": "Neuer Name bestätigt",
-    "NAME_CHANGE_DENIED": "Neuer Name abgelehnt"
+    "NAME_CHANGE_DENIED": "Neuer Name abgelehnt",
+    "SIGNATURE_REQUESTED": "Unterschrift erbeten: {documentTitle} - {memberName}",
+    "SIGNATURE_REMINDER": "Unterschrift fehlt noch: {documentTitle} - {memberName}",
+    "DOCUMENT_SIGNED": "Unterschrieben: {documentTitle} - {signerName}",
+    "DOCUMENT_SCAN_REJECTED": "Scan abgelehnt: {documentName} - {memberName}",
+    "ACCOUNT_LINK_ACCEPTED": "Konto verknüpft: {memberName}",
+    "ASSOCIATION_LINK_ACCEPTED": "Rolle angenommen: {personName}",
+    "SIGNATURE_WITHDRAWN": "Unterschrift widerrufen: {documentTitle} - {memberName}",
+    "PARTNER_SIGNATURE_WITHDRAWN": "Unterschrift widerrufen: {documentTitle} - {stationName}"
   },
   "digest": {
     "subject.one": "{stationName}: 1 neue Benachrichtigung",
@@ -251,7 +259,15 @@
     "FEDERATION_REQUEST_DECLINED": "Föderation",
     "NAME_CHANGE_REQUESTED": "Namensänderung",
     "NAME_CHANGE_APPROVED": "Namensänderung",
-    "NAME_CHANGE_DENIED": "Namensänderung"
+    "NAME_CHANGE_DENIED": "Namensänderung",
+    "SIGNATURE_REQUESTED": "Unterschrift",
+    "SIGNATURE_REMINDER": "Unterschrift",
+    "DOCUMENT_SIGNED": "Unterschrift",
+    "DOCUMENT_SCAN_REJECTED": "Mitzubringende Dokumente",
+    "ACCOUNT_LINK_ACCEPTED": "Konto",
+    "ASSOCIATION_LINK_ACCEPTED": "Konto",
+    "SIGNATURE_WITHDRAWN": "Unterschrift",
+    "PARTNER_SIGNATURE_WITHDRAWN": "Unterschrift"
   },
   "message": {
     "notification.newNews": "{title} - von {author}",
@@ -328,6 +344,16 @@
     "notification.nameChangeRequested": "{memberName} möchte {requestedName} heißen",
     "notification.nameChangeApproved": "Dein neuer Name {newName} wurde bestätigt",
     "notification.nameChangeDenied": "Dein neuer Name {requestedName} wurde abgelehnt",
-    "notification.nameChangeDenied.WITH_REASON": "Dein neuer Name {requestedName} wurde abgelehnt: {reason}"
+    "notification.nameChangeDenied.WITH_REASON": "Dein neuer Name {requestedName} wurde abgelehnt: {reason}",
+    "notification.signatureRequested": "{documentTitle} für {memberName} wartet auf eine Unterschrift",
+    "notification.signatureReminder": "{documentTitle} für {memberName} wartet noch auf eine Unterschrift",
+    "notification.documentSigned": "{signerName} hat {documentTitle} unterschrieben",
+    "notification.documentSigned.FOR_MEMBER": "{signerName} hat {documentTitle} für {memberName} unterschrieben",
+    "notification.documentScanRejected": "Der Scan von {documentName} für {memberName} zu {eventName} am {eventDate} wurde abgelehnt: {reason}",
+    "notification.accountLinkAccepted": "{memberName} hat das eigene Konto mit dem Mitglied verknüpft",
+    "notification.associationLinkAccepted": "{personName} hat die Rolle im Verband angenommen",
+    "notification.signatureWithdrawn": "{withdrawnByName} hat die Unterschrift unter {documentTitle} für {memberName} widerrufen",
+    "notification.partnerSignatureWithdrawn": "Bei {stationName} wurde eine Unterschrift unter {documentTitle} widerrufen",
+    "notification.partnerSignatureWithdrawn.NAMED": "Bei {stationName} wurde die Unterschrift unter {documentTitle} für {memberName} widerrufen"
   }
 }

@@ -10,11 +10,12 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import FederatedEventTile from '@/views/stationview/events/upcomingview/federatedeventssection/FederatedEventTile.vue'
 import {events} from '@/api'
 import {UNDO_WINDOW_MS} from '@/api/events'
-import type {FederatedEventItem, RemoteMemberRegistration} from '@/api/generated/schema'
+import type {FederatedEventItem, PartnerDocumentToSign, RemoteMemberRegistration} from '@/api/generated/schema'
 import {showToast} from '@/util/toast'
 import {useSession} from '@/composables/useSession'
 import {reportCaughtError} from '@/util/devErrorReporter'
 import type {AnswerablePerson} from '@/util/eventAnswers'
+import PartnerSigningStep from '../eventshared/PartnerSigningStep.vue'
 
 const {t} = useI18n()
 const {sessionInfo} = useSession()
@@ -22,6 +23,15 @@ const {sessionInfo} = useSession()
 const federatedEvents = ref<FederatedEventItem[]>([])
 const myRegistrations = ref<RemoteMemberRegistration[]>([])
 const registering = ref<string | null>(null)
+
+/** The documents the partner's appointment asks the people just registered to sign here. */
+const toSign = ref<PartnerDocumentToSign[]>([])
+const signingStepOpen = computed({
+  get: () => toSign.value.length > 0,
+  set: (shown: boolean) => {
+    if (!shown) toSign.value = []
+  },
+})
 
 const managedMembers = computed(() => sessionInfo.value?.managedMembers ?? [])
 const currentMemberUid = computed(() => sessionInfo.value?.member?.uid ?? '')
@@ -48,7 +58,9 @@ async function register(fed: FederatedEventItem, people: AnswerablePerson<string
   registering.value = key
   try {
     for (const person of people) {
-      await events.registerForFederatedEvent(fed.partnerStationUid, fed.event.id, getEventDate(fed), person.key)
+      const answer = await events.registerForFederatedEvent(
+          fed.partnerStationUid, fed.event.id, getEventDate(fed), person.key)
+      toSign.value = [...toSign.value, ...answer.toSign]
       myRegistrations.value.push({
         eventId: fed.event.id,
         remoteMemberId: person.key,
@@ -130,5 +142,6 @@ onMounted(async () => {
           @withdraw="withdraw"
       />
     </div>
+    <PartnerSigningStep v-if="signingStepOpen" v-model="signingStepOpen" :documents="toSign"/>
   </div>
 </template>

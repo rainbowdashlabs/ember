@@ -7,11 +7,19 @@ package dev.chojo.ember.feature.station.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
+import dev.chojo.ember.api.refusal.RefusalResponse;
+import dev.chojo.ember.api.refusal.StationRefusal;
 import dev.chojo.ember.conf.file.elements.Api;
+import dev.chojo.ember.feature.accountlink.entity.LinkOrigin;
+import dev.chojo.ember.feature.accountlink.repository.AccountLinkRepository;
+import dev.chojo.ember.feature.accountlink.service.TestAccountLinks;
 import dev.chojo.ember.feature.attendance.entity.AttendanceFieldConfig;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.federation.entity.LendingMessage;
+import dev.chojo.ember.feature.federation.entity.LendingRequest;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
-import dev.chojo.ember.feature.federation.service.FederationPartnerTransferFixupService;
+import dev.chojo.ember.feature.federation.repository.LendingRepository;
+import dev.chojo.ember.feature.federation.service.LendingUidClashes;
 import dev.chojo.ember.feature.form.entity.FormPurpose;
 import dev.chojo.ember.feature.form.entity.FormQuestionConfig;
 import dev.chojo.ember.feature.form.entity.FormQuestionType;
@@ -28,8 +36,10 @@ import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.transfer.AccountCredentialTableImporter;
 import dev.chojo.ember.feature.station.transfer.AccountTableImporter;
+import dev.chojo.ember.feature.station.transfer.ActiveImports;
 import dev.chojo.ember.feature.station.transfer.DisabledModuleTableImporter;
 import dev.chojo.ember.feature.station.transfer.StationTableImporter;
+import dev.chojo.ember.feature.station.transfer.TransferPace;
 import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import dev.chojo.ember.util.TestRemoteUrlValidator;
@@ -49,11 +59,15 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -96,7 +110,11 @@ class StationTransferTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         exportService = new StationExportService(
-                stationRepo, TestStationKeys.transfer(), TestStationKeys.aiKeyTransfer(), new Api());
+                stationRepo,
+                TestStationKeys.transfer(),
+                TestStationKeys.partnersLeftBehind(),
+                TestStationKeys.aiKeyTransfer(),
+                new Api());
         var stationImporter = new StationTableImporter(stationRepo);
         importService = new StationImportService(
                 stationRepo,
@@ -104,19 +122,25 @@ class StationTransferTest extends RepositoryTestBase {
                 new Api(),
                 null,
                 null,
-                new FederationPartnerTransferFixupService(new FederationRepository(), null),
+                null,
+                TestStationKeys.partnerFixup(new FederationRepository(), null),
                 TestStationKeys.transfer(),
+                TestStationKeys.partnersLeftBehind(),
+                new LendingUidClashes(new LendingRepository()),
                 TestStationKeys.aiKeyTransfer(),
                 TestRemoteUrlValidator.permissive(),
                 TestRemoteUrlValidator.permissiveOutbound(),
+                TransferPace.unthrottled(),
                 stationImporter,
                 Set.of(
                         stationImporter,
-                        new AccountTableImporter(accountRepo),
+                        new AccountTableImporter(accountRepo, stationMemberRepo),
                         new AccountCredentialTableImporter(accountRepo, passkeyModeService),
                         new DisabledModuleTableImporter(stationRepo)),
                 accountRepo,
                 org.mockito.Mockito.mock(dev.chojo.ember.feature.account.service.AuthService.class),
+                TestAccountLinks.importedLinks(accountRepo, stationRepo, stationMemberRepo),
+                new ActiveImports(),
                 new TaskScheduler());
 
         var station = stationRepo.create("Jugendfeuerwehr Musterstadt");
@@ -493,12 +517,13 @@ class StationTransferTest extends RepositoryTestBase {
     }
 
     /**
-     * A minimal bundle whose account carries the same email but a different name and hash; the import
-     * must not overwrite the existing account.
+     * A minimal bundle whose account carries the same email but a different name and hash. The import
+     * changes nothing on the existing account and does not attach it: the member arrives without an
+     * account, and the owner is asked to link it.
      */
     @Test
     @Order(30)
-    void importLinksExistingAccountsByEmail() {
+    void anAccountFoundByEmailIsAskedForAndLeftAsItWas() {
         String email = "linked-import@example.com";
         var existingAccount = accountRepo.create(email, "Existing", "User", true);
         accountRepo.createCredential(existingAccount.id(), "$bcrypt$target-original");
@@ -517,13 +542,16 @@ class StationTransferTest extends RepositoryTestBase {
         bundle.put(
                 "station_member",
                 List.of(Map.of(
-                        "id", 9999,
-                        "display_name", "Linked Member",
-                        "former", false,
-                        "user_type", "MEMBER",
-                        "account_email", email,
-                        "account_first_name", "Existing",
-                        "account_last_name", "User")));
+                        "id",
+                        9999,
+                        "display_name",
+                        "Linked Member",
+                        "former",
+                        false,
+                        "user_type",
+                        "MEMBER",
+                        "account_email",
+                        email)));
 
         var result = importService.importStation(bundle);
 
@@ -532,9 +560,22 @@ class StationTransferTest extends RepositoryTestBase {
         assertEquals("User", account.lastName(), "account last name must not be overwritten");
         var cred = accountRepo.findCredential(existingAccount.id()).orElseThrow();
         assertEquals("$bcrypt$target-original", cred.passwordHash(), "existing credential must be preserved");
+        assertFalse(
+                accountRepo.isUnconfirmed(existingAccount.id()), "an account found here was not made by the import");
+        assertEquals(
+                List.of(),
+                stationMemberRepo.findAllByAccountId(existingAccount.id()),
+                "the account is attached nowhere");
 
-        var linkedMember = stationMemberRepo.findByStationAndAccount(result.stationId(), existingAccount.id());
-        assertTrue(linkedMember.isPresent(), "member should be linked to existing account");
+        var arrived = stationMemberRepo.findByStation(result.stationId());
+        assertEquals(1, arrived.size());
+        assertNull(arrived.getFirst().accountId(), "the member waits without the account");
+        var request = new AccountLinkRepository()
+                .findUnansweredForMember(arrived.getFirst().id())
+                .orElseThrow();
+        assertEquals(existingAccount.id(), request.accountId());
+        assertEquals(LinkOrigin.IMPORT, request.origin());
+        assertNull(request.createdBy());
 
         stationRepo.delete(result.stationId());
         accountRepo.delete(existingAccount.id());
@@ -579,6 +620,154 @@ class StationTransferTest extends RepositoryTestBase {
         accountRepo.findByEmail("merge-source@example.com").ifPresent(a -> accountRepo.delete(a.id()));
     }
 
+    /**
+     * A bundle comes from whoever runs the source. A member that names an account here by its name only
+     * arrives without one, and a password it carries never reaches an account that was here before, even
+     * one without a password of its own.
+     */
+    @Test
+    @Order(36)
+    void aBundleNeverAttachesOrOpensAStrangersAccount() {
+        var stranger = accountRepo.create("stranger-import@example.com", "Stella", "Fremd", true);
+
+        Map<String, Object> bundle = new LinkedHashMap<>();
+        bundle.put("station", Map.of("name", "Name-Lookup Station"));
+        bundle.put(
+                "account",
+                List.of(Map.of("email", "stranger-import@example.com", "first_name", "Stella", "last_name", "Fremd")));
+        bundle.put(
+                "account_credential",
+                List.of(Map.of("account_email", "stranger-import@example.com", "password_hash", "$bcrypt$known")));
+        bundle.put(
+                "station_member",
+                List.of(Map.of(
+                        "id", 7777,
+                        "display_name", "By Name",
+                        "former", false,
+                        "user_type", "MEMBER",
+                        "account_first_name", "Stella",
+                        "account_last_name", "Fremd")));
+
+        var result = importService.importStation(bundle);
+
+        assertTrue(
+                accountRepo.findCredential(stranger.id()).isEmpty(), "no password arrives for an account found here");
+        var arrived = stationMemberRepo.findByStation(result.stationId());
+        assertEquals(1, arrived.size());
+        assertNull(
+                arrived.getFirst().accountId(), "a name identifies nobody, so the member arrives without an account");
+
+        stationRepo.delete(result.stationId());
+        accountRepo.delete(stranger.id());
+    }
+
+    /** A password arrives for an account the import made, as a member moving with the station needs it. */
+    @Test
+    @Order(37)
+    void aPasswordArrivesForAnAccountTheImportMade() {
+        Map<String, Object> bundle = new LinkedHashMap<>();
+        bundle.put("station", Map.of("name", "Password Station"));
+        bundle.put(
+                "account",
+                List.of(Map.of("email", "moving-password@example.com", "first_name", "Moritz", "last_name", "Umzug")));
+        bundle.put(
+                "account_credential",
+                List.of(Map.of("account_email", "moving-password@example.com", "password_hash", "$bcrypt$moved")));
+
+        var result = importService.importStation(bundle);
+
+        var moved = accountRepo.findByEmail("moving-password@example.com").orElseThrow();
+        assertEquals(
+                "$bcrypt$moved",
+                accountRepo.findCredential(moved.id()).orElseThrow().passwordHash());
+
+        stationRepo.delete(result.stationId());
+        accountRepo.delete(moved.id());
+    }
+
+    /**
+     * Lending requests and their messages name stations by uid, and the stations named see them. Only a
+     * request the imported station is a party to, with a partner of it or a station elsewhere, arrives,
+     * and only a message one of its two stations sent.
+     */
+    @Test
+    @Order(38)
+    void lendingRowsArriveOnlyWhereTheImportedStationIsAParty() {
+        var partner = stationRepo.create("Lending Partner Here");
+        var stranger = stationRepo.create("Lending Stranger Here");
+        var other = stationRepo.create("Lending Other Here");
+        var sourceUid = UUID.randomUUID();
+        var elsewhere = UUID.randomUUID();
+        var federation = new FederationRepository();
+        var partnership = federation.createPartner(partner.id(), sourceUid, null, null, null);
+        federation.activatePartner(partnership.id(), "key");
+
+        Map<String, Object> bundle = new LinkedHashMap<>();
+        bundle.put("station", Map.of("name", "Lending Import", "uid", sourceUid.toString()));
+        bundle.put(
+                "federation_lending_request",
+                List.of(
+                        lendingRequest(1, sourceUid, partner.uid(), "mit Partner"),
+                        lendingRequest(2, elsewhere, sourceUid, "von anderswo"),
+                        lendingRequest(3, sourceUid, stranger.uid(), "mit Fremden"),
+                        lendingRequest(4, other.uid(), stranger.uid(), "zwischen Fremden")));
+        bundle.put(
+                "federation_lending_message",
+                List.of(
+                        lendingMessage(10, 1, sourceUid, "von uns"),
+                        lendingMessage(11, 1, partner.uid(), "vom Partner"),
+                        lendingMessage(12, 1, stranger.uid(), "untergeschoben"),
+                        lendingMessage(13, 4, other.uid(), "fremdes Gespraech")));
+
+        var result = importService.importStation(bundle);
+
+        var lending = new LendingRepository();
+        assertTrue(lending.findRequestsByStation(stranger.uid()).isEmpty(), "nothing reaches the stranger");
+        assertTrue(lending.findRequestsByStation(other.uid()).isEmpty());
+        var arrived = lending.findRequestsByStation(sourceUid);
+        assertEquals(
+                Set.of("mit Partner", "von anderswo"),
+                arrived.stream().map(LendingRequest::occasion).collect(Collectors.toSet()));
+        var withPartner = arrived.stream()
+                .filter(request -> "mit Partner".equals(request.occasion()))
+                .findFirst()
+                .orElseThrow();
+        assertEquals(
+                Set.of("von uns", "vom Partner"),
+                lending.findMessagesByRequest(withPartner.id()).stream()
+                        .map(LendingMessage::message)
+                        .collect(Collectors.toSet()));
+
+        stationRepo.delete(result.stationId());
+        arrived.forEach(request -> lending.deleteRequest(request.uid()));
+        for (var station : List.of(partner, stranger, other)) stationRepo.delete(station.id());
+    }
+
+    private static Map<String, Object> lendingRequest(int id, UUID requesting, UUID owning, String occasion) {
+        Map<String, Object> row = new LinkedHashMap<>();
+        row.put("id", id);
+        row.put("uid", UUID.randomUUID().toString());
+        row.put("status", "REQUESTED");
+        row.put("requested_date_from", "2026-11-01");
+        row.put("created_at", Instant.now().toEpochMilli());
+        row.put("updated_at", Instant.now().toEpochMilli());
+        row.put("requesting_station_uid", requesting.toString());
+        row.put("owning_station_uid", owning.toString());
+        row.put("occasion", occasion);
+        return row;
+    }
+
+    private static Map<String, Object> lendingMessage(int id, int requestId, UUID sender, String text) {
+        Map<String, Object> row = new LinkedHashMap<>();
+        row.put("id", id);
+        row.put("request_id", requestId);
+        row.put("message", text);
+        row.put("is_system", false);
+        row.put("created_at", Instant.now().toEpochMilli());
+        row.put("sender_station_uid", sender.toString());
+        return row;
+    }
+
     @Test
     @Order(40)
     void importEmptyStationWorks() {
@@ -592,5 +781,65 @@ class StationTransferTest extends RepositoryTestBase {
         assertTrue(stationMemberRepo.findByStation(result.stationId()).isEmpty());
 
         stationRepo.delete(result.stationId());
+    }
+
+    /**
+     * A station the import creates takes the uid its source gave it, nobody here carrying it, so its
+     * partners find it under the identity they know.
+     */
+    @Test
+    @Order(41)
+    void aNewStationTakesTheUidOfItsSource() {
+        UUID sourceUid = UUID.randomUUID();
+
+        var result = importService.importStation(stationBundle("Arriving With Its Uid", sourceUid));
+
+        assertEquals(sourceUid, stationRepo.requireUid(result.stationId()));
+        stationRepo.delete(result.stationId());
+    }
+
+    /**
+     * A station merged into keeps its own uid, under which its files are kept and its partners know
+     * it, even where nobody here carries the uid the bundle names.
+     */
+    @Test
+    @Order(42)
+    void aStationImportedIntoKeepsItsOwnUid() {
+        var target = stationRepo.create("Keeps Its Uid");
+        UUID claimed = UUID.randomUUID();
+
+        importService.importStationInto(target.id(), stationBundle("Claims Another Uid", claimed));
+
+        assertEquals(
+                target.uid(), stationRepo.findById(target.id()).orElseThrow().uid());
+        assertTrue(stationRepo.findByUid(claimed).isEmpty(), "no station here took the uid the bundle named");
+        stationRepo.delete(target.id());
+    }
+
+    /**
+     * A station coming back to the installation it once moved away from finds the copy it left here
+     * still holding its uid. The import is refused rather than giving it a fresh uid none of its
+     * partners knows, and no station is made.
+     */
+    @Test
+    @Order(43)
+    void aStationComingBackWhileItsCopyIsHereIsRefused() {
+        var leftBehind = stationRepo.create("Moved Away Once");
+        stationRepo.markMovedAway(leftBehind.id(), "https://elsewhere.example");
+
+        var refusal = assertThrows(
+                RefusalResponse.class,
+                () -> importService.importStation(stationBundle("Coming Back", leftBehind.uid())));
+
+        assertEquals(StationRefusal.STATION_IMPORT_MOVED_AWAY_COPY_HERE, refusal.refusal());
+        assertTrue(stationRepo.findAll().stream().noneMatch(station -> "Coming Back".equals(station.name())));
+        stationRepo.delete(leftBehind.id());
+    }
+
+    private static Map<String, Object> stationBundle(String name, UUID uid) {
+        var station = new HashMap<String, Object>();
+        station.put("name", name);
+        station.put("uid", uid.toString());
+        return Map.of("station", station);
     }
 }

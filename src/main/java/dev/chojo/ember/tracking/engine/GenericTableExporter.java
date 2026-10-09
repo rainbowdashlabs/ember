@@ -36,6 +36,7 @@ import static de.chojo.sadu.queries.api.query.Query.query;
  * </ul>
  */
 public final class GenericTableExporter {
+    private static final Set<String> UNSORTABLE_TYPES = Set.of("json", "xml", "tsvector");
 
     private final DataTracking tracking;
     private final StationScopeResolver scopeResolver;
@@ -53,8 +54,22 @@ public final class GenericTableExporter {
         lookups.appendSelect(sb);
     }
 
-    private static void appendOrderAndPagination(StringBuilder sb, List<String> columns) {
-        sb.append(" ORDER BY t.").append(columns.get(0)).append(" OFFSET :offset LIMIT :limit");
+    /**
+     * Orders a page by something unique, so consecutive pages neither skip nor repeat a row: the
+     * table's {@code id} where it has one, whether it travels or not, and otherwise every column of the
+     * table that can be sorted, which includes the columns of its key.
+     */
+    private static void appendOrderAndPagination(StringBuilder sb, TableEntry table) {
+        sb.append(" ORDER BY ").append(String.join(", ", orderColumns(table))).append(" OFFSET :offset LIMIT :limit");
+    }
+
+    static List<String> orderColumns(TableEntry table) {
+        boolean hasId = table.columns().stream().anyMatch(column -> "id".equals(column.name()));
+        if (hasId) return List.of("t.id");
+        return table.columns().stream()
+                .filter(column -> !UNSORTABLE_TYPES.contains(column.type()))
+                .map(column -> "t." + column.name())
+                .toList();
     }
 
     /**
@@ -117,43 +132,49 @@ public final class GenericTableExporter {
         return t;
     }
 
+    /**
+     * The page query for a table scoped through its foreign keys. A single path is joined in; several
+     * paths, one per column that may be empty, are each joined in on the side and a row is the station's
+     * when any of them reaches it.
+     */
     private String buildDirectScopeSql(String tableName, List<String> columns, LookupSql lookups) {
-        var scope = scopeResolver
-                .resolve(tableName)
-                .orElseThrow(() ->
-                        new IllegalStateException("No station scope path could be derived for table " + tableName));
+        var scopes = scopeResolver.resolveAll(tableName);
+        if (scopes.isEmpty()) {
+            throw new IllegalStateException("No station scope path could be derived for table " + tableName);
+        }
+        String joinKind = scopes.size() == 1 ? " JOIN " : " LEFT JOIN ";
 
         var sb = new StringBuilder("SELECT ");
         appendSelect(sb, columns, lookups);
         sb.append(" FROM ").append(tableName).append(" t");
 
-        Map<String, String> tableAlias = new LinkedHashMap<>();
-        tableAlias.put(tableName, "t");
+        List<String> conditions = new ArrayList<>();
         int aliasIdx = 0;
-        for (var join : scope.joins()) {
-            String fromAlias = tableAlias.get(join.from());
-            String newAlias = "s" + aliasIdx++;
-            tableAlias.put(join.fk().refTable(), newAlias);
-            sb.append(" JOIN ")
-                    .append(join.fk().refTable())
-                    .append(' ')
-                    .append(newAlias)
-                    .append(" ON ")
-                    .append(fromAlias)
-                    .append('.')
-                    .append(join.fk().column())
-                    .append(" = ")
-                    .append(newAlias)
-                    .append('.')
-                    .append(join.fk().refColumn());
+        for (var scope : scopes) {
+            Map<String, String> tableAlias = new LinkedHashMap<>();
+            tableAlias.put(tableName, "t");
+            for (var join : scope.joins()) {
+                String fromAlias = tableAlias.get(join.from());
+                String newAlias = "s" + aliasIdx++;
+                tableAlias.put(join.fk().refTable(), newAlias);
+                sb.append(joinKind)
+                        .append(join.fk().refTable())
+                        .append(' ')
+                        .append(newAlias)
+                        .append(" ON ")
+                        .append(fromAlias)
+                        .append('.')
+                        .append(join.fk().column())
+                        .append(" = ")
+                        .append(newAlias)
+                        .append('.')
+                        .append(join.fk().refColumn());
+            }
+            conditions.add(tableAlias.get(scope.terminalTable()) + "." + scope.scopeColumn() + " = :stationId");
         }
         lookups.appendJoins(sb);
-        sb.append(" WHERE ")
-                .append(tableAlias.get(scope.terminalTable()))
-                .append('.')
-                .append(scope.scopeColumn())
-                .append(" = :stationId");
-        appendOrderAndPagination(sb, columns);
+        sb.append(" WHERE (").append(String.join(" OR ", conditions)).append(')');
+        appendOrderAndPagination(sb, tableEntry(tableName));
         return sb.toString();
     }
 
@@ -164,7 +185,7 @@ public final class GenericTableExporter {
         sb.append(" FROM ").append(tableName).append(" t");
         lookups.appendJoins(sb);
         sb.append(" WHERE ").append(buildCustomScopeFilter(customScope, "t", 0));
-        appendOrderAndPagination(sb, columns);
+        appendOrderAndPagination(sb, tableEntry(tableName));
         return sb.toString();
     }
 
@@ -173,14 +194,23 @@ public final class GenericTableExporter {
      * the {@code customScope}'s viaTable. Recursive: when {@code viaTable} itself has a custom
      * scope (e.g. {@code federation_lending_message} → {@code federation_lending_request} →
      * {@code station}), the inner query nests through the chain. Otherwise the inner query
-     * joins through the viaTable's FK-resolved scope path.
+     * joins through the viaTable's FK-resolved scope path. A scope with a second column matches a
+     * row by either of them.
      *
      * @param depth nesting depth, used to generate non-colliding aliases for the recursive case
      */
     private String buildCustomScopeFilter(CustomScope customScope, String parentAlias, int depth) {
+        String values = buildCustomScopeValues(customScope, depth);
+        String filter = parentAlias + '.' + customScope.refColumn() + " IN " + values;
+        String orRefColumn = customScope.orRefColumn();
+        if (orRefColumn == null) return filter;
+        return "(" + filter + " OR " + parentAlias + '.' + orRefColumn + " IN " + values + ")";
+    }
+
+    /** The parenthesised {@code SELECT} of the values a custom scope compares its column against. */
+    private String buildCustomScopeValues(CustomScope customScope, int depth) {
         String vt = "vt" + depth;
-        var sb = new StringBuilder();
-        sb.append(parentAlias).append('.').append(customScope.refColumn()).append(" IN (SELECT ");
+        var sb = new StringBuilder("(SELECT ");
         if (customScope.distinct()) sb.append("DISTINCT ");
         sb.append(vt).append('.').append(customScope.viaColumn());
         sb.append(" FROM ").append(customScope.viaTable()).append(' ').append(vt);
@@ -239,6 +269,7 @@ public final class GenericTableExporter {
      * <p>Timestamps travel as epoch milliseconds, which the importer already reads and which avoids the
      * parsing edge cases of a string format. They are read through the value converter rather than the
      * driver's own date mapping, which is not the same across every driver version shipped against.
+     * Arrays travel as the list of their elements, see {@link ArrayValues}.
      */
     private List<Map<String, Object>> runQuery(String sql, int stationId, int offset, int limit) {
         var queryObj = query(sql)
@@ -260,6 +291,8 @@ public final class GenericTableExporter {
                                 || "timestamp without time zone".equals(typeName)) {
                             Instant instant = row.get(i, StandardValueConverter.INSTANT_TIMESTAMP);
                             out.put(label, instant == null ? null : instant.toEpochMilli());
+                        } else if (ArrayValues.isArray(typeName)) {
+                            out.put(label, ArrayValues.read(row.getArray(i)));
                         } else {
                             out.put(label, row.getObject(i));
                         }

@@ -7,13 +7,20 @@ package dev.chojo.ember.feature.station.service;
 
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.accountlink.service.TestAccountLinks;
+import dev.chojo.ember.feature.federation.entity.LendingMessage;
+import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.federation.repository.FederationRepository;
-import dev.chojo.ember.feature.federation.service.FederationPartnerTransferFixupService;
+import dev.chojo.ember.feature.federation.repository.LendingRepository;
+import dev.chojo.ember.feature.federation.service.LendingUidClashes;
+import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.transfer.AccountCredentialTableImporter;
 import dev.chojo.ember.feature.station.transfer.AccountTableImporter;
+import dev.chojo.ember.feature.station.transfer.ActiveImports;
 import dev.chojo.ember.feature.station.transfer.DisabledModuleTableImporter;
 import dev.chojo.ember.feature.station.transfer.StationTableImporter;
+import dev.chojo.ember.feature.station.transfer.TransferPace;
 import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import dev.chojo.ember.util.TestRemoteUrlValidator;
@@ -22,10 +29,12 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
+import java.time.LocalDate;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -49,7 +58,11 @@ class GenericTransferRoundtripTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         exportService = new StationExportService(
-                stationRepo, TestStationKeys.transfer(), TestStationKeys.aiKeyTransfer(), new Api());
+                stationRepo,
+                TestStationKeys.transfer(),
+                TestStationKeys.partnersLeftBehind(),
+                TestStationKeys.aiKeyTransfer(),
+                new Api());
         var stationImporter = new StationTableImporter(stationRepo);
         importService = new StationImportService(
                 stationRepo,
@@ -57,19 +70,25 @@ class GenericTransferRoundtripTest extends RepositoryTestBase {
                 new Api(),
                 null,
                 null,
-                new FederationPartnerTransferFixupService(new FederationRepository(), null),
+                null,
+                TestStationKeys.partnerFixup(new FederationRepository(), null),
                 TestStationKeys.transfer(),
+                TestStationKeys.partnersLeftBehind(),
+                new LendingUidClashes(new LendingRepository()),
                 TestStationKeys.aiKeyTransfer(),
                 TestRemoteUrlValidator.permissive(),
                 TestRemoteUrlValidator.permissiveOutbound(),
+                TransferPace.unthrottled(),
                 stationImporter,
                 Set.of(
                         stationImporter,
-                        new AccountTableImporter(accountRepo),
+                        new AccountTableImporter(accountRepo, stationMemberRepo),
                         new AccountCredentialTableImporter(accountRepo, passkeyModeService),
                         new DisabledModuleTableImporter(stationRepo)),
                 accountRepo,
                 org.mockito.Mockito.mock(dev.chojo.ember.feature.account.service.AuthService.class),
+                TestAccountLinks.importedLinks(accountRepo, stationRepo, stationMemberRepo),
+                new ActiveImports(),
                 new TaskScheduler());
     }
 
@@ -219,6 +238,80 @@ class GenericTransferRoundtripTest extends RepositoryTestBase {
                 2,
                 targetMembers.size(),
                 "both blank-email applicants must arrive - null emails do not collide on the partial unique index");
+    }
+
+    /**
+     * A station that lent gear to a partner on another installation moves to that installation: its
+     * copy of the request arrives where the partner keeps its own under the same uid, and the two
+     * become the one request both stations of an installation share.
+     */
+    @Test
+    void aRequestArrivingWhereItsPartnerKeepsItIsMergedIntoThatCopy() {
+        var lending = new LendingRepository();
+        var lender = stationRepo.create("Merge Lender");
+        var partner = stationRepo.create("Merge Partner");
+        var partnerMember = stationMemberRepo.create(
+                partner.id(),
+                accountRepo
+                        .create("merge-partner@example.com", "Pia", "Partner", true)
+                        .id());
+        int radios = inventoryRepo
+                .create(lender.id(), "Funk", InventoryType.INTERNAL, false)
+                .id();
+        var radio = inventoryRepo.createItem(radios, "HRT-M", "Handfunkgerät M", null, null);
+        var request = lending.createRequest(
+                UUID.randomUUID(),
+                partner.uid(),
+                lender.uid(),
+                LocalDate.now(),
+                LocalDate.now().plusDays(2),
+                partnerMember.id(),
+                null,
+                null,
+                "Übung");
+        int line = lending.addRequestItem(request.id(), radios, radio.id(), null, 1, null)
+                .id();
+        lending.assignItem(line, radio.id());
+        lending.updateRequestStatus(request.id(), LendingStatus.LENT);
+        lending.createMessage(request.id(), lender.uid(), null, "Liegt bereit", false);
+        itemCustodyService.lendToPartner(radio.id(), partner.id());
+        borrowedGearService.handOver(radio, lender.id(), lender.uid(), partner.id(), line);
+        var federation = new FederationRepository();
+        federation.activatePartner(
+                federation
+                        .createPartner(partner.id(), lender.uid(), null, null, "https://lender.example")
+                        .id(),
+                "key");
+
+        Map<String, Object> bundle = collectBundle(lender.id());
+        stationRepo.markMovedAway(lender.id(), "https://partner.example");
+        lending.leaveBehind(lender.uid());
+        inventoryRepo.forgetMovedStation(lender.id());
+        stationRepo.delete(lender.id());
+
+        var result = importService.importStation(bundle);
+
+        var merged = lending.findRequestByUid(request.uid()).orElseThrow();
+        assertEquals(request.id(), merged.id(), "the partner's copy is the one that stays");
+        assertEquals(partnerMember.id(), merged.createdBy());
+        assertEquals(LendingStatus.LENT, merged.status());
+        assertEquals(1, lending.findRequestsByStation(lender.uid()).size(), "no second request is left");
+        var arrivedRadio = inventoryRepo.findItemsByStation(result.stationId()).stream()
+                .filter(item -> "HRT-M".equals(item.internalId()))
+                .findFirst()
+                .orElseThrow();
+        var mergedLine = lending.findItemsByRequest(merged.id()).getFirst();
+        assertEquals(line, mergedLine.id());
+        assertEquals(arrivedRadio.id(), mergedLine.itemId(), "the line names the gear that arrived");
+        assertEquals(List.of(arrivedRadio.id()), lending.findAssignedItems(mergedLine.id()));
+        assertEquals(partner.id(), arrivedRadio.custodyPartnerStationId());
+        assertEquals(
+                List.of("Liegt bereit"),
+                lending.findMessagesByRequest(merged.id()).stream()
+                        .map(LendingMessage::message)
+                        .toList());
+        var copy = inventoryRepo.findBorrowedItems(partner.id()).getFirst();
+        assertEquals(result.stationId(), copy.ownerStationId(), "the partner's copy names its owner here again");
     }
 
     /** Collects every wire entry produced by the exporter into a single Map. */

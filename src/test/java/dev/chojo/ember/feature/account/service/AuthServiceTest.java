@@ -33,6 +33,7 @@ import org.mockito.ArgumentCaptor;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -276,6 +277,111 @@ class AuthServiceTest extends RepositoryTestBase {
                 Instant.now().plus(24, ChronoUnit.HOURS));
         assertEquals(AuthService.SetPasswordOutcome.OK, service.setPassword("set-pass-token-2", "NewPassword456!"));
         accountRepo.delete(account2.id());
+    }
+
+    /**
+     * An account a station import created waits for its owner. The setup and reset links went to its
+     * address, so setting a password through one confirms it; where the installation sends mail, the
+     * forced change that follows signing in with an imported password proves nothing about the
+     * address and leaves it waiting.
+     */
+    @Test
+    @Order(17)
+    void aLinkToTheAddressConfirmsAnImportedAccountAndAForcedChangeDoesNot() {
+        when(emailService.isGlobalMailConfigured()).thenReturn(true);
+        var imported = accountRepo.create("imported-confirm@test.com", "IC", "User");
+        try {
+            accountRepo.markUnconfirmed(imported.id());
+            accountRepo.createToken(
+                    imported.id(),
+                    "forced-change-token",
+                    TokenType.FORCE_PASSWORD_CHANGE,
+                    Instant.now().plusSeconds(600));
+            assertEquals(
+                    AuthService.SetPasswordOutcome.OK, service.setPassword("forced-change-token", "ForcedChange123!"));
+            assertTrue(accountRepo.isUnconfirmed(imported.id()));
+
+            accountRepo.createToken(
+                    imported.id(),
+                    "confirming-reset-token",
+                    TokenType.RESET_PASSWORD,
+                    Instant.now().plusSeconds(600));
+            assertEquals(
+                    AuthService.SetPasswordOutcome.OK,
+                    service.setPassword("confirming-reset-token", "ConfirmedPass123!"));
+            assertFalse(accountRepo.isUnconfirmed(imported.id()));
+        } finally {
+            when(emailService.isGlobalMailConfigured()).thenReturn(false);
+            accountRepo.delete(imported.id());
+        }
+    }
+
+    /**
+     * Without a mail provider no link can reach the owner of an imported account, so signing in with
+     * the imported password and replacing it in the forced change confirms the account.
+     */
+    @Test
+    @Order(17)
+    void withoutMailTheForcedChangeAfterTheFirstSignInConfirmsAnImportedAccount() {
+        when(emailService.isGlobalMailConfigured()).thenReturn(false);
+        var imported = accountRepo.create("imported-no-mail@test.com", "NM", "User");
+        try {
+            accountRepo.markUnconfirmed(imported.id());
+            accountRepo.createToken(
+                    imported.id(),
+                    "forced-change-no-mail-token",
+                    TokenType.FORCE_PASSWORD_CHANGE,
+                    Instant.now().plusSeconds(600));
+
+            assertEquals(
+                    AuthService.SetPasswordOutcome.OK,
+                    service.setPassword("forced-change-no-mail-token", "NoMailChange123!"));
+
+            assertFalse(accountRepo.isUnconfirmed(imported.id()));
+        } finally {
+            accountRepo.delete(imported.id());
+        }
+    }
+
+    /**
+     * An imported account with no address and no guardian who has one can be reached by no link either,
+     * even where the installation sends mail, so the forced change confirms it too. Once a guardian with
+     * an address looks after it, the link is the way again.
+     */
+    @Test
+    @Order(17)
+    void theForcedChangeConfirmsAnImportedAccountNoMailCanReach() {
+        when(emailService.isGlobalMailConfigured()).thenReturn(true);
+        var station = stationRepo.create("Unreachable import " + System.nanoTime());
+        var unreachable = accountRepo.create(null, "Ohne", "Adresse");
+        var reachable = accountRepo.create(null, "Mit", "Vormund");
+        var guardianAccount = accountRepo.create("imported-guardian@test.com", "Vor", "Mund");
+        try {
+            stationMemberRepo.create(station.id(), unreachable.id());
+            var ward = stationMemberRepo.create(station.id(), reachable.id());
+            var guardian = stationMemberRepo.create(station.id(), guardianAccount.id());
+            stationMemberRepo.addManager(guardian.id(), ward.id());
+            for (var account : List.of(unreachable, reachable)) {
+                accountRepo.markUnconfirmed(account.id());
+                accountRepo.createToken(
+                        account.id(),
+                        "forced-unreachable-" + account.id(),
+                        TokenType.FORCE_PASSWORD_CHANGE,
+                        Instant.now().plusSeconds(600));
+                assertEquals(
+                        AuthService.SetPasswordOutcome.OK,
+                        service.setPassword("forced-unreachable-" + account.id(), "Unreachable123!"));
+            }
+
+            assertFalse(accountRepo.isUnconfirmed(unreachable.id()));
+            assertTrue(accountRepo.isUnconfirmed(reachable.id()), "the guardian's mail can carry the link");
+        } finally {
+            when(emailService.isGlobalMailConfigured()).thenReturn(false);
+            stationRepo.delete(station.id());
+            accountRepo.delete(unreachable.id());
+            accountRepo.delete(reachable.id());
+            accountRepo.delete(guardianAccount.id());
+        }
     }
 
     @Test
@@ -1034,6 +1140,18 @@ class AuthServiceTest extends RepositoryTestBase {
                 twoFactorRepoLocal,
                 trustedDeviceService,
                 passkeyModeService);
+    }
+
+    /**
+     * The address as a token has to survive a cookie: a plain one stays as it is, one with umlauts is
+     * percent-encoded, since a cookie carries printable ASCII only and the umlauts came back as other bytes.
+     */
+    @Test
+    @Order(88)
+    void stableTokenIsSafeInACookie() {
+        assertEquals("anna@schmidt.local", AuthService.stableTokenOf("anna@schmidt.local"));
+        assertEquals("j%C3%BCrgen@k%C3%B6nig.local", AuthService.stableTokenOf("jürgen@könig.local"));
+        assertEquals("a%3Bb%25c@x.local", AuthService.stableTokenOf("a;b%c@x.local"));
     }
 
     /**

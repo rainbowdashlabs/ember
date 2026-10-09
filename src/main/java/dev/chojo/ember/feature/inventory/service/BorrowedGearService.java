@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.inventory.service;
 
 import dev.chojo.ember.feature.inventory.entity.BorrowedItem;
+import dev.chojo.ember.feature.inventory.entity.BorrowedPiece;
 import dev.chojo.ember.feature.inventory.entity.Glyph;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
@@ -13,11 +14,13 @@ import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.repository.InventoryRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Keeps the rows a station has for gear belonging to somebody else.
@@ -86,35 +89,74 @@ public class BorrowedGearService {
     }
 
     /**
-     * Writes down a partner's piece at the station that has just taken it.
-     *
-     * <p>Nothing is asked of the owner's row here beyond reading it. The copy carries the name, the
-     * identifier and the fields as they stood, and the owner stays free to correct any of them
-     * afterwards without the borrower's screen changing under them.
+     * Writes down one piece of a partner on this installation at the station that has just taken it.
      *
      * @param source             the owner's row, read once
      * @param owningStationId    the partner that owns it
+     * @param owningStationUid   the same partner by its uid
      * @param borrowingStationId the station taking it
      * @param loanRequestItemId  the line of the lending request it came in on
-     * @return the row written at the borrower, or empty when one already exists for that line
+     * @return the row written at the borrower, or empty when the line already has its rows
+     * @see #handOver(List, UUID, Integer, int, int)
      */
     public Optional<InventoryItem> handOver(
-            InventoryItem source, int owningStationId, int borrowingStationId, int loanRequestItemId) {
+            InventoryItem source,
+            int owningStationId,
+            UUID owningStationUid,
+            int borrowingStationId,
+            int loanRequestItemId) {
+        return handOver(
+                        List.of(BorrowedPiece.of(source)),
+                        owningStationUid,
+                        owningStationId,
+                        borrowingStationId,
+                        loanRequestItemId)
+                .stream()
+                .findFirst();
+    }
+
+    /**
+     * Writes down the pieces one line of a loan brought to the station that has just taken them.
+     *
+     * <p>Nothing is asked of the owner's rows here. Each copy carries the name, the identifier and,
+     * from an owner on this installation, the fields as they stood, and the owner stays free to correct
+     * any of them afterwards without the borrower's screen changing under them. An owner on another
+     * installation is named by its uid alone, which is also what keeps the copy when the owner or the
+     * borrower moves.
+     *
+     * <p>A line is written once: when it already has its rows, a second handover of the same line,
+     * which a loan between two stations of this installation reaches from both sides, writes nothing.
+     *
+     * @param pieces             what the line brought, as the owner listed it
+     * @param owningStationUid   the partner that owns them
+     * @param owningStationId    that partner where it runs on this installation, or {@code null}
+     * @param borrowingStationId the station taking them
+     * @param loanRequestItemId  the line of the lending request they came in on
+     * @return the rows written at the borrower, empty when the line already had its rows
+     */
+    public List<InventoryItem> handOver(
+            List<BorrowedPiece> pieces,
+            UUID owningStationUid,
+            @Nullable Integer owningStationId,
+            int borrowingStationId,
+            int loanRequestItemId) {
+        if (pieces.isEmpty()) return List.of();
         if (!inventoryRepository.findBorrowedByLoanItem(loanRequestItemId).isEmpty()) {
             log.info("Handover of loan line {} already has a row at station {}", loanRequestItemId, borrowingStationId);
-            return Optional.empty();
+            return List.of();
         }
         Inventory shelf = shelfAt(borrowingStationId);
-        InventoryItem copy = inventoryRepository.createBorrowedItem(
-                shelf.id(), source.internalId(), source.name(), source.metadata(), owningStationId, loanRequestItemId);
+        var copies = pieces.stream()
+                .map(piece -> inventoryRepository.createBorrowedItem(
+                        shelf.id(), piece, owningStationUid, owningStationId, loanRequestItemId))
+                .toList();
         log.info(
-                "Item {} of station {} was written down as {} at borrowing station {} on loan line {}",
-                source.id(),
-                owningStationId,
-                copy.id(),
+                "{} piece(s) of station {} were written down at borrowing station {} on loan line {}",
+                copies.size(),
+                owningStationUid,
                 borrowingStationId,
                 loanRequestItemId);
-        return Optional.of(copy);
+        return copies;
     }
 
     /**

@@ -113,6 +113,18 @@ public enum StorageCategory {
             MimeLists.IMAGES,
             false,
             Optional.empty()),
+    /**
+     * A person's own signature picture, one transparent PNG per account, drawn into the documents they
+     * sign. A few kilobytes that follow the person to every station, so no station is charged for it.
+     */
+    IMAGE_SIGNATURE(
+            "images/signatures",
+            StorageScope.Kind.ACCOUNT,
+            true,
+            QuotaMode.UNTRACKED,
+            List.of("image/png"),
+            false,
+            Optional.empty()),
     IMAGE_LOST_AND_FOUND(
             "images/lost-and-found",
             StorageScope.Kind.STATION,

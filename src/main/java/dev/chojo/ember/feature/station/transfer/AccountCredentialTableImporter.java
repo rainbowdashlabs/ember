@@ -20,8 +20,10 @@ import static dev.chojo.ember.feature.station.transfer.WireValues.asString;
 
 /**
  * For each transferred credential, locates the matching target account by email and installs the
- * source password hash plus a forced password change, but only when no credential exists yet.
- * Existing target credentials are never overwritten.
+ * source password hash plus a forced password change, but only for an account this run created.
+ * An account that was here before keeps its own ways in, with or without a password: the bundle comes
+ * from whoever runs the source, and a hash it names would otherwise open any account here whose
+ * address it knows.
  *
  * <p>Two things deliberately do not travel. Passkeys cannot: a WebAuthn credential is bound to
  * the rpId it was created for, so rows imported here would promise a way in that no
@@ -64,6 +66,7 @@ public class AccountCredentialTableImporter implements TableImporter {
             var account = accountRepository.findByEmail(email);
             if (account.isEmpty()) continue;
             int accountId = account.get().id();
+            if (!context.createdAccount(accountId)) continue;
             if (accountRepository.findCredential(accountId).isPresent()) continue;
             if (passwordless) {
                 skippedPasswordless++;

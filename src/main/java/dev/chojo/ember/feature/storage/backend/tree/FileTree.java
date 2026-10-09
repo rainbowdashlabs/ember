@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.storage.backend.tree;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.NoSuchFileException;
 import java.util.List;
@@ -35,6 +36,20 @@ public interface FileTree extends AutoCloseable {
      * the source is still in place.
      */
     void replace(String source, String target) throws IOException;
+
+    /**
+     * Copies a file onto another path, creating or truncating it. The default streams the bytes through
+     * this tree; a protocol whose server can copy by itself overrides it.
+     *
+     * @throws NoSuchFileException when the source or the target's parent directory does not exist
+     */
+    default void copy(String source, String target) throws IOException {
+        OpenFile opened = open(source).orElseThrow(() -> new NoSuchFileException(source));
+        try (InputStream in = opened.body();
+                OutputStream out = create(target)) {
+            in.transferTo(out);
+        }
+    }
 
     /** Removes a file; false when there was none. */
     boolean remove(String path) throws IOException;

@@ -35,6 +35,7 @@ import {useSession} from '@/composables/useSession'
 import {formatDateTime} from '@/util/format'
 import {answerTotals, saysNotComing} from '@/util/eventAnswers'
 import ConfirmedRegistrationsTable from './ConfirmedRegistrationsTable.vue'
+import WithdrawnAgreementsNotice from './WithdrawnAgreementsNotice.vue'
 
 interface StatusGroup { status: string; entries: RegistrationResponse[] }
 
@@ -164,6 +165,8 @@ function statusLabel(status: string): string {
       <MutedText size="sm" tag="p">{{ t('eventDetail.attendanceHint') }}</MutedText>
       <MutedText v-if="registrations.length === 0" size="sm" tag="p">{{ t('eventDetail.noSignOffs') }}</MutedText>
     </template>
+
+    <WithdrawnAgreementsNotice :registrations="registrations"/>
 
     <div v-if="summaries.length > 0" class="flex flex-wrap gap-x-4 gap-y-1 text-sm">
       <span v-for="summary in summaries" :key="summary.label" class="text-(--text-muted)">

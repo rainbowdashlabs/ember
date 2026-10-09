@@ -40,6 +40,18 @@ public class TwoFactorAuditService {
     }
 
     /**
+     * Records something the account's owner did that concerns one station.
+     *
+     * @param accountId the account
+     * @param stationId the station it concerns
+     */
+    public void recordAtStation(
+            int accountId, TwoFactorEvent event, int stationId, @Nullable String userAgent, @Nullable String country) {
+        repository.auditAtStation(accountId, event, stationId, userAgent, country);
+        log.info("Account audit: account={}, event={}, station={}", accountId, event, stationId);
+    }
+
+    /**
      * Records something an administrator did to an account.
      *
      * @param accountId the account acted on

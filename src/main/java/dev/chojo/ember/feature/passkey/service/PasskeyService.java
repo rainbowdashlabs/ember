@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.passkey.service;
 
 import dev.chojo.ember.conf.file.elements.WebAuthnSettings;
+import dev.chojo.ember.feature.signing.service.CredentialKeyStamps;
 import dev.chojo.ember.feature.twofactor.entity.ChallengePurpose;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorEvent;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorFactor;
@@ -41,6 +42,7 @@ public class PasskeyService {
     private final TwoFactorRepository repository;
     private final TwoFactorAuditService auditService;
     private final WebAuthnCeremonies ceremonies;
+    private final CredentialKeyStamps keyStamps;
 
     @Inject
     public PasskeyService(
@@ -48,10 +50,12 @@ public class PasskeyService {
             TwoFactorRepository repository,
             TwoFactorAuditService auditService,
             WebAuthnChallengeRepository challengeRepository,
-            WebAuthnSettings settings) {
+            WebAuthnSettings settings,
+            CredentialKeyStamps keyStamps) {
         this.repository = repository;
         this.auditService = auditService;
         this.ceremonies = new WebAuthnCeremonies(relyingParties, repository, challengeRepository, settings);
+        this.keyStamps = keyStamps;
     }
 
     /**
@@ -140,7 +144,8 @@ public class PasskeyService {
 
     /**
      * The shared tail of every creation door: session, device code, mail link and guardian QR
-     * all verify the same way and write the same rows; only the audit event differs.
+     * all verify the same way and write the same rows; only the audit event differs. The new
+     * credential's public key is timestamped in the background afterwards.
      */
     private Optional<TwoFactorFactor> finishCreationCeremony(
             int accountId,
@@ -155,6 +160,7 @@ public class PasskeyService {
         factor.ifPresent(created -> {
             auditService.record(accountId, null, auditEvent, TwoFactorKind.WEBAUTHN, userAgent, country);
             log.info("Passkey enrolled for account {} (factor {})", accountId, created.id());
+            keyStamps.afterRegistration(created.id());
         });
         return factor;
     }

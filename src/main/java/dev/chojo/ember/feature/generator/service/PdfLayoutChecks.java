@@ -31,7 +31,8 @@ import java.util.Objects;
  *
  * <p>Every field lies on a page the PDF has, inside the part of it that is shown. A text or check
  * field has a text, a text field a size it can be read at, and a signature field a signer, so that no
- * member's document asks one person to sign in two fields. Only a text field keeps a font; whether the
+ * member's document asks one person to sign in two fields. A field to fill in at signing has a label and
+ * a signer with a signature field of their own ({@link FillInChecks}). Only a text field keeps a font; whether the
  * station reaches it is checked with the template. A form field is filled only where the PDF has one
  * of that name that can be filled. A binding
  * with an empty text is no binding: the form field keeps what it shows.
@@ -80,6 +81,7 @@ final class PdfLayoutChecks {
                 .map(field -> field(original, field, maxText))
                 .toList();
         requireEachSignerOnce(checked);
+        FillInChecks.requireSigners(roles(checked, PdfFieldKind.SIGNATURE), roles(checked, PdfFieldKind.FILL_IN));
         return new PdfContent(original, new PdfLayout(checked, bindings(original, sentBindings, maxText)));
     }
 
@@ -89,6 +91,7 @@ final class PdfLayoutChecks {
         }
         var rect = requireOnPage(original, field.rect());
         if (field.kind() == PdfFieldKind.SIGNATURE) return signature(field, rect, maxText);
+        if (field.kind() == PdfFieldKind.FILL_IN) return fillIn(field, rect);
         String text = Objects.requireNonNullElse(field.text(), "").strip();
         if (text.isEmpty()) throw DocumentRefusal.DOCUMENT_TEMPLATE_FIELD_INCOMPLETE.raise();
         requireFits(text, maxText);
@@ -108,8 +111,9 @@ final class PdfLayoutChecks {
     }
 
     /**
-     * A signature field as it is kept: its signer, whether it draws its line, and its text, which may be
-     * empty and is kept even while it does not print, so switching the printing on brings it back.
+     * A signature field as it is kept: its signer, whether it draws its line, its text, which may be
+     * empty and is kept even while it does not print, so switching the printing on brings it back, and what
+     * its signer confirms, empty for the default statement.
      */
     private static PdfField signature(PdfField field, FieldRect rect, int maxText) {
         var role = field.role();
@@ -127,7 +131,36 @@ final class PdfLayoutChecks {
                 null,
                 FontStyle.REGULAR,
                 field.withoutLine(),
-                field.printText());
+                field.printText(),
+                SignatureStatementChecks.checked(field.statement()));
+    }
+
+    /** A field to fill in as it is kept: its signer, its label, whether it is required and its length. */
+    private static PdfField fillIn(PdfField field, FieldRect rect) {
+        var checked = FillInChecks.checked(field.role(), field.text(), field.maxLength());
+        return new PdfField(
+                PdfFieldKind.FILL_IN,
+                rect,
+                checked.label(),
+                checkedSize(field),
+                TextAlign.LEFT,
+                false,
+                checked.signer(),
+                null,
+                FontStyle.REGULAR,
+                false,
+                false,
+                null,
+                field.required(),
+                checked.maxLength());
+    }
+
+    private static List<SignatureRole> roles(List<PdfField> fields, PdfFieldKind kind) {
+        return fields.stream()
+                .filter(field -> field.kind() == kind)
+                .map(PdfField::role)
+                .filter(Objects::nonNull)
+                .toList();
     }
 
     private static void requireFits(String text, int maxText) {
@@ -161,8 +194,7 @@ final class PdfLayoutChecks {
     }
 
     private static void requireEachSignerOnce(List<PdfField> fields) {
-        var roles = fields.stream().map(PdfField::role).filter(Objects::nonNull).toList();
-        if (!SignatureRole.distinctForEveryMember(roles)) {
+        if (!SignatureRole.distinctForEveryMember(roles(fields, PdfFieldKind.SIGNATURE))) {
             throw DocumentRefusal.DOCUMENT_TEMPLATE_SIGNER_TWICE.raise();
         }
     }

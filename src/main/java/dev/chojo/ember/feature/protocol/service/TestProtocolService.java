@@ -753,7 +753,7 @@ public class TestProtocolService implements FederationServer {
 
     private int resolvePartnerStationId(FederationPartner partner) {
         return stationRepository
-                .findByUid(partner.partnerStationId())
+                .findHereByUid(partner.partnerStationId())
                 .map(Station::id)
                 .orElse(0);
     }

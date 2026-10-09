@@ -16,11 +16,13 @@ import dev.chojo.ember.feature.content.entity.ContentRow;
 import dev.chojo.ember.feature.content.entity.GuardianCondition;
 import dev.chojo.ember.feature.content.route.BlockCellRequest;
 import dev.chojo.ember.feature.generator.entity.DocumentLanguage;
+import dev.chojo.ember.feature.generator.entity.DocumentTemplate;
 import dev.chojo.ember.feature.generator.entity.LetterContent;
 import dev.chojo.ember.feature.generator.entity.LetterPage;
 import dev.chojo.ember.feature.generator.entity.LetterPart;
 import dev.chojo.ember.feature.generator.entity.Placeholder;
 import dev.chojo.ember.feature.generator.entity.SignatureRole;
+import dev.chojo.ember.feature.generator.entity.TemplateSigning;
 import dev.chojo.ember.feature.generator.repository.DocumentTemplateRepository;
 import dev.chojo.ember.feature.generator.repository.PdfTemplateRepository;
 import dev.chojo.ember.feature.generator.repository.TemplateStationUseRepository;
@@ -46,6 +48,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.divider;
+import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.fillIn;
 import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.image;
 import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.letter;
 import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.lined;
@@ -53,6 +56,7 @@ import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.r
 import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.rowsOf;
 import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.signature;
 import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.spacer;
+import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.stated;
 import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.text;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -414,6 +418,182 @@ class DocumentTemplateServiceTest extends RepositoryTestBase {
     }
 
     /**
+     * A box to fill in at signing stands in the body with its signer, label, required flag and length. One
+     * without a signer or a label, with a label or length out of bounds, outside the body, or for a signer no
+     * signature line names is refused.
+     */
+    @Test
+    void aBoxToFillInBelongsToASignatureLinesSigner() {
+        var line = row(signature(SignatureRole.PARTICIPANT, ""));
+        var kept = service.create(
+                owner,
+                letter("Angaben")
+                        .body(List.of(row(fillIn(SignatureRole.PARTICIPANT, "Allergien", false, 200)), line))
+                        .build(),
+                authorId);
+
+        var box = kept.body().getFirst().cells().getFirst();
+        assertEquals(CellContentType.FILL_IN, box.contentType());
+        assertEquals(new CellConfig.FillInConfig(SignatureRole.PARTICIPANT, "Allergien", false, 200), box.config());
+        refused(
+                DocumentRefusal.DOCUMENT_TEMPLATE_FILL_IN_INCOMPLETE,
+                () -> service.create(
+                        owner,
+                        letter("Ohne")
+                                .body(List.of(row(fillIn(null, "Allergien", false, null)), line))
+                                .build(),
+                        authorId));
+        refused(
+                DocumentRefusal.DOCUMENT_TEMPLATE_FILL_IN_INCOMPLETE,
+                () -> service.create(
+                        owner,
+                        letter("Leer")
+                                .body(List.of(row(fillIn(SignatureRole.PARTICIPANT, " ", false, null)), line))
+                                .build(),
+                        authorId));
+        refused(
+                DocumentRefusal.DOCUMENT_TEMPLATE_FILL_IN_LABEL_TOO_LONG,
+                () -> service.create(
+                        owner,
+                        letter("Lang")
+                                .body(List.of(
+                                        row(fillIn(SignatureRole.PARTICIPANT, "x".repeat(101), false, null)), line))
+                                .build(),
+                        authorId));
+        refused(
+                DocumentRefusal.DOCUMENT_TEMPLATE_FILL_IN_LENGTH_OUT_OF_RANGE,
+                () -> service.create(
+                        owner,
+                        letter("Null")
+                                .body(List.of(row(fillIn(SignatureRole.PARTICIPANT, "x", false, 0)), line))
+                                .build(),
+                        authorId));
+        refused(
+                DocumentRefusal.DOCUMENT_TEMPLATE_SIGNATURE_OUTSIDE_BODY,
+                () -> service.create(
+                        owner,
+                        letter("Kopf")
+                                .header(List.of(row(fillIn(SignatureRole.PARTICIPANT, "x", false, null))))
+                                .body(List.of(line))
+                                .build(),
+                        authorId));
+        refused(
+                DocumentRefusal.DOCUMENT_TEMPLATE_FILL_IN_WITHOUT_SIGNATURE,
+                () -> service.create(
+                        owner,
+                        letter("Niemand")
+                                .body(List.of(row(fillIn(SignatureRole.GUARDIAN_1, "x", false, null)), line))
+                                .build(),
+                        authorId));
+    }
+
+    /**
+     * A field to fill in for the issuer is refused, even beside the issuer's own signature line: a letter
+     * signed automatically for the issuer would leave it empty and open to change.
+     */
+    @Test
+    void aBoxToFillInIsNeverTheIssuers() {
+        refused(
+                DocumentRefusal.DOCUMENT_TEMPLATE_FILL_IN_FOR_ISSUER,
+                () -> service.create(
+                        owner,
+                        letter("Aussteller")
+                                .body(List.of(
+                                        row(fillIn(SignatureRole.ISSUER, "Telefon", false, null)),
+                                        row(signature(SignatureRole.ISSUER, ""))))
+                                .build(),
+                        authorId));
+    }
+
+    /** A signature line keeps what its signer confirms, and a statement longer than one is refused. */
+    @Test
+    void aSignatureLineKeepsWhatItsSignerConfirms() {
+        var stated = service.create(
+                owner,
+                letter("Erklärt")
+                        .body(List.of(row(stated(SignatureRole.PARTICIPANT, "", "Ich nehme teil."))))
+                        .build(),
+                authorId);
+
+        assertEquals(
+                new CellConfig.SignatureConfig(SignatureRole.PARTICIPANT, "Ich nehme teil."),
+                stated.body().getFirst().cells().getFirst().config());
+        refused(
+                DocumentRefusal.DOCUMENT_TEMPLATE_STATEMENT_TOO_LONG,
+                () -> service.create(
+                        owner,
+                        letter("Zu lang erklärt")
+                                .body(List.of(row(stated(
+                                        SignatureRole.PARTICIPANT,
+                                        "",
+                                        "x".repeat(SignatureStatementChecks.MAX_STATEMENT + 1)))))
+                                .build(),
+                        authorId));
+    }
+
+    /**
+     * A new legal template keeps signed documents for four years after the member has gone, any other only
+     * while the member stays, and neither attaches the PDF to a signer's copy. What the editor sends is
+     * kept, a change that leaves it out keeps what the template had, and a period outside 0 to 240 months
+     * is refused.
+     */
+    @Test
+    void signedDocumentsAreKeptAndSentAsTheTemplateSays() {
+        var legal = service.create(owner, letter("Aufbewahrt").legal().build(), authorId);
+        var plain = service.create(owner, letter("Nicht aufbewahrt").build(), authorId);
+
+        assertEquals(new TemplateSigning(DocumentTemplate.LEGAL_SIGNATURE_RETENTION_MONTHS, false), legal.signing());
+        assertEquals(new TemplateSigning(null, false), plain.signing());
+
+        var changed = service.update(
+                owner,
+                legal.id(),
+                letter("Aufbewahrt")
+                        .legal()
+                        .signing(new TemplateSigning(120, true))
+                        .build(),
+                authorId);
+        assertEquals(new TemplateSigning(120, true), changed.signing());
+        assertEquals(
+                new TemplateSigning(120, true),
+                service.update(owner, legal.id(), letter("Aufbewahrt").legal().build(), authorId)
+                        .signing(),
+                "a request without the setting keeps it");
+        assertEquals(
+                new TemplateSigning(null, false),
+                service.update(
+                                owner,
+                                legal.id(),
+                                letter("Aufbewahrt")
+                                        .legal()
+                                        .signing(new TemplateSigning(null, false))
+                                        .build(),
+                                authorId)
+                        .signing());
+        for (int months : new int[] {-1, TemplateSigning.MAX_RETENTION_MONTHS + 1}) {
+            refused(
+                    DocumentRefusal.DOCUMENT_TEMPLATE_RETENTION_OUT_OF_RANGE,
+                    () -> service.update(
+                            owner,
+                            plain.id(),
+                            letter("Nicht aufbewahrt")
+                                    .signing(new TemplateSigning(months, false))
+                                    .build(),
+                            authorId));
+        }
+        assertEquals(
+                new TemplateSigning(TemplateSigning.MAX_RETENTION_MONTHS, false),
+                service.update(
+                                owner,
+                                plain.id(),
+                                letter("Nicht aufbewahrt")
+                                        .signing(new TemplateSigning(TemplateSigning.MAX_RETENTION_MONTHS, false))
+                                        .build(),
+                                authorId)
+                        .signing());
+    }
+
+    /**
      * Two lines for one signer pass when their audiences keep them apart, and are refused when some
      * member would always get both.
      */
@@ -632,7 +812,9 @@ class DocumentTemplateServiceTest extends RepositoryTestBase {
         var body = parts.get(1);
         assertEquals(LetterPart.BODY, body.part());
         assertEquals(3, body.maxColumns());
-        assertEquals(CellContentType.SIGNATURE, body.kinds().getLast());
+        assertEquals(
+                List.of(CellContentType.SIGNATURE, CellContentType.FILL_IN),
+                body.kinds().subList(body.kinds().size() - 2, body.kinds().size()));
     }
 
     @Test

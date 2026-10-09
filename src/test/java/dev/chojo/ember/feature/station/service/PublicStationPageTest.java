@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.form.service.FormService;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.news.service.NewsService;
 import dev.chojo.ember.feature.page.service.PageService;
+import dev.chojo.ember.feature.signing.service.PublishedCertificates;
 import dev.chojo.ember.feature.station.entity.PublicOffer;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
@@ -48,7 +49,13 @@ class PublicStationPageTest {
         news = mock(NewsService.class);
         forms = mock(FormService.class);
         service = new PublicStationInfoService(
-                mock(StationRepository.class), mock(StationLogoService.class), pages, waitingLists, news, forms);
+                mock(StationRepository.class),
+                mock(StationLogoService.class),
+                pages,
+                waitingLists,
+                news,
+                forms,
+                mock(PublishedCertificates.class));
     }
 
     private static Station station(StationKind kind) {

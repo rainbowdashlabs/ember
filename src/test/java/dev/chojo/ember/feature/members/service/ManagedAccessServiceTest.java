@@ -12,6 +12,7 @@ import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.conf.file.elements.Auth;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.service.AccountEmailService;
+import dev.chojo.ember.feature.account.service.AccountReach;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.account.service.AuthService.SetPasswordOutcome;
 import dev.chojo.ember.feature.account.service.LoginNameService;
@@ -68,7 +69,8 @@ class ManagedAccessServiceTest extends RepositoryTestBase {
                 accountRepo,
                 mock(AuthService.class),
                 mock(MemberLookupService.class),
-                mock(DocumentService.class));
+                mock(DocumentService.class),
+                new AccountReach(accountRepo));
         noticeRepo = new ManagedLoginNoticeRepository();
         authService = mock(AuthService.class);
         service = new ManagedAccessService(
@@ -91,7 +93,8 @@ class ManagedAccessServiceTest extends RepositoryTestBase {
                         accountRepo,
                         new MailLocaleService(accountRepo, new ApplicationSettingRepository()),
                         mock(EmailService.class)),
-                enrollmentService = mock(dev.chojo.ember.feature.passkey.service.PasskeyEnrollmentService.class));
+                enrollmentService = mock(dev.chojo.ember.feature.passkey.service.PasskeyEnrollmentService.class),
+                new AccountReach(accountRepo));
 
         station = stationRepo.create("Managed Access Station");
         guardianAccount = accountRepo.create("guardian@test.com", "Petra", "Sommer");
@@ -347,6 +350,55 @@ class ManagedAccessServiceTest extends RepositoryTestBase {
             assertEquals(MemberRefusal.MANAGED_MEMBER_TYPE_NOT_MANAGED, refused.refusal());
         } finally {
             stationMemberRepo.setUserType(child.id(), StationUserType.MEMBER);
+        }
+    }
+
+    /**
+     * A child who is also a member of another station has an account that is not this station's to
+     * decide on: its address, its password and its passkey code are refused to the guardian here,
+     * while what stays inside the station still works.
+     */
+    @Test
+    void aChildAlsoAtAnotherStationKeepsItsAddressAndItsWaysIn() {
+        var elsewhere = stationRepo.create("Managed Access Elsewhere " + System.nanoTime());
+        stationMemberRepo.create(elsewhere.id(), childAccount.id());
+        try {
+            var email = assertThrows(
+                    RefusalResponse.class, () -> service.setEmail(guardian.id(), child.id(), "lena@example.org"));
+            var password = assertThrows(
+                    RefusalResponse.class, () -> service.setPassword(guardian.id(), child.id(), "ein-gutes-passwort"));
+            var code = assertThrows(
+                    RefusalResponse.class,
+                    () -> service.issuePasskeyCode(guardian.id(), child.id(), guardianAccount.id(), "ua", null));
+
+            assertEquals(MemberRefusal.ACCOUNT_SHARED_WITH_ANOTHER_STATION, email.refusal());
+            assertEquals(MemberRefusal.ACCOUNT_SHARED_WITH_ANOTHER_STATION, password.refusal());
+            assertEquals(MemberRefusal.ACCOUNT_SHARED_WITH_ANOTHER_STATION, code.refusal());
+            assertEquals(
+                    "child-1@managed.local",
+                    accountRepo.findById(childAccount.id()).orElseThrow().email());
+            verify(authService, never()).setPasswordFor(any(), any());
+            var username = assertThrows(
+                    RefusalResponse.class, () -> service.setUsername(guardian.id(), child.id(), "lena.shared"));
+            assertEquals(MemberRefusal.ACCOUNT_SHARED_WITH_ANOTHER_STATION, username.refusal());
+            assertNull(accountRepo.findById(childAccount.id()).orElseThrow().username());
+            assertFalse(service.setLogin(guardian.id(), child.id(), false).loginEnabled());
+        } finally {
+            stationRepo.delete(elsewhere.id());
+        }
+    }
+
+    @Test
+    void aChildWhoseOwnerHasNotConfirmedTheAccountKeepsItsSignInName() {
+        accountRepo.markUnconfirmed(childAccount.id());
+        try {
+            var refused = assertThrows(
+                    RefusalResponse.class, () -> service.setUsername(guardian.id(), child.id(), "lena.waiting"));
+
+            assertEquals(MemberRefusal.ACCOUNT_NOT_CONFIRMED_YET, refused.refusal());
+            assertNull(accountRepo.findById(childAccount.id()).orElseThrow().username());
+        } finally {
+            accountRepo.confirm(childAccount.id());
         }
     }
 

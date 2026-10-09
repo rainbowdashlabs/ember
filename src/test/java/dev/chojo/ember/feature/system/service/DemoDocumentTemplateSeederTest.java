@@ -104,8 +104,8 @@ class DemoDocumentTemplateSeederTest extends RepositoryTestBase {
         assertEquals(3, saved.footer().getFirst().cells().size(), "the contacts stand in three columns");
         assertTrue(
                 LetterContent.blocks(saved.body())
-                        .anyMatch(cell -> cell.config() instanceof CellConfig.SignatureConfig(SignatureRole signer)
-                                && signer == SignatureRole.ISSUER),
+                        .anyMatch(cell -> cell.config() instanceof CellConfig.SignatureConfig signature
+                                && signature.signer() == SignatureRole.ISSUER),
                 "the issuer signs in the body");
     }
 

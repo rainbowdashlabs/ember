@@ -7,8 +7,10 @@ package dev.chojo.ember.feature.twofactor.service;
 
 import dev.chojo.ember.api.auth.InstanceUserType;
 import dev.chojo.ember.api.refusal.TwoFactorRefusal;
+import dev.chojo.ember.feature.account.entity.AccountAction;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.repository.AccountRepository.PickerAccount;
+import dev.chojo.ember.feature.account.service.AccountReach;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorAuditEntry;
 import dev.chojo.ember.feature.twofactor.repository.TwoFactorRepository;
@@ -29,17 +31,20 @@ public class TwoFactorAdminService {
     private final TwoFactorService twoFactorService;
     private final AccountRepository accountRepository;
     private final StationMemberRepository memberRepository;
+    private final AccountReach accountReach;
 
     @Inject
     public TwoFactorAdminService(
             TwoFactorRepository repository,
             TwoFactorService twoFactorService,
             AccountRepository accountRepository,
-            StationMemberRepository memberRepository) {
+            StationMemberRepository memberRepository,
+            AccountReach accountReach) {
         this.repository = repository;
         this.twoFactorService = twoFactorService;
         this.accountRepository = accountRepository;
         this.memberRepository = memberRepository;
+        this.accountReach = accountReach;
     }
 
     /**
@@ -47,7 +52,8 @@ public class TwoFactorAdminService {
      *
      * <p>The target has to be a member of the caller's own station and must not administer the
      * instance: a station administrator may only act on people they actually manage, and an
-     * instance administrator is somebody only another instance administrator may reach.
+     * instance administrator is somebody only another instance administrator may reach. The account
+     * also has to be the station's alone, as {@link AccountReach} decides.
      *
      * @param stationId      the caller's station
      * @param targetId       the account whose second factor is cleared
@@ -65,6 +71,7 @@ public class TwoFactorAdminService {
         if (target.instanceUserType() == InstanceUserType.ADMINISTRATOR) {
             throw TwoFactorRefusal.ADMIN_ONLY_RESET_BY_ADMIN.raise();
         }
+        accountReach.require(stationId, targetId, AccountAction.SECOND_FACTOR_RESET);
         if (!twoFactorService.resetAccount2FA(targetId, actorAccountId, userAgent, country)) {
             throw TwoFactorRefusal.SECOND_FACTOR_NOT_RESET_ON_STATION.raise();
         }

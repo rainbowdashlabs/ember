@@ -144,6 +144,29 @@ public class FileTreeBackend implements StorageBackend {
         });
     }
 
+    /**
+     * Copies the body into {@code <target>.partial.<uuid>} with the tree's own copy and moves it onto the
+     * target, so a reader never sees half a file, then gives the target the source's metadata.
+     */
+    @Override
+    public boolean copy(String sourceKey, String targetKey) {
+        String source = path(sourceKey);
+        String target = path(targetKey);
+        return call(true, tree -> {
+            if (!isFile(tree, source)) return false;
+            String partial = target + PARTIAL_MARKER + UUID.randomUUID();
+            try {
+                copyFile(tree, source, partial);
+                tree.replace(partial, target);
+            } catch (IOException | RuntimeException e) {
+                removeQuietly(tree, partial);
+                throw e;
+            }
+            writeSidecar(tree, target, readSidecar(tree, source));
+            return true;
+        });
+    }
+
     @Override
     public void delete(String fullKey) {
         String target = path(fullKey);
@@ -289,6 +312,13 @@ public class FileTreeBackend implements StorageBackend {
                 out.write(buffer, 0, read);
             }
         }
+    }
+
+    private static void copyFile(FileTree tree, String source, String target) throws IOException {
+        if (tree.stat(parentOf(target)).filter(FileInfo::directory).isEmpty()) {
+            tree.makeDirectories(parentOf(target));
+        }
+        tree.copy(source, target);
     }
 
     private static void writeSidecar(FileTree tree, String target, ObjectMetadata metadata) throws IOException {

@@ -12,9 +12,10 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.api.refusal.WaitingListRefusal;
 import dev.chojo.ember.event.DomainEventBus;
-import dev.chojo.ember.feature.account.service.AccountInviteService;
 import dev.chojo.ember.feature.account.service.AuthService;
+import dev.chojo.ember.feature.accountlink.service.TestAccountLinks;
 import dev.chojo.ember.feature.attendance.entity.AttendanceEntry;
+import dev.chojo.ember.feature.documents.entity.Uploader;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.legal.entity.ConsentProof;
 import dev.chojo.ember.feature.mail.service.EmailService;
@@ -102,9 +103,11 @@ class WaitingListServiceTest extends RepositoryTestBase {
                 accountRepo,
                 emailService,
                 notificationService,
-                new AccountInviteService(accountRepo, authService),
+                TestAccountLinks.inviteService(
+                        accountRepo, stationRepo, stationMemberRepo, newGroupMemberships(), authService),
                 new WaitlistInvitationMessage(eventRepo, eventFieldRepo, emailService),
-                new DomainEventBus(Set.of()));
+                new DomainEventBus(Set.of()),
+                newDocumentService());
         station = stationRepo.create("WaitlistStation");
     }
 
@@ -808,6 +811,38 @@ class WaitingListServiceTest extends RepositoryTestBase {
         assertTrue(service.findEntryById(testing.id()).isEmpty());
         assertTrue(stationMemberRepo.findById(memberId).isEmpty());
         assertTrue(accountRepo.findById(accountId).isEmpty());
+    }
+
+    /**
+     * A member withdrawn in the trial period leaves the way every deleted member does: a sealed document
+     * about them stays, under their name, rather than the withdrawal being refused by the lock or the
+     * document being left naming nobody.
+     */
+    @Test
+    void withdrawTestingEntryKeepsASealedDocumentUnderTheName() {
+        var list =
+                service.create(station.id(), "Withdraw Sealed", "", null, 180, null, null, 5, false, true, null, null);
+        var entry = service.createEntry(
+                list.id(), "SealedWithdraw", "Last", guardians("Parent", "sealedwd@test.com"), Map.of(), "");
+        var testing = service.moveToTesting(invite(entry.id()).id());
+        int memberId = testing.memberId();
+        var document = memberDocumentRepo.create(
+                station.id(),
+                "Einverständnis",
+                "e.pdf",
+                "application/pdf",
+                1,
+                false,
+                true,
+                Uploader.nobody(),
+                List.of(memberId));
+        memberDocumentRepo.seal(document.id());
+
+        service.withdrawEntry(testing.id());
+
+        assertTrue(stationMemberRepo.findById(memberId).isEmpty());
+        assertTrue(memberDocumentRepo.findById(document.id()).isPresent());
+        assertEquals(1, memberDocumentRepo.departedOf(document.id()).size());
     }
 
     @Test

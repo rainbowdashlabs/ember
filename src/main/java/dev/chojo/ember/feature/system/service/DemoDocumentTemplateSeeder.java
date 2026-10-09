@@ -5,31 +5,30 @@
  */
 package dev.chojo.ember.feature.system.service;
 
-import dev.chojo.ember.feature.content.entity.CellConfig;
-import dev.chojo.ember.feature.content.entity.CellContentType;
-import dev.chojo.ember.feature.content.entity.ContentCell;
-import dev.chojo.ember.feature.content.route.BlockCellRequest;
-import dev.chojo.ember.feature.content.route.BlockRowRequest;
 import dev.chojo.ember.feature.generator.entity.DocumentLanguage;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplateKind;
-import dev.chojo.ember.feature.generator.entity.LetterPage;
 import dev.chojo.ember.feature.generator.entity.SignatureRole;
 import dev.chojo.ember.feature.generator.service.DocumentTemplateRequest;
 import dev.chojo.ember.feature.generator.service.DocumentTemplateService;
 import dev.chojo.ember.feature.members.entity.MemberGroup;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
-import dev.chojo.ember.feature.restriction.RestrictionAudience;
-import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.owner.Owner;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+
+import static dev.chojo.ember.feature.system.service.DemoLetterBlocks.PAGE;
+import static dev.chojo.ember.feature.system.service.DemoLetterBlocks.cell;
+import static dev.chojo.ember.feature.system.service.DemoLetterBlocks.empty;
+import static dev.chojo.ember.feature.system.service.DemoLetterBlocks.group;
+import static dev.chojo.ember.feature.system.service.DemoLetterBlocks.letterhead;
+import static dev.chojo.ember.feature.system.service.DemoLetterBlocks.rows;
+import static dev.chojo.ember.feature.system.service.DemoLetterBlocks.signature;
+import static dev.chojo.ember.feature.system.service.DemoLetterBlocks.text;
 
 /**
  * A letter template in every demo station: a certificate that a member belongs to the youth fire
@@ -59,12 +58,6 @@ public class DemoDocumentTemplateSeeder implements DemoPerStationSeeder {
 
     /** What the certificate is called in the list of templates. */
     public static final String NAME = "Bescheinigung Mitgliedschaft";
-
-    private static final LetterPage PAGE = new LetterPage(15, 10, 22, 20, 11, null, null, null);
-
-    private static final String LETTERHEAD = """
-            **Kreisjugendfeuerwehr Musterstadt**\\
-            {{station.name}}""";
 
     private static final String SENDER = "{{station.name}}, Musterstraße 1, 12345 Musterstadt";
 
@@ -121,7 +114,7 @@ public class DemoDocumentTemplateSeeder implements DemoPerStationSeeder {
             jugendwart@example.org""";
 
     /** Where the youth warden who issues the certificate stands among the station's carers: Anna Schmidt. */
-    private static final int WARDEN_PLACE = 1;
+    static final int WARDEN_PLACE = 1;
 
     /** What the youth warden does, in the form that goes with her first name. */
     static final String WARDEN_FUNCTION = "Jugendfeuerwehrwartin";
@@ -204,99 +197,20 @@ public class DemoDocumentTemplateSeeder implements DemoPerStationSeeder {
                 DocumentLanguage.DE,
                 warden,
                 WARDEN_FUNCTION,
-                rows(List.of(List.of(cell(20, logo()), cell(40, empty()), cell(40, text(LETTERHEAD))))),
+                letterhead(),
                 rows(List.of(List.of(cell(37.5, text(WARDEN)), cell(37.5, text(DEPUTY)), cell(25, text(ADDRESS))))),
                 rows(List.of(
                         List.of(cell(100, text(SENDER))),
                         List.of(cell(60, empty()), cell(40, text(DATE))),
                         List.of(cell(100, text(TITLE))),
                         List.of(cell(100, text(CERTIFICATE))),
-                        List.of(cell(100, forGroup(text(BEGINNERS_PRACTICE), beginnersGroup))),
-                        List.of(cell(100, forGroup(text(ADVANCED_PRACTICE), advancedGroup))),
+                        List.of(cell(100, text(BEGINNERS_PRACTICE).shownTo(group(beginnersGroup)))),
+                        List.of(cell(100, text(ADVANCED_PRACTICE).shownTo(group(advancedGroup)))),
                         List.of(cell(100, text(ENGAGEMENT))),
                         List.of(cell(100, text(CLOSING))),
-                        List.of(cell(50, signature(SIGNER)), cell(50, empty())))),
+                        List.of(cell(50, signature(SignatureRole.ISSUER, SIGNER, null)), cell(50, empty())))),
                 PAGE,
                 null,
                 null);
-    }
-
-    /**
-     * A block with what it shows and its settings, before it is given its width.
-     *
-     * @param type    the kind of block
-     * @param content its text, or what its picture shows
-     * @param config      its settings
-     * @param restriction who the block is shown to, or null for everybody
-     */
-    private record Block(
-            CellContentType type,
-            String content,
-            CellConfig config,
-            @Nullable RestrictionAudience restriction) {
-
-        private Block(CellContentType type, String content, CellConfig config) {
-            this(type, content, config, null);
-        }
-    }
-
-    /**
-     * A block of a row with its share of the width.
-     *
-     * @param widthPercent how much of the row it takes
-     * @param block        the block
-     */
-    private record Cell(double widthPercent, Block block) {}
-
-    private static Cell cell(double widthPercent, Block block) {
-        return new Cell(widthPercent, block);
-    }
-
-    private static Block text(String markdown) {
-        return new Block(CellContentType.MARKDOWN, markdown, CellContentType.MARKDOWN.emptyConfig());
-    }
-
-    private static Block empty() {
-        return new Block(CellContentType.EMPTY, "", CellContentType.EMPTY.emptyConfig());
-    }
-
-    private static Block logo() {
-        return new Block(CellContentType.IMAGE, ContentCell.STATION_LOGO, CellContentType.IMAGE.emptyConfig());
-    }
-
-    private static Block signature(String below) {
-        return new Block(CellContentType.SIGNATURE, below, new CellConfig.SignatureConfig(SignatureRole.ISSUER));
-    }
-
-    /** The block shown only to the members of one group. */
-    private static Block forGroup(Block block, int groupId) {
-        var members = new RestrictionAudience(List.of(), List.of(groupId), List.of(), List.of(), RestrictionMode.AND);
-        return new Block(block.type(), block.content(), block.config(), members);
-    }
-
-    /** The rows top to bottom, each its blocks left to right, numbered in that order. */
-    private static List<BlockRowRequest> rows(List<List<Cell>> rows) {
-        var placed = new ArrayList<BlockRowRequest>();
-        for (int index = 0; index < rows.size(); index++) {
-            placed.add(new BlockRowRequest(index, cells(rows.get(index))));
-        }
-        return placed;
-    }
-
-    private static List<BlockCellRequest> cells(List<Cell> cells) {
-        var placed = new ArrayList<BlockCellRequest>();
-        for (int index = 0; index < cells.size(); index++) {
-            var cell = cells.get(index);
-            var block = cell.block();
-            placed.add(new BlockCellRequest(
-                    index,
-                    cell.widthPercent(),
-                    block.type().name(),
-                    block.content(),
-                    CellConfig.MAPPER.valueToTree(block.config()),
-                    block.restriction(),
-                    null));
-        }
-        return placed;
     }
 }

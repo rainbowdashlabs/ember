@@ -25,6 +25,8 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param createdBy the member ID of whoever created the registration, or null if self-registered
  * @param fromField whether the member holds this place because a question of the appointment names
  *                  them, which is a place nobody can give back from the list
+ * @param agreementWithdrawnAt when a signed agreement one of the appointment's documents to bring asked for
+ *                  was withdrawn while the registration stood, or null where none was or it was signed anew
  */
 public record EventRegistration(
         int id,
@@ -36,7 +38,47 @@ public record EventRegistration(
         @Nullable Integer createdBy,
         Instant statusChangedAt,
         @Nullable RegistrationStatus previousStatus,
-        boolean fromField) {
+        boolean fromField,
+        @Nullable Instant agreementWithdrawnAt) {
+
+    /**
+     * A registration without a withdrawn agreement.
+     *
+     * @param id              the unique identifier of the registration
+     * @param eventId         the event being registered for
+     * @param memberId        the member who is registered
+     * @param eventDate       the specific date of the event occurrence
+     * @param status          the current registration status
+     * @param createdAt       when the registration was created or last updated
+     * @param createdBy       the member ID of whoever created the registration, or null if self-registered
+     * @param statusChangedAt when the status last changed
+     * @param previousStatus  the status held before that, or null
+     * @param fromField       whether a question of the appointment holds the place
+     */
+    public EventRegistration(
+            int id,
+            int eventId,
+            int memberId,
+            LocalDate eventDate,
+            RegistrationStatus status,
+            Instant createdAt,
+            @Nullable Integer createdBy,
+            Instant statusChangedAt,
+            @Nullable RegistrationStatus previousStatus,
+            boolean fromField) {
+        this(
+                id,
+                eventId,
+                memberId,
+                eventDate,
+                status,
+                createdAt,
+                createdBy,
+                statusChangedAt,
+                previousStatus,
+                fromField,
+                null);
+    }
 
     /**
      * A registration whose answer has never moved, which is one nobody can take back.
@@ -52,7 +94,7 @@ public record EventRegistration(
             RegistrationStatus status,
             Instant createdAt,
             Integer createdBy) {
-        this(id, eventId, memberId, eventDate, status, createdAt, createdBy, createdAt, null, false);
+        this(id, eventId, memberId, eventDate, status, createdAt, createdBy, createdAt, null, false, null);
     }
 
     /**
@@ -69,6 +111,7 @@ public record EventRegistration(
                 row.getObject("created_by", Integer.class),
                 row.get("status_changed_at", INSTANT_TIMESTAMP),
                 row.getEnum("previous_status", RegistrationStatus.class),
-                row.getBoolean("from_field"));
+                row.getBoolean("from_field"),
+                row.get("agreement_withdrawn_at", INSTANT_TIMESTAMP));
     }
 }

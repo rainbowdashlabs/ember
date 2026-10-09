@@ -51,20 +51,47 @@ public class StationStorageConfigRepository {
     }
 
     /**
-     * Insert-or-update the station's override.
+     * Insert-or-update the station's override with storage of the station's own, which no other
+     * installation shares.
      */
     public void upsert(int stationId, StationStorageBackendConfig config) {
+        write(stationId, config, false);
+    }
+
+    /**
+     * Insert-or-update the station's override with the storage it took over from the installation it
+     * moved here from, which that installation may still keep files in.
+     */
+    public void adoptFromTransfer(int stationId, StationStorageBackendConfig config) {
+        write(stationId, config, true);
+    }
+
+    /**
+     * Whether the station's storage was taken over from the installation it moved here from, and is
+     * still the storage it stands on.
+     */
+    public boolean isSharedByTransfer(int stationId) {
+        return query("SELECT shared_by_transfer FROM station_storage_config WHERE station_id = :station_id;")
+                .single(call().bind("station_id", stationId))
+                .map(row -> row.getBoolean("shared_by_transfer"))
+                .first()
+                .orElse(false);
+    }
+
+    private void write(int stationId, StationStorageBackendConfig config, boolean sharedByTransfer) {
         query("""
-                INSERT INTO station_storage_config (station_id, backend_type, config, updated_at)
-                VALUES (:station_id, :backend_type, :config::JSONB, now())
+                INSERT INTO station_storage_config (station_id, backend_type, config, shared_by_transfer, updated_at)
+                VALUES (:station_id, :backend_type, :config::JSONB, :shared_by_transfer, now())
                 ON CONFLICT (station_id)
                 DO UPDATE SET backend_type = excluded.backend_type,
                               config = excluded.config,
+                              shared_by_transfer = excluded.shared_by_transfer,
                               updated_at = now();
                 """)
                 .single(call().bind("station_id", stationId)
                         .bind("backend_type", config.type().name())
-                        .bind("config", config.toJson()))
+                        .bind("config", config.toJson())
+                        .bind("shared_by_transfer", sharedByTransfer))
                 .update();
     }
 

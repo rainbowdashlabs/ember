@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.generator.route;
 
 import dev.chojo.ember.api.ErrorResponseWrapper;
+import dev.chojo.ember.api.FileResponse;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -20,6 +21,7 @@ import dev.chojo.ember.feature.generator.service.AppointmentDocumentService;
 import dev.chojo.ember.feature.generator.service.AppointmentDocumentService.AppointmentDocuments;
 import dev.chojo.ember.feature.generator.service.DocumentGenerationService.GeneratedDocumentResponse;
 import dev.chojo.ember.feature.generator.service.EventRequirementService;
+import dev.chojo.ember.feature.generator.service.ParticipantCopyService;
 import dev.chojo.ember.feature.generator.service.TemplateQuery.TemplatePage;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
@@ -45,12 +47,14 @@ import static dev.chojo.ember.api.RouteSupport.requireOwnedOrNotFound;
 /**
  * The documents appointments ask participants to bring: which ones an appointment or an appointment
  * template asks for, written with the right that writes them, and the copies a participant or their
- * guardian gets, read with nothing more than the right to see the appointment.
+ * guardian gets, read with nothing more than the right to see the appointment. Whoever manages the
+ * registrations downloads every participant's copy.
  */
 @Singleton
 public class AppointmentDocumentRoutes implements Routes {
     private final EventRequirementService requirements;
     private final AppointmentDocumentService documents;
+    private final ParticipantCopyService copies;
     private final EventVisibility visibility;
     private final EventTemplateService eventTemplates;
 
@@ -58,10 +62,12 @@ public class AppointmentDocumentRoutes implements Routes {
     public AppointmentDocumentRoutes(
             EventRequirementService requirements,
             AppointmentDocumentService documents,
+            ParticipantCopyService copies,
             EventVisibility visibility,
             EventTemplateService eventTemplates) {
         this.requirements = requirements;
         this.documents = documents;
+        this.copies = copies;
         this.visibility = visibility;
         this.eventTemplates = eventTemplates;
     }
@@ -88,6 +94,10 @@ public class AppointmentDocumentRoutes implements Routes {
                 prefix + "/events/{id}/documents-to-bring/{templateId}/members/{memberId}",
                 this::generate,
                 StationPermission.USER);
+        routes.get(
+                prefix + "/events/{id}/documents-to-bring/{templateId}/members/{memberId}/copy",
+                this::copy,
+                StationPermission.EVENT_REGISTRATION);
     }
 
     /**
@@ -213,6 +223,29 @@ public class AppointmentDocumentRoutes implements Routes {
                         session, event, date(ctx), pathInt(ctx, "templateId"), pathInt(ctx, "memberId")));
     }
 
+    @OpenApi(
+            path = "/api/v1/events/{id}/documents-to-bring/{templateId}/members/{memberId}/copy",
+            methods = HttpMethod.GET,
+            summary = "A participant's copy of a document the appointment asks for, sealed where it was signed online",
+            tags = {"Events"},
+            pathParams = {
+                @OpenApiParam(name = "id", type = Integer.class, required = true),
+                @OpenApiParam(name = "templateId", type = Integer.class, required = true),
+                @OpenApiParam(name = "memberId", type = Integer.class, required = true)
+            },
+            queryParams = @OpenApiParam(name = "date", required = true),
+            responses = {
+                @OpenApiResponse(status = "200"),
+                @OpenApiResponse(status = "403", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void copy(Context ctx) {
+        var session = StationSession.from(ctx);
+        var event = visibility.requireVisibleEvent(session, pathInt(ctx, "id"));
+        var copy = copies.copyOf(session, event, date(ctx), pathInt(ctx, "templateId"), pathInt(ctx, "memberId"));
+        FileResponse.send(ctx, copy.document().mimeType(), copy.document().fileName(), copy.data());
+    }
+
     private int requireOwnedEventTemplate(Context ctx) {
         return requireOwnedOrNotFound(ctx, pathInt(ctx, "id"), eventTemplates::findById, EventTemplate::stationId)
                 .id();
@@ -223,8 +256,13 @@ public class AppointmentDocumentRoutes implements Routes {
                 ctx.bodyAsClass(RequirementsRequest.class).templateIds(), List.of());
     }
 
-    /** The date of the appointment the documents are for, which every request about them names. */
-    private static LocalDate date(Context ctx) {
+    /**
+     * The date of the appointment the documents are for, which every request about them names.
+     *
+     * @param ctx the request, carrying the date as the query parameter {@code date}
+     * @return the date
+     */
+    public static LocalDate date(Context ctx) {
         String value = ctx.queryParam("date");
         if (value == null || value.isBlank()) throw EventRefusal.EVENT_DOCUMENTS_DATE_MISSING.raise();
         try {

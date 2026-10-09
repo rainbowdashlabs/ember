@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.federation.repository;
 
+import de.chojo.sadu.queries.api.call.Call;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.feature.federation.entity.InventoryBlock;
 import dev.chojo.ember.feature.federation.entity.LendingMessage;
@@ -43,6 +44,21 @@ public class LendingRepository {
             "id, request_id, sender_station_uid, sender_member_id, message, is_system, created_at";
     private static final String INVENTORY_BLOCK_COLUMNS =
             "id, station_id, inventory_id, item_id, block_from, block_to, reason";
+
+    /**
+     * The requests a station that moved away shares with a station still running here, with the moved
+     * station's uid bound as {@code :moved}.
+     */
+    private static final String LEFT_BEHIND_REQUESTS = """
+            SELECT r.id
+            FROM federation_lending_request r
+                     JOIN station other
+                     ON other.uid = CASE
+                                        WHEN r.owning_station_uid = :moved::uuid THEN r.requesting_station_uid
+                                        ELSE r.owning_station_uid
+                         END
+            WHERE (r.owning_station_uid = :moved::uuid OR r.requesting_station_uid = :moved::uuid)
+              AND other.moved_away_at IS NULL""";
 
     public LendingRequest createRequest(
             UUID requestingStationUid,
@@ -185,6 +201,13 @@ public class LendingRepository {
                 .changed();
     }
 
+    /**
+     * Adds a line to a request, labelled with what it names at this moment: the kind of thing, the
+     * piece or the inventory, in that order, and nothing where it names none of them here. The label
+     * outlives the gear, so the line still says what it asked for once its references are emptied.
+     *
+     * @return the stored line
+     */
     public LendingRequestItem addRequestItem(
             int requestId,
             @Nullable Integer inventoryId,
@@ -194,8 +217,12 @@ public class LendingRepository {
             @Nullable Integer needId) {
         return insertReturning(
                 """
-                INSERT INTO federation_lending_request_item(request_id, inventory_id, item_id, art_id, quantity, need_id)
-                VALUES (:request_id, :inventory_id, :item_id, :art_id, :quantity, :need_id)
+                INSERT INTO federation_lending_request_item(request_id, inventory_id, item_id, art_id, quantity, need_id, label)
+                VALUES (:request_id, :inventory_id, :item_id, :art_id, :quantity, :need_id,
+                        coalesce((SELECT name FROM inventory_art WHERE id = :art_id),
+                                 (SELECT name FROM inventory_item WHERE id = :item_id),
+                                 (SELECT name FROM inventory WHERE id = :inventory_id),
+                                 ''))
                 RETURNING %s;""",
                 call().bind("request_id", requestId)
                         .bind("inventory_id", inventoryId)
@@ -422,6 +449,174 @@ public class LendingRepository {
             }
         }
         return false;
+    }
+
+    /**
+     * Turns the requests a station that moved away shared with stations of this instance into the
+     * copies those stations keep of a request to a station on another instance.
+     *
+     * <p>Between two stations of one instance a request is one row both read; the moved station
+     * took its own copy along. What stays here is the partner's copy, and it may no longer name
+     * anything of the moved station's, whose rows here are a read-only remnant that will be deleted:
+     * every line keeps its label, the lines and pieces of the moved station's gear, its needs, who
+     * of it asked and for which appointment are let go, and its messages, which moved with it, go.
+     *
+     * @param movedStationUid the station that moved away
+     * @return how many requests were turned into a partner's copy
+     */
+    public int leaveBehind(UUID movedStationUid) {
+        query("""
+                UPDATE federation_lending_request_item ri
+                SET label = coalesce((SELECT a.name FROM inventory_art a WHERE a.id = ri.art_id),
+                                     (SELECT i.name FROM inventory_item i WHERE i.id = ri.item_id),
+                                     (SELECT v.name FROM inventory v WHERE v.id = ri.inventory_id),
+                                     '')
+                WHERE ri.label = ''
+                  AND ri.request_id IN (%s);""", LEFT_BEHIND_REQUESTS).single(moved(movedStationUid)).update();
+        query("""
+                DELETE FROM federation_lending_request_item_assignment a
+                USING federation_lending_request_item ri, federation_lending_request r
+                WHERE a.request_item_id = ri.id
+                  AND ri.request_id = r.id
+                  AND r.owning_station_uid = :moved::uuid
+                  AND r.id IN (%s);""", LEFT_BEHIND_REQUESTS).single(moved(movedStationUid)).delete();
+        query("""
+                UPDATE federation_lending_request_item ri
+                SET inventory_id = NULL, item_id = NULL, art_id = NULL
+                FROM federation_lending_request r
+                WHERE r.id = ri.request_id
+                  AND r.owning_station_uid = :moved::uuid
+                  AND r.id IN (%s);""", LEFT_BEHIND_REQUESTS).single(moved(movedStationUid)).update();
+        query("""
+                UPDATE federation_lending_request_item ri
+                SET need_id = NULL
+                FROM federation_lending_request r
+                WHERE r.id = ri.request_id
+                  AND r.requesting_station_uid = :moved::uuid
+                  AND r.id IN (%s);""", LEFT_BEHIND_REQUESTS).single(moved(movedStationUid)).update();
+        query("""
+                DELETE FROM federation_lending_message
+                WHERE sender_station_uid = :moved::uuid
+                  AND request_id IN (%s);""", LEFT_BEHIND_REQUESTS).single(moved(movedStationUid)).delete();
+        query("""
+                UPDATE federation_lending_request
+                SET created_by = NULL, event_id = NULL, event_date = NULL
+                WHERE requesting_station_uid = :moved::uuid
+                  AND id IN (%s);""", LEFT_BEHIND_REQUESTS).single(moved(movedStationUid)).update();
+        return count("SELECT count(*) AS cnt FROM (%s) left_behind;", moved(movedStationUid), LEFT_BEHIND_REQUESTS);
+    }
+
+    private static Call moved(UUID movedStationUid) {
+        return call().bind("moved", movedStationUid, StandardValueConverter.UUID_STRING);
+    }
+
+    /**
+     * Joins a line that arrived with a moved station into the line of the same position on the
+     * request its partner keeps here: whatever the kept line leaves empty is taken from the arrived
+     * one, the pieces set aside on the arrived line and the borrowed copies that came on it move over,
+     * and the arrived line goes.
+     *
+     * @param arrivedLineId the line that arrived
+     * @param keptLineId    the line it joins
+     */
+    public void joinLine(int arrivedLineId, int keptLineId) {
+        query("""
+                UPDATE federation_lending_request_item kept
+                SET inventory_id = coalesce(kept.inventory_id, arrived.inventory_id),
+                    item_id      = coalesce(kept.item_id, arrived.item_id),
+                    art_id       = coalesce(kept.art_id, arrived.art_id),
+                    need_id      = coalesce(kept.need_id, arrived.need_id),
+                    label        = coalesce(nullif(kept.label, ''), arrived.label)
+                FROM federation_lending_request_item arrived
+                WHERE kept.id = :kept
+                  AND arrived.id = :arrived;""").single(arrivedAndKept(arrivedLineId, keptLineId)).update();
+        query("""
+                INSERT INTO federation_lending_request_item_assignment(request_item_id, item_id)
+                SELECT :kept, item_id FROM federation_lending_request_item_assignment WHERE request_item_id = :arrived
+                ON CONFLICT (request_item_id, item_id) DO NOTHING;""").single(arrivedAndKept(arrivedLineId, keptLineId)).insert();
+        query("UPDATE inventory_item SET loan_request_item_id = :kept WHERE loan_request_item_id = :arrived;")
+                .single(arrivedAndKept(arrivedLineId, keptLineId))
+                .update();
+        query("DELETE FROM federation_lending_request_item WHERE id = :arrived;")
+                .single(call().bind("arrived", arrivedLineId))
+                .delete();
+    }
+
+    private static Call arrivedAndKept(int arrivedId, int keptId) {
+        return call().bind("arrived", arrivedId).bind("kept", keptId);
+    }
+
+    /**
+     * Moves a line to another request, keeping everything it names.
+     *
+     * @param lineId    the line
+     * @param requestId the request it belongs to from now on
+     */
+    public void moveLine(int lineId, int requestId) {
+        query("UPDATE federation_lending_request_item SET request_id = :request_id WHERE id = :id;")
+                .single(call().bind("id", lineId).bind("request_id", requestId))
+                .update();
+    }
+
+    /**
+     * Joins a request that arrived with a moved station into the copy its partner keeps here: the
+     * messages move over, whatever the kept request leaves empty is taken from the arrived one, and the
+     * state changed later wins. The lines are joined before this, one by one.
+     *
+     * @param arrivedRequestId the request that arrived
+     * @param keptRequestId    the request it joins
+     */
+    public void joinRequest(int arrivedRequestId, int keptRequestId) {
+        query("UPDATE federation_lending_message SET request_id = :kept WHERE request_id = :arrived;")
+                .single(arrivedAndKept(arrivedRequestId, keptRequestId))
+                .update();
+        query("""
+                UPDATE federation_lending_request kept
+                SET created_by = coalesce(kept.created_by, arrived.created_by),
+                    event_id   = coalesce(kept.event_id, arrived.event_id),
+                    event_date = coalesce(kept.event_date, arrived.event_date),
+                    occasion   = coalesce(nullif(kept.occasion, ''), arrived.occasion),
+                    status     = CASE WHEN arrived.updated_at > kept.updated_at THEN arrived.status ELSE kept.status END,
+                    updated_at = greatest(kept.updated_at, arrived.updated_at)
+                FROM federation_lending_request arrived
+                WHERE kept.id = :kept
+                  AND arrived.id = :arrived;""").single(arrivedAndKept(arrivedRequestId, keptRequestId)).update();
+        query("DELETE FROM federation_lending_request WHERE id = :arrived;")
+                .single(call().bind("arrived", arrivedRequestId))
+                .delete();
+    }
+
+    /**
+     * Names the stations of a request by their rows here wherever its gear named them only by uid,
+     * now that both run on this instance: the borrowed copies name their owner, and the owner's
+     * pieces with the partner name the partner holding them.
+     *
+     * @param requestId the request both stations share now
+     */
+    public void nameStationsHere(int requestId) {
+        query("""
+                UPDATE inventory_item ii
+                SET owner_station_id = s.id
+                FROM federation_lending_request_item ri, federation_lending_request r, station s
+                WHERE ii.loan_request_item_id = ri.id
+                  AND ri.request_id = r.id
+                  AND r.id = :request_id
+                  AND s.uid = r.owning_station_uid
+                  AND s.moved_away_at IS NULL
+                  AND ii.owner_station_id IS NULL;""").single(call().bind("request_id", requestId)).update();
+        query("""
+                UPDATE inventory_item ii
+                SET custody_partner_station_id = s.id
+                FROM federation_lending_request_item_assignment a, federation_lending_request_item ri,
+                     federation_lending_request r, station s
+                WHERE a.item_id = ii.id
+                  AND a.request_item_id = ri.id
+                  AND ri.request_id = r.id
+                  AND r.id = :request_id
+                  AND s.uid = r.requesting_station_uid
+                  AND s.moved_away_at IS NULL
+                  AND ii.custody = 'WITH_PARTNER'
+                  AND ii.custody_partner_station_id IS NULL;""").single(call().bind("request_id", requestId)).update();
     }
 
     public int countActionableRequests(UUID stationUid) {

@@ -27,6 +27,7 @@ export interface AdminOverview {
     federationPartnersPending: number
     discoveryPeersUnreachable: number
     problemReportsOpen: number
+    signingKeysLocked: number
     recentApplications: RecentApplication[]
     recentProblemReports: RecentProblemReport[]
 }
