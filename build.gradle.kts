@@ -112,7 +112,9 @@ fun testForks(): Int {
  * the codebase for them takes a few hundred megabytes of a fork's heap, and a fork that had already
  * spent its heap on database tests ran out of memory halfway through the import. Only the suite
  * without a database keeps them, and it gets a larger heap: the same forks also decode and draw full
- * size pictures and pages, and the import plus one such picture outgrew the default.
+ * size pictures and pages, and the import plus one such picture outgrew the default. The signing route
+ * tests send signature pictures of up to 5 MB and seal checks of up to 25 MB on top, and a fork of
+ * 1.5 GB ran out of heap late in the suite.
  *
  * @property packages the test name patterns this suite holds; empty for the suite of the rest
  * @property forks the forks this suite may use at most; the tracking tests share one database
@@ -135,7 +137,7 @@ val testSuites = listOf(
         "testOther",
         "Runs every test the other suites leave, the architecture rules included",
         architectureRules = true,
-        heap = "1536m",
+        heap = "2g",
     ),
 )
 
