@@ -24,6 +24,8 @@ import dev.chojo.ember.feature.events.service.PartnerAppointmentSignatures;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.members.entity.NameParts;
+import dev.chojo.ember.feature.members.service.GuardianPolicy;
+import dev.chojo.ember.feature.members.service.MemberLookupService;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.util.SafeContentDisposition;
 import dev.chojo.ember.util.SafeInlineMime;
@@ -64,6 +66,8 @@ public class FederatedEventRoutes implements Routes {
     private final EventFederationService eventFederationService;
     private final FederationService federationService;
     private final StationMemberService stationMemberService;
+    private final MemberLookupService memberLookup;
+    private final GuardianPolicy guardianPolicy;
     private final PartnerAppointmentSignatures signatures;
 
     @Inject
@@ -71,10 +75,14 @@ public class FederatedEventRoutes implements Routes {
             EventFederationService eventFederationService,
             FederationService federationService,
             StationMemberService stationMemberService,
+            MemberLookupService memberLookup,
+            GuardianPolicy guardianPolicy,
             PartnerAppointmentSignatures signatures) {
         this.eventFederationService = eventFederationService;
         this.federationService = federationService;
         this.stationMemberService = stationMemberService;
+        this.memberLookup = memberLookup;
+        this.guardianPolicy = guardianPolicy;
         this.signatures = signatures;
     }
 
@@ -263,7 +271,7 @@ public class FederatedEventRoutes implements Routes {
                             status = "201",
                             content = @OpenApiContent(from = FederatedRegistrationAnswer.class)))
     private void federatedRegister(Context ctx) {
-        var fed = resolveFederatedRegContext(ctx);
+        var fed = answeredFor(ctx);
         var status = eventFederationService.registerForFederatedEvent(
                 fed.stationId(), fed.partnerUid(), fed.eventId(), fed.remoteMemberId(), fed.eventDate());
         var toSign = signatures.registered(
@@ -279,7 +287,7 @@ public class FederatedEventRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = FederatedRegBody.class)),
             responses = @OpenApiResponse(status = "204"))
     private void federatedWithdraw(Context ctx) {
-        var fed = resolveFederatedRegContext(ctx);
+        var fed = answeredFor(ctx);
         eventFederationService.withdrawFederatedRegistration(
                 fed.stationId(), fed.partnerUid(), fed.eventId(), fed.remoteMemberId(), fed.eventDate());
         signatures.withdrawn(
@@ -302,7 +310,7 @@ public class FederatedEventRoutes implements Routes {
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = FederatedRegBody.class)),
             responses = @OpenApiResponse(status = "204"))
     private void federatedUndoWithdrawal(Context ctx) {
-        var fed = resolveFederatedRegContext(ctx);
+        var fed = answeredFor(ctx);
         eventFederationService.undoFederatedWithdrawal(
                 fed.stationId(), fed.partnerUid(), fed.eventId(), fed.remoteMemberId(), fed.eventDate());
         signatures.registered(
@@ -333,6 +341,22 @@ public class FederatedEventRoutes implements Routes {
         signatures.registered(
                 StationSession.from(ctx), fed.partnerUid(), fed.eventId(), fed.eventDate(), fed.remoteMemberId());
         ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    /**
+     * The inputs of a sign-up the caller gives for themselves or somebody in their care, or for any
+     * member of the station where they run its appointments: the same rule as for the station's own
+     * appointments. The member used to be taken from the request as it came, so anybody signed in
+     * could sign up, withdraw or reinstate any other member at a partner's appointment.
+     */
+    private FederatedRegContext answeredFor(Context ctx) {
+        StationSession session = StationSession.from(ctx);
+        var fed = resolveFederatedRegContext(ctx);
+        if (!guardianPolicy.mayActFor(session.user(), fed.memberId())
+                && !session.hasPermission(StationPermission.EVENT_MANAGER)) {
+            throw EventRefusal.MEMBER_NOT_YOURS_TO_REGISTER.raise();
+        }
+        return fed;
     }
 
     /**
@@ -382,17 +406,26 @@ public class FederatedEventRoutes implements Routes {
 
     /**
      * Resolves the shared inputs for a federated register or withdraw: the caller's station, the
-     * addressed partner, the target event, the date, and the effective remote member id.
+     * addressed partner, the target event, the date, and the member, who has to be one of this
+     * station's.
      */
     private FederatedRegContext resolveFederatedRegContext(Context ctx) {
         StationSession session = StationSession.from(ctx);
         var partner = resolvePartner(ctx, session.stationId());
         int eventId = pathInt(ctx, "id");
         var req = ctx.bodyAsClass(FederatedRegBody.class);
-        UUID remoteMemberId =
-                req.memberId() != null ? req.memberId() : session.member().uid();
+        UUID named = req.memberId();
+        UUID remoteMemberId = named != null ? named : session.member().uid();
+        int memberId = memberLookup
+                .resolveId(session.stationId(), remoteMemberId)
+                .orElseThrow(EventRefusal.MEMBER_NOT_YOURS_TO_REGISTER::raise);
         return new FederatedRegContext(
-                session.stationId(), partner.partnerStationId(), eventId, eventDate(req.eventDate()), remoteMemberId);
+                session.stationId(),
+                partner.partnerStationId(),
+                eventId,
+                eventDate(req.eventDate()),
+                remoteMemberId,
+                memberId);
     }
 
     private static LocalDate eventDate(@Nullable String value) {
@@ -527,5 +560,5 @@ public class FederatedEventRoutes implements Routes {
      * @param partnerUid the station holding the appointment
      */
     private record FederatedRegContext(
-            int stationId, UUID partnerUid, int eventId, LocalDate eventDate, UUID remoteMemberId) {}
+            int stationId, UUID partnerUid, int eventId, LocalDate eventDate, UUID remoteMemberId, int memberId) {}
 }

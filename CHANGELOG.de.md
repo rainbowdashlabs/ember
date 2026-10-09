@@ -59,6 +59,8 @@ Wachen erstellen aus eigenen Vorlagen und denen ihres Verbands Dokumente für ih
 
 ### Sicherheit
 
+- **Anmelden für Termine von Partnerwachen nur für sich selbst.** Ein Mitglied konnte ein anderes Mitglied seiner Wache bei einem Termin einer Partnerwache anmelden, abmelden oder wieder anmelden. Das können jetzt nur das Mitglied selbst, seine Erziehungsberechtigten und wer die Termine der Wache betreut.
+- **Tags bleiben in ihrer Wache.** Wer Tags verwaltet, konnte Mitglieder anderer Wachen einem Tag zuordnen und dann ihre Namen und Adressen lesen. Ein Tag hält jetzt nur noch Mitglieder seiner eigenen Wache.
 - **Ein Import bleibt bei der importierten Wache.** In manchen Fällen konnte ein Import einer Wache von einer anderen Installation Leihanfragen und Nachrichten an andere Wachen dieser Installation hängen oder ein Mitglied allein über den Namen mit dem Konto einer anderen Person verbinden. Ein Import erreicht jetzt nur die importierte Wache und ihre Partner.
 - **Importierte Passwörter gelten nur für neue Konten.** Ein Import einer Wache konnte einem Konto dieser Installation ohne Passwort eines setzen, wenn er dessen E-Mail-Adresse nannte. Passwörter aus einem Import erhalten jetzt nur die Konten, die dieser Import anlegt.
 - **Bestehende Konten kommen nur mit Zustimmung zu einer Wache.** Eine Einladung oder ein Import mit der E-Mail-Adresse eines bestehenden Kontos hängte dieses Konto an die Wache, ohne die Person zu fragen, der es gehört. Das Mitglied bleibt jetzt ohne Konto, bis die Person der Anfrage zustimmt.

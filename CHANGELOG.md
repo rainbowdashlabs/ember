@@ -59,6 +59,8 @@ Stations turn their own templates and those of their association into documents 
 
 ### Security
 
+- **Signing up for a partner's appointment on somebody's behalf.** A member could sign up, withdraw or put back another member of their station at a partner station's appointment. Now only the member themselves, their guardians and whoever runs the station's appointments can.
+- **Tags held to their own station.** Whoever manages tags could put members of other stations on a tag and then read their names and addresses. A tag now only ever holds members of its own station.
 - **Imports stay with the imported station.** In some cases an import of a station from another installation could attach lending requests and messages to other stations of this installation, or link a member to another person's account by name alone. An import now reaches only the imported station and its partners.
 - **Imported passwords apply only to new accounts.** An import of a station could set a password on an account of this installation that had none, where the import named its email address. Passwords from an import now reach only the accounts that import creates.
 - **Existing accounts join a station only with their owner's consent.** Inviting or importing a member with the email address of an existing account attached that account to the station without asking its owner. The member now stays without the account until the owner accepts the request.
