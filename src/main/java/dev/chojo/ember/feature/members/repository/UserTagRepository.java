@@ -161,12 +161,15 @@ public class UserTagRepository {
     }
 
     /**
-     * Finds all members assigned to a tag.
+     * Finds all members assigned to a tag. Only members of the tag's own station count: an entry naming
+     * somebody of another station, which an unchecked write could once leave behind, is never read.
      */
     public List<StationMember> findMembers(int tagId) {
         return query("""
                 SELECT %s
-                FROM station_member sm JOIN user_tag_entry ute ON sm.id = ute.member_id
+                FROM station_member sm
+                JOIN user_tag_entry ute ON sm.id = ute.member_id
+                JOIN user_tag ut ON ut.id = ute.tag_id AND ut.station_id = sm.station_id
                 WHERE ute.tag_id = :tag_id;""", SqlSupport.alias("sm", STATION_MEMBER_COLUMNS))
                 .single(call().bind("tag_id", tagId))
                 .map(StationMember.map())
@@ -190,6 +193,7 @@ public class UserTagRepository {
                 SELECT DISTINCT ON (ute.member_id) ute.member_id, %s
                 FROM user_tag_entry ute
                 JOIN user_tag ut ON ut.id = ute.tag_id
+                JOIN station_member sm ON sm.id = ute.member_id AND sm.station_id = ut.station_id
                 WHERE ute.member_id = ANY(:member_ids)
                   AND ut.visibility = 'BADGE'
                   AND ut.color IS NOT NULL AND ut.color <> ''
@@ -217,6 +221,7 @@ public class UserTagRepository {
                 SELECT ute.member_id, ute.tag_id
                 FROM user_tag_entry ute
                 JOIN user_tag ut ON ut.id = ute.tag_id
+                JOIN station_member sm ON sm.id = ute.member_id AND sm.station_id = ut.station_id
                 WHERE ute.member_id = ANY(:member_ids)
                   AND ut.visibility <> 'PRIVATE';""")
                 .single(call().bind("member_ids", List.copyOf(memberIds), PostgreSqlTypes.INTEGER))
@@ -228,12 +233,13 @@ public class UserTagRepository {
     }
 
     /**
-     * Finds all tags assigned to a specific member.
+     * Finds all tags of the member's own station assigned to a specific member.
      */
     public List<UserTag> findTagsForMember(int memberId) {
         return query("""
                 SELECT %s FROM user_tag ut
                 JOIN user_tag_entry ute ON ut.id = ute.tag_id
+                JOIN station_member sm ON sm.id = ute.member_id AND sm.station_id = ut.station_id
                 WHERE ute.member_id = :member_id;""", SqlSupport.alias("ut", USER_TAG_COLUMNS))
                 .single(call().bind("member_id", memberId))
                 .map(UserTag.map())
@@ -241,10 +247,16 @@ public class UserTagRepository {
     }
 
     /**
-     * Adds a member to a tag, ignoring duplicates.
+     * Adds a member to a tag, ignoring duplicates and anybody who is not a member of the tag's station.
      */
     public void addMember(int tagId, int memberId) {
-        query("INSERT INTO user_tag_entry(tag_id, member_id) VALUES(:tag_id, :member_id) ON CONFLICT DO NOTHING;")
+        query("""
+                INSERT INTO user_tag_entry(tag_id, member_id)
+                SELECT ut.id, sm.id
+                FROM user_tag ut
+                JOIN station_member sm ON sm.station_id = ut.station_id
+                WHERE ut.id = :tag_id AND sm.id = :member_id
+                ON CONFLICT DO NOTHING;""")
                 .single(call().bind("tag_id", tagId).bind("member_id", memberId))
                 .insert();
     }

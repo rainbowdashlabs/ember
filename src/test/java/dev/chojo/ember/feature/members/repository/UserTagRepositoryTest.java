@@ -124,6 +124,32 @@ class UserTagRepositoryTest extends RepositoryTestBase {
         assertTrue(userTagRepo.findTagsForMember(member.id()).isEmpty());
     }
 
+    /**
+     * A tag holds members of its own station only. Naming somebody of another station used to put them on
+     * the tag, after which listing the tag's members read their name and address across the boundary.
+     */
+    @Test
+    @Order(16)
+    void aMemberOfAnotherStationIsNeitherAddedNorListed() {
+        var elsewhere = stationRepo.create("UserTag Other Station");
+        var stranger = accountRepo.create("utag-other@test.com", "UT", "Other");
+        var foreign = stationMemberRepo.create(elsewhere.id(), stranger.id());
+        try {
+            userTagRepo.setMembers(tagId, List.of(member.id(), foreign.id()));
+
+            assertEquals(
+                    List.of(member.id()),
+                    userTagRepo.findMembers(tagId).stream()
+                            .map(StationMember::id)
+                            .toList());
+            assertTrue(userTagRepo.findTagsForMember(foreign.id()).isEmpty());
+        } finally {
+            userTagRepo.setMembers(tagId, List.of());
+            stationRepo.delete(elsewhere.id());
+            accountRepo.delete(stranger.id());
+        }
+    }
+
     @Test
     @Order(99)
     void delete() {
