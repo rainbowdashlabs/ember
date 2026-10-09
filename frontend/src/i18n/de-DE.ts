@@ -3328,7 +3328,7 @@ export default {
             },
             step: {
                 title: 'Dokumente unterschreiben',
-                hint: 'Die Anmeldung ist eingegangen. Diese Dokumente brauchen noch Unterschriften: jetzt online unterschreiben, das unterschriebene Exemplar als Scan hochladen oder später erledigen. Offene Unterschriften stehen bei den Aufgaben und auf der Terminseite.',
+                hint: 'Die Anmeldung ist eingegangen. Diese Dokumente brauchen noch Unterschriften: jetzt online unterschreiben, herunterladen und von Hand unterschreiben, das unterschriebene Exemplar als Scan hochladen oder später erledigen. Offene Unterschriften stehen bei den Aufgaben und auf der Terminseite.',
                 copyFor: '{document} für {name}',
                 othersAsked: 'Die Unterschriften dieses Dokuments werden bei den genannten Personen angefragt.',
                 later: 'Später',

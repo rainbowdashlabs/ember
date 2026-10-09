@@ -24,6 +24,7 @@ import {PaperState, type PaperSubmission} from '@/api/generated/schema'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import type {SigningStep, SigningStepCopy} from '@/composables/useRegistrationSigningStep'
 import {SCAN_TYPES} from '../eventdetailview/documentTiles'
+import {fetchCopy} from '../eventdetailview/documentsToBring'
 import {scanReceiptKey} from '../eventdetailview/scanReceipt'
 import SignatureFieldList from './SignatureFieldList.vue'
 import SignatureStateBadge from './SignatureStateBadge.vue'
@@ -32,8 +33,9 @@ import {fieldsToSign} from './requirementSignatures'
 /**
  * The step a registration ends on, where the appointment's documents to bring ask for signatures: each
  * copy of the people just registered that still waits, with its fields. "Jetzt unterschreiben" opens the
- * signing screen with every field the reader may sign on these copies ticked, all in one go; instead, a
- * scan of the signed paper copy can be handed in, which waits for the
+ * signing screen with every field the reader may sign on these copies ticked, all in one go. Each copy can
+ * be downloaded to read first or to print and sign by hand, the same way as from the documents to bring;
+ * instead of signing online, a scan of the signed paper copy can be handed in, which waits for the
  * event managers to confirm it; or the step is closed and the signatures are done later from the open
  * tasks or the appointment's page. Fields for somebody else, such as a second guardian, are asked of
  * them and only shown here.
@@ -81,6 +83,13 @@ const handingIn = useAsyncAction(async (copy: SigningStepCopy, file: File) => {
   received.value = await appointmentDocuments.submitScan(target, file, t('events.documents.scanTitle', {name: copy.document.name}))
   handedIn.value = [...handedIn.value, keyOf(copy)]
 })
+
+const fetching = useAsyncAction(async (copy: SigningStepCopy) => {
+  await fetchCopy(props.step.eventId, props.step.date, copy.memberId, copy.document)
+})
+
+const busy = computed(() => handingIn.running.value || fetching.running.value)
+const actionFailure = computed(() => handingIn.failure.value ?? fetching.failure.value)
 </script>
 
 <template>
@@ -88,7 +97,7 @@ const handingIn = useAsyncAction(async (copy: SigningStepCopy, file: File) => {
     <div class="space-y-3" data-testid="registration-signing-step">
       <SubHeader>{{ t('events.documents.step.title') }}</SubHeader>
       <MutedText size="sm" tag="p">{{ t('events.documents.step.hint') }}</MutedText>
-      <FailureAlert :failure="handingIn.failure.value"/>
+      <FailureAlert :failure="actionFailure"/>
       <Alert v-if="received" variant="success" data-testid="document-scan-received">
         {{ t(scanReceiptKey(received)) }}
       </Alert>
@@ -105,12 +114,16 @@ const handingIn = useAsyncAction(async (copy: SigningStepCopy, file: File) => {
         <MutedText v-if="!scanWaits(copy) && fieldsToSign(copy.document.signature).length === 0" size="sm" tag="p">
           {{ t('events.documents.step.othersAsked') }}
         </MutedText>
-        <div v-if="!handedIn.includes(keyOf(copy))" class="flex justify-end">
-          <FileUploadButton :accept="SCAN_TYPES" :disabled="handingIn.running.value"
+        <ButtonRow align="end">
+          <SecondaryButton compact :icon="['fas', 'download']" :disabled="busy"
+                           data-testid="registration-signing-download" @click="fetching.run(copy)">
+            {{ t('common.download') }}
+          </SecondaryButton>
+          <FileUploadButton v-if="!handedIn.includes(keyOf(copy))" compact :accept="SCAN_TYPES" :disabled="busy"
                             data-testid="registration-signing-scan" @select="file => handingIn.run(copy, file)">
             {{ t('events.documents.scanUpload') }}
           </FileUploadButton>
-        </div>
+        </ButtonRow>
       </NeutralContainer>
       <ButtonRow align="end">
         <SecondaryButton data-testid="registration-signing-later" @click="open = false">

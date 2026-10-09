@@ -9,6 +9,7 @@ import {mountSuspended} from '@nuxt/test-utils/runtime'
 import {PaperState, RequirementSignatureState, RequirementStatus} from '@/api/generated/schema'
 import {appointmentDocuments} from '@/api'
 import type {SigningStep, SigningStepCopy} from '@/composables/useRegistrationSigningStep'
+import {fetchCopy} from '../eventdetailview/documentsToBring'
 import RegistrationSigningStep from './RegistrationSigningStep.vue'
 
 const push = vi.hoisted(() => vi.fn())
@@ -22,6 +23,10 @@ vi.mock('@/api', () => ({
     appointmentDocuments: {
         submitScan: vi.fn(),
     },
+}))
+
+vi.mock('../eventdetailview/documentsToBring', () => ({
+    fetchCopy: vi.fn(),
 }))
 
 function copy(memberId: number, name: string, yours: boolean): SigningStepCopy {
@@ -64,11 +69,26 @@ async function mountStep(step: SigningStep) {
 
 /**
  * The step a registration ends on: each copy still waiting with its fields, the ones the reader signs
- * offered online, a scan handed in instead, and later as the way out.
+ * offered online, each copy to download, a scan handed in instead, and later as the way out.
  */
 describe('RegistrationSigningStep', () => {
     beforeEach(() => {
         vi.mocked(appointmentDocuments.submitScan).mockReset()
+        vi.mocked(fetchCopy).mockReset()
+    })
+
+    it('downloads each copy on its own line to read or print', async () => {
+        vi.mocked(fetchCopy).mockResolvedValue(40)
+        const tim = copy(12, 'Tim Schmidt', true)
+        const step = await mountStep({eventId: 3, date: '2026-10-08', copies: [copy(11, 'Lena Schmidt', true), tim]})
+
+        const downloads = step.findAll('[data-testid="registration-signing-download"]')
+        expect(downloads).toHaveLength(2)
+        expect(downloads[1]!.text()).toBe('Herunterladen')
+        await downloads[1]!.trigger('click')
+        await flushPromises()
+
+        expect(fetchCopy).toHaveBeenCalledWith(3, '2026-10-08', 12, tim.document)
     })
 
     it('signs every field the reader may sign on the copies in one go and names the others asked', async () => {
