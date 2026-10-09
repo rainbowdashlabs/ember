@@ -38,6 +38,8 @@ export interface BlockEditorOptions {
     guardianCondition?: boolean
     /** Whether a row may draw a line between its columns. */
     columnLines?: boolean
+    /** Whether a divider may run vertically, between the two blocks either side of it. */
+    verticalDivider?: boolean
     /** Whether a picture block may show the station's logo. */
     stationLogo?: boolean
     /**
