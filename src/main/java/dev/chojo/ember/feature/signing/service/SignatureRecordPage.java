@@ -115,7 +115,21 @@ public final class SignatureRecordPage {
                 SigningEvidenceFile.FILE_NAME,
                 lines(grouped(input.evidenceSha256()), HASH_GROUPS_PER_LINE),
                 input.verifyAddress(),
-                input.firstPage());
+                input.firstPage(),
+                withdrawal(evidence.withdrawal(), times));
+    }
+
+    private static @Nullable WithdrawalModel withdrawal(
+            SigningEvidenceFile.@Nullable Withdrawal withdrawal, Times times) {
+        if (withdrawal == null) return null;
+        return new WithdrawalModel(
+                withdrawal.withdrawnByName(),
+                withdrawal.capacity(),
+                withdrawal.memberName(),
+                withdrawal.reason(),
+                times.format(withdrawal.withdrawnAt()),
+                withdrawal.truncatedIp(),
+                withdrawal.userAgent());
     }
 
     private static FieldModel field(SigningEvidenceFile.Field field, Times times) {
@@ -228,6 +242,7 @@ public final class SignatureRecordPage {
      * @param evidenceSha256       its hash in lines of grouped characters
      * @param verifyAddress        the installation's verification page
      * @param firstPage            the page number the record starts on
+     * @param withdrawal           the withdrawal of the agreement, or null where nobody withdrew it
      */
     record Model(
             String station,
@@ -243,7 +258,28 @@ public final class SignatureRecordPage {
             String evidenceFile,
             List<String> evidenceSha256,
             String verifyAddress,
-            int firstPage) {}
+            int firstPage,
+            @Nullable WithdrawalModel withdrawal) {}
+
+    /**
+     * The withdrawal on the page.
+     *
+     * @param withdrawnByName who withdrew the agreement
+     * @param capacity        {@link SignerCapacity#GUARDIAN} where a guardian withdrew it for the member
+     * @param memberName      the member a guardian withdrew it for, or null
+     * @param reason          why, or null
+     * @param withdrawnAt     when
+     * @param truncatedIp     from which network, or null
+     * @param userAgent       with which browser, or null
+     */
+    record WithdrawalModel(
+            String withdrawnByName,
+            SignerCapacity capacity,
+            @Nullable String memberName,
+            @Nullable String reason,
+            String withdrawnAt,
+            @Nullable String truncatedIp,
+            @Nullable String userAgent) {}
 
     /**
      * One field on the page.

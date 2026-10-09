@@ -170,7 +170,7 @@ public class SignatureManagementService {
     private List<ManagedSignatureRequest.Correction> correctionsOf(SignatureRequest request) {
         return switch (request.state()) {
             case OPEN, COMPLETE -> requests.corrections(request, CORRECTIONS_SHOWN);
-            case WITHDRAWN, SUPERSEDED -> List.of();
+            case WITHDRAWN, SUPERSEDED, REVOKED -> List.of();
         };
     }
 }

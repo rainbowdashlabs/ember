@@ -199,6 +199,8 @@ const sampleCancellation: CancellationNotice = {
       <p>{{ t('helpCenter.eventDetail.documentsToBringSigningText') }}</p>
       <p>{{ t('helpCenter.eventDetail.documentsToBringSigningStatusText') }}</p>
       <p>{{ t('helpCenter.eventDetail.documentsToBringPartnersText') }}</p>
+      <p>{{ t('helpCenter.eventDetail.documentsToBringAgreementText') }}</p>
+      <p>{{ t('helpCenter.eventDetail.documentsToBringWithdrawText') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.eventDetail.commentsTitle')">

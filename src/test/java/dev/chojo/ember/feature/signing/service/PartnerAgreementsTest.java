@@ -296,7 +296,14 @@ class PartnerAgreementsTest extends GeneratorTestBase {
                 notices,
                 new TemplateDocumentStatements(organiser.generator()));
         fields = new SignatureFieldService(
-                requestRepo, evidenceRepo, requests, guards, guardianPolicy, memberNameResolver, notices);
+                requestRepo,
+                evidenceRepo,
+                requests,
+                guards,
+                guardianPolicy,
+                memberNameResolver,
+                notices,
+                completed -> {});
         deliveries = new PartnerDeliveries(
                 linkRepo,
                 requestRepo,
@@ -319,7 +326,7 @@ class PartnerAgreementsTest extends GeneratorTestBase {
                 requestRepo,
                 linkRepo,
                 deliveries,
-                new RequirementSignatureStates(requestRepo, requests));
+                new RequirementSignatureStates(requestRepo, requests, new WithdrawalRights(guardianPolicy)));
         sealer = TestSealing.stateSealer(memberDocumentRepo, documents, stationRepo, deliveries);
 
         endpoints = transport.serve(events, authorities, agreements);

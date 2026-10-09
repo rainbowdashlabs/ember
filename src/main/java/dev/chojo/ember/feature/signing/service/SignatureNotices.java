@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.signing.service;
 
+import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.documents.entity.Document;
 import dev.chojo.ember.feature.documents.repository.DocumentRepository;
 import dev.chojo.ember.feature.mail.entity.SignatureInvitation;
@@ -15,6 +16,7 @@ import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.LinkHome;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
+import dev.chojo.ember.feature.notifications.entity.NotificationData.NotificationLink;
 import dev.chojo.ember.feature.notifications.entity.NotificationLinks;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
@@ -24,12 +26,14 @@ import dev.chojo.ember.feature.notifications.service.Notifier;
 import dev.chojo.ember.feature.signing.entity.FieldRole;
 import dev.chojo.ember.feature.signing.entity.RequestedSignature;
 import dev.chojo.ember.feature.signing.entity.SignatureRequest;
+import dev.chojo.ember.feature.signing.entity.SignatureWithdrawal;
 import dev.chojo.ember.feature.signing.entity.SignerCapacity;
 import dev.chojo.ember.feature.signing.entity.StoredEvidence;
 import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,6 +63,9 @@ import java.util.Optional;
  *
  * <p><b>Given.</b> Every signature is told in the app to the member who asked for the signatures, unless they
  * gave it themselves; their digest mails it where they chose so.
+ *
+ * <p><b>Withdrawn.</b> A withdrawn agreement is told in the app to whoever runs the appointment that asked for
+ * it, or to whoever asked for the signatures, except to whoever withdrew it.
  *
  * <p><b>Settled.</b> Once a field no longer waits, by a signature, on paper, waived or withdrawn, the unread
  * requests and reminders for it are taken back, since there is nothing left to do about them.
@@ -144,6 +151,40 @@ public class SignatureNotices {
                     evidence.fieldId(),
                     request.uid(),
                     e);
+        }
+    }
+
+    /**
+     * Tells the side that asked for an agreement that it was withdrawn: whoever runs the appointment that
+     * asked for it, else whoever asked for the signatures. Whoever withdrew it is not told.
+     *
+     * @param request    the request whose agreement was withdrawn
+     * @param withdrawal the withdrawal
+     * @param eventId    the appointment that asked for the document, or null where none did
+     */
+    public void withdrawn(SignatureRequest request, SignatureWithdrawal withdrawal, @Nullable Integer eventId) {
+        try {
+            var params = new NotificationParams.SignatureWithdrawn(
+                    titleOf(request), withdrawal.withdrawnByName(), request.memberName());
+            StationAudience audience;
+            NotificationLink link;
+            if (eventId != null) {
+                audience = StationAudience.holders(request.stationId(), StationPermission.EVENT_MANAGER);
+                link = NotificationLinks.event(eventId);
+            } else {
+                Integer askedBy = request.createdBy();
+                if (askedBy == null) return;
+                audience = StationAudience.member(askedBy);
+                Integer memberId = request.memberId();
+                link = memberId == null ? NotificationLinks.ownDocuments() : NotificationLinks.member(memberId);
+            }
+            notifier.notify(
+                    audience.except(withdrawal.withdrawnBy()),
+                    NotificationType.SIGNATURE_WITHDRAWN,
+                    NotificationData.of(params, link),
+                    Delivery.EVERY_TIME);
+        } catch (RuntimeException e) {
+            log.warn("Could not tell that the agreement of signing request {} was withdrawn", request.uid(), e);
         }
     }
 

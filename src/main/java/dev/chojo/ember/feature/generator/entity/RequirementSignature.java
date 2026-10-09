@@ -5,25 +5,33 @@
  */
 package dev.chojo.ember.feature.generator.entity;
 
+import org.jspecify.annotations.Nullable;
+
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
 /**
  * The signatures asked for on a participant's copy of a document an appointment asks for on one date.
  *
- * @param templateId the document asked for
- * @param memberId   the participant
- * @param requestUid the request for the signatures
- * @param state      where the copy stands as a whole: open while a field is, waived where every field was let
- *                   go, confirmed on paper where any field was, else signed
- * @param fields     its signature fields, in the order the copy carries them
+ * @param templateId   the document asked for
+ * @param memberId     the participant
+ * @param requestUid   the request for the signatures
+ * @param state        where the copy stands as a whole: revoked where a signer withdrew it, open while a field
+ *                     is, waived where every field was let go, confirmed on paper where any field was, else
+ *                     signed
+ * @param fields       its signature fields, in the order the copy carries them
+ * @param withdrawable whether the reader may withdraw what was signed on it
+ * @param withdrawnAt  when a signer withdrew it, or null where nobody did
  */
 public record RequirementSignature(
         int templateId,
         int memberId,
         UUID requestUid,
         RequirementSignatureState state,
-        List<RequirementSignatureField> fields) {
+        List<RequirementSignatureField> fields,
+        boolean withdrawable,
+        @Nullable Instant withdrawnAt) {
 
     public RequirementSignature {
         fields = List.copyOf(fields);

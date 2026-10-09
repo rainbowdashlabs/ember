@@ -223,7 +223,12 @@ public class AppointmentDocumentRoutes implements Routes {
                 ctx.bodyAsClass(RequirementsRequest.class).templateIds(), List.of());
     }
 
-    /** The date of the appointment the documents are for, which every request about them names. */
+    /**
+     * The date of the appointment the documents are for, which every request about them names.
+     *
+     * @param ctx the request, carrying the date as the query parameter {@code date}
+     * @return the date
+     */
     public static LocalDate date(Context ctx) {
         String value = ctx.queryParam("date");
         if (value == null || value.isBlank()) throw EventRefusal.EVENT_DOCUMENTS_DATE_MISSING.raise();

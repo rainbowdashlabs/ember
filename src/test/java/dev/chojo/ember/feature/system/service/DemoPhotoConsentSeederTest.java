@@ -186,7 +186,8 @@ class DemoPhotoConsentSeederTest extends RepositoryTestBase {
                 guards,
                 guardianPolicy,
                 memberNameResolver,
-                mock(SignatureNotices.class));
+                mock(SignatureNotices.class),
+                completed -> {});
         var audit = new TwoFactorAuditService(twoFactorRepo);
         var twoFactor = new TwoFactorService(
                 twoFactorRepo,

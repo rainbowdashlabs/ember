@@ -18701,6 +18701,53 @@
         } ]
       }
     },
+    "/api/v1/events/{id}/agreement-signers" : {
+      "get" : {
+        "summary" : "Who signed the documents an appointment asks for on a date",
+        "tags" : [ "Signing" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/AgreementSigner"
+                  }
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "date",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ]
+      }
+    },
     "/api/v1/events/{id}/attachments" : {
       "post" : {
         "summary" : "Attach a file of the station library to an event",
@@ -19411,6 +19458,76 @@
               "application/json" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/GeneratedDocumentResponse"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "templateId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "memberId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "date",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ]
+      }
+    },
+    "/api/v1/events/{id}/documents-to-bring/{templateId}/members/{memberId}/agreement" : {
+      "post" : {
+        "summary" : "Ask for the signatures of an appointment's agreement for a member, on an appointment without registrations",
+        "tags" : [ "Signing" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RequirementSignature"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
                 }
               }
             }
@@ -40851,6 +40968,36 @@
         }
       }
     },
+    "/api/v1/signing/documents/{documentId}/agreements" : {
+      "get" : {
+        "summary" : "The agreements signed on a member document that the reader signed or acts for",
+        "tags" : [ "Signing" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/DocumentAgreement"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "documentId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
     "/api/v1/signing/fields/{fieldId}" : {
       "get" : {
         "summary" : "One signature field waiting for the reader, with how they would sign it",
@@ -41675,6 +41822,82 @@
             "format" : "uuid"
           }
         } ]
+      }
+    },
+    "/api/v1/signing/requests/{requestUid}/withdrawal" : {
+      "post" : {
+        "summary" : "Withdraw a signed agreement",
+        "tags" : [ "Signing" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AgreementWithdrawalResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "requestUid",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AgreementWithdrawalRequest"
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/station-applications" : {
@@ -46427,6 +46650,63 @@
           }
         },
         "required" : [ "emailPending", "emailSending", "emailSentToday", "emailFailed", "emailSent", "mailProviderBlocks", "totalAccounts", "totalStations", "totalClusters", "totalMembers", "activeSessions", "pendingApplications", "sessionsThisMonth", "totalInventoryItems", "totalEvents", "totalAttendanceSessions", "totalAttendanceEntries", "totalProfileFields", "totalGroups", "accountsVerified", "accountsUnverified", "stationsSetupComplete", "stationsSetupPending", "accountsWith2fa", "eventsUpcoming", "totalEventRegistrations", "emailByDay", "emailByStatus", "attendanceByStatus", "registrationsByDay", "sessionsByDay", "topStationsByMembers" ]
+      },
+      "AgreementSigner" : {
+        "type" : "object",
+        "properties" : {
+          "memberId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "templateId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "documentName" : {
+            "type" : "string"
+          },
+          "state" : {
+            "$ref" : "#/components/schemas/RequirementSignatureState"
+          },
+          "signedAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "withdrawnAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "refused" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "memberId", "name", "templateId", "documentName", "state", "signedAt", "withdrawnAt", "refused" ]
+      },
+      "AgreementWithdrawalRequest" : {
+        "type" : "object",
+        "properties" : {
+          "reason" : {
+            "type" : [ "string", "null" ]
+          }
+        }
+      },
+      "AgreementWithdrawalResponse" : {
+        "type" : "object",
+        "properties" : {
+          "requestUid" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "withdrawnAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          }
+        },
+        "required" : [ "requestUid", "withdrawnAt" ]
       },
       "AiCredentialRequest" : {
         "type" : "object",
@@ -53327,6 +53607,32 @@
           }
         }
       },
+      "DocumentAgreement" : {
+        "type" : "object",
+        "properties" : {
+          "requestUid" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "state" : {
+            "$ref" : "#/components/schemas/RequestState"
+          },
+          "withdrawable" : {
+            "type" : "boolean"
+          },
+          "withdrawnAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "withdrawnBy" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "requestUid", "state", "withdrawable", "withdrawnAt", "withdrawnBy" ]
+      },
       "DocumentFontView" : {
         "type" : "object",
         "properties" : {
@@ -54902,9 +55208,16 @@
           },
           "fromField" : {
             "type" : "boolean"
+          },
+          "agreementWithdrawnAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
-        "required" : [ "id", "eventId", "memberId", "eventDate", "status", "createdAt", "createdBy", "statusChangedAt", "previousStatus", "fromField" ]
+        "required" : [ "id", "eventId", "memberId", "eventDate", "status", "createdAt", "createdBy", "statusChangedAt", "previousStatus", "fromField", "agreementWithdrawnAt" ]
       },
       "EventRegistrationField" : {
         "type" : "object",
@@ -65209,7 +65522,7 @@
       },
       "NotificationType" : {
         "type" : "string",
-        "enum" : [ "NEW_NEWS", "NEWS_COMMENT", "COMMENT_MENTION", "EVENT_REGISTRATION_STATUS", "MOVEMENT_ADVANCED", "MOVEMENT_RAISED", "MOVEMENT_DECLINED", "MOVEMENT_CANCELLED", "NEW_EVENT", "NEW_EVENTS_BATCH", "MEMBER_ADDED_TO_GROUP", "PROFILE_FIELD_CHANGED", "PROCUREMENT_REQUESTED", "PROCUREMENT_FULFILLED", "NEW_FORM", "LOST_AND_FOUND_NEW", "LOST_AND_FOUND_CLAIMED", "WAITLIST_NEW_ENTRY", "LENDING_NEW_REQUEST", "LENDING_STATUS_CHANGE", "LENDING_NEW_MESSAGE", "BOARD_TICKET_UPDATE", "REGISTRATION_DEADLINE_EXPIRED", "EVENT_CANCELLED", "EVENT_REMINDER", "REGISTRATION_CLOSING", "REGISTRATION_ANSWER_MISSING", "EVENT_DATE_DROPPED", "EVENT_MOVED", "EVENT_DATE_RESTORED", "PROCEDURE_ASSIGNED", "PROCEDURE_RESOLVED", "PROCEDURE_REOPENED", "PROCEDURE_ITEM_CHECKED", "SELF_CHECK_ASSIGNED", "SELF_CHECK_SUBMITTED", "SELF_CHECK_ROW_REFUSED", "WAITLIST_PUBLIC_REGISTRATION", "WAITLIST_INVITATION_ANSWERED", "STORAGE_WARNING", "MAILBOX_SUSPENDED", "MAIL_IMPORT_UNBOUND", "CLUSTER_APPLICATION_SUBMITTED", "CLUSTER_APPLICATION_APPROVED", "CLUSTER_APPLICATION_DENIED", "CLUSTER_APPLICATION_WITHDRAWN", "CLUSTER_STATION_RELEASED", "CLUSTER_MODULE_DENIED", "CLUSTER_ITEM_ISSUED", "CLUSTER_ITEM_LOST", "CLUSTER_QUOTA_CHANGED", "CLUSTER_MEMBER_ROLE_CHANGED", "CLUSTER_FIELD_VALUE_CHANGED", "EXPIRY_REMINDER", "FEDERATION_REQUEST_RECEIVED", "FEDERATION_REQUEST_ACCEPTED", "FEDERATION_REQUEST_DECLINED", "NAME_CHANGE_REQUESTED", "NAME_CHANGE_APPROVED", "NAME_CHANGE_DENIED", "SIGNATURE_REQUESTED", "SIGNATURE_REMINDER", "DOCUMENT_SIGNED", "DOCUMENT_SCAN_REJECTED", "ACCOUNT_LINK_ACCEPTED", "ASSOCIATION_LINK_ACCEPTED" ]
+        "enum" : [ "NEW_NEWS", "NEWS_COMMENT", "COMMENT_MENTION", "EVENT_REGISTRATION_STATUS", "MOVEMENT_ADVANCED", "MOVEMENT_RAISED", "MOVEMENT_DECLINED", "MOVEMENT_CANCELLED", "NEW_EVENT", "NEW_EVENTS_BATCH", "MEMBER_ADDED_TO_GROUP", "PROFILE_FIELD_CHANGED", "PROCUREMENT_REQUESTED", "PROCUREMENT_FULFILLED", "NEW_FORM", "LOST_AND_FOUND_NEW", "LOST_AND_FOUND_CLAIMED", "WAITLIST_NEW_ENTRY", "LENDING_NEW_REQUEST", "LENDING_STATUS_CHANGE", "LENDING_NEW_MESSAGE", "BOARD_TICKET_UPDATE", "REGISTRATION_DEADLINE_EXPIRED", "EVENT_CANCELLED", "EVENT_REMINDER", "REGISTRATION_CLOSING", "REGISTRATION_ANSWER_MISSING", "EVENT_DATE_DROPPED", "EVENT_MOVED", "EVENT_DATE_RESTORED", "PROCEDURE_ASSIGNED", "PROCEDURE_RESOLVED", "PROCEDURE_REOPENED", "PROCEDURE_ITEM_CHECKED", "SELF_CHECK_ASSIGNED", "SELF_CHECK_SUBMITTED", "SELF_CHECK_ROW_REFUSED", "WAITLIST_PUBLIC_REGISTRATION", "WAITLIST_INVITATION_ANSWERED", "STORAGE_WARNING", "MAILBOX_SUSPENDED", "MAIL_IMPORT_UNBOUND", "CLUSTER_APPLICATION_SUBMITTED", "CLUSTER_APPLICATION_APPROVED", "CLUSTER_APPLICATION_DENIED", "CLUSTER_APPLICATION_WITHDRAWN", "CLUSTER_STATION_RELEASED", "CLUSTER_MODULE_DENIED", "CLUSTER_ITEM_ISSUED", "CLUSTER_ITEM_LOST", "CLUSTER_QUOTA_CHANGED", "CLUSTER_MEMBER_ROLE_CHANGED", "CLUSTER_FIELD_VALUE_CHANGED", "EXPIRY_REMINDER", "FEDERATION_REQUEST_RECEIVED", "FEDERATION_REQUEST_ACCEPTED", "FEDERATION_REQUEST_DECLINED", "NAME_CHANGE_REQUESTED", "NAME_CHANGE_APPROVED", "NAME_CHANGE_DENIED", "SIGNATURE_REQUESTED", "SIGNATURE_REMINDER", "DOCUMENT_SIGNED", "DOCUMENT_SCAN_REJECTED", "ACCOUNT_LINK_ACCEPTED", "ASSOCIATION_LINK_ACCEPTED", "SIGNATURE_WITHDRAWN" ]
       },
       "NumberConfig" : {
         "type" : "object",
@@ -70363,9 +70676,16 @@
           },
           "fieldName" : {
             "type" : [ "string", "null" ]
+          },
+          "agreementWithdrawnAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
-        "required" : [ "id", "eventId", "memberId", "memberName", "memberIdentity", "eventDate", "status", "createdAt", "createdByName", "fields", "eventName", "answersMissing", "fromField", "fieldName" ]
+        "required" : [ "id", "eventId", "memberId", "memberName", "memberIdentity", "eventDate", "status", "createdAt", "createdByName", "fields", "eventName", "answersMissing", "fromField", "fieldName", "agreementWithdrawnAt" ]
       },
       "RegistrationStatsResponse" : {
         "type" : "object",
@@ -70931,7 +71251,7 @@
       },
       "RequestState" : {
         "type" : "string",
-        "enum" : [ "OPEN", "COMPLETE", "WITHDRAWN", "SUPERSEDED" ]
+        "enum" : [ "OPEN", "COMPLETE", "WITHDRAWN", "SUPERSEDED", "REVOKED" ]
       },
       "RequeuedMails" : {
         "type" : "object",
@@ -70983,9 +71303,12 @@
             }, {
               "type" : "null"
             } ]
+          },
+          "agreementOffered" : {
+            "type" : "boolean"
           }
         },
-        "required" : [ "templateId", "name", "status", "documentId", "generatedAt", "outdated", "paper", "signature" ]
+        "required" : [ "templateId", "name", "status", "documentId", "generatedAt", "outdated", "paper", "signature", "agreementOffered" ]
       },
       "RequiredInventoryItem" : {
         "type" : "object",
@@ -71164,9 +71487,19 @@
             "items" : {
               "$ref" : "#/components/schemas/RequirementSignatureField"
             }
+          },
+          "withdrawable" : {
+            "type" : "boolean"
+          },
+          "withdrawnAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
-        "required" : [ "templateId", "memberId", "requestUid", "state", "fields" ]
+        "required" : [ "templateId", "memberId", "requestUid", "state", "fields", "withdrawable", "withdrawnAt" ]
       },
       "RequirementSignatureField" : {
         "type" : "object",
@@ -71192,7 +71525,7 @@
       },
       "RequirementSignatureState" : {
         "type" : "string",
-        "enum" : [ "OPEN", "SIGNED", "PAPER_CONFIRMED", "WAIVED" ]
+        "enum" : [ "OPEN", "SIGNED", "PAPER_CONFIRMED", "WAIVED", "REVOKED" ]
       },
       "RequirementStatus" : {
         "type" : "string",

@@ -22388,6 +22388,55 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/{id}/agreement-signers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Who signed the documents an appointment asks for on a date */
+        get: {
+            parameters: {
+                query: {
+                    date: string;
+                };
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AgreementSigner"][];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/{id}/attachments": {
         parameters: {
             query?: never;
@@ -23176,6 +23225,66 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["GeneratedDocumentResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/{id}/documents-to-bring/{templateId}/members/{memberId}/agreement": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ask for the signatures of an appointment's agreement for a member, on an appointment without registrations */
+        post: {
+            parameters: {
+                query: {
+                    date: string;
+                };
+                header?: never;
+                path: {
+                    id: number;
+                    memberId: number;
+                    templateId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RequirementSignature"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
                     };
                 };
                 /** @description Forbidden */
@@ -53725,6 +53834,44 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/signing/documents/{documentId}/agreements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The agreements signed on a member document that the reader signed or acts for */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    documentId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DocumentAgreement"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/signing/fields/{fieldId}": {
         parameters: {
             query?: never;
@@ -54600,6 +54747,84 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["ManagedRequestResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/signing/requests/{requestUid}/withdrawal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Withdraw a signed agreement */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    requestUid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["AgreementWithdrawalRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AgreementWithdrawalResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
                     };
                 };
                 /** @description Forbidden */
@@ -60359,6 +60584,26 @@ export interface components {
             /** Format: int32 */
             totalStations: number;
         };
+        AgreementSigner: {
+            documentName: string;
+            /** Format: int32 */
+            memberId: number;
+            name: string;
+            refused: boolean;
+            signedAt: components["schemas"]["Instant"];
+            state: components["schemas"]["RequirementSignatureState"];
+            /** Format: int32 */
+            templateId: number;
+            withdrawnAt: components["schemas"]["Instant"] | null;
+        };
+        AgreementWithdrawalRequest: {
+            reason?: string | null;
+        };
+        AgreementWithdrawalResponse: {
+            /** Format: uuid */
+            requestUid: string;
+            withdrawnAt: components["schemas"]["Instant"];
+        };
         AiCredentialRequest: {
             apiKey?: string | null;
             model?: string | null;
@@ -62725,6 +62970,14 @@ export interface components {
         DividerConfig: {
             label?: string;
         };
+        DocumentAgreement: {
+            /** Format: uuid */
+            requestUid: string;
+            state: components["schemas"]["RequestState"];
+            withdrawable: boolean;
+            withdrawnAt: components["schemas"]["Instant"] | null;
+            withdrawnBy: string | null;
+        };
         DocumentFontsResponse: {
             defaultFamily: string;
             defaultStyles: components["schemas"]["FontStyle"][];
@@ -63246,6 +63499,7 @@ export interface components {
             memberId?: number;
         };
         EventRegistration: {
+            agreementWithdrawnAt: components["schemas"]["Instant"] | null;
             createdAt: components["schemas"]["Instant"];
             /** Format: int32 */
             createdBy: number | null;
@@ -66844,7 +67098,7 @@ export interface components {
             feed: boolean;
         };
         /** @enum {string} */
-        NotificationType: "NEW_NEWS" | "NEWS_COMMENT" | "COMMENT_MENTION" | "EVENT_REGISTRATION_STATUS" | "MOVEMENT_ADVANCED" | "MOVEMENT_RAISED" | "MOVEMENT_DECLINED" | "MOVEMENT_CANCELLED" | "NEW_EVENT" | "NEW_EVENTS_BATCH" | "MEMBER_ADDED_TO_GROUP" | "PROFILE_FIELD_CHANGED" | "PROCUREMENT_REQUESTED" | "PROCUREMENT_FULFILLED" | "NEW_FORM" | "LOST_AND_FOUND_NEW" | "LOST_AND_FOUND_CLAIMED" | "WAITLIST_NEW_ENTRY" | "LENDING_NEW_REQUEST" | "LENDING_STATUS_CHANGE" | "LENDING_NEW_MESSAGE" | "BOARD_TICKET_UPDATE" | "REGISTRATION_DEADLINE_EXPIRED" | "EVENT_CANCELLED" | "EVENT_REMINDER" | "REGISTRATION_CLOSING" | "REGISTRATION_ANSWER_MISSING" | "EVENT_DATE_DROPPED" | "EVENT_MOVED" | "EVENT_DATE_RESTORED" | "PROCEDURE_ASSIGNED" | "PROCEDURE_RESOLVED" | "PROCEDURE_REOPENED" | "PROCEDURE_ITEM_CHECKED" | "SELF_CHECK_ASSIGNED" | "SELF_CHECK_SUBMITTED" | "SELF_CHECK_ROW_REFUSED" | "WAITLIST_PUBLIC_REGISTRATION" | "WAITLIST_INVITATION_ANSWERED" | "STORAGE_WARNING" | "MAILBOX_SUSPENDED" | "MAIL_IMPORT_UNBOUND" | "CLUSTER_APPLICATION_SUBMITTED" | "CLUSTER_APPLICATION_APPROVED" | "CLUSTER_APPLICATION_DENIED" | "CLUSTER_APPLICATION_WITHDRAWN" | "CLUSTER_STATION_RELEASED" | "CLUSTER_MODULE_DENIED" | "CLUSTER_ITEM_ISSUED" | "CLUSTER_ITEM_LOST" | "CLUSTER_QUOTA_CHANGED" | "CLUSTER_MEMBER_ROLE_CHANGED" | "CLUSTER_FIELD_VALUE_CHANGED" | "EXPIRY_REMINDER" | "FEDERATION_REQUEST_RECEIVED" | "FEDERATION_REQUEST_ACCEPTED" | "FEDERATION_REQUEST_DECLINED" | "NAME_CHANGE_REQUESTED" | "NAME_CHANGE_APPROVED" | "NAME_CHANGE_DENIED" | "SIGNATURE_REQUESTED" | "SIGNATURE_REMINDER" | "DOCUMENT_SIGNED" | "DOCUMENT_SCAN_REJECTED" | "ACCOUNT_LINK_ACCEPTED" | "ASSOCIATION_LINK_ACCEPTED";
+        NotificationType: "NEW_NEWS" | "NEWS_COMMENT" | "COMMENT_MENTION" | "EVENT_REGISTRATION_STATUS" | "MOVEMENT_ADVANCED" | "MOVEMENT_RAISED" | "MOVEMENT_DECLINED" | "MOVEMENT_CANCELLED" | "NEW_EVENT" | "NEW_EVENTS_BATCH" | "MEMBER_ADDED_TO_GROUP" | "PROFILE_FIELD_CHANGED" | "PROCUREMENT_REQUESTED" | "PROCUREMENT_FULFILLED" | "NEW_FORM" | "LOST_AND_FOUND_NEW" | "LOST_AND_FOUND_CLAIMED" | "WAITLIST_NEW_ENTRY" | "LENDING_NEW_REQUEST" | "LENDING_STATUS_CHANGE" | "LENDING_NEW_MESSAGE" | "BOARD_TICKET_UPDATE" | "REGISTRATION_DEADLINE_EXPIRED" | "EVENT_CANCELLED" | "EVENT_REMINDER" | "REGISTRATION_CLOSING" | "REGISTRATION_ANSWER_MISSING" | "EVENT_DATE_DROPPED" | "EVENT_MOVED" | "EVENT_DATE_RESTORED" | "PROCEDURE_ASSIGNED" | "PROCEDURE_RESOLVED" | "PROCEDURE_REOPENED" | "PROCEDURE_ITEM_CHECKED" | "SELF_CHECK_ASSIGNED" | "SELF_CHECK_SUBMITTED" | "SELF_CHECK_ROW_REFUSED" | "WAITLIST_PUBLIC_REGISTRATION" | "WAITLIST_INVITATION_ANSWERED" | "STORAGE_WARNING" | "MAILBOX_SUSPENDED" | "MAIL_IMPORT_UNBOUND" | "CLUSTER_APPLICATION_SUBMITTED" | "CLUSTER_APPLICATION_APPROVED" | "CLUSTER_APPLICATION_DENIED" | "CLUSTER_APPLICATION_WITHDRAWN" | "CLUSTER_STATION_RELEASED" | "CLUSTER_MODULE_DENIED" | "CLUSTER_ITEM_ISSUED" | "CLUSTER_ITEM_LOST" | "CLUSTER_QUOTA_CHANGED" | "CLUSTER_MEMBER_ROLE_CHANGED" | "CLUSTER_FIELD_VALUE_CHANGED" | "EXPIRY_REMINDER" | "FEDERATION_REQUEST_RECEIVED" | "FEDERATION_REQUEST_ACCEPTED" | "FEDERATION_REQUEST_DECLINED" | "NAME_CHANGE_REQUESTED" | "NAME_CHANGE_APPROVED" | "NAME_CHANGE_DENIED" | "SIGNATURE_REQUESTED" | "SIGNATURE_REMINDER" | "DOCUMENT_SIGNED" | "DOCUMENT_SCAN_REJECTED" | "ACCOUNT_LINK_ACCEPTED" | "ASSOCIATION_LINK_ACCEPTED" | "SIGNATURE_WITHDRAWN";
         NumberConfig: {
             /**
              * @description discriminator enum property added by openapi-typescript
@@ -68590,6 +68844,7 @@ export interface components {
             fields?: components["schemas"]["EventRegistrationFieldValue"][];
         };
         RegistrationResponse: {
+            agreementWithdrawnAt: components["schemas"]["Instant"] | null;
             answersMissing: boolean;
             createdAt: components["schemas"]["Instant"];
             createdByName: string | null;
@@ -68801,12 +69056,13 @@ export interface components {
             userRoles?: string;
         };
         /** @enum {string} */
-        RequestState: "OPEN" | "COMPLETE" | "WITHDRAWN" | "SUPERSEDED";
+        RequestState: "OPEN" | "COMPLETE" | "WITHDRAWN" | "SUPERSEDED" | "REVOKED";
         RequeuedMails: {
             /** Format: int32 */
             requeued: number;
         };
         RequiredDocumentStatus: {
+            agreementOffered: boolean;
             /** Format: int32 */
             documentId: number | null;
             generatedAt: components["schemas"]["Instant"] | null;
@@ -68885,6 +69141,8 @@ export interface components {
             state: components["schemas"]["RequirementSignatureState"];
             /** Format: int32 */
             templateId: number;
+            withdrawable: boolean;
+            withdrawnAt: components["schemas"]["Instant"] | null;
         };
         RequirementSignatureField: {
             /** Format: int32 */
@@ -68895,7 +69153,7 @@ export interface components {
             yours: boolean;
         };
         /** @enum {string} */
-        RequirementSignatureState: "OPEN" | "SIGNED" | "PAPER_CONFIRMED" | "WAIVED";
+        RequirementSignatureState: "OPEN" | "SIGNED" | "PAPER_CONFIRMED" | "WAIVED" | "REVOKED";
         RequirementsRequest: {
             templateIds?: number[] | null;
         };
@@ -71753,6 +72011,9 @@ export type AdminMapsConfig = components['schemas']['AdminMapsConfig'];
 export type AdminOverview = components['schemas']['AdminOverview'];
 export type AdminStationUsage = components['schemas']['AdminStationUsage'];
 export type AdminStatistics = components['schemas']['AdminStatistics'];
+export type AgreementSigner = components['schemas']['AgreementSigner'];
+export type AgreementWithdrawalRequest = components['schemas']['AgreementWithdrawalRequest'];
+export type AgreementWithdrawalResponse = components['schemas']['AgreementWithdrawalResponse'];
 export type AiCredentialRequest = components['schemas']['AiCredentialRequest'];
 export type AiCredentialSummary = components['schemas']['AiCredentialSummary'];
 export type AiGenerateRequest = components['schemas']['AiGenerateRequest'];
@@ -72101,6 +72362,7 @@ export type DiscoveryVisibility = components['schemas']['DiscoveryVisibility'];
 export type DispatchRequest = components['schemas']['DispatchRequest'];
 export type DisplayTag = components['schemas']['DisplayTag'];
 export type DividerConfig = components['schemas']['DividerConfig'];
+export type DocumentAgreement = components['schemas']['DocumentAgreement'];
 export type DocumentFontsResponse = components['schemas']['DocumentFontsResponse'];
 export type DocumentFontView = components['schemas']['DocumentFontView'];
 export type DocumentLanguage = components['schemas']['DocumentLanguage'];
@@ -74143,6 +74405,7 @@ export const NotificationType = {
     SELF_CHECK_SUBMITTED: "SELF_CHECK_SUBMITTED",
     SIGNATURE_REMINDER: "SIGNATURE_REMINDER",
     SIGNATURE_REQUESTED: "SIGNATURE_REQUESTED",
+    SIGNATURE_WITHDRAWN: "SIGNATURE_WITHDRAWN",
     STORAGE_WARNING: "STORAGE_WARNING",
     WAITLIST_INVITATION_ANSWERED: "WAITLIST_INVITATION_ANSWERED",
     WAITLIST_NEW_ENTRY: "WAITLIST_NEW_ENTRY",
@@ -74341,6 +74604,7 @@ export const RegistrationStatus = {
 export const RequestState = {
     COMPLETE: "COMPLETE",
     OPEN: "OPEN",
+    REVOKED: "REVOKED",
     SUPERSEDED: "SUPERSEDED",
     WITHDRAWN: "WITHDRAWN",
 } as const;
@@ -74348,6 +74612,7 @@ export const RequestState = {
 export const RequirementSignatureState = {
     OPEN: "OPEN",
     PAPER_CONFIRMED: "PAPER_CONFIRMED",
+    REVOKED: "REVOKED",
     SIGNED: "SIGNED",
     WAIVED: "WAIVED",
 } as const;

@@ -188,4 +188,8 @@ export default {
     'D-274': 'Der Termin lässt dieses Dokument nicht von Partnerwachen unterschreiben',
     'D-275': 'Das unterschriebene Exemplar dieses Dokuments ist von der Partnerwache bereits zurückgekommen',
     'D-276': 'Von diesem Dokument ist noch kein unterschriebenes Exemplar zurückgekommen',
+    'D-290': 'Diese Unterschrift kannst du nicht widerrufen',
+    'D-291': 'Diese Vereinbarung gilt nicht mehr, es gibt nichts zu widerrufen',
+    'D-292': 'Hier wurde nichts online unterschrieben, ein Widerruf geht deshalb nur auf Papier',
+    'D-293': 'Der Grund darf höchstens 500 Zeichen lang sein',
 }

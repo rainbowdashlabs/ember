@@ -2059,3 +2059,69 @@ COMMENT ON INDEX ember_schema.account_link_request_cluster_open_idx IS
     'An association waits for at most one answer per account at a time.';
 
 ALTER TYPE ember_schema.two_factor_event ADD VALUE IF NOT EXISTS 'ASSOCIATION_LINK_ACCEPTED';
+
+ALTER TABLE ember_schema.signing_request
+    DROP CONSTRAINT IF EXISTS signing_request_state_check,
+    ADD CONSTRAINT signing_request_state_check
+        CHECK (state IN ('OPEN', 'COMPLETE', 'WITHDRAWN', 'SUPERSEDED', 'REVOKED'));
+
+COMMENT ON COLUMN ember_schema.signing_request.state IS
+    'OPEN while a field waits for a signature, COMPLETE once every field is signed, confirmed on paper, waived or withdrawn and at least one was signed or confirmed, WITHDRAWN when nothing was signed or confirmed, SUPERSEDED when a corrected document replaced it, REVOKED when a signer withdrew the signed agreement (signing_withdrawal); what was signed on a revoked request stays as evidence.';
+COMMENT ON CONSTRAINT signing_request_state_check ON ember_schema.signing_request IS
+    'The states a request can be in.';
+
+CREATE TABLE IF NOT EXISTS ember_schema.signing_withdrawal
+(
+    id                SERIAL PRIMARY KEY,
+    request_id        INTEGER     NOT NULL UNIQUE,
+    member_id         INTEGER     NULL REFERENCES ember_schema.station_member (id) ON DELETE SET NULL,
+    withdrawn_by      INTEGER     NULL REFERENCES ember_schema.station_member (id) ON DELETE SET NULL,
+    withdrawn_by_name TEXT        NOT NULL,
+    capacity          TEXT        NOT NULL CHECK (capacity IN ('ACCOUNT_HOLDER', 'GUARDIAN')),
+    reason            TEXT        NULL CHECK (reason IS NULL OR length(reason) BETWEEN 1 AND 500),
+    withdrawn_at      TIMESTAMPTZ NOT NULL,
+    truncated_ip      TEXT        NULL,
+    user_agent        TEXT        NULL,
+    sealed_sha256     TEXT        NULL CHECK (sealed_sha256 ~ '^[0-9a-f]{64}$'),
+    CONSTRAINT signing_withdrawal_request FOREIGN KEY (request_id)
+        REFERENCES ember_schema.signing_request (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED
+);
+
+CREATE INDEX IF NOT EXISTS signing_withdrawal_member_idx ON ember_schema.signing_withdrawal (member_id);
+CREATE INDEX IF NOT EXISTS signing_withdrawal_withdrawn_by_idx ON ember_schema.signing_withdrawal (withdrawn_by);
+CREATE INDEX IF NOT EXISTS signing_withdrawal_unsealed_idx
+    ON ember_schema.signing_withdrawal (withdrawn_at)
+    WHERE sealed_sha256 IS NULL;
+
+COMMENT ON TABLE ember_schema.signing_withdrawal IS
+    'A signed agreement its signer withdrew: who withdrew it, when, from where and why. The request it withdraws is REVOKED, its signed fields and their evidence stay, and the withdrawal is sealed into a new version of the document, after the versions that carry the signatures. Kept and deleted with its request.';
+COMMENT ON COLUMN ember_schema.signing_withdrawal.id IS 'Primary key.';
+COMMENT ON COLUMN ember_schema.signing_withdrawal.request_id IS
+    'The request whose agreement was withdrawn. A request is withdrawn once.';
+COMMENT ON COLUMN ember_schema.signing_withdrawal.member_id IS
+    'The member the document is about, copied from the request so the withdrawal is part of that member''s data. NULL once that member was deleted.';
+COMMENT ON COLUMN ember_schema.signing_withdrawal.withdrawn_by IS
+    'The member who withdrew the agreement: the member themselves, a guardian acting for them, or somebody who signed a field of it. NULL once they are gone.';
+COMMENT ON COLUMN ember_schema.signing_withdrawal.withdrawn_by_name IS
+    'The official name of whoever withdrew the agreement, as it was then, kept once they are gone.';
+COMMENT ON COLUMN ember_schema.signing_withdrawal.capacity IS
+    'In what capacity the agreement was withdrawn: ACCOUNT_HOLDER by the member themselves or by a signer for their own signature, GUARDIAN by a guardian on behalf of the member.';
+COMMENT ON COLUMN ember_schema.signing_withdrawal.reason IS
+    'Why it was withdrawn, as the person wrote it, at most 500 characters. NULL where no reason was given.';
+COMMENT ON COLUMN ember_schema.signing_withdrawal.withdrawn_at IS 'When the agreement was withdrawn.';
+COMMENT ON COLUMN ember_schema.signing_withdrawal.truncated_ip IS
+    'The network address the withdrawal came from, shortened like the address of a signing act. NULL where none was known.';
+COMMENT ON COLUMN ember_schema.signing_withdrawal.user_agent IS
+    'The browser the withdrawal came from, as it named itself. NULL where none was known.';
+COMMENT ON COLUMN ember_schema.signing_withdrawal.sealed_sha256 IS
+    'SHA-256 of the first sealed version of the document that carries the withdrawal, lower-case hexadecimal. NULL until it is sealed; a sweep seals a withdrawal whose sealing failed.';
+COMMENT ON CONSTRAINT signing_withdrawal_request ON ember_schema.signing_withdrawal IS
+    'A withdrawal goes with its request. Checked at commit, for the same reason as signing_request_field_request.';
+COMMENT ON INDEX ember_schema.signing_withdrawal_unsealed_idx IS
+    'Finds the withdrawals no sealed version carries yet, which the sweep seals.';
+
+ALTER TABLE ember_schema.event_registration
+    ADD COLUMN agreement_withdrawn_at TIMESTAMPTZ NULL;
+
+COMMENT ON COLUMN ember_schema.event_registration.agreement_withdrawn_at IS
+    'When a signed agreement for this date that one of the appointment''s documents to bring asked for was withdrawn while the registration stood, which flags the registration for whoever runs the appointment. NULL where none was, and again once the agreement is signed anew.';

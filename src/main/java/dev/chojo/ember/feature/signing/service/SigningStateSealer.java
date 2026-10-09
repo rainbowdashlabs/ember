@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.signing.entity.SealLevel;
 import dev.chojo.ember.feature.signing.entity.SealedDocument;
 import dev.chojo.ember.feature.signing.entity.SealingKey;
 import dev.chojo.ember.feature.signing.entity.SignatureRequestView;
+import dev.chojo.ember.feature.signing.entity.SignatureWithdrawal;
 import dev.chojo.ember.feature.signing.entity.StoredEvidence;
 import dev.chojo.ember.feature.signing.repository.SignatureRequestRepository;
 import dev.chojo.ember.feature.signing.repository.SigningEvidenceRepository;
@@ -22,6 +23,7 @@ import dev.chojo.ember.util.Sha256;
 import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,9 +50,11 @@ import java.util.Optional;
  *
  * <p>Sealing runs after the act is recorded and outside its transaction, since it may wait for the
  * timestamp services, and it is safe to run again at any time. A version is filed only on a request somebody
- * signed electronically, since only that has a sealed document, and only while some act on it, or some field
- * confirmed on paper, waived or withdrawn since, is shown by no version yet; and only when the fields still
- * stand as they did when it was assembled. Otherwise it is dropped, and the newer state is sealed by whoever
+ * signed electronically, since only that has a sealed document, and only while some act on it, some field
+ * confirmed on paper, waived or withdrawn since, or the withdrawal of its agreement is shown by no version yet;
+ * and only when the fields and the withdrawal still stand as they did when it was assembled. A withdrawal is
+ * a version of its own after the ones that carry the signatures, which stay filed and valid as the evidence
+ * of what was agreed until then. Otherwise it is dropped, and the newer state is sealed by whoever
  * changed it or by the next run. The acts and settled fields a version shows for the first time keep its
  * SHA-256. An act whose sealing failed is sealed with the next act on the request or by
  * {@link SigningStateSweeper}, which also seals the fields a manager settled.
@@ -126,8 +130,11 @@ public class SigningStateSealer {
     Optional<UnsealedState> unsealedState(int requestId) {
         var view = Transactions.call(() -> requests.lockRequest(requestId)
                 .map(request -> new SignatureRequestView(
-                        request, requests.fieldsOf(requestId), evidence.evidenceOf(requestId))));
-        if (view.isEmpty() || !needsSeal(view.get().fields(), view.get().evidence())) return Optional.empty();
+                        request,
+                        requests.fieldsOf(requestId),
+                        evidence.evidenceOf(requestId),
+                        requests.withdrawalOf(requestId).orElse(null))));
+        if (view.isEmpty() || !needsSeal(view.get())) return Optional.empty();
         var request = view.get().request();
         Integer documentId = request.documentId();
         if (documentId == null) {
@@ -166,18 +173,24 @@ public class SigningStateSealer {
         var request = state.view().request();
         return Transactions.call(() -> {
             if (requests.lockRequest(request.id()).isEmpty()) return false;
-            var fields = requests.fieldsOf(request.id());
-            if (!fields.equals(state.view().fields())) {
+            var current = new SignatureRequestView(
+                    request,
+                    requests.fieldsOf(request.id()),
+                    evidence.evidenceOf(request.id()),
+                    requests.withdrawalOf(request.id()).orElse(null));
+            if (!current.fields().equals(state.view().fields())
+                    || !Objects.equals(withdrawalId(current), withdrawalId(state.view()))) {
                 log.info(
                         "Signing request {} changed while its state was sealed; the newer state is sealed instead",
                         request.uid());
                 return false;
             }
-            if (!needsSeal(fields, evidence.evidenceOf(request.id()))) return false;
+            if (!needsSeal(current)) return false;
             sealedDocuments.fileVersion(state.document(), sealed);
             String sha256 = Sha256.hex(sealed.pdf());
             var carried = evidence.markSealed(request.id(), sha256);
             int shown = requests.markSettledSealed(request.id(), sha256);
+            requests.markWithdrawalSealed(request.id(), sha256);
             evidence.clearSealFailure(request.id());
             copies.queue(state.view(), state.document(), sealed.pdf(), sha256, carried);
             log.info(
@@ -193,12 +206,21 @@ public class SigningStateSealer {
 
     /**
      * Whether a state is worth a new version: somebody signed the request electronically, which is what
-     * gives it a sealed document at all, and an act or a settled field is shown by no version yet.
+     * gives it a sealed document at all, and an act, a settled field or the withdrawal of its agreement is
+     * shown by no version yet.
      */
-    private static boolean needsSeal(List<RequestedSignature> fields, List<StoredEvidence> acts) {
+    private static boolean needsSeal(SignatureRequestView view) {
+        List<StoredEvidence> acts = view.evidence();
         if (acts.isEmpty()) return false;
+        @Nullable SignatureWithdrawal withdrawal = view.withdrawal();
         return acts.stream().map(StoredEvidence::sealedSha256).anyMatch(Objects::isNull)
-                || fields.stream().anyMatch(RequestedSignature::awaitsSeal);
+                || view.fields().stream().anyMatch(RequestedSignature::awaitsSeal)
+                || (withdrawal != null && withdrawal.sealedSha256() == null);
+    }
+
+    private static @Nullable Integer withdrawalId(SignatureRequestView view) {
+        @Nullable SignatureWithdrawal withdrawal = view.withdrawal();
+        return withdrawal == null ? null : withdrawal.id();
     }
 
     /**

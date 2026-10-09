@@ -8,10 +8,15 @@ package dev.chojo.ember.feature.signing.service;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.TestUploads;
 import dev.chojo.ember.api.auth.StationPermission;
+import dev.chojo.ember.api.refusal.DocumentRefusal;
+import dev.chojo.ember.api.refusal.EventRefusal;
+import dev.chojo.ember.api.refusal.Refusal;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.content.route.BlockRowRequest;
 import dev.chojo.ember.feature.documents.service.DocumentAccessService;
 import dev.chojo.ember.feature.documents.service.DocumentCatalogService;
+import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFederationRepository;
@@ -34,11 +39,18 @@ import dev.chojo.ember.feature.generator.service.PaperSubmissionService;
 import dev.chojo.ember.feature.generator.service.pdf.TestPdfs;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
+import dev.chojo.ember.feature.signing.entity.CompletedSigning;
 import dev.chojo.ember.feature.signing.entity.FieldState;
 import dev.chojo.ember.feature.signing.entity.PendingSignature;
 import dev.chojo.ember.feature.signing.entity.RequestState;
 import dev.chojo.ember.feature.signing.entity.RequestedSignature;
+import dev.chojo.ember.feature.signing.entity.SignatureLevel;
 import dev.chojo.ember.feature.signing.entity.SignatureRequest;
+import dev.chojo.ember.feature.signing.entity.Signer;
+import dev.chojo.ember.feature.signing.entity.SignerCapacity;
+import dev.chojo.ember.feature.signing.entity.SigningAct;
+import dev.chojo.ember.feature.signing.entity.SigningCircumstances;
+import dev.chojo.ember.feature.signing.entity.SigningEvidence;
 import dev.chojo.ember.feature.signing.handler.RegistrationSignaturesHandler;
 import dev.chojo.ember.feature.signing.repository.SignatureRequestRepository;
 import dev.chojo.ember.feature.signing.repository.SigningEvidenceRepository;
@@ -47,24 +59,32 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
 
 import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static de.chojo.sadu.queries.api.call.Call.call;
+import static de.chojo.sadu.queries.api.query.Query.query;
 import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.letter;
 import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.row;
 import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.signature;
 import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.text;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
 
 /**
  * Registering for an appointment whose documents to bring ask for signatures: the copy is generated and its
@@ -86,6 +106,10 @@ class AppointmentSignaturesTest extends GeneratorTestBase {
     private static EventRegistrationService registrations;
     private static SignatureRequestService requests;
     private static SignatureFieldService fields;
+    private static AgreementAttendance attendance;
+    private static AgreementOffers offers;
+    private static AgreementSigners signers;
+    private static SignatureWithdrawals withdrawals;
     private static StationMember manager;
     private static StationMember guardian;
     private static StationMember child;
@@ -130,7 +154,14 @@ class AppointmentSignaturesTest extends GeneratorTestBase {
                 notices,
                 new TemplateDocumentStatements(wiring.generator()));
         fields = new SignatureFieldService(
-                requestRepo, evidenceRepo, requests, guards, guardianPolicy, memberNameResolver, notices);
+                requestRepo,
+                evidenceRepo,
+                requests,
+                guards,
+                guardianPolicy,
+                memberNameResolver,
+                notices,
+                completed -> attendance.completed(completed));
 
         var requirementRepo = new EventRequirementRepository();
         var submissions = new PaperSubmissionRepository();
@@ -151,7 +182,7 @@ class AppointmentSignaturesTest extends GeneratorTestBase {
                 memberNameResolver,
                 wiring.issuers(),
                 new EventRestrictionService(eventRepo, restrictionService),
-                new RequirementSignatureStates(requestRepo, requests));
+                new RequirementSignatureStates(requestRepo, requests, new WithdrawalRights(guardianPolicy)));
         scans = new PaperSubmissionService(
                 submissions,
                 appointments,
@@ -169,6 +200,32 @@ class AppointmentSignaturesTest extends GeneratorTestBase {
                 eventRepo,
                 new DomainEventBus(Set.of(new RegistrationSignaturesHandler(() -> signatures))),
                 memberNameResolver);
+        attendance = new AgreementAttendance(requestRepo, eventRepo, eventRegistrationRepo, registrations);
+        var rights = new WithdrawalRights(guardianPolicy);
+        offers = new AgreementOffers(
+                appointments,
+                signatures,
+                guardianPolicy,
+                new EventRestrictionService(eventRepo, restrictionService),
+                new RequirementSignatureStates(requestRepo, requests, rights));
+        signers = new AgreementSigners(requestRepo, requirementRepo, eventRegistrationRepo, memberNameResolver);
+        withdrawals = new SignatureWithdrawals(
+                requestRepo,
+                requests,
+                rights,
+                memberNameResolver,
+                mock(SigningStateSealer.class),
+                notices,
+                eventRepo,
+                eventRegistrationRepo,
+                signatures,
+                (request, withdrawal) -> {});
+        stationMemberRepo.grantPermission(
+                manager.id(),
+                stationMemberRepo
+                        .findPermissionByName(StationPermission.EVENT_MANAGER)
+                        .orElseThrow()
+                        .id());
     }
 
     @AfterAll
@@ -438,6 +495,233 @@ class AppointmentSignaturesTest extends GeneratorTestBase {
         assertEquals(
                 RequirementSignatureState.WAIVED,
                 statusFor(guardian, child).signature().state());
+    }
+
+    /**
+     * An appointment without registrations offers its agreement to the guardian for the child; asking for it
+     * files a copy and asks its signatures, offering it again asks nothing twice, and once both fields are
+     * signed the guardian's earlier "not coming" for the child is taken back and the organiser lists the
+     * child as a signer. Saying "not coming" again afterwards marks the signer as refusing.
+     */
+    @Test
+    void anAppointmentWithoutRegistrationsOffersItsAgreementAndSigningCountsAsComing() {
+        camp = appointment(false);
+        requirements.setForEvent(wiring.owner(), camp.id(), List.of(consent));
+        registrations.decline(camp.id(), child.id(), DAY, guardian.id());
+        assertTrue(statusFor(guardian, child).agreementOffered());
+        assertNull(statusFor(guardian, child).signature());
+
+        var offered = offers.offer(stationSession(guardian), camp, DAY, consent, child.id());
+
+        assertEquals(RequirementSignatureState.OPEN, offered.state());
+        assertTrue(offered.fields().stream().allMatch(RequirementSignatureField::yours));
+        assertFalse(statusFor(guardian, child).agreementOffered());
+        offers.offer(stationSession(guardian), camp, DAY, consent, child.id());
+        assertEquals(1, copiesOf(child).size(), "offering again asks nothing twice");
+        var request = onlyRequest(child);
+
+        signBoth(request);
+
+        assertEquals(
+                RequestState.COMPLETE,
+                requestRepo.findById(request.id()).orElseThrow().state());
+        assertEquals(RegistrationStatus.WITHDRAWN, answerOf(child).status(), "the refusal is taken back");
+        var listed = signers.of(camp.id(), DAY);
+        assertEquals(1, listed.size());
+        assertEquals(child.id(), listed.getFirst().memberId());
+        assertEquals(RequirementSignatureState.SIGNED, listed.getFirst().state());
+        assertFalse(listed.getFirst().refused());
+
+        registrations.decline(camp.id(), child.id(), DAY, guardian.id());
+
+        assertTrue(signers.of(camp.id(), DAY).getFirst().refused());
+        assertEquals(
+                RequestState.COMPLETE,
+                requestRepo.findById(request.id()).orElseThrow().state(),
+                "a signed agreement stays when somebody says they will not come");
+    }
+
+    /**
+     * The agreement is only offered where it is signed this way: not on an appointment that takes
+     * registrations, not for a member the reader does not act for, and not for a document the appointment
+     * does not ask for.
+     */
+    @Test
+    void anAgreementIsOfferedOnlyWhereItIsSignedOnThePage() {
+        assertRefused(
+                EventRefusal.AGREEMENT_SIGNED_ON_REGISTERING,
+                () -> offers.offer(stationSession(guardian), camp, DAY, consent, child.id()));
+
+        camp = appointment(false);
+        requirements.setForEvent(wiring.owner(), camp.id(), List.of(consent));
+        assertRefused(
+                EventRefusal.AGREEMENT_NOT_FOR_MEMBER,
+                () -> offers.offer(stationSession(adult), camp, DAY, consent, child.id()));
+        int unasked = template("Fremd " + NAMES.incrementAndGet(), row(signature(SignatureRole.PARTICIPANT, "Name")));
+        assertRefused(
+                EventRefusal.AGREEMENT_NOTHING_TO_SIGN,
+                () -> offers.offer(stationSession(guardian), camp, DAY, unasked, child.id()));
+        assertTrue(copiesOf(child).isEmpty());
+    }
+
+    /**
+     * Withdrawing a signed agreement of a registration revokes its request, flags the registration and asks
+     * for the agreement again on a fresh copy, so the requirement is open again; signing it anew takes the
+     * flag off. Whoever runs the appointment is told.
+     */
+    @Test
+    void withdrawingReopensTheRequirementAndFlagsTheRegistration() {
+        registrations.register(camp.id(), child.id(), DAY, true, guardian.id());
+        var signed = onlyRequest(child);
+        signBoth(signed);
+        assertNull(answerOf(child).agreementWithdrawnAt());
+        assertTrue(statusFor(guardian, child).signature().withdrawable());
+
+        var withdrawal = withdrawals.withdraw(
+                stationSession(guardian),
+                signed.uid(),
+                "  Doch krank  ",
+                new SigningCircumstances("203.0.113.57", "Test Browser"));
+
+        assertEquals("Doch krank", withdrawal.reason());
+        assertEquals(SignerCapacity.GUARDIAN, withdrawal.capacity());
+        assertEquals("203.0.113.0", withdrawal.truncatedIp());
+        assertEquals(
+                RequestState.REVOKED,
+                requestRepo.findById(signed.id()).orElseThrow().state());
+        assertNotNull(answerOf(child).agreementWithdrawnAt(), "the registration is flagged");
+        var again = onlyRequest(child);
+        assertNotEquals(signed.generationId(), again.generationId(), "asked anew on a fresh copy");
+        assertEquals(RequestState.OPEN, again.state());
+        assertEquals(
+                RequirementSignatureState.OPEN,
+                statusFor(guardian, child).signature().state());
+        assertEquals(2, owedBy(guardian, again).size());
+        assertTrue(notificationsOf(manager).contains("SIGNATURE_WITHDRAWN"));
+
+        signBoth(again);
+
+        assertNull(answerOf(child).agreementWithdrawnAt(), "signed anew, the flag is off");
+    }
+
+    /**
+     * On an appointment without registrations a withdrawn agreement shows as revoked, is offered again, and
+     * the organiser's list shows when it was withdrawn. Withdrawing it twice is refused, and so is a
+     * stranger's withdrawal.
+     */
+    @Test
+    void aWithdrawnAgreementWithoutRegistrationsIsOfferedAgain() {
+        camp = appointment(false);
+        requirements.setForEvent(wiring.owner(), camp.id(), List.of(consent));
+        offers.offer(stationSession(guardian), camp, DAY, consent, child.id());
+        var request = onlyRequest(child);
+        signBoth(request);
+        var circumstances = new SigningCircumstances(null, null);
+        assertRefused(
+                DocumentRefusal.SIGNATURE_WITHDRAWAL_NOT_YOURS,
+                () -> withdrawals.withdraw(stationSession(adult), request.uid(), null, circumstances));
+
+        withdrawals.withdraw(stationSession(guardian), request.uid(), null, circumstances);
+
+        var status = statusFor(guardian, child);
+        assertEquals(RequirementSignatureState.REVOKED, status.signature().state());
+        assertNotNull(status.signature().withdrawnAt());
+        assertFalse(status.signature().withdrawable());
+        assertTrue(status.agreementOffered());
+        var listed = signers.of(camp.id(), DAY).getFirst();
+        assertEquals(RequirementSignatureState.REVOKED, listed.state());
+        assertNotNull(listed.withdrawnAt());
+        assertRefused(
+                DocumentRefusal.SIGNATURE_WITHDRAWAL_ENDED,
+                () -> withdrawals.withdraw(stationSession(guardian), request.uid(), null, circumstances));
+    }
+
+    /** An agreement only confirmed on paper is withdrawn on paper; a reason too long is refused. */
+    @Test
+    void aPaperAgreementAndAnOverlongReasonAreRefused() throws IOException {
+        registrations.register(camp.id(), child.id(), DAY, true, guardian.id());
+        var request = onlyRequest(child);
+        var circumstances = new SigningCircumstances(null, null);
+        assertRefused(
+                DocumentRefusal.SIGNATURE_WITHDRAWAL_REASON_TOO_LONG,
+                () -> withdrawals.withdraw(stationSession(guardian), request.uid(), "x".repeat(501), circumstances));
+        scans.submit(
+                stationSession(manager, StationPermission.EVENT_REGISTRATION),
+                camp,
+                DAY,
+                consent,
+                child.id(),
+                null,
+                scan());
+
+        assertRefused(
+                DocumentRefusal.SIGNATURE_WITHDRAWAL_NOTHING_SIGNED,
+                () -> withdrawals.withdraw(stationSession(guardian), request.uid(), null, circumstances));
+    }
+
+    private static StationEvent appointment(boolean takesRegistrations) {
+        return eventRepo.create(
+                wiring.station().id(),
+                "Zeltlager " + NAMES.incrementAndGet(),
+                null,
+                StationEvent.EventType.ONE_TIME,
+                null,
+                START,
+                START.plus(Duration.ofHours(8)),
+                null,
+                takesRegistrations,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null);
+    }
+
+    /** The guardian signs both fields of the child's copy: the child's through the guardian's account. */
+    private static void signBoth(SignatureRequest request) {
+        var session = stationSession(guardian);
+        fields.record(
+                session, act(request, "participant", Signer.memberThroughAccount(guardian.accountId(), child.id())));
+        fields.record(session, act(request, "guardian1", Signer.guardian(guardian.accountId(), child.id())));
+    }
+
+    private static CompletedSigning act(SignatureRequest request, String fieldName, Signer signer) {
+        var field = field(request, fieldName);
+        var act = new SigningAct(
+                request.uid(),
+                signer,
+                memberNameResolver.official(guardian.id()),
+                memberNameResolver.official(child.id()),
+                fieldName,
+                field.statement(),
+                HexFormat.of().parseHex(request.contentSha256()),
+                List.of(),
+                new byte[32],
+                Instant.now().truncatedTo(ChronoUnit.MILLIS),
+                "203.0.113.0",
+                "Test Browser");
+        return new CompletedSigning(SignatureLevel.SIMPLE, new SigningEvidence.TotpUnbound(act));
+    }
+
+    private EventRegistration answerOf(StationMember member) {
+        return eventRegistrationRepo.findByEventAndDate(camp.id(), DAY).stream()
+                .filter(registration -> registration.memberId() == member.id())
+                .findFirst()
+                .orElseThrow();
+    }
+
+    private static String notificationsOf(StationMember member) {
+        return query("SELECT string_agg(type, ',') AS types FROM notification WHERE member_id = :member_id;")
+                .single(call().bind("member_id", member.id()))
+                .map(row -> String.valueOf(row.getString("types")))
+                .first()
+                .orElse("");
+    }
+
+    private static void assertRefused(Refusal refusal, Executable call) {
+        assertEquals(refusal, assertThrows(RefusalResponse.class, call).refusal());
     }
 
     private static StationMember member(String first, String last, boolean login) {

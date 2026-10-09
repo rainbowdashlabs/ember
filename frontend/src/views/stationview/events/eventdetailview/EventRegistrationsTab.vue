@@ -31,6 +31,7 @@ import SignOffConfirm from '@/views/stationview/events/eventshared/eventregistra
 import RegistrationsPanel from './RegistrationsPanel.vue'
 import {useRegistrationsInView} from './useRegistrationsInView'
 import FederatedRegistrationsPanel from './FederatedRegistrationsPanel.vue'
+import AgreementSignersPanel from './AgreementSignersPanel.vue'
 import SignupListsMenu from './signuplists/SignupListsMenu.vue'
 import RegistrationFieldsModal from '../eventshared/RegistrationFieldsModal.vue'
 import EventAnswerDialog from '../eventshared/EventAnswerDialog.vue'
@@ -462,6 +463,12 @@ onMounted(loadRegistrations)
         />
       </template>
     </RegistrationsPanel>
+
+    <AgreementSignersPanel
+        v-if="!event.requiresRegistration && effectiveDate && hasPermission(StationPermission.EVENT_REGISTRATION)"
+        :event-id="eventId"
+        :date="effectiveDate"
+    />
 
     <RegistrationFieldsModal
         v-model="showEditAnswers"

@@ -163,6 +163,42 @@ class EventRegistrationRepositoryTest extends RepositoryTestBase {
         }
     }
 
+    /**
+     * A withdrawn agreement flags only a standing registration, the flag is read back with the registration,
+     * and clearing it takes it off once.
+     */
+    @Test
+    void aWithdrawnAgreementFlagsAStandingRegistration() {
+        var created = event("Vereinbarung", Instant.parse("2027-07-01T09:00:00Z"));
+        LocalDate date = LocalDate.of(2027, 7, 1);
+        Instant at = Instant.parse("2027-06-20T10:00:00Z");
+        try {
+            var registration = eventRegistrationRepo.create(created.id(), member.id(), date);
+            assertNull(registration.agreementWithdrawnAt());
+
+            assertTrue(eventRegistrationRepo.flagAgreementWithdrawn(created.id(), date, member.id(), at));
+            assertEquals(
+                    at,
+                    eventRegistrationRepo
+                            .findById(registration.id())
+                            .orElseThrow()
+                            .agreementWithdrawnAt());
+            assertTrue(eventRegistrationRepo.clearAgreementWithdrawn(created.id(), date, member.id()));
+            assertFalse(eventRegistrationRepo.clearAgreementWithdrawn(created.id(), date, member.id()));
+            assertNull(eventRegistrationRepo
+                    .findById(registration.id())
+                    .orElseThrow()
+                    .agreementWithdrawnAt());
+
+            eventRegistrationRepo.create(created.id(), member.id(), date, RegistrationStatus.DECLINED, null);
+            assertFalse(
+                    eventRegistrationRepo.flagAgreementWithdrawn(created.id(), date, member.id(), at),
+                    "a refusal is no standing registration");
+        } finally {
+            eventRepo.delete(created.id());
+        }
+    }
+
     @Test
     void createReadUpdateDelete() {
         var created = event("Registration Lifecycle", Instant.parse("2027-05-15T09:00:00Z"));

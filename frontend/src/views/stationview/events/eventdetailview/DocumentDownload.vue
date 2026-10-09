@@ -13,15 +13,20 @@ import {PaperState} from '@/api/generated/schema'
 import RequirementStatusBadge from './RequirementStatusBadge.vue'
 import ScanRejection from './ScanRejection.vue'
 import SignatureFieldList from '../eventshared/SignatureFieldList.vue'
+import AgreementActions from './AgreementActions.vue'
 import {SCAN_TYPES, type ParticipantCopy} from './documentTiles'
 
 /**
  * The download of one participant's copy, with where it stands, and the hand-in of its signed scan until
  * a scan is confirmed. Named after the participant where the reader acts for more than one, since the
  * copies differ by whose data they hold. Where signatures were asked for on the copy, each field shows
- * where it stands, and the fields the reader can sign open the signing screen.
+ * where it stands, and the fields the reader can sign open the signing screen; its agreement can be signed
+ * from here on an appointment without registrations, and withdrawn ({@link AgreementActions}).
  */
 const props = defineProps<{
+  eventId: number
+  /** The date of the appointment on screen. */
+  date: string
   copy: ParticipantCopy
   named: boolean
   busy: boolean
@@ -30,6 +35,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   fetch: []
   handIn: [file: File]
+  changed: []
 }>()
 
 const {t} = useI18n()
@@ -53,6 +59,7 @@ const confirmed = computed(() => props.copy.document.paper?.state === PaperState
       </ButtonRow>
     </div>
     <SignatureFieldList v-if="copy.document.signature" :signature="copy.document.signature" offer-signing/>
+    <AgreementActions :event-id="eventId" :date="date" :copy="copy" :busy="busy" @changed="emit('changed')"/>
     <ScanRejection :paper="copy.document.paper"/>
   </div>
 </template>

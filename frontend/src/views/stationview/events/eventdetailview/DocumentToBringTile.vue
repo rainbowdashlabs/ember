@@ -58,9 +58,9 @@ const showingStatus = ref(false)
         <IconButton v-if="props.tile.participants" :icon="['fas', 'users']" :label="t('events.documents.overviewTitle')"
                     data-testid="document-to-bring-status" @click="showingStatus = true"/>
       </div>
-      <DocumentDownload v-for="copy in props.tile.own" :key="copy.memberId" :copy="copy"
-                        :named="props.tile.own.length > 1" :busy="busy" @fetch="emit('fetch', copy)"
-                        @hand-in="file => emit('handIn', copy, file)"/>
+      <DocumentDownload v-for="copy in props.tile.own" :key="copy.memberId" :event-id="eventId" :date="date"
+                        :copy="copy" :named="props.tile.own.length > 1" :busy="busy" @fetch="emit('fetch', copy)"
+                        @hand-in="file => emit('handIn', copy, file)" @changed="onChanged"/>
     </div>
     <DocumentPictureModal v-if="enlarged" v-model="enlarged" :event-id="eventId" :template="props.tile.template"/>
     <ParticipantStatusModal v-if="showingStatus && props.tile.participants" v-model="showingStatus"

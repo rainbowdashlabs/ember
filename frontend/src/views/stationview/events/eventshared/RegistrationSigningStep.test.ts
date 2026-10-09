@@ -38,7 +38,10 @@ function copy(memberId: number, name: string, yours: boolean): SigningStepCopy {
                     {id: 70, name: 'participant', signerName: name, state: RequirementSignatureState.OPEN, yours},
                     {id: 71, name: 'guardian2', signerName: 'Paul Schmidt', state: RequirementSignatureState.OPEN, yours: false},
                 ],
+                withdrawable: false,
+                withdrawnAt: null,
             },
+            agreementOffered: false,
         },
     }
 }

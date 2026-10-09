@@ -676,7 +676,20 @@ public enum DocumentRefusal implements Refusal {
             275, HttpStatus.CONFLICT, "The signed copy of this document already came back from the partner"),
 
     /** The signed copy of a partner's agreement asked for where none came back. */
-    PARTNER_AGREEMENT_COPY_NOT_HERE(276, HttpStatus.NOT_FOUND, "No signed copy of this document came back yet");
+    PARTNER_AGREEMENT_COPY_NOT_HERE(276, HttpStatus.NOT_FOUND, "No signed copy of this document came back yet"),
+
+    /** A signed agreement withdrawn by somebody who neither acts for its member nor signed it. */
+    SIGNATURE_WITHDRAWAL_NOT_YOURS(290, HttpStatus.FORBIDDEN, "This agreement is not yours to withdraw"),
+
+    /** A signed agreement withdrawn after it was withdrawn already, replaced or never agreed to. */
+    SIGNATURE_WITHDRAWAL_ENDED(291, HttpStatus.CONFLICT, "This agreement no longer stands"),
+
+    /** An agreement withdrawn online that nobody signed online, such as one confirmed on paper only. */
+    SIGNATURE_WITHDRAWAL_NOTHING_SIGNED(
+            292, HttpStatus.CONFLICT, "Nothing was signed online on this agreement, so it is withdrawn on paper"),
+
+    /** The reason for a withdrawal written longer than it may be. */
+    SIGNATURE_WITHDRAWAL_REASON_TOO_LONG(293, HttpStatus.BAD_REQUEST, "A reason may be at most 500 characters");
 
     private final Definition definition;
 

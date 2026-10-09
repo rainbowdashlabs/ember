@@ -16,5 +16,7 @@ public enum RequirementSignatureState {
     /** Confirmed by a manager as signed on paper. */
     PAPER_CONFIRMED,
     /** Let go without a signature, or no longer asked for. */
-    WAIVED
+    WAIVED,
+    /** Signed, and then withdrawn by a signer; the copy as a whole only, its fields keep their state. */
+    REVOKED
 }

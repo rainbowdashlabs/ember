@@ -173,7 +173,14 @@ class SignatureRequestServiceTest extends RepositoryTestBase {
                 newNotifier(), emailQueueRepo, stationRepo, stationMemberRepo, accountRepo, memberDocumentRepo);
         requests = requestService((template, member, name) -> STATEMENTS);
         fields = new SignatureFieldService(
-                requestRepo, evidenceRepo, requests, guards, guardianPolicy, memberNameResolver, notices);
+                requestRepo,
+                evidenceRepo,
+                requests,
+                guards,
+                guardianPolicy,
+                memberNameResolver,
+                notices,
+                completed -> {});
         management =
                 new SignatureManagementService(requests, fields, requestRepo, evidenceRepo, memberDocumentRepo, guards);
         summaries = new SignatureSummaries(requestRepo);

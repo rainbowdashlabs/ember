@@ -16,10 +16,12 @@ import dev.chojo.ember.feature.generator.entity.DocumentTemplate;
 import dev.chojo.ember.feature.generator.entity.FieldStatements;
 import dev.chojo.ember.feature.generator.entity.GenerationContext;
 import dev.chojo.ember.feature.generator.entity.GenerationOrigin;
+import dev.chojo.ember.feature.generator.entity.PaperState;
 import dev.chojo.ember.feature.generator.entity.PaperSubmission;
 import dev.chojo.ember.feature.generator.entity.RequiredTemplate;
 import dev.chojo.ember.feature.generator.entity.RequirementGeneration;
 import dev.chojo.ember.feature.generator.entity.RequirementSignature;
+import dev.chojo.ember.feature.generator.entity.RequirementSignatureState;
 import dev.chojo.ember.feature.generator.entity.RequirementStatus;
 import dev.chojo.ember.feature.generator.repository.EventRequirementRepository;
 import dev.chojo.ember.feature.generator.repository.PaperSubmissionRepository;
@@ -33,6 +35,7 @@ import org.jspecify.annotations.Nullable;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -52,7 +55,9 @@ import java.util.Set;
  * <p>The status per participant and document: a copy is generated or it is not, and a copy from an older
  * version of the template is marked as such so a new one can be generated. Beside it stands the latest
  * scan of a signed paper copy handed in for it, whether it waits, was confirmed or was turned down, and
- * where signatures were asked for on the copy, where each of them stands ({@link RequirementSignatures}).
+ * where signatures were asked for on the copy, where each of them stands ({@link RequirementSignatures}). On an
+ * appointment that takes no registrations, a document the participant or a guardian signs is offered to sign
+ * online wherever nothing stands for it yet, since no registration asks for it.
  */
 @Singleton
 public class AppointmentDocumentService {
@@ -109,6 +114,9 @@ public class AppointmentDocumentService {
      * @param paper       the latest scan of a signed paper copy handed in for the participant, or null
      *                    where none was
      * @param signature   the latest signatures asked for on the participant's copy, or null where none were
+     * @param agreementOffered whether the reader can sign the document's agreement online for the participant
+     *                    now: the appointment takes no registrations, the document asks the participant or a
+     *                    guardian to sign, and nothing signed or still open on a copy stands for it
      */
     public record RequiredDocumentStatus(
             int templateId,
@@ -118,7 +126,8 @@ public class AppointmentDocumentService {
             @Nullable Instant generatedAt,
             boolean outdated,
             @Nullable PaperSubmission paper,
-            @Nullable RequirementSignature signature) {}
+            @Nullable RequirementSignature signature,
+            boolean agreementOffered) {}
 
     /**
      * The documents one participant is asked to bring.
@@ -177,10 +186,23 @@ public class AppointmentDocumentService {
                         requirements.latest(event.id(), date, asked),
                         submissions.latest(event.id(), date, asked),
                         signatures.of(session, event.id(), date, asked));
+        var offers = event.requiresRegistration() ? Set.<Offer>of() : offers(event, own);
         return new AppointmentDocuments(
                 required,
-                participantsOf(own, required, copies),
-                overview ? participantsOf(everyone, required, copies) : null);
+                participantsOf(own, required, copies, offers),
+                overview ? participantsOf(everyone, required, copies, Set.of()) : null);
+    }
+
+    /** A document whose agreement could be signed for a participant, where nothing stands for it yet. */
+    private record Offer(int memberId, int templateId) {}
+
+    /** The documents of an appointment without registrations each participant the reader acts for signs. */
+    private Set<Offer> offers(StationEvent event, Collection<Integer> own) {
+        var offers = new HashSet<Offer>();
+        for (int memberId : own) {
+            signableFor(event, memberId).forEach(template -> offers.add(new Offer(memberId, template.id())));
+        }
+        return offers;
     }
 
     /** The generated copies, the scans handed in and the signatures asked for, for the participants asked about. */
@@ -236,10 +258,10 @@ public class AppointmentDocumentService {
     }
 
     private List<ParticipantDocuments> participantsOf(
-            Collection<Integer> memberIds, List<RequiredTemplate> required, Copies copies) {
+            Collection<Integer> memberIds, List<RequiredTemplate> required, Copies copies, Set<Offer> offers) {
         return memberIds.stream()
                 .map(memberId -> new ParticipantDocuments(
-                        memberId, names.identified(memberId), statuses(required, copies, memberId)))
+                        memberId, names.identified(memberId), statuses(required, copies, memberId, offers)))
                 .toList();
     }
 
@@ -334,10 +356,12 @@ public class AppointmentDocumentService {
                 .toList();
     }
 
-    private static List<RequiredDocumentStatus> statuses(List<RequiredTemplate> required, Copies copies, int memberId) {
+    private static List<RequiredDocumentStatus> statuses(
+            List<RequiredTemplate> required, Copies copies, int memberId, Set<Offer> offers) {
         return required.stream()
                 .map(template -> status(
                         template,
+                        offers.contains(new Offer(memberId, template.templateId())),
                         copies.generated().stream()
                                 .filter(copy ->
                                         copy.memberId() == memberId && copy.templateId() == template.templateId())
@@ -358,9 +382,11 @@ public class AppointmentDocumentService {
 
     private static RequiredDocumentStatus status(
             RequiredTemplate template,
+            boolean signable,
             @Nullable RequirementGeneration copy,
             @Nullable PaperSubmission scan,
             @Nullable RequirementSignature signature) {
+        boolean offered = signable && nothingStands(signature, scan);
         if (copy == null) {
             return new RequiredDocumentStatus(
                     template.templateId(),
@@ -370,7 +396,8 @@ public class AppointmentDocumentService {
                     null,
                     false,
                     scan,
-                    signature);
+                    signature,
+                    offered);
         }
         return new RequiredDocumentStatus(
                 template.templateId(),
@@ -380,7 +407,19 @@ public class AppointmentDocumentService {
                 copy.generatedAt(),
                 copy.templateVersion() < template.version(),
                 scan,
-                signature);
+                signature,
+                offered);
+    }
+
+    /**
+     * Whether nothing stands for a document yet: no signatures asked for, or only ones withdrawn by a signer
+     * or let go, and no signed paper copy confirmed.
+     */
+    private static boolean nothingStands(@Nullable RequirementSignature signature, @Nullable PaperSubmission scan) {
+        if (scan != null && scan.state() == PaperState.CONFIRMED) return false;
+        if (signature == null) return true;
+        return signature.state() == RequirementSignatureState.REVOKED
+                || signature.state() == RequirementSignatureState.WAIVED;
     }
 
     /** What a document says about the appointment on the date: its name, its times and its place. */

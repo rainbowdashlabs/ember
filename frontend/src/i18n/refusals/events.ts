@@ -197,4 +197,7 @@ export default {
     'E-163': 'Dieses Dokument zum Unterschreiben hat die Wache für diesen Tag nie ausgegeben',
     'E-164': 'Das unterschriebene Exemplar kam ohne lesbare Datei',
     'E-165': 'Das Siegel des unterschriebenen Exemplars stammt nicht von der Partnerwache oder ist nicht unversehrt',
+    'E-170': 'Dieser Termin nimmt Anmeldungen an, die Vereinbarung wird bei der Anmeldung unterschrieben',
+    'E-171': 'Die Vereinbarung dieses Termins kannst du für diese Person nicht unterschreiben',
+    'E-172': 'Dieses Dokument verlangt für diese Person keine Unterschrift',
 }

@@ -25,6 +25,7 @@ const open: RequiredDocumentStatus = {
     outdated: false,
     paper: null,
     signature: null,
+    agreementOffered: false,
 }
 const generated: RequiredDocumentStatus = {
     ...open,

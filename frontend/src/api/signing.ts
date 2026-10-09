@@ -4,6 +4,8 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import type {
+    AgreementWithdrawalResponse,
+    DocumentAgreement,
     FillInResponse,
     ManagedRequestResponse,
     OpenSignatureResponse,
@@ -159,6 +161,19 @@ export async function settleSignatureField(
 }
 
 /**
+ * Withdraws a signed agreement. What was signed stays as evidence; the withdrawal is sealed into the
+ * document and the agreement is asked for again where an appointment needs it.
+ *
+ * @param requestUid the request whose agreement is withdrawn
+ * @param reason     why, or nothing
+ */
+export async function withdrawAgreement(requestUid: string, reason: string): Promise<AgreementWithdrawalResponse> {
+    const res = await client.post<AgreementWithdrawalResponse>(
+        `/signing/requests/${requestUid}/withdrawal`, {reason: reason.trim() || null})
+    return res.data
+}
+
+/**
  * Stops asking for every signature a request still waits for; what was signed stays.
  *
  * @param requestUid the request
@@ -178,6 +193,16 @@ export async function withdrawSignatureRequest(requestUid: string): Promise<Mana
  */
 export async function rectifySignatureRequest(requestUid: string, generationId: number): Promise<ManagedRequestResponse> {
     const res = await client.post<ManagedRequestResponse>(`/signing/requests/${requestUid}/rectify`, {generationId})
+    return res.data
+}
+
+/**
+ * The agreements signed on a member document that the reader signed or acts for.
+ *
+ * @param documentId the member document
+ */
+export async function documentAgreements(documentId: number): Promise<DocumentAgreement[]> {
+    const res = await client.get<DocumentAgreement[]>(`/signing/documents/${documentId}/agreements`)
     return res.data
 }
 

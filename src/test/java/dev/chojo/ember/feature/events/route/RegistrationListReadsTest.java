@@ -218,7 +218,8 @@ class RegistrationListReadsTest {
                         "Zeltlager",
                         false,
                         true,
-                        "Fahrer"),
+                        "Fahrer",
+                        null),
                 row);
     }
 

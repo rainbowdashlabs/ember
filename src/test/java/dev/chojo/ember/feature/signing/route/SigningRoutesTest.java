@@ -233,7 +233,8 @@ class SigningRoutesTest extends RepositoryTestBase {
                 guards,
                 guardianPolicy,
                 memberNameResolver,
-                mock(SignatureNotices.class));
+                mock(SignatureNotices.class),
+                completed -> {});
 
         var settings = new WebAuthnSettings();
         RelyingParties parties = relyingParties(settings);

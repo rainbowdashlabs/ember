@@ -7,10 +7,12 @@ import client from './client'
 import {uploadFile} from './upload'
 import type {TemplatePages} from './documentTemplates'
 import type {
+    AgreementSigner,
     AppointmentDocuments,
     GeneratedDocumentResponse,
     PaperSubmission,
     RequiredTemplate,
+    RequirementSignature,
     TemplatePage,
 } from '@/api/generated/schema'
 
@@ -62,6 +64,27 @@ export async function generateToBring(
 ): Promise<GeneratedDocumentResponse> {
     const res = await client.post<GeneratedDocumentResponse>(
         `/events/${eventId}/documents-to-bring/${templateId}/members/${memberId}`, null, {params: {date}})
+    return res.data
+}
+
+/**
+ * Asks for the signatures of an appointment's agreement for a participant, on an appointment that takes no
+ * registrations: the copy is filed and its fields wait for the reader, who signs them next.
+ */
+export async function offerAgreement(
+    eventId: number,
+    date: string,
+    templateId: number,
+    memberId: number,
+): Promise<RequirementSignature> {
+    const res = await client.post<RequirementSignature>(
+        `/events/${eventId}/documents-to-bring/${templateId}/members/${memberId}/agreement`, null, {params: {date}})
+    return res.data
+}
+
+/** Who signed the documents an appointment asks for on a date, for whoever runs it. */
+export async function agreementSigners(eventId: number, date: string): Promise<AgreementSigner[]> {
+    const res = await client.get<AgreementSigner[]>(`/events/${eventId}/agreement-signers`, {params: {date}})
     return res.data
 }
 

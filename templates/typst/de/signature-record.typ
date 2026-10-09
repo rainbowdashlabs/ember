@@ -140,6 +140,23 @@ Dieser Nachweis gehört zum Dokument davor. Er hält fest, wer es wann und womit
 hat. Die Unterschriften sind einfache elektronische Signaturen. Das Siegel der Wache bestätigt, dass das
 Dokument seit dem Versiegeln nicht verändert wurde.
 
+#if r.withdrawal != none [
+  #let w = r.withdrawal
+  == Widerruf
+
+  Diese Vereinbarung wurde widerrufen. Die Unterschriften unten bleiben als Nachweis dafür, was bis zum
+  Widerruf vereinbart war. Ab dem Widerruf gelten sie nicht mehr.
+
+  #facts(
+    [Widerrufen von], [#w.withdrawnByName],
+    [Handelt], if w.capacity == "GUARDIAN" [als erziehungsberechtigte Person für #w.memberName] else [selbst],
+    [Zeitpunkt], [#w.withdrawnAt],
+    [Begründung], if w.reason != none [#w.reason] else [Keine angegeben],
+    [Netzadresse (gekürzt)], if w.truncatedIp != none [#w.truncatedIp] else [Nicht bekannt],
+    [Browser], if w.userAgent != none [#w.userAgent] else [Nicht bekannt],
+  )
+]
+
 == Dokument
 
 #facts(

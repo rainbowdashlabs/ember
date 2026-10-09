@@ -620,7 +620,20 @@ public enum EventRefusal implements Refusal {
 
     /** A partner sending a signed copy whose seal is not the partner's, or not intact. */
     PARTNER_AGREEMENT_SEAL_REFUSED(
-            165, HttpStatus.UNPROCESSABLE_CONTENT, "The seal of the signed copy is not the partner's or not intact");
+            165, HttpStatus.UNPROCESSABLE_CONTENT, "The seal of the signed copy is not the partner's or not intact"),
+
+    /** An agreement offered on an appointment that takes registrations, where it is signed on registering. */
+    AGREEMENT_SIGNED_ON_REGISTERING(
+            170,
+            HttpStatus.BAD_REQUEST,
+            "This appointment takes registrations; its agreement is signed on registering"),
+
+    /** An agreement signed for a member the reader does not act for, or whom the appointment is not meant for. */
+    AGREEMENT_NOT_FOR_MEMBER(171, HttpStatus.FORBIDDEN, "This appointment's agreement is not yours to sign for them"),
+
+    /** An agreement asked for on a document the appointment does not ask for, or that nobody of theirs signs. */
+    AGREEMENT_NOTHING_TO_SIGN(
+            172, HttpStatus.BAD_REQUEST, "The appointment asks for no agreement in this document for them to sign");
 
     private final Definition definition;
 

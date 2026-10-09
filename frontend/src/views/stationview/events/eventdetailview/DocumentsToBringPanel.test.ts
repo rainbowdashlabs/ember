@@ -18,12 +18,14 @@ import {
     type PartnerSigner,
     type RequirementSignature,
 } from '@/api/generated/schema'
-import {appointmentDocuments, partnerAgreements} from '@/api'
+import {appointmentDocuments, partnerAgreements, signing} from '@/api'
 import DocumentsToBringPanel from './DocumentsToBringPanel.vue'
 
 vi.mock('@/api', () => ({
+    signing: {withdrawAgreement: vi.fn()},
     appointmentDocuments: {
         documentsToBring: vi.fn(),
+        offerAgreement: vi.fn(),
         submitScan: vi.fn(),
         confirmScan: vi.fn(),
         rejectScan: vi.fn(),
@@ -70,7 +72,11 @@ function scan(state: PaperState, rejectReason: string | null = null): PaperSubmi
     }
 }
 
-function lena(paper: PaperSubmission | null = null, signature: RequirementSignature | null = null): ParticipantDocuments {
+function lena(
+    paper: PaperSubmission | null = null,
+    signature: RequirementSignature | null = null,
+    agreementOffered = false,
+): ParticipantDocuments {
     return {
         memberId: 11,
         name: 'Lena Schmidt',
@@ -83,6 +89,7 @@ function lena(paper: PaperSubmission | null = null, signature: RequirementSignat
             outdated: false,
             paper,
             signature,
+            agreementOffered,
         }],
     }
 }
@@ -104,6 +111,8 @@ function asked(
         requestUid: '0b9f5c1e-8f6d-4a39-9d55-2c1b7f3d4e10',
         state: open ? RequirementSignatureState.OPEN : RequirementSignatureState.SIGNED,
         fields,
+        withdrawable: false,
+        withdrawnAt: null,
     }
 }
 
@@ -140,6 +149,8 @@ describe('DocumentsToBringPanel', () => {
         vi.mocked(partnerAgreements.listSigners).mockReset()
         vi.mocked(partnerAgreements.listSigners).mockResolvedValue([])
         vi.mocked(partnerAgreements.confirmPaper).mockReset()
+        vi.mocked(appointmentDocuments.offerAgreement).mockReset()
+        vi.mocked(signing.withdrawAgreement).mockReset()
     })
 
     it('shows a reader who takes no part what the appointment asks for, without copies', async () => {
@@ -295,6 +306,53 @@ describe('DocumentsToBringPanel', () => {
         vi.mocked(partnerAgreements.listSigners).mockClear()
         await mountPanel({required: [CONSENT], own: [], participants: null})
         expect(partnerAgreements.listSigners).not.toHaveBeenCalled()
+    })
+
+    it('offers the agreement of an appointment without registrations and asks for its signatures', async () => {
+        const panel = await mountPanel({required: [CONSENT], own: [lena(null, null, true)], participants: null})
+        vi.mocked(appointmentDocuments.offerAgreement).mockResolvedValue(
+            asked(RequirementSignatureState.OPEN, RequirementSignatureState.OPEN, false))
+
+        expect(panel.find('[data-testid="agreement-actions"]').text()).toContain('Mit der Unterschrift sagst du')
+        await panel.find('[data-testid="agreement-sign"]').trigger('click')
+        await flushPromises()
+
+        expect(appointmentDocuments.offerAgreement).toHaveBeenCalledWith(3, '2026-10-08', 8, 11)
+        expect(appointmentDocuments.documentsToBring).toHaveBeenCalledTimes(2)
+    })
+
+    it('withdraws a signed agreement with a reason and reads the copies again', async () => {
+        const signed = {
+            ...asked(RequirementSignatureState.SIGNED, RequirementSignatureState.SIGNED),
+            withdrawable: true,
+        }
+        const panel = await mountPanel({required: [CONSENT], own: [lena(null, signed)], participants: null})
+        vi.mocked(signing.withdrawAgreement).mockResolvedValue({
+            requestUid: signed.requestUid,
+            withdrawnAt: '2026-10-08T09:00:00Z',
+        })
+
+        await panel.find('[data-testid="agreement-withdraw"]').trigger('click')
+        await panel.find('[data-testid="agreement-withdraw-form"] textarea').setValue('Doch krank')
+        await panel.find('[data-testid="agreement-withdraw-form"]').trigger('submit')
+        await flushPromises()
+
+        expect(signing.withdrawAgreement).toHaveBeenCalledWith(signed.requestUid, 'Doch krank')
+        expect(appointmentDocuments.documentsToBring).toHaveBeenCalledTimes(2)
+    })
+
+    it('shows a withdrawn agreement as withdrawn, with when', async () => {
+        const withdrawn = {
+            ...asked(RequirementSignatureState.SIGNED, RequirementSignatureState.WAIVED),
+            state: RequirementSignatureState.REVOKED,
+            withdrawnAt: '2026-10-07T12:00:00Z',
+        }
+        const panel = await mountPanel({required: [CONSENT], own: [lena(null, withdrawn, true)], participants: null})
+
+        expect(panel.find('[data-testid="document-to-bring"]').text()).toContain('Widerrufen')
+        expect(panel.find('[data-testid="agreement-withdrawn-at"]').exists()).toBe(true)
+        expect(panel.find('[data-testid="agreement-withdraw"]').exists()).toBe(false)
+        expect(panel.find('[data-testid="agreement-sign"]').exists()).toBe(true)
     })
 
     it('shows nothing where the appointment asks for nothing', async () => {

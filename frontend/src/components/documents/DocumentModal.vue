@@ -20,6 +20,7 @@ import FileView from '@/components/documents/FileView.vue'
 import SealedVersionList from '@/components/documents/SealedVersionList.vue'
 import SignatureStateBadge from '@/components/documents/SignatureStateBadge.vue'
 import SignatureRequestPanel from '@/components/documents/signatures/SignatureRequestPanel.vue'
+import DocumentAgreements from '@/components/documents/DocumentAgreements.vue'
 import {formatDate, formatSize} from '@/util/format'
 import {downloadAuthed} from '@/util/downloadAuthed'
 import {contentUrl as stationContentUrl} from '@/api/documents'
@@ -148,6 +149,7 @@ async function download() {
 
       <SealedVersionList v-if="props.document.sealed" :versions="props.document.sealedVersions"
                          :file-name="props.document.fileName" :version-url="versionUrlOfShown"/>
+      <DocumentAgreements v-if="props.document.sealed" :document-id="props.document.id"/>
 
       <SignatureRequestPanel v-if="props.manageSignatures && props.document.signature"
                              :request-uid="props.document.signature.requestUid"

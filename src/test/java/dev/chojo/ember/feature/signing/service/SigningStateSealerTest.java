@@ -29,12 +29,15 @@ import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.notifications.service.NotificationText;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.signing.entity.CompletedSigning;
+import dev.chojo.ember.feature.signing.entity.FieldState;
 import dev.chojo.ember.feature.signing.entity.RequestState;
 import dev.chojo.ember.feature.signing.entity.SealLevel;
 import dev.chojo.ember.feature.signing.entity.SignatureLevel;
 import dev.chojo.ember.feature.signing.entity.SignatureRequest;
 import dev.chojo.ember.feature.signing.entity.Signer;
+import dev.chojo.ember.feature.signing.entity.SignerCapacity;
 import dev.chojo.ember.feature.signing.entity.SigningAct;
+import dev.chojo.ember.feature.signing.entity.SigningCircumstances;
 import dev.chojo.ember.feature.signing.entity.SigningEvidence;
 import dev.chojo.ember.feature.signing.entity.SigningEvidenceFile;
 import dev.chojo.ember.feature.signing.entity.SigningStatements;
@@ -90,6 +93,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -167,7 +171,8 @@ class SigningStateSealerTest extends RepositoryTestBase {
                 guards,
                 guardianPolicy,
                 memberNameResolver,
-                mock(SignatureNotices.class));
+                mock(SignatureNotices.class),
+                completed -> {});
         copies = TestNotices.copies(emailQueueRepo, stationRepo, stationMemberRepo, accountRepo);
         stationKeys = new StationSigningKeys(keyRepo, new SigningCertificates(), wrap, stationRepo, BASE_URL);
         loginPermission = stationMemberRepo
@@ -593,6 +598,123 @@ class SigningStateSealerTest extends RepositoryTestBase {
 
         assertFalse(documentOf(request).sealed());
         assertFalse(sealer(SealedPdfs.noTimestamps()).sealLatest(request.id()));
+    }
+
+    /**
+     * Withdrawing a signed agreement seals the withdrawal into a version of its own after the one that carries
+     * the signature: both versions validate in DSS, the earlier one still shows the signature alone, the new
+     * record page and its attachment say who withdrew it, when and why, the open field is withdrawn, the
+     * request is revoked, and whoever asked for the signatures is told.
+     */
+    @Test
+    void aWithdrawalIsSealedIntoAVersionOfItsOwnThatValidates() throws IOException {
+        var signer = member("Wanda", "Widerruf");
+        var request = ask(signer, "participant", "issuer");
+        sign(request, signer, "participant");
+        var sealer = sealer(SealedPdfs.noTimestamps());
+        sealer.sealLatest(request.id());
+        var notices = mock(SignatureNotices.class);
+        WithdrawalRelay relay = mock(WithdrawalRelay.class);
+
+        var withdrawal = withdrawals(sealer, notices, relay, Clock.systemUTC())
+                .withdraw(
+                        at(signer),
+                        request.uid(),
+                        "Ich fahre doch nicht mit.",
+                        new SigningCircumstances("2001:db8::7", "Test Browser"));
+
+        var document = documentOf(request);
+        List<SealedVersion> filed = versions.versionsOf(document.id());
+        assertEquals(2, filed.size());
+        byte[] signed = documents.read(document, filed.getLast()).orElseThrow();
+        byte[] withdrawn = documents.read(document).orElseThrow();
+        assertSealIntact(signed);
+        assertSealIntact(withdrawn);
+        assertEquals(
+                filed.getFirst().sha256(),
+                requestRepo.withdrawalOf(request.id()).orElseThrow().sealedSha256());
+        try (var pdf = Loader.loadPDF(signed)) {
+            assertFalse(record(pdf).contains("Widerruf"));
+            assertFalse(attachedEvidence(pdf).contains("withdrawnByName"));
+        }
+        try (var pdf = Loader.loadPDF(withdrawn)) {
+            String record = new PDFTextStripper().getText(pdf).replaceAll("\\s+", " ");
+            assertTrue(record.contains("Diese Vereinbarung wurde widerrufen"), record);
+            assertTrue(record.contains("Ich fahre doch nicht mit."), record);
+            String evidence = attachedEvidence(pdf);
+            assertTrue(evidence.contains("\"withdrawnByName\" : \"Wanda Widerruf\""), evidence);
+            assertTrue(evidence.contains("\"reason\" : \"Ich fahre doch nicht mit.\""), evidence);
+            assertEquals(1, signedFieldsIn(evidence), "the signature stays as evidence");
+        }
+        assertEquals(
+                RequestState.REVOKED,
+                requestRepo.findById(request.id()).orElseThrow().state());
+        assertEquals(
+                FieldState.WITHDRAWN,
+                requestRepo.fieldsOf(request.id()).getLast().state());
+        assertEquals(SignerCapacity.ACCOUNT_HOLDER, withdrawal.capacity());
+        assertEquals("2001:db8:0:0:0:0:0:0", withdrawal.truncatedIp());
+        verify(notices).withdrawn(any(), any(), isNull());
+        verify(relay).withdrawn(any(), any());
+        assertFalse(sealer.sealLatest(request.id()), "nothing new to seal");
+    }
+
+    /**
+     * A withdrawal whose sealing failed stays recorded and is sealed by the sweep once its grace is over, and
+     * the reader's view of the document says who may still withdraw what.
+     */
+    @Test
+    void aWithdrawalWhoseSealFailedIsSealedByTheSweep() throws IOException {
+        var signer = member("Sven", "Spaeter");
+        var request = ask(signer);
+        sign(request, signer, "participant");
+        var sealer = sealer(SealedPdfs.noTimestamps());
+        sealer.sealLatest(request.id());
+        var document = documentOf(request);
+        var stranger = member("Fritz", "Fremd");
+        var before = withdrawals(sealer, mock(SignatureNotices.class), (r, w) -> {}, Clock.systemUTC());
+        assertTrue(before.onDocument(at(signer), document.id()).getFirst().withdrawable());
+        assertTrue(before.onDocument(at(stranger), document.id()).isEmpty());
+        var failing = mock(SigningStateSealer.class);
+        when(failing.sealLatest(anyInt())).thenThrow(new IllegalStateException("no key"));
+
+        withdrawals(failing, mock(SignatureNotices.class), (r, w) -> {}, Clock.systemUTC())
+                .withdraw(at(signer), request.uid(), " ", new SigningCircumstances(null, null));
+
+        assertEquals(1, versions.versionsOf(document.id()).size());
+        assertNull(requestRepo.withdrawalOf(request.id()).orElseThrow().reason(), "a blank reason is none");
+        var listed = before.onDocument(at(signer), document.id()).getFirst();
+        assertFalse(listed.withdrawable());
+        assertNotNull(listed.withdrawnAt());
+        var sweeper = new SigningStateSweeper(evidenceRepo, sealer);
+        sweeper.sweep(Instant.now());
+        assertEquals(1, versions.versionsOf(document.id()).size(), "a withdrawal is left alone for a while");
+
+        sweeper.sweep(Instant.now().plus(SigningStateSweeper.GRACE).plusSeconds(60));
+
+        var current = versions.current(document.id()).orElseThrow();
+        assertEquals(2, current.version());
+        assertEquals(
+                current.sha256(),
+                requestRepo.withdrawalOf(request.id()).orElseThrow().sealedSha256());
+        assertSealIntact(documents.read(document).orElseThrow());
+    }
+
+    private static SignatureWithdrawals withdrawals(
+            SigningStateSealer sealer, SignatureNotices notices, WithdrawalRelay relay, Clock clock) {
+        var guardianPolicy = new GuardianPolicy(stationMemberRepo);
+        return new SignatureWithdrawals(
+                requestRepo,
+                requests,
+                new WithdrawalRights(guardianPolicy),
+                memberNameResolver,
+                sealer,
+                notices,
+                eventRepo,
+                eventRegistrationRepo,
+                mock(AppointmentSignatures.class),
+                relay,
+                clock);
     }
 
     @Test

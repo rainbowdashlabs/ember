@@ -32,6 +32,7 @@ import java.util.UUID;
  * @param memberName      the official name of the member the document is about
  * @param assembledAt     when this signing state was put together
  * @param fields          every signature field of the request, in the order they were asked for
+ * @param withdrawal      the withdrawal of the signed agreement, or null where nobody withdrew it
  */
 public record SigningEvidenceFile(
         String format,
@@ -40,7 +41,8 @@ public record SigningEvidenceFile(
         String contentSha256,
         String memberName,
         Instant assembledAt,
-        List<Field> fields) {
+        List<Field> fields,
+        @Nullable Withdrawal withdrawal) {
 
     /** The name and version of the layout. */
     public static final String FORMAT = "ember-signing-evidence-v1";
@@ -155,6 +157,28 @@ public record SigningEvidenceFile(
      * @param source how it came to the act: made for it (drawn, typed, uploaded) or saved before
      */
     public record Picture(String sha256, ActPictureSource source) {}
+
+    /**
+     * The withdrawal of the signed agreement. The signatures before it stay in the file as the evidence of
+     * what was agreed until then.
+     *
+     * @param withdrawnByName the official name of whoever withdrew it
+     * @param capacity        {@link SignerCapacity#GUARDIAN} where a guardian withdrew it for the member,
+     *                        else {@link SignerCapacity#ACCOUNT_HOLDER}
+     * @param memberName      the official name of the member a guardian withdrew it for, or null
+     * @param reason          why, as written, or null where no reason was given
+     * @param withdrawnAt     when, by the server's clock
+     * @param truncatedIp     the client's address with its host part zeroed, or null
+     * @param userAgent       the browser's user agent, or null
+     */
+    public record Withdrawal(
+            String withdrawnByName,
+            SignerCapacity capacity,
+            @Nullable String memberName,
+            @Nullable String reason,
+            Instant withdrawnAt,
+            @Nullable String truncatedIp,
+            @Nullable String userAgent) {}
 
     /**
      * What a passkey or security key answered, and the key it answered with.

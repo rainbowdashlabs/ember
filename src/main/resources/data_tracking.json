@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:cbe16ce1bc35c33dc6fedb5ad987e9b761a91ac96ee87b50e77638bdbb7b3005",
-  "generatedAt": "2026-10-09T00:59:14Z",
+  "schemaHash": "sha256:c8b796ce1013089a08854b4a30bf3cfd394303d82161cfbbad9479853266f5cd",
+  "generatedAt": "2026-10-09T09:33:47Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -10046,7 +10046,7 @@
     "event_registration": {
       "feature": "events",
       "scope": "STATION",
-      "tableHash": "sha256:f233044e414783ff1eed11e963d84fd59e16191c841c51b861eaa2d7abecbe02",
+      "tableHash": "sha256:b7d5e935146f16aac6c298f8a3d03b3e9308b05d282cab0c2eb2056d1891fca1",
       "columns": [
         {
           "name": "id",
@@ -10117,6 +10117,13 @@
           "nullable": false,
           "verified": true,
           "description": "Whether this registration exists because the member is named in a question of the appointment rather than because anybody signed up. It cannot be taken back while it holds: the way off the list is out of the question that names them. False on a registration somebody made, including one made by a member who is also named."
+        },
+        {
+          "name": "agreement_withdrawn_at",
+          "type": "timestamptz",
+          "nullable": true,
+          "verified": true,
+          "description": "When a signed agreement for this date that one of the appointment's documents to bring asked for was withdrawn while the registration stood, which flags the registration for whoever runs the appointment. NULL where none was, and again once the agreement is signed anew."
         }
       ],
       "foreignKeys": [
@@ -24768,7 +24775,7 @@
           "type": "text",
           "nullable": false,
           "verified": true,
-          "description": "OPEN while a field waits for a signature, COMPLETE once every field is signed, confirmed on paper, waived or withdrawn and at least one was signed or confirmed, WITHDRAWN when nothing was signed or confirmed, SUPERSEDED when a corrected document replaced it."
+          "description": "OPEN while a field waits for a signature, COMPLETE once every field is signed, confirmed on paper, waived or withdrawn and at least one was signed or confirmed, WITHDRAWN when nothing was signed or confirmed, SUPERSEDED when a corrected document replaced it, REVOKED when a signer withdrew the signed agreement (signing_withdrawal); what was signed on a revoked request stays as evidence."
         },
         {
           "name": "superseded_by",
@@ -25089,6 +25096,145 @@
         ]
       },
       "description": "One signature field of a signing request and who must sign it, resolved from the field's role when the request was made: the member, a guardian at a place in the member's order, any of the member's guardians, or the issuer. Every field is required; the request is complete once none is open."
+    },
+    "signing_withdrawal": {
+      "feature": "signing",
+      "scope": "STATION",
+      "tableHash": "sha256:2c3f9a2fd8210626a53935435f1803eb753db4fbebf2798264c8ce38eeaf5ad2",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Primary key."
+        },
+        {
+          "name": "request_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The request whose agreement was withdrawn. A request is withdrawn once."
+        },
+        {
+          "name": "member_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The member the document is about, copied from the request so the withdrawal is part of that member's data. NULL once that member was deleted."
+        },
+        {
+          "name": "withdrawn_by",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The member who withdrew the agreement: the member themselves, a guardian acting for them, or somebody who signed a field of it. NULL once they are gone."
+        },
+        {
+          "name": "withdrawn_by_name",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The official name of whoever withdrew the agreement, as it was then, kept once they are gone."
+        },
+        {
+          "name": "capacity",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "In what capacity the agreement was withdrawn: ACCOUNT_HOLDER by the member themselves or by a signer for their own signature, GUARDIAN by a guardian on behalf of the member."
+        },
+        {
+          "name": "reason",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "Why it was withdrawn, as the person wrote it, at most 500 characters. NULL where no reason was given."
+        },
+        {
+          "name": "withdrawn_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "verified": true,
+          "description": "When the agreement was withdrawn."
+        },
+        {
+          "name": "truncated_ip",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "The network address the withdrawal came from, shortened like the address of a signing act. NULL where none was known."
+        },
+        {
+          "name": "user_agent",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "The browser the withdrawal came from, as it named itself. NULL where none was known."
+        },
+        {
+          "name": "sealed_sha256",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "SHA-256 of the first sealed version of the document that carries the withdrawal, lower-case hexadecimal. NULL until it is sealed; a sweep seals a withdrawal whose sealing failed."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "member_id",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
+        {
+          "column": "request_id",
+          "refTable": "signing_request",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "withdrawn_by",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED",
+        "rationale": "Moves with its signing request; the members it names follow to their new ids."
+      },
+      "gdprExport": {
+        "status": "TRACKED",
+        "identityColumns": [
+          {
+            "type": "MEMBER_ID",
+            "column": "member_id"
+          },
+          {
+            "type": "MEMBER_ID",
+            "column": "withdrawn_by"
+          }
+        ]
+      },
+      "gdprDeletion": {
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "member_id",
+            "strategy": "RETAIN",
+            "reason": "A withdrawal outlasts the deletion of the member the document is about until its request's retain_until, then the retention sweep deletes it with the request; the foreign key unlinks the deleted member",
+            "legalBasis": "GDPR Art. 17(3)(e): kept as evidence for the establishment, exercise or defence of legal claims"
+          },
+          {
+            "column": "withdrawn_by",
+            "strategy": "RETAIN",
+            "reason": "Who withdrew the agreement is part of the record until the request's retain_until, then the retention sweep deletes it with the request; the foreign key unlinks the deleted member, the name copied then stays",
+            "legalBasis": "GDPR Art. 17(3)(e): kept as evidence for the establishment, exercise or defence of legal claims"
+          }
+        ]
+      },
+      "description": "A signed agreement its signer withdrew: who withdrew it, when, from where and why. The request it withdraws is REVOKED, its signed fields and their evidence stay, and the withdrawal is sealed into a new version of the document, after the versions that carry the signatures. Kept and deleted with its request."
     },
     "station": {
       "feature": "station",

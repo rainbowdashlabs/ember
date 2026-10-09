@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.signing.entity.CompletedSigning;
 import dev.chojo.ember.feature.signing.entity.FieldState;
 import dev.chojo.ember.feature.signing.entity.GuardianLink;
+import dev.chojo.ember.feature.signing.entity.RequestState;
 import dev.chojo.ember.feature.signing.entity.RequestedSignature;
 import dev.chojo.ember.feature.signing.entity.SignatureRequest;
 import dev.chojo.ember.feature.signing.entity.Signer;
@@ -46,7 +47,8 @@ import java.util.UUID;
  *
  * <p>Once a field is settled, the unread requests and reminders for it are taken back, and a signature is
  * told to whoever asked for it ({@link SignatureNotices}). A field a manager settles is sealed into the
- * document by {@link SigningStateSweeper}.
+ * document by {@link SigningStateSweeper}. A request completed by the field it settled is handed on to
+ * {@link AgreementOutcomes}.
  */
 @Singleton
 public class SignatureFieldService {
@@ -59,6 +61,7 @@ public class SignatureFieldService {
     private final GuardianPolicy guardianPolicy;
     private final MemberNameResolver names;
     private final SignatureNotices notices;
+    private final AgreementOutcomes outcomes;
 
     @Inject
     public SignatureFieldService(
@@ -68,7 +71,8 @@ public class SignatureFieldService {
             SigningGuards guards,
             GuardianPolicy guardianPolicy,
             MemberNameResolver names,
-            SignatureNotices notices) {
+            SignatureNotices notices,
+            AgreementOutcomes outcomes) {
         this.requests = requests;
         this.evidence = evidence;
         this.requestService = requestService;
@@ -76,6 +80,7 @@ public class SignatureFieldService {
         this.guardianPolicy = guardianPolicy;
         this.names = names;
         this.notices = notices;
+        this.outcomes = outcomes;
     }
 
     /**
@@ -118,7 +123,19 @@ public class SignatureFieldService {
                 signed.evidence().proof());
         notices.settled(List.of(stored.fieldId()));
         notices.signed(request, stored);
+        tellIfCompleted(request.id());
         return stored;
+    }
+
+    /** Tells {@link AgreementOutcomes} of a request that completed, logging rather than throwing. */
+    private void tellIfCompleted(int requestId) {
+        var now = requests.findById(requestId).orElse(null);
+        if (now == null || now.state() != RequestState.COMPLETE) return;
+        try {
+            outcomes.completed(now);
+        } catch (RuntimeException e) {
+            log.warn("Could not carry the completion of signing request {} over", now.uid(), e);
+        }
     }
 
     /**
@@ -191,6 +208,7 @@ public class SignatureFieldService {
                     .orElse(field);
         });
         notices.settled(List.of(settled.id()));
+        tellIfCompleted(request.id());
         return settled;
     }
 

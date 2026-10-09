@@ -8,6 +8,8 @@ package dev.chojo.ember.feature.signing.service;
 import dev.chojo.ember.feature.signing.entity.ActPicture;
 import dev.chojo.ember.feature.signing.entity.RequestedSignature;
 import dev.chojo.ember.feature.signing.entity.SignatureRequestView;
+import dev.chojo.ember.feature.signing.entity.SignatureWithdrawal;
+import dev.chojo.ember.feature.signing.entity.SignerCapacity;
 import dev.chojo.ember.feature.signing.entity.SigningAct;
 import dev.chojo.ember.feature.signing.entity.SigningEvidence;
 import dev.chojo.ember.feature.signing.entity.SigningEvidenceFile;
@@ -62,7 +64,21 @@ public final class SigningEvidenceFiles {
                 request.contentSha256(),
                 request.memberName(),
                 assembledAt,
-                fields);
+                fields,
+                withdrawal(view.withdrawal(), request.memberName()));
+    }
+
+    private static SigningEvidenceFile.@Nullable Withdrawal withdrawal(
+            @Nullable SignatureWithdrawal withdrawal, String memberName) {
+        if (withdrawal == null) return null;
+        return new SigningEvidenceFile.Withdrawal(
+                withdrawal.withdrawnByName(),
+                withdrawal.capacity(),
+                withdrawal.capacity() == SignerCapacity.GUARDIAN ? memberName : null,
+                withdrawal.reason(),
+                withdrawal.withdrawnAt(),
+                withdrawal.truncatedIp(),
+                withdrawal.userAgent());
     }
 
     /**

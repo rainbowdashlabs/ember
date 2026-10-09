@@ -22,6 +22,8 @@ function consentFor(memberId: number, memberName: string, yours: boolean): Partn
             fields: [
                 {id: 70 + memberId, name: 'participant', signerName: memberName, state: RequirementSignatureState.OPEN, yours},
             ],
+            withdrawable: false,
+            withdrawnAt: null,
         },
     }
 }

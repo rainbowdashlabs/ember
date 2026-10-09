@@ -140,6 +140,23 @@ This record belongs to the document before it. It states who signed it electroni
 The signatures are simple electronic signatures. The station's seal confirms that the document has not
 changed since it was sealed.
 
+#if r.withdrawal != none [
+  #let w = r.withdrawal
+  == Withdrawal
+
+  This agreement was withdrawn. The signatures below remain as evidence of what was agreed until the
+  withdrawal. From the withdrawal on, they no longer apply.
+
+  #facts(
+    [Withdrawn by], [#w.withdrawnByName],
+    [Acting], if w.capacity == "GUARDIAN" [as guardian of #w.memberName] else [for themselves],
+    [Time], [#w.withdrawnAt],
+    [Reason], if w.reason != none [#w.reason] else [None given],
+    [Network address (shortened)], if w.truncatedIp != none [#w.truncatedIp] else [Not known],
+    [Browser], if w.userAgent != none [#w.userAgent] else [Not known],
+  )
+]
+
 == Document
 
 #facts(

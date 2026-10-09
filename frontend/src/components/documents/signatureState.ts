@@ -41,6 +41,7 @@ export function signatureDisplayOf(summary: SignatureSummary | null | undefined)
         case RequestState.COMPLETE:
             return SignatureDisplay.SIGNED
         case RequestState.WITHDRAWN:
+        case RequestState.REVOKED:
             return SignatureDisplay.WITHDRAWN
         case RequestState.SUPERSEDED:
             return SignatureDisplay.REPLACED

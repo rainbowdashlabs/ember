@@ -14,5 +14,7 @@ public enum RequestState {
     /** No field waits any more, and none was signed or confirmed on paper. */
     WITHDRAWN,
     /** A corrected document replaced it; what was signed on it stays. */
-    SUPERSEDED
+    SUPERSEDED,
+    /** A signer withdrew the signed agreement; what was signed on it stays as evidence. */
+    REVOKED
 }

@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.signing.repository;
 
 import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
+import dev.chojo.ember.feature.signing.entity.AppointmentCopy;
 import dev.chojo.ember.feature.signing.entity.AppointmentRequest;
 import dev.chojo.ember.feature.signing.entity.DueReminder;
 import dev.chojo.ember.feature.signing.entity.FieldState;
@@ -15,6 +16,7 @@ import dev.chojo.ember.feature.signing.entity.PendingSignature;
 import dev.chojo.ember.feature.signing.entity.RequestedSignature;
 import dev.chojo.ember.feature.signing.entity.SignatureRequest;
 import dev.chojo.ember.feature.signing.entity.SignatureSummary;
+import dev.chojo.ember.feature.signing.entity.SignatureWithdrawal;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -37,8 +39,8 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 import static de.chojo.sadu.queries.converter.StandardValueConverter.UUID_STRING;
 
 /**
- * Requests for signatures on generated documents and their fields: who must sign what, and where each
- * field stands.
+ * Requests for signatures on generated documents and their fields: who must sign what, where each field
+ * stands, and the withdrawal of a signed agreement.
  */
 @Singleton
 public class SignatureRequestRepository {
@@ -718,6 +720,136 @@ public class SignatureRequestRepository {
                 call().bind("document_id", documentId)
                         .bind("request_id", requestId)
                         .bind("now", now, INSTANT_TIMESTAMP));
+    }
+
+    /**
+     * Writes the withdrawal of a request's agreement and revokes the request in one go. The request is held
+     * by the caller ({@link #lockRequest}).
+     *
+     * @param withdrawal the withdrawal
+     * @return the withdrawal as written
+     */
+    public SignatureWithdrawal revoke(SignatureWithdrawal.Draft withdrawal) {
+        query("""
+                UPDATE signing_request
+                SET state     = 'REVOKED',
+                    closed_at = coalesce(closed_at, :withdrawn_at)
+                WHERE id = :request_id;""")
+                .single(call().bind("request_id", withdrawal.requestId())
+                        .bind("withdrawn_at", withdrawal.withdrawnAt(), INSTANT_TIMESTAMP))
+                .update();
+        return SqlSupport.insertReturning(
+                """
+                        INSERT INTO signing_withdrawal(request_id, member_id, withdrawn_by, withdrawn_by_name, capacity,
+                                                       reason, withdrawn_at, truncated_ip, user_agent)
+                        VALUES (:request_id, :member_id, :withdrawn_by, :withdrawn_by_name, :capacity, :reason,
+                                :withdrawn_at, :truncated_ip, :user_agent)
+                        RETURNING %s;""",
+                call().bind("request_id", withdrawal.requestId())
+                        .bind("member_id", withdrawal.memberId())
+                        .bind("withdrawn_by", withdrawal.withdrawnBy())
+                        .bind("withdrawn_by_name", withdrawal.withdrawnByName())
+                        .bind("capacity", withdrawal.capacity())
+                        .bind("reason", withdrawal.reason())
+                        .bind("withdrawn_at", withdrawal.withdrawnAt(), INSTANT_TIMESTAMP)
+                        .bind("truncated_ip", withdrawal.truncatedIp())
+                        .bind("user_agent", withdrawal.userAgent()),
+                SignatureWithdrawal.map(),
+                SignatureWithdrawal.COLUMNS);
+    }
+
+    /** @return the withdrawal of a request's agreement, or empty where nobody withdrew it */
+    public Optional<SignatureWithdrawal> withdrawalOf(int requestId) {
+        return query("SELECT %s FROM signing_withdrawal WHERE request_id = :request_id;", SignatureWithdrawal.COLUMNS)
+                .single(call().bind("request_id", requestId))
+                .map(SignatureWithdrawal.map())
+                .first();
+    }
+
+    /**
+     * Records the sealed version that first carries the withdrawal of a request's agreement.
+     *
+     * @param requestId the request
+     * @param sha256    SHA-256 of that version, lower-case hexadecimal
+     * @return whether a withdrawal was waiting for it
+     */
+    public boolean markWithdrawalSealed(int requestId, String sha256) {
+        return query("""
+                        UPDATE signing_withdrawal
+                        SET sealed_sha256 = :sealed_hash
+                        WHERE request_id = :request_id
+                          AND sealed_sha256 IS NULL;""")
+                .single(call().bind("request_id", requestId).bind("sealed_hash", sha256))
+                .update()
+                .changed();
+    }
+
+    /**
+     * The requests on a member document, newest first: the request a copy was asked on, and the one before
+     * a correction.
+     *
+     * @param stationId  the station
+     * @param documentId the member document
+     * @return the requests
+     */
+    public List<SignatureRequest> onDocument(int stationId, int documentId) {
+        return query("""
+                        SELECT %s FROM signing_request
+                        WHERE station_id = :station_id AND document_id = :document_id
+                        ORDER BY id DESC;""", SignatureRequest.COLUMNS)
+                .single(call().bind("station_id", stationId).bind("document_id", documentId))
+                .map(SignatureRequest.map())
+                .all();
+    }
+
+    /**
+     * The latest request on each participant's copies of the documents an appointment asks for on one date,
+     * where somebody signed it or confirmed it on paper, whatever it stands at now.
+     *
+     * @param eventId   the appointment
+     * @param eventDate the date
+     * @return at most one request per document and participant
+     */
+    public List<AppointmentRequest> agreedForAppointment(int eventId, LocalDate eventDate) {
+        return query("""
+                        SELECT DISTINCT ON (g.template_id, g.member_id) %s
+                        FROM signing_request r
+                                 JOIN document_generation g ON g.id = r.generation_id
+                        WHERE g.event_id = :event_id
+                          AND g.event_date = :event_date
+                          AND g.member_id IS NOT NULL
+                          AND r.state <> 'SUPERSEDED'
+                          AND EXISTS (SELECT 1 FROM signing_request_field f
+                                      WHERE f.request_id = r.id
+                                        AND f.state IN ('SIGNED', 'PAPER_CONFIRMED'))
+                        ORDER BY g.template_id, g.member_id, r.id DESC;""", APPOINTMENT_COLUMNS)
+                .single(call().bind("event_id", eventId).bind("event_date", eventDate))
+                .map(AppointmentRequest.map())
+                .all();
+    }
+
+    /**
+     * The appointment a request's copy was generated for, where it was one.
+     *
+     * @param requestId the request
+     * @return the appointment, its date and the participant, or empty for a document no appointment asked for
+     */
+    public Optional<AppointmentCopy> appointmentOf(int requestId) {
+        return query("""
+                        SELECT g.event_id, g.event_date, g.member_id, g.template_id
+                        FROM signing_request r
+                                 JOIN document_generation g ON g.id = r.generation_id
+                        WHERE r.id = :id
+                          AND g.event_id IS NOT NULL
+                          AND g.event_date IS NOT NULL
+                          AND g.member_id IS NOT NULL;""")
+                .single(call().bind("id", requestId))
+                .map(row -> new AppointmentCopy(
+                        row.getInt("event_id"),
+                        row.getObject("event_date", LocalDate.class),
+                        row.getInt("member_id"),
+                        row.getInt("template_id")))
+                .first();
     }
 
     /**

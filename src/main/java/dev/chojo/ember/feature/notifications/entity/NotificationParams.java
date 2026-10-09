@@ -415,4 +415,15 @@ public sealed interface NotificationParams {
     record DocumentScanRejected(
             String documentName, String memberName, String eventName, LocalDate eventDate, String reason)
             implements NotificationParams {}
+
+    /**
+     * A signed agreement was withdrawn, told to whoever runs the appointment that asked for it, or to whoever
+     * asked for the signatures.
+     *
+     * @param documentTitle   the document's title
+     * @param withdrawnByName the official name of whoever withdrew it
+     * @param memberName      the official name of the member the document is about
+     */
+    record SignatureWithdrawn(String documentTitle, String withdrawnByName, String memberName)
+            implements NotificationParams {}
 }

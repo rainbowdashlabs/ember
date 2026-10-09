@@ -34,7 +34,8 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
 public class EventRegistrationRepository {
 
     private static final String COLUMNS =
-            "id, event_id, member_id, event_date, status, created_at, created_by, status_changed_at, previous_status, from_field";
+            "id, event_id, member_id, event_date, status, created_at, created_by, status_changed_at, previous_status, from_field, "
+                    + "agreement_withdrawn_at";
 
     /**
      * Retrieves all registrations for an event on a specific date, ordered by creation time.
@@ -453,6 +454,55 @@ public class EventRegistrationRepository {
                 .single(call().bind("event_id", eventId).bind("from", from).bind("to", to))
                 .update()
                 .rows();
+    }
+
+    /**
+     * Flags a member's standing registration for a date: a signed agreement the appointment asked for was
+     * withdrawn.
+     *
+     * @param eventId   the appointment
+     * @param eventDate the date
+     * @param memberId  the member
+     * @param at        when it was withdrawn
+     * @return whether a standing registration was flagged
+     */
+    public boolean flagAgreementWithdrawn(int eventId, LocalDate eventDate, int memberId, Instant at) {
+        return query("""
+                        UPDATE event_registration
+                        SET agreement_withdrawn_at = :at
+                        WHERE event_id = :event_id
+                          AND event_date = :event_date
+                          AND member_id = :member_id
+                          AND status IN ('PENDING', 'ACCEPTED');""")
+                .single(call().bind("event_id", eventId)
+                        .bind("event_date", eventDate)
+                        .bind("member_id", memberId)
+                        .bind("at", at, INSTANT_TIMESTAMP))
+                .update()
+                .changed();
+    }
+
+    /**
+     * Takes the flag of a withdrawn agreement off a member's registration for a date, once it is signed anew.
+     *
+     * @param eventId   the appointment
+     * @param eventDate the date
+     * @param memberId  the member
+     * @return whether a flag was taken off
+     */
+    public boolean clearAgreementWithdrawn(int eventId, LocalDate eventDate, int memberId) {
+        return query("""
+                        UPDATE event_registration
+                        SET agreement_withdrawn_at = NULL
+                        WHERE event_id = :event_id
+                          AND event_date = :event_date
+                          AND member_id = :member_id
+                          AND agreement_withdrawn_at IS NOT NULL;""")
+                .single(call().bind("event_id", eventId)
+                        .bind("event_date", eventDate)
+                        .bind("member_id", memberId))
+                .update()
+                .changed();
     }
 
     /**

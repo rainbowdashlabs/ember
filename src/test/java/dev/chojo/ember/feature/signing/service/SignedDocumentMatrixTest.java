@@ -161,7 +161,8 @@ class SignedDocumentMatrixTest extends RepositoryTestBase {
                 guards,
                 guardianPolicy,
                 memberNameResolver,
-                mock(SignatureNotices.class));
+                mock(SignatureNotices.class),
+                completed -> {});
         stationKeys = new StationSigningKeys(keyRepo, new SigningCertificates(), wrap, stationRepo, BASE_URL);
         verifier = new SealVerifier(
                 keyRepo,
