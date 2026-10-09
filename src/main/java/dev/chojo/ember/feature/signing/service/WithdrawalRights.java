@@ -25,9 +25,8 @@ import java.util.Objects;
  *
  * <p>An agreement is withdrawn as a whole, by the member it is about, by a guardian acting for them, or by
  * whoever signed one of its fields for themselves or the member, for as long as it stands: open or complete,
- * with at least one field signed online. Its issuer's signature is no consent, so signing as issuer gives no
- * right to withdraw. A signature confirmed on paper is withdrawn on paper; a request nobody signed online has
- * no sealed document to carry the withdrawal.
+ * with at least one field signed online or confirmed on paper. Its issuer's signature is no consent, so
+ * signing as issuer gives no right to withdraw, and an agreement nobody signed yet has nothing to withdraw.
  */
 @Singleton
 public class WithdrawalRights {
@@ -45,7 +44,7 @@ public class WithdrawalRights {
      * @return whether the reader may withdraw the agreement now
      */
     public boolean mayWithdraw(StationSession reader, SignatureRequest request, List<RequestedSignature> fields) {
-        return standing(request) && signedOnline(fields) && isParty(reader, request, fields);
+        return standing(request) && agreed(fields) && isParty(reader, request, fields);
     }
 
     /**
@@ -58,7 +57,7 @@ public class WithdrawalRights {
     void requireMayWithdraw(StationSession reader, SignatureRequest request, List<RequestedSignature> fields) {
         if (!isParty(reader, request, fields)) throw DocumentRefusal.SIGNATURE_WITHDRAWAL_NOT_YOURS.raise();
         if (!standing(request)) throw DocumentRefusal.SIGNATURE_WITHDRAWAL_ENDED.raise();
-        if (!signedOnline(fields)) throw DocumentRefusal.SIGNATURE_WITHDRAWAL_NOTHING_SIGNED.raise();
+        if (!agreed(fields)) throw DocumentRefusal.SIGNATURE_WITHDRAWAL_NOTHING_SIGNED.raise();
     }
 
     /**
@@ -94,8 +93,9 @@ public class WithdrawalRights {
         return request.state() == RequestState.OPEN || request.state() == RequestState.COMPLETE;
     }
 
-    private static boolean signedOnline(List<RequestedSignature> fields) {
+    private static boolean agreed(List<RequestedSignature> fields) {
         return fields.stream()
-                .anyMatch(field -> field.state() == FieldState.SIGNED && field.role() != FieldRole.ISSUER);
+                .anyMatch(field -> (field.state() == FieldState.SIGNED || field.state() == FieldState.PAPER_CONFIRMED)
+                        && field.role() != FieldRole.ISSUER);
     }
 }

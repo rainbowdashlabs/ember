@@ -107,6 +107,11 @@ export async function submitScan(target: ScanTarget, file: File, title: string):
         {file, title})
 }
 
+/** Takes back a scan that still waits; it is removed and the document is open again. */
+export async function withdrawScan(eventId: number, submissionId: number): Promise<void> {
+    await client.delete(`/events/${eventId}/document-scans/${submissionId}`)
+}
+
 /** Where a scan handed in is served, for whoever manages the registrations. */
 export function scanContentUrl(eventId: number, submissionId: number): string {
     return `/events/${eventId}/document-scans/${submissionId}/content`

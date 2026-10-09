@@ -190,7 +190,7 @@ export default {
     'D-276': 'Von diesem Dokument ist noch kein unterschriebenes Exemplar zurückgekommen',
     'D-290': 'Diese Unterschrift kannst du nicht widerrufen',
     'D-291': 'Diese Vereinbarung gilt nicht mehr, es gibt nichts zu widerrufen',
-    'D-292': 'Hier wurde nichts online unterschrieben, ein Widerruf geht deshalb nur auf Papier',
+    'D-292': 'Hier wurde noch nichts unterschrieben, es gibt nichts zu widerrufen',
     'D-293': 'Der Grund darf höchstens 500 Zeichen lang sein',
     'D-300': 'Wähle mindestens ein Feld zum Unterschreiben',
     'D-301': 'In einem Durchgang lassen sich höchstens 50 Felder unterschreiben',

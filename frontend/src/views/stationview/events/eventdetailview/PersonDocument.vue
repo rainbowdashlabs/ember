@@ -21,7 +21,8 @@ import {SCAN_TYPES, type ParticipantCopy} from './documentTiles'
 
 /**
  * One document of one person: its name, then the person's copy to download and sign by hand, its signed
- * scan to upload ("Ersetzen" while one waits, nothing once one is confirmed) and, where the reader may sign
+ * scan to upload ("Ersetzen" while one waits, which can also be taken back, and nothing once one is
+ * confirmed) and, where the reader may sign
  * fields of the copy now, signing them online in one go. Below, where the copy stands and each of its
  * signature fields; its agreement can be signed from here on an appointment without registrations, and
  * withdrawn ({@link AgreementActions}).
@@ -37,6 +38,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   fetch: []
   handIn: [file: File]
+  withdrawScan: []
   changed: []
 }>()
 
@@ -63,6 +65,10 @@ function signOnline() {
                         data-testid="document-to-bring-scan" @select="file => emit('handIn', file)">
         {{ paper === PaperState.SUBMITTED ? t('events.documents.scanReplace') : t('common.upload') }}
       </FileUploadButton>
+      <SecondaryButton v-if="paper === PaperState.SUBMITTED" compact :icon="['fas', 'rotate-left']" :disabled="busy"
+                       data-testid="document-to-bring-scan-withdraw" @click="emit('withdrawScan')">
+        {{ t('events.documents.scanWithdraw') }}
+      </SecondaryButton>
       <PrimaryButton v-if="toSign.length > 0" compact :icon="['fas', 'file-signature']" :disabled="busy"
                      data-testid="document-to-bring-sign" @click="signOnline">
         {{ t('events.documents.signOnline') }}

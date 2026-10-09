@@ -23339,6 +23339,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/{id}/document-scans/{submissionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Take back a scan that still waits, which removes it and opens the document again */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                    submissionId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/{id}/document-scans/{submissionId}/confirm": {
         parameters: {
             query?: never;
@@ -68103,7 +68167,7 @@ export interface components {
             templateId?: number;
         };
         /** @enum {string} */
-        PaperState: "SUBMITTED" | "CONFIRMED" | "REJECTED";
+        PaperState: "SUBMITTED" | "CONFIRMED" | "REJECTED" | "WITHDRAWN";
         PaperSubmission: {
             /** Format: int32 */
             documentId: number;
@@ -75288,6 +75352,7 @@ export const PaperState = {
     CONFIRMED: "CONFIRMED",
     REJECTED: "REJECTED",
     SUBMITTED: "SUBMITTED",
+    WITHDRAWN: "WITHDRAWN",
 } as const;
 
 export const PartnerAgreementState = {

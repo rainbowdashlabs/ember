@@ -19546,6 +19546,64 @@
         }
       }
     },
+    "/api/v1/events/{id}/document-scans/{submissionId}" : {
+      "delete" : {
+        "summary" : "Take back a scan that still waits, which removes it and opens the document again",
+        "tags" : [ "Events" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "submissionId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
     "/api/v1/events/{id}/document-scans/{submissionId}/confirm" : {
       "post" : {
         "summary" : "Confirm a scan handed in as the participant's signed paper copy",
@@ -67174,7 +67232,7 @@
       },
       "PaperState" : {
         "type" : "string",
-        "enum" : [ "SUBMITTED", "CONFIRMED", "REJECTED" ]
+        "enum" : [ "SUBMITTED", "CONFIRMED", "REJECTED", "WITHDRAWN" ]
       },
       "PaperSubmission" : {
         "type" : "object",

@@ -29,8 +29,9 @@ import org.jspecify.annotations.Nullable;
 import static dev.chojo.ember.api.RouteSupport.pathInt;
 
 /**
- * Scans of signed paper copies of the documents an appointment asks for: handed in by whoever may fetch
- * the participant's copy, and read, confirmed or turned down by whoever manages the registrations.
+ * Scans of signed paper copies of the documents an appointment asks for: handed in, and taken back while
+ * they wait, by whoever may fetch the participant's copy, and read, confirmed or turned down by whoever
+ * manages the registrations.
  */
 @Singleton
 public class PaperSubmissionRoutes implements Routes {
@@ -61,6 +62,7 @@ public class PaperSubmissionRoutes implements Routes {
                 prefix + "/events/{id}/document-scans/{submissionId}/reject",
                 this::reject,
                 StationPermission.EVENT_REGISTRATION);
+        routes.delete(prefix + "/events/{id}/document-scans/{submissionId}", this::withdraw, StationPermission.USER);
     }
 
     /**
@@ -159,5 +161,27 @@ public class PaperSubmissionRoutes implements Routes {
         var event = visibility.requireVisibleEvent(session, pathInt(ctx, "id"));
         String reason = ctx.bodyAsClass(ScanRejectRequest.class).reason();
         ctx.json(submissions.reject(session, event, pathInt(ctx, "submissionId"), reason));
+    }
+
+    @OpenApi(
+            path = "/api/v1/events/{id}/document-scans/{submissionId}",
+            methods = HttpMethod.DELETE,
+            summary = "Take back a scan that still waits, which removes it and opens the document again",
+            tags = {"Events"},
+            pathParams = {
+                @OpenApiParam(name = "id", type = Integer.class, required = true),
+                @OpenApiParam(name = "submissionId", type = Integer.class, required = true)
+            },
+            responses = {
+                @OpenApiResponse(status = "204"),
+                @OpenApiResponse(status = "403", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "409", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void withdraw(Context ctx) {
+        var session = StationSession.from(ctx);
+        var event = visibility.requireVisibleEvent(session, pathInt(ctx, "id"));
+        submissions.withdraw(session, event, pathInt(ctx, "submissionId"));
+        ctx.status(HttpStatus.NO_CONTENT);
     }
 }

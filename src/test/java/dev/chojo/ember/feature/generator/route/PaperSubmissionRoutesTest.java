@@ -35,6 +35,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -121,6 +122,25 @@ class PaperSubmissionRoutesTest {
                 null,
                 null,
                 null);
+    }
+
+    @Test
+    void aParticipantTakesAWaitingScanBack() {
+        doThrow(DocumentRefusal.DOCUMENT_SCAN_NOT_WAITING.raise())
+                .when(submissions)
+                .withdraw(any(), eq(event), eq(21));
+        harness.run((server, client) -> {
+            var participant = harness.as(TestSessions.member(3, StationPermission.USER));
+            assertEquals(
+                    204,
+                    client.delete(PREFIX + "/events/5/document-scans/20", null, participant)
+                            .code());
+            assertEquals(
+                    DocumentRefusal.DOCUMENT_SCAN_NOT_WAITING,
+                    refusalOf(client.delete(PREFIX + "/events/5/document-scans/21", null, participant)));
+        });
+
+        verify(submissions).withdraw(any(), eq(event), eq(20));
     }
 
     @Test

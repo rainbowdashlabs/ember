@@ -26,7 +26,8 @@ import PersonDocumentsTile from './PersonDocumentsTile.vue'
  * their care who takes part (on an appointment without registrations: all of them) get one tile per
  * person, with each document to download filled with the person's data, sign online, or print, sign and
  * bring; getting it the first time files it in the person's documents. Instead of bringing the signed
- * paper, they may hand in its scan here, which waits for an event manager to confirm it. Whoever takes no
+ * paper, they may hand in its scan here, which waits for an event manager to confirm it and can be taken
+ * back meanwhile. Whoever takes no
  * part, and every event manager, sees one tile per document with a picture of its first page, from which
  * an event manager opens where every participant stands, the members of partner stations included.
  * Nothing shows where the appointment asks for nothing.
@@ -77,8 +78,16 @@ const handingIn = useAsyncAction(async (copy: ParticipantCopy, file: File) => {
   await reload()
 })
 
-const busy = computed(() => fetching.running.value || handingIn.running.value)
-const actionFailure = computed(() => fetching.failure.value ?? handingIn.failure.value)
+const takingBack = useAsyncAction(async (copy: ParticipantCopy) => {
+  const paper = copy.document.paper
+  if (!paper) return
+  received.value = null
+  await appointmentDocuments.withdrawScan(props.eventId, paper.id)
+  await reload()
+})
+
+const busy = computed(() => fetching.running.value || handingIn.running.value || takingBack.running.value)
+const actionFailure = computed(() => fetching.failure.value ?? handingIn.failure.value ?? takingBack.failure.value)
 
 watch(() => [props.eventId, props.date], reload, {immediate: true})
 </script>
@@ -94,7 +103,7 @@ watch(() => [props.eventId, props.date], reload, {immediate: true})
     <div v-if="takesPart && documents" class="grid grid-cols-1 gap-3 md:grid-cols-2">
       <PersonDocumentsTile v-for="person in documents.own" :key="person.memberId" :event-id="eventId" :date="date"
                            :person="person" :busy="busy" @fetch="fetching.run" @hand-in="handingIn.run"
-                           @changed="reload"/>
+                           @withdraw-scan="takingBack.run" @changed="reload"/>
     </div>
     <div v-if="showsDocumentTiles" class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
       <DocumentToBringTile v-for="tile in tiles" :key="tile.template.templateId" :event-id="eventId" :date="date"

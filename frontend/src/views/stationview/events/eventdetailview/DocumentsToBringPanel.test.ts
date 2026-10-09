@@ -34,6 +34,7 @@ vi.mock('@/api', () => ({
         documentsToBring: vi.fn(),
         offerAgreement: vi.fn(),
         submitScan: vi.fn(),
+        withdrawScan: vi.fn(),
         confirmScan: vi.fn(),
         rejectScan: vi.fn(),
         scanContentUrl: (eventId: number, id: number) => `/events/${eventId}/document-scans/${id}/content`,
@@ -151,6 +152,7 @@ describe('DocumentsToBringPanel', () => {
     beforeEach(() => {
         vi.mocked(appointmentDocuments.documentsToBring).mockReset()
         vi.mocked(appointmentDocuments.submitScan).mockReset()
+        vi.mocked(appointmentDocuments.withdrawScan).mockReset()
         vi.mocked(appointmentDocuments.confirmScan).mockReset()
         vi.mocked(appointmentDocuments.rejectScan).mockReset()
         vi.mocked(partnerAgreements.listSigners).mockReset()
@@ -224,6 +226,28 @@ describe('DocumentsToBringPanel', () => {
         expect(panel.find('[data-testid="document-to-bring"]').text()).toContain('Scan eingereicht, wartet auf Bestätigung')
         expect(panel.find('[data-testid="document-to-bring-sign"]').exists()).toBe(false)
         expect(panel.find('[data-testid="document-scan-received"]').exists()).toBe(true)
+    })
+
+    it('takes a waiting scan back and reads the copies again', async () => {
+        const panel = await mountPanel({required: [CONSENT], own: [lena(scan(PaperState.SUBMITTED))], participants: null})
+        vi.mocked(appointmentDocuments.withdrawScan).mockResolvedValue()
+        vi.mocked(appointmentDocuments.documentsToBring).mockResolvedValue(
+            {required: [CONSENT], own: [lena()], participants: null})
+
+        await panel.find('[data-testid="document-to-bring-scan-withdraw"]').trigger('click')
+        await flushPromises()
+
+        expect(appointmentDocuments.withdrawScan).toHaveBeenCalledWith(3, 20)
+        expect(panel.find('[data-testid="document-to-bring-scan-withdraw"]').exists()).toBe(false)
+        expect(panel.find('[data-testid="document-to-bring-scan"]').text()).toBe('Hochladen')
+    })
+
+    it('offers a withdrawn paper copy for a new scan', async () => {
+        const panel = await mountPanel({required: [CONSENT], own: [lena(scan(PaperState.WITHDRAWN))], participants: null})
+
+        expect(panel.find('[data-testid="document-to-bring-scan"]').text()).toBe('Hochladen')
+        expect(panel.find('[data-testid="document-to-bring-scan-withdraw"]').exists()).toBe(false)
+        expect(panel.text()).not.toContain('Auf Papier bestätigt')
     })
 
     it('keeps a failed upload in the failure handling and says nothing was received', async () => {

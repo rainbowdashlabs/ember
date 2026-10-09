@@ -1767,6 +1767,23 @@ COMMENT ON INDEX ember_schema.uq_event_document_submission_standing IS
 COMMENT ON CONSTRAINT event_document_submission_document_id_fkey ON ember_schema.event_document_submission IS
     'Deleting the scan keeps the submission on record without it.';
 
+ALTER TABLE ember_schema.event_document_submission
+    DROP CONSTRAINT event_document_submission_state_check,
+    ADD CONSTRAINT event_document_submission_state_check
+        CHECK (state IN ('SUBMITTED', 'CONFIRMED', 'REJECTED', 'WITHDRAWN'));
+
+DROP INDEX IF EXISTS ember_schema.uq_event_document_submission_standing;
+CREATE UNIQUE INDEX IF NOT EXISTS uq_event_document_submission_standing
+    ON ember_schema.event_document_submission (event_id, event_date, template_id, member_id)
+    WHERE state IN ('SUBMITTED', 'CONFIRMED') AND document_id IS NOT NULL;
+
+COMMENT ON COLUMN ember_schema.event_document_submission.state IS
+    'SUBMITTED while it waits for a manager, CONFIRMED once a manager confirmed it as the signed paper copy, REJECTED once a manager turned it down, WITHDRAWN once the agreement it was confirmed for was withdrawn.';
+COMMENT ON CONSTRAINT event_document_submission_state_check ON ember_schema.event_document_submission IS
+    'The states a scan handed in can be in.';
+COMMENT ON INDEX ember_schema.uq_event_document_submission_standing IS
+    'At most one scan per participant, document and date waits or is confirmed; turned-down and withdrawn ones and those whose scan was deleted are kept beside it.';
+
 CREATE UNIQUE INDEX IF NOT EXISTS uq_station_member_station_account
     ON ember_schema.station_member (station_id, account_id)
     WHERE account_id IS NOT NULL;

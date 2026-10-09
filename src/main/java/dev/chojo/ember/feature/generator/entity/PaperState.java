@@ -14,5 +14,10 @@ public enum PaperState {
     /** Confirmed as the signed paper copy, which settles the document for the participant. */
     CONFIRMED,
     /** Turned down with a reason; the participant may hand in another one. */
-    REJECTED
+    REJECTED,
+    /**
+     * Confirmed once, until the agreement it was confirmed for was withdrawn; it no longer settles the
+     * document, and the participant may hand in another one.
+     */
+    WITHDRAWN
 }

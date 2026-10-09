@@ -24,6 +24,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   fetch: [copy: ParticipantCopy]
   handIn: [copy: ParticipantCopy, file: File]
+  withdrawScan: [copy: ParticipantCopy]
   changed: []
 }>()
 
@@ -37,6 +38,7 @@ function copyOf(document: ParticipantDocuments['documents'][number]): Participan
     <span class="block font-semibold">{{ person.name }}</span>
     <PersonDocument v-for="document in person.documents" :key="document.templateId" :event-id="eventId" :date="date"
                     :copy="copyOf(document)" :busy="busy" @fetch="emit('fetch', copyOf(document))"
-                    @hand-in="file => emit('handIn', copyOf(document), file)" @changed="emit('changed')"/>
+                    @hand-in="file => emit('handIn', copyOf(document), file)"
+                    @withdraw-scan="emit('withdrawScan', copyOf(document))" @changed="emit('changed')"/>
   </NeutralContainer>
 </template>

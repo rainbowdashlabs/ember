@@ -57,7 +57,7 @@ public class PaperSubmissionRepository {
                           AND event_date = :event_date
                           AND template_id = :template_id
                           AND member_id = :member_id
-                          AND state <> 'REJECTED'
+                          AND state IN ('SUBMITTED', 'CONFIRMED')
                           AND document_id IS NOT NULL
                         FOR UPDATE;""", COLUMNS)
                 .single(call().bind("event_id", subject.eventId())
@@ -109,6 +109,49 @@ public class PaperSubmissionRepository {
         query("DELETE FROM event_document_submission WHERE id = :id;")
                 .single(call().bind("id", id))
                 .delete();
+    }
+
+    /**
+     * Removes a submission that still waits, leaving its scan where it is filed.
+     *
+     * @param id the submission
+     * @return the submission as it stood, or empty where it no longer waited
+     */
+    public Optional<PaperSubmission> deleteWaiting(int id) {
+        return query("""
+                        DELETE FROM event_document_submission
+                        WHERE id = :id AND state = 'SUBMITTED'
+                        RETURNING %s;""", COLUMNS)
+                .single(call().bind("id", id))
+                .map(PaperSubmission.map())
+                .first();
+    }
+
+    /**
+     * Marks the confirmed scan of a participant's document on a date as withdrawn, once the agreement it was
+     * confirmed for was withdrawn, so it no longer settles the document and a new scan can be handed in.
+     *
+     * @param eventId    the appointment
+     * @param eventDate  the date
+     * @param templateId the document
+     * @param memberId   the participant
+     * @return whether a confirmed scan stood and is withdrawn now
+     */
+    public boolean withdrawConfirmed(int eventId, LocalDate eventDate, int templateId, int memberId) {
+        return query("""
+                        UPDATE event_document_submission
+                        SET state = 'WITHDRAWN'
+                        WHERE event_id = :event_id
+                          AND event_date = :event_date
+                          AND template_id = :template_id
+                          AND member_id = :member_id
+                          AND state = 'CONFIRMED';""")
+                .single(call().bind("event_id", eventId)
+                        .bind("event_date", eventDate)
+                        .bind("template_id", templateId)
+                        .bind("member_id", memberId))
+                .update()
+                .changed();
     }
 
     /**

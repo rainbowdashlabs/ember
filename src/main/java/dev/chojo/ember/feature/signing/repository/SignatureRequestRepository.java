@@ -88,7 +88,8 @@ public class SignatureRequestRepository {
                                       AND ws.template_id = wg.template_id
                                       AND ws.member_id = wg.member_id
                     WHERE wg.id = r.generation_id
-                      AND ws.state = 'SUBMITTED')""";
+                      AND ws.state = 'SUBMITTED'
+                      AND ws.document_id IS NOT NULL)""";
 
     /**
      * Writes a request with its fields, the retention copied from the template the document came from.

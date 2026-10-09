@@ -1,7 +1,7 @@
 {
   "version": 1,
   "schemaHash": "sha256:c50c33128cf1e067c18221f62a2e4b318ad4cce32bc1b479d590738ac141e619",
-  "generatedAt": "2026-10-09T10:56:27Z",
+  "generatedAt": "2026-10-09T11:56:31Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -9103,7 +9103,7 @@
           "type": "text",
           "nullable": false,
           "verified": true,
-          "description": "SUBMITTED while it waits for a manager, CONFIRMED once a manager confirmed it as the signed paper copy, REJECTED once a manager turned it down."
+          "description": "SUBMITTED while it waits for a manager, CONFIRMED once a manager confirmed it as the signed paper copy, REJECTED once a manager turned it down, WITHDRAWN once the agreement it was confirmed for was withdrawn."
         },
         {
           "name": "submitted_at",

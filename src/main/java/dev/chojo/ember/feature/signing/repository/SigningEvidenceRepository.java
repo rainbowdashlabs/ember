@@ -201,7 +201,8 @@ public class SigningEvidenceRepository {
      * request somebody signed electronically, a field settled since the last version, such as one confirmed
      * on paper, waived or withdrawn, or the withdrawal of its agreement. Only what happened before a given
      * time counts, so an act whose own sealing is still running is left to it. A request nobody signed
-     * electronically has no sealed document and is left out; its agreement cannot be withdrawn either.
+     * electronically has no sealed document and is left out, the withdrawal of an agreement only confirmed
+     * on paper included.
      *
      * <p>The requests whose sealing never failed in the sweep come first, the one waiting longest first; the
      * others follow in the order their sealing last failed ({@link #markSealFailed}), so a request that keeps
@@ -233,7 +234,11 @@ public class SigningEvidenceRepository {
                               SELECT w.request_id, w.withdrawn_at AS since
                               FROM signing_withdrawal w
                               WHERE w.sealed_sha256 IS NULL
-                                AND w.withdrawn_at < :changed_before) waiting
+                                AND w.withdrawn_at < :changed_before
+                                AND EXISTS (SELECT 1
+                                            FROM signing_evidence e
+                                                     JOIN signing_request_field signed ON signed.id = e.field_id
+                                            WHERE signed.request_id = w.request_id)) waiting
                                  JOIN signing_request r ON r.id = waiting.request_id
                         WHERE r.document_id IS NOT NULL
                         GROUP BY waiting.request_id, r.seal_failed_at

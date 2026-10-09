@@ -41,9 +41,11 @@ import java.util.UUID;
  * why. What was signed stays: the versions of the document that carry the signatures stay filed and valid,
  * and the withdrawal is sealed into a version of its own after them ({@link SigningStateSealer}), whose record
  * page says the agreement was withdrawn. A version whose sealing fails is sealed by
- * {@link SigningStateSweeper}.
+ * {@link SigningStateSweeper}. An agreement only confirmed on paper has no sealed version to carry its
+ * withdrawal, which then stands recorded with the request alone.
  *
- * <p>Where an appointment asked for the agreement, the requirement opens again. On an appointment that takes
+ * <p>Where an appointment asked for the agreement, the requirement opens again, and a scan confirmed for it
+ * is withdrawn with it, so a new one can be handed in. On an appointment that takes
  * registrations, the member's standing registration for the date is flagged and the agreement is asked for
  * anew on a fresh copy, so it is among the open signatures again; on one that takes none, the agreement is
  * offered again on the appointment's page. Whoever runs the appointment, or whoever asked for the signatures,
@@ -142,7 +144,7 @@ public class SignatureWithdrawals {
             var fields = requests.fieldsOf(held.id());
             rights.requireMayWithdraw(session, held, fields);
             requests.withdrawOpen(held.id(), me, names.official(me));
-            return requests.revoke(new SignatureWithdrawal.Draft(
+            var revoked = requests.revoke(new SignatureWithdrawal.Draft(
                     held.id(),
                     held.memberId(),
                     me,
@@ -152,6 +154,8 @@ public class SignatureWithdrawals {
                     clock.instant(),
                     truncated(circumstances.clientIp()),
                     circumstances.userAgent()));
+            requests.appointmentOf(held.id()).ifPresent(appointments::withdrawPaper);
+            return revoked;
         });
         log.info("Agreement of signing request {} withdrawn by member {}", request.uid(), me);
         notices.settled(withdrawnFieldsOf(request.id()));

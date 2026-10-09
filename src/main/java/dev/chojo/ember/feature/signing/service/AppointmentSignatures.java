@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.generator.repository.DocumentGenerationRepository
 import dev.chojo.ember.feature.generator.repository.EventRequirementRepository;
 import dev.chojo.ember.feature.generator.repository.PaperSubmissionRepository;
 import dev.chojo.ember.feature.generator.service.AppointmentDocumentService;
+import dev.chojo.ember.feature.signing.entity.AppointmentCopy;
 import dev.chojo.ember.feature.signing.entity.AppointmentRequest;
 import dev.chojo.ember.feature.signing.repository.IssuerSignatureRepository;
 import dev.chojo.ember.feature.signing.repository.SignatureRequestRepository;
@@ -152,6 +153,24 @@ public class AppointmentSignatures {
                 : refused(eventId, date, memberId);
         if (!leaving) return 0;
         return requestService.withdrawForAppointment(eventId, date, memberId);
+    }
+
+    /**
+     * Withdraws the confirmed scan of a participant's document for the date along with the agreement it was
+     * confirmed for, so it no longer settles the document and a new scan can be handed in. A scan that does
+     * not stand confirmed is left as it is.
+     *
+     * @param copy the participant's copy whose agreement was withdrawn
+     */
+    public void withdrawPaper(AppointmentCopy copy) {
+        if (scans.withdrawConfirmed(copy.eventId(), copy.eventDate(), copy.templateId(), copy.memberId())) {
+            log.info(
+                    "Confirmed scan of template {} for member {} at appointment {} on {} withdrawn with its agreement",
+                    copy.templateId(),
+                    copy.memberId(),
+                    copy.eventId(),
+                    copy.eventDate());
+        }
     }
 
     /**

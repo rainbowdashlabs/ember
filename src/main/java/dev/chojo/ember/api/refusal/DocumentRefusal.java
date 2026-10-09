@@ -684,9 +684,8 @@ public enum DocumentRefusal implements Refusal {
     /** A signed agreement withdrawn after it was withdrawn already, replaced or never agreed to. */
     SIGNATURE_WITHDRAWAL_ENDED(291, HttpStatus.CONFLICT, "This agreement no longer stands"),
 
-    /** An agreement withdrawn online that nobody signed online, such as one confirmed on paper only. */
-    SIGNATURE_WITHDRAWAL_NOTHING_SIGNED(
-            292, HttpStatus.CONFLICT, "Nothing was signed online on this agreement, so it is withdrawn on paper"),
+    /** An agreement withdrawn that nobody signed yet, online or on paper. */
+    SIGNATURE_WITHDRAWAL_NOTHING_SIGNED(292, HttpStatus.CONFLICT, "Nothing on this agreement was signed yet"),
 
     /** The reason for a withdrawal written longer than it may be. */
     SIGNATURE_WITHDRAWAL_REASON_TOO_LONG(293, HttpStatus.BAD_REQUEST, "A reason may be at most 500 characters"),

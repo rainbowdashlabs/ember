@@ -3286,6 +3286,7 @@ export default {
             scanUpload: 'Scan hochladen',
             scanUploadConfirmed: 'Scan hochladen und bestätigen',
             scanReplace: 'Ersetzen',
+            scanWithdraw: 'Scan zurückziehen',
             scanTitle: '{name}, unterschrieben',
             scanView: 'Scan ansehen',
             scanConfirm: 'Bestätigen',
@@ -3304,7 +3305,7 @@ export default {
             withdraw: {
                 action: 'Unterschrift widerrufen',
                 title: 'Unterschrift widerrufen',
-                hint: 'Die Vereinbarung gilt dann nicht mehr. Das unterschriebene Dokument bleibt als Nachweis erhalten, der Widerruf wird darin versiegelt vermerkt. Wer den Termin betreut oder die Unterschrift angefragt hat, wird benachrichtigt.',
+                hint: 'Die Vereinbarung gilt dann nicht mehr. Das unterschriebene Dokument bleibt als Nachweis erhalten, und der Widerruf wird vermerkt, bei einem online unterschriebenen Dokument versiegelt darin. Wer den Termin betreut oder die Unterschrift angefragt hat, wird benachrichtigt.',
                 reason: 'Grund (freiwillig)',
                 confirm: 'Widerrufen',
             },

@@ -686,9 +686,9 @@ class AppointmentSignaturesTest extends GeneratorTestBase {
                         stationSession(guardian), request.uid(), null, circumstances));
     }
 
-    /** An agreement only confirmed on paper is withdrawn on paper; a reason too long is refused. */
+    /** An agreement nobody signed yet has nothing to withdraw, and a reason too long is refused. */
     @Test
-    void aPaperAgreementAndAnOverlongReasonAreRefused() throws IOException {
+    void anUnsignedAgreementAndAnOverlongReasonAreRefused() {
         registrations.register(camp.id(), child.id(), DAY, true, guardian.id());
         var request = onlyRequest(child);
         var circumstances = new SigningCircumstances(null, null);
@@ -696,6 +696,23 @@ class AppointmentSignaturesTest extends GeneratorTestBase {
                 DocumentRefusal.SIGNATURE_WITHDRAWAL_REASON_TOO_LONG,
                 () -> withdrawals.requireOwnedThenWithdraw(
                         stationSession(guardian), request.uid(), "x".repeat(501), circumstances));
+
+        assertRefused(
+                DocumentRefusal.SIGNATURE_WITHDRAWAL_NOTHING_SIGNED,
+                () -> withdrawals.requireOwnedThenWithdraw(
+                        stationSession(guardian), request.uid(), null, circumstances));
+    }
+
+    /**
+     * An agreement confirmed on paper is withdrawn like one signed online: the withdrawal is recorded, the
+     * request turns revoked, the registration is flagged and the agreement is asked for anew. Nothing online
+     * was sealed, so the withdrawal stands recorded without a sealed version. The confirmed scan is withdrawn
+     * with it, so it no longer settles the document and a new scan can be handed in.
+     */
+    @Test
+    void aPaperConfirmedAgreementIsWithdrawnAndAskedForAnew() throws IOException {
+        registrations.register(camp.id(), child.id(), DAY, true, guardian.id());
+        var confirmed = onlyRequest(child);
         scans.submit(
                 stationSession(manager, StationPermission.EVENT_REGISTRATION),
                 camp,
@@ -704,11 +721,61 @@ class AppointmentSignaturesTest extends GeneratorTestBase {
                 child.id(),
                 null,
                 scan());
+        assertTrue(statusFor(guardian, child).signature().withdrawable());
 
+        var withdrawal = withdrawals.requireOwnedThenWithdraw(
+                stationSession(guardian), confirmed.uid(), "Doch nicht", new SigningCircumstances(null, null));
+
+        assertEquals("Doch nicht", withdrawal.reason());
+        assertFalse(
+                new SigningEvidenceRepository()
+                        .requestsToSeal(Instant.now().plusSeconds(60), 500)
+                        .contains(confirmed.id()),
+                "nothing online to seal the withdrawal into");
+        assertEquals(
+                RequestState.REVOKED,
+                requestRepo.findById(confirmed.id()).orElseThrow().state());
+        assertNotNull(answerOf(child).agreementWithdrawnAt(), "the registration is flagged");
+        var again = onlyRequest(child);
+        assertNotEquals(confirmed.generationId(), again.generationId(), "asked anew on a fresh copy");
+        assertEquals(2, owedBy(guardian, again).size());
+        var status = statusFor(guardian, child);
+        assertEquals(PaperState.WITHDRAWN, status.paper().state());
+        assertEquals(RequirementSignatureState.OPEN, status.signature().state());
+        assertTrue(notificationsOf(manager).contains("SIGNATURE_WITHDRAWN"));
+
+        var handedIn = scans.submit(stationSession(guardian), camp, DAY, consent, child.id(), null, scan());
+
+        assertEquals(PaperState.SUBMITTED, handedIn.state());
+    }
+
+    /**
+     * A scan that waits is taken back by the guardian: the submission and the scan it filed are gone and the
+     * fields are asked for again. A confirmed scan cannot be taken back that way.
+     */
+    @Test
+    void aWaitingScanIsTakenBackAndTheFieldsAreAskedForAgain() throws IOException {
+        registrations.register(camp.id(), child.id(), DAY, true, guardian.id());
+        var request = onlyRequest(child);
+        var waiting = scans.submit(stationSession(guardian), camp, DAY, consent, child.id(), null, scan());
+        assertTrue(owedBy(guardian, request).isEmpty());
+
+        scans.withdraw(stationSession(guardian), camp, waiting.id());
+
+        assertNull(statusFor(guardian, child).paper());
+        assertTrue(memberDocumentRepo.findById(waiting.documentId()).isEmpty(), "the scan is deleted");
+        assertEquals(2, owedBy(guardian, request).size());
+        var confirmed = scans.submit(
+                stationSession(manager, StationPermission.EVENT_REGISTRATION),
+                camp,
+                DAY,
+                consent,
+                child.id(),
+                null,
+                scan());
         assertRefused(
-                DocumentRefusal.SIGNATURE_WITHDRAWAL_NOTHING_SIGNED,
-                () -> withdrawals.requireOwnedThenWithdraw(
-                        stationSession(guardian), request.uid(), null, circumstances));
+                DocumentRefusal.DOCUMENT_SCAN_NOT_WAITING,
+                () -> scans.withdraw(stationSession(guardian), camp, confirmed.id()));
     }
 
     private static StationEvent appointment(boolean takesRegistrations) {

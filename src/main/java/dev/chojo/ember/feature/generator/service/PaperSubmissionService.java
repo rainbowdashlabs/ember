@@ -47,7 +47,8 @@ import java.util.Optional;
  * hand in its signed scan, which is filed in the participant's documents like the copy itself. A
  * manager of the registrations may hand one in for any participant, and theirs counts as confirmed at
  * once. While a scan waits, a new one replaces it and the waiting one is deleted, since it was filed
- * for nothing else; once one is confirmed, no further scan is taken. A scan turned down stays filed and
+ * for nothing else, and it can be taken back the same way; once one is confirmed, no further scan is taken
+ * until the agreement it was confirmed for is withdrawn. A scan turned down stays filed and
  * on record with its reason, the participant and their guardians are told, and the document is open
  * again.
  *
@@ -241,6 +242,28 @@ public class PaperSubmissionService {
                 submissionId,
                 session.member().id());
         return rejected;
+    }
+
+    /**
+     * Takes back a scan that still waits, as whoever may hand one in for the participant: the submission and
+     * the scan it filed are removed, as when a new scan replaces it, and the document is open again.
+     *
+     * @param session      the participant, their guardian or a manager of the registrations
+     * @param event        the appointment, already checked to be one the reader may see
+     * @param submissionId the submission
+     */
+    public void withdraw(StationSession session, StationEvent event, int submissionId) {
+        var submission = requireAt(session, event, submissionId);
+        boolean manages = session.hasPermission(StationPermission.EVENT_REGISTRATION);
+        appointments.requireMayHandIn(session, event, submission.eventDate(), submission.memberId(), manages);
+        var withdrawn = submissions
+                .deleteWaiting(submission.id())
+                .orElseThrow(DocumentRefusal.DOCUMENT_SCAN_NOT_WAITING::raise);
+        catalog.find(withdrawn.documentId()).ifPresent(documents::delete);
+        log.info(
+                "Scan submission {} taken back by member {}",
+                submissionId,
+                session.member().id());
     }
 
     /**
