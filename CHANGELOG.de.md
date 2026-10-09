@@ -39,6 +39,11 @@ Wachen erstellen aus eigenen Vorlagen und denen ihres Verbands Dokumente für ih
 - **Eine Antwortadresse für die Mails der Wache.** Unter Wache → E-Mail-Versand nennt eine Wache die Adresse, an die Antworten auf ihre Mails gehen. Sie gilt für jede Mail der Wache, egal über welchen Anbieter sie geht.
 - **Mails der Wache warten auf den nächsten Tag.** Haben alle Anbieter einer Wache ihr Tageslimit erreicht, gehen weitere Mails der Wache am nächsten Tag raus, statt verworfen zu werden.
 
+### Sicherheit
+
+- **Anmelden für Termine von Partnerwachen nur für sich selbst.** Ein Mitglied konnte ein anderes Mitglied seiner Wache bei einem Termin einer Partnerwache anmelden, abmelden oder wieder anmelden. Das können jetzt nur das Mitglied selbst, seine Erziehungsberechtigten und wer die Termine der Wache betreut.
+- **Tags bleiben in ihrer Wache.** Wer Tags verwaltet, konnte Mitglieder anderer Wachen einem Tag zuordnen und dann ihre Namen und Adressen lesen. Ein Tag hält jetzt nur noch Mitglieder seiner eigenen Wache.
+
 ### Änderungen
 
 - **Dokumente haben ein eigenes Menü.** In der Seitenleiste gibt es die Gruppe Dokumente mit Meine Dokumente, der Ablage, den Vorlagen, den erstellten Dokumenten und den Schriftarten, wobei Ablage, Vorlagen und Schriftarten bisher unter Mitglieder lagen. Alte Adressen und die Links in früheren Benachrichtigungen führen auf die neuen Seiten.

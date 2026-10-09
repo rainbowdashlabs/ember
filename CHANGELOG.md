@@ -39,6 +39,11 @@ Stations turn their own templates and those of their association into documents 
 - **A reply address for station mail.** Under Station → Manage → Mailing a station names the address replies to its mail go to. It applies to every mail of the station, whichever provider carries it.
 - **Station mail waits for the next day.** Once every provider of a station has used its daily limit, further station mail goes out the next day instead of being dropped.
 
+### Security
+
+- **Signing up for a partner's appointment on somebody's behalf.** A member could sign up, withdraw or put back another member of their station at a partner station's appointment. Now only the member themselves, their guardians and whoever runs the station's appointments can.
+- **Tags held to their own station.** Whoever manages tags could put members of other stations on a tag and then read their names and addresses. A tag now only ever holds members of its own station.
+
 ### Changes
 
 - **Documents have their own menu.** The sidebar has a Documents group with My documents, the document store, templates, generated documents and fonts, where the store, templates and fonts used to sit under Members. Old addresses and the links in earlier notifications lead to the new pages.
