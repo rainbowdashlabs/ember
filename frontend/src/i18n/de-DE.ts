@@ -3355,6 +3355,10 @@ export default {
                 title: 'Dokumente für die Partnerwache unterschreiben',
                 hint: 'Die Partnerwache bittet für diesen Termin um Unterschriften. Das Dokument liegt jetzt in den eigenen Dokumenten und wird hier unterschrieben, das versiegelte Exemplar geht danach an die Partnerwache. Offene Unterschriften stehen bei den Aufgaben.',
             },
+            partnerOffer: {
+                title: 'Vereinbarung der Partnerwache',
+                hint: 'Mit der Unterschrift sagst du für diesen Termin zu. Das Dokument wird in den eigenen Dokumenten abgelegt und hier unterschrieben, das versiegelte Exemplar geht danach an die Partnerwache.',
+            },
             partners: {
                 unknown: 'Mitglied einer Partnerwache',
                 missing: 'Unterschrift fehlt',

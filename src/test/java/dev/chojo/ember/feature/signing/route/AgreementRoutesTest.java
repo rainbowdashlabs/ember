@@ -103,7 +103,7 @@ class AgreementRoutesTest {
     void whoeverRunsTheAppointmentReadsTheSigners() {
         when(signers.of(EVENT_ID, DAY))
                 .thenReturn(List.of(new AgreementSigner(
-                        11, "Lena", 8, "Einverständnis", RequirementSignatureState.SIGNED, AT, null, false)));
+                        11, null, "Lena", 8, "Einverständnis", RequirementSignatureState.SIGNED, AT, null, false)));
 
         var response = harness.request(client -> client.get(
                 RouteHarness.PREFIX + "/events/%d/agreement-signers?date=%s".formatted(EVENT_ID, DAY),

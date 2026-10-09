@@ -11,6 +11,7 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
+import MemberName from '@/components/avatar/MemberName.vue'
 import {appointmentDocuments} from '@/api'
 import type {AgreementSigner} from '@/api/generated/schema'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
@@ -20,7 +21,8 @@ import SignatureStateBadge from '../eventshared/SignatureStateBadge.vue'
 /**
  * Who said "I will come" on an appointment without registrations by signing its agreement, for whoever
  * runs it: per participant and document where it stands, when it was signed or withdrawn, and whether they
- * said they will not come since. Nothing shows where the appointment asks for no agreement.
+ * said they will not come since. Members of partner stations who signed at home are named as their station
+ * shares them. Nothing shows where the appointment asks for no agreement.
  */
 const props = defineProps<{
   eventId: number
@@ -38,6 +40,11 @@ const {failure, reload} = useAsyncLoader(async isCurrent => {
 }, {autoLoad: false})
 
 watch(() => [props.eventId, props.date], reload, {immediate: true})
+
+function signerKey(signer: AgreementSigner): string {
+  const who = signer.partnerMember?.memberUid ?? String(signer.memberId)
+  return `${who}-${signer.templateId}`
+}
 </script>
 
 <template>
@@ -46,9 +53,12 @@ watch(() => [props.eventId, props.date], reload, {immediate: true})
     <MutedText size="sm" tag="p">{{ t('events.documents.signers.hint') }}</MutedText>
     <FailureAlert :failure="failure"/>
     <ul class="space-y-1 text-sm">
-      <li v-for="signer in signers ?? []" :key="`${signer.memberId}-${signer.templateId}`"
+      <li v-for="signer in signers ?? []" :key="signerKey(signer)"
           class="flex flex-wrap items-center gap-2" data-testid="agreement-signer">
-        <span class="flex-1 font-medium">{{ signer.name }}</span>
+        <span class="flex-1 font-medium">
+          <MemberName v-if="signer.partnerMember" :identity="signer.partnerMember"/>
+          <template v-else>{{ signer.name }}</template>
+        </span>
         <span class="text-(--text-muted)">{{ signer.documentName }}</span>
         <SignatureStateBadge :state="signer.state"/>
         <MutedText v-if="signer.withdrawnAt" size="sm">

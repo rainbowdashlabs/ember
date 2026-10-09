@@ -6,11 +6,13 @@
 package dev.chojo.ember.feature.signing.service;
 
 import dev.chojo.ember.api.StationSession;
+import dev.chojo.ember.api.refusal.EventRefusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.documents.entity.Uploader;
 import dev.chojo.ember.feature.documents.service.DocumentDoor;
 import dev.chojo.ember.feature.documents.service.DocumentIntake;
 import dev.chojo.ember.feature.documents.service.DocumentService;
+import dev.chojo.ember.feature.events.entity.PartnerAgreementOffer;
 import dev.chojo.ember.feature.events.entity.PartnerDocumentToSign;
 import dev.chojo.ember.feature.events.service.PartnerAppointmentSignatures;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
@@ -52,6 +54,10 @@ import java.util.UUID;
  * partner's template words, else their default statement in the document's language; the signed document is
  * kept as long as the partner's template says. The partner is told the document was taken on, and every sealed
  * state goes back to it ({@link PartnerDeliveries}).
+ *
+ * <p>A partner's appointment without registrations offers its documents on its page here instead: the reader
+ * signs for themselves or a member in their care, the document is taken on the same way, and the partner counts
+ * the signature as "I will come".
  *
  * <p>Nothing here holds the registration up. A partner that hands out nothing, cannot be reached, or hands out
  * a file that is not what it says, and a station that keeps no documents, leave the member registered without
@@ -112,28 +118,55 @@ public class PartnerSignatures implements PartnerAppointmentSignatures {
             StationSession session, UUID partnerStationUid, int eventId, LocalDate eventDate, UUID memberUid) {
         var member = actedFor(session, memberUid);
         if (member.isEmpty() || !keepsDocuments(session.stationId())) return List.of();
-        FederationPartner partner;
-        try {
-            partner = partners.requireActivePartner(session.stationId(), partnerStationUid);
-        } catch (RefusalResponse e) {
-            return List.of();
-        }
-        var agreements = transport.getList(
-                partner, RemoteSigningRoutes.AGREEMENTS.at(eventId, eventDate), RemoteAgreement.class);
+        var partner = activePartner(session.stationId(), partnerStationUid);
+        if (partner.isEmpty()) return List.of();
         var taken = new ArrayList<PartnerDocumentToSign>();
-        for (var agreement : agreements) {
+        for (var agreement : agreementsOf(partner.get(), eventId, eventDate)) {
             try {
-                taken.add(takeOn(session, partner, eventId, eventDate, member.get(), agreement));
+                taken.add(takeOn(session, partner.get(), eventId, eventDate, member.get(), agreement));
             } catch (RuntimeException e) {
                 log.warn(
                         "Could not take on document {} of partner {} for member {}",
                         agreement.templateId(),
-                        partner.id(),
+                        partner.get().id(),
                         member.get().id(),
                         e);
             }
         }
         return taken;
+    }
+
+    @Override
+    public List<PartnerAgreementOffer> offers(
+            StationSession session, UUID partnerStationUid, int eventId, LocalDate eventDate) {
+        if (!keepsDocuments(session.stationId())) return List.of();
+        return activePartner(session.stationId(), partnerStationUid)
+                .map(partner -> agreementsOf(partner, eventId, eventDate).stream()
+                        .map(agreement -> new PartnerAgreementOffer(agreement.templateId(), agreement.title()))
+                        .toList())
+                .orElse(List.of());
+    }
+
+    @Override
+    public List<PartnerDocumentToSign> offered(
+            StationSession session, UUID partnerStationUid, int eventId, LocalDate eventDate, UUID memberUid) {
+        if (actedFor(session, memberUid).isEmpty()) throw EventRefusal.AGREEMENT_NOT_FOR_MEMBER.raise();
+        var taken = registered(session, partnerStationUid, eventId, eventDate, memberUid);
+        if (taken.isEmpty()) throw EventRefusal.AGREEMENT_NOTHING_TO_SIGN.raise();
+        log.info("Member {} took on the agreement of appointment {} of a partner", memberUid, eventId);
+        return taken;
+    }
+
+    private List<RemoteAgreement> agreementsOf(FederationPartner partner, int eventId, LocalDate eventDate) {
+        return transport.getList(partner, RemoteSigningRoutes.AGREEMENTS.at(eventId, eventDate), RemoteAgreement.class);
+    }
+
+    private Optional<FederationPartner> activePartner(int stationId, UUID partnerStationUid) {
+        try {
+            return Optional.of(partners.requireActivePartner(stationId, partnerStationUid));
+        } catch (RefusalResponse e) {
+            return Optional.empty();
+        }
     }
 
     @Override

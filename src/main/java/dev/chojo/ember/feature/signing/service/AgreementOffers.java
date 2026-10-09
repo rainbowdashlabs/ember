@@ -29,6 +29,9 @@ import java.util.Set;
  * ({@link AppointmentSignatures#askAgreement}). Signing it counts as "I will come" ({@link AgreementAttendance}),
  * and whoever runs the appointment sees the signers ({@link AgreementSigners}). Offering it again while its
  * signatures stand asked for or signed asks nothing twice.
+ *
+ * <p>A partner station's appointment is offered to the members here by {@link PartnerSignatures}, which takes
+ * the partner's copy on the same way a registration there does.
  */
 @Singleton
 public class AgreementOffers {
@@ -64,7 +67,6 @@ public class AgreementOffers {
      */
     public RequirementSignature offer(
             StationSession session, StationEvent event, LocalDate date, int templateId, int memberId) {
-        // TODO offer the agreement of a partner's federated event once its requirement travels with the share
         if (event.requiresRegistration()) throw EventRefusal.AGREEMENT_SIGNED_ON_REGISTERING.raise();
         if (!guardians.mayActFor(session.user(), memberId) || !audience.canRegister(event.id(), memberId, Set.of())) {
             throw EventRefusal.AGREEMENT_NOT_FOR_MEMBER.raise();

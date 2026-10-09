@@ -5,18 +5,24 @@
  */
 package dev.chojo.ember.feature.signing.service;
 
+import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
+import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.generator.entity.RequiredTemplate;
+import dev.chojo.ember.feature.generator.entity.RequirementSignatureState;
 import dev.chojo.ember.feature.generator.repository.EventRequirementRepository;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.signing.entity.AgreementSigner;
 import dev.chojo.ember.feature.signing.entity.AppointmentRequest;
 import dev.chojo.ember.feature.signing.entity.FieldState;
+import dev.chojo.ember.feature.signing.entity.PartnerAgreement;
+import dev.chojo.ember.feature.signing.entity.PartnerAgreementState;
 import dev.chojo.ember.feature.signing.entity.RequestState;
 import dev.chojo.ember.feature.signing.entity.RequestedSignature;
 import dev.chojo.ember.feature.signing.entity.SignatureWithdrawal;
+import dev.chojo.ember.feature.signing.repository.PartnerAgreementRepository;
 import dev.chojo.ember.feature.signing.repository.SignatureRequestRepository;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -30,6 +36,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Who signed what an appointment asks for on a date, for whoever runs it. On an appointment without
@@ -40,6 +47,10 @@ import java.util.stream.Collectors;
  * paper, with where it stands now: signed, on paper, still waiting for another signer, or withdrawn. A
  * participant who said they will not come on the date since is marked, since their signature then no longer
  * means they come.
+ *
+ * <p>Members of partner stations sign at home; they are listed from the copies that came back from their
+ * station, or the paper copy confirmed here, by the name their station shares, else as a member of that
+ * station. One whose station only took the document on is not listed until a signed copy comes back.
  */
 @Singleton
 public class AgreementSigners {
@@ -47,17 +58,23 @@ public class AgreementSigners {
     private final EventRequirementRepository documents;
     private final EventRegistrationRepository registrations;
     private final MemberNameResolver names;
+    private final PartnerAgreementRepository partnerAgreements;
+    private final EventFederationRepository federation;
 
     @Inject
     public AgreementSigners(
             SignatureRequestRepository requests,
             EventRequirementRepository documents,
             EventRegistrationRepository registrations,
-            MemberNameResolver names) {
+            MemberNameResolver names,
+            PartnerAgreementRepository partnerAgreements,
+            EventFederationRepository federation) {
         this.requests = requests;
         this.documents = documents;
         this.registrations = registrations;
         this.names = names;
+        this.partnerAgreements = partnerAgreements;
+        this.federation = federation;
     }
 
     /**
@@ -66,18 +83,26 @@ public class AgreementSigners {
      * @return the signers, by name and then by the appointment's order of documents
      */
     public List<AgreementSigner> of(int eventId, LocalDate date) {
-        // TODO list the partners' signers of a federated event once the organiser keeps their signed copies
+        var required = documents.forEvent(eventId);
+        Map<Integer, String> documentNames =
+                required.stream().collect(Collectors.toMap(RequiredTemplate::templateId, RequiredTemplate::name));
+        List<Integer> order =
+                required.stream().map(RequiredTemplate::templateId).toList();
+        return Stream.concat(
+                        ownSigners(eventId, date, documentNames).stream(),
+                        partnerSigners(eventId, date, documentNames).stream())
+                .sorted(Comparator.comparing(AgreementSigner::name)
+                        .thenComparing(signer -> order.indexOf(signer.templateId())))
+                .toList();
+    }
+
+    private List<AgreementSigner> ownSigners(int eventId, LocalDate date, Map<Integer, String> documentNames) {
         var agreed = requests.agreedForAppointment(eventId, date);
         if (agreed.isEmpty()) return List.of();
         var fields = requests
                 .fieldsOfAll(agreed.stream().map(found -> found.request().id()).toList())
                 .stream()
                 .collect(Collectors.groupingBy(RequestedSignature::requestId));
-        var required = documents.forEvent(eventId);
-        Map<Integer, String> documentNames =
-                required.stream().collect(Collectors.toMap(RequiredTemplate::templateId, RequiredTemplate::name));
-        List<Integer> order =
-                required.stream().map(RequiredTemplate::templateId).toList();
         Set<Integer> refused = registrations.findByEventAndDate(eventId, date).stream()
                 .filter(registration -> registration.status() == RegistrationStatus.DECLINED)
                 .map(EventRegistration::memberId)
@@ -85,8 +110,6 @@ public class AgreementSigners {
         return agreed.stream()
                 .map(found ->
                         signer(found, fields.getOrDefault(found.request().id(), List.of()), documentNames, refused))
-                .sorted(Comparator.comparing(AgreementSigner::name)
-                        .thenComparing(signer -> order.indexOf(signer.templateId())))
                 .toList();
     }
 
@@ -110,6 +133,7 @@ public class AgreementSigners {
                 .orElse(request.createdAt());
         return new AgreementSigner(
                 found.memberId(),
+                null,
                 names.identified(found.memberId()),
                 found.templateId(),
                 documentNames.getOrDefault(found.templateId(), request.memberName()),
@@ -117,5 +141,40 @@ public class AgreementSigners {
                 signedAt,
                 withdrawnAt,
                 refused.contains(found.memberId()));
+    }
+
+    private List<AgreementSigner> partnerSigners(int eventId, LocalDate date, Map<Integer, String> documentNames) {
+        return partnerAgreements.forDate(eventId, date).stream()
+                .filter(found -> found.templateId() != null && found.state() != PartnerAgreementState.ASKED)
+                .map(found -> partnerSigner(found, Objects.requireNonNull(found.templateId()), documentNames))
+                .toList();
+    }
+
+    private AgreementSigner partnerSigner(PartnerAgreement found, int templateId, Map<Integer, String> documentNames) {
+        Integer partnerId = found.partnerId();
+        String shared = partnerId == null
+                ? null
+                : federation.getCachedName(partnerId, found.remoteMemberId()).orElse(null);
+        var identity = new MemberIdentity(found.partnerStationUid(), found.remoteMemberId())
+                .withDisplay(shared, found.partnerName(), null, null);
+        return new AgreementSigner(
+                null,
+                identity,
+                shared != null ? shared : Objects.requireNonNullElse(found.partnerName(), ""),
+                templateId,
+                documentNames.getOrDefault(templateId, found.templateName()),
+                stateOf(found),
+                Objects.requireNonNullElse(found.firstCopyAt(), found.updatedAt()),
+                found.state() == PartnerAgreementState.WITHDRAWN ? found.updatedAt() : null,
+                false);
+    }
+
+    private static RequirementSignatureState stateOf(PartnerAgreement found) {
+        return switch (found.state()) {
+            case SIGNED -> found.complete() ? RequirementSignatureState.SIGNED : RequirementSignatureState.OPEN;
+            case PAPER_CONFIRMED -> RequirementSignatureState.PAPER_CONFIRMED;
+            case WITHDRAWN -> RequirementSignatureState.REVOKED;
+            case ASKED, MISSING -> RequirementSignatureState.OPEN;
+        };
     }
 }

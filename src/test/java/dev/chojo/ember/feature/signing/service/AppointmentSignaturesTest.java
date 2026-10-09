@@ -57,6 +57,7 @@ import dev.chojo.ember.feature.signing.entity.SigningCircumstances;
 import dev.chojo.ember.feature.signing.entity.SigningEvidence;
 import dev.chojo.ember.feature.signing.handler.RegistrationSignaturesHandler;
 import dev.chojo.ember.feature.signing.repository.IssuerSignatureRepository;
+import dev.chojo.ember.feature.signing.repository.PartnerAgreementRepository;
 import dev.chojo.ember.feature.signing.repository.SignatureRequestRepository;
 import dev.chojo.ember.feature.signing.repository.SigningEvidenceRepository;
 import io.javalin.http.UploadedFile;
@@ -227,7 +228,13 @@ class AppointmentSignaturesTest extends GeneratorTestBase {
                 guardianPolicy,
                 new EventRestrictionService(eventRepo, restrictionService),
                 new RequirementSignatureStates(requestRepo, requests, rights));
-        signers = new AgreementSigners(requestRepo, requirementRepo, eventRegistrationRepo, memberNameResolver);
+        signers = new AgreementSigners(
+                requestRepo,
+                requirementRepo,
+                eventRegistrationRepo,
+                memberNameResolver,
+                new PartnerAgreementRepository(),
+                new EventFederationRepository());
         withdrawals = new SignatureWithdrawals(
                 requestRepo,
                 requests,

@@ -22571,6 +22571,85 @@
         }
       }
     },
+    "/api/v1/federated/{stationuid}/events/{id}/agreement" : {
+      "post" : {
+        "summary" : "Take on the agreement of a partner station's event without registrations for a member",
+        "tags" : [ "Federation" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/PartnerDocumentToSign"
+                  }
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/FederatedRegBody"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/federated/{stationuid}/events/{id}/agreements" : {
+      "get" : {
+        "summary" : "The documents a partner station's event without registrations offers to sign",
+        "tags" : [ "Federation" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/PartnerAgreementOffer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "date",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ]
+      }
+    },
     "/api/v1/federated/{stationuid}/events/{id}/attachments" : {
       "get" : {
         "summary" : "List the files a partner station's event hands over",
@@ -47281,8 +47360,15 @@
         "type" : "object",
         "properties" : {
           "memberId" : {
-            "type" : "integer",
+            "type" : [ "integer", "null" ],
             "format" : "int32"
+          },
+          "partnerMember" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/MemberIdentity"
+            }, {
+              "type" : "null"
+            } ]
           },
           "name" : {
             "type" : "string"
@@ -47311,7 +47397,7 @@
             "type" : "boolean"
           }
         },
-        "required" : [ "memberId", "name", "templateId", "documentName", "state", "signedAt", "withdrawnAt", "refused" ]
+        "required" : [ "memberId", "partnerMember", "name", "templateId", "documentName", "state", "signedAt", "withdrawnAt", "refused" ]
       },
       "AgreementWithdrawalRequest" : {
         "type" : "object",
@@ -67435,6 +67521,19 @@
           }
         },
         "required" : [ "memberId", "name", "documents", "agreementWithdrawnAt" ]
+      },
+      "PartnerAgreementOffer" : {
+        "type" : "object",
+        "properties" : {
+          "templateId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "title" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "templateId", "title" ]
       },
       "PartnerAgreementState" : {
         "type" : "string",

@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.events.route;
 
+import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -14,6 +15,7 @@ import dev.chojo.ember.feature.comment.route.CommentResponse;
 import dev.chojo.ember.feature.comment.route.EventCommentRoutes;
 import dev.chojo.ember.feature.events.entity.AppointmentField;
 import dev.chojo.ember.feature.events.entity.EventField;
+import dev.chojo.ember.feature.events.entity.PartnerAgreementOffer;
 import dev.chojo.ember.feature.events.entity.PartnerDocumentToSign;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.SharedEvent;
@@ -30,6 +32,7 @@ import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiParam;
 import io.javalin.openapi.OpenApiRequestBody;
 import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
@@ -95,6 +98,14 @@ public class FederatedEventRoutes implements Routes {
                 prefix + "/federated/{stationuid}/events/{id}/register/confirm",
                 this::federatedConfirmOwn,
                 StationPermission.EVENT_REGISTRATION);
+        routes.get(
+                prefix + "/federated/{stationuid}/events/{id}/agreements",
+                this::federatedAgreementOffers,
+                StationPermission.USER);
+        routes.post(
+                prefix + "/federated/{stationuid}/events/{id}/agreement",
+                this::federatedSignAgreement,
+                StationPermission.USER);
         routes.get(
                 prefix + "/federated/{stationuid}/events/{id}/attachments",
                 this::federatedListAttachments,
@@ -320,6 +331,51 @@ public class FederatedEventRoutes implements Routes {
         eventFederationService.confirmOwnFederatedMember(
                 fed.stationId(), fed.partnerUid(), fed.eventId(), fed.remoteMemberId(), fed.eventDate());
         ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    /**
+     * The documents a partner's appointment without registrations offers on its page for a date, asked of the
+     * partner the same way a registration asks for them.
+     */
+    @OpenApi(
+            path = "/api/v1/federated/{stationuid}/events/{id}/agreements",
+            methods = HttpMethod.GET,
+            summary = "The documents a partner station's event without registrations offers to sign",
+            tags = {"Federation"},
+            queryParams = @OpenApiParam(name = "date", required = true),
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = PartnerAgreementOffer[].class)))
+    private void federatedAgreementOffers(Context ctx) {
+        StationSession session = StationSession.from(ctx);
+        var partner = resolvePartner(ctx, session.stationId());
+        ctx.json(signatures.offers(
+                session, partner.partnerStationId(), pathInt(ctx, "id"), eventDate(ctx.queryParam("date"))));
+    }
+
+    /**
+     * Signing the agreement of a partner's appointment without registrations for a member: the documents are
+     * filed in the member's documents here and signed here, and the signature says they will come. An
+     * appointment that takes registrations asks for them on registering instead.
+     */
+    @OpenApi(
+            path = "/api/v1/federated/{stationuid}/events/{id}/agreement",
+            methods = HttpMethod.POST,
+            summary = "Take on the agreement of a partner station's event without registrations for a member",
+            tags = {"Federation"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = FederatedRegBody.class)),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = PartnerDocumentToSign[].class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "403", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void federatedSignAgreement(Context ctx) {
+        var fed = resolveFederatedRegContext(ctx);
+        var event = eventFederationService
+                .getFederatedEvent(fed.stationId(), fed.partnerUid(), fed.eventId())
+                .event();
+        if (event.requiresRegistration()) throw EventRefusal.AGREEMENT_SIGNED_ON_REGISTERING.raise();
+        ctx.json(signatures.offered(
+                StationSession.from(ctx), fed.partnerUid(), fed.eventId(), fed.eventDate(), fed.remoteMemberId()));
     }
 
     /**

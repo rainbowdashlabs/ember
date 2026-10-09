@@ -14,9 +14,10 @@ vi.mock('@/api', () => ({
     appointmentDocuments: {agreementSigners: vi.fn()},
 }))
 
-function signer(memberId: number, name: string, overrides: Partial<AgreementSigner> = {}): AgreementSigner {
+function signer(memberId: number | null, name: string, overrides: Partial<AgreementSigner> = {}): AgreementSigner {
     return {
         memberId,
+        partnerMember: null,
         name,
         templateId: 8,
         documentName: 'Einverständnis',
@@ -59,6 +60,25 @@ describe('AgreementSignersPanel', () => {
         expect(rows[0]!.text()).toContain('Unterschrieben am')
         expect(rows[1]!.text()).toContain('Widerrufen am')
         expect(rows[2]!.text()).toContain('Später abgesagt')
+    })
+
+    it('names a member of a partner station as the partner shares them', async () => {
+        const panel = await mountPanel([
+            signer(null, 'Kim Nord', {
+                partnerMember: {
+                    stationUid: '00000000-0000-0000-0000-000000000099',
+                    memberUid: '00000000-0000-0000-0000-000000000011',
+                    name: 'Kim Nord',
+                    stationName: 'Wache Nord',
+                    nameColor: null,
+                    displayTag: null,
+                },
+            }),
+        ])
+
+        const rows = panel.findAll('[data-testid="agreement-signer"]')
+        expect(rows).toHaveLength(1)
+        expect(rows[0]!.text()).toContain('Kim Nord')
     })
 
     it('shows nothing where nobody signed', async () => {

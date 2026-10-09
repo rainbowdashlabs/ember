@@ -101,6 +101,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.Base64;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
@@ -172,6 +173,7 @@ class PartnerAgreementsTest extends GeneratorTestBase {
     private static SignatureFieldService fields;
     private static SigningStateSealer sealer;
     private static SignatureWithdrawals withdrawals;
+    private static AgreementSigners agreementSigners;
     private static StationMember manager;
     private static int loginPermission;
 
@@ -351,6 +353,8 @@ class PartnerAgreementsTest extends GeneratorTestBase {
                 eventRepo,
                 eventRegistrationRepo,
                 mock(AppointmentSignatures.class));
+        agreementSigners = new AgreementSigners(
+                requestRepo, requirementRepo, eventRegistrationRepo, memberNameResolver, agreementRepo, shareRepo);
 
         endpoints = transport.serve(events, authorities, agreements);
         routeOverHttp(httpClient);
@@ -366,23 +370,7 @@ class PartnerAgreementsTest extends GeneratorTestBase {
     @BeforeEach
     void sharedAppointment() {
         ORGANISER_DOWN.set(false);
-        camp = eventRepo.create(
-                organiser.station().id(),
-                "Zeltlager " + NAMES.incrementAndGet(),
-                null,
-                StationEvent.EventType.ONE_TIME,
-                null,
-                START,
-                START.plus(Duration.ofHours(8)),
-                null,
-                true,
-                null,
-                false,
-                null,
-                null,
-                null,
-                null,
-                null);
+        camp = appointment("Zeltlager", true);
         shareRepo.setShare(camp.id(), ShareScope.ALL_PARTNERS);
         consent = organiser
                 .templates()
@@ -580,23 +568,7 @@ class PartnerAgreementsTest extends GeneratorTestBase {
                         serving, camp.id(), signed(member.uid(), handedOut.sha256(), encoded(sealedByOrganiser))));
         assertEquals(PartnerAgreementState.ASKED, documentOf(member).state(), "nothing refused was taken");
 
-        var otherCamp = eventRepo.create(
-                organiser.station().id(),
-                "Nicht geteilt " + NAMES.incrementAndGet(),
-                null,
-                StationEvent.EventType.ONE_TIME,
-                null,
-                START,
-                START.plus(Duration.ofHours(1)),
-                null,
-                true,
-                null,
-                false,
-                null,
-                null,
-                null,
-                null,
-                null);
+        var otherCamp = appointment("Nicht geteilt", true);
         refused(EventRefusal.PARTNER_AGREEMENTS_NOT_SHARED, () -> agreements.handOut(serving, otherCamp.id(), DAY));
         assertEquals(
                 RequestState.OPEN,
@@ -730,6 +702,51 @@ class PartnerAgreementsTest extends GeneratorTestBase {
                 .agreementWithdrawnAt());
     }
 
+    /**
+     * A shared appointment without registrations offers its agreement on its page at the partner: a member
+     * there takes it on and signs at home, nobody is asked twice, a member the reader does not act for is
+     * refused, and the organiser lists the partner's signer once the signed copy came back, not before.
+     */
+    @Test
+    void aPartnersMemberSignsTheAgreementOfAnAppointmentWithoutRegistrations() {
+        var open = appointment("Tag der offenen Tür", false);
+        shareRepo.setShare(open.id(), ShareScope.ALL_PARTNERS);
+        requirements.setForEvent(organiser.owner(), open.id(), List.of(consent));
+        var member = homeMember("Mila", "Moor");
+        var organiserUid = organiser.station().uid();
+
+        var offers = signatures.offers(at(member), organiserUid, open.id(), DAY);
+
+        assertEquals(1, offers.size());
+        assertEquals(consent, offers.getFirst().templateId());
+        refused(
+                EventRefusal.AGREEMENT_NOT_FOR_MEMBER,
+                () -> signatures.offered(at(homeMember("Nils", "Nord")), organiserUid, open.id(), DAY, member.uid()));
+        var taken = signatures.offered(at(member), organiserUid, open.id(), DAY, member.uid());
+        assertEquals(1, taken.size());
+        assertEquals(
+                taken.getFirst().signature().requestUid(),
+                signatures
+                        .offered(at(member), organiserUid, open.id(), DAY, member.uid())
+                        .getFirst()
+                        .signature()
+                        .requestUid(),
+                "offering again asks nothing twice");
+        assertTrue(agreementSigners.of(open.id(), DAY).isEmpty(), "taking it on says nothing yet");
+
+        sign(requestOf(taken.getFirst()), member);
+
+        var signers = agreementSigners.of(open.id(), DAY);
+        assertEquals(1, signers.size());
+        var signer = signers.getFirst();
+        assertNull(signer.memberId());
+        assertEquals(
+                member.uid(), Objects.requireNonNull(signer.partnerMember()).memberUid());
+        assertEquals(consent, signer.templateId());
+        assertEquals(RequirementSignatureState.SIGNED, signer.state());
+        assertNull(signer.withdrawnAt());
+    }
+
     private List<PartnerDocumentToSign> register(StationMember member) {
         events.registerForFederatedEvent(home.id(), organiser.station().uid(), camp.id(), member.uid(), DAY);
         return signatures.registered(at(member), organiser.station().uid(), camp.id(), DAY, member.uid());
@@ -809,6 +826,26 @@ class PartnerAgreementsTest extends GeneratorTestBase {
                 .map(row -> String.valueOf(row.getString("types")))
                 .first()
                 .orElse("");
+    }
+
+    private static StationEvent appointment(String name, boolean requiresRegistration) {
+        return eventRepo.create(
+                organiser.station().id(),
+                name + " " + NAMES.incrementAndGet(),
+                null,
+                StationEvent.EventType.ONE_TIME,
+                null,
+                START,
+                START.plus(Duration.ofHours(8)),
+                null,
+                requiresRegistration,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null);
     }
 
     private static SealingKey organiserKey() {

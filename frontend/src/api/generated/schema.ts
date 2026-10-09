@@ -26065,6 +26065,102 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/federated/{stationuid}/events/{id}/agreement": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Take on the agreement of a partner station's event without registrations for a member */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["FederatedRegBody"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PartnerDocumentToSign"][];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/federated/{stationuid}/events/{id}/agreements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The documents a partner station's event without registrations offers to sign */
+        get: {
+            parameters: {
+                query: {
+                    date: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PartnerAgreementOffer"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/federated/{stationuid}/events/{id}/attachments": {
         parameters: {
             query?: never;
@@ -61325,8 +61421,9 @@ export interface components {
         AgreementSigner: {
             documentName: string;
             /** Format: int32 */
-            memberId: number;
+            memberId: number | null;
             name: string;
+            partnerMember: components["schemas"]["MemberIdentity"] | null;
             refused: boolean;
             signedAt: components["schemas"]["Instant"];
             state: components["schemas"]["RequirementSignatureState"];
@@ -68268,6 +68365,11 @@ export interface components {
             memberId: number;
             name: string;
         };
+        PartnerAgreementOffer: {
+            /** Format: int32 */
+            templateId: number;
+            title: string;
+        };
         /** @enum {string} */
         PartnerAgreementState: "MISSING" | "ASKED" | "SIGNED" | "PAPER_CONFIRMED" | "WITHDRAWN";
         PartnerDocumentToSign: {
@@ -73907,6 +74009,7 @@ export type PaperState = components['schemas']['PaperState'];
 export type PaperSubmission = components['schemas']['PaperSubmission'];
 export type ParseResult = components['schemas']['ParseResult'];
 export type ParticipantDocuments = components['schemas']['ParticipantDocuments'];
+export type PartnerAgreementOffer = components['schemas']['PartnerAgreementOffer'];
 export type PartnerAgreementState = components['schemas']['PartnerAgreementState'];
 export type PartnerDocumentToSign = components['schemas']['PartnerDocumentToSign'];
 export type PartnerEventDetail = components['schemas']['PartnerEventDetail'];
