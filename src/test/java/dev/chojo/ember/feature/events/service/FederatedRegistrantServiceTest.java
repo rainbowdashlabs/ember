@@ -37,7 +37,7 @@ class FederatedRegistrantServiceTest {
     private static final UUID PARTNER_STATION = UUID.fromString("00000000-0000-0000-0000-000000000099");
     private static final UUID REMOTE_MEMBER = UUID.fromString("00000000-0000-0000-0000-000000000077");
     private static final EventFederationRegistration REGISTRATION = new EventFederationRegistration(
-            1, 4, 7, REMOTE_MEMBER, LocalDate.of(2026, 5, 1), RegistrationStatus.PENDING, Instant.EPOCH);
+            1, 4, 7, REMOTE_MEMBER, LocalDate.of(2026, 5, 1), RegistrationStatus.PENDING, Instant.EPOCH, null);
 
     private FederationRepository partners;
     private StationRepository stations;
@@ -88,7 +88,7 @@ class FederatedRegistrantServiceTest {
     @Test
     void aPartnerLivingHereNamesItsOwnMember() {
         var station = station();
-        when(stations.findByUid(PARTNER_STATION)).thenReturn(Optional.of(station));
+        when(stations.findHereByUid(PARTNER_STATION)).thenReturn(Optional.of(station));
         when(members.findByUid(8, REMOTE_MEMBER))
                 .thenReturn(Optional.of(new StationMember(
                         21, 8, REMOTE_MEMBER, null, false, null, "Kim", StationUserType.MEMBER, LocalDate.EPOCH)));
@@ -101,7 +101,7 @@ class FederatedRegistrantServiceTest {
     @Test
     void aMemberNotFoundHereIsNamedAsThePartnerSentIt() {
         var station = station();
-        when(stations.findByUid(PARTNER_STATION)).thenReturn(Optional.of(station));
+        when(stations.findHereByUid(PARTNER_STATION)).thenReturn(Optional.of(station));
         when(members.findByUid(8, REMOTE_MEMBER)).thenReturn(Optional.empty());
 
         var identity = service.identify(REGISTRATION);
@@ -112,7 +112,7 @@ class FederatedRegistrantServiceTest {
 
     @Test
     void aPartnerOnAnotherInstanceIsNamedWithoutAStation() {
-        when(stations.findByUid(PARTNER_STATION)).thenReturn(Optional.empty());
+        when(stations.findHereByUid(PARTNER_STATION)).thenReturn(Optional.empty());
 
         var identity = service.identify(REGISTRATION);
 

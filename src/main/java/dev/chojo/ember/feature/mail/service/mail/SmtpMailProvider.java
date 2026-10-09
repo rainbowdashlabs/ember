@@ -5,18 +5,24 @@
  */
 package dev.chojo.ember.feature.mail.service.mail;
 
+import dev.chojo.ember.feature.mail.entity.MailAttachment;
 import dev.chojo.ember.feature.mail.entity.SmtpEncryption;
+import jakarta.activation.DataHandler;
 import jakarta.mail.AuthenticationFailedException;
 import jakarta.mail.Authenticator;
 import jakarta.mail.Message;
 import jakarta.mail.MessagingException;
+import jakarta.mail.Part;
 import jakarta.mail.PasswordAuthentication;
 import jakarta.mail.SendFailedException;
 import jakarta.mail.Session;
 import jakarta.mail.Transport;
 import jakarta.mail.internet.AddressException;
 import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.MimeBodyPart;
 import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.internet.MimeMultipart;
+import jakarta.mail.util.ByteArrayDataSource;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,6 +31,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.time.Duration;
 import java.util.Date;
+import java.util.List;
 import java.util.Properties;
 
 /**
@@ -34,6 +41,8 @@ import java.util.Properties;
  */
 public class SmtpMailProvider implements MailProvider {
     private static final Logger log = LoggerFactory.getLogger(SmtpMailProvider.class);
+
+    private static final String HTML = "text/html; charset=UTF-8";
 
     /** How long to wait for the relay to accept the connection. */
     static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(30);
@@ -149,7 +158,12 @@ public class SmtpMailProvider implements MailProvider {
     }
 
     @Override
-    public SendResult send(String to, String subject, String htmlBody, @Nullable String correlationId) {
+    public SendResult send(
+            String to,
+            String subject,
+            String htmlBody,
+            @Nullable String correlationId,
+            List<MailAttachment> attachments) {
         Session session = createSession();
         try {
             MimeMessage message = new MimeMessage(session);
@@ -159,7 +173,11 @@ public class SmtpMailProvider implements MailProvider {
             }
             message.setRecipient(Message.RecipientType.TO, new InternetAddress(to));
             message.setSubject(subject);
-            message.setContent(htmlBody, "text/html; charset=UTF-8");
+            if (attachments.isEmpty()) {
+                message.setContent(htmlBody, HTML);
+            } else {
+                message.setContent(withAttachments(htmlBody, attachments));
+            }
             message.setSentDate(new Date());
             if (correlationHeader != null && correlationId != null) {
                 message.setHeader(correlationHeader, correlationFormat.formatted(correlationId));
@@ -200,6 +218,26 @@ public class SmtpMailProvider implements MailProvider {
 
     public String senderName() {
         return senderName;
+    }
+
+    /**
+     * The text and the files of a mail as one mixed multipart, the text first, so a reader shows the
+     * text and lists the files below it.
+     */
+    static MimeMultipart withAttachments(String htmlBody, List<MailAttachment> attachments) throws MessagingException {
+        var multipart = new MimeMultipart("mixed");
+        var text = new MimeBodyPart();
+        text.setContent(htmlBody, HTML);
+        multipart.addBodyPart(text);
+        for (var attachment : attachments) {
+            var file = new MimeBodyPart();
+            file.setDataHandler(
+                    new DataHandler(new ByteArrayDataSource(attachment.content(), attachment.contentType())));
+            file.setFileName(attachment.fileName());
+            file.setDisposition(Part.ATTACHMENT);
+            multipart.addBodyPart(file);
+        }
+        return multipart;
     }
 
     /**

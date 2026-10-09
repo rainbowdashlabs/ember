@@ -17,6 +17,7 @@ describe('isPublicRoute', () => {
         '/login',
         '/2fa-verify',
         '/pitch',
+        '/verify',
         '/helpcenter',
         '/helpcenter/station/events',
         '/discovery',

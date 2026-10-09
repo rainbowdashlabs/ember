@@ -41,6 +41,29 @@ export interface MemberDocumentSource {
     contentUrl(documentId: number): string
     /** Where the picture of a document is served from, or null where this door serves none. */
     thumbnailUrl: ((documentId: number) => string) | null
+    /** Where one sealed version of a document is served from, or null where this door serves none. */
+    versionUrl: ((documentId: number, version: number) => string) | null
+    /**
+     * Where the signature record of one sealed version is built, on its own or joined to the document, or
+     * null where this door serves none.
+     */
+    recordUrl: ((documentId: number, version: number, kind: RecordKind) => string) | null
+}
+
+/** The record of a version on its own, or the version with its record joined as one copy to hand out. */
+export const RecordKind = {
+    RECORD: 'record',
+    WITH_RECORD: 'with-record',
+} as const
+
+export type RecordKind = typeof RecordKind[keyof typeof RecordKind]
+
+/**
+ * Where the signature record of one sealed version is built and sealed when it is asked for: on its own,
+ * or joined to the version as one copy to hand out.
+ */
+export function recordUrl(documentId: number, version: number, kind: RecordKind): string {
+    return `/documents/${documentId}/versions/${version}/${kind}`
 }
 
 export async function listForMember(memberId: number): Promise<MemberDocumentResponse[]> {
@@ -115,6 +138,14 @@ export function contentUrl(documentId: number): string {
 }
 
 /**
+ * Where one sealed version of a document is served from: the one it serves now or an earlier one it
+ * superseded, each by its number.
+ */
+export function versionUrl(documentId: number, version: number): string {
+    return `/documents/${documentId}/versions/${version}/content`
+}
+
+/**
  * Where the picture of a document is served from, for the tile to show.
  *
  * <p>The size is the longest side. A portrait page is narrower than that, and a tile shows the page
@@ -130,4 +161,6 @@ export const stationDocumentSource: MemberDocumentSource = {
     upload: uploadForMember,
     contentUrl,
     thumbnailUrl: documentId => thumbnailUrl(documentId),
+    versionUrl,
+    recordUrl,
 }

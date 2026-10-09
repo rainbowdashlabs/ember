@@ -16,14 +16,23 @@ import {SIGNERS} from './signers'
  */
 const role = defineModel<SignatureRole | null | undefined>({required: true})
 
+const props = defineProps<{
+  /** The label in place of the one for a signature, as a field to fill in has. */
+  label?: string
+  /** The line under the choice in place of the one for a signature. */
+  help?: string
+  /** The signers on offer, all of them unless a narrower list is given. */
+  signers?: readonly SignatureRole[]
+}>()
+
 const {t} = useI18n()
 </script>
 
 <template>
-  <LabelledField :label="t('documentTemplates.signerLabel')" :help="t('documentTemplates.signerHelp')">
+  <LabelledField :label="label ?? t('documentTemplates.signerLabel')" :help="help ?? t('documentTemplates.signerHelp')">
     <SelectInput :model-value="role" data-testid="signer-select"
                  @update:model-value="value => role = value as SignatureRole">
-      <option v-for="signer in SIGNERS" :key="signer" :value="signer">{{ t(`documentTemplates.signer.${signer}`) }}</option>
+      <option v-for="signer in props.signers ?? SIGNERS" :key="signer" :value="signer">{{ t(`documentTemplates.signer.${signer}`) }}</option>
     </SelectInput>
   </LabelledField>
 </template>

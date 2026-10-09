@@ -1,0 +1,317 @@
+/*
+ *     SPDX-License-Identifier: AGPL-3.0-only
+ *
+ *     Copyright (C) RainbowDashLabs and Contributor
+ */
+package dev.chojo.ember.feature.signing.service;
+
+import dev.chojo.ember.conf.file.elements.Signing;
+import dev.chojo.ember.feature.signing.entity.ObtainedTimestamp;
+import eu.europa.esig.dss.enumerations.DigestAlgorithm;
+import eu.europa.esig.dss.model.TimestampBinary;
+import eu.europa.esig.dss.model.x509.revocation.crl.CRL;
+import eu.europa.esig.dss.model.x509.revocation.ocsp.OCSP;
+import eu.europa.esig.dss.service.SecureRandomNonceSource;
+import eu.europa.esig.dss.service.crl.OnlineCRLSource;
+import eu.europa.esig.dss.service.http.commons.CommonsDataLoader;
+import eu.europa.esig.dss.service.ocsp.OnlineOCSPSource;
+import eu.europa.esig.dss.service.tsp.OnlineTSPSource;
+import eu.europa.esig.dss.spi.client.http.Protocol;
+import eu.europa.esig.dss.spi.exception.DSSExternalResourceException;
+import eu.europa.esig.dss.spi.x509.revocation.RevocationSource;
+import eu.europa.esig.dss.spi.x509.tsp.TSPSource;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
+import org.apache.hc.client5.http.impl.DefaultHttpRequestRetryStrategy;
+import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
+import org.apache.hc.core5.util.TimeValue;
+import org.bouncycastle.cms.CMSException;
+import org.bouncycastle.cms.CMSSignedData;
+import org.bouncycastle.tsp.TSPException;
+import org.bouncycastle.tsp.TimeStampToken;
+import org.jspecify.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.io.Serial;
+import java.io.Serializable;
+import java.security.cert.X509Certificate;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+
+/**
+ * The RFC 3161 timestamp services seals are stamped by, in the order the operator listed them, and
+ * the public revocation data of their certificates.
+ *
+ * <p>This is the one place the signing feature reaches the network. A service receives the hash DSS
+ * asks to have stamped, or the hash of a credential's public key ({@link #stamp}), never the document. Each service gets {@link #TIMEOUT} to connect and again
+ * to answer, with no retry; a service that fails is logged once and the next one is asked. After the
+ * timestamp, the revocation lists and status responders (OCSP) its certificates name are asked at the
+ * public addresses in those certificates, which receive at most a certificate's serial number.
+ * Everything one seal asks outside shares {@link #BUDGET}: each timeout is cut to what is left of it,
+ * and once it is spent nothing more is asked. When the operator switched timestamps off or listed no
+ * service, there is nothing to ask and no request is ever made.
+ *
+ * <p><b>Trust.</b> Every service is paired with the root certificate its timestamps must chain to
+ * ({@link TimestampRoots}). A timestamp that does not ({@link TimestampTrust}) counts as that service
+ * failing, and the next one is asked. A service without a root is left out of the list and never asked,
+ * which is logged once when the list is read.
+ */
+@Singleton
+public class TimestampServices {
+    private static final Logger log = LoggerFactory.getLogger(TimestampServices.class);
+
+    /** How long one outside address may take to accept the connection, and again to answer. */
+    public static final Duration TIMEOUT = Duration.ofSeconds(5);
+
+    /**
+     * How long one seal may spend on outside calls altogether, timestamp services and revocation data
+     * together, so a seal never waits for every listed service to time out. A call still running when
+     * it runs out may overrun it by the time it takes to accept the connection.
+     */
+    public static final Duration BUDGET = Duration.ofSeconds(15);
+
+    private static final String TIMESTAMP_QUERY = "application/timestamp-query";
+    private static final String OCSP_REQUEST = "application/ocsp-request";
+
+    private final List<Service> services;
+    private final Duration timeout;
+    private final Duration budget;
+
+    /**
+     * Reads the services and their roots from the configuration.
+     *
+     * @param config the signing configuration
+     */
+    @Inject
+    public TimestampServices(Signing config) {
+        this(config.timestamps() ? pinned(config) : List.of(), TIMEOUT, BUDGET);
+    }
+
+    /**
+     * Lets a test name its own services, a shorter timeout and a shorter budget.
+     *
+     * @param services the services with their roots, asked in this order; empty for no timestamps
+     * @param timeout  how long one outside address may take to accept the connection, and again to answer
+     * @param budget   how long one seal may spend on all outside calls together
+     */
+    TimestampServices(List<Service> services, Duration timeout, Duration budget) {
+        this.services = List.copyOf(services);
+        this.timeout = timeout;
+        this.budget = budget;
+    }
+
+    /**
+     * The outside calls of one seal, whose budget starts now.
+     *
+     * @return the round, or empty when timestamps are off
+     */
+    Optional<Round> round() {
+        return services.isEmpty() ? Optional.empty() : Optional.of(new Round(services, timeout, budget));
+    }
+
+    /** @return whether any service is there to ask, false when timestamps are off or no service is listed */
+    public boolean enabled() {
+        return !services.isEmpty();
+    }
+
+    /**
+     * Has a SHA-256 hash stamped by the first service that answers with a timestamp chaining to its pinned
+     * root, all within one {@link #BUDGET}. Only the hash leaves the installation.
+     *
+     * @param sha256 the hash to stamp
+     * @return the timestamp, or empty when timestamps are off or no service gave one
+     */
+    public Optional<ObtainedTimestamp> stamp(byte[] sha256) {
+        var round = round();
+        if (round.isEmpty()) return Optional.empty();
+        try {
+            byte[] token = round.get()
+                    .getTimeStampResponse(DigestAlgorithm.SHA256, sha256)
+                    .getBytes();
+            String service = Objects.requireNonNull(round.get().answeredBy(), "a service answered");
+            return Optional.of(new ObtainedTimestamp(token, timeOf(token), service));
+        } catch (RuntimeException e) {
+            return Optional.empty();
+        }
+    }
+
+    private static Instant timeOf(byte[] token) {
+        try {
+            return new TimeStampToken(new CMSSignedData(token))
+                    .getTimeStampInfo()
+                    .getGenTime()
+                    .toInstant();
+        } catch (CMSException | TSPException | IOException e) {
+            throw new UntrustedTimestampException("The timestamp states no readable time: " + e.getMessage(), e);
+        }
+    }
+
+    private static List<Service> pinned(Signing config) {
+        var pinned = new ArrayList<Service>();
+        for (var url : config.timestampUrls()) {
+            var root = TimestampRoots.rootFor(url, config.timestampRoots());
+            if (root.isPresent()) {
+                pinned.add(new Service(url, root.get()));
+            } else {
+                log.warn(
+                        "Timestamp service {} is never asked: no root certificate is pinned for it in"
+                                + " signing.timestampRoots",
+                        url);
+            }
+        }
+        return pinned;
+    }
+
+    /**
+     * A timestamp service and the root its timestamps must chain to.
+     *
+     * @param url  the address timestamps are requested at
+     * @param root the pinned root certificate
+     */
+    record Service(String url, X509Certificate root) implements Serializable {}
+
+    /**
+     * One pass over the services for one seal, and the revocation data its timestamp needs, within one
+     * budget that starts when the round is created. Not shared between seals, since it remembers which
+     * service answered and how much of its budget is left.
+     */
+    static final class Round implements TSPSource {
+        @Serial
+        private static final long serialVersionUID = 1L;
+
+        private static final Logger log = LoggerFactory.getLogger(Round.class);
+
+        private final List<Service> services;
+        private final Duration timeout;
+        private final long deadline;
+        private @Nullable String answeredBy;
+        private @Nullable Instant validUntil;
+
+        private Round(List<Service> services, Duration timeout, Duration budget) {
+            this.services = services;
+            this.timeout = timeout;
+            this.deadline = System.nanoTime() + budget.toNanos();
+        }
+
+        @Override
+        public TimestampBinary getTimeStampResponse(DigestAlgorithm digestAlgorithm, byte[] digest) {
+            for (var service : services) {
+                var url = service.url();
+                if (spent()) {
+                    log.warn("The time for timestamp services ran out before {} was asked", url);
+                    throw new DSSExternalResourceException("The time for timestamp services ran out");
+                }
+                try {
+                    var timestamp = source(url).getTimeStampResponse(digestAlgorithm, digest);
+                    validUntil = TimestampTrust.trustedUntil(timestamp.getBytes(), service.root());
+                    answeredBy = url;
+                    log.info("Timestamp service {} stamped a seal", url);
+                    return timestamp;
+                } catch (RuntimeException e) {
+                    log.warn("Timestamp service {} gave no timestamp: {}", url, e.getMessage());
+                }
+            }
+            throw new DSSExternalResourceException("No timestamp service gave a timestamp");
+        }
+
+        /** @return the address of the service that gave the last timestamp, or null when none did */
+        @Nullable
+        String answeredBy() {
+            return answeredBy;
+        }
+
+        /**
+         * @return the earliest end of validity among the certificates the last timestamp rests on, after which
+         *     a later timestamp has to cover it, or null when no service gave one
+         */
+        @Nullable
+        Instant validUntil() {
+            return validUntil;
+        }
+
+        /** @return a source that fetches the revocation lists a certificate names, within this round's budget */
+        RevocationSource<CRL> revocationLists() {
+            return new OnlineCRLSource(new BudgetedLoader(this, null));
+        }
+
+        /** @return a source that asks the status responder a certificate names, within this round's budget */
+        RevocationSource<OCSP> revocationStatus() {
+            var source = new OnlineOCSPSource(new BudgetedLoader(this, OCSP_REQUEST));
+            source.setNonceSource(new SecureRandomNonceSource());
+            return source;
+        }
+
+        private OnlineTSPSource source(String url) {
+            var source = new OnlineTSPSource(url, new BudgetedLoader(this, TIMESTAMP_QUERY));
+            source.setNonceSource(new SecureRandomNonceSource());
+            return source;
+        }
+
+        private Duration left() {
+            return Duration.ofNanos(deadline - System.nanoTime());
+        }
+
+        private boolean spent() {
+            return left().toMillis() <= 0;
+        }
+
+        /**
+         * Reaches one outside address over HTTP, with no retry, and with each timeout cut to what is
+         * left of the round's budget at the moment the request starts. Refuses once the budget is spent,
+         * and refuses addresses that are not HTTP, so a certificate cannot point it at a local file or a
+         * directory service.
+         */
+        private static final class BudgetedLoader extends CommonsDataLoader {
+            @Serial
+            private static final long serialVersionUID = 1L;
+
+            private final Round round;
+
+            private BudgetedLoader(Round round, @Nullable String contentType) {
+                super(contentType);
+                this.round = round;
+                setRetryStrategy(new DefaultHttpRequestRetryStrategy(0, TimeValue.ZERO_MILLISECONDS));
+            }
+
+            @Override
+            public byte[] get(String url) {
+                requireHttp(url);
+                return super.get(url);
+            }
+
+            @Override
+            public byte[] post(String url, byte[] content) {
+                requireHttp(url);
+                return super.post(url, content);
+            }
+
+            private static void requireHttp(String url) {
+                if (!Protocol.isHttpUrl(url)) {
+                    throw new DSSExternalResourceException("Only HTTP addresses are asked, not " + url);
+                }
+            }
+
+            @Override
+            protected synchronized HttpClientBuilder getHttpClientBuilder(String url) {
+                var left = round.left();
+                if (left.toMillis() <= 0) {
+                    throw new DSSExternalResourceException(
+                            "The time for this seal ran out before " + url + " was asked");
+                }
+                var timeout = round.timeout;
+                int millis = Math.toIntExact((timeout.compareTo(left) <= 0 ? timeout : left).toMillis());
+                setTimeoutConnection(millis);
+                setTimeoutConnectionRequest(millis);
+                setTimeoutResponse(millis);
+                setTimeoutSocket(millis);
+                return super.getHttpClientBuilder(url);
+            }
+        }
+    }
+}

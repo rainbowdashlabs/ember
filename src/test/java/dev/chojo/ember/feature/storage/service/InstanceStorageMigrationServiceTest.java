@@ -231,11 +231,11 @@ class InstanceStorageMigrationServiceTest extends RepositoryTestBase {
     }
 
     /**
-     * Avatars (the only account-scoped movable category) ride along with the instance default
-     * and get copied to the new target alongside station bytes.
+     * Avatars and signature pictures, the account-scoped movable categories, ride along with the
+     * instance default and get copied to the new target alongside station bytes.
      */
     @Test
-    void avatarsAreCopied() {
+    void accountPicturesAreCopied() {
         Account account = accountRepo.create("avatar@xfer.test", "First", "Last", true);
         var avatarScope = new StorageScope.Account(account.uid());
         storageService.store(
@@ -244,11 +244,17 @@ class InstanceStorageMigrationServiceTest extends RepositoryTestBase {
                 "doesnt-matter",
                 "avatar".getBytes(StandardCharsets.UTF_8),
                 "image/png");
+        storageService.store(
+                avatarScope,
+                StorageCategory.IMAGE_SIGNATURE,
+                "signature.png",
+                "signature".getBytes(StandardCharsets.UTF_8),
+                "image/png");
 
         StorageBackendSettings targetSettings = newLocalSettings(targetRoot.toString());
         var result = migrationService.commit(migrationService.prepare(targetSettings), true);
 
-        assertTrue(result.copied() >= 1, "avatar bytes should be migrated");
+        assertTrue(result.copied() >= 2, "avatar and signature bytes should be migrated");
     }
 
     /**

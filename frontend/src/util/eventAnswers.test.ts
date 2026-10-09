@@ -45,6 +45,7 @@ function registration(id: number, status: RegistrationStatus, answers: Record<nu
     answersMissing: false,
     fromField: false,
     fieldName: null,
+    agreementWithdrawnAt: null,
     fields: Object.entries(answers).map(([fieldId, value]) => ({fieldId: Number(fieldId), value})),
   }
 }

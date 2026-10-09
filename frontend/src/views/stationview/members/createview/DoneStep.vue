@@ -12,17 +12,20 @@ import ButtonRow from '@/components/button/ButtonRow.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
+import Alert from '@/components/feedback/Alert.vue'
 import OneTimePasswordDialog from '@/components/onetimepassword/OneTimePasswordDialog.vue'
 import type {IssuedOneTimePassword} from '@/api/generated/schema'
 import type {Failure} from '@/util/failure'
 
 /**
  * The end of the wizard. Where the new member was given a one-time password it opens at once, and
- * stays at hand for as long as this step is on the screen; a refused one says why.
+ * stays at hand for as long as this step is on the screen; a refused one says why. Where the address
+ * already belonged to an account, the member waits for that person to agree, which is said here.
  */
 const props = defineProps<{
   oneTimePassword: IssuedOneTimePassword | null
   oneTimePasswordFailure: Failure | null
+  linkPending: boolean
 }>()
 
 const {t} = useI18n()
@@ -40,6 +43,7 @@ const showingPassword = ref(props.oneTimePassword !== null)
     <font-awesome-icon :icon="['fas', 'circle-check']" class="text-4xl text-success"/>
     <SectionHeader>{{ t('membersCreate.done') }}</SectionHeader>
     <p class="text-sm text-(--text-muted)">{{ t('membersCreate.doneHint') }}</p>
+    <Alert v-if="linkPending" variant="info" data-testid="link-pending">{{ t('memberLinks.createdWaiting') }}</Alert>
     <FailureAlert :failure="oneTimePasswordFailure"/>
     <ButtonRow align="center">
       <SecondaryButton

@@ -97,6 +97,7 @@ public class AccessGate implements Handler {
 
         String token = SessionCookies.token(ctx).orElse(null);
         if (token == null) {
+            sessionGate.forgetHalfSession(ctx);
             throw GeneralRefusal.ROUTE_NEEDS_SIGN_IN.raise();
         }
 

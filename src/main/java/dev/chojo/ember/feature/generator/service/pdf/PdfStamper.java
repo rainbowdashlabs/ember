@@ -6,10 +6,13 @@
 package dev.chojo.ember.feature.generator.service.pdf;
 
 import dev.chojo.ember.feature.generator.entity.FieldRect;
+import dev.chojo.ember.feature.generator.entity.FillInField;
 import dev.chojo.ember.feature.generator.entity.FontStyle;
 import dev.chojo.ember.feature.generator.entity.PdfField;
+import dev.chojo.ember.feature.generator.entity.PdfFieldKind;
 import dev.chojo.ember.feature.generator.entity.PdfLayout;
 import dev.chojo.ember.feature.generator.entity.SignatureRole;
+import dev.chojo.ember.feature.generator.entity.SignerCaptions;
 import dev.chojo.ember.feature.generator.entity.TextAlign;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -32,7 +35,9 @@ import java.util.function.UnaryOperator;
 
 /**
  * Fills an uploaded PDF in place: the texts and crosses of its fields drawn onto its pages, its own
- * form fields filled and flattened, and an empty signature field for every signer the member has.
+ * form fields filled and flattened, an empty signature field for every signer the member has with the
+ * signer's name printed under it ({@link SignerCaptions}), and an empty
+ * text field ({@link FillInFields}) for every field such a signer is asked to fill in.
  *
  * <p>The original is opened and never written back; what comes out is a new file. Everything drawn is
  * appended to the page's content with the page's earlier state wrapped and restored first, so whatever
@@ -53,6 +58,9 @@ public class PdfStamper {
 
     /** The height a line of a signature field's text takes, as a multiple of its size. */
     private static final double SIGNATURE_TEXT_LEADING = 1.3;
+
+    /** The size of the signer's name under a signature field, as a share of the field's text size. */
+    private static final double SIGNER_SCALE = 0.85;
 
     private final StampFonts fonts;
 
@@ -81,12 +89,14 @@ public class PdfStamper {
      * @param layout    the fields and the form fields' values
      * @param guardians how many guardians the member has
      * @param fill      fills the placeholders of a text
+     * @param signers   the names printed under the signature fields
      * @return the filled-in PDF
      * @throws IOException where the PDF cannot be read or written
      */
-    public Stamped stamp(byte[] original, PdfLayout layout, int guardians, UnaryOperator<String> fill)
+    public Stamped stamp(
+            byte[] original, PdfLayout layout, int guardians, UnaryOperator<String> fill, SignerCaptions signers)
             throws IOException {
-        return stamp(original, layout, guardians, fill, StampFonts.FieldFonts.NONE);
+        return stamp(original, layout, guardians, fill, signers, StampFonts.FieldFonts.NONE);
     }
 
     /**
@@ -96,6 +106,7 @@ public class PdfStamper {
      * @param layout     the fields and the form fields' values
      * @param guardians  how many guardians the member has
      * @param fill       fills the placeholders of a text
+     * @param signers    the names printed under the signature fields
      * @param fieldFonts where the file of a family a field names comes from
      * @return the filled-in PDF
      * @throws IOException where the PDF cannot be read or written
@@ -105,6 +116,7 @@ public class PdfStamper {
             PdfLayout layout,
             int guardians,
             UnaryOperator<String> fill,
+            SignerCaptions signers,
             StampFonts.FieldFonts fieldFonts)
             throws IOException {
         try (var document = PdfFiles.open(original)) {
@@ -118,15 +130,21 @@ public class PdfStamper {
                         text.rect(),
                         new Mark.Text(text.text(), text.size(), text.align(), text.wrap(), null, FontStyle.REGULAR));
             }
-            for (var field : layout.fields()) {
+            var fillIns = new ArrayList<FillInBox>();
+            var fields = layout.fields();
+            for (int position = 0; position < fields.size(); position++) {
+                var field = fields.get(position);
                 var role = field.role();
                 if (role == null) {
                     place(byPage, field.rect(), markOf(field, fill));
                     continue;
                 }
+                if (field.kind() == PdfFieldKind.FILL_IN) {
+                    fillIns.addAll(fillInBoxes(field, position, role.fieldNames(guardians)));
+                    continue;
+                }
                 for (var box : signatureBoxes(field.rect(), role.fieldNames(guardians))) {
-                    placeSignature(byPage, field, box.rect(), fill);
-                    signatures.add(box);
+                    signatures.add(placeSignature(byPage, field, box, signers.of(box.name()), fill));
                 }
             }
             for (var page : byPage.entrySet()) {
@@ -136,6 +154,9 @@ public class PdfStamper {
             for (var box : signatures) {
                 addSignatureField(document, box);
             }
+            for (var box : fillIns) {
+                addFillInField(document, box);
+            }
             return new Stamped(PdfFiles.save(document), List.copyOf(unprintable));
         }
     }
@@ -143,26 +164,74 @@ public class PdfStamper {
     /** One signature field with the part of its box it takes. */
     private record SignatureBox(FieldRect rect, String name) {}
 
+    /** One field to fill in with the part of its box it takes. */
+    private record FillInBox(FieldRect rect, FillInField field) {}
+
     /**
-     * What one signer's part of a signature field prints: its text along the bottom where it is to print,
-     * and the line to sign on above it, which a PDF that already has a line leaves out. The text takes at
-     * most half of the part, so a box drawn too low still leaves room to sign.
+     * The fields to fill in that one field of the template becomes: one for each signature field of its
+     * signer, sharing the box out the way a signature field does, each named after its signature field and
+     * the template field's position.
      */
-    private static void placeSignature(
-            TreeMap<Integer, List<Placed>> byPage, PdfField field, FieldRect rect, UnaryOperator<String> fill) {
-        var text = field.text();
-        var lineRect = rect;
-        if (field.printText() && text != null) {
-            double textHeight = Math.min(rect.height() / 2, field.fontSize() * SIGNATURE_TEXT_LEADING);
-            place(
-                    byPage,
-                    new FieldRect(rect.page(), rect.x(), rect.y(), rect.width(), textHeight),
-                    new Mark.Text(
-                            fill.apply(text), (float) field.fontSize(), field.align(), false, null, FontStyle.REGULAR));
-            lineRect = new FieldRect(
-                    rect.page(), rect.x(), rect.y() + textHeight, rect.width(), rect.height() - textHeight);
+    private static List<FillInBox> fillInBoxes(PdfField field, int position, List<String> signatureFields) {
+        String label = Objects.requireNonNullElse(field.text(), "");
+        int maxLength = FillInField.effectiveMaxLength(field.maxLength());
+        return signatureBoxes(field.rect(), signatureFields).stream()
+                .map(box -> new FillInBox(
+                        box.rect(),
+                        new FillInField(
+                                FillInField.nameOf(box.name(), position),
+                                box.name(),
+                                label,
+                                field.required(),
+                                maxLength)))
+                .toList();
+    }
+
+    /**
+     * What one signer's part of a signature field prints: along the bottom the name of whoever signs there,
+     * small and in the field's family, and below it the field's text where it is to print; above them the
+     * line to sign on, which a PDF that already has a line leaves out. The name is left out where the text
+     * already prints it. The texts take at most half of the part, so a box drawn too low still leaves room
+     * to sign.
+     *
+     * @return the signature field, which takes the part above the texts, so a signature drawn into it later
+     *         never covers them
+     */
+    private static SignatureBox placeSignature(
+            TreeMap<Integer, List<Placed>> byPage,
+            PdfField field,
+            SignatureBox box,
+            String signer,
+            UnaryOperator<String> fill) {
+        var rect = box.rect();
+        String text = field.printText() && field.text() != null ? fill.apply(field.text()) : null;
+        var captions = new ArrayList<Mark.Text>();
+        if (text == null || !text.contains(signer)) {
+            captions.add(new Mark.Text(
+                    signer,
+                    (float) (field.fontSize() * SIGNER_SCALE),
+                    field.align(),
+                    false,
+                    field.fontFamily(),
+                    FontStyle.REGULAR));
         }
+        if (text != null) {
+            captions.add(new Mark.Text(text, (float) field.fontSize(), field.align(), false, null, FontStyle.REGULAR));
+        }
+        double wanted = captions.stream()
+                .mapToDouble(caption -> caption.size() * SIGNATURE_TEXT_LEADING)
+                .sum();
+        double scale = Math.min(1, rect.height() / 2 / wanted);
+        double top = rect.y() + wanted * scale;
+        double next = top;
+        for (var caption : captions) {
+            double height = caption.size() * SIGNATURE_TEXT_LEADING * scale;
+            next -= height;
+            place(byPage, new FieldRect(rect.page(), rect.x(), next, rect.width(), height), caption);
+        }
+        var lineRect = new FieldRect(rect.page(), rect.x(), top, rect.width(), rect.height() - (top - rect.y()));
         if (!field.withoutLine()) place(byPage, lineRect, new Mark.Line());
+        return new SignatureBox(lineRect, box.name());
     }
 
     /**
@@ -217,6 +286,7 @@ public class PdfStamper {
                         Objects.requireNonNullElse(field.fontStyle(), FontStyle.REGULAR));
             case CHECK -> YesWords.saysYes(text) ? new Mark.Cross() : new Mark.Nothing();
             case SIGNATURE -> new Mark.Line();
+            case FILL_IN -> new Mark.Nothing();
         };
     }
 
@@ -317,5 +387,13 @@ public class PdfStamper {
         PDPage page = document.getPage(rect.page() - 1);
         var area = new PDRectangle((float) rect.x(), (float) rect.y(), (float) rect.width(), (float) rect.height());
         SignatureFields.add(document, page, area, box.name());
+    }
+
+    private static void addFillInField(PDDocument document, FillInBox box) throws IOException {
+        var rect = box.rect();
+        if (rect.page() > document.getNumberOfPages()) return;
+        PDPage page = document.getPage(rect.page() - 1);
+        var area = new PDRectangle((float) rect.x(), (float) rect.y(), (float) rect.width(), (float) rect.height());
+        FillInFields.add(document, page, area, box.field());
     }
 }

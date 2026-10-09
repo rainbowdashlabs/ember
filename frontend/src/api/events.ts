@@ -38,6 +38,8 @@ import type {
     EventTemplateFieldData,
     FederatedEventItem,
     FederatedRegistrationAnswer,
+    PartnerAgreementOffer,
+    PartnerDocumentToSign,
     FederationShareResponse,
     FieldDefaultEntry,
     GenerateDatesRequest,
@@ -566,11 +568,12 @@ export async function listMyFederatedRegistrations(): Promise<RemoteMemberRegist
  * Signs a member up for a partner station's appointment and answers with what they recorded.
  *
  * <p>The status is theirs to decide: an appointment that asks for no confirmation accepts at once,
- * and showing a pending badge regardless would tell the member something nobody said.
+ * and showing a pending badge regardless would tell the member something nobody said. Beside it come
+ * the documents their appointment asks the member to sign, filed here and signed here.
  */
-export async function registerForFederatedEvent(stationUid: string, eventId: number, eventDate: string, memberId?: string): Promise<RegistrationStatus> {
+export async function registerForFederatedEvent(stationUid: string, eventId: number, eventDate: string, memberId?: string): Promise<FederatedRegistrationAnswer> {
     const res = await client.post<FederatedRegistrationAnswer>(`/federated/${stationUid}/events/${eventId}/register`, { eventDate, memberId: memberId ?? null })
-    return res.data.status
+    return res.data
 }
 
 export async function withdrawFederatedRegistration(stationUid: string, eventId: number, eventDate: string, memberId?: string): Promise<void> {
@@ -585,6 +588,21 @@ export async function withdrawFederatedRegistration(stationUid: string, eventId:
  */
 export async function undoFederatedWithdrawal(stationUid: string, eventId: number, eventDate: string, memberId?: string): Promise<void> {
     await client.post(`/federated/${stationUid}/events/${eventId}/register/undo`, { eventDate, memberId: memberId ?? null })
+}
+
+/** The documents a partner station's appointment without registrations offers to sign on a date. */
+export async function listFederatedAgreementOffers(stationUid: string, eventId: number, eventDate: string): Promise<PartnerAgreementOffer[]> {
+    const res = await client.get<PartnerAgreementOffer[]>(`/federated/${stationUid}/events/${eventId}/agreements`, {params: {date: eventDate}})
+    return res.data
+}
+
+/**
+ * Takes on the agreement of a partner station's appointment without registrations for a member, filed and
+ * signed here. Signing it says the member will come.
+ */
+export async function takeOnFederatedAgreement(stationUid: string, eventId: number, eventDate: string, memberId: string): Promise<PartnerDocumentToSign[]> {
+    const res = await client.post<PartnerDocumentToSign[]>(`/federated/${stationUid}/events/${eventId}/agreement`, {eventDate, memberId})
+    return res.data
 }
 
 export async function listFederationRegistrations(eventId: number, date?: string): Promise<EnrichedFederationRegistration[]> {

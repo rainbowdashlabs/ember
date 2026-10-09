@@ -87,8 +87,27 @@ export async function settleCast(
         throw new Error(`The station seeds ${guardianPool.length} guardians; ${guardianNames.length} parts need one`)
     }
 
+    /** Whether the guardian confirms with the seeded password, having no second factor. */
+    const withoutSecondFactor = async (guardian: DemoAccount): Promise<boolean> => {
+        const context = await asGuardian(guardian.email, guardian.stationId)
+        try {
+            const status = await context.get('/api/v1/account/2fa/status')
+            return status.ok() && !(await status.json()).enrolled
+        } finally {
+            await context.dispose()
+        }
+    }
+    let signingGuardian: DemoAccount | undefined
+    for (const candidate of guardianPool.slice(guardianNames.length)) {
+        if (await withoutSecondFactor(candidate)) {
+            signingGuardian = candidate
+            break
+        }
+    }
+    if (!signingGuardian) throw new Error('The station seeds no spare guardian without a second factor to sign as')
+
     const charges = new Set<number>()
-    for (const guardian of guardianPool.slice(0, guardianNames.length)) {
+    for (const guardian of [...guardianPool.slice(0, guardianNames.length), signingGuardian]) {
         for (const id of await chargesOf(guardian)) charges.add(id)
     }
 
@@ -141,6 +160,7 @@ export async function settleCast(
             guardianSpec: part(guardianPool[0]!, 'guardianSpec'),
             sidebarSpec: part(guardianPool[1]!, 'sidebarSpec'),
             passkeySpec: part(guardianPool[2]!, 'passkeySpec'),
+            signingSpec: part(signingGuardian, 'signingSpec'),
         },
         passkeySlots: slotPool.slice(0, PASSKEY_PARTS),
         logoutLoner: {...part(loner, 'logoutLoner'), memberId: 0},

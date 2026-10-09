@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.generator.entity.DocumentTemplate;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplateDraft;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplateKind;
 import dev.chojo.ember.feature.generator.entity.TemplateContent;
+import dev.chojo.ember.feature.generator.entity.TemplateSigning;
 import dev.chojo.ember.feature.generator.repository.DocumentTemplateRepository;
 import dev.chojo.ember.feature.generator.repository.PdfTemplateRepository;
 import dev.chojo.ember.feature.generator.service.font.FontLibrary;
@@ -42,6 +43,10 @@ import java.util.Objects;
  * <p>A template for appointments is a legal one whatever the request says, since its copies are handed
  * to participants to sign. It stays one for as long as an appointment or an appointment template
  * requires it.
+ *
+ * <p>Signed documents are kept for at most {@link TemplateSigning#MAX_RETENTION_MONTHS} months after the
+ * member has gone. A request that leaves out how they are kept keeps what the template had, so an older
+ * editor never resets it.
  */
 @Singleton
 public class TemplateChecks {
@@ -161,10 +166,25 @@ public class TemplateChecks {
                 language(owner, request.language()),
                 issuer.memberId(),
                 issuer.function(),
-                content);
+                content,
+                signing(request.signing(), existing, legal));
         catalogue.requireKnown(owner, draft);
         fonts.requireReachable(owner, content);
         return draft;
+    }
+
+    /**
+     * How signed documents are kept and sent: as asked, else as the template being changed had it, else as
+     * a new template starts.
+     */
+    private static TemplateSigning signing(
+            @Nullable TemplateSigning asked, @Nullable DocumentTemplate existing, boolean legal) {
+        if (asked == null) return existing == null ? TemplateSigning.startingWith(legal) : existing.signing();
+        Integer months = asked.retentionMonths();
+        if (months != null && (months < 0 || months > TemplateSigning.MAX_RETENTION_MONTHS)) {
+            throw DocumentRefusal.DOCUMENT_TEMPLATE_RETENTION_OUT_OF_RANGE.raise();
+        }
+        return asked;
     }
 
     /** The language asked for, or that of the station, or of the association's home station, where none was. */

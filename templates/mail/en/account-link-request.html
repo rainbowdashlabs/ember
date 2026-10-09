@@ -1,0 +1,8 @@
+{% extends '_layout.html' %}
+{% block body %}
+      <h2>Hi {{ name }},</h2>
+      <p><strong>{{ stationName }}</strong> asks to link your account to its member <strong>{{ memberName }}</strong>.</p>
+      <p>The station can reach your account only once you agree. Sign in to accept or decline. Following the link alone agrees to nothing.</p>
+      <div class="btn-wrap"><a class="btn" href="{{ url }}">View the request</a></div>
+      <p class="hint">Without an answer the request lapses after 30 days. If you do not know the station, decline it.</p>
+{% endblock %}

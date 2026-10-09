@@ -305,7 +305,26 @@ public enum StationRefusal implements Refusal {
 
     /** An address for replies to the station's mail that is plainly not an address. */
     MAIL_REPLY_TO_NOT_AN_ADDRESS(
-            74, HttpStatus.BAD_REQUEST, "That is not an email address, so the reply address was not saved");
+            74, HttpStatus.BAD_REQUEST, "That is not an email address, so the reply address was not saved"),
+
+    /** A failed import into a station that was here before, which a retry would have to delete. */
+    STATION_IMPORT_INTO_NOT_RETRIED(
+            75,
+            HttpStatus.CONFLICT,
+            "An import into an existing station cannot be tried again here, since that would remove the station"),
+
+    /**
+     * A partner's request to a station that moved to another installation, reaching the copy it left
+     * here. The detail names the installation it moved to, where one is known.
+     */
+    STATION_MOVED_AWAY(80, HttpStatus.GONE, "This station has moved to another installation"),
+
+    /** A station brought back to the installation that still holds the copy it left when it moved away. */
+    STATION_IMPORT_MOVED_AWAY_COPY_HERE(
+            81,
+            HttpStatus.CONFLICT,
+            "The copy this station left here when it moved away is still here, so nothing was imported. "
+                    + "Delete that copy first");
 
     private final Definition definition;
 

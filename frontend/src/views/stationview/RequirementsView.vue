@@ -10,6 +10,7 @@ import { useRoute, useRouter } from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import RequirementCard from './requirementsview/RequirementCard.vue'
+import SignatureRequirementCards from './requirementsview/SignatureRequirementCards.vue'
 import {getRequirements} from '@/api/requirements'
 import type {RegistrationUpdateItem, RequirementsResponse} from '@/api/generated/schema'
 import {usableRedirect} from '@/util/redirect'
@@ -25,8 +26,8 @@ const data = ref<RequirementsResponse | null>(null)
  * What holds the reader here until it is dealt with.
  *
  * <p>A self-check is deliberately not one of them, and neither is a registration short of an
- * answer. Both are offered below with everything else, and a task due in four weeks must not meet
- * a member with a wall every time they sign in.
+ * answer or a document waiting for a signature. They are offered below with everything else, and a
+ * task due in four weeks must not meet a member with a wall every time they sign in.
  */
 const blocking = computed(() =>
     data.value != null && (data.value.profileIncomplete || data.value.forcedForms.length > 0 || data.value.forcedQuizzes.length > 0)
@@ -37,7 +38,11 @@ const selfChecks = computed(() => data.value?.selfChecks ?? [])
 /** Registrations owing an answer to a question their appointment gained after the sign-up. */
 const registrationUpdates = computed(() => data.value?.registrationUpdates ?? [])
 
-const hasAnything = computed(() => blocking.value || selfChecks.value.length > 0 || registrationUpdates.value.length > 0)
+/** Documents waiting for the reader's signature, or for one they give for somebody in their care. */
+const pendingSignatures = computed(() => data.value?.pendingSignatures ?? [])
+
+const hasAnything = computed(() => blocking.value || selfChecks.value.length > 0 || registrationUpdates.value.length > 0
+    || pendingSignatures.value.length > 0)
 
 /** Whether the reader was sent here on their way somewhere else rather than coming here themselves. */
 const sentHere = computed(() => typeof route.query.redirect === 'string')
@@ -114,6 +119,7 @@ onMounted(async () => {
                     data-testid="requirement-registration-update"
                     @open="router.push({name: 'event-detail-date', params: {id: update.eventId, date: update.eventDate}})"
                 />
+                <SignatureRequirementCards :signatures="pendingSignatures"/>
                 <RequirementCard
                     v-for="selfCheck in selfChecks"
                     :key="`self-check-${selfCheck.id}`"

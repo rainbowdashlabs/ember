@@ -154,7 +154,7 @@ public class FederationEnrollmentService {
             return new Handshake.Rejected(HandshakeRejection.INVALID_REQUEST);
         }
 
-        var target = stationRepository.findByUid(request.targetStationUid());
+        var target = stationRepository.findHereByUid(request.targetStationUid());
         if (target.isEmpty()) {
             return new Handshake.Rejected(HandshakeRejection.UNKNOWN_STATION);
         }

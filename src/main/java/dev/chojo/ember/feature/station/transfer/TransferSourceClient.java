@@ -30,18 +30,18 @@ import static dev.chojo.ember.feature.station.transfer.WireValues.asInteger;
 
 /**
  * Talks to the token-authenticated transfer endpoints of the source instance for the duration of
- * one import run. Every outgoing request is throttled to at most one per {@value
- * #MIN_REQUEST_INTERVAL_MILLIS} milliseconds so a high-fanout import cannot overload the source,
- * and the secret token is stripped from every logged URI.
+ * one import run. Every outgoing request keeps the gap its {@link TransferPace} sets so a
+ * high-fanout import cannot overload the source, and the secret token is stripped from every
+ * logged URI.
  */
 public final class TransferSourceClient {
     private static final Logger log = LoggerFactory.getLogger(TransferSourceClient.class);
-    private static final long MIN_REQUEST_INTERVAL_MILLIS = 200L;
 
     private final String baseUrl;
     private final String token;
     private final String callerBaseUrl;
     private final OutboundHttp outbound;
+    private final long requestIntervalMillis;
     private final ObjectMapper mapper = Json.MAPPER;
     private final Object throttleLock = new Object();
     private long lastRequestMillis;
@@ -53,12 +53,15 @@ public final class TransferSourceClient {
      * @param outbound      sends every request, checked and pinned to the address it checked; over
      *                      plain HTTP, allowed only where private hosts are, it speaks HTTP/1.1 so a
      *                      Node-based dev front does not hang on an {@code Upgrade: h2c} preamble
+     * @param pace          how far apart the requests go
      */
-    public TransferSourceClient(String baseUrl, String token, String callerBaseUrl, OutboundHttp outbound) {
+    public TransferSourceClient(
+            String baseUrl, String token, String callerBaseUrl, OutboundHttp outbound, TransferPace pace) {
         this.baseUrl = baseUrl;
         this.token = token;
         this.callerBaseUrl = callerBaseUrl;
         this.outbound = outbound;
+        this.requestIntervalMillis = pace.intervalMillis();
     }
 
     /**
@@ -301,7 +304,7 @@ public final class TransferSourceClient {
     }
 
     /**
-     * Caps outgoing transfer requests at five per second. Synchronized because the synchronous
+     * Keeps outgoing transfer requests the pace's gap apart. Synchronized because the synchronous
      * import-start path runs on the request thread while the async run loop runs on the import
      * executor, and both call into the throttle. The sleep is hard-capped at the interval itself
      * so a regression elsewhere cannot ever stall a request beyond one slot.
@@ -310,9 +313,9 @@ public final class TransferSourceClient {
         long sleepMillis;
         synchronized (throttleLock) {
             long now = System.currentTimeMillis();
-            long wait = lastRequestMillis + MIN_REQUEST_INTERVAL_MILLIS - now;
+            long wait = lastRequestMillis + requestIntervalMillis - now;
             if (wait > 0) {
-                sleepMillis = Math.min(wait, MIN_REQUEST_INTERVAL_MILLIS);
+                sleepMillis = Math.min(wait, requestIntervalMillis);
                 lastRequestMillis = now + sleepMillis;
             } else {
                 sleepMillis = 0;

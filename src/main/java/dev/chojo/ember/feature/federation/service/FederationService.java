@@ -232,7 +232,7 @@ public class FederationService {
             return new CodeOutcome.Refused(CodeRefusal.OTHER_INSTANCE, parts.host());
         }
 
-        var target = stationRepository.findByUid(parts.stationUid());
+        var target = stationRepository.findHereByUid(parts.stationUid());
         if (target.isEmpty()) return new CodeOutcome.Refused(CodeRefusal.UNKNOWN_STATION, null);
         int targetStationId = target.get().id();
         if (targetStationId == enteringStationId) {
@@ -398,7 +398,7 @@ public class FederationService {
         }
 
         int requestingStationId = partner.stationId();
-        var target = stationRepository.findByUid(partner.partnerStationId()).orElseThrow();
+        var target = stationRepository.findHereByUid(partner.partnerStationId()).orElseThrow();
 
         repository.deletePartner(partnerId);
 
@@ -527,7 +527,7 @@ public class FederationService {
         var partner = repository.findPartnerById(partnerId);
         if (partner.isPresent()) {
             var p = partner.get();
-            var partnerStation = stationRepository.findByUid(p.partnerStationId());
+            var partnerStation = stationRepository.findHereByUid(p.partnerStationId());
             if (partnerStation.isPresent()) {
                 UUID ourUid = resolveStationUid(p.stationId());
                 var all = repository.findPartners(partnerStation.get().id());

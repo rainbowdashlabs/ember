@@ -52,7 +52,7 @@ function managersFor(all: MemberWithName[]) {
 
 beforeEach(() => {
     vi.clearAllMocks()
-    invite.mockResolvedValue({id: 99})
+    invite.mockResolvedValue({memberId: 7, id: 99, linkPending: false})
     listMembers.mockResolvedValue([member(7, 99, 'MEMBER')])
     setUserType.mockResolvedValue(undefined)
     setManagers.mockResolvedValue(undefined)

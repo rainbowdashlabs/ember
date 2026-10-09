@@ -83,6 +83,8 @@ public class DocumentRoutes implements Routes {
         routes.get(prefix + "/documents/tags", this::listTags, StationPermission.DOCUMENT_READ);
         routes.put(prefix + "/documents/{id}/tags", this::setTags, StationPermission.DOCUMENT_EDIT);
         routes.get(prefix + "/documents/{id}/content", this::content, StationPermission.LOGIN);
+        routes.get(
+                prefix + "/documents/{id}/versions/{version}/content", this::versionContent, StationPermission.LOGIN);
         routes.get(prefix + "/documents/{id}/thumbnail", this::thumbnail, StationPermission.LOGIN);
         routes.put(prefix + "/documents/{id}/members", this::setMembers, StationPermission.DOCUMENT_EDIT_MEMBER);
         routes.delete(prefix + "/documents/{id}", this::delete, StationPermission.LOGIN);
@@ -232,7 +234,7 @@ public class DocumentRoutes implements Routes {
     @OpenApi(
             path = "/api/v1/documents/ids",
             methods = HttpMethod.GET,
-            summary = "Every document the filters match, by id, to act on all of them at once",
+            summary = "Every document the filters match that can be removed, by id, to remove all of them at once",
             tags = {"Members"},
             queryParams = {
                 @OpenApiParam(name = "memberIds", description = "Only what is bound to one of them, comma separated"),
@@ -318,6 +320,29 @@ public class DocumentRoutes implements Routes {
                 .open(document, DocumentDoor.STATION)
                 .orElseThrow(DocumentRefusal.DOCUMENT_CONTENT_NOT_HERE::raise);
         FileResponse.send(ctx, document.mimeType(), document.fileName(), data);
+    }
+
+    @OpenApi(
+            path = "/api/v1/documents/{id}/versions/{version}/content",
+            methods = HttpMethod.GET,
+            summary = "One sealed version of a document, the current one or an earlier one it superseded",
+            tags = {"Members"},
+            pathParams = {
+                @OpenApiParam(name = "id", type = Integer.class, required = true),
+                @OpenApiParam(name = "version", type = Integer.class, required = true)
+            },
+            responses = {
+                @OpenApiResponse(status = "200"),
+                @OpenApiResponse(status = "404", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void versionContent(Context ctx) {
+        var document = requireReadable(ctx);
+        int version = pathInt(ctx, "version");
+        var data = documentService
+                .openVersion(document, version, DocumentDoor.STATION)
+                .orElseThrow(DocumentRefusal.DOCUMENT_CONTENT_NOT_HERE::raise);
+        FileResponse.send(
+                ctx, DocumentService.SEALED_TYPE, DocumentService.versionFileName(document.fileName(), version), data);
     }
 
     @OpenApi(

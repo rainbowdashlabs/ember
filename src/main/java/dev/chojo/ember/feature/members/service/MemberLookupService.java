@@ -115,5 +115,14 @@ public class MemberLookupService {
         }
     }
 
+    /**
+     * Drops every cached translation, for a database whose members were all thrown away and whose
+     * numbers start again.
+     */
+    public void invalidateAll() {
+        memberUidCache.invalidateAll();
+        memberIdCache.invalidateAll();
+    }
+
     private record MemberKey(int stationId, UUID memberUid) {}
 }

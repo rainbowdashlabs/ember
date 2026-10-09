@@ -12,6 +12,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SuccessContainer from '@/components/container/SuccessContainer.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
+import RequirementCard from '@/views/stationview/requirementsview/RequirementCard.vue'
 
 const {t} = useI18n()
 </script>
@@ -27,6 +28,7 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.requirements.formsText') }}</p>
       <p>{{ t('helpCenter.requirements.quizzesText') }}</p>
       <p>{{ t('helpCenter.requirements.registrationsText') }}</p>
+      <p>{{ t('helpCenter.requirements.signaturesText') }}</p>
     </HelpSection>
 
     <NeutralContainer>
@@ -72,6 +74,13 @@ const {t} = useI18n()
         <PrimaryButton>{{ t('requirements.updateRegistration') }}</PrimaryButton>
       </div>
     </NeutralContainer>
+
+    <RequirementCard
+        icon="file-signature"
+        :title="t('helpCenter.requirements.exampleSignature')"
+        :text="t('requirements.signatureText')"
+        :action="t('requirements.sign')"
+    />
 
     <SuccessContainer>
       <div class="flex items-center gap-3">

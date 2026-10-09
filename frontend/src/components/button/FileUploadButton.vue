@@ -10,6 +10,7 @@ const props = defineProps<{
   accept?: string
   disabled?: boolean
   multiple?: boolean
+  compact?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -34,8 +35,11 @@ function handleChange(event: Event) {
 
 <template>
   <label
-      :class="{ 'opacity-50 cursor-not-allowed pointer-events-none': disabled }"
-      class="inline-flex items-center cursor-pointer rounded-theme px-3 py-1.5 text-sm font-medium bg-primary text-primary-text hover:brightness-110 transition-all duration-150 active:scale-95"
+      :class="[
+        { 'opacity-50 cursor-not-allowed pointer-events-none': disabled },
+        compact ? 'px-2 py-1 text-xs' : 'px-3 py-1.5 text-sm',
+      ]"
+      class="inline-flex items-center cursor-pointer rounded-theme font-medium bg-primary text-primary-text hover:brightness-110 transition-all duration-150 active:scale-95"
   >
     <font-awesome-icon :icon="['fas', 'upload']" class="mr-2"/>
     <slot/>

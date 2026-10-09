@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.generator.entity.FormBinding;
 import dev.chojo.ember.feature.generator.entity.LetterPage;
 import dev.chojo.ember.feature.generator.entity.PdfField;
 import dev.chojo.ember.feature.generator.entity.SignatureRole;
+import dev.chojo.ember.feature.generator.entity.TemplateSigning;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import org.jspecify.annotations.Nullable;
 import tools.jackson.databind.node.JsonNodeFactory;
@@ -26,7 +27,7 @@ import java.util.List;
  * A template as the editor sends it, built up in a test from what the test is about, everything else
  * left out.
  */
-final class TemplateRequestBuilder {
+public final class TemplateRequestBuilder {
     private @Nullable DocumentTemplateKind kind;
     private final @Nullable String name;
     private @Nullable String titlePattern;
@@ -48,6 +49,7 @@ final class TemplateRequestBuilder {
     private @Nullable LetterPage page;
     private @Nullable List<PdfField> fields;
     private @Nullable List<FormBinding> formBindings;
+    private @Nullable TemplateSigning signing;
 
     private TemplateRequestBuilder(@Nullable String name) {
         this.name = name;
@@ -59,12 +61,12 @@ final class TemplateRequestBuilder {
     }
 
     /** A letter of the given name whose body is one text per row. */
-    static TemplateRequestBuilder letter(@Nullable String name, String... texts) {
+    public static TemplateRequestBuilder letter(@Nullable String name, String... texts) {
         return letter(name).body(rowsOf(texts));
     }
 
     /** A PDF template of the given name, holding no fields yet. */
-    static TemplateRequestBuilder pdf(String name) {
+    public static TemplateRequestBuilder pdf(String name) {
         var builder = new TemplateRequestBuilder(name);
         builder.kind = DocumentTemplateKind.PDF;
         return builder;
@@ -78,7 +80,7 @@ final class TemplateRequestBuilder {
     }
 
     /** One row of blocks side by side, sharing the width evenly. */
-    static BlockRowRequest row(BlockCellRequest... cells) {
+    public static BlockRowRequest row(BlockCellRequest... cells) {
         return new BlockRowRequest(0, placed(cells));
     }
 
@@ -104,7 +106,7 @@ final class TemplateRequestBuilder {
     }
 
     /** A text block. */
-    static BlockCellRequest text(String text) {
+    public static BlockCellRequest text(String text) {
         return block(CellContentType.MARKDOWN, text, null);
     }
 
@@ -131,7 +133,7 @@ final class TemplateRequestBuilder {
     }
 
     /** A signature line for the signer, with the text under it. */
-    static BlockCellRequest signature(@Nullable SignatureRole signer, String below) {
+    public static BlockCellRequest signature(@Nullable SignatureRole signer, String below) {
         return signature(signer, below, null);
     }
 
@@ -141,6 +143,25 @@ final class TemplateRequestBuilder {
         var config = JsonNodeFactory.instance.objectNode();
         if (signer != null) config.put("signer", signer.name());
         return new BlockCellRequest(0, 100.0, CellContentType.SIGNATURE.name(), below, config, audience, null);
+    }
+
+    /** A signature line for the signer, with the text under it and what the signer confirms. */
+    static BlockCellRequest stated(SignatureRole signer, String below, String statement) {
+        var config = JsonNodeFactory.instance.objectNode();
+        config.put("signer", signer.name());
+        config.put("statement", statement);
+        return new BlockCellRequest(0, 100.0, CellContentType.SIGNATURE.name(), below, config, null, null);
+    }
+
+    /** A box the signer fills in at signing, with its label, whether it is required and its length. */
+    static BlockCellRequest fillIn(
+            @Nullable SignatureRole signer, String label, boolean required, @Nullable Integer maxLength) {
+        var config = JsonNodeFactory.instance.objectNode();
+        if (signer != null) config.put("signer", signer.name());
+        config.put("label", label);
+        config.put("required", required);
+        if (maxLength != null) config.put("maxLength", maxLength);
+        return new BlockCellRequest(0, 100.0, CellContentType.FILL_IN.name(), "", config, null, null);
     }
 
     /** A line across the column with a label. */
@@ -173,7 +194,7 @@ final class TemplateRequestBuilder {
         return this;
     }
 
-    TemplateRequestBuilder tags(List<String> tags) {
+    public TemplateRequestBuilder tags(List<String> tags) {
         this.tags = tags;
         return this;
     }
@@ -193,7 +214,7 @@ final class TemplateRequestBuilder {
         return this;
     }
 
-    TemplateRequestBuilder forAppointments(boolean forAppointments) {
+    public TemplateRequestBuilder forAppointments(boolean forAppointments) {
         this.forAppointments = forAppointments;
         return this;
     }
@@ -234,7 +255,7 @@ final class TemplateRequestBuilder {
         return this;
     }
 
-    TemplateRequestBuilder body(List<BlockRowRequest> rows) {
+    public TemplateRequestBuilder body(List<BlockRowRequest> rows) {
         this.body = rows;
         return this;
     }
@@ -254,7 +275,12 @@ final class TemplateRequestBuilder {
         return this;
     }
 
-    DocumentTemplateRequest build() {
+    TemplateRequestBuilder signing(TemplateSigning signing) {
+        this.signing = signing;
+        return this;
+    }
+
+    public DocumentTemplateRequest build() {
         return new DocumentTemplateRequest(
                 kind,
                 name,
@@ -276,6 +302,7 @@ final class TemplateRequestBuilder {
                 body,
                 page,
                 fields,
-                formBindings);
+                formBindings,
+                signing);
     }
 }

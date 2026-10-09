@@ -608,6 +608,192 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/account/link-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The link requests waiting for the signed-in account */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LinkPrompt"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/link-requests/{uid}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Link the signed-in account to the member a station asked about */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    uid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MessageResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/link-requests/{uid}/decline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Refuse a station's request to link the signed-in account */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    uid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MessageResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/account/link-requests/by-token/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The link request a mailed link opens */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    token: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LinkPrompt"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/account/name-change-request": {
         parameters: {
             query?: never;
@@ -6117,6 +6303,89 @@ export interface paths {
             };
         };
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/signing/keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Which signing keys no longer open under the at-rest secret, and the earlier recoveries */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SigningKeyStatus"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/signing/keys/recover": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Give up the signing keys that no longer open, so the next seal issues new ones */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["SigningKeyRecoveryRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SigningKeyRecoveryEntry"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -15919,6 +16188,107 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/cluster/link-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The association's requests that wait, were declined or ran out */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AssociationLinkState"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cluster/link-requests/{uid}/send-again": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send one of the association's requests again */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    uid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AssociationLinkState"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Too Many Requests */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/cluster/look-and-feel": {
         parameters: {
             query?: never;
@@ -16171,8 +16541,26 @@ export interface paths {
                         "application/json": components["schemas"]["ClusterMemberResponse"];
                     };
                 };
+                /** @description Accepted */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AssociationLinkState"];
+                    };
+                };
                 /** @description Bad Request */
                 400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -20357,6 +20745,162 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/documents/{id}/versions/{version}/content": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One sealed version of a document, the current one or an earlier one it superseded */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                    version: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/documents/{id}/versions/{version}/record": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The signature record of one sealed version of a document, sealed when asked for */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                    version: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/documents/{id}/versions/{version}/with-record": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One sealed version of a document with its signature record joined, sealed when asked for */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                    version: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/documents/ids": {
         parameters: {
             query?: never;
@@ -20364,7 +20908,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Every document the filters match, by id, to act on all of them at once */
+        /** Every document the filters match that can be removed, by id, to remove all of them at once */
         get: {
             parameters: {
                 query?: {
@@ -22194,6 +22738,55 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/{id}/agreement-signers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Who signed the documents an appointment asks for on a date */
+        get: {
+            parameters: {
+                query: {
+                    date: string;
+                };
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AgreementSigner"][];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/{id}/attachments": {
         parameters: {
             query?: never;
@@ -22746,6 +23339,225 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/events/{id}/document-scans/{submissionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Take back a scan that still waits, which removes it and opens the document again */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                    submissionId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/{id}/document-scans/{submissionId}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm a scan handed in as the participant's signed paper copy */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                    submissionId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PaperSubmission"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/{id}/document-scans/{submissionId}/content": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The scan handed in, for whoever manages the registrations to check it */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                    submissionId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/{id}/document-scans/{submissionId}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Turn a scan handed in down with a reason, which opens the document again */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                    submissionId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ScanRejectRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PaperSubmission"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/{id}/documents-to-bring": {
         parameters: {
             query?: never;
@@ -22831,6 +23643,184 @@ export interface paths {
                 };
                 /** @description Forbidden */
                 403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/{id}/documents-to-bring/{templateId}/members/{memberId}/agreement": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ask for the signatures of an appointment's agreement for a member, on an appointment without registrations */
+        post: {
+            parameters: {
+                query: {
+                    date: string;
+                };
+                header?: never;
+                path: {
+                    id: number;
+                    memberId: number;
+                    templateId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RequirementSignature"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/{id}/documents-to-bring/{templateId}/members/{memberId}/copy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A participant's copy of a document the appointment asks for, sealed where it was signed online */
+        get: {
+            parameters: {
+                query: {
+                    date: string;
+                };
+                header?: never;
+                path: {
+                    id: number;
+                    memberId: number;
+                    templateId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/{id}/documents-to-bring/{templateId}/members/{memberId}/scan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Hand in the scan of a participant's signed paper copy of a document the appointment asks for */
+        post: {
+            parameters: {
+                query: {
+                    date: string;
+                };
+                header?: never;
+                path: {
+                    id: number;
+                    memberId: number;
+                    templateId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PaperSubmission"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -23235,6 +24225,152 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/{id}/partner-agreements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Where the members of partner stations stand with the documents an appointment asks them to sign */
+        get: {
+            parameters: {
+                query: {
+                    date: components["schemas"]["LocalDate"];
+                };
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PartnerSigner"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/{id}/partner-agreements/{agreementId}/copy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The newest signed copy of a document that came back from a partner station */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    agreementId: number;
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/events/{id}/partner-agreements/paper": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm a signed paper copy of a document for a member of a partner station */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["PaperRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PartnerSignerDocument"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -24917,6 +26053,102 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["PartnerEventDetail"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/federated/{stationuid}/events/{id}/agreement": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Take on the agreement of a partner station's event without registrations for a member */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["FederatedRegBody"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PartnerDocumentToSign"][];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/federated/{stationuid}/events/{id}/agreements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The documents a partner station's event without registrations offers to sign */
+        get: {
+            parameters: {
+                query: {
+                    date: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PartnerAgreementOffer"][];
                     };
                 };
             };
@@ -38247,6 +39479,154 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/member-links": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Where the latest link request of every member of the station stands */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MemberLink"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/member-links/{memberId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Where the latest link request of one member stands */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    memberId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MemberLinkResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/member-links/{memberId}/send-again": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send a member's link request again */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    memberId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LinkState"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Too Many Requests */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/member-table": {
         parameters: {
             query?: never;
@@ -48057,6 +49437,203 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/public/signing/ca": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the installation's signing authorities */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SigningAuthorityInfo"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/signing/ca/{serial}.crl": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download a signing authority's current revocation list */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    serial: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/pkix-crl": string;
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/signing/ca/{serial}.crt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download a signing authority's certificate */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    serial: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/pkix-cert": string;
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/signing/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Check the seals and timestamps of a PDF */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "multipart/form-data": string;
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SealVerification"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Content Too Large */
+                413: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Unsupported Media Type */
+                415: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/public/station/{stationUid}/blog": {
         parameters: {
             query?: never;
@@ -48276,6 +49853,101 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["NewsTeaser"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/station/{stationUid}/signing/certificates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List a station's seal certificates */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    stationUid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StationCertificateInfo"][];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/station/{stationUid}/signing/certificates/{serial}.crt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download one of a station's seal certificates */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    serial: string;
+                    stationUid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/pkix-cert": string;
                     };
                 };
                 /** @description Not Found */
@@ -52409,6 +54081,196 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/session/signature": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The caller's own signature picture and consent to automatic signing */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SignatureSettingsResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/session/signature/consent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Agree to, or take back, letters being signed with the caller's picture automatically */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["SignatureConsentRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SignatureSettingsResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/session/signature/image": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The caller's own signature picture */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "image/png": string;
+                    };
+                };
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        /** Save a drawn, typed or uploaded signature picture as the caller's own */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "multipart/form-data": string;
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SignatureSettingsResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Content Too Large */
+                413: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Unsupported Media Type */
+                415: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Delete the caller's own signature picture */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SignatureSettingsResponse"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/session/stations": {
         parameters: {
             query?: never;
@@ -52534,6 +54396,1204 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/signing/batch/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm a started act on several fields with one proof */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["BatchCompleteRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BatchCompleteResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Gone */
+                410: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Too Many Requests */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/signing/batch/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start signing several fields with one proof */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["BatchStartRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BatchStartResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/signing/documents/{documentId}/agreements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The agreements signed on a member document that the reader signed or acts for */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    documentId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DocumentAgreement"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/signing/fields/{fieldId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One signature field waiting for the reader, with how they would sign it */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    fieldId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OpenSignatureResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/signing/fields/{fieldId}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm a started signing act */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    fieldId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["SigningCompleteRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SigningCompleteResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Gone */
+                410: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Too Many Requests */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/signing/fields/{fieldId}/document": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The document a field asks the reader to sign, exactly as it was frozen */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    fieldId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/signing/fields/{fieldId}/fill-ins": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The fields the document asks the reader to fill in when they sign a field */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    fieldId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FillInResponse"][];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/signing/fields/{fieldId}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start signing a field */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    fieldId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["SigningStartRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SigningStartResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/signing/generations/{generationId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Who a generated document would ask to sign, or the request already made for it */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    generationId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SignatureAskResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/signing/generations/{generationId}/request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ask for the signatures a generated document's fields call for */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    generationId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SignatureAskResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/signing/open": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The signature fields waiting for the reader, and for the members in their care */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OpenSignatureResponse"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/signing/requests/{requestUid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A request for signatures with each field, its signer, its statement and the act that signed it */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    requestUid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ManagedRequestResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/signing/requests/{requestUid}/fields/{fieldName}/paper": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Record that a signature field was signed on paper */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    fieldName: string;
+                    requestUid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ManagedRequestResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/signing/requests/{requestUid}/fields/{fieldName}/waive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Let a signature field go without a signature */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    fieldName: string;
+                    requestUid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ManagedRequestResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/signing/requests/{requestUid}/fields/{fieldName}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Stop asking for one signature field */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    fieldName: string;
+                    requestUid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ManagedRequestResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/signing/requests/{requestUid}/rectify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ask a request's signatures anew on a document generated again after a change */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    requestUid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["RectifyRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ManagedRequestResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/signing/requests/{requestUid}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Stop asking for every signature a request still waits for */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    requestUid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ManagedRequestResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/signing/requests/{requestUid}/withdrawal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Withdraw a signed agreement */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    requestUid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["AgreementWithdrawalRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AgreementWithdrawalResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -58276,6 +61336,8 @@ export interface components {
             recentApplications: components["schemas"]["RecentApplication"][];
             recentProblemReports: components["schemas"]["RecentProblemReport"][];
             /** Format: int32 */
+            signingKeysLocked: number;
+            /** Format: int32 */
             stationApplicationsPending: number;
             /** Format: int32 */
             stationsSetupPending: number;
@@ -58355,6 +61417,27 @@ export interface components {
             totalProfileFields: number;
             /** Format: int32 */
             totalStations: number;
+        };
+        AgreementSigner: {
+            documentName: string;
+            /** Format: int32 */
+            memberId: number | null;
+            name: string;
+            partnerMember: components["schemas"]["MemberIdentity"] | null;
+            refused: boolean;
+            signedAt: components["schemas"]["Instant"];
+            state: components["schemas"]["RequirementSignatureState"];
+            /** Format: int32 */
+            templateId: number;
+            withdrawnAt: components["schemas"]["Instant"] | null;
+        };
+        AgreementWithdrawalRequest: {
+            reason?: string | null;
+        };
+        AgreementWithdrawalResponse: {
+            /** Format: uuid */
+            requestUid: string;
+            withdrawnAt: components["schemas"]["Instant"];
         };
         AiCredentialRequest: {
             apiKey?: string | null;
@@ -58511,6 +61594,10 @@ export interface components {
             accountId: number;
             name: string;
         };
+        ArrayReference: {
+            column: string;
+            refTable: string;
+        };
         ArtAssignRequest: {
             /** Format: int32 */
             artId?: number | null;
@@ -58547,6 +61634,22 @@ export interface components {
             /** Format: int32 */
             pieces: number;
         };
+        AskedFieldResponse: {
+            capacity: components["schemas"]["SignerCapacity"];
+            fieldName: string;
+            role: components["schemas"]["FieldRole"];
+            signerName: string | null;
+            state: components["schemas"]["FieldState"] | null;
+            statement: string;
+        };
+        AskedRequestResponse: {
+            copyAttached: boolean;
+            /** Format: int32 */
+            retentionMonths: number | null;
+            state: components["schemas"]["RequestState"];
+            /** Format: uuid */
+            uid: string;
+        };
         AssigneeRequest: {
             memberIds?: number[];
         };
@@ -58573,6 +61676,17 @@ export interface components {
             /** Format: int32 */
             memberId?: number | null;
             memberName?: string | null;
+        };
+        AssociationLinkState: {
+            address: string;
+            answeredAt: components["schemas"]["Instant"] | null;
+            expiresAt: components["schemas"]["Instant"];
+            role: components["schemas"]["ClusterUserType"];
+            sendAgainFrom: components["schemas"]["Instant"] | null;
+            sentAt: components["schemas"]["Instant"];
+            status: components["schemas"]["LinkStatus"];
+            /** Format: uuid */
+            uid: string;
         };
         AssociationRole: {
             association: string;
@@ -58791,6 +61905,16 @@ export interface components {
         BackupCodesResponse: {
             codes: string[];
         };
+        BatchCompleteRequest: {
+            credentialJson?: string | null;
+            pictures?: components["schemas"]["BatchPicture"][] | null;
+            proof?: components["schemas"]["StepUpProof"] | null;
+            secret?: string | null;
+            startToken?: string | null;
+        };
+        BatchCompleteResponse: {
+            fields: components["schemas"]["SigningCompleteResponse"][];
+        };
         BatchCreateRequest: {
             /** Format: int32 */
             categoryId?: number | null;
@@ -58806,6 +61930,11 @@ export interface components {
             templateId?: number | null;
             viewRestriction?: components["schemas"]["RestrictionSelection"] | null;
         };
+        BatchFieldChoice: {
+            entries?: components["schemas"]["SignerEntryDraft"][] | null;
+            /** Format: int32 */
+            fieldId?: number;
+        };
         BatchFieldEntryDto: {
             /** Format: int32 */
             attendanceFieldId?: number | null;
@@ -58814,11 +61943,38 @@ export interface components {
             name?: string;
             overview?: boolean | null;
         };
+        BatchFieldResponse: {
+            accountHolderName: string;
+            capacity: components["schemas"]["SignerCapacity"];
+            contentSha256: string;
+            /** Format: int32 */
+            documentId: number | null;
+            documentMemberName: string;
+            documentTitle: string | null;
+            /** Format: int32 */
+            fieldId: number;
+            fieldName: string;
+            /** Format: int32 */
+            memberId: number | null;
+            memberName: string | null;
+            /** Format: uuid */
+            requestUid: string;
+            role: components["schemas"]["FieldRole"];
+            signerName: string;
+            statement: string;
+        };
         BatchGenerateRequest: {
             model?: string | null;
             provider?: components["schemas"]["AiVendor"] | null;
             /** Format: int32 */
             targetTotalOptions?: number | null;
+        };
+        BatchPicture: {
+            keepSignature?: boolean | null;
+            /** Format: int32 */
+            memberId?: number | null;
+            signatureImage?: string | null;
+            signatureSource?: components["schemas"]["SignatureImageSource"] | null;
         };
         BatchResult: {
             errors: string[];
@@ -58840,6 +61996,18 @@ export interface components {
             } | null;
             name?: string | null;
             startTime?: components["schemas"]["Instant"];
+        };
+        BatchStartRequest: {
+            fields?: components["schemas"]["BatchFieldChoice"][] | null;
+        };
+        BatchStartResponse: {
+            acceptedProofs: components["schemas"]["StepUpProof"][];
+            /** Format: uuid */
+            batchUid: string;
+            expiresAt: components["schemas"]["Instant"];
+            fields: components["schemas"]["BatchFieldResponse"][];
+            startToken: string;
+            webAuthnOptionsJson: string | null;
         };
         BeaconFault: {
             acknowledged: boolean;
@@ -59366,7 +62534,7 @@ export interface components {
             /** Format: int64 */
             totalBytes: number;
         };
-        CellConfig: components["schemas"]["AccordionConfig"] | components["schemas"]["AchievementsConfig"] | components["schemas"]["AddressCardConfig"] | components["schemas"]["AudioEmbedConfig"] | components["schemas"]["BlogSignupConfig"] | components["schemas"]["CalloutConfig"] | components["schemas"]["CodeBlockConfig"] | components["schemas"]["CountdownConfig"] | components["schemas"]["DividerConfig"] | components["schemas"]["ExternalLinkCardConfig"] | components["schemas"]["FeaturedEventConfig"] | components["schemas"]["FileDownloadConfig"] | components["schemas"]["FormsCtaConfig"] | components["schemas"]["HeroBannerConfig"] | components["schemas"]["ImageConfig"] | components["schemas"]["ImageGalleryConfig"] | components["schemas"]["KbArticleConfig"] | components["schemas"]["MapConfig"] | components["schemas"]["MarkdownConfig"] | components["schemas"]["MemberListConfig"] | components["schemas"]["MemberSpotlightConfig"] | components["schemas"]["NestedRowsConfig"] | components["schemas"]["NewsTeaserConfig"] | components["schemas"]["PageLinkConfig"] | components["schemas"]["PartnerStationsConfig"] | components["schemas"]["PastEventRecapConfig"] | components["schemas"]["PdfConfig"] | components["schemas"]["PollEmbedConfig"] | components["schemas"]["QuizTeaserConfig"] | components["schemas"]["QuoteConfig"] | components["schemas"]["SignatureConfig"] | components["schemas"]["SpacerConfig"] | components["schemas"]["StatsCounterConfig"] | components["schemas"]["TabsConfig"] | components["schemas"]["UpcomingEventsConfig"] | components["schemas"]["VideoConfig"];
+        CellConfig: components["schemas"]["AccordionConfig"] | components["schemas"]["AchievementsConfig"] | components["schemas"]["AddressCardConfig"] | components["schemas"]["AudioEmbedConfig"] | components["schemas"]["BlogSignupConfig"] | components["schemas"]["CalloutConfig"] | components["schemas"]["CodeBlockConfig"] | components["schemas"]["CountdownConfig"] | components["schemas"]["DividerConfig"] | components["schemas"]["ExternalLinkCardConfig"] | components["schemas"]["FeaturedEventConfig"] | components["schemas"]["FileDownloadConfig"] | components["schemas"]["FillInConfig"] | components["schemas"]["FormsCtaConfig"] | components["schemas"]["HeroBannerConfig"] | components["schemas"]["ImageConfig"] | components["schemas"]["ImageGalleryConfig"] | components["schemas"]["KbArticleConfig"] | components["schemas"]["MapConfig"] | components["schemas"]["MarkdownConfig"] | components["schemas"]["MemberListConfig"] | components["schemas"]["MemberSpotlightConfig"] | components["schemas"]["NestedRowsConfig"] | components["schemas"]["NewsTeaserConfig"] | components["schemas"]["PageLinkConfig"] | components["schemas"]["PartnerStationsConfig"] | components["schemas"]["PastEventRecapConfig"] | components["schemas"]["PdfConfig"] | components["schemas"]["PollEmbedConfig"] | components["schemas"]["QuizTeaserConfig"] | components["schemas"]["QuoteConfig"] | components["schemas"]["SignatureConfig"] | components["schemas"]["SpacerConfig"] | components["schemas"]["StatsCounterConfig"] | components["schemas"]["TabsConfig"] | components["schemas"]["UpcomingEventsConfig"] | components["schemas"]["VideoConfig"];
         CellConfigByType: {
             ACCORDION: components["schemas"]["AccordionConfig"];
             ACHIEVEMENTS: components["schemas"]["AchievementsConfig"];
@@ -59381,6 +62549,7 @@ export interface components {
             EXTERNAL_LINK_CARD: components["schemas"]["ExternalLinkCardConfig"];
             FEATURED_EVENT: components["schemas"]["FeaturedEventConfig"];
             FILE_DOWNLOAD: components["schemas"]["FileDownloadConfig"];
+            FILL_IN: components["schemas"]["FillInConfig"];
             FORMS_CTA: components["schemas"]["FormsCtaConfig"];
             HERO_BANNER: components["schemas"]["HeroBannerConfig"];
             IMAGE: components["schemas"]["ImageConfig"];
@@ -59407,7 +62576,7 @@ export interface components {
             VIDEO: components["schemas"]["VideoConfig"];
         };
         /** @enum {string} */
-        CellContentType: "EMPTY" | "MARKDOWN" | "IMAGE" | "VIDEO" | "CALLOUT" | "QUOTE" | "DIVIDER" | "SPACER" | "ACCORDION" | "PDF" | "FILE_DOWNLOAD" | "COUNTDOWN" | "FEATURED_EVENT" | "UPCOMING_EVENTS" | "KB_ARTICLE" | "NEWS_TEASER" | "PAGE_LINK" | "MAP" | "ADDRESS_CARD" | "PARTNER_STATIONS" | "MEMBER_SPOTLIGHT" | "MEMBER_LIST_SPOTLIGHT" | "STATS_COUNTER" | "IMAGE_GALLERY" | "HERO_BANNER" | "PAST_EVENT_RECAP" | "TABS" | "ACHIEVEMENTS" | "EXTERNAL_LINK_CARD" | "BLOG_SIGNUP" | "AUDIO_EMBED" | "POLL_EMBED" | "QUIZ_TEASER" | "FORMS_CTA" | "CODE_BLOCK" | "NESTED_ROWS" | "SIGNATURE";
+        CellContentType: "EMPTY" | "MARKDOWN" | "IMAGE" | "VIDEO" | "CALLOUT" | "QUOTE" | "DIVIDER" | "SPACER" | "ACCORDION" | "PDF" | "FILE_DOWNLOAD" | "COUNTDOWN" | "FEATURED_EVENT" | "UPCOMING_EVENTS" | "KB_ARTICLE" | "NEWS_TEASER" | "PAGE_LINK" | "MAP" | "ADDRESS_CARD" | "PARTNER_STATIONS" | "MEMBER_SPOTLIGHT" | "MEMBER_LIST_SPOTLIGHT" | "STATS_COUNTER" | "IMAGE_GALLERY" | "HERO_BANNER" | "PAST_EVENT_RECAP" | "TABS" | "ACHIEVEMENTS" | "EXTERNAL_LINK_CARD" | "BLOG_SIGNUP" | "AUDIO_EMBED" | "POLL_EMBED" | "QUIZ_TEASER" | "FORMS_CTA" | "CODE_BLOCK" | "NESTED_ROWS" | "SIGNATURE" | "FILL_IN";
         CellResponse: {
             checked: boolean;
             /** Format: int32 */
@@ -59428,6 +62597,11 @@ export interface components {
         CeremonyResponse: {
             challengeToken: string;
             optionsJson: string;
+        };
+        CertificateFacts: {
+            serialNumber: string;
+            sha256Fingerprint: string;
+            subject: string;
         };
         ChangedCountResponse: {
             /** Format: int32 */
@@ -59982,6 +63156,12 @@ export interface components {
         };
         /** @enum {string} */
         ConversionStatus: "PENDING" | "SUCCESS" | "FAILED";
+        CorrectionResponse: {
+            generatedAt: components["schemas"]["Instant"];
+            /** Format: int32 */
+            generationId: number;
+            templateName: string;
+        };
         CorrectItemRequest: {
             internalId?: string | null;
             /** Format: int32 */
@@ -60264,6 +63444,7 @@ export interface components {
         };
         CustomScope: {
             distinct: boolean;
+            orRefColumn?: string;
             refColumn: string;
             viaColumn: string;
             viaTable: string;
@@ -60690,6 +63871,14 @@ export interface components {
             label?: string;
             vertical?: boolean;
         };
+        DocumentAgreement: {
+            /** Format: uuid */
+            requestUid: string;
+            state: components["schemas"]["RequestState"];
+            withdrawable: boolean;
+            withdrawnAt: components["schemas"]["Instant"] | null;
+            withdrawnBy: string | null;
+        };
         DocumentFontsResponse: {
             defaultFamily: string;
             defaultStyles: components["schemas"]["FontStyle"][];
@@ -60757,6 +63946,7 @@ export interface components {
             name?: string | null;
             page?: components["schemas"]["LetterPage"] | null;
             selfService?: boolean;
+            signing?: components["schemas"]["TemplateSigning"] | null;
             tags?: string[] | null;
             titlePattern?: string | null;
         };
@@ -60786,6 +63976,7 @@ export interface components {
             page: components["schemas"]["LetterPage"];
             pdf: components["schemas"]["PdfOriginal"] | null;
             selfService: boolean;
+            signing: components["schemas"]["TemplateSigning"];
             tags: string[];
             titlePattern: string;
             updatedAt: components["schemas"]["Instant"];
@@ -60807,6 +63998,10 @@ export interface components {
             updatedAt: components["schemas"]["Instant"];
             /** Format: int32 */
             version: number;
+        };
+        DocumentTimestampCheck: {
+            coversWholeFile: boolean;
+            timestamp: components["schemas"]["TimestampCheck"];
         };
         DraftPreviewRequest: {
             /** Format: int32 */
@@ -61146,6 +64341,7 @@ export interface components {
             to?: string;
         };
         EventFederationRegistration: {
+            agreementWithdrawnAt: components["schemas"]["Instant"] | null;
             createdAt: components["schemas"]["Instant"];
             eventDate: components["schemas"]["LocalDate"];
             /** Format: int32 */
@@ -61210,6 +64406,7 @@ export interface components {
             memberId?: number;
         };
         EventRegistration: {
+            agreementWithdrawnAt: components["schemas"]["Instant"] | null;
             createdAt: components["schemas"]["Instant"];
             /** Format: int32 */
             createdBy: number | null;
@@ -61350,6 +64547,13 @@ export interface components {
         };
         /** @enum {string} */
         EventType: "ONE_TIME" | "RECURRING" | "MONTHLY_FIRST" | "QUARTERLY" | "YEARLY";
+        EvidenceSummary: {
+            contentSha256: string;
+            fields: components["schemas"]["Field"][];
+            issued: components["schemas"]["Issued"] | null;
+            /** Format: uuid */
+            requestUid: string;
+        };
         ExaminerCandidate: {
             /** Format: int32 */
             memberId: number;
@@ -61463,6 +64667,7 @@ export interface components {
         };
         FederatedRegistrationAnswer: {
             status: components["schemas"]["RegistrationStatus"];
+            toSign: components["schemas"]["PartnerDocumentToSign"][];
         };
         FederationBoardBookmark: {
             createdAt: components["schemas"]["Instant"];
@@ -61596,6 +64801,16 @@ export interface components {
             memberId: number;
             notificationPolledAt: components["schemas"]["Instant"] | null;
         };
+        Field: {
+            bound: boolean;
+            fieldName: string;
+            proof: components["schemas"]["StepUpProof"] | null;
+            role: components["schemas"]["FieldRole"];
+            signedAt: components["schemas"]["Instant"] | null;
+            signerName: string | null;
+            state: components["schemas"]["FieldState"];
+            together: boolean;
+        };
         FieldConfig: components["schemas"]["BooleanConfig"] | components["schemas"]["DateConfig"] | components["schemas"]["EnumConfig"] | components["schemas"]["NumberConfig"] | components["schemas"]["TextConfig"];
         FieldDateValueRequest: {
             date?: components["schemas"]["LocalDate"];
@@ -61639,6 +64854,10 @@ export interface components {
             fieldType?: components["schemas"]["FieldType"];
             name?: string;
         };
+        /** @enum {string} */
+        FieldRole: "PARTICIPANT" | "GUARDIAN" | "ANY_GUARDIAN" | "ISSUER";
+        /** @enum {string} */
+        FieldState: "OPEN" | "SIGNED" | "PAPER_CONFIRMED" | "WAIVED" | "WITHDRAWN";
         /** @enum {string} */
         FieldType: "TEXT" | "LONG_TEXT" | "NUMBER" | "DATE" | "TIME" | "BOOLEAN" | "CHOICE" | "GENDER" | "URL" | "MEMBER" | "MEMBER_LIST" | "BIRTH_DATE" | "EXPIRY_DATE" | "AGE" | "SECTION" | "SPACER" | "LOCATION" | "MEMBER_OF_GROUP" | "MEMBER_LIST_OF_GROUP" | "MEMBER_OF_TYPE" | "MEMBER_LIST_OF_TYPE" | "MEMBER_OF_TAG" | "MEMBER_LIST_OF_TAG" | "LANE_ASSIGNEE";
         FieldUpdateRequest: {
@@ -61693,6 +64912,20 @@ export interface components {
             name?: string;
             /** Format: int32 */
             position?: number;
+        };
+        FillInConfig: {
+            label?: string;
+            /** Format: int32 */
+            maxLength?: number;
+            required?: boolean;
+            signer?: components["schemas"]["SignatureRole"];
+        };
+        FillInResponse: {
+            label: string;
+            /** Format: int32 */
+            maxLength: number;
+            name: string;
+            required: boolean;
         };
         FillInTheBlank: {
             answers: string[] | null;
@@ -62163,6 +65396,7 @@ export interface components {
             memberName: string | null;
             ofAssociation: boolean;
             selfService: boolean;
+            signature: components["schemas"]["SignatureSummary"] | null;
             /** Format: int32 */
             templateId: number;
             templateName: string;
@@ -62303,6 +65537,11 @@ export interface components {
         HandoverRequest: {
             itemIds?: number[];
         };
+        HeldCopy: {
+            held: boolean;
+            sealedAt: components["schemas"]["Instant"] | null;
+            sealLevel: components["schemas"]["SealLevel"] | null;
+        };
         HeldReportRequest: {
             /** Format: int32 */
             itemId?: number | null;
@@ -62379,6 +65618,7 @@ export interface components {
             column: string;
             filter?: string;
             type: components["schemas"]["IdentityType"];
+            withheldColumns?: string[];
         };
         IdentityResponse: {
             baseUrl: string;
@@ -62846,6 +66086,12 @@ export interface components {
             firstName?: string;
             lastName?: string;
             sendSetupMail?: boolean;
+        };
+        Issued: {
+            consentedAt: components["schemas"]["Instant"];
+            issuerName: string | null;
+            pictureSha256: string;
+            signedAt: components["schemas"]["Instant"];
         };
         IssuedOneTimePassword: {
             /** Format: int32 */
@@ -63388,11 +66634,35 @@ export interface components {
             linkUrl?: string;
             name?: string;
         };
+        /** @enum {string} */
+        LinkOrigin: "IMPORT" | "INVITE" | "ASSOCIATION_INVITE";
+        LinkPrompt: {
+            associationName: string | null;
+            createdAt: components["schemas"]["Instant"];
+            expiresAt: components["schemas"]["Instant"];
+            invitedBy: string | null;
+            memberName: string | null;
+            origin: components["schemas"]["LinkOrigin"];
+            role: components["schemas"]["ClusterUserType"] | null;
+            stationName: string | null;
+            /** Format: uuid */
+            uid: string;
+        };
         LinkRequest: {
             /** Format: int32 */
             linkedTicketId?: number;
             linkType?: components["schemas"]["LinkType"];
         };
+        LinkState: {
+            answeredAt: components["schemas"]["Instant"] | null;
+            expiresAt: components["schemas"]["Instant"];
+            origin: components["schemas"]["LinkOrigin"];
+            sendAgainFrom: components["schemas"]["Instant"] | null;
+            sentAt: components["schemas"]["Instant"];
+            status: components["schemas"]["LinkStatus"];
+        };
+        /** @enum {string} */
+        LinkStatus: "WAITING" | "ACCEPTED" | "DECLINED" | "EXPIRED";
         /** @enum {string} */
         LinkType: "RELATES_TO" | "BLOCKS" | "BLOCKED_BY" | "CAUSES" | "CAUSED_BY";
         ListKeysResponse: {
@@ -63510,6 +66780,14 @@ export interface components {
             latitude: number | null;
             longitude: number | null;
             postalCode: string | null;
+        };
+        LockedSigningKey: {
+            active: boolean;
+            kind: components["schemas"]["SigningKeyKind"];
+            serialNumber: string;
+            sha256Fingerprint: string;
+            stationName: string | null;
+            validUntil: components["schemas"]["Instant"];
         };
         LogEntry: {
             /** Format: int64 */
@@ -63776,6 +67054,18 @@ export interface components {
             loginEnabled: boolean;
             username: string | null;
         };
+        ManagedFieldResponse: {
+            act: components["schemas"]["SignedActResponse"] | null;
+            capacity: components["schemas"]["SignerCapacity"];
+            fieldName: string;
+            nobodyCanSign: boolean;
+            role: components["schemas"]["FieldRole"];
+            settledAt: components["schemas"]["Instant"] | null;
+            settledByName: string | null;
+            signerName: string | null;
+            state: components["schemas"]["FieldState"];
+            statement: string;
+        };
         ManagedMember: {
             /** Format: int32 */
             accountId: number;
@@ -63817,6 +67107,24 @@ export interface components {
         };
         ManagedMemberSetValuesRequest: {
             values?: components["schemas"]["ValueEntry"][];
+        };
+        ManagedRequestResponse: {
+            closedAt: components["schemas"]["Instant"] | null;
+            contentSha256: string;
+            corrections: components["schemas"]["CorrectionResponse"][];
+            createdAt: components["schemas"]["Instant"];
+            /** Format: int32 */
+            documentId: number | null;
+            documentTitle: string | null;
+            fields: components["schemas"]["ManagedFieldResponse"][];
+            memberName: string;
+            /** Format: int32 */
+            retentionMonths: number | null;
+            state: components["schemas"]["RequestState"];
+            /** Format: uuid */
+            supersededBy: string | null;
+            /** Format: uuid */
+            uid: string;
         };
         ManagedStationResponse: {
             name: string;
@@ -63963,6 +67271,9 @@ export interface components {
             keepOnArchive: boolean;
             memberIds: number[];
             mimeType: string;
+            sealed: boolean;
+            sealedVersions: components["schemas"]["SealedVersionResponse"][];
+            signature: components["schemas"]["SignatureSummary"] | null;
             /** Format: int64 */
             sizeBytes: number;
             tags: string[];
@@ -64034,8 +67345,19 @@ export interface components {
             email: string | null;
             firstName: string;
             /** Format: int32 */
-            id: number;
+            id: number | null;
             lastName: string;
+            linkPending: boolean;
+            /** Format: int32 */
+            memberId: number;
+        };
+        MemberLink: {
+            link: components["schemas"]["LinkState"];
+            /** Format: int32 */
+            memberId: number;
+        };
+        MemberLinkResponse: {
+            link: components["schemas"]["LinkState"] | null;
         };
         MemberListConfig: {
             memberDescriptions?: {
@@ -64576,8 +67898,9 @@ export interface components {
         };
         NewMemberResponse: {
             /** Format: int32 */
-            accountId: number;
+            accountId: number | null;
             email: string | null;
+            linkPending: boolean;
             /** Format: int32 */
             memberId: number;
         };
@@ -64769,7 +68092,7 @@ export interface components {
             feed: boolean;
         };
         /** @enum {string} */
-        NotificationType: "NEW_NEWS" | "NEWS_COMMENT" | "COMMENT_MENTION" | "EVENT_REGISTRATION_STATUS" | "MOVEMENT_ADVANCED" | "MOVEMENT_RAISED" | "MOVEMENT_DECLINED" | "MOVEMENT_CANCELLED" | "NEW_EVENT" | "NEW_EVENTS_BATCH" | "MEMBER_ADDED_TO_GROUP" | "PROFILE_FIELD_CHANGED" | "PROCUREMENT_REQUESTED" | "PROCUREMENT_FULFILLED" | "NEW_FORM" | "LOST_AND_FOUND_NEW" | "LOST_AND_FOUND_CLAIMED" | "WAITLIST_NEW_ENTRY" | "LENDING_NEW_REQUEST" | "LENDING_STATUS_CHANGE" | "LENDING_NEW_MESSAGE" | "BOARD_TICKET_UPDATE" | "REGISTRATION_DEADLINE_EXPIRED" | "EVENT_CANCELLED" | "EVENT_REMINDER" | "REGISTRATION_CLOSING" | "REGISTRATION_ANSWER_MISSING" | "EVENT_DATE_DROPPED" | "EVENT_MOVED" | "EVENT_DATE_RESTORED" | "PROCEDURE_ASSIGNED" | "PROCEDURE_RESOLVED" | "PROCEDURE_REOPENED" | "PROCEDURE_ITEM_CHECKED" | "SELF_CHECK_ASSIGNED" | "SELF_CHECK_SUBMITTED" | "SELF_CHECK_ROW_REFUSED" | "WAITLIST_PUBLIC_REGISTRATION" | "WAITLIST_INVITATION_ANSWERED" | "STORAGE_WARNING" | "MAILBOX_SUSPENDED" | "MAIL_IMPORT_UNBOUND" | "CLUSTER_APPLICATION_SUBMITTED" | "CLUSTER_APPLICATION_APPROVED" | "CLUSTER_APPLICATION_DENIED" | "CLUSTER_APPLICATION_WITHDRAWN" | "CLUSTER_STATION_RELEASED" | "CLUSTER_MODULE_DENIED" | "CLUSTER_ITEM_ISSUED" | "CLUSTER_ITEM_LOST" | "CLUSTER_QUOTA_CHANGED" | "CLUSTER_MEMBER_ROLE_CHANGED" | "CLUSTER_FIELD_VALUE_CHANGED" | "EXPIRY_REMINDER" | "FEDERATION_REQUEST_RECEIVED" | "FEDERATION_REQUEST_ACCEPTED" | "FEDERATION_REQUEST_DECLINED" | "NAME_CHANGE_REQUESTED" | "NAME_CHANGE_APPROVED" | "NAME_CHANGE_DENIED";
+        NotificationType: "NEW_NEWS" | "NEWS_COMMENT" | "COMMENT_MENTION" | "EVENT_REGISTRATION_STATUS" | "MOVEMENT_ADVANCED" | "MOVEMENT_RAISED" | "MOVEMENT_DECLINED" | "MOVEMENT_CANCELLED" | "NEW_EVENT" | "NEW_EVENTS_BATCH" | "MEMBER_ADDED_TO_GROUP" | "PROFILE_FIELD_CHANGED" | "PROCUREMENT_REQUESTED" | "PROCUREMENT_FULFILLED" | "NEW_FORM" | "LOST_AND_FOUND_NEW" | "LOST_AND_FOUND_CLAIMED" | "WAITLIST_NEW_ENTRY" | "LENDING_NEW_REQUEST" | "LENDING_STATUS_CHANGE" | "LENDING_NEW_MESSAGE" | "BOARD_TICKET_UPDATE" | "REGISTRATION_DEADLINE_EXPIRED" | "EVENT_CANCELLED" | "EVENT_REMINDER" | "REGISTRATION_CLOSING" | "REGISTRATION_ANSWER_MISSING" | "EVENT_DATE_DROPPED" | "EVENT_MOVED" | "EVENT_DATE_RESTORED" | "PROCEDURE_ASSIGNED" | "PROCEDURE_RESOLVED" | "PROCEDURE_REOPENED" | "PROCEDURE_ITEM_CHECKED" | "SELF_CHECK_ASSIGNED" | "SELF_CHECK_SUBMITTED" | "SELF_CHECK_ROW_REFUSED" | "WAITLIST_PUBLIC_REGISTRATION" | "WAITLIST_INVITATION_ANSWERED" | "STORAGE_WARNING" | "MAILBOX_SUSPENDED" | "MAIL_IMPORT_UNBOUND" | "CLUSTER_APPLICATION_SUBMITTED" | "CLUSTER_APPLICATION_APPROVED" | "CLUSTER_APPLICATION_DENIED" | "CLUSTER_APPLICATION_WITHDRAWN" | "CLUSTER_STATION_RELEASED" | "CLUSTER_MODULE_DENIED" | "CLUSTER_ITEM_ISSUED" | "CLUSTER_ITEM_LOST" | "CLUSTER_QUOTA_CHANGED" | "CLUSTER_MEMBER_ROLE_CHANGED" | "CLUSTER_FIELD_VALUE_CHANGED" | "EXPIRY_REMINDER" | "FEDERATION_REQUEST_RECEIVED" | "FEDERATION_REQUEST_ACCEPTED" | "FEDERATION_REQUEST_DECLINED" | "NAME_CHANGE_REQUESTED" | "NAME_CHANGE_APPROVED" | "NAME_CHANGE_DENIED" | "SIGNATURE_REQUESTED" | "SIGNATURE_REMINDER" | "DOCUMENT_SIGNED" | "DOCUMENT_SCAN_REJECTED" | "ACCOUNT_LINK_ACCEPTED" | "ASSOCIATION_LINK_ACCEPTED" | "SIGNATURE_WITHDRAWN" | "PARTNER_SIGNATURE_WITHDRAWN";
         NumberConfig: {
             /**
              * @description discriminator enum property added by openapi-typescript
@@ -64823,6 +68146,23 @@ export interface components {
             /** Format: int32 */
             subjectId: number | null;
         };
+        OpenSignatureResponse: {
+            capacity: components["schemas"]["SignerCapacity"];
+            /** Format: int32 */
+            documentId: number | null;
+            documentTitle: string | null;
+            /** Format: int32 */
+            fieldId: number;
+            fieldName: string;
+            /** Format: int32 */
+            memberId: number | null;
+            memberName: string;
+            /** Format: uuid */
+            requestUid: string;
+            role: components["schemas"]["FieldRole"];
+            signerName: string | null;
+            statement: string;
+        };
         Option: {
             key: string;
             label: string;
@@ -64868,6 +68208,8 @@ export interface components {
         OwnNameChangeResponse: {
             pending: components["schemas"]["OwnNameChange"] | null;
         };
+        /** @enum {string} */
+        PadesLevel: "BASELINE_B" | "BASELINE_T" | "BASELINE_LT" | "BASELINE_LTA" | "NOT_BASELINE";
         PagedChangesResponse: {
             changes: components["schemas"]["EnrichedProfileFieldChange"][];
             /** Format: int32 */
@@ -64988,15 +68330,55 @@ export interface components {
             /** Format: uuid */
             targetStationUid?: string;
         };
+        PaperRequest: {
+            /** Format: int32 */
+            registrationId?: number;
+            /** Format: int32 */
+            templateId?: number;
+        };
+        /** @enum {string} */
+        PaperState: "SUBMITTED" | "CONFIRMED" | "REJECTED" | "WITHDRAWN";
+        PaperSubmission: {
+            /** Format: int32 */
+            documentId: number;
+            eventDate: components["schemas"]["LocalDate"];
+            /** Format: int32 */
+            eventId: number;
+            /** Format: int32 */
+            id: number;
+            /** Format: int32 */
+            memberId: number;
+            rejectReason: string | null;
+            reviewedAt: components["schemas"]["Instant"] | null;
+            state: components["schemas"]["PaperState"];
+            submittedAt: components["schemas"]["Instant"];
+            /** Format: int32 */
+            templateId: number;
+        };
         ParseResult: {
             headers: string[];
             rows: string[][];
         };
         ParticipantDocuments: {
+            agreementWithdrawnAt: components["schemas"]["Instant"] | null;
             documents: components["schemas"]["RequiredDocumentStatus"][];
             /** Format: int32 */
             memberId: number;
             name: string;
+        };
+        PartnerAgreementOffer: {
+            /** Format: int32 */
+            templateId: number;
+            title: string;
+        };
+        /** @enum {string} */
+        PartnerAgreementState: "MISSING" | "ASKED" | "SIGNED" | "PAPER_CONFIRMED" | "WITHDRAWN";
+        PartnerDocumentToSign: {
+            /** Format: int32 */
+            memberId: number;
+            memberName: string;
+            name: string;
+            signature: components["schemas"]["RequirementSignature"];
         };
         PartnerEventDetail: {
             event: components["schemas"]["SharedEvent"];
@@ -65015,6 +68397,24 @@ export interface components {
         PartnerResponse: {
             partner: components["schemas"]["FederationPartner"];
             partnerStationName: string;
+        };
+        PartnerSigner: {
+            documents: components["schemas"]["PartnerSignerDocument"][];
+            member: components["schemas"]["MemberIdentity"] | null;
+            /** Format: int32 */
+            registrationId: number;
+        };
+        PartnerSignerDocument: {
+            /** Format: int32 */
+            agreementId: number | null;
+            complete: boolean;
+            confirmedByName: string | null;
+            /** Format: int32 */
+            copies: number;
+            name: string;
+            state: components["schemas"]["PartnerAgreementState"];
+            /** Format: int32 */
+            templateId: number;
         };
         PartnerStationsConfig: {
             autoFillFromPartners?: boolean;
@@ -65111,15 +68511,19 @@ export interface components {
             fontSize: number;
             fontStyle: components["schemas"]["FontStyle"] | null;
             kind: components["schemas"]["PdfFieldKind"];
+            /** Format: int32 */
+            maxLength: number | null;
             printText: boolean;
             rect: components["schemas"]["FieldRect"];
+            required: boolean;
             role: components["schemas"]["SignatureRole"] | null;
+            statement: string | null;
             text: string | null;
             withoutLine: boolean;
             wrap: boolean;
         };
         /** @enum {string} */
-        PdfFieldKind: "TEXT" | "CHECK" | "SIGNATURE";
+        PdfFieldKind: "TEXT" | "CHECK" | "SIGNATURE" | "FILL_IN";
         PdfInspection: {
             formFields: components["schemas"]["FormField"][];
             pages: components["schemas"]["PdfPage"][];
@@ -65688,10 +69092,11 @@ export interface components {
         ProvisionedMemberResponse: {
             accountCreated: boolean;
             /** Format: int32 */
-            accountId: number;
+            accountId: number | null;
             email: string | null;
             firstName: string;
             lastName: string;
+            linkPending: boolean;
             /** Format: int32 */
             memberId: number;
             membershipCreated: boolean;
@@ -65883,6 +69288,7 @@ export interface components {
             landingPageSlug: string | null;
             name: string;
             publicSlug: string | null;
+            sealAuthorities: components["schemas"]["SigningAuthorityInfo"][];
             stationUid: string;
             timezone: string;
         };
@@ -66388,6 +69794,10 @@ export interface components {
             privacyVersion?: string;
             tosVersion?: string;
         };
+        RectifyRequest: {
+            /** Format: int32 */
+            generationId?: number | null;
+        };
         RefreshResponse: {
             /** Format: int32 */
             added: number;
@@ -66449,6 +69859,7 @@ export interface components {
             fields?: components["schemas"]["EventRegistrationFieldValue"][];
         };
         RegistrationResponse: {
+            agreementWithdrawnAt: components["schemas"]["Instant"] | null;
             answersMissing: boolean;
             createdAt: components["schemas"]["Instant"];
             createdByName: string | null;
@@ -66659,16 +70070,21 @@ export interface components {
             screenSize?: string;
             userRoles?: string;
         };
+        /** @enum {string} */
+        RequestState: "OPEN" | "COMPLETE" | "WITHDRAWN" | "SUPERSEDED" | "REVOKED";
         RequeuedMails: {
             /** Format: int32 */
             requeued: number;
         };
         RequiredDocumentStatus: {
+            agreementOffered: boolean;
             /** Format: int32 */
             documentId: number | null;
             generatedAt: components["schemas"]["Instant"] | null;
             name: string;
             outdated: boolean;
+            paper: components["schemas"]["PaperSubmission"] | null;
+            signature: components["schemas"]["RequirementSignature"] | null;
             status: components["schemas"]["RequirementStatus"];
             /** Format: int32 */
             templateId: number;
@@ -66731,12 +70147,36 @@ export interface components {
             stationGroupId: number | null;
             userType: components["schemas"]["StationUserType"] | null;
         };
+        RequirementSignature: {
+            fields: components["schemas"]["RequirementSignatureField"][];
+            /** Format: int32 */
+            memberId: number;
+            /** Format: uuid */
+            requestUid: string;
+            state: components["schemas"]["RequirementSignatureState"];
+            /** Format: int32 */
+            templateId: number;
+            withdrawable: boolean;
+            withdrawnAt: components["schemas"]["Instant"] | null;
+        };
+        RequirementSignatureField: {
+            /** Format: int32 */
+            id: number;
+            name: string;
+            nobodyCanSign: boolean;
+            signerName: string | null;
+            state: components["schemas"]["RequirementSignatureState"];
+            yours: boolean;
+        };
+        /** @enum {string} */
+        RequirementSignatureState: "OPEN" | "SIGNED" | "PAPER_CONFIRMED" | "WAIVED" | "REVOKED" | "BY_STATION";
         RequirementsRequest: {
             templateIds?: number[] | null;
         };
         RequirementsResponse: {
             forcedForms: components["schemas"]["RequirementItem"][];
             forcedQuizzes: components["schemas"]["RequirementItem"][];
+            pendingSignatures: components["schemas"]["SignatureItem"][];
             profileIncomplete: boolean;
             registrationUpdates: components["schemas"]["RegistrationUpdateItem"][];
             selfChecks: components["schemas"]["SelfCheckItem"][];
@@ -66867,6 +70307,10 @@ export interface components {
             /** Format: int32 */
             memberId?: number | null;
         };
+        /** @enum {string} */
+        RevocationReason: "KEY_COMPROMISE" | "SUPERSEDED" | "CESSATION_OF_OPERATION";
+        /** @enum {string} */
+        RevocationStatus: "GOOD" | "REVOKED" | "UNKNOWN";
         RichMember: {
             /** Format: int32 */
             accountId: number | null;
@@ -67040,10 +70484,54 @@ export interface components {
             columns?: components["schemas"]["MemberTableColumn"][];
             name?: string;
         };
+        ScanRejectRequest: {
+            reason?: string | null;
+        };
         /** @enum {string} */
         ScheduleMode: "FIXED_DELAY" | "FIXED_RATE" | "ONCE";
         /** @enum {string} */
         Scope: "STATION" | "INSTANCE" | "USER" | "CLUSTER";
+        SealCheck: {
+            coversWholeFile: boolean;
+            indication: components["schemas"]["ValidationIndication"];
+            intact: boolean;
+            issuedHere: boolean;
+            issuer: components["schemas"]["CertificateFacts"] | null;
+            level: components["schemas"]["PadesLevel"];
+            modifiedAfterSealing: boolean;
+            partner: components["schemas"]["SealingPartner"] | null;
+            revocation: components["schemas"]["SignerRevocation"];
+            signer: components["schemas"]["CertificateFacts"] | null;
+            signingTime: components["schemas"]["Instant"] | null;
+            subIndication: components["schemas"]["ValidationSubIndication"] | null;
+            timestamps: components["schemas"]["TimestampCheck"][];
+            validatorIndication: components["schemas"]["ValidationIndication"];
+            validatorSubIndication: components["schemas"]["ValidationSubIndication"] | null;
+        };
+        SealedVersionResponse: {
+            sealedAt: components["schemas"]["Instant"];
+            sealLevel: components["schemas"]["SealLevel"];
+            sha256: string;
+            /** Format: int64 */
+            sizeBytes: number;
+            supersededAt: components["schemas"]["Instant"] | null;
+            timestampedBy: string | null;
+            /** Format: int32 */
+            version: number;
+        };
+        SealingPartner: {
+            name: string | null;
+            /** Format: uuid */
+            stationUid: string;
+        };
+        /** @enum {string} */
+        SealLevel: "BASELINE_B" | "BASELINE_T" | "BASELINE_LT" | "BASELINE_LTA";
+        SealVerification: {
+            document: components["schemas"]["HeldCopy"];
+            documentTimestamps: components["schemas"]["DocumentTimestampCheck"][];
+            evidence: components["schemas"]["EvidenceSummary"] | null;
+            signatures: components["schemas"]["SealCheck"][];
+        };
         SearchResultItem: {
             file: components["schemas"]["KbFile"];
             snippet: string;
@@ -67615,11 +71103,67 @@ export interface components {
             /** Format: int32 */
             waitingListEntries: number;
         };
+        SignatureAskResponse: {
+            fields: components["schemas"]["AskedFieldResponse"][];
+            request: components["schemas"]["AskedRequestResponse"] | null;
+        };
         SignatureConfig: {
             signer?: components["schemas"]["SignatureRole"];
+            statement?: string;
+        };
+        SignatureConsentRequest: {
+            consented?: boolean;
+        };
+        /** @enum {string} */
+        SignatureImageSource: "DRAWN" | "TYPED" | "UPLOADED";
+        SignatureItem: {
+            documentTitle: string | null;
+            /** Format: int32 */
+            fieldId: number;
+            memberName: string | null;
         };
         /** @enum {string} */
         SignatureRole: "PARTICIPANT" | "GUARDIAN_1" | "GUARDIAN_2" | "EACH_GUARDIAN" | "ANY_GUARDIAN" | "ISSUER";
+        SignatureSettingsResponse: {
+            autoSignConsentedAt: components["schemas"]["Instant"] | null;
+            hasImage: boolean;
+            imageSavedAt: components["schemas"]["Instant"] | null;
+            imageSource: components["schemas"]["SignatureImageSource"] | null;
+        };
+        SignatureSummary: {
+            /** Format: int32 */
+            expected: number;
+            /** Format: int32 */
+            nobodyCanSign: number;
+            /** Format: int32 */
+            open: number;
+            /** Format: uuid */
+            requestUid: string;
+            /** Format: int32 */
+            signed: number;
+            state: components["schemas"]["RequestState"];
+        };
+        SignedActResponse: {
+            accountHolderName: string;
+            bound: boolean;
+            capacity: components["schemas"]["SignerCapacity"];
+            proof: components["schemas"]["StepUpProof"];
+            sealed: boolean;
+            signedAt: components["schemas"]["Instant"];
+            signerName: string;
+            userVerified: boolean | null;
+        };
+        /** @enum {string} */
+        SignerCapacity: "ACCOUNT_HOLDER" | "GUARDIAN" | "MEMBER_THROUGH_ACCOUNT";
+        SignerEntryDraft: {
+            field?: string | null;
+            value?: string | null;
+        };
+        SignerRevocation: {
+            reason: components["schemas"]["RevocationReason"] | null;
+            revokedAt: components["schemas"]["Instant"] | null;
+            status: components["schemas"]["RevocationStatus"];
+        };
         SignInClaimRequest: {
             claimToken?: string;
         };
@@ -67628,8 +71172,78 @@ export interface components {
             credentialJson?: string;
             trustedDevice?: boolean;
         };
+        SigningAuthorityInfo: {
+            active: boolean;
+            serialNumber: string;
+            sha256Fingerprint: string;
+            subject: string;
+            validFrom: components["schemas"]["Instant"];
+            validUntil: components["schemas"]["Instant"];
+        };
+        SigningCompleteRequest: {
+            credentialJson?: string | null;
+            keepSignature?: boolean | null;
+            proof?: components["schemas"]["StepUpProof"] | null;
+            secret?: string | null;
+            signatureImage?: string | null;
+            signatureSource?: components["schemas"]["SignatureImageSource"] | null;
+            startToken?: string | null;
+        };
+        SigningCompleteResponse: {
+            bound: boolean;
+            /** Format: int32 */
+            fieldId: number;
+            fieldName: string;
+            proof: components["schemas"]["StepUpProof"];
+            requestState: components["schemas"]["RequestState"];
+            /** Format: uuid */
+            requestUid: string;
+            settledAt: components["schemas"]["Instant"] | null;
+            state: components["schemas"]["FieldState"];
+        };
+        /** @enum {string} */
+        SigningKeyKind: "AUTHORITY" | "STATION_KEY";
+        SigningKeyRecoveryEntry: {
+            authoritySerials: string[];
+            /** Format: int32 */
+            id: number;
+            recoveredAt: components["schemas"]["Instant"];
+            recoveredBy: string | null;
+            stationKeySerials: string[];
+        };
+        SigningKeyRecoveryRequest: {
+            serialNumbers?: string[];
+        };
+        SigningKeyStatus: {
+            locked: components["schemas"]["LockedSigningKey"][];
+            /** Format: int32 */
+            openKeys: number;
+            recoveries: components["schemas"]["SigningKeyRecoveryEntry"][];
+        };
         SigningSecretRequest: {
             secret?: string;
+        };
+        SigningStartRequest: {
+            entries?: components["schemas"]["SignerEntryDraft"][] | null;
+        };
+        SigningStartResponse: {
+            acceptedProofs: components["schemas"]["StepUpProof"][];
+            accountHolderName: string;
+            capacity: components["schemas"]["SignerCapacity"];
+            contentSha256: string;
+            documentMemberName: string;
+            expiresAt: components["schemas"]["Instant"];
+            /** Format: int32 */
+            fieldId: number;
+            fieldName: string;
+            memberName: string | null;
+            /** Format: uuid */
+            requestUid: string;
+            role: components["schemas"]["FieldRole"];
+            signerName: string;
+            startToken: string;
+            statement: string;
+            webAuthnOptionsJson: string | null;
         };
         Simple: {
             required: boolean;
@@ -67745,6 +71359,15 @@ export interface components {
             resolvedAt: components["schemas"]["Instant"] | null;
             stationName: string;
             status: components["schemas"]["ApplicationStatus"];
+        };
+        StationCertificateInfo: {
+            authoritySerialNumber: string;
+            revokedAt: components["schemas"]["Instant"] | null;
+            serialNumber: string;
+            sha256Fingerprint: string;
+            subject: string;
+            validFrom: components["schemas"]["Instant"];
+            validUntil: components["schemas"]["Instant"];
         };
         StationClusterResponse: {
             applications: components["schemas"]["ClusterApplicationView"][];
@@ -68133,7 +71756,7 @@ export interface components {
         /** @enum {string} */
         StorageBackendType: "LOCAL" | "SMB" | "SFTP" | "S3";
         /** @enum {string} */
-        StorageCategory: "MEDIA_FILES" | "INSTANCE_MEDIA_FILES" | "MEDIA_IMAGES" | "KB_FILES" | "MEMBER_DOCUMENTS" | "DOCUMENT_TEMPLATES" | "ASSOCIATION_DOCUMENT_TEMPLATES" | "FONTS" | "ASSOCIATION_FONTS" | "INSTANCE_FONTS" | "MOVEMENT_DOCUMENTS" | "BOARD_ATTACHMENTS" | "IMAGE_AVATAR" | "IMAGE_LOST_AND_FOUND" | "IMAGE_LOGO_FRAGMENT" | "IMAGE_STATION_LOGO" | "IMAGE_QUIZ_QUESTION" | "IMAGE_KB_ICON" | "IMAGE_KB_IMAGE" | "IMAGE_KB_FILE_PICTURE" | "IMAGE_DOCUMENT_TEMPLATE_PICTURE" | "IMAGE_ASSOCIATION_DOCUMENT_TEMPLATE_PICTURE" | "DOCUMENT" | "DISCOVERY_KEY" | "MAP_TILE_CACHE" | "DEMO_AVATAR" | "IMAGE_DISCOVERY_LOGO";
+        StorageCategory: "MEDIA_FILES" | "INSTANCE_MEDIA_FILES" | "MEDIA_IMAGES" | "KB_FILES" | "MEMBER_DOCUMENTS" | "DOCUMENT_TEMPLATES" | "ASSOCIATION_DOCUMENT_TEMPLATES" | "FONTS" | "ASSOCIATION_FONTS" | "INSTANCE_FONTS" | "MOVEMENT_DOCUMENTS" | "BOARD_ATTACHMENTS" | "IMAGE_AVATAR" | "IMAGE_SIGNATURE" | "IMAGE_LOST_AND_FOUND" | "IMAGE_LOGO_FRAGMENT" | "IMAGE_STATION_LOGO" | "IMAGE_QUIZ_QUESTION" | "IMAGE_KB_ICON" | "IMAGE_KB_IMAGE" | "IMAGE_KB_FILE_PICTURE" | "IMAGE_DOCUMENT_TEMPLATE_PICTURE" | "IMAGE_ASSOCIATION_DOCUMENT_TEMPLATE_PICTURE" | "DOCUMENT" | "DISCOVERY_KEY" | "MAP_TILE_CACHE" | "DEMO_AVATAR" | "IMAGE_DISCOVERY_LOGO";
         StorageQuotaPreset: {
             /** Format: int64 */
             board: number;
@@ -68244,6 +71867,7 @@ export interface components {
             questions: components["schemas"]["QuestionColumn"][];
         };
         TableEntry: {
+            arrayReferences?: components["schemas"]["ArrayReference"][];
             columns: components["schemas"]["ColumnEntry"][];
             customScope?: components["schemas"]["CustomScope"];
             description?: string;
@@ -68405,6 +72029,11 @@ export interface components {
             content: string;
             displayName: string;
             optional: boolean;
+        };
+        TemplateSigning: {
+            copyAttached: boolean;
+            /** Format: int32 */
+            retentionMonths: number | null;
         };
         /** @enum {string} */
         TemplateSort: "LAST_USED" | "NAME" | "CREATED" | "UPDATED";
@@ -68644,6 +72273,14 @@ export interface components {
             /** Format: int64 */
             total: number;
         };
+        TimestampCheck: {
+            authority: components["schemas"]["CertificateFacts"] | null;
+            indication: components["schemas"]["ValidationIndication"];
+            intact: boolean;
+            pinnedAuthority: boolean;
+            subIndication: components["schemas"]["ValidationSubIndication"] | null;
+            time: components["schemas"]["Instant"] | null;
+        };
         TimestampRequest: {
             time?: components["schemas"]["Instant"];
         };
@@ -68735,6 +72372,7 @@ export interface components {
         TransferBackendDescriptor: components["schemas"]["Local"] | components["schemas"]["S3"] | components["schemas"]["Sftp"] | components["schemas"]["Smb"];
         TransferContext: {
             ignoredColumns?: string[];
+            optionalReferences?: string[];
             rationale?: string;
             reason?: string;
             status: components["schemas"]["TrackingStatus"];
@@ -68828,7 +72466,7 @@ export interface components {
             trustedDeviceMaxDays: number;
         };
         /** @enum {string} */
-        TwoFactorEvent: "ENROLLED" | "REMOVED" | "LOGIN_VERIFIED" | "STEPUP_VERIFIED" | "BACKUP_CODE_USED" | "BACKUP_CODE_REGENERATED" | "ADMIN_RESET" | "TRUSTED_DEVICE_ADDED" | "TRUSTED_DEVICE_REVOKED" | "POLICY_CHANGED" | "PASSKEY_SIGN_IN" | "PASSKEY_ENROLLED_VIA_DEVICE_CODE" | "PASSKEY_CODE_ISSUED" | "PASSWORD_LOGIN_DISABLED" | "PASSWORD_LOGIN_ENABLED" | "PASSWORD_RETIRED" | "STEPUP_FAILED" | "SIGNED_IN_VIA_DEVICE_CODE" | "STEPUP_VIA_DEVICE_CODE" | "DEVICE_REQUEST_APPROVED" | "ONE_TIME_PASSWORD_ISSUED";
+        TwoFactorEvent: "ENROLLED" | "REMOVED" | "LOGIN_VERIFIED" | "STEPUP_VERIFIED" | "BACKUP_CODE_USED" | "BACKUP_CODE_REGENERATED" | "ADMIN_RESET" | "TRUSTED_DEVICE_ADDED" | "TRUSTED_DEVICE_REVOKED" | "POLICY_CHANGED" | "PASSKEY_SIGN_IN" | "PASSKEY_ENROLLED_VIA_DEVICE_CODE" | "PASSKEY_CODE_ISSUED" | "PASSWORD_LOGIN_DISABLED" | "PASSWORD_LOGIN_ENABLED" | "PASSWORD_RETIRED" | "STEPUP_FAILED" | "SIGNED_IN_VIA_DEVICE_CODE" | "STEPUP_VIA_DEVICE_CODE" | "DEVICE_REQUEST_APPROVED" | "ONE_TIME_PASSWORD_ISSUED" | "ACCOUNT_LINK_ACCEPTED" | "ASSOCIATION_LINK_ACCEPTED";
         /** @enum {string} */
         TwoFactorKind: "TOTP" | "WEBAUTHN" | "BACKUP_CODES";
         TwoFactorPolicyEntry: {
@@ -69001,6 +72639,10 @@ export interface components {
         UserTypesResponse: {
             userTypes: components["schemas"]["StationUserType"][];
         };
+        /** @enum {string} */
+        ValidationIndication: "TOTAL_PASSED" | "TOTAL_FAILED" | "INDETERMINATE" | "PASSED" | "FAILED" | "NO_SIGNATURE_FOUND";
+        /** @enum {string} */
+        ValidationSubIndication: "FORMAT_FAILURE" | "HASH_FAILURE" | "SIG_CRYPTO_FAILURE" | "REVOKED" | "EXPIRED" | "NOT_YET_VALID" | "SIG_CONSTRAINTS_FAILURE" | "CHAIN_CONSTRAINTS_FAILURE" | "CERTIFICATE_CHAIN_GENERAL_FAILURE" | "CRYPTO_CONSTRAINTS_FAILURE" | "POLICY_PROCESSING_ERROR" | "SIGNATURE_POLICY_NOT_AVAILABLE" | "TIMESTAMP_ORDER_FAILURE" | "NO_SIGNING_CERTIFICATE_FOUND" | "NO_CERTIFICATE_CHAIN_FOUND" | "NO_CERTIFICATE_CHAIN_FOUND_NO_POE" | "REVOKED_NO_POE" | "REVOKED_CA_NO_POE" | "OUT_OF_BOUNDS_NOT_REVOKED" | "OUT_OF_BOUNDS_NO_POE" | "REVOCATION_OUT_OF_BOUNDS_NO_POE" | "CRYPTO_CONSTRAINTS_FAILURE_NO_POE" | "NO_POE" | "TRY_LATER" | "SIGNED_DATA_NOT_FOUND" | "ATTESTATION_CONSTRAINTS_FAILURE" | "NOT_ISSUED_HERE";
         ValueEntry: {
             /** Format: int32 */
             fieldId?: number;
@@ -69395,6 +73037,9 @@ export type AdminMapsConfig = components['schemas']['AdminMapsConfig'];
 export type AdminOverview = components['schemas']['AdminOverview'];
 export type AdminStationUsage = components['schemas']['AdminStationUsage'];
 export type AdminStatistics = components['schemas']['AdminStatistics'];
+export type AgreementSigner = components['schemas']['AgreementSigner'];
+export type AgreementWithdrawalRequest = components['schemas']['AgreementWithdrawalRequest'];
+export type AgreementWithdrawalResponse = components['schemas']['AgreementWithdrawalResponse'];
 export type AiCredentialRequest = components['schemas']['AiCredentialRequest'];
 export type AiCredentialSummary = components['schemas']['AiCredentialSummary'];
 export type AiGenerateRequest = components['schemas']['AiGenerateRequest'];
@@ -69421,16 +73066,20 @@ export type AppointmentField = components['schemas']['AppointmentField'];
 export type AppointmentTemplateField = components['schemas']['AppointmentTemplateField'];
 export type AppointRequest = components['schemas']['AppointRequest'];
 export type ApprovalCandidate = components['schemas']['ApprovalCandidate'];
+export type ArrayReference = components['schemas']['ArrayReference'];
 export type ArtAssignRequest = components['schemas']['ArtAssignRequest'];
 export type ArtChoice = components['schemas']['ArtChoice'];
 export type ArtMergeRequest = components['schemas']['ArtMergeRequest'];
 export type ArtRequest = components['schemas']['ArtRequest'];
 export type ArtStock = components['schemas']['ArtStock'];
+export type AskedFieldResponse = components['schemas']['AskedFieldResponse'];
+export type AskedRequestResponse = components['schemas']['AskedRequestResponse'];
 export type AssigneeRequest = components['schemas']['AssigneeRequest'];
 export type AssignItemRequest = components['schemas']['AssignItemRequest'];
 export type AssignItemsRequest = components['schemas']['AssignItemsRequest'];
 export type AssignmentRequest = components['schemas']['AssignmentRequest'];
 export type AssignRequest = components['schemas']['AssignRequest'];
+export type AssociationLinkState = components['schemas']['AssociationLinkState'];
 export type AssociationRole = components['schemas']['AssociationRole'];
 export type AttachmentOrderRequest = components['schemas']['AttachmentOrderRequest'];
 export type AttachmentRequest = components['schemas']['AttachmentRequest'];
@@ -69462,12 +73111,19 @@ export type BackendRequest = components['schemas']['BackendRequest'];
 export type BackendSummary = components['schemas']['BackendSummary'];
 export type BackupCodesConfig = components['schemas']['BackupCodesConfig'];
 export type BackupCodesResponse = components['schemas']['BackupCodesResponse'];
+export type BatchCompleteRequest = components['schemas']['BatchCompleteRequest'];
+export type BatchCompleteResponse = components['schemas']['BatchCompleteResponse'];
 export type BatchCreateRequest = components['schemas']['BatchCreateRequest'];
+export type BatchFieldChoice = components['schemas']['BatchFieldChoice'];
 export type BatchFieldEntryDto = components['schemas']['BatchFieldEntryDto'];
+export type BatchFieldResponse = components['schemas']['BatchFieldResponse'];
 export type BatchGenerateRequest = components['schemas']['BatchGenerateRequest'];
+export type BatchPicture = components['schemas']['BatchPicture'];
 export type BatchResult = components['schemas']['BatchResult'];
 export type BatchRow = components['schemas']['BatchRow'];
 export type BatchRowEntry = components['schemas']['BatchRowEntry'];
+export type BatchStartRequest = components['schemas']['BatchStartRequest'];
+export type BatchStartResponse = components['schemas']['BatchStartResponse'];
 export type BeaconFault = components['schemas']['BeaconFault'];
 export type BeaconMetricsRow = components['schemas']['BeaconMetricsRow'];
 export type BeaconReport = components['schemas']['BeaconReport'];
@@ -69548,6 +73204,7 @@ export type CellContentType = components['schemas']['CellContentType'];
 export type CellResponse = components['schemas']['CellResponse'];
 export type CellWriteRequest = components['schemas']['CellWriteRequest'];
 export type CeremonyResponse = components['schemas']['CeremonyResponse'];
+export type CertificateFacts = components['schemas']['CertificateFacts'];
 export type ChangedCountResponse = components['schemas']['ChangedCountResponse'];
 export type ChangedResponse = components['schemas']['ChangedResponse'];
 export type ChangelogEntry = components['schemas']['ChangelogEntry'];
@@ -69631,6 +73288,7 @@ export type ContentMode = components['schemas']['ContentMode'];
 export type ContentRow = components['schemas']['ContentRow'];
 export type ContentUpdateRequest = components['schemas']['ContentUpdateRequest'];
 export type ConversionStatus = components['schemas']['ConversionStatus'];
+export type CorrectionResponse = components['schemas']['CorrectionResponse'];
 export type CorrectItemRequest = components['schemas']['CorrectItemRequest'];
 export type CorrectMovementRequest = components['schemas']['CorrectMovementRequest'];
 export type CorrectRowRequest = components['schemas']['CorrectRowRequest'];
@@ -69738,6 +73396,7 @@ export type DiscoveryVisibility = components['schemas']['DiscoveryVisibility'];
 export type DispatchRequest = components['schemas']['DispatchRequest'];
 export type DisplayTag = components['schemas']['DisplayTag'];
 export type DividerConfig = components['schemas']['DividerConfig'];
+export type DocumentAgreement = components['schemas']['DocumentAgreement'];
 export type DocumentFontsResponse = components['schemas']['DocumentFontsResponse'];
 export type DocumentFontView = components['schemas']['DocumentFontView'];
 export type DocumentLanguage = components['schemas']['DocumentLanguage'];
@@ -69750,6 +73409,7 @@ export type DocumentTemplateKind = components['schemas']['DocumentTemplateKind']
 export type DocumentTemplateRequest = components['schemas']['DocumentTemplateRequest'];
 export type DocumentTemplateResponse = components['schemas']['DocumentTemplateResponse'];
 export type DocumentTemplateSummary = components['schemas']['DocumentTemplateSummary'];
+export type DocumentTimestampCheck = components['schemas']['DocumentTimestampCheck'];
 export type DraftPreviewRequest = components['schemas']['DraftPreviewRequest'];
 export type EligibleMembers = components['schemas']['EligibleMembers'];
 export type EmailChangeResponse = components['schemas']['EmailChangeResponse'];
@@ -69812,6 +73472,7 @@ export type EventSummary = components['schemas']['EventSummary'];
 export type EventTemplate = components['schemas']['EventTemplate'];
 export type EventTemplateFieldData = components['schemas']['EventTemplateFieldData'];
 export type EventType = components['schemas']['EventType'];
+export type EvidenceSummary = components['schemas']['EvidenceSummary'];
 export type ExaminerCandidate = components['schemas']['ExaminerCandidate'];
 export type Expected = components['schemas']['Expected'];
 export type ExportColumnRequest = components['schemas']['ExportColumnRequest'];
@@ -69847,6 +73508,7 @@ export type FeedStatusResponse = components['schemas']['FeedStatusResponse'];
 export type FeedTokenResponse = components['schemas']['FeedTokenResponse'];
 export type FeedUserAgentStat = components['schemas']['FeedUserAgentStat'];
 export type FeedUseResponse = components['schemas']['FeedUseResponse'];
+export type Field = components['schemas']['Field'];
 export type FieldConfig = components['schemas']['FieldConfig'];
 export type FieldDateValueRequest = components['schemas']['FieldDateValueRequest'];
 export type FieldDefaultEntry = components['schemas']['FieldDefaultEntry'];
@@ -69855,6 +73517,8 @@ export type FieldOrderRequest = components['schemas']['FieldOrderRequest'];
 export type FieldOrigin = components['schemas']['FieldOrigin'];
 export type FieldRect = components['schemas']['FieldRect'];
 export type FieldRequest = components['schemas']['FieldRequest'];
+export type FieldRole = components['schemas']['FieldRole'];
+export type FieldState = components['schemas']['FieldState'];
 export type FieldType = components['schemas']['FieldType'];
 export type FieldUpdateRequest = components['schemas']['FieldUpdateRequest'];
 export type FieldValue = components['schemas']['FieldValue'];
@@ -69865,6 +73529,8 @@ export type FileListing = components['schemas']['FileListing'];
 export type FileResponse = components['schemas']['FileResponse'];
 export type FileStoreEntry = components['schemas']['FileStoreEntry'];
 export type FileUpdateRequest = components['schemas']['FileUpdateRequest'];
+export type FillInConfig = components['schemas']['FillInConfig'];
+export type FillInResponse = components['schemas']['FillInResponse'];
 export type FillInTheBlank = components['schemas']['FillInTheBlank'];
 export type FillInTheBlankView = components['schemas']['FillInTheBlankView'];
 export type FilterTableType = components['schemas']['FilterTableType'];
@@ -69956,6 +73622,7 @@ export type GuardianEntry = components['schemas']['GuardianEntry'];
 export type HandOutRequest = components['schemas']['HandOutRequest'];
 export type HandOutSelfChecksRequest = components['schemas']['HandOutSelfChecksRequest'];
 export type HandoverRequest = components['schemas']['HandoverRequest'];
+export type HeldCopy = components['schemas']['HeldCopy'];
 export type HeldReportRequest = components['schemas']['HeldReportRequest'];
 export type HeroBannerConfig = components['schemas']['HeroBannerConfig'];
 export type HibpConfigRequest = components['schemas']['HibpConfigRequest'];
@@ -70019,6 +73686,7 @@ export type InventoryType = components['schemas']['InventoryType'];
 export type InviteCodeResponse = components['schemas']['InviteCodeResponse'];
 export type InviteEntry = components['schemas']['InviteEntry'];
 export type InviteRequest = components['schemas']['InviteRequest'];
+export type Issued = components['schemas']['Issued'];
 export type IssuedOneTimePassword = components['schemas']['IssuedOneTimePassword'];
 export type IssuerChoice = components['schemas']['IssuerChoice'];
 export type ItemAssignment = components['schemas']['ItemAssignment'];
@@ -70091,7 +73759,11 @@ export type Likert = components['schemas']['Likert'];
 export type LikertAnswer = components['schemas']['LikertAnswer'];
 export type LineCheck = components['schemas']['LineCheck'];
 export type LinkFileRequest = components['schemas']['LinkFileRequest'];
+export type LinkOrigin = components['schemas']['LinkOrigin'];
+export type LinkPrompt = components['schemas']['LinkPrompt'];
 export type LinkRequest = components['schemas']['LinkRequest'];
+export type LinkState = components['schemas']['LinkState'];
+export type LinkStatus = components['schemas']['LinkStatus'];
 export type LinkType = components['schemas']['LinkType'];
 export type ListKeysResponse = components['schemas']['ListKeysResponse'];
 export type Local = components['schemas']['Local'];
@@ -70113,6 +73785,7 @@ export type LocalUpdateChecklistItemRequest = components['schemas']['LocalUpdate
 export type LocalUpdateTicketRequest = components['schemas']['LocalUpdateTicketRequest'];
 export type LocationUpdate = components['schemas']['LocationUpdate'];
 export type LocationView = components['schemas']['LocationView'];
+export type LockedSigningKey = components['schemas']['LockedSigningKey'];
 export type LogEntry = components['schemas']['LogEntry'];
 export type LogEntryResponse = components['schemas']['LogEntryResponse'];
 export type LogFacet = components['schemas']['LogFacet'];
@@ -70149,10 +73822,12 @@ export type MailSecurity = components['schemas']['MailSecurity'];
 export type MailTestResponse = components['schemas']['MailTestResponse'];
 export type MailTitleSource = components['schemas']['MailTitleSource'];
 export type ManagedAccess = components['schemas']['ManagedAccess'];
+export type ManagedFieldResponse = components['schemas']['ManagedFieldResponse'];
 export type ManagedMember = components['schemas']['ManagedMember'];
 export type ManagedMemberInfo = components['schemas']['ManagedMemberInfo'];
 export type ManagedMemberResponse = components['schemas']['ManagedMemberResponse'];
 export type ManagedMemberSetValuesRequest = components['schemas']['ManagedMemberSetValuesRequest'];
+export type ManagedRequestResponse = components['schemas']['ManagedRequestResponse'];
 export type ManagedStationResponse = components['schemas']['ManagedStationResponse'];
 export type ManagerDetail = components['schemas']['ManagerDetail'];
 export type ManagerGenerationRequest = components['schemas']['ManagerGenerationRequest'];
@@ -70184,6 +73859,8 @@ export type MemberGroupsRequest = components['schemas']['MemberGroupsRequest'];
 export type MemberIdentity = components['schemas']['MemberIdentity'];
 export type MemberInfo = components['schemas']['MemberInfo'];
 export type MemberInviteResponse = components['schemas']['MemberInviteResponse'];
+export type MemberLink = components['schemas']['MemberLink'];
+export type MemberLinkResponse = components['schemas']['MemberLinkResponse'];
 export type MemberListConfig = components['schemas']['MemberListConfig'];
 export type MemberListSortBy = components['schemas']['MemberListSortBy'];
 export type MemberNotes = components['schemas']['MemberNotes'];
@@ -70297,6 +73974,7 @@ export type OnboardingLevel = components['schemas']['OnboardingLevel'];
 export type OnboardingStatus = components['schemas']['OnboardingStatus'];
 export type OnboardingTaskState = components['schemas']['OnboardingTaskState'];
 export type OnboardingTaskView = components['schemas']['OnboardingTaskView'];
+export type OpenSignatureResponse = components['schemas']['OpenSignatureResponse'];
 export type Option = components['schemas']['Option'];
 export type Ordering = components['schemas']['Ordering'];
 export type OrderingView = components['schemas']['OrderingView'];
@@ -70307,6 +73985,7 @@ export type OverviewResponse = components['schemas']['OverviewResponse'];
 export type OwnerAboveResponse = components['schemas']['OwnerAboveResponse'];
 export type OwnNameChange = components['schemas']['OwnNameChange'];
 export type OwnNameChangeResponse = components['schemas']['OwnNameChangeResponse'];
+export type PadesLevel = components['schemas']['PadesLevel'];
 export type PagedChangesResponse = components['schemas']['PagedChangesResponse'];
 export type PageDetailResponse = components['schemas']['PageDetailResponse'];
 export type PageLeaderboardEntry = components['schemas']['PageLeaderboardEntry'];
@@ -70326,11 +74005,19 @@ export type PairRequestRefusal = components['schemas']['PairRequestRefusal'];
 export type PairRequestResponse = components['schemas']['PairRequestResponse'];
 export type PairRequestStatus = components['schemas']['PairRequestStatus'];
 export type PairRequestStatusQuery = components['schemas']['PairRequestStatusQuery'];
+export type PaperRequest = components['schemas']['PaperRequest'];
+export type PaperState = components['schemas']['PaperState'];
+export type PaperSubmission = components['schemas']['PaperSubmission'];
 export type ParseResult = components['schemas']['ParseResult'];
 export type ParticipantDocuments = components['schemas']['ParticipantDocuments'];
+export type PartnerAgreementOffer = components['schemas']['PartnerAgreementOffer'];
+export type PartnerAgreementState = components['schemas']['PartnerAgreementState'];
+export type PartnerDocumentToSign = components['schemas']['PartnerDocumentToSign'];
 export type PartnerEventDetail = components['schemas']['PartnerEventDetail'];
 export type PartnerPlacesView = components['schemas']['PartnerPlacesView'];
 export type PartnerResponse = components['schemas']['PartnerResponse'];
+export type PartnerSigner = components['schemas']['PartnerSigner'];
+export type PartnerSignerDocument = components['schemas']['PartnerSignerDocument'];
 export type PartnerStationsConfig = components['schemas']['PartnerStationsConfig'];
 export type PasskeyCodeResponse = components['schemas']['PasskeyCodeResponse'];
 export type PasskeyEntryResponse = components['schemas']['PasskeyEntryResponse'];
@@ -70507,6 +74194,7 @@ export type RecheckResponse = components['schemas']['RecheckResponse'];
 export type Recommendation = components['schemas']['Recommendation'];
 export type RecommendedTag = components['schemas']['RecommendedTag'];
 export type RecordConsentRequest = components['schemas']['RecordConsentRequest'];
+export type RectifyRequest = components['schemas']['RectifyRequest'];
 export type RefreshResponse = components['schemas']['RefreshResponse'];
 export type RefusalDetail = components['schemas']['RefusalDetail'];
 export type RefusedEntry = components['schemas']['RefusedEntry'];
@@ -70548,6 +74236,7 @@ export type ReplaceQuestionRequest = components['schemas']['ReplaceQuestionReque
 export type ReportData = components['schemas']['ReportData'];
 export type ReportPayload = components['schemas']['ReportPayload'];
 export type ReportRequest = components['schemas']['ReportRequest'];
+export type RequestState = components['schemas']['RequestState'];
 export type RequeuedMails = components['schemas']['RequeuedMails'];
 export type RequiredDocumentStatus = components['schemas']['RequiredDocumentStatus'];
 export type RequiredInventoryItem = components['schemas']['RequiredInventoryItem'];
@@ -70555,6 +74244,9 @@ export type RequiredTemplate = components['schemas']['RequiredTemplate'];
 export type RequirementItem = components['schemas']['RequirementItem'];
 export type RequirementRequest = components['schemas']['RequirementRequest'];
 export type RequirementResponse = components['schemas']['RequirementResponse'];
+export type RequirementSignature = components['schemas']['RequirementSignature'];
+export type RequirementSignatureField = components['schemas']['RequirementSignatureField'];
+export type RequirementSignatureState = components['schemas']['RequirementSignatureState'];
 export type RequirementsRequest = components['schemas']['RequirementsRequest'];
 export type RequirementsResponse = components['schemas']['RequirementsResponse'];
 export type RequirementStatus = components['schemas']['RequirementStatus'];
@@ -70578,6 +74270,8 @@ export type ResultFieldCondition = components['schemas']['ResultFieldCondition']
 export type ResultFilter = components['schemas']['ResultFilter'];
 export type ResultGrouping = components['schemas']['ResultGrouping'];
 export type ReturnEverythingRequest = components['schemas']['ReturnEverythingRequest'];
+export type RevocationReason = components['schemas']['RevocationReason'];
+export type RevocationStatus = components['schemas']['RevocationStatus'];
 export type RichMember = components['schemas']['RichMember'];
 export type RoomDetail = components['schemas']['RoomDetail'];
 export type RuleRequest = components['schemas']['RuleRequest'];
@@ -70593,8 +74287,14 @@ export type SaveBlocksRequest = components['schemas']['SaveBlocksRequest'];
 export type SavedFilter = components['schemas']['SavedFilter'];
 export type SavePageRequest = components['schemas']['SavePageRequest'];
 export type SavePresetRequest = components['schemas']['SavePresetRequest'];
+export type ScanRejectRequest = components['schemas']['ScanRejectRequest'];
 export type ScheduleMode = components['schemas']['ScheduleMode'];
 export type Scope = components['schemas']['Scope'];
+export type SealCheck = components['schemas']['SealCheck'];
+export type SealedVersionResponse = components['schemas']['SealedVersionResponse'];
+export type SealingPartner = components['schemas']['SealingPartner'];
+export type SealLevel = components['schemas']['SealLevel'];
+export type SealVerification = components['schemas']['SealVerification'];
 export type SearchResultItem = components['schemas']['SearchResultItem'];
 export type SearchResultResponse = components['schemas']['SearchResultResponse'];
 export type SectionExaminers = components['schemas']['SectionExaminers'];
@@ -70676,11 +74376,30 @@ export type SharePartner = components['schemas']['SharePartner'];
 export type ShareScope = components['schemas']['ShareScope'];
 export type ShareSetting = components['schemas']['ShareSetting'];
 export type SidebarCounts = components['schemas']['SidebarCounts'];
+export type SignatureAskResponse = components['schemas']['SignatureAskResponse'];
 export type SignatureConfig = components['schemas']['SignatureConfig'];
+export type SignatureConsentRequest = components['schemas']['SignatureConsentRequest'];
+export type SignatureImageSource = components['schemas']['SignatureImageSource'];
+export type SignatureItem = components['schemas']['SignatureItem'];
 export type SignatureRole = components['schemas']['SignatureRole'];
+export type SignatureSettingsResponse = components['schemas']['SignatureSettingsResponse'];
+export type SignatureSummary = components['schemas']['SignatureSummary'];
+export type SignedActResponse = components['schemas']['SignedActResponse'];
+export type SignerCapacity = components['schemas']['SignerCapacity'];
+export type SignerEntryDraft = components['schemas']['SignerEntryDraft'];
+export type SignerRevocation = components['schemas']['SignerRevocation'];
 export type SignInClaimRequest = components['schemas']['SignInClaimRequest'];
 export type SignInFinishRequest = components['schemas']['SignInFinishRequest'];
+export type SigningAuthorityInfo = components['schemas']['SigningAuthorityInfo'];
+export type SigningCompleteRequest = components['schemas']['SigningCompleteRequest'];
+export type SigningCompleteResponse = components['schemas']['SigningCompleteResponse'];
+export type SigningKeyKind = components['schemas']['SigningKeyKind'];
+export type SigningKeyRecoveryEntry = components['schemas']['SigningKeyRecoveryEntry'];
+export type SigningKeyRecoveryRequest = components['schemas']['SigningKeyRecoveryRequest'];
+export type SigningKeyStatus = components['schemas']['SigningKeyStatus'];
 export type SigningSecretRequest = components['schemas']['SigningSecretRequest'];
+export type SigningStartRequest = components['schemas']['SigningStartRequest'];
+export type SigningStartResponse = components['schemas']['SigningStartResponse'];
 export type Simple = components['schemas']['Simple'];
 export type SizeRequest = components['schemas']['SizeRequest'];
 export type SizeStatResponse = components['schemas']['SizeStatResponse'];
@@ -70693,6 +74412,7 @@ export type SourceOccurrenceResponse = components['schemas']['SourceOccurrenceRe
 export type SpacerConfig = components['schemas']['SpacerConfig'];
 export type StationAiProvider = components['schemas']['StationAiProvider'];
 export type StationApplication = components['schemas']['StationApplication'];
+export type StationCertificateInfo = components['schemas']['StationCertificateInfo'];
 export type StationClusterResponse = components['schemas']['StationClusterResponse'];
 export type StationDetail = components['schemas']['StationDetail'];
 export type StationEvent = components['schemas']['StationEvent'];
@@ -70785,6 +74505,7 @@ export type TemplatePage = components['schemas']['TemplatePage'];
 export type TemplateRequest = components['schemas']['TemplateRequest'];
 export type TemplateRestrictions = components['schemas']['TemplateRestrictions'];
 export type TemplateSection = components['schemas']['TemplateSection'];
+export type TemplateSigning = components['schemas']['TemplateSigning'];
 export type TemplateSort = components['schemas']['TemplateSort'];
 export type TemplateUseRequest = components['schemas']['TemplateUseRequest'];
 export type TemplateUseResponse = components['schemas']['TemplateUseResponse'];
@@ -70810,6 +74531,7 @@ export type TicketSummary = components['schemas']['TicketSummary'];
 export type TidyResult = components['schemas']['TidyResult'];
 export type TierRequest = components['schemas']['TierRequest'];
 export type TierResponse = components['schemas']['TierResponse'];
+export type TimestampCheck = components['schemas']['TimestampCheck'];
 export type TimestampRequest = components['schemas']['TimestampRequest'];
 export type TimestampResponse = components['schemas']['TimestampResponse'];
 export type TokenEnrollFinishRequest = components['schemas']['TokenEnrollFinishRequest'];
@@ -70870,6 +74592,8 @@ export type UserAgentsResponse = components['schemas']['UserAgentsResponse'];
 export type UserTag = components['schemas']['UserTag'];
 export type UserTypeChangeResponse = components['schemas']['UserTypeChangeResponse'];
 export type UserTypesResponse = components['schemas']['UserTypesResponse'];
+export type ValidationIndication = components['schemas']['ValidationIndication'];
+export type ValidationSubIndication = components['schemas']['ValidationSubIndication'];
 export type ValueEntry = components['schemas']['ValueEntry'];
 export type Verify2faRequest = components['schemas']['Verify2faRequest'];
 export type VerifyRequest = components['schemas']['VerifyRequest'];
@@ -71040,6 +74764,7 @@ export const CellContentType = {
     EXTERNAL_LINK_CARD: "EXTERNAL_LINK_CARD",
     FEATURED_EVENT: "FEATURED_EVENT",
     FILE_DOWNLOAD: "FILE_DOWNLOAD",
+    FILL_IN: "FILL_IN",
     FORMS_CTA: "FORMS_CTA",
     HERO_BANNER: "HERO_BANNER",
     IMAGE: "IMAGE",
@@ -71252,6 +74977,21 @@ export const FederationStatus = {
 export const FieldOrigin = {
     CLUSTER: "CLUSTER",
     STATION: "STATION",
+} as const;
+
+export const FieldRole = {
+    ANY_GUARDIAN: "ANY_GUARDIAN",
+    GUARDIAN: "GUARDIAN",
+    ISSUER: "ISSUER",
+    PARTICIPANT: "PARTICIPANT",
+} as const;
+
+export const FieldState = {
+    OPEN: "OPEN",
+    PAPER_CONFIRMED: "PAPER_CONFIRMED",
+    SIGNED: "SIGNED",
+    WAIVED: "WAIVED",
+    WITHDRAWN: "WITHDRAWN",
 } as const;
 
 export const FieldType = {
@@ -71482,6 +75222,19 @@ export const LetterPart = {
     LETTERHEAD: "LETTERHEAD",
 } as const;
 
+export const LinkOrigin = {
+    ASSOCIATION_INVITE: "ASSOCIATION_INVITE",
+    IMPORT: "IMPORT",
+    INVITE: "INVITE",
+} as const;
+
+export const LinkStatus = {
+    ACCEPTED: "ACCEPTED",
+    DECLINED: "DECLINED",
+    EXPIRED: "EXPIRED",
+    WAITING: "WAITING",
+} as const;
+
 export const LinkType = {
     BLOCKED_BY: "BLOCKED_BY",
     BLOCKS: "BLOCKS",
@@ -71640,6 +75393,8 @@ export const NoteEntityType = {
 } as const;
 
 export const NotificationType = {
+    ACCOUNT_LINK_ACCEPTED: "ACCOUNT_LINK_ACCEPTED",
+    ASSOCIATION_LINK_ACCEPTED: "ASSOCIATION_LINK_ACCEPTED",
     BOARD_TICKET_UPDATE: "BOARD_TICKET_UPDATE",
     CLUSTER_APPLICATION_APPROVED: "CLUSTER_APPLICATION_APPROVED",
     CLUSTER_APPLICATION_DENIED: "CLUSTER_APPLICATION_DENIED",
@@ -71653,6 +75408,8 @@ export const NotificationType = {
     CLUSTER_QUOTA_CHANGED: "CLUSTER_QUOTA_CHANGED",
     CLUSTER_STATION_RELEASED: "CLUSTER_STATION_RELEASED",
     COMMENT_MENTION: "COMMENT_MENTION",
+    DOCUMENT_SCAN_REJECTED: "DOCUMENT_SCAN_REJECTED",
+    DOCUMENT_SIGNED: "DOCUMENT_SIGNED",
     EVENT_CANCELLED: "EVENT_CANCELLED",
     EVENT_DATE_DROPPED: "EVENT_DATE_DROPPED",
     EVENT_DATE_RESTORED: "EVENT_DATE_RESTORED",
@@ -71683,6 +75440,7 @@ export const NotificationType = {
     NEW_EVENTS_BATCH: "NEW_EVENTS_BATCH",
     NEW_FORM: "NEW_FORM",
     NEW_NEWS: "NEW_NEWS",
+    PARTNER_SIGNATURE_WITHDRAWN: "PARTNER_SIGNATURE_WITHDRAWN",
     PROCEDURE_ASSIGNED: "PROCEDURE_ASSIGNED",
     PROCEDURE_ITEM_CHECKED: "PROCEDURE_ITEM_CHECKED",
     PROCEDURE_REOPENED: "PROCEDURE_REOPENED",
@@ -71696,6 +75454,9 @@ export const NotificationType = {
     SELF_CHECK_ASSIGNED: "SELF_CHECK_ASSIGNED",
     SELF_CHECK_ROW_REFUSED: "SELF_CHECK_ROW_REFUSED",
     SELF_CHECK_SUBMITTED: "SELF_CHECK_SUBMITTED",
+    SIGNATURE_REMINDER: "SIGNATURE_REMINDER",
+    SIGNATURE_REQUESTED: "SIGNATURE_REQUESTED",
+    SIGNATURE_WITHDRAWN: "SIGNATURE_WITHDRAWN",
     STORAGE_WARNING: "STORAGE_WARNING",
     WAITLIST_INVITATION_ANSWERED: "WAITLIST_INVITATION_ANSWERED",
     WAITLIST_NEW_ENTRY: "WAITLIST_NEW_ENTRY",
@@ -71724,6 +75485,14 @@ export const OutputShape = {
     FLAT: "FLAT",
     ROWS: "ROWS",
     SINGLE: "SINGLE",
+} as const;
+
+export const PadesLevel = {
+    BASELINE_B: "BASELINE_B",
+    BASELINE_LT: "BASELINE_LT",
+    BASELINE_LTA: "BASELINE_LTA",
+    BASELINE_T: "BASELINE_T",
+    NOT_BASELINE: "NOT_BASELINE",
 } as const;
 
 export const PageVisibility = {
@@ -71759,8 +75528,24 @@ export const PairRequestStatus = {
     PENDING: "PENDING",
 } as const;
 
+export const PaperState = {
+    CONFIRMED: "CONFIRMED",
+    REJECTED: "REJECTED",
+    SUBMITTED: "SUBMITTED",
+    WITHDRAWN: "WITHDRAWN",
+} as const;
+
+export const PartnerAgreementState = {
+    ASKED: "ASKED",
+    MISSING: "MISSING",
+    PAPER_CONFIRMED: "PAPER_CONFIRMED",
+    SIGNED: "SIGNED",
+    WITHDRAWN: "WITHDRAWN",
+} as const;
+
 export const PdfFieldKind = {
     CHECK: "CHECK",
+    FILL_IN: "FILL_IN",
     SIGNATURE: "SIGNATURE",
     TEXT: "TEXT",
 } as const;
@@ -71868,6 +75653,23 @@ export const RegistrationStatus = {
     WITHDRAWN: "WITHDRAWN",
 } as const;
 
+export const RequestState = {
+    COMPLETE: "COMPLETE",
+    OPEN: "OPEN",
+    REVOKED: "REVOKED",
+    SUPERSEDED: "SUPERSEDED",
+    WITHDRAWN: "WITHDRAWN",
+} as const;
+
+export const RequirementSignatureState = {
+    BY_STATION: "BY_STATION",
+    OPEN: "OPEN",
+    PAPER_CONFIRMED: "PAPER_CONFIRMED",
+    REVOKED: "REVOKED",
+    SIGNED: "SIGNED",
+    WAIVED: "WAIVED",
+} as const;
+
 export const RequirementStatus = {
     GENERATED: "GENERATED",
     NOT_GENERATED: "NOT_GENERATED",
@@ -71892,6 +75694,18 @@ export const RestrictionType = {
     QUIZ_TEST: "QUIZ_TEST",
 } as const;
 
+export const RevocationReason = {
+    CESSATION_OF_OPERATION: "CESSATION_OF_OPERATION",
+    KEY_COMPROMISE: "KEY_COMPROMISE",
+    SUPERSEDED: "SUPERSEDED",
+} as const;
+
+export const RevocationStatus = {
+    GOOD: "GOOD",
+    REVOKED: "REVOKED",
+    UNKNOWN: "UNKNOWN",
+} as const;
+
 export const RunStatus = {
     CLOSED: "CLOSED",
     OPEN: "OPEN",
@@ -71908,6 +75722,13 @@ export const Scope = {
     INSTANCE: "INSTANCE",
     STATION: "STATION",
     USER: "USER",
+} as const;
+
+export const SealLevel = {
+    BASELINE_B: "BASELINE_B",
+    BASELINE_LT: "BASELINE_LT",
+    BASELINE_LTA: "BASELINE_LTA",
+    BASELINE_T: "BASELINE_T",
 } as const;
 
 export const SelfCheckAnswer = {
@@ -71979,6 +75800,12 @@ export const ShareScope = {
     SPECIFIC: "SPECIFIC",
 } as const;
 
+export const SignatureImageSource = {
+    DRAWN: "DRAWN",
+    TYPED: "TYPED",
+    UPLOADED: "UPLOADED",
+} as const;
+
 export const SignatureRole = {
     ANY_GUARDIAN: "ANY_GUARDIAN",
     EACH_GUARDIAN: "EACH_GUARDIAN",
@@ -71986,6 +75813,17 @@ export const SignatureRole = {
     GUARDIAN_2: "GUARDIAN_2",
     ISSUER: "ISSUER",
     PARTICIPANT: "PARTICIPANT",
+} as const;
+
+export const SignerCapacity = {
+    ACCOUNT_HOLDER: "ACCOUNT_HOLDER",
+    GUARDIAN: "GUARDIAN",
+    MEMBER_THROUGH_ACCOUNT: "MEMBER_THROUGH_ACCOUNT",
+} as const;
+
+export const SigningKeyKind = {
+    AUTHORITY: "AUTHORITY",
+    STATION_KEY: "STATION_KEY",
 } as const;
 
 export const SmtpEncryption = {
@@ -72197,6 +76035,7 @@ export const StorageCategory = {
     IMAGE_LOGO_FRAGMENT: "IMAGE_LOGO_FRAGMENT",
     IMAGE_LOST_AND_FOUND: "IMAGE_LOST_AND_FOUND",
     IMAGE_QUIZ_QUESTION: "IMAGE_QUIZ_QUESTION",
+    IMAGE_SIGNATURE: "IMAGE_SIGNATURE",
     IMAGE_STATION_LOGO: "IMAGE_STATION_LOGO",
     INSTANCE_FONTS: "INSTANCE_FONTS",
     INSTANCE_MEDIA_FILES: "INSTANCE_MEDIA_FILES",
@@ -72302,7 +76141,9 @@ export const TrialOutcome = {
 } as const;
 
 export const TwoFactorEvent = {
+    ACCOUNT_LINK_ACCEPTED: "ACCOUNT_LINK_ACCEPTED",
     ADMIN_RESET: "ADMIN_RESET",
+    ASSOCIATION_LINK_ACCEPTED: "ASSOCIATION_LINK_ACCEPTED",
     BACKUP_CODE_REGENERATED: "BACKUP_CODE_REGENERATED",
     BACKUP_CODE_USED: "BACKUP_CODE_USED",
     DEVICE_REQUEST_APPROVED: "DEVICE_REQUEST_APPROVED",
@@ -72329,6 +76170,45 @@ export const TwoFactorKind = {
     BACKUP_CODES: "BACKUP_CODES",
     TOTP: "TOTP",
     WEBAUTHN: "WEBAUTHN",
+} as const;
+
+export const ValidationIndication = {
+    FAILED: "FAILED",
+    INDETERMINATE: "INDETERMINATE",
+    NO_SIGNATURE_FOUND: "NO_SIGNATURE_FOUND",
+    PASSED: "PASSED",
+    TOTAL_FAILED: "TOTAL_FAILED",
+    TOTAL_PASSED: "TOTAL_PASSED",
+} as const;
+
+export const ValidationSubIndication = {
+    ATTESTATION_CONSTRAINTS_FAILURE: "ATTESTATION_CONSTRAINTS_FAILURE",
+    CERTIFICATE_CHAIN_GENERAL_FAILURE: "CERTIFICATE_CHAIN_GENERAL_FAILURE",
+    CHAIN_CONSTRAINTS_FAILURE: "CHAIN_CONSTRAINTS_FAILURE",
+    CRYPTO_CONSTRAINTS_FAILURE: "CRYPTO_CONSTRAINTS_FAILURE",
+    CRYPTO_CONSTRAINTS_FAILURE_NO_POE: "CRYPTO_CONSTRAINTS_FAILURE_NO_POE",
+    EXPIRED: "EXPIRED",
+    FORMAT_FAILURE: "FORMAT_FAILURE",
+    HASH_FAILURE: "HASH_FAILURE",
+    NOT_ISSUED_HERE: "NOT_ISSUED_HERE",
+    NOT_YET_VALID: "NOT_YET_VALID",
+    NO_CERTIFICATE_CHAIN_FOUND: "NO_CERTIFICATE_CHAIN_FOUND",
+    NO_CERTIFICATE_CHAIN_FOUND_NO_POE: "NO_CERTIFICATE_CHAIN_FOUND_NO_POE",
+    NO_POE: "NO_POE",
+    NO_SIGNING_CERTIFICATE_FOUND: "NO_SIGNING_CERTIFICATE_FOUND",
+    OUT_OF_BOUNDS_NOT_REVOKED: "OUT_OF_BOUNDS_NOT_REVOKED",
+    OUT_OF_BOUNDS_NO_POE: "OUT_OF_BOUNDS_NO_POE",
+    POLICY_PROCESSING_ERROR: "POLICY_PROCESSING_ERROR",
+    REVOCATION_OUT_OF_BOUNDS_NO_POE: "REVOCATION_OUT_OF_BOUNDS_NO_POE",
+    REVOKED: "REVOKED",
+    REVOKED_CA_NO_POE: "REVOKED_CA_NO_POE",
+    REVOKED_NO_POE: "REVOKED_NO_POE",
+    SIGNATURE_POLICY_NOT_AVAILABLE: "SIGNATURE_POLICY_NOT_AVAILABLE",
+    SIGNED_DATA_NOT_FOUND: "SIGNED_DATA_NOT_FOUND",
+    SIG_CONSTRAINTS_FAILURE: "SIG_CONSTRAINTS_FAILURE",
+    SIG_CRYPTO_FAILURE: "SIG_CRYPTO_FAILURE",
+    TIMESTAMP_ORDER_FAILURE: "TIMESTAMP_ORDER_FAILURE",
+    TRY_LATER: "TRY_LATER",
 } as const;
 
 export const WaitingListAnswer = {

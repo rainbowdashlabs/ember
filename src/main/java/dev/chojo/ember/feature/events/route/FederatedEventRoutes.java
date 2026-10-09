@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.events.route;
 
+import dev.chojo.ember.api.ErrorResponseWrapper;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
 import dev.chojo.ember.api.auth.StationPermission;
@@ -14,9 +15,12 @@ import dev.chojo.ember.feature.comment.route.CommentResponse;
 import dev.chojo.ember.feature.comment.route.EventCommentRoutes;
 import dev.chojo.ember.feature.events.entity.AppointmentField;
 import dev.chojo.ember.feature.events.entity.EventField;
+import dev.chojo.ember.feature.events.entity.PartnerAgreementOffer;
+import dev.chojo.ember.feature.events.entity.PartnerDocumentToSign;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.SharedEvent;
 import dev.chojo.ember.feature.events.service.EventFederationService;
+import dev.chojo.ember.feature.events.service.PartnerAppointmentSignatures;
 import dev.chojo.ember.feature.federation.entity.FederationPartner;
 import dev.chojo.ember.feature.federation.service.FederationService;
 import dev.chojo.ember.feature.members.entity.NameParts;
@@ -30,6 +34,7 @@ import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
 import io.javalin.openapi.OpenApiContent;
+import io.javalin.openapi.OpenApiParam;
 import io.javalin.openapi.OpenApiRequestBody;
 import io.javalin.openapi.OpenApiResponse;
 import io.javalin.router.JavalinDefaultRoutingApi;
@@ -63,6 +68,7 @@ public class FederatedEventRoutes implements Routes {
     private final StationMemberService stationMemberService;
     private final MemberLookupService memberLookup;
     private final GuardianPolicy guardianPolicy;
+    private final PartnerAppointmentSignatures signatures;
 
     @Inject
     public FederatedEventRoutes(
@@ -70,12 +76,14 @@ public class FederatedEventRoutes implements Routes {
             FederationService federationService,
             StationMemberService stationMemberService,
             MemberLookupService memberLookup,
-            GuardianPolicy guardianPolicy) {
+            GuardianPolicy guardianPolicy,
+            PartnerAppointmentSignatures signatures) {
         this.eventFederationService = eventFederationService;
         this.federationService = federationService;
         this.stationMemberService = stationMemberService;
         this.memberLookup = memberLookup;
         this.guardianPolicy = guardianPolicy;
+        this.signatures = signatures;
     }
 
     @Override
@@ -98,6 +106,14 @@ public class FederatedEventRoutes implements Routes {
                 prefix + "/federated/{stationuid}/events/{id}/register/confirm",
                 this::federatedConfirmOwn,
                 StationPermission.EVENT_REGISTRATION);
+        routes.get(
+                prefix + "/federated/{stationuid}/events/{id}/agreements",
+                this::federatedAgreementOffers,
+                StationPermission.USER);
+        routes.post(
+                prefix + "/federated/{stationuid}/events/{id}/agreement",
+                this::federatedSignAgreement,
+                StationPermission.USER);
         routes.get(
                 prefix + "/federated/{stationuid}/events/{id}/attachments",
                 this::federatedListAttachments,
@@ -239,6 +255,10 @@ public class FederatedEventRoutes implements Routes {
      * <p>What comes back is the status the other station actually recorded. It used to say pending
      * whatever happened, so a member accepted at once by an appointment that asks for no confirmation
      * was told they were waiting on one that nobody would ever give.
+     *
+     * <p>Where the appointment asks its partners' members to sign a document, it is filed in the member's
+     * documents here and signed here; the answer lists those documents, so the registration can end on the
+     * signing step.
      */
     @OpenApi(
             path = "/api/v1/federated/{stationuid}/events/{id}/register",
@@ -254,7 +274,9 @@ public class FederatedEventRoutes implements Routes {
         var fed = answeredFor(ctx);
         var status = eventFederationService.registerForFederatedEvent(
                 fed.stationId(), fed.partnerUid(), fed.eventId(), fed.remoteMemberId(), fed.eventDate());
-        ctx.status(HttpStatus.CREATED).json(new FederatedRegistrationAnswer(status));
+        var toSign = signatures.registered(
+                StationSession.from(ctx), fed.partnerUid(), fed.eventId(), fed.eventDate(), fed.remoteMemberId());
+        ctx.status(HttpStatus.CREATED).json(new FederatedRegistrationAnswer(status, toSign));
     }
 
     @OpenApi(
@@ -268,6 +290,8 @@ public class FederatedEventRoutes implements Routes {
         var fed = answeredFor(ctx);
         eventFederationService.withdrawFederatedRegistration(
                 fed.stationId(), fed.partnerUid(), fed.eventId(), fed.remoteMemberId(), fed.eventDate());
+        signatures.withdrawn(
+                StationSession.from(ctx), fed.partnerUid(), fed.eventId(), fed.eventDate(), fed.remoteMemberId());
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -289,6 +313,8 @@ public class FederatedEventRoutes implements Routes {
         var fed = answeredFor(ctx);
         eventFederationService.undoFederatedWithdrawal(
                 fed.stationId(), fed.partnerUid(), fed.eventId(), fed.remoteMemberId(), fed.eventDate());
+        signatures.registered(
+                StationSession.from(ctx), fed.partnerUid(), fed.eventId(), fed.eventDate(), fed.remoteMemberId());
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -312,6 +338,8 @@ public class FederatedEventRoutes implements Routes {
         var fed = resolveFederatedRegContext(ctx);
         eventFederationService.confirmOwnFederatedMember(
                 fed.stationId(), fed.partnerUid(), fed.eventId(), fed.remoteMemberId(), fed.eventDate());
+        signatures.registered(
+                StationSession.from(ctx), fed.partnerUid(), fed.eventId(), fed.eventDate(), fed.remoteMemberId());
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -329,6 +357,51 @@ public class FederatedEventRoutes implements Routes {
             throw EventRefusal.MEMBER_NOT_YOURS_TO_REGISTER.raise();
         }
         return fed;
+    }
+
+    /**
+     * The documents a partner's appointment without registrations offers on its page for a date, asked of the
+     * partner the same way a registration asks for them.
+     */
+    @OpenApi(
+            path = "/api/v1/federated/{stationuid}/events/{id}/agreements",
+            methods = HttpMethod.GET,
+            summary = "The documents a partner station's event without registrations offers to sign",
+            tags = {"Federation"},
+            queryParams = @OpenApiParam(name = "date", required = true),
+            responses =
+                    @OpenApiResponse(status = "200", content = @OpenApiContent(from = PartnerAgreementOffer[].class)))
+    private void federatedAgreementOffers(Context ctx) {
+        StationSession session = StationSession.from(ctx);
+        var partner = resolvePartner(ctx, session.stationId());
+        ctx.json(signatures.offers(
+                session, partner.partnerStationId(), pathInt(ctx, "id"), eventDate(ctx.queryParam("date"))));
+    }
+
+    /**
+     * Signing the agreement of a partner's appointment without registrations for a member: the documents are
+     * filed in the member's documents here and signed here, and the signature says they will come. An
+     * appointment that takes registrations asks for them on registering instead.
+     */
+    @OpenApi(
+            path = "/api/v1/federated/{stationuid}/events/{id}/agreement",
+            methods = HttpMethod.POST,
+            summary = "Take on the agreement of a partner station's event without registrations for a member",
+            tags = {"Federation"},
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = FederatedRegBody.class)),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = PartnerDocumentToSign[].class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class)),
+                @OpenApiResponse(status = "403", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void federatedSignAgreement(Context ctx) {
+        var fed = resolveFederatedRegContext(ctx);
+        var event = eventFederationService
+                .getFederatedEvent(fed.stationId(), fed.partnerUid(), fed.eventId())
+                .event();
+        if (event.requiresRegistration()) throw EventRefusal.AGREEMENT_SIGNED_ON_REGISTERING.raise();
+        ctx.json(signatures.offered(
+                StationSession.from(ctx), fed.partnerUid(), fed.eventId(), fed.eventDate(), fed.remoteMemberId()));
     }
 
     /**
@@ -474,8 +547,11 @@ public class FederatedEventRoutes implements Routes {
 
     public record StatusResponse(String status) {}
 
-    /** What the station holding the appointment recorded for a registration sent to it. */
-    public record FederatedRegistrationAnswer(RegistrationStatus status) {}
+    /**
+     * What the station holding the appointment recorded for a registration sent to it, and the documents its
+     * appointment asks the member to sign, filed and signed here.
+     */
+    public record FederatedRegistrationAnswer(RegistrationStatus status, List<PartnerDocumentToSign> toSign) {}
 
     /**
      * Shared inputs for a federated register or withdraw request.

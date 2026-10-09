@@ -358,6 +358,26 @@ public class EventFederationService implements FederationServer {
         return federationRepository.findRegistration(eventId, partnerId, remoteMemberId, eventDate);
     }
 
+    /**
+     * Flags a partner's standing registration of a member for a date: the partner reported a signed
+     * agreement the appointment asked for withdrawn.
+     *
+     * @return whether a standing registration was flagged
+     */
+    public boolean flagAgreementWithdrawn(
+            int eventId, int partnerId, UUID remoteMemberId, LocalDate eventDate, Instant at) {
+        return federationRepository.flagAgreementWithdrawn(eventId, partnerId, remoteMemberId, eventDate, at);
+    }
+
+    /**
+     * Takes the flag of a withdrawn agreement off a partner's registration of a member for a date.
+     *
+     * @return whether a flag was taken off
+     */
+    public boolean clearAgreementWithdrawn(int eventId, int partnerId, UUID remoteMemberId, LocalDate eventDate) {
+        return federationRepository.clearAgreementWithdrawn(eventId, partnerId, remoteMemberId, eventDate);
+    }
+
     /** What a partner may do with a shared appointment: how many places, and who decides. */
     public EventPartnerPlaces partnerPlaces(int eventId, int partnerId) {
         return federationRepository.findPartnerPlaces(eventId, partnerId);

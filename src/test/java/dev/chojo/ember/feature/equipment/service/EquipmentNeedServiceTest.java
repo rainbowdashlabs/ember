@@ -10,6 +10,7 @@ import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.equipment.EquipmentTestSupport;
 import dev.chojo.ember.feature.federation.entity.LendingStatus;
 import dev.chojo.ember.feature.federation.repository.LendingRepository;
+import dev.chojo.ember.feature.inventory.entity.BorrowedPiece;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryArt;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
@@ -191,9 +192,8 @@ class EquipmentNeedServiceTest extends RepositoryTestBase {
         for (int copy = 1; copy <= 4; copy++) {
             inventoryRepo.createBorrowedItem(
                     drawer.id(),
-                    "NSV-L%02d".formatted(copy),
-                    "Geliehen " + copy,
-                    InventoryItemMetadata.empty(),
+                    new BorrowedPiece("NSV-L%02d".formatted(copy), "Geliehen " + copy, InventoryItemMetadata.empty()),
+                    partner.uid(),
                     partner.id(),
                     deliveredLine.id());
         }

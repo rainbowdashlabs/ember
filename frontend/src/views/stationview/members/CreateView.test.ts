@@ -56,7 +56,9 @@ async function createLena(dispatcher: Awaited<ReturnType<typeof wizard>>) {
 
 beforeEach(() => {
     vi.clearAllMocks()
-    api.members.invite.mockResolvedValue({id: 7, email: 'lena@example.org', firstName: 'Lena', lastName: 'Weber'})
+    api.members.invite.mockResolvedValue({
+        memberId: 70, id: 7, email: 'lena@example.org', firstName: 'Lena', lastName: 'Weber', linkPending: false,
+    })
     api.members.issueOneTimePassword.mockResolvedValue(ISSUED)
     api.stationMembers.listMembers.mockResolvedValue([{id: 70, accountId: 7}])
     api.profileFields.listFields.mockResolvedValue([])

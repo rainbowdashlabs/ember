@@ -356,9 +356,10 @@ public class StatisticsRepository {
     }
 
     /**
-     * What needs an instance administrator's attention.
+     * What needs an instance administrator's attention, as far as the database can count it.
      *
-     * @return the counts and the newest entries behind them
+     * @return the counts and the newest entries behind them, with no signing keys counted as locked:
+     *         whether a key opens is known only to the signing feature
      */
     public AdminOverview adminOverview() {
         var applications = recentApplications();
@@ -399,6 +400,7 @@ public class StatisticsRepository {
                         row.getInt("partners_pending"),
                         row.getInt("peers_unreachable"),
                         row.getInt("reports_open"),
+                        0,
                         applications,
                         reports))
                 .first()

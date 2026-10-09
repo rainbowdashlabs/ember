@@ -128,10 +128,10 @@ public class GenerationJobRunner implements TaskSource {
                     generator.requireComplete(prepared, DocumentRefusal.DOCUMENT_JOB_VALUES_MISSING);
                 }
                 generation.requireKept(prepared);
-                var rendered = batch.render(prepared);
+                var signed = generation.signForIssuer(prepared, batch.render(prepared));
                 Transactions.run(() -> {
                     var filed = generation.file(
-                            template, memberId, job.startedBy(), GenerationOrigin.MANAGER, prepared, rendered);
+                            template, memberId, job.startedBy(), GenerationOrigin.MANAGER, prepared, signed);
                     jobs.markFiled(job.id(), memberId, filed.generationId());
                 });
             } catch (RefusalResponse refused) {

@@ -363,7 +363,354 @@ public enum DocumentRefusal implements Refusal {
 
     /** A template list asked for by a kind of template or an order that does not exist. */
     DOCUMENT_TEMPLATE_LIST_UNKNOWN_CHOICE(
-            122, HttpStatus.BAD_REQUEST, "The templates cannot be listed by that kind or in that order");
+            122, HttpStatus.BAD_REQUEST, "The templates cannot be listed by that kind or in that order"),
+
+    /** A sealed document asked to be removed, alone or among others. */
+    DOCUMENT_SEALED_NOT_REMOVABLE(123, HttpStatus.CONFLICT, "A sealed document is kept and cannot be deleted"),
+
+    /** The members of a sealed document asked to be changed. */
+    DOCUMENT_SEALED_MEMBERS_FIXED(
+            124, HttpStatus.CONFLICT, "A sealed document stays with the members it was sealed for"),
+
+    /** A sealed version offered for a document that was not filed sealed. */
+    DOCUMENT_NOT_SEALED(125, HttpStatus.CONFLICT, "This document is not sealed, so it takes no sealed version"),
+
+    /** A sealed version built on a version of the document that another one has superseded since. */
+    DOCUMENT_SEALED_VERSION_OUTDATED(
+            126, HttpStatus.CONFLICT, "The document has a newer sealed version since, so this one was not filed"),
+
+    /** A signing authority's certificate or revocation list asked for by a serial number it never had. */
+    SIGNING_AUTHORITY_NOT_HERE(
+            127, HttpStatus.NOT_FOUND, "This installation has no signing authority with that serial number"),
+
+    /** A station's seal certificate asked for by a serial number none of its keys had. */
+    SEAL_CERTIFICATE_NOT_HERE(
+            128, HttpStatus.NOT_FOUND, "This station has no seal certificate with that serial number"),
+
+    /** The seal certificates of a station that does not exist or never sealed a document. */
+    SEALING_STATION_NOT_HERE(129, HttpStatus.NOT_FOUND, "No station here seals documents under that address"),
+
+    /** A seal check asked for without a file in the field it is read from. */
+    SEAL_CHECK_NO_FILE(130, HttpStatus.BAD_REQUEST, "No file was sent to check"),
+
+    /** A file sent for a seal check that is larger than a check takes. */
+    SEAL_CHECK_TOO_LARGE(131, HttpStatus.CONTENT_TOO_LARGE, "A file to check may be at most 25 MB"),
+
+    /** A file sent for a seal check that is not a PDF or cannot be read as one. */
+    SEAL_CHECK_NOT_A_PDF(132, HttpStatus.UNSUPPORTED_MEDIA_TYPE, "The file is not a PDF that can be read"),
+
+    /** A file sent for a seal check whose upload broke off before it was complete. */
+    SEAL_CHECK_NOT_RECEIVED(133, HttpStatus.BAD_REQUEST, "The file did not arrive completely, so it was not checked"),
+
+    /** A signing act asked of an account that has no proof a signature could be confirmed with. */
+    SIGNING_NO_PROOF(
+            134,
+            HttpStatus.FORBIDDEN,
+            "This account has nothing to confirm a signature with: no passkey, security key, authenticator app or password"),
+
+    /** A signature confirmed with a proof signing does not take, or one the account does not have. */
+    SIGNING_PROOF_NOT_ACCEPTED(135, HttpStatus.FORBIDDEN, "A signature cannot be confirmed this way"),
+
+    /** A passkey or security key answer that signed another challenge than this act's. */
+    SIGNING_CHALLENGE_MISMATCH(
+            136, HttpStatus.BAD_REQUEST, "The confirmation belongs to another document or another signing attempt"),
+
+    /** A passkey or security key answer that is not the answer to a request for confirmation. */
+    SIGNING_NOT_AN_ASSERTION(
+            137,
+            HttpStatus.BAD_REQUEST,
+            "The confirmation is not the answer a passkey or security key gives when asked to confirm"),
+
+    /** A passkey or security key answer given on another site than this installation. */
+    SIGNING_FOREIGN_ORIGIN(
+            138, HttpStatus.BAD_REQUEST, "The confirmation was given on another site than this installation"),
+
+    /** A passkey or security key answer without the authenticator checking who holds it. */
+    SIGNING_NOT_USER_VERIFIED(
+            139,
+            HttpStatus.FORBIDDEN,
+            "The passkey or security key did not check who is holding it, so it cannot confirm a signature"),
+
+    /** A passkey or security key answer that does not verify against a credential of the account. */
+    SIGNING_ASSERTION_INVALID(
+            140, HttpStatus.BAD_REQUEST, "The confirmation of the passkey or security key could not be verified"),
+
+    /** A request for signatures that does not exist at this station. */
+    SIGNING_REQUEST_NOT_FOUND(141, HttpStatus.NOT_FOUND, "No request for signatures exists here under that address"),
+
+    /** A signature field the request does not ask to be signed. */
+    SIGNING_FIELD_NOT_FOUND(142, HttpStatus.NOT_FOUND, "The document asks for no signature in that field"),
+
+    /** A signature field that was already signed, confirmed, waived or withdrawn. */
+    SIGNING_FIELD_NOT_OPEN(143, HttpStatus.CONFLICT, "This signature field no longer waits for a signature"),
+
+    /** A signature for a field that is not the signer's to sign, or not in the way it was given. */
+    SIGNING_FIELD_NOT_YOURS(144, HttpStatus.FORBIDDEN, "This signature field is not yours to sign"),
+
+    /** A signature given on other content or another statement than the request asks for. */
+    SIGNING_CONTENT_DIFFERS(
+            145,
+            HttpStatus.CONFLICT,
+            "The signature was given on another document or another statement than the one asked for"),
+
+    /** Signatures asked for on a generated document that does not exist at this station. */
+    SIGNING_GENERATION_NOT_FOUND(146, HttpStatus.NOT_FOUND, "No generated document exists here under that address"),
+
+    /** Signatures asked for on a generated document that is no longer filed. */
+    SIGNING_DOCUMENT_NOT_FILED(
+            147, HttpStatus.CONFLICT, "The generated document is no longer filed, so no signatures can be asked for"),
+
+    /** Signatures asked for on a filed document whose file is no longer the generated one. */
+    SIGNING_DOCUMENT_CHANGED(148, HttpStatus.CONFLICT, "The filed document is no longer the one that was generated"),
+
+    /** Signatures asked for on a document without a signature field. */
+    SIGNING_NO_FIELDS(149, HttpStatus.CONFLICT, "The document has no signature fields to sign"),
+
+    /**
+     * Signatures asked for twice on one generated document, or on two copies of a document an appointment asks
+     * one participant for on one date.
+     */
+    SIGNING_ALREADY_REQUESTED(150, HttpStatus.CONFLICT, "Signatures are already asked for on this document"),
+
+    /** Signatures asked for on a document about a member who left or was deleted. */
+    SIGNING_MEMBER_GONE(
+            151,
+            HttpStatus.CONFLICT,
+            "The member the document is about is no longer here, so no signatures can be asked for"),
+
+    /** A request for signatures withdrawn while it no longer waits for any. */
+    SIGNING_REQUEST_NOT_OPEN(152, HttpStatus.CONFLICT, "This request for signatures no longer waits for signatures"),
+
+    /** A request for signatures corrected after it was withdrawn or already replaced. */
+    SIGNING_REQUEST_ENDED(153, HttpStatus.CONFLICT, "This request for signatures was withdrawn or replaced"),
+
+    /** A corrected document about another member than the one it is to replace. */
+    SIGNING_CORRECTION_OTHER_MEMBER(
+            154, HttpStatus.CONFLICT, "A corrected document must be about the same member as the one it replaces"),
+
+    /** A signing act completed under a token that names no start of this account for this field. */
+    SIGNING_START_UNKNOWN(
+            155,
+            HttpStatus.NOT_FOUND,
+            "No signing attempt for this field waits under that token, so the signing has to start again"),
+
+    /** A signing act completed after its start expired. */
+    SIGNING_START_EXPIRED(
+            156, HttpStatus.GONE, "The signing attempt took longer than five minutes, so it has to start again"),
+
+    /** A signing act completed without the start token, the proof or the answer the proof needs. */
+    SIGNING_ANSWER_MISSING(
+            157, HttpStatus.BAD_REQUEST, "The confirmation came without the attempt, the proof or its answer"),
+
+    /** A signing act confirmed with an authenticator app code that was not right. */
+    SIGNING_CODE_WRONG(158, HttpStatus.FORBIDDEN, "That code was not right, so nothing was signed"),
+
+    /** A signing act confirmed with a password that was not right. */
+    SIGNING_PASSWORD_WRONG(159, HttpStatus.FORBIDDEN, "That password was not right, so nothing was signed"),
+
+    /** Confirming signing acts with a code, a passkey or a security key far more often than a person could. */
+    SIGNING_CONFIRMATION_TOO_OFTEN(160, HttpStatus.TOO_MANY_REQUESTS, Sentences.TOO_MANY_ATTEMPTS),
+
+    /** Confirming signing acts with the password far more often than a person could. */
+    SIGNING_PASSWORD_TOO_OFTEN(161, HttpStatus.TOO_MANY_REQUESTS, Sentences.TOO_MANY_ATTEMPTS),
+
+    /** A signing act on a document that is no longer filed or can no longer be read. */
+    SIGNING_DOCUMENT_GONE(162, HttpStatus.CONFLICT, "The document to sign is no longer filed, so it cannot be signed"),
+
+    /** A value typed at signing without the name of its field. */
+    SIGNING_ENTRY_UNNAMED(163, HttpStatus.BAD_REQUEST, "A value was filled in without naming its field"),
+
+    /** A field to fill in at signing that was sent empty. */
+    SIGNING_ENTRY_EMPTY(164, HttpStatus.BAD_REQUEST, "A field to fill in was left empty"),
+
+    /** A field filled in twice at signing. */
+    SIGNING_ENTRY_TWICE(165, HttpStatus.BAD_REQUEST, "A field was filled in twice"),
+
+    /** A field name or value typed at signing that is longer than a field holds. */
+    SIGNING_ENTRY_TOO_LONG(
+            166, HttpStatus.BAD_REQUEST, "A field name may be at most 64 characters long and a value at most 500"),
+
+    /** More fields filled in at signing than a document carries. */
+    SIGNING_TOO_MANY_ENTRIES(167, HttpStatus.BAD_REQUEST, "At most 20 fields can be filled in when signing"),
+
+    /** A seal check sent while the server is already busy with as many checks as it runs at once. */
+    SEAL_CHECKS_BUSY(
+            168, HttpStatus.SERVICE_UNAVAILABLE, "Too many documents are being checked right now, try again shortly"),
+
+    /** A signing act started while the account already holds as many unfinished starts as it may. */
+    SIGNING_STARTS_TOO_MANY(
+            169,
+            HttpStatus.TOO_MANY_REQUESTS,
+            "Too many signing attempts are open at once, finish one or wait a few minutes"),
+
+    /** A scan of a signed copy that was not handed in for this appointment of the station. */
+    DOCUMENT_SCAN_NOT_FOUND(170, HttpStatus.NOT_FOUND, "This scan was not handed in for this appointment"),
+
+    /** A scan confirmed or turned down that was already decided. */
+    DOCUMENT_SCAN_NOT_WAITING(171, HttpStatus.CONFLICT, "This scan was already confirmed or turned down"),
+
+    /** A scan handed in for a document whose signed paper copy was already confirmed. */
+    DOCUMENT_SCAN_ALREADY_CONFIRMED(
+            172, HttpStatus.CONFLICT, "The signed copy of this document was already confirmed, so no scan was taken"),
+
+    /** A scan turned down without saying why. */
+    DOCUMENT_SCAN_REASON_MISSING(173, HttpStatus.BAD_REQUEST, "Say briefly why the scan is turned down"),
+
+    /** A reason for turning a scan down that is longer than the participant is shown. */
+    DOCUMENT_SCAN_REASON_TOO_LONG(174, HttpStatus.BAD_REQUEST, "The reason may be at most 300 characters long"),
+
+    /** A recovery of the signing keys while every key in use still opens, so there is nothing to give up. */
+    SIGNING_KEYS_ALL_OPEN(175, HttpStatus.CONFLICT, "Every signing key still opens, so nothing is given up"),
+
+    /** A recovery confirmed for other keys than the ones that no longer open now. */
+    SIGNING_KEYS_CHANGED(
+            176,
+            HttpStatus.CONFLICT,
+            "The signing keys that no longer open have changed since the page was loaded, nothing was given up"),
+
+    /** A signature picture to save that was not sent. */
+    SIGNATURE_IMAGE_MISSING(177, HttpStatus.BAD_REQUEST, "No signature picture was sent"),
+
+    /** A signature picture that is no picture this server reads. */
+    SIGNATURE_IMAGE_NOT_A_PICTURE(
+            178, HttpStatus.UNSUPPORTED_MEDIA_TYPE, "A signature picture has to be a PNG, JPEG or WebP picture"),
+
+    /** A signature picture larger than one is taken. */
+    SIGNATURE_IMAGE_TOO_LARGE(179, HttpStatus.CONTENT_TOO_LARGE, "A signature picture may be at most 5 MB"),
+
+    /** A signature picture on which no signature stands out from the background. */
+    SIGNATURE_IMAGE_EMPTY(180, HttpStatus.BAD_REQUEST, "No signature can be made out on the picture"),
+
+    /** A signature picture sent without saying how it was made. */
+    SIGNATURE_IMAGE_SOURCE_UNKNOWN(
+            181, HttpStatus.BAD_REQUEST, "Say whether the signature was drawn, typed or uploaded"),
+
+    /** A signing act confirmed without a signature picture, where none is saved to use. */
+    SIGNING_MARK_MISSING(182, HttpStatus.BAD_REQUEST, "Draw a signature to sign with, since none is saved"),
+
+    /** What the signer of a signature field confirms, written longer than a statement may be. */
+    DOCUMENT_TEMPLATE_STATEMENT_TOO_LONG(183, HttpStatus.BAD_REQUEST, "A signature statement is too long"),
+
+    /** A retention period for signed documents outside the months a template may keep them. */
+    DOCUMENT_TEMPLATE_RETENTION_OUT_OF_RANGE(
+            184, HttpStatus.BAD_REQUEST, "Signed documents are kept for 0 to 240 months after the member left"),
+
+    /** A partner asking for the signing authorities without a challenge of 32 bytes in hexadecimal. */
+    AUTHORITY_CHALLENGE_MALFORMED(
+            190, HttpStatus.BAD_REQUEST, "The signing authorities are only stated against a fresh challenge"),
+
+    /** A partner asking a station for its signing authorities that has no federation key to sign them with. */
+    AUTHORITIES_CANNOT_BE_VOUCHED_FOR(
+            191, HttpStatus.CONFLICT, "This station has no federation key to vouch for its signing authorities"),
+
+    /** A scan handed in at the same moment as another one for the same document, participant and date. */
+    DOCUMENT_SCAN_HANDED_IN_AT_ONCE(
+            230,
+            HttpStatus.CONFLICT,
+            "Another scan of this document was handed in at the same moment, so this one was not filed"),
+
+    /** A sealed version a document does not have, or any version of a document that is not sealed. */
+    SEALED_VERSION_NOT_FOUND(250, HttpStatus.NOT_FOUND, "This document has no sealed version with that number"),
+
+    /** Signatures asked for again without naming the corrected document to ask them on. */
+    SIGNING_CORRECTION_NOT_NAMED(
+            251, HttpStatus.BAD_REQUEST, "Name the corrected document the signatures are to be asked for on"),
+
+    /** A field to fill in at signing without a label or without the signer who fills it in. */
+    DOCUMENT_TEMPLATE_FILL_IN_INCOMPLETE(
+            260, HttpStatus.BAD_REQUEST, "A field to fill in needs a label and the signer who fills it in"),
+
+    /** The label of a field to fill in at signing, longer than a label may be. */
+    DOCUMENT_TEMPLATE_FILL_IN_LABEL_TOO_LONG(
+            261, HttpStatus.BAD_REQUEST, "The label of a field to fill in may be at most 100 characters long"),
+
+    /** A maximum length of a field to fill in outside what a field holds. */
+    DOCUMENT_TEMPLATE_FILL_IN_LENGTH_OUT_OF_RANGE(
+            262, HttpStatus.BAD_REQUEST, "A field to fill in holds 1 to 500 characters"),
+
+    /** A field to fill in for a signer the template has no signature field for. */
+    DOCUMENT_TEMPLATE_FILL_IN_WITHOUT_SIGNATURE(
+            263, HttpStatus.BAD_REQUEST, "A field to fill in needs a signature field of the same signer"),
+
+    /** More fields to fill in for one signer than one act takes. */
+    DOCUMENT_TEMPLATE_FILL_IN_TOO_MANY(264, HttpStatus.BAD_REQUEST, "One signer fills in at most 20 fields"),
+
+    /** A value typed at signing for a field the document does not ask this signer to fill in. */
+    SIGNING_ENTRY_NOT_ASKED(265, HttpStatus.BAD_REQUEST, "The document does not ask this signer to fill in that field"),
+
+    /** A field the signer has to fill in, left out at signing. */
+    SIGNING_ENTRY_REQUIRED(266, HttpStatus.BAD_REQUEST, "A field that has to be filled in was left out"),
+
+    /** A value typed at signing that is longer than its field takes. */
+    SIGNING_ENTRY_LONGER_THAN_FIELD(267, HttpStatus.BAD_REQUEST, "A value is longer than its field takes"),
+
+    /** A field to fill in for the issuer, whose signature can be made without them filling anything in. */
+    DOCUMENT_TEMPLATE_FILL_IN_FOR_ISSUER(
+            268, HttpStatus.BAD_REQUEST, "A field to fill in cannot be for the member who issues the document"),
+
+    /** A document partners sign for a shared appointment that names a person, not only the appointment and the station. */
+    PARTNER_AGREEMENT_NAMES_A_PERSON(
+            270,
+            HttpStatus.BAD_REQUEST,
+            "A document partners sign may only name the appointment and the station, never a person"),
+
+    /** A document partners sign whose blocks depend on who it is for, so it would not read alike for everybody. */
+    PARTNER_AGREEMENT_DEPENDS_ON_THE_MEMBER(
+            271,
+            HttpStatus.BAD_REQUEST,
+            "A document partners sign has to read the same for everybody, without blocks for some only"),
+
+    /** A document partners sign that asks a signer whose fields depend on the member, or the issuer. */
+    PARTNER_AGREEMENT_SIGNER_NOT_SHARED(
+            272,
+            HttpStatus.BAD_REQUEST,
+            "A document partners sign may only ask the participant, the first guardian or any guardian to sign"),
+
+    /** A paper copy confirmed for a partner's member who does not take part on that date. */
+    PARTNER_AGREEMENT_REGISTRATION_NOT_HERE(
+            273, HttpStatus.NOT_FOUND, "This partner's member is not registered for the appointment on that day"),
+
+    /** A paper copy confirmed for a document the appointment does not ask partners to sign. */
+    PARTNER_AGREEMENT_NOT_ASKED(
+            274, HttpStatus.NOT_FOUND, "The appointment does not ask partners to sign this document"),
+
+    /** A paper copy confirmed for a partner's member whose signed copy already came back. */
+    PARTNER_AGREEMENT_ALREADY_SIGNED(
+            275, HttpStatus.CONFLICT, "The signed copy of this document already came back from the partner"),
+
+    /** The signed copy of a partner's agreement asked for where none came back. */
+    PARTNER_AGREEMENT_COPY_NOT_HERE(276, HttpStatus.NOT_FOUND, "No signed copy of this document came back yet"),
+
+    /** A signed agreement withdrawn by somebody who neither acts for its member nor signed it. */
+    SIGNATURE_WITHDRAWAL_NOT_YOURS(290, HttpStatus.FORBIDDEN, "This agreement is not yours to withdraw"),
+
+    /** A signed agreement withdrawn after it was withdrawn already, replaced or never agreed to. */
+    SIGNATURE_WITHDRAWAL_ENDED(291, HttpStatus.CONFLICT, "This agreement no longer stands"),
+
+    /** An agreement withdrawn that nobody signed yet, online or on paper. */
+    SIGNATURE_WITHDRAWAL_NOTHING_SIGNED(292, HttpStatus.CONFLICT, "Nothing on this agreement was signed yet"),
+
+    /** The reason for a withdrawal written longer than it may be. */
+    SIGNATURE_WITHDRAWAL_REASON_TOO_LONG(293, HttpStatus.BAD_REQUEST, "A reason may be at most 500 characters"),
+
+    /** Signing in one go started without a single field to sign. */
+    SIGNING_BATCH_EMPTY(300, HttpStatus.BAD_REQUEST, "Choose at least one field to sign"),
+
+    /** More fields signed in one go than one confirmation takes. */
+    SIGNING_BATCH_TOO_LARGE(301, HttpStatus.BAD_REQUEST, "At most 50 fields are signed in one go"),
+
+    /** The same field chosen twice for signing in one go. */
+    SIGNING_BATCH_FIELD_TWICE(302, HttpStatus.BAD_REQUEST, "A field was chosen twice"),
+
+    /** A signature picture sent for a person who signs none of the fields of the confirmation. */
+    SIGNING_PICTURE_FOR_NOBODY(
+            303, HttpStatus.BAD_REQUEST, "A signature picture was sent for somebody who signs nothing here"),
+
+    /** Two signature pictures sent for one person in one confirmation. */
+    SIGNING_PICTURE_TWICE(304, HttpStatus.BAD_REQUEST, "Two signature pictures were sent for one person"),
+
+    /** The signature record asked for a sealed version that carries no evidence of signatures. */
+    SIGNATURE_RECORD_NONE(305, HttpStatus.NOT_FOUND, "This version carries no record of signatures");
 
     private final Definition definition;
 

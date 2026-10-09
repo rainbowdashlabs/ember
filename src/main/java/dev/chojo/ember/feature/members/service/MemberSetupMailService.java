@@ -6,7 +6,9 @@
 package dev.chojo.ember.feature.members.service;
 
 import dev.chojo.ember.api.refusal.MemberRefusal;
+import dev.chojo.ember.feature.account.entity.AccountAction;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.account.service.AccountReach;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.mail.service.MailRecipientService;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -22,13 +24,18 @@ public class MemberSetupMailService {
     private final AccountRepository accountRepository;
     private final MailRecipientService mailRecipientService;
     private final AuthService authService;
+    private final AccountReach accountReach;
 
     @Inject
     public MemberSetupMailService(
-            AccountRepository accountRepository, MailRecipientService mailRecipientService, AuthService authService) {
+            AccountRepository accountRepository,
+            MailRecipientService mailRecipientService,
+            AuthService authService,
+            AccountReach accountReach) {
         this.accountRepository = accountRepository;
         this.mailRecipientService = mailRecipientService;
         this.authService = authService;
+        this.accountReach = accountReach;
     }
 
     /**
@@ -47,6 +54,7 @@ public class MemberSetupMailService {
         }
         var account =
                 accountRepository.findById(accountId).orElseThrow(MemberRefusal.ACCOUNT_NOT_HERE_ON_SETUP_MAIL::raise);
+        accountReach.require(member.stationId(), accountId, AccountAction.SETUP_MAIL);
         if (account.setupCompletedAt() != null || accountRepository.hasChosenPassword(account.id())) {
             throw MemberRefusal.ACCOUNT_ALREADY_SET_UP.raise();
         }

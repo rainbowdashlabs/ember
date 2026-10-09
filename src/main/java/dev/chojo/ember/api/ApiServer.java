@@ -226,7 +226,11 @@ public class ApiServer {
     }
 
     private static boolean isSensitivePath(String path) {
-        return path.contains("/auth/") || path.contains("/ai/") || path.contains("/admin/config/");
+        return path.contains("/auth/")
+                || path.contains("/ai/")
+                || path.contains("/admin/config/")
+                || path.contains("/signing/fields/")
+                || path.contains("/signing/batch/");
     }
 
     private static String traceHeaders(Map<String, String> headers) {
@@ -617,8 +621,7 @@ public class ApiServer {
         if (demoConfig.dev()) return;
         if (ctx.path().startsWith(API_PREFIX + "/remote/")) return;
 
-        boolean expensivePath = ctx.path().contains("/ai/");
-        RateLimits.enforce(GeneralRefusal.REQUESTS_TOO_OFTEN, globalRateLimiter.check(ctx.ip(), expensivePath));
+        RateLimits.enforce(GeneralRefusal.REQUESTS_TOO_OFTEN, globalRateLimiter.check(ctx.ip(), ctx.path()));
     }
 
     /**

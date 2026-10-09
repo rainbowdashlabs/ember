@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.twofactor.repository;
 import dev.chojo.ember.auth.TokenHasher;
 import dev.chojo.ember.feature.twofactor.entity.ChallengePurpose;
 import dev.chojo.ember.feature.twofactor.entity.WebAuthnChallenge;
+import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -56,6 +57,19 @@ public class WebAuthnChallengeRepository {
                         .bind("options_json", optionsJson)
                         .bind("expires_at", expiresAt, INSTANT_TIMESTAMP))
                 .insert();
+    }
+
+    /**
+     * Counts the challenges of one purpose an account holds that have not expired yet.
+     *
+     * @param purpose   the ceremony
+     * @param accountId the account
+     * @return how many it holds
+     */
+    public int countLive(ChallengePurpose purpose, int accountId) {
+        return SqlSupport.count("""
+                SELECT count(*) FROM webauthn_challenge
+                WHERE purpose = :purpose AND account_id = :account_id AND expires_at > now();""", call().bind("purpose", purpose.name()).bind("account_id", accountId));
     }
 
     /**

@@ -42,6 +42,7 @@ const KNOWN_SHARED_HELP_COMPONENTS = new Set([
     'helpcenter/stationview/news/CreateHelp.vue',
     'helpcenter/stationview/forms/BuilderHelp.vue',
     'helpcenter/stationview/forms/EditHelp.vue',
+    'helpcenter/stationview/SigningHelp.vue',
 ])
 
 const panels = [

@@ -72,6 +72,15 @@ describe('a refused session', () => {
         expect(location.href).toBe(`/login?redirect=${encodeURIComponent('/cluster/members?tab=1')}`)
     })
 
+    it.each(['G-017', 'G-019', 'G-020'])('sends a reader to the login when %s says the sign-in is gone', async (code) => {
+        openAt('/cross-station')
+
+        await requestRefused({code, message: 'Melde dich zuerst an'})
+
+        expect(location.href).toBe(`/login?redirect=${encodeURIComponent('/cross-station?tab=1')}`)
+        expect(getItem('station_id')).toBeNull()
+    })
+
     it('keeps a signed-in reader on the page when a named refusal says a confirmation was wrong', async () => {
         openAt('/station/members/groups')
 

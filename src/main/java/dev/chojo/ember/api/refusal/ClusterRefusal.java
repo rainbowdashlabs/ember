@@ -702,7 +702,32 @@ public enum ClusterRefusal implements Refusal {
     NO_CLUSTER_CHOSEN_FOR_FONTS(178, HttpStatus.BAD_REQUEST, Sentences.NO_CLUSTER_CHOSEN),
 
     /** The document templates of a cluster, asked for without saying which cluster. */
-    NO_CLUSTER_CHOSEN_FOR_DOCUMENT_TEMPLATES(179, HttpStatus.BAD_REQUEST, Sentences.NO_CLUSTER_CHOSEN);
+    NO_CLUSTER_CHOSEN_FOR_DOCUMENT_TEMPLATES(179, HttpStatus.BAD_REQUEST, Sentences.NO_CLUSTER_CHOSEN),
+
+    /** An address added to an association while a request to its account still waits for an answer. */
+    CLUSTER_LINK_ALREADY_WAITING(
+            180, HttpStatus.CONFLICT, "A request to that address still waits for an answer, so no second one was sent"),
+
+    /** A request of the association named by a uid that is not one of its own. */
+    CLUSTER_LINK_REQUEST_NOT_HERE(181, HttpStatus.NOT_FOUND, "That request is not one of this association"),
+
+    /** A request sent again that was answered, or that a newer request to the same address replaced. */
+    CLUSTER_LINK_NOTHING_TO_SEND_AGAIN(
+            182, HttpStatus.CONFLICT, "This request waits for nothing that could be sent again"),
+
+    /** A request sent again that the person declined. */
+    CLUSTER_LINK_DECLINED_NOT_SENT_AGAIN(
+            183, HttpStatus.CONFLICT, "The person declined the role, so the request was not sent again"),
+
+    /** A request sent again less than a day after it was last sent. */
+    CLUSTER_LINK_SENT_TOO_RECENTLY(
+            184, HttpStatus.TOO_MANY_REQUESTS, "The request was sent less than a day ago, so it was not sent again"),
+
+    /** The association's requests, asked for by somebody who has not said which association. */
+    NO_CLUSTER_CHOSEN_FOR_LINK_REQUESTS(185, HttpStatus.BAD_REQUEST, Sentences.NO_CLUSTER_CHOSEN),
+
+    /** The association behind its requests, gone between the session being opened and the request. */
+    CLUSTER_NOT_HERE_FOR_LINK_REQUESTS(186, HttpStatus.NOT_FOUND, Sentences.CLUSTER_NOT_HERE);
 
     private final Definition definition;
 

@@ -13,6 +13,8 @@ import dev.chojo.ember.auth.PasswordHasher;
 import dev.chojo.ember.conf.file.elements.Database;
 import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
+import dev.chojo.ember.feature.members.service.MemberLookupService;
+import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.lifecycle.Schedule;
@@ -20,6 +22,7 @@ import dev.chojo.ember.lifecycle.ScheduledTask;
 import dev.chojo.ember.lifecycle.TaskScheduler;
 import dev.chojo.ember.lifecycle.TaskSource;
 import jakarta.inject.Inject;
+import jakarta.inject.Provider;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,6 +57,8 @@ public class DemoService implements TaskSource {
     private final StationRepository stationRepository;
     private final ClusterRepository clusterRepository;
     private final StorageBackendResolver backendResolver;
+    private final Provider<MemberNameResolver> memberNames;
+    private final Provider<MemberLookupService> memberLookup;
     private final TaskScheduler taskScheduler;
     private volatile Instant lastActivity = Instant.now();
     private volatile boolean needsReset = false;
@@ -68,7 +73,11 @@ public class DemoService implements TaskSource {
             StationRepository stationRepository,
             ClusterRepository clusterRepository,
             StorageBackendResolver backendResolver,
+            Provider<MemberNameResolver> memberNames,
+            Provider<MemberLookupService> memberLookup,
             TaskScheduler taskScheduler) {
+        this.memberNames = memberNames;
+        this.memberLookup = memberLookup;
         this.taskScheduler = taskScheduler;
         this.demoConfig = demoConfig;
         this.databaseConfig = databaseConfig;
@@ -151,12 +160,16 @@ public class DemoService implements TaskSource {
      * <p>The identities are cached in memory, and so is every answer to "where does this station keep
      * its files". Station identifiers start again from the same numbers after a wipe, so a stale entry
      * hands the next station to hold a number the storage of the one that held it before, which reads
-     * as a file vanishing on the first move somebody makes.
+     * as a file vanishing on the first move somebody makes. Members are numbered again too, and their
+     * names and identifiers are cached the same way: kept, they named the next member to get a number
+     * after the one who held it before.
      */
     private void invalidateCachesOfTheDiscardedData() {
         stationRepository.invalidateIdentityCaches();
         clusterRepository.invalidateIdentityCache();
         backendResolver.invalidateAll();
+        memberNames.get().forgetAll();
+        memberLookup.get().invalidateAll();
     }
 
     private void checkIdleReset() {

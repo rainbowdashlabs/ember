@@ -209,6 +209,19 @@ public class NotificationText {
     public @Nullable String resolveNotificationUrl(String baseUrl, LinkHome home, NotificationData data) {
         var link = data.link();
         if (link == null) return null;
+        return resolveLinkUrl(baseUrl, home, link);
+    }
+
+    /**
+     * The address a link leads to, the same way {@link #resolveNotificationUrl} reads a notification's,
+     * for a mail that links into the app without being a notification.
+     *
+     * @param baseUrl public base URL of the deployment
+     * @param home    the station or association the link belongs to
+     * @param link    the link
+     * @return the resolved URL
+     */
+    public String resolveLinkUrl(String baseUrl, LinkHome home, NotificationData.NotificationLink link) {
         return NotificationPages.pathOf(link.route())
                 .map(template ->
                         withHome(baseUrl + filled(template, link.routeParams()) + queryString(link.query()), home))

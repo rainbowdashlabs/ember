@@ -185,7 +185,15 @@
     "FEDERATION_REQUEST_DECLINED": "Federation with {stationName} declined",
     "NAME_CHANGE_REQUESTED": "Name change: {memberName}",
     "NAME_CHANGE_APPROVED": "New name approved",
-    "NAME_CHANGE_DENIED": "New name declined"
+    "NAME_CHANGE_DENIED": "New name declined",
+    "SIGNATURE_REQUESTED": "Signature requested: {documentTitle} - {memberName}",
+    "SIGNATURE_REMINDER": "Signature still missing: {documentTitle} - {memberName}",
+    "DOCUMENT_SIGNED": "Signed: {documentTitle} - {signerName}",
+    "DOCUMENT_SCAN_REJECTED": "Scan declined: {documentName} - {memberName}",
+    "ACCOUNT_LINK_ACCEPTED": "Account linked: {memberName}",
+    "ASSOCIATION_LINK_ACCEPTED": "Role accepted: {personName}",
+    "SIGNATURE_WITHDRAWN": "Signature withdrawn: {documentTitle} - {memberName}",
+    "PARTNER_SIGNATURE_WITHDRAWN": "Signature withdrawn: {documentTitle} - {stationName}"
   },
   "digest": {
     "subject.one": "{stationName}: 1 new notification",
@@ -251,7 +259,15 @@
     "FEDERATION_REQUEST_DECLINED": "Federation",
     "NAME_CHANGE_REQUESTED": "Name Change",
     "NAME_CHANGE_APPROVED": "Name Change",
-    "NAME_CHANGE_DENIED": "Name Change"
+    "NAME_CHANGE_DENIED": "Name Change",
+    "SIGNATURE_REQUESTED": "Signature",
+    "SIGNATURE_REMINDER": "Signature",
+    "DOCUMENT_SIGNED": "Signature",
+    "DOCUMENT_SCAN_REJECTED": "Documents to Bring",
+    "ACCOUNT_LINK_ACCEPTED": "Account",
+    "ASSOCIATION_LINK_ACCEPTED": "Account",
+    "SIGNATURE_WITHDRAWN": "Signature",
+    "PARTNER_SIGNATURE_WITHDRAWN": "Signature"
   },
   "message": {
     "notification.newNews": "{title} - by {author}",
@@ -328,6 +344,16 @@
     "notification.nameChangeRequested": "{memberName} asked to be named {requestedName}",
     "notification.nameChangeApproved": "Your new name {newName} was approved",
     "notification.nameChangeDenied": "Your new name {requestedName} was declined",
-    "notification.nameChangeDenied.WITH_REASON": "Your new name {requestedName} was declined: {reason}"
+    "notification.nameChangeDenied.WITH_REASON": "Your new name {requestedName} was declined: {reason}",
+    "notification.signatureRequested": "{documentTitle} for {memberName} is waiting for a signature",
+    "notification.signatureReminder": "{documentTitle} for {memberName} is still waiting for a signature",
+    "notification.documentSigned": "{signerName} signed {documentTitle}",
+    "notification.documentSigned.FOR_MEMBER": "{signerName} signed {documentTitle} for {memberName}",
+    "notification.documentScanRejected": "The scan of {documentName} for {memberName} for {eventName} on {eventDate} was declined: {reason}",
+    "notification.accountLinkAccepted": "{memberName} linked their own account to the member",
+    "notification.associationLinkAccepted": "{personName} accepted the role in the association",
+    "notification.signatureWithdrawn": "{withdrawnByName} withdrew the signature on {documentTitle} for {memberName}",
+    "notification.partnerSignatureWithdrawn": "A signature on {documentTitle} was withdrawn at {stationName}",
+    "notification.partnerSignatureWithdrawn.NAMED": "The signature on {documentTitle} for {memberName} was withdrawn at {stationName}"
   }
 }

@@ -160,6 +160,27 @@ public class S3StorageBackend implements StorageBackend {
         }
     }
 
+    /** A {@code CopyObject} inside the bucket, which keeps the metadata and never moves the bytes through Ember. */
+    @Override
+    public boolean copy(String sourceKey, String targetKey) {
+        try {
+            CopyObjectRequest.Builder copy = CopyObjectRequest.builder()
+                    .sourceBucket(config.bucket())
+                    .sourceKey(key(sourceKey))
+                    .destinationBucket(config.bucket())
+                    .destinationKey(key(targetKey))
+                    .metadataDirective(MetadataDirective.COPY);
+            config.sseAlgorithm().ifPresent(copy::serverSideEncryption);
+            s3.copyObject(copy.build());
+            return true;
+        } catch (NoSuchKeyException e) {
+            return false;
+        } catch (S3Exception e) {
+            if (e.statusCode() == 404) return false;
+            throw new StorageException("S3 copy failed from " + sourceKey + " to " + targetKey, e);
+        }
+    }
+
     @Override
     public Optional<StoredStream> read(String fullKey) {
         String objectKey = key(fullKey);

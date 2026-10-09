@@ -13,6 +13,7 @@ import SidebarLink from '@/components/navigation/SidebarLink.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
+import PublicStationSealNotice from './publicstationshell/PublicStationSealNotice.vue'
 import {usePublicFailure} from '@/composables/usePublicFailure'
 import {apiUrl} from '@/util/apiUrl'
 import {socialMeta, stationLogoImage, useAbsoluteUrl} from '@/util/socialMeta'
@@ -196,5 +197,6 @@ useHead(computed(() => {
     </template>
 
     <slot><RouterView/></slot>
+    <PublicStationSealNotice v-if="station.sealAuthorities.length > 0" :authorities="station.sealAuthorities"/>
   </SidebarLayout>
 </template>

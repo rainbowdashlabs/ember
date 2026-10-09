@@ -9,7 +9,9 @@ import dev.chojo.ember.api.MemberIdentity;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.refusal.MemberRefusal;
+import dev.chojo.ember.feature.account.entity.AccountAction;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.account.service.AccountReach;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.cluster.entity.StationKind;
 import dev.chojo.ember.feature.documents.service.DocumentService;
@@ -43,6 +45,7 @@ public class StationMemberService {
     private final AuthService authService;
     private final MemberLookupService lookupService;
     private final DocumentService documentService;
+    private final AccountReach accountReach;
 
     @Inject
     public StationMemberService(
@@ -51,13 +54,15 @@ public class StationMemberService {
             AccountRepository accountRepository,
             AuthService authService,
             MemberLookupService lookupService,
-            DocumentService documentService) {
+            DocumentService documentService,
+            AccountReach accountReach) {
         this.memberRepository = memberRepository;
         this.stationRepository = stationRepository;
         this.accountRepository = accountRepository;
         this.authService = authService;
         this.lookupService = lookupService;
         this.documentService = documentService;
+        this.accountReach = accountReach;
     }
 
     public List<StationMember> findByStation(int stationId) {
@@ -215,6 +220,9 @@ public class StationMemberService {
 
         var member = memberRepository.findById(memberId).orElse(null);
         Integer accountId = member == null ? null : member.accountId();
+        if (addingLogin && member != null && accountId != null) {
+            accountReach.require(member.stationId(), accountId, AccountAction.SETUP_MAIL);
+        }
         if (addingLogin && accountId != null) {
             var account = accountRepository.findById(accountId).orElse(null);
             if (account == null || account.email() == null) {

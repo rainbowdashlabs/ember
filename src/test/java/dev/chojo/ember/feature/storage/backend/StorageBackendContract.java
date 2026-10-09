@@ -188,6 +188,69 @@ public abstract class StorageBackendContract {
         }
     }
 
+    @Test
+    void aCopyCarriesTheBytesAndTheMetadataAndLeavesTheSource() throws IOException {
+        backend.store(
+                "scope/cat/original",
+                new ByteArrayInputStream("copied bytes".getBytes(StandardCharsets.UTF_8)),
+                12,
+                ObjectMetadata.of("application/json", "original.json"));
+        String sealed;
+        try (var stream = backend.read("scope/cat/original").orElseThrow()) {
+            sealed = stream.metadata().sha256();
+        }
+
+        assertTrue(backend.copy("scope/cat/original", "scope/other/deep/copy"));
+
+        for (String key : List.of("scope/cat/original", "scope/other/deep/copy")) {
+            try (var stream = backend.read(key).orElseThrow()) {
+                assertEquals("copied bytes", new String(stream.body().readAllBytes(), StandardCharsets.UTF_8));
+                assertEquals("application/json", stream.metadata().contentType());
+                assertEquals(
+                        "original.json", stream.metadata().originalFilename().orElseThrow());
+                assertEquals(sealed, stream.metadata().sha256());
+            }
+        }
+    }
+
+    @Test
+    void aCopyReplacesWhatIsThere() throws IOException {
+        store("scope/cat/new", "new bytes");
+        store("scope/cat/old", "old bytes, longer");
+
+        assertTrue(backend.copy("scope/cat/new", "scope/cat/old"));
+
+        try (var stream = backend.read("scope/cat/old").orElseThrow()) {
+            assertEquals("new bytes", new String(stream.body().readAllBytes(), StandardCharsets.UTF_8));
+        }
+        assertEquals(List.of("scope/cat/new", "scope/cat/old"), backend.listByPrefix("scope/cat"));
+    }
+
+    @Test
+    void aLargeObjectIsCopiedWhole() throws IOException {
+        byte[] large = new byte[LARGE_BYTES];
+        new Random(11).nextBytes(large);
+        backend.store(
+                "scope/cat/large-source",
+                new ByteArrayInputStream(large),
+                large.length,
+                ObjectMetadata.of("application/octet-stream"));
+
+        assertTrue(backend.copy("scope/cat/large-source", "scope/cat/large-copy"));
+
+        try (var stream = backend.read("scope/cat/large-copy").orElseThrow()) {
+            assertEquals(LARGE_BYTES, stream.contentLength());
+            assertEquals(sha256(new ByteArrayInputStream(large)), sha256(stream.body()));
+        }
+    }
+
+    @Test
+    void copyingAMissingKeyCopiesNothing() {
+        assertFalse(backend.copy("scope/cat/missing", "scope/cat/target"));
+
+        assertFalse(backend.exists("scope/cat/target"));
+    }
+
     /**
      * Stores a short text under a key.
      *

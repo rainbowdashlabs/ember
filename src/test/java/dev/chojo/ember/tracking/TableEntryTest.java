@@ -24,7 +24,9 @@ class TableEntryTest {
         assertEquals(List.of(), entry.columns());
         assertEquals(List.of(), entry.foreignKeys());
         assertEquals(List.of(), entry.lookups());
-        assertEquals(List.of(), new TransferContext(TrackingStatus.TRACKED, null, null, null).ignoredColumns());
+        assertEquals(List.of(), new TransferContext(TrackingStatus.TRACKED, null, null, null, null).ignoredColumns());
+        assertEquals(
+                List.of(), new TransferContext(TrackingStatus.TRACKED, null, null, null, null).optionalReferences());
         assertEquals(List.of(), new GdprExportContext(TrackingStatus.TRACKED, null, null, null).identityColumns());
         assertEquals(List.of(), new GdprDeletionContext(TrackingStatus.TRACKED, null, null).strategies());
     }

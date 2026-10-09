@@ -60,6 +60,18 @@ class StationMemberRepositoryTest extends RepositoryTestBase {
         memberId2 = m2.id();
     }
 
+    /** An account is one member of a station at most; members without an account are as many as there are. */
+    @Test
+    @Order(2)
+    void anAccountIsAtMostOneMemberOfAStation() {
+        assertThrows(RuntimeException.class, () -> stationMemberRepo.create(station.id(), account1.id()));
+        var unlinked = stationMemberRepo.createWithoutAccount(station.id(), "Ohne Konto");
+        var alsoUnlinked = stationMemberRepo.createWithoutAccount(station.id(), "Auch ohne Konto");
+        assertThrows(RuntimeException.class, () -> stationMemberRepo.linkAccount(unlinked.id(), account2.id()));
+        stationMemberRepo.delete(unlinked.id());
+        stationMemberRepo.delete(alsoUnlinked.id());
+    }
+
     @Test
     @Order(2)
     void findById() {

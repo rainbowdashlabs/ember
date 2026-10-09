@@ -12,6 +12,7 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StepUpCategory;
 import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.account.entity.AccountAction;
 import dev.chojo.ember.feature.account.entity.IssuedOneTimePassword;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.account.service.AuthService.EmailChangeResult;
@@ -103,7 +104,11 @@ class MemberRoutesTest {
         });
 
         verify(memberAccounts)
-                .actionableAccount(eq(TARGET), any(), eq(MemberRefusal.ACCOUNT_NOT_HERE_ON_PASSWORD_RESET));
+                .actionableAccount(
+                        eq(TARGET),
+                        any(),
+                        eq(MemberRefusal.ACCOUNT_NOT_HERE_ON_PASSWORD_RESET),
+                        eq(AccountAction.PASSWORD_RESET));
     }
 
     @Test
@@ -119,7 +124,11 @@ class MemberRoutesTest {
         });
 
         verify(memberAccounts)
-                .actionableAccount(eq(TARGET), any(), eq(MemberRefusal.ACCOUNT_NOT_HERE_ON_ONBOARDING_AGAIN));
+                .actionableAccount(
+                        eq(TARGET),
+                        any(),
+                        eq(MemberRefusal.ACCOUNT_NOT_HERE_ON_ONBOARDING_AGAIN),
+                        eq(AccountAction.ONBOARD_AGAIN));
     }
 
     @Test

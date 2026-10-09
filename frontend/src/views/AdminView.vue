@@ -101,6 +101,10 @@ onMounted(() => {
                        to="/admin/settings/security/two-factor" @navigate="close">
             {{ t('sidebar.securityTwoFactor') }}
           </SidebarLink>
+          <SidebarLink :icon="['fas', 'file-signature']" name="admin-security-signing-keys"
+                       to="/admin/settings/security/signing-keys" @navigate="close">
+            {{ t('sidebar.securitySigningKeys') }}
+          </SidebarLink>
         </SidebarGroup>
         <SidebarLink data-onboarding="nav.admin.legal" :icon="['fas', 'scale-balanced']" name="admin-legal" to="/admin/settings/legal" @navigate="close">
           {{ t('sidebar.legal') }}

@@ -214,4 +214,11 @@ export default {
     'CU-177': PRONOUN_TOO_LONG,
     'CU-178': CHOOSE_A_CLUSTER,
     'CU-179': CHOOSE_A_CLUSTER,
+    'CU-180': 'An diese Adresse wartet schon eine Anfrage auf Antwort, es wurde keine zweite gesendet',
+    'CU-181': 'Diese Anfrage gehört nicht zu diesem Verband',
+    'CU-182': 'Für diese Anfrage gibt es nichts, das erneut gesendet werden könnte',
+    'CU-183': 'Die Person hat die Rolle abgelehnt, die Anfrage wurde nicht erneut gesendet',
+    'CU-184': 'Die Anfrage wurde vor weniger als einem Tag gesendet und wurde nicht erneut gesendet',
+    'CU-185': CHOOSE_A_CLUSTER,
+    'CU-186': CLUSTER_NOT_HERE,
 }

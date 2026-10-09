@@ -47,9 +47,10 @@ export interface Cast {
     /**
      * A guardian each for the specs that need one. They used to share the first guardian the demo
      * lists, concurrently, and a guardian speaks for somebody: two stories doing that at once
-     * settle it between them.
+     * settle it between them. The signing stories' guardian has no second factor, so the password
+     * confirms a signature: a code from the demo authenticator could be used only once per window.
      */
-    guardians: Record<'guardianSpec' | 'sidebarSpec' | 'passkeySpec', CastMember>
+    guardians: Record<'guardianSpec' | 'sidebarSpec' | 'passkeySpec' | 'signingSpec', CastMember>
     /**
      * The members the passkey stories act as, one apiece. Several of them end a session or refuse a
      * password on purpose, so no two may be the same person.

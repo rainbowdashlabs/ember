@@ -35,6 +35,17 @@ const UNSAFE_METHODS: ReadonlySet<string> = new Set(['post', 'put', 'patch', 'de
  */
 const MAX_STEP_UP_ATTEMPTS = 2
 
+/**
+ * The refusals that say the sign-in itself is gone: no session at all, none on the route, or one that
+ * has ended. Any other named 401 is about a single confirmation and leaves the reader where they are.
+ */
+const SIGNED_OUT_CODES: ReadonlySet<string> = new Set(['G-017', 'G-019', 'G-020'])
+
+/** Whether a 401 means the session is over rather than one confirmation being wrong. */
+function signedOut(body: ApiErrorBody | undefined): boolean {
+    return !body?.code || SIGNED_OUT_CODES.has(body.code)
+}
+
 const STEP_UP_CATEGORIES: readonly StepUpCategory[] = [
     'ACCOUNT_SECURITY',
     'FEDERATION',
@@ -197,7 +208,7 @@ client.interceptors.response.use(
                         stepUpErr instanceof StepUpCancelledError ? (error as AxiosError) : stepUpErr,
                     ))
             }
-            if (config?._carriedSession && !body?.code) {
+            if (config?._carriedSession && signedOut(body)) {
                 removeItem('station_id')
                 removeItem('cluster_id')
                 const currentPath = window.location.pathname

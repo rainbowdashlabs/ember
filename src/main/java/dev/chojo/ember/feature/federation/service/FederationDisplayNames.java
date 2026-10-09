@@ -43,7 +43,7 @@ public final class FederationDisplayNames {
      */
     public static @Nullable String knownPartnerName(StationRepository stationRepository, FederationPartner partner) {
         return stationRepository
-                .findByUid(partner.partnerStationId())
+                .findHereByUid(partner.partnerStationId())
                 .map(Station::name)
                 .or(() -> Optional.ofNullable(partner.partnerStationName()))
                 .filter(s -> !s.isBlank())

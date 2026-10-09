@@ -14,5 +14,7 @@ public enum PdfFieldKind {
     /** Draws a cross into its box where its value says yes. */
     CHECK,
     /** Becomes an empty signature field for one signer. */
-    SIGNATURE
+    SIGNATURE,
+    /** Becomes an empty text field the signer of one signature field types into when they sign. */
+    FILL_IN
 }

@@ -112,6 +112,22 @@ public abstract class GeneratorTestBase extends RepositoryTestBase {
      * @return its generator
      */
     static Wiring wire(Station station, StationRepository stations, StationMemberRepository members) {
+        return wire(station, stations, members, IssuerSigning.NONE);
+    }
+
+    /**
+     * The generator wired for a station, signing letters for their issuer the given way.
+     *
+     * @param station the station
+     * @param signing what signs a letter for its issuer before it is filed
+     * @return its generator
+     */
+    static Wiring wire(Station station, IssuerSigning signing) {
+        return wire(station, stationRepo, stationMemberRepo, signing);
+    }
+
+    private static Wiring wire(
+            Station station, StationRepository stations, StationMemberRepository members, IssuerSigning signing) {
         var clock = new MovableClock(NOW);
         var owner = new Owner.Station(station.id());
         var backend = localStorage();
@@ -163,7 +179,7 @@ public abstract class GeneratorTestBase extends RepositoryTestBase {
                 clock);
         var log = new DocumentGenerationRepository();
         var generation = new DocumentGenerationService(
-                templates, generator, documents, newDocumentIntake(), log, checks, issuers, clock);
+                templates, generator, documents, newDocumentIntake(), log, checks, issuers, signing, clock);
         return new Wiring(station, owner, clock, templates, generator, generation, documents, log, issuers);
     }
 

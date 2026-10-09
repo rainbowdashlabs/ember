@@ -7,12 +7,14 @@ package dev.chojo.ember.feature.legal.service;
 
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.documents.entity.DocumentTag;
+import dev.chojo.ember.feature.documents.entity.SealedVersion;
 import dev.chojo.ember.feature.documents.repository.DocumentRepository;
 import dev.chojo.ember.feature.documents.service.DocumentService;
 import dev.chojo.ember.feature.knowledgebase.service.KbFileStorageService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberLookupService;
+import dev.chojo.ember.feature.signing.service.SignatureImageService;
 import dev.chojo.ember.tracking.DataTracking;
 import dev.chojo.ember.tracking.DataTrackingLoader;
 import dev.chojo.ember.tracking.IdentityType;
@@ -62,6 +64,7 @@ public class GdprExportService {
     private final KbFileStorageService kbFileStorageService;
     private final DocumentRepository documentRepository;
     private final DocumentService documentService;
+    private final SignatureImageService signatureImages;
     private final GenericGdprExporter engine;
 
     @Inject
@@ -71,13 +74,15 @@ public class GdprExportService {
             MemberLookupService memberLookupService,
             KbFileStorageService kbFileStorageService,
             DocumentRepository documentRepository,
-            DocumentService documentService) {
+            DocumentService documentService,
+            SignatureImageService signatureImages) {
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.memberLookupService = memberLookupService;
         this.kbFileStorageService = kbFileStorageService;
         this.documentRepository = documentRepository;
         this.documentService = documentService;
+        this.signatureImages = signatureImages;
         DataTracking t;
         try {
             t = DataTrackingLoader.loadFromClasspath();
@@ -123,7 +128,8 @@ public class GdprExportService {
     }
 
     /**
-     * ZIP archive containing {@code data.json}, an optional {@code data.pdf}, and the user's KB files.
+     * ZIP archive containing {@code data.json}, an optional {@code data.pdf}, the user's signature picture
+     * where one is saved, their KB files and their member documents.
      */
     public byte[] exportAccountDataAsZip(int accountId, @Nullable String locale) {
         var data = exportAccountData(accountId);
@@ -145,6 +151,9 @@ public class GdprExportService {
             } catch (Exception e) {
                 log.warn("Failed to generate GDPR export PDF, skipping", e);
             }
+
+            var signature = signatureImages.image(accountId);
+            if (signature.isPresent()) writeEntry(zip, "files/signature.png", signature.get());
 
             var memberships = stationMemberRepository.findAllByAccountId(accountId);
             for (var member : memberships) {
@@ -235,21 +244,57 @@ public class GdprExportService {
                             documentRepository.findTags(document.id()).stream()
                                     .map(DocumentTag::name)
                                     .toList());
+                    entry.put("sealed", document.sealed());
+                    entry.put(
+                            "sealedVersions",
+                            documentService.sealedVersions(document).stream()
+                                    .map(GdprExportService::exportSealedVersion)
+                                    .toList());
                     return (Map<String, Object>) entry;
                 })
                 .toList();
     }
 
-    /** The documents themselves, so the export holds the files and not only a list of them. */
+    /** One sealed version of a document: which file it is and how it was sealed, without the bytes. */
+    private static Map<String, Object> exportSealedVersion(SealedVersion version) {
+        var entry = new LinkedHashMap<String, Object>();
+        entry.put("version", version.version());
+        entry.put("sha256", version.sha256());
+        entry.put("sizeBytes", version.sizeBytes());
+        entry.put("sealLevel", version.sealLevel().name());
+        entry.put("timestampedBy", version.timestampedBy());
+        entry.put("sealedAt", version.sealedAt().toString());
+        var supersededAt = version.supersededAt();
+        entry.put("supersededAt", supersededAt == null ? null : supersededAt.toString());
+        return entry;
+    }
+
+    /**
+     * The documents themselves, so the export holds the files and not only a list of them. A sealed
+     * document carries the file it serves under its usual name and every version it superseded beside
+     * it, since each was a state of the document that named the member.
+     */
     private void addMemberDocuments(ZipOutputStream zip, int stationId, int memberId) throws IOException {
         for (var document : documentRepository.findByMember(stationId, memberId, true)) {
-            var data = documentService.read(document);
-            if (data.isEmpty()) continue;
             String safeName = document.fileName().replaceAll("[^a-zA-Z0-9äöüÄÖÜß._\\- ]", "_");
-            zip.putNextEntry(new ZipEntry("files/documents/" + document.id() + "-" + safeName));
-            zip.write(data.get());
-            zip.closeEntry();
+            var data = documentService.read(document);
+            if (data.isPresent()) writeEntry(zip, "files/documents/" + document.id() + "-" + safeName, data.get());
+            for (var version : documentService.sealedVersions(document)) {
+                if (version.current()) continue;
+                var superseded = documentService.read(document, version);
+                if (superseded.isEmpty()) continue;
+                writeEntry(
+                        zip,
+                        "files/documents/" + document.id() + "-v" + version.version() + "-" + safeName,
+                        superseded.get());
+            }
         }
+    }
+
+    private static void writeEntry(ZipOutputStream zip, String name, byte[] data) throws IOException {
+        zip.putNextEntry(new ZipEntry(name));
+        zip.write(data);
+        zip.closeEntry();
     }
 
     /**

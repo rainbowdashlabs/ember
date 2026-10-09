@@ -33,6 +33,9 @@ onMounted(() => {
       <SidebarLink :icon="['fas', 'image']" name="account-avatar" to="/account/avatar" @navigate="close">
         {{ t('sidebar.accountAvatar') }}
       </SidebarLink>
+      <SidebarLink :icon="['fas', 'signature']" name="account-signature" to="/account/signature" @navigate="close">
+        {{ t('sidebar.accountSignature') }}
+      </SidebarLink>
       <SidebarLink :icon="['fas', 'palette']" name="account-theming" to="/account/theming" @navigate="close">
         {{ t('sidebar.accountTheming') }}
       </SidebarLink>
@@ -41,6 +44,9 @@ onMounted(() => {
       </SidebarLink>
       <SidebarLink :icon="['fas', 'shield']" name="account-security" to="/account/security" @navigate="close">
         {{ t('sidebar.accountSecurity') }}
+      </SidebarLink>
+      <SidebarLink :icon="['fas', 'link']" name="account-links" to="/account/links" @navigate="close">
+        {{ t('sidebar.accountLinks') }}
       </SidebarLink>
       <SidebarLink :icon="['fas', 'shield-halved']" name="account-gdpr" to="/account/gdpr" @navigate="close">
         {{ t('sidebar.accountGdpr') }}

@@ -11,6 +11,7 @@ import de.chojo.sadu.queries.converter.StandardValueConverter;
 import dev.chojo.ember.feature.cluster.entity.StationKind;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
+import dev.chojo.ember.feature.station.entity.MovedAway;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.StationModule;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
@@ -138,6 +139,55 @@ public class StationRepository {
                 .single(call().bind("uid", uid, StandardValueConverter.UUID_STRING))
                 .map(Station.map())
                 .first();
+    }
+
+    /**
+     * Finds a station that runs on this installation by its external UUID.
+     *
+     * <p>A station that moved to another installation leaves a read-only copy here under the same
+     * uid. That copy is still the station its managers open here, which {@link #findByUid(UUID)}
+     * answers, but it is not where the station runs: a partner, a loan or a federation request that
+     * names the uid means the station at its new address.
+     *
+     * @param uid the station UUID
+     * @return the station, or empty when none runs here under that uid
+     */
+    public Optional<Station> findHereByUid(UUID uid) {
+        return query("SELECT %s FROM station WHERE uid = :uid::UUID AND moved_away_at IS NULL;", STATION_COLUMNS)
+                .single(call().bind("uid", uid, StandardValueConverter.UUID_STRING))
+                .map(Station.map())
+                .first();
+    }
+
+    /**
+     * Whether a station is only the copy left here when it moved to another installation, and where to.
+     *
+     * @param stationId the station
+     * @return the move, or empty when the station runs here
+     */
+    public Optional<MovedAway> movedAway(int stationId) {
+        return query("SELECT moved_away_at, moved_to FROM station WHERE id = :id AND moved_away_at IS NOT NULL;")
+                .single(call().bind("id", stationId))
+                .map(row -> new MovedAway(row.get("moved_away_at", INSTANT_TIMESTAMP), row.getString("moved_to")))
+                .first();
+    }
+
+    /**
+     * Records that a station finished moving to another installation, leaving its copy here behind.
+     *
+     * @param stationId the station that moved
+     * @param movedTo   the address of the installation it moved to, or {@code null} where none is known
+     * @return {@code true} when the station was marked
+     */
+    public boolean markMovedAway(int stationId, @Nullable String movedTo) {
+        return query("""
+                UPDATE station
+                SET moved_away_at = coalesce(moved_away_at, now()),
+                    moved_to      = :moved_to
+                WHERE id = :id;""")
+                .single(call().bind("id", stationId).bind("moved_to", movedTo))
+                .update()
+                .changed();
     }
 
     /**

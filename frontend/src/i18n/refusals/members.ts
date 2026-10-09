@@ -255,10 +255,6 @@ export default {
     'M-202': ONE_TIME_PASSWORD_FOR_YOURSELF,
     'M-203': 'Dieses Konto verwaltet die Instanz, ein Einmalpasswort kann dafür nur die Administration '
         + 'der Instanz erstellen',
-    'M-204': 'Dieses Konto hat eine Rolle in einem Verband, ein Einmalpasswort kann dafür nur die Administration '
-        + 'der Instanz erstellen',
-    'M-205': 'Dieses Konto gehört auch zu einer anderen Wache, ein Einmalpasswort kann dafür nur die '
-        + 'Administration der Instanz erstellen',
     'M-206': ONE_TIME_PASSWORD_PASSKEYS_ONLY,
     'M-207': 'Dein Einmalpasswort ist abgelaufen. Bitte frag deine Administration nach einem neuen',
     'M-208': 'Dieser Namenswunsch ist nicht mehr offen, vielleicht wurde schon darüber entschieden',
@@ -270,4 +266,14 @@ export default {
     'M-214': 'Ein privates Tag kann niemanden auswählen, es kennzeichnet Mitglieder nur',
     'M-215': 'Dieses Tag legt noch Zielgruppen oder Zugriffe fest und kann deshalb noch nicht privat werden',
     'M-216': 'Ein privates Tag kann nicht in eine Gruppe umgewandelt werden',
+    'M-217': 'Dieses Konto gehört auch zu einer anderen Wache, Adresse und Anmeldung kann nur die Person selbst ändern',
+    'M-218': 'Dieses Konto hat eine Rolle in einem Verband, Adresse und Anmeldung kann nur die Person selbst ändern',
+    'M-219': 'Diese Anfrage ist nicht mehr offen, vielleicht wurde sie schon beantwortet oder ist abgelaufen',
+    'M-220': 'Dein Konto gehört schon zu einem Mitglied dieser Wache und wurde nicht ein zweites Mal verknüpft',
+    'M-221': MEMBER_NOT_HERE,
+    'M-222': 'Für dieses Mitglied wartet keine Anfrage, die erneut gesendet werden könnte',
+    'M-223': 'Die Person hat die Verknüpfung abgelehnt, die Anfrage wurde nicht erneut gesendet. Lade stattdessen eine andere Adresse ein',
+    'M-224': 'Die Anfrage wurde vor weniger als einem Tag gesendet und wurde nicht erneut gesendet',
+    'M-225': 'Die Person hat dieses Konto noch nicht bestätigt. Adresse und Anmeldung bleiben, wie sie sind, bis sie es selbst einrichtet',
+    'M-240': 'Dein Konto hat in diesem Verband schon eine Rolle und hat keine zweite bekommen',
 }

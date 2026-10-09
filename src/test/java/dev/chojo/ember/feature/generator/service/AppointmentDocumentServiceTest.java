@@ -6,14 +6,17 @@
 package dev.chojo.ember.feature.generator.service;
 
 import dev.chojo.ember.api.refusal.DocumentRefusal;
+import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
 import dev.chojo.ember.feature.events.entity.StationEvent;
+import dev.chojo.ember.feature.events.repository.EventFederationRepository;
 import dev.chojo.ember.feature.events.repository.EventTemplateRepository;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
 import dev.chojo.ember.feature.generator.entity.RequiredTemplate;
 import dev.chojo.ember.feature.generator.entity.RequirementStatus;
 import dev.chojo.ember.feature.generator.entity.TemplateSort;
 import dev.chojo.ember.feature.generator.repository.EventRequirementRepository;
+import dev.chojo.ember.feature.generator.repository.PaperSubmissionRepository;
 import dev.chojo.ember.feature.generator.service.AppointmentDocumentService.ParticipantDocuments;
 import dev.chojo.ember.feature.generator.service.DocumentTemplateService.DocumentTemplateSummary;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -29,6 +32,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import static dev.chojo.ember.feature.generator.service.TemplateRequestBuilder.letter;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -85,9 +89,15 @@ class AppointmentDocumentServiceTest extends GeneratorTestBase {
         eventRegistrationRepo.create(camp.id(), max.id(), DAY);
 
         var repository = new EventRequirementRepository();
-        requirements = new EventRequirementService(repository, wiring.templates());
+        requirements = new EventRequirementService(
+                repository,
+                wiring.templates(),
+                new MemberNeutralTemplates(wiring.templates()),
+                new EventFederationRepository(),
+                new DomainEventBus(Set.of()));
         appointments = new AppointmentDocumentService(
                 repository,
+                new PaperSubmissionRepository(),
                 wiring.templates(),
                 wiring.generator(),
                 wiring.generation(),
@@ -96,7 +106,9 @@ class AppointmentDocumentServiceTest extends GeneratorTestBase {
                 eventFieldRepo,
                 memberNameResolver,
                 wiring.issuers(),
-                new EventRestrictionService(eventRepo, restrictionService));
+                new EventRestrictionService(eventRepo, restrictionService),
+                RequirementSignatures.NONE,
+                stationMemberRepo);
     }
 
     private static StationEvent event(String name) {

@@ -78,6 +78,14 @@ const typeIcons: Partial<Record<NotificationType, string>> = {
   NAME_CHANGE_REQUESTED: 'id-card',
   NAME_CHANGE_APPROVED: 'id-card',
   NAME_CHANGE_DENIED: 'id-card',
+  SIGNATURE_REQUESTED: 'file-signature',
+  SIGNATURE_REMINDER: 'file-signature',
+  DOCUMENT_SIGNED: 'file-signature',
+  DOCUMENT_SCAN_REJECTED: 'file-signature',
+  ACCOUNT_LINK_ACCEPTED: 'link',
+  ASSOCIATION_LINK_ACCEPTED: 'user-shield',
+  SIGNATURE_WITHDRAWN: 'file-signature',
+  PARTNER_SIGNATURE_WITHDRAWN: 'file-signature',
 }
 
 /** A day as the database writes one, which is not how anybody here reads one. */

@@ -39,6 +39,11 @@ const {t} = useI18n()
               {{ t('adminSecurity.twoFactor.title') }}
             </RouterLink>
           </li>
+          <li>
+            <RouterLink :to="{ name: 'admin-security-signing-keys' }" class="underline">
+              {{ t('adminSecurity.signingKeys.title') }}
+            </RouterLink>
+          </li>
         </ul>
       </NeutralContainer>
 

@@ -198,7 +198,7 @@ public class OutgoingPairRequestService implements TaskSource {
     public void receiveAnswer(PairRequestAnswer answer) {
         PairRequestGuards.requireComplete(answer);
         PairRequestGuards.requireInTime(answer.issuedAt());
-        var request = stations.findByUid(answer.requesterStationUid())
+        var request = stations.findHereByUid(answer.requesterStationUid())
                 .flatMap(station ->
                         requests.find(station.id(), PairRequestDirection.OUTGOING, answer.targetStationUid()))
                 .filter(found -> found.status() == PairRequestStatus.PENDING)

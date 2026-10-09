@@ -31,12 +31,12 @@ public class DocumentRepository {
 
     private static final String COLUMNS = """
             id, station_id, title, file_name, mime_type, size_bytes, hidden, keep_on_archive, has_thumbnail,
-            uploaded_by, uploader_account_id, created_at""";
+            uploaded_by, uploader_account_id, created_at, sealed""";
 
     /** The same columns for the join that reads a member's documents. */
     private static final String JOINED_COLUMNS = """
             d.id, d.station_id, d.title, d.file_name, d.mime_type, d.size_bytes, d.hidden, d.keep_on_archive,
-            d.has_thumbnail, d.uploaded_by, d.uploader_account_id, d.created_at""";
+            d.has_thumbnail, d.uploaded_by, d.uploader_account_id, d.created_at, d.sealed""";
 
     /**
      * Writes a document and binds it to the members it concerns.
@@ -111,6 +111,49 @@ public class DocumentRepository {
     public void markThumbnail(int documentId) {
         query("UPDATE member_document SET has_thumbnail = TRUE WHERE id = :id;")
                 .single(call().bind("id", documentId))
+                .update();
+    }
+
+    /**
+     * Seals a document, which locks it for good: it is kept when its members leave, and the database
+     * refuses deleting it, its members or its versions while its station exists.
+     */
+    public void seal(int documentId) {
+        query("UPDATE member_document SET keep_on_archive = TRUE, sealed = TRUE WHERE id = :id;")
+                .single(call().bind("id", documentId))
+                .update();
+    }
+
+    /**
+     * Takes the row of a sealed document for the rest of the transaction, so versions are added to it
+     * one after the other.
+     *
+     * @return the document, or empty when there is none by that id
+     */
+    public Optional<Document> lockSealed(int documentId) {
+        return query("SELECT %s FROM member_document WHERE id = :id AND sealed FOR UPDATE;", COLUMNS)
+                .single(call().bind("id", documentId))
+                .map(Document.map())
+                .first();
+    }
+
+    /**
+     * Takes the row of a document, sealed or not, for the rest of the transaction, so a document sealed
+     * after it was filed is sealed once and its versions are added one after the other.
+     *
+     * @return the document as it stands, or empty when there is none by that id
+     */
+    public Optional<Document> lock(int documentId) {
+        return query("SELECT %s FROM member_document WHERE id = :id FOR UPDATE;", COLUMNS)
+                .single(call().bind("id", documentId))
+                .map(Document.map())
+                .first();
+    }
+
+    /** Records the size of the file a document now serves, which for a sealed one is its current version. */
+    public void setSize(int documentId, long sizeBytes) {
+        query("UPDATE member_document SET size_bytes = :size_bytes WHERE id = :id;")
+                .single(call().bind("id", documentId).bind("size_bytes", sizeBytes))
                 .update();
     }
 
@@ -238,12 +281,16 @@ public class DocumentRepository {
                   %s;""".formatted(where(filter, tsConfig)), bindFilter(call().bind("station_id", stationId), filter));
     }
 
-    /** Every document the filter matches, by id, so a reader can act on all of them rather than a page. */
+    /**
+     * Every document the filter matches that can be removed, by id, so a reader can remove all of them
+     * rather than a page. A sealed document is left out, since it is never removed.
+     */
     public List<Integer> idsByStation(int stationId, DocumentFilter filter, String tsConfig) {
         return query("""
                         SELECT d.id
                         FROM member_document d
                         WHERE d.station_id = :station_id
+                          AND NOT d.sealed
                           %s
                         ORDER BY d.created_at DESC;""", where(filter, tsConfig))
                 .single(bindFilter(call().bind("station_id", stationId), filter))

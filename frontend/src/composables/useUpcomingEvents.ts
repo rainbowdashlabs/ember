@@ -131,7 +131,7 @@ export function useUpcomingEvents(currentMemberId: Ref<number>, isGuardian: () =
 
   const {
     registering, answerPrompt, registerFor, declineFor, withdrawRegistration,
-    confirmAnswerPrompt, cancelAnswerPrompt,
+    confirmAnswerPrompt, cancelAnswerPrompt, signingStep, closeSigningStep,
   } = useEventAnswer(currentMemberId, reloadRegistrations, failure)
 
   /**
@@ -192,5 +192,7 @@ export function useUpcomingEvents(currentMemberId: Ref<number>, isGuardian: () =
     answerPrompt,
     confirmAnswerPrompt,
     cancelAnswerPrompt,
+    signingStep,
+    closeSigningStep,
   }
 }

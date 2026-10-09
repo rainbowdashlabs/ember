@@ -13,6 +13,7 @@ import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AccountInviteService;
+import dev.chojo.ember.feature.accountlink.service.AssociationLinkService;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.entity.ClusterMember;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
@@ -119,6 +120,7 @@ class ClusterRouteServicesTest {
                 mock(ClusterService.class),
                 accounts,
                 mock(AccountInviteService.class),
+                mock(AssociationLinkService.class),
                 mock(DomainEventBus.class));
 
         var named = service.describe(new ClusterMember(1, 5, TestSessions.ACCOUNT_ID, ClusterUserType.CLUSTER_ADMIN));

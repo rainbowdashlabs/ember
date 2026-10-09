@@ -10,13 +10,19 @@ import dev.chojo.ember.feature.documents.entity.DocumentFilter;
 import dev.chojo.ember.feature.documents.entity.DocumentTag;
 import dev.chojo.ember.feature.documents.repository.DocumentRepository;
 import dev.chojo.ember.feature.documents.service.DocumentCatalogService.StoreQuery;
+import dev.chojo.ember.feature.signing.entity.RequestState;
+import dev.chojo.ember.feature.signing.entity.SignatureSummary;
+import dev.chojo.ember.feature.signing.service.SignatureSummaries;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -24,6 +30,7 @@ import static org.mockito.Mockito.when;
 class DocumentCatalogServiceTest {
     private DocumentRepository documents;
     private DocumentService documentService;
+    private SignatureSummaries signatures;
     private DocumentCatalogService catalog;
     private Document document;
 
@@ -31,7 +38,8 @@ class DocumentCatalogServiceTest {
     void setup() {
         documents = mock(DocumentRepository.class);
         documentService = mock(DocumentService.class);
-        catalog = new DocumentCatalogService(documents, documentService);
+        signatures = mock(SignatureSummaries.class);
+        catalog = new DocumentCatalogService(documents, documentService, signatures);
         document = mock(Document.class);
         when(document.id()).thenReturn(5);
         when(document.stationId()).thenReturn(3);
@@ -47,6 +55,24 @@ class DocumentCatalogServiceTest {
         assertEquals("Ausweis", view.title());
         assertEquals(List.of(11), view.memberIds());
         assertEquals(List.of("Nachweis"), view.tags());
+        assertNull(view.signature(), "nobody was asked to sign it");
+    }
+
+    /** A list reads how the signatures of all its documents stand at once, and each carries its own. */
+    @Test
+    void aListCarriesHowTheSignaturesOfEachDocumentStand() {
+        var other = mock(Document.class);
+        when(other.id()).thenReturn(6);
+        when(other.stationId()).thenReturn(3);
+        when(documents.findByMember(3, 11, false)).thenReturn(List.of(document, other));
+        var summary = new SignatureSummary(UUID.randomUUID(), RequestState.OPEN, 1, 3, 2, 1);
+        when(signatures.ofDocuments(List.of(5, 6))).thenReturn(Map.of(5, summary));
+
+        var listed = catalog.forMember(3, 11, false, DocumentDoor.STATION);
+
+        assertEquals(summary, listed.get(0).signature());
+        assertNull(listed.get(1).signature());
+        verify(signatures).ofDocuments(List.of(5, 6));
     }
 
     @Test

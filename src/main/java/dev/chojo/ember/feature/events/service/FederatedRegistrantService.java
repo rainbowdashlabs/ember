@@ -59,7 +59,7 @@ public class FederatedRegistrantService {
                 .orElse(null);
         if (partnerStationUid == null) return null;
 
-        var partnerStation = stationRepository.findByUid(partnerStationUid);
+        var partnerStation = stationRepository.findHereByUid(partnerStationUid);
         if (partnerStation.isPresent()) {
             var localMember =
                     stationMemberRepository.findByUid(partnerStation.get().id(), registration.remoteMemberId());

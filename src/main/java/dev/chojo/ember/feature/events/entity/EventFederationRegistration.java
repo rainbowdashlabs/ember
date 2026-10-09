@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.events.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import de.chojo.sadu.queries.converter.StandardValueConverter;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -24,6 +25,8 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param eventDate      the specific date of the event occurrence
  * @param status         the current registration status
  * @param createdAt      when the registration was created
+ * @param agreementWithdrawnAt when the partner reported a signed agreement for the date withdrawn while the
+ *                       registration stood, or null; cleared once a complete signed copy comes back
  */
 public record EventFederationRegistration(
         int id,
@@ -32,7 +35,8 @@ public record EventFederationRegistration(
         UUID remoteMemberId,
         LocalDate eventDate,
         RegistrationStatus status,
-        Instant createdAt) {
+        Instant createdAt,
+        @Nullable Instant agreementWithdrawnAt) {
 
     /**
      * Whether this answer still puts somebody on the list, as against one that was taken back.
@@ -56,6 +60,7 @@ public record EventFederationRegistration(
                 row.get("remote_member_id", StandardValueConverter.UUID_STRING),
                 row.getObject("event_date", LocalDate.class),
                 row.getEnum("status", RegistrationStatus.class),
-                row.get("created_at", INSTANT_TIMESTAMP));
+                row.get("created_at", INSTANT_TIMESTAMP),
+                row.get("agreement_withdrawn_at", INSTANT_TIMESTAMP));
     }
 }

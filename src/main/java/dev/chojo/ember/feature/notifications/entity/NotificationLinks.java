@@ -96,6 +96,15 @@ public final class NotificationLinks {
     }
 
     /**
+     * The association's own people, the ones who act for it, with the requests it sent.
+     *
+     * @return the link the news about its own people carries
+     */
+    public static NotificationLink clusterTeam() {
+        return new NotificationLink("cluster-team", Map.of());
+    }
+
+    /**
      * The page of one lending request between two stations, for whichever side is told.
      *
      * @param requestId the lending request
@@ -141,6 +150,16 @@ public final class NotificationLinks {
      */
     public static NotificationLink managedProfile(int memberId) {
         return new NotificationLink("profile-managed", Map.of(), Map.of("member", memberId));
+    }
+
+    /**
+     * The member's own page in the member management.
+     *
+     * @param memberId the member
+     * @return the link a notification about the member carries
+     */
+    public static NotificationLink member(int memberId) {
+        return new NotificationLink("members-detail", Map.of("id", memberId));
     }
 
     /**
@@ -234,5 +253,49 @@ public final class NotificationLinks {
      */
     public static NotificationLink ownAccountProfile() {
         return new NotificationLink("account-avatar", Map.of());
+    }
+
+    /**
+     * The signing screen of one signature field, which a request and its reminders open and which their
+     * withdrawal names once the field is settled.
+     *
+     * @param fieldId the signature field
+     * @return the link its notifications carry
+     */
+    public static NotificationLink signingField(int fieldId) {
+        return new NotificationLink("station-signing", Map.of("fieldId", fieldId));
+    }
+
+    /**
+     * The reader's own documents, followed by those of every member in their care.
+     *
+     * @return the link a signed copy leads to
+     */
+    public static NotificationLink ownDocuments() {
+        return new NotificationLink("documents-own", Map.of());
+    }
+
+    /**
+     * One document among the reader's own documents, opened with its sealed versions.
+     *
+     * @param documentId the document
+     * @return the link a signed copy leads to
+     */
+    public static NotificationLink ownDocument(int documentId) {
+        return new NotificationLink("documents-own", Map.of(), Map.of("document", documentId));
+    }
+
+    /**
+     * The readable record of one sealed version of a document among the reader's own documents.
+     *
+     * @param documentId the document
+     * @param version    the version's number
+     * @return the link a signed copy's record leads to
+     */
+    public static NotificationLink ownDocumentRecord(int documentId, int version) {
+        var query = new LinkedHashMap<String, Object>();
+        query.put("document", documentId);
+        query.put("record", version);
+        return new NotificationLink("documents-own", Map.of(), query);
     }
 }

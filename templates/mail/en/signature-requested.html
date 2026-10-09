@@ -1,0 +1,8 @@
+{% extends '_layout.html' %}
+{% block body %}
+      <h2>Hello {{ name }},</h2>
+      <p><strong>{{ stationName }}</strong> asks for a signature on the document <strong>{{ documentTitle }}</strong> ({{ memberName }}).</p>
+      <p>The document is read in Ember and signed there with your own account. It is also listed among your open tasks.</p>
+      {% if guardian %}<p>This message comes to you because you look after {{ name }}.</p>{% endif %}
+      <div class="btn-wrap"><a class="btn" href="{{ url }}">Read and sign the document</a></div>
+{% endblock %}

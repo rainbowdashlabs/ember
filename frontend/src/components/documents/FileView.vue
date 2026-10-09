@@ -12,6 +12,7 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import EmptyHint from '@/components/typography/EmptyHint.vue'
 import PdfCanvas from '@/components/documents/PdfCanvas.vue'
 import PagePager from '@/components/documents/PagePager.vue'
+import PdfZoomControls from '@/components/documents/PdfZoomControls.vue'
 import {fileKindOf} from '@/util/fileKind'
 import {describeFailure, FailureKind, type Failure} from '@/util/failure'
 
@@ -25,7 +26,8 @@ import {describeFailure, FailureKind, type Failure} from '@/util/failure'
  * follow.
  *
  * <p>A PDF is drawn page by page rather than handed to the browser in a frame, because a phone has no
- * viewer behind a frame and shows an empty box instead of the document.
+ * viewer behind a frame and shows an empty box instead of the document. It zooms in steps, and a
+ * zoomed page scrolls inside its frame, so small print can be read without leaving the page.
  */
 const props = defineProps<{
   /** The bytes themselves, or the endpoint to ask for them. */
@@ -40,6 +42,7 @@ const objectUrl = ref<string | null>(null)
 const pdfBytes = ref<Blob | null>(null)
 const pageCount = ref(0)
 const page = ref(1)
+const zoom = ref(1)
 const text = ref<string | null>(null)
 const truncated = ref(false)
 const loading = ref(false)
@@ -81,6 +84,7 @@ async function load() {
   pdfBytes.value = null
   pageCount.value = 0
   page.value = 1
+  zoom.value = 1
   failure.value = null
   if (kind.value === 'other') return
   loading.value = true
@@ -163,19 +167,24 @@ onUnmounted(() => {
     <div
         v-if="kind === 'pdf' && pdfBytes && !failure"
         v-show="!loading"
-        class="h-[70vh] w-full flex items-center justify-center rounded-theme border border-bg-light-accent dark:border-bg-dark-accent"
+        class="h-[70vh] w-full flex overflow-auto rounded-theme border border-bg-light-accent dark:border-bg-dark-accent"
+        data-testid="file-view-pdf"
     >
       <PdfCanvas
           :source="pdfBytes"
           :page="page"
-          class="max-w-full max-h-full"
+          :scale="zoom"
+          class="m-auto shrink-0"
           @loaded="pdfOpened"
           @failed="pdfFailed"
       />
     </div>
 
-    <PagePager v-if="pageCount > 1" v-model:page="page" :page-count="pageCount" :label="`${page} / ${pageCount}`"
-               class="justify-center" data-testid="file-view-pages"/>
+    <div v-if="pageCount > 0" class="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
+      <PagePager v-if="pageCount > 1" v-model:page="page" :page-count="pageCount" :label="`${page} / ${pageCount}`"
+                 data-testid="file-view-pages"/>
+      <PdfZoomControls v-model:zoom="zoom"/>
+    </div>
 
     <p v-if="truncated" class="text-xs text-(--text-muted)">{{ t('files.truncated') }}</p>
   </div>

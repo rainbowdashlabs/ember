@@ -104,7 +104,7 @@ public class LocalFederationTransport implements FederationTransport {
     public ServingPartner servingSide(FederationPartner partner) {
         var askingUid = stationRepository.resolveUid(partner.stationId());
         return stationRepository
-                .findByUid(partner.partnerStationId())
+                .findHereByUid(partner.partnerStationId())
                 .map(Station::id)
                 .flatMap(serving -> federationRepository.findPartnerByStationAndRemoteUid(serving, askingUid))
                 .filter(row -> row.status() == FederationStatus.ACTIVE)

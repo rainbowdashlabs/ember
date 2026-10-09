@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.mail.service.MailLocaleService;
 import dev.chojo.ember.feature.mail.service.MailRecipientService;
 import dev.chojo.ember.feature.passkey.repository.PasskeyRepository;
+import dev.chojo.ember.feature.signing.service.TestKeyStamps;
 import dev.chojo.ember.feature.system.repository.ApplicationSettingRepository;
 import dev.chojo.ember.feature.twofactor.repository.WebAuthnChallengeRepository;
 import dev.chojo.ember.feature.twofactor.service.SecondFactorCredentialStore;
@@ -60,7 +61,12 @@ class PasskeyEnrollmentServiceTest extends RepositoryTestBase {
                 settings, api, store, new SecondFactorCredentialStore(twoFactorRepo, store));
         var challengeRepo = new WebAuthnChallengeRepository(TokenHasher.forTesting("repository-test-pepper"));
         var passkeyService = new PasskeyService(
-                parties, twoFactorRepo, new TwoFactorAuditService(twoFactorRepo), challengeRepo, settings);
+                parties,
+                twoFactorRepo,
+                new TwoFactorAuditService(twoFactorRepo),
+                challengeRepo,
+                settings,
+                TestKeyStamps.off(twoFactorRepo));
         when(totpService.generateQrPng(anyString(), anyInt())).thenReturn(new byte[] {1, 2, 3});
         service = new PasskeyEnrollmentService(
                 accountRepo,
@@ -185,6 +191,41 @@ class PasskeyEnrollmentServiceTest extends RepositoryTestBase {
         } finally {
             when(modeService.effectiveMode()).thenReturn(PasskeySettings.Mode.OPTIONAL);
         }
+    }
+
+    /**
+     * A passkey made through the setup mail proves the address, so it confirms an account a station
+     * import created. One made from a code shown in the room proves nothing about the address.
+     */
+    @Test
+    void aPasskeyThroughTheSetupMailConfirmsAnImportedAccount() {
+        int accountId = newAccount();
+        accountRepo.markUnconfirmed(accountId);
+        var authenticator = new TestAuthenticator();
+
+        String code = service.issueCode(accountId, PasskeyEnrollmentService.QR_TTL);
+        var inTheRoom = service.begin(code).orElseThrow();
+        assertTrue(service.finish(
+                code, inTheRoom.challengeToken(), authenticator.register(inTheRoom.optionsJson()), "DE"));
+        assertTrue(accountRepo.isUnconfirmed(accountId));
+
+        accountRepo.createToken(
+                accountId,
+                "confirming-setup-" + accountId,
+                TokenType.SET_PASSWORD,
+                Instant.now().plus(Duration.ofHours(1)));
+        when(modeService.effectiveMode()).thenReturn(PasskeySettings.Mode.PASSWORDLESS);
+        try {
+            var throughTheMail = service.begin("confirming-setup-" + accountId).orElseThrow();
+            assertTrue(service.finish(
+                    "confirming-setup-" + accountId,
+                    throughTheMail.challengeToken(),
+                    new TestAuthenticator().register(throughTheMail.optionsJson()),
+                    "DE"));
+        } finally {
+            when(modeService.effectiveMode()).thenReturn(PasskeySettings.Mode.OPTIONAL);
+        }
+        assertFalse(accountRepo.isUnconfirmed(accountId));
     }
 
     @Test

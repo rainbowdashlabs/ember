@@ -44,7 +44,18 @@ public class GuardianPolicy {
     public List<StationMember> wards(UserSession session) {
         StationMember member = session.member();
         if (member == null) return List.of();
-        return memberRepository.findManaged(member.id());
+        return wardsOf(member.id());
+    }
+
+    /**
+     * The members a member looks after, without them, for a caller that knows the member but holds no
+     * session of theirs.
+     *
+     * @param memberId the guardian
+     * @return their wards
+     */
+    public List<StationMember> wardsOf(int memberId) {
+        return memberRepository.findManaged(memberId);
     }
 
     /**

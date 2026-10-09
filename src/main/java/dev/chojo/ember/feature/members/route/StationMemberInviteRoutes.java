@@ -56,7 +56,8 @@ public class StationMemberInviteRoutes implements Routes {
             description = "Accepts a list of invites. Each entry may carry a nested guardians list; "
                     + "guardians are provisioned as GUARDIAN members and linked as manager of the "
                     + "member they belong to. Every recipient receives a password-setup email to "
-                    + "claim the created account.",
+                    + "claim the created account. An address that already belongs to an account "
+                    + "creates the member without it and asks the account's owner to link it.",
             tags = {"Station Member Invites"},
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = CreateInvitesRequest.class)),
             responses = @OpenApiResponse(status = "201", content = @OpenApiContent(from = CreateInvitesResponse.class)))
@@ -128,16 +129,23 @@ public class StationMemberInviteRoutes implements Routes {
     public record CreateInvitesResponse(
             List<ProvisionedMemberResponse> provisioned, List<FailedInviteResponse> failed) {}
 
-    /** One provisioned member in the create-invites response. */
+    /**
+     * One provisioned member in the create-invites response.
+     *
+     * @param accountId   the account, or null while the member waits for the owner of an existing
+     *                    account to link it
+     * @param linkPending whether the member waits for that owner to accept
+     */
     public record ProvisionedMemberResponse(
             int memberId,
-            int accountId,
+            @Nullable Integer accountId,
             @Nullable String email,
             String firstName,
             String lastName,
             StationUserType userType,
             boolean accountCreated,
-            boolean membershipCreated) {
+            boolean membershipCreated,
+            boolean linkPending) {
         public static ProvisionedMemberResponse from(StationMemberInviteService.ProvisionedMember member) {
             return new ProvisionedMemberResponse(
                     member.memberId(),
@@ -147,7 +155,8 @@ public class StationMemberInviteRoutes implements Routes {
                     member.lastName(),
                     member.userType(),
                     member.accountCreated(),
-                    member.membershipCreated());
+                    member.membershipCreated(),
+                    member.linkPending());
         }
     }
 

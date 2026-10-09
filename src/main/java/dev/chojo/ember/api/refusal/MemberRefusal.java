@@ -748,18 +748,6 @@ public enum MemberRefusal implements Refusal {
             HttpStatus.FORBIDDEN,
             "That account administers the instance, so only an instance administrator can issue it a one-time password"),
 
-    /** A one-time password asked at a station for an account that holds a role in an association. */
-    ONE_TIME_PASSWORD_FOR_ASSOCIATION_ACCOUNT(
-            204,
-            HttpStatus.FORBIDDEN,
-            "That account holds a role in an association, so only an instance administrator can issue it a one-time password"),
-
-    /** A one-time password asked at a station for an account that is or was a member of another station too. */
-    ONE_TIME_PASSWORD_FOR_SHARED_ACCOUNT(
-            205,
-            HttpStatus.FORBIDDEN,
-            "That account belongs to another station as well, so only an instance administrator can issue it a one-time password"),
-
     /** A one-time password asked at a station for an account without a password on an instance that signs in with passkeys only. */
     ONE_TIME_PASSWORD_PASSWORDS_SWITCHED_OFF(
             206, HttpStatus.CONFLICT, "This instance signs in with passkeys only, so no one-time password was issued"),
@@ -800,7 +788,61 @@ public enum MemberRefusal implements Refusal {
             "This tag still chooses people for audiences or access rules, so it cannot be made private yet"),
 
     /** A private tag to be turned into a group, which everybody can see. */
-    TAG_PRIVATE_NOT_A_GROUP(216, HttpStatus.CONFLICT, "A private tag cannot be turned into a group");
+    TAG_PRIVATE_NOT_A_GROUP(216, HttpStatus.CONFLICT, "A private tag cannot be turned into a group"),
+
+    /** A station or a guardian reaching the address or the sign-in of an account that also belongs to another station, current or former. */
+    ACCOUNT_SHARED_WITH_ANOTHER_STATION(
+            217,
+            HttpStatus.FORBIDDEN,
+            "That account belongs to another station as well, so only the person can change its address or how it signs in"),
+
+    /** A station or a guardian reaching the address or the sign-in of an account that holds a role in an association. */
+    ACCOUNT_HELD_BY_AN_ASSOCIATION(
+            218,
+            HttpStatus.FORBIDDEN,
+            "That account holds a role in an association, so only the person can change its address or how it signs in"),
+
+    /**
+     * A link request answered or opened that is not waiting for this account: unknown, someone else's,
+     * answered or expired. Every one of those lines answers with this one constant on purpose, so a
+     * token or uid probed by somebody else says nothing about whether it exists.
+     */
+    LINK_REQUEST_NOT_OPEN(
+            219, HttpStatus.NOT_FOUND, "This link request is not open, it may have been answered or expired"),
+
+    /** A link request accepted by an account that already is a member of the station that asks. */
+    LINK_ACCOUNT_ALREADY_AT_STATION(
+            220,
+            HttpStatus.CONFLICT,
+            "Your account already belongs to a member of that station, so it was not linked a second time"),
+
+    /** The link state asked for, or the link sent again, for a member that is not at the caller's station. */
+    LINK_MEMBER_NOT_HERE(221, HttpStatus.NOT_FOUND, Sentences.MEMBER_NOT_HERE),
+
+    /** A link sent again for a member that waits for no link. */
+    LINK_NOTHING_TO_SEND_AGAIN(222, HttpStatus.NOT_FOUND, "This member waits for no link that could be sent again"),
+
+    /** A link sent again that the person declined. */
+    LINK_DECLINED_NOT_SENT_AGAIN(
+            223,
+            HttpStatus.CONFLICT,
+            "The person declined the link, so it was not sent again. Invite another address instead"),
+
+    /** A link sent again less than a day after it was last sent. */
+    LINK_SENT_TOO_RECENTLY(
+            224, HttpStatus.TOO_MANY_REQUESTS, "The link was sent less than a day ago, so it was not sent again"),
+
+    /** A station or a guardian reaching the address or the sign-in of an account a station import created and its owner has not confirmed yet. */
+    ACCOUNT_NOT_CONFIRMED_YET(
+            225,
+            HttpStatus.FORBIDDEN,
+            "The person has not confirmed that account yet, so its address and how it signs in stay as they are until they set it up themselves"),
+
+    /** An association's request accepted by an account that already holds a role in that association. */
+    LINK_ACCOUNT_ALREADY_IN_ASSOCIATION(
+            240,
+            HttpStatus.CONFLICT,
+            "Your account already holds a role in that association, so it was not given a second one");
 
     private final Definition definition;
 

@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.form.service.FormService;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.news.service.NewsService;
 import dev.chojo.ember.feature.page.service.PageService;
+import dev.chojo.ember.feature.signing.service.PublishedCertificates;
 import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.service.PublicStationInfoService;
@@ -62,7 +63,8 @@ class DiscoveryStationCardOffersTest extends RepositoryTestBase {
                 mock(PageService.class),
                 waitingLists,
                 news,
-                mock(FormService.class));
+                mock(FormService.class),
+                mock(PublishedCertificates.class));
         service = new DiscoveryStationProjectionService(
                 stationRepo,
                 clusterRepo,

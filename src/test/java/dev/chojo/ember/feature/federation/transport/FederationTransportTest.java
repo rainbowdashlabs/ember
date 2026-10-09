@@ -88,7 +88,7 @@ class FederationTransportTest {
         federationRepo = mock(FederationRepository.class);
         stationRepo = mock(StationRepository.class);
         when(stationRepo.resolveUid(1)).thenReturn(askingUid);
-        when(stationRepo.findByUid(servingUid)).thenReturn(Optional.of(mock(Station.class)));
+        when(stationRepo.findHereByUid(servingUid)).thenReturn(Optional.of(mock(Station.class)));
         var registry = new FederationEndpoints(Set.of(endpoints -> {
             endpoints.serve(GET_ONE, (partner, params, body) -> {
                 lastServed.set(partner);
@@ -121,7 +121,7 @@ class FederationTransportTest {
 
     private void servingRowIs(FederationStatus status) {
         var station = stationWithId(2);
-        when(stationRepo.findByUid(servingUid)).thenReturn(Optional.of(station));
+        when(stationRepo.findHereByUid(servingUid)).thenReturn(Optional.of(station));
         when(federationRepo.findPartnerByStationAndRemoteUid(2, askingUid)).thenReturn(Optional.of(servingRow(status)));
     }
 
@@ -185,7 +185,7 @@ class FederationTransportTest {
         var refused = assertThrows(RefusalResponse.class, () -> transport.get(local, GET_ONE.at(1), Answer.class));
         assertEquals(FederationRefusal.FEDERATION_PARTNERSHIP_NOT_ACTIVE_THERE, refused.refusal());
 
-        when(stationRepo.findByUid(servingUid)).thenReturn(Optional.empty());
+        when(stationRepo.findHereByUid(servingUid)).thenReturn(Optional.empty());
         assertThrows(RefusalResponse.class, () -> transport.getList(local, GET_MANY.at(), Answer.class));
     }
 

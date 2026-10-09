@@ -330,6 +330,44 @@ public class AccountRepository {
     }
 
     /**
+     * Marks an account a station import created as waiting for its owner: no station may change its
+     * address or how it signs in until the owner confirms it.
+     *
+     * @param accountId the account
+     */
+    public void markUnconfirmed(int accountId) {
+        query("UPDATE account SET unconfirmed_since = now() WHERE id = :id;")
+                .single(call().bind("id", accountId))
+                .update();
+    }
+
+    /**
+     * Records that the owner confirmed the account by setting a password or a passkey through a link
+     * sent to its address, or, where no mail can reach anybody for it, by replacing the imported
+     * password after signing in with it. No-op for an account that was never waiting.
+     *
+     * @param accountId the account
+     * @return whether the account was waiting until now
+     */
+    public boolean confirm(int accountId) {
+        return query("UPDATE account SET unconfirmed_since = NULL WHERE id = :id AND unconfirmed_since IS NOT NULL;")
+                .single(call().bind("id", accountId))
+                .update()
+                .changed();
+    }
+
+    /**
+     * Whether a station import created the account and its owner has not confirmed it yet.
+     *
+     * @param accountId the account
+     * @return whether the account still waits for its owner
+     */
+    public boolean isUnconfirmed(int accountId) {
+        return SqlSupport.exists("""
+                SELECT 1 FROM account WHERE id = :id AND unconfirmed_since IS NOT NULL;""", call().bind("id", accountId));
+    }
+
+    /**
      * Stamps when the account last signed in, by any method. {@code setup_completed_at} answers
      * when somebody started; this answers when they were last here, which is what the operator
      * report reads and what nothing recorded durably before.

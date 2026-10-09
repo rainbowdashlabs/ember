@@ -26,6 +26,7 @@ import dev.chojo.ember.feature.generator.entity.PdfLayout;
 import dev.chojo.ember.feature.generator.entity.PdfOriginal;
 import dev.chojo.ember.feature.generator.entity.Placeholder;
 import dev.chojo.ember.feature.generator.entity.TemplateContent;
+import dev.chojo.ember.feature.generator.entity.TemplateSigning;
 import dev.chojo.ember.feature.generator.entity.TemplateStationUse;
 import dev.chojo.ember.feature.generator.repository.DocumentTemplateRepository;
 import dev.chojo.ember.feature.generator.repository.PdfTemplateRepository;
@@ -47,6 +48,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -139,6 +141,14 @@ public class DocumentTemplateService {
             throw DocumentRefusal.DOCUMENT_TEMPLATE_KEPT_BY_ASSOCIATION.raise();
         }
         throw DocumentRefusal.DOCUMENT_TEMPLATE_NOT_HERE.raise();
+    }
+
+    /**
+     * @param templateId the template
+     * @return the template, whoever keeps it, or empty where it does not exist
+     */
+    public Optional<DocumentTemplate> find(int templateId) {
+        return templates.findById(templateId);
     }
 
     /**
@@ -378,7 +388,8 @@ public class DocumentTemplateService {
                 pdf.layout().bindings(),
                 template.version(),
                 template.updatedAt(),
-                template.archivedAt());
+                template.archivedAt(),
+                template.signing());
     }
 
     /**
@@ -462,6 +473,7 @@ public class DocumentTemplateService {
      * @param version         how often it was changed, counted from one
      * @param updatedAt       when it was last changed
      * @param archivedAt      when it was archived, or null while it is in use
+     * @param signing         how its documents are kept and sent once they are signed
      */
     public record DocumentTemplateResponse(
             int id,
@@ -489,7 +501,8 @@ public class DocumentTemplateService {
             List<FormBinding> formBindings,
             int version,
             Instant updatedAt,
-            @Nullable Instant archivedAt) {}
+            @Nullable Instant archivedAt,
+            TemplateSigning signing) {}
 
     /**
      * What a template of the owner can name.

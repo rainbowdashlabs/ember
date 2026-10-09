@@ -54,7 +54,7 @@ public class MemberImportService {
     private final MemberGroupRepository memberGroupRepository;
     private final GroupMembershipService groupMemberships;
     private final ProfileFieldRepository profileFieldRepository;
-    private final AccountInviteService accountInviteService;
+    private final StationMemberInviteService inviteService;
 
     @Inject
     public MemberImportService(
@@ -63,13 +63,13 @@ public class MemberImportService {
             MemberGroupRepository memberGroupRepository,
             GroupMembershipService groupMemberships,
             ProfileFieldRepository profileFieldRepository,
-            AccountInviteService accountInviteService) {
+            StationMemberInviteService inviteService) {
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.memberGroupRepository = memberGroupRepository;
         this.groupMemberships = groupMemberships;
         this.profileFieldRepository = profileFieldRepository;
-        this.accountInviteService = accountInviteService;
+        this.inviteService = inviteService;
     }
 
     /**
@@ -199,18 +199,14 @@ public class MemberImportService {
 
             String email = mapped.email().trim();
 
-            AccountInviteService.Invited invited;
+            StationMember member;
             try {
-                invited = email.isBlank()
-                        ? accountInviteService.createWithoutAddress(stationId, mapped.firstName(), mapped.lastName())
-                        : accountInviteService.resolveOrCreate(
-                                stationId, email, mapped.firstName(), mapped.lastName(), setupMail);
+                member = inviteService.newMember(
+                        stationId, email, mapped.firstName(), mapped.lastName(), setupMail, null);
             } catch (AccountInviteService.EmailInUseException e) {
                 warnings.add("Zeile " + (i + 2) + ": " + email + " gehört bereits jemand anderem, übersprungen");
                 continue;
             }
-            var member =
-                    stationMemberRepository.create(stationId, invited.account().id());
             stationMemberRepository.setUserType(member.id(), StationUserType.MEMBER);
             stationMemberRepository.grantPermission(member.id(), memberRole.id());
             membersCreated++;
@@ -256,19 +252,13 @@ public class MemberImportService {
                     }
 
                     if (manager == null) {
-                        AccountInviteService.Invited mgrInvited;
                         try {
-                            mgrInvited = mgrEmail.isBlank()
-                                    ? accountInviteService.createWithoutAddress(stationId, mgrFirst, mgrLast)
-                                    : accountInviteService.resolveOrCreate(
-                                            stationId, mgrEmail, mgrFirst, mgrLast, setupMail);
+                            manager = inviteService.newMember(stationId, mgrEmail, mgrFirst, mgrLast, setupMail, null);
                         } catch (AccountInviteService.EmailInUseException e) {
                             warnings.add("Zeile " + (i + 2) + ": " + mgrEmail
                                     + " gehört bereits jemand anderem, Kontaktperson übersprungen");
                             continue;
                         }
-                        manager = stationMemberRepository.create(
-                                stationId, mgrInvited.account().id());
                         stationMemberRepository.setUserType(manager.id(), StationUserType.GUARDIAN);
                         stationMemberRepository.grantPermission(manager.id(), loginRole.id());
                         stationMemberRepository.grantPermission(manager.id(), guardianRole.id());
@@ -346,18 +336,14 @@ public class MemberImportService {
 
             String email = mapped.email().trim();
 
-            AccountInviteService.Invited invited;
+            StationMember member;
             try {
-                invited = email.isBlank()
-                        ? accountInviteService.createWithoutAddress(stationId, mapped.firstName(), mapped.lastName())
-                        : accountInviteService.resolveOrCreate(
-                                stationId, email, mapped.firstName(), mapped.lastName(), setupMail);
+                member = inviteService.newMember(
+                        stationId, email, mapped.firstName(), mapped.lastName(), setupMail, null);
             } catch (AccountInviteService.EmailInUseException e) {
                 warnings.add("Zeile " + (i + 2) + ": " + email + " gehört bereits jemand anderem, übersprungen");
                 continue;
             }
-            var member =
-                    stationMemberRepository.create(stationId, invited.account().id());
             stationMemberRepository.setUserType(member.id(), StationUserType.TEAM);
             stationMemberRepository.grantPermission(member.id(), loginRole.id());
             membersCreated++;

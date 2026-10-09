@@ -11,6 +11,7 @@ import com.yubico.webauthn.exception.RegistrationFailedException;
 import dev.chojo.ember.auth.TokenHasher;
 import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.conf.file.elements.WebAuthnSettings;
+import dev.chojo.ember.feature.signing.service.TestKeyStamps;
 import dev.chojo.ember.feature.twofactor.entity.ChallengePurpose;
 import dev.chojo.ember.feature.twofactor.repository.WebAuthnChallengeRepository;
 import dev.chojo.ember.repository.RepositoryTestBase;
@@ -41,7 +42,8 @@ class WebAuthnServiceTest extends RepositoryTestBase {
         var parties = WebAuthnRelyingPartyFactory.build(settings, api, store, secondFactorStore);
         var audit = new TwoFactorAuditService(twoFactorRepo);
         challengeRepo = new WebAuthnChallengeRepository(TokenHasher.forTesting("repository-test-pepper"));
-        service = new WebAuthnService(parties, twoFactorRepo, audit, challengeRepo, settings);
+        service = new WebAuthnService(
+                parties, twoFactorRepo, audit, challengeRepo, settings, TestKeyStamps.off(twoFactorRepo));
     }
 
     private static void setField(Object target, String name, Object value) throws Exception {
@@ -163,7 +165,8 @@ class WebAuthnServiceTest extends RepositoryTestBase {
                 .finishRegistration(any());
         var parties = new RelyingParties(spiedRp, real.secondFactor(), false);
         var audit = new TwoFactorAuditService(twoFactorRepo);
-        var spiedService = new WebAuthnService(parties, twoFactorRepo, audit, challengeRepo, settings);
+        var spiedService = new WebAuthnService(
+                parties, twoFactorRepo, audit, challengeRepo, settings, TestKeyStamps.off(twoFactorRepo));
 
         int accountId = newAccount();
         var start = spiedService.startRegistration(accountId, "rf@test.com", "RF");
@@ -221,7 +224,8 @@ class WebAuthnServiceTest extends RepositoryTestBase {
         org.mockito.Mockito.doReturn(result).when(spiedRp).finishAssertion(any());
         var parties = new RelyingParties(real.passkey(), spiedRp, false);
         var audit = new TwoFactorAuditService(twoFactorRepo);
-        var spiedService = new WebAuthnService(parties, twoFactorRepo, audit, challengeRepo, settings);
+        var spiedService = new WebAuthnService(
+                parties, twoFactorRepo, audit, challengeRepo, settings, TestKeyStamps.off(twoFactorRepo));
 
         var start = spiedService.startAssertion(accountId);
         String credentialJson = "{\"id\":\"AA\",\"type\":\"public-key\",\"rawId\":\"AA\","
@@ -251,7 +255,8 @@ class WebAuthnServiceTest extends RepositoryTestBase {
         doThrow(new AssertionFailedException("nope")).when(spiedRp).finishAssertion(any());
         var parties = new RelyingParties(real.passkey(), spiedRp, false);
         var audit = new TwoFactorAuditService(twoFactorRepo);
-        var spiedService = new WebAuthnService(parties, twoFactorRepo, audit, challengeRepo, settings);
+        var spiedService = new WebAuthnService(
+                parties, twoFactorRepo, audit, challengeRepo, settings, TestKeyStamps.off(twoFactorRepo));
 
         int accountId = newAccount();
         var start = spiedService.startAssertion(accountId);

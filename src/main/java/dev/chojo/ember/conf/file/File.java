@@ -19,6 +19,7 @@ import dev.chojo.ember.conf.file.elements.MailImport;
 import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.conf.file.elements.Metrics;
 import dev.chojo.ember.conf.file.elements.Network;
+import dev.chojo.ember.conf.file.elements.Signing;
 import dev.chojo.ember.conf.file.elements.Storage;
 import dev.chojo.ember.conf.file.elements.Theming;
 import dev.chojo.ember.conf.file.elements.Updates;
@@ -47,6 +48,11 @@ public class File {
     private Changelog changelog = new Changelog();
     private MailImport mailImport = new MailImport();
     private Documents documents = new Documents();
+    private Signing signing = new Signing();
+
+    public Signing signing() {
+        return signing;
+    }
 
     public MailImport mailImport() {
         return mailImport;

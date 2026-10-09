@@ -88,6 +88,14 @@ public enum BuiltInPlaceholder {
         return this == TODAY || category == PlaceholderCategory.STATION || category == PlaceholderCategory.ASSOCIATION;
     }
 
+    /**
+     * @return whether its value names no person at all: today's date, the data of the station and of its
+     *         association, and the appointment a document is generated for
+     */
+    public boolean needsNoPerson() {
+        return needsNoMember() || category == PlaceholderCategory.APPOINTMENT;
+    }
+
     /** @return what kind of date it holds, or null where it holds none */
     public @Nullable DateKind dateKind() {
         return switch (this) {

@@ -43,7 +43,8 @@ class GenerationLogRoutesTest {
             false,
             21,
             "Nora Fülling",
-            "Jugendwartin");
+            "Jugendwartin",
+            null);
 
     private GenerationLogService log;
     private RouteHarness harness;

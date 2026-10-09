@@ -6,6 +6,7 @@
 package dev.chojo.ember.feature.twofactor.service;
 
 import dev.chojo.ember.conf.file.elements.WebAuthnSettings;
+import dev.chojo.ember.feature.signing.service.CredentialKeyStamps;
 import dev.chojo.ember.feature.twofactor.entity.ChallengePurpose;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorEvent;
 import dev.chojo.ember.feature.twofactor.entity.TwoFactorFactor;
@@ -36,6 +37,7 @@ public class WebAuthnService {
     private final TwoFactorRepository repository;
     private final TwoFactorAuditService auditService;
     private final WebAuthnCeremonies ceremonies;
+    private final CredentialKeyStamps keyStamps;
 
     @Inject
     public WebAuthnService(
@@ -43,10 +45,12 @@ public class WebAuthnService {
             TwoFactorRepository repository,
             TwoFactorAuditService auditService,
             WebAuthnChallengeRepository challengeRepository,
-            WebAuthnSettings settings) {
+            WebAuthnSettings settings,
+            CredentialKeyStamps keyStamps) {
         this.repository = repository;
         this.auditService = auditService;
         this.ceremonies = new WebAuthnCeremonies(relyingParties, repository, challengeRepository, settings);
+        this.keyStamps = keyStamps;
     }
 
     public CeremonyStart startRegistration(int accountId, String email, String displayName) {
@@ -55,8 +59,8 @@ public class WebAuthnService {
     }
 
     /**
-     * Completes a registration ceremony. Inserts the new credential and the parent factor row.
-     * Returns the new factor on success.
+     * Completes a registration ceremony. Inserts the new credential and the parent factor row, then
+     * has the credential's public key timestamped in the background. Returns the new factor on success.
      */
     public Optional<TwoFactorFactor> finishRegistration(
             int accountId,
@@ -77,6 +81,7 @@ public class WebAuthnService {
         factor.ifPresent(created -> {
             auditService.record(accountId, null, TwoFactorEvent.ENROLLED, TwoFactorKind.WEBAUTHN, userAgent, country);
             log.info("WebAuthn credential enrolled for account {} (factor {})", accountId, created.id());
+            keyStamps.afterRegistration(created.id());
         });
         return factor;
     }

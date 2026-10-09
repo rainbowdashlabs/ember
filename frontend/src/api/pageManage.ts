@@ -27,6 +27,7 @@ export const LAYOUT_KINDS = [
     'MEMBER_LIST_SPOTLIGHT', 'STATS_COUNTER', 'IMAGE_GALLERY',
     'HERO_BANNER', 'PAST_EVENT_RECAP', 'TABS', 'ACHIEVEMENTS', 'EXTERNAL_LINK_CARD',
     'BLOG_SIGNUP', 'AUDIO_EMBED', 'POLL_EMBED', 'QUIZ_TEASER', 'FORMS_CTA', 'CODE_BLOCK', 'SIGNATURE',
+    'FILL_IN',
 ] as const satisfies readonly CellContentType[]
 export type LayoutKindName = (typeof LAYOUT_KINDS)[number]
 export function isLayoutKind(t: string): t is LayoutKindName {

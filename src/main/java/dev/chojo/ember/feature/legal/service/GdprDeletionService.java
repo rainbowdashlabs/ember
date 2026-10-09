@@ -7,11 +7,14 @@ package dev.chojo.ember.feature.legal.service;
 
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.MemberRefusal;
+import dev.chojo.ember.feature.account.entity.AccountAction;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.account.service.AccountReach;
 import dev.chojo.ember.feature.account.service.AvatarService;
 import dev.chojo.ember.feature.documents.service.DocumentService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberLookupService;
+import dev.chojo.ember.feature.signing.service.SignatureImageService;
 import dev.chojo.ember.tracking.DataTracking;
 import dev.chojo.ember.tracking.DataTrackingLoader;
 import dev.chojo.ember.tracking.IdentityType;
@@ -29,7 +32,7 @@ import static org.slf4j.LoggerFactory.getLogger;
  * GDPR-compliant deletion driven by {@code data_tracking.json}. Every TRACKED
  * {@code gdprDeletion} strategy is applied by {@link GenericGdprDeleter}; this service is just the
  * orchestrator that resolves the identity, runs the engine, and handles the few side effects that
- * sit outside the relational schema (avatar files on disk, account row finalization).
+ * sit outside the relational schema (avatar and signature picture files, account row finalization).
  *
  * <p>The hand-coded SQL queries from the previous implementation have been removed - the source
  * of truth for what gets deleted, anonymised, or retained is the tracking JSON.
@@ -44,6 +47,8 @@ public class GdprDeletionService {
     private final MemberLookupService memberLookupService;
     private final AvatarService avatarService;
     private final DocumentService documentService;
+    private final SignatureImageService signatureImages;
+    private final AccountReach accountReach;
     private final GenericGdprDeleter engine;
 
     @Inject
@@ -52,12 +57,16 @@ public class GdprDeletionService {
             StationMemberRepository stationMemberRepository,
             MemberLookupService memberLookupService,
             AvatarService avatarService,
-            DocumentService documentService) {
+            DocumentService documentService,
+            SignatureImageService signatureImages,
+            AccountReach accountReach) {
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.memberLookupService = memberLookupService;
         this.avatarService = avatarService;
         this.documentService = documentService;
+        this.signatureImages = signatureImages;
+        this.accountReach = accountReach;
         DataTracking t;
         try {
             t = DataTrackingLoader.loadFromClasspath();
@@ -101,7 +110,8 @@ public class GdprDeletionService {
     /**
      * Anonymises a station member by running the engine for both the integer-id identity
      * ({@code MEMBER_ID}) and the UUID identity ({@code MEMBER_UID}). The avatar file is removed
-     * from disk as a non-DB side effect, and the account goes too when this was its only membership.
+     * from disk as a non-DB side effect, and the account goes too when this was its only membership
+     * and it holds no role in an association, since the association still needs it.
      *
      * <p>The member's documents are released first, by the rule {@link DocumentService#memberLeaves} holds
      * for a deleted member: what was not kept goes, and what was kept for the record keeps their name.
@@ -110,9 +120,12 @@ public class GdprDeletionService {
      * has to say whom it is about.
      */
     public void anonymizeMember(int memberId) {
-        documentService.memberLeaves(memberId, DocumentService.Leaving.DELETED);
         var member = stationMemberRepository.findById(memberId).orElse(null);
         Integer accountId = member != null ? member.accountId() : null;
+        if (member != null && accountId != null) {
+            accountReach.require(member.stationId(), accountId, AccountAction.MEMBER_DELETE);
+        }
+        documentService.memberLeaves(memberId, DocumentService.Leaving.DELETED);
         UUID memberUid = memberLookupService.resolveUid(memberId);
 
         var memberReport = engine.deleteByIdentity(IdentityType.MEMBER_ID, memberId);
@@ -123,18 +136,21 @@ public class GdprDeletionService {
             uidReport.log(log);
         }
 
-        if (accountId != null) {
-            var remaining = stationMemberRepository.findAllByAccountId(accountId);
-            if (remaining.isEmpty()) {
-                log.info("GDPR: account {} has no remaining members, deleting account", accountId);
-                deleteAccountData(accountId);
-            }
+        if (member != null && accountId != null && isOrphaned(accountId, member.stationId())) {
+            log.info("GDPR: account {} has no remaining members or association roles, deleting account", accountId);
+            deleteAccountData(accountId);
         }
     }
 
+    private boolean isOrphaned(int accountId, int stationId) {
+        return stationMemberRepository.findAllByAccountId(accountId).isEmpty()
+                && !accountRepository.findTies(accountId, stationId).association();
+    }
+
     /**
-     * Runs the engine for the account and removes its avatar. The engine deletes the account row itself;
-     * the explicit delete afterwards is a safeguard against a missing strategy entry leaving it behind.
+     * Runs the engine for the account and removes its avatar and signature picture. The engine deletes the
+     * account row itself; the explicit delete afterwards is a safeguard against a missing strategy entry
+     * leaving it behind.
      */
     private void deleteAccountData(int accountId) {
         UUID accountUid = accountRepository.resolveUid(accountId);
@@ -142,6 +158,7 @@ public class GdprDeletionService {
         report.log(log);
         if (accountUid != null) {
             avatarService.delete(accountUid);
+            signatureImages.deleteFiles(accountUid);
         }
         if (accountRepository.findById(accountId).isPresent()) {
             accountRepository.delete(accountId);

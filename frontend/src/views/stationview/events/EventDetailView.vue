@@ -28,6 +28,7 @@ import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import EventDetailBody from './eventdetailview/EventDetailBody.vue'
 import EventAnswerDialog from './eventshared/EventAnswerDialog.vue'
+import RegistrationSigningStep from './eventshared/RegistrationSigningStep.vue'
 import {useEventAnswer} from '@/composables/useEventAnswer'
 import {answerableMembers, type AnswerablePerson} from '@/util/eventAnswers'
 import {formatTime, formatWeekdayDate, stationDayOf} from '@/util/format'
@@ -308,5 +309,7 @@ function onFieldUpdated(field: AppointmentField) {
         @update:model-value="shown => { if (!shown) answer.cancelAnswerPrompt() }"
         @confirm="answer.confirmAnswerPrompt"
     />
+    <RegistrationSigningStep v-if="answer.signingStep.value" :model-value="true" :step="answer.signingStep.value"
+                             @update:model-value="shown => { if (!shown) answer.closeSigningStep() }"/>
   </ViewContent>
 </template>

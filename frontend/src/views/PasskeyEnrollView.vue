@@ -20,6 +20,7 @@ import {decideSignInLanding} from '@/util/signInLanding'
 import {useStations} from '@/composables/useStations'
 import {useCluster} from '@/composables/useCluster'
 import {useLoginConsent} from '@/composables/useLoginConsent'
+import {useLinkRequests} from '@/composables/useLinkRequests'
 import ConsentStep from '@/components/consent/ConsentStep.vue'
 
 /**
@@ -35,6 +36,7 @@ const route = useRoute()
 const {setActiveStation, clearActiveStation} = useStations()
 const {setActiveCluster, clearActiveCluster} = useCluster()
 const legal = useLoginConsent()
+const linkRequests = useLinkRequests()
 const {consent} = legal
 
 type Phase = 'code' | 'confirm' | 'creating' | 'signingIn' | 'failed'
@@ -88,6 +90,7 @@ async function signIn() {
     const credentialJson = await getWebAuthnCredential(begin.optionsJson)
     await passkeys.passkeySignInFinish(begin.challengeToken, credentialJson, false)
     await legal.recordAfterLogin()
+    await linkRequests.checkAfterSignIn()
     clearActiveStation()
     clearActiveCluster()
     const landing = await decideSignInLanding(undefined)

@@ -164,7 +164,7 @@ class MemberNameResolverTest {
         when(station.name()).thenReturn("Partnerwache");
         when(eventFederationRepository.getCachedName(5, memberUid)).thenReturn(Optional.empty());
         when(federationRepository.findPartnerById(5)).thenReturn(Optional.of(partner));
-        when(stationRepository.findByUid(partnerStationUid)).thenReturn(Optional.of(station));
+        when(stationRepository.findHereByUid(partnerStationUid)).thenReturn(Optional.of(station));
 
         assertEquals("Partnerwache", resolver.resolveFederated(5, memberUid));
     }

@@ -11,6 +11,7 @@ import dev.chojo.ember.conf.file.elements.Api;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.service.AccountInviteService;
 import dev.chojo.ember.feature.account.service.AuthService;
+import dev.chojo.ember.feature.accountlink.service.TestAccountLinks;
 import dev.chojo.ember.feature.attendance.service.AttendanceAudienceService;
 import dev.chojo.ember.feature.attendance.service.AttendanceExportService;
 import dev.chojo.ember.feature.federation.service.FederationService;
@@ -72,7 +73,8 @@ class SetupServiceTest extends RepositoryTestBase {
                 new StationMemberInviteService(
                         stationMemberRepo,
                         newGroupMemberships(),
-                        new AccountInviteService(accountRepo, mock(AuthService.class))),
+                        new AccountInviteService(accountRepo, mock(AuthService.class)),
+                        TestAccountLinks.service(accountRepo, stationRepo, stationMemberRepo)),
                 clusterRepo);
         logoService = newStationLogoService();
         setupService = new SetupService(

@@ -607,6 +607,43 @@ public class StationMemberRepository {
     }
 
     /**
+     * Creates a member without an account, which waits for the person to link theirs. The name is all
+     * the station knows of them until then.
+     *
+     * @param stationId   the station
+     * @param displayName the name the member is shown by
+     * @return the member
+     */
+    public StationMember createWithoutAccount(int stationId, String displayName) {
+        return SqlSupport.insertReturning(
+                """
+                INSERT INTO station_member(station_id, display_name) VALUES(:station_id, :display_name)
+                RETURNING %s;""",
+                call().bind("station_id", stationId).bind("display_name", displayName),
+                StationMember.map(),
+                STATION_MEMBER_COLUMNS);
+    }
+
+    /**
+     * Links an account to a member that waits without one, which the person behind the account agreed
+     * to. The name the member waited under is cleared, since the account's name is the member's from
+     * now on.
+     *
+     * @param memberId  the member
+     * @param accountId the account
+     * @return whether the member still waited without an account
+     */
+    public boolean linkAccount(int memberId, int accountId) {
+        return query("""
+                UPDATE station_member
+                SET account_id = :account_id, display_name = ''
+                WHERE id = :id AND account_id IS NULL AND former = FALSE;""")
+                .single(call().bind("id", memberId).bind("account_id", accountId))
+                .update()
+                .changed();
+    }
+
+    /**
      * Replaces the {@code uid} column for the member. Used by the demo seeder to pin
      * deterministic UUIDs so demo media does not accumulate on disk across restarts. Callers must
      * go through the lookup service so the cached translations are dropped along with it.

@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.generator.entity.DocumentLanguage;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplate;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplateKind;
 import dev.chojo.ember.feature.generator.entity.LetterPage;
+import dev.chojo.ember.feature.generator.entity.TemplateSigning;
 import dev.chojo.ember.feature.generator.service.DocumentTemplateCopyService;
 import dev.chojo.ember.feature.generator.service.DocumentTemplateCopyService.DocumentTemplateCopy;
 import dev.chojo.ember.feature.generator.service.DocumentTemplateRequest;
@@ -85,7 +86,8 @@ class DocumentTemplateRoutesTest {
             List.of(),
             1,
             Instant.EPOCH,
-            null);
+            null,
+            TemplateSigning.startingWith(false));
 
     private DocumentTemplateService service;
     private PdfTemplateService pdfs;
@@ -134,7 +136,41 @@ class DocumentTemplateRoutesTest {
                 1,
                 Instant.EPOCH,
                 Instant.EPOCH,
-                null);
+                null,
+                TemplateSigning.startingWith(false));
+    }
+
+    /** How signed documents are kept and sent travels with the template, and so does a statement. */
+    @Test
+    void theSigningSettingsAndAStatementReachTheService() {
+        harness.run((server, client) -> {
+            var editor = harness.as(TestSessions.member(3, StationPermission.DOCUMENT_TEMPLATE_EDIT));
+            assertEquals(
+                    200,
+                    client.put(PREFIX + "/document-templates/8", body("""
+                                    {"name": "Neu", "signing": {"retentionMonths": null, "copyAttached": true},
+                                     "body": [{"sortOrder": 0, "cells": [{"sortOrder": 0, "contentType": "SIGNATURE",
+                                       "content": "", "config": {"signer": "ANY_GUARDIAN",
+                                                                 "statement": "Wir stimmen zu."}}]}]}"""), editor)
+                            .code());
+            assertTrue(json(client.get(PREFIX + "/document-templates/8", editor))
+                    .path("signing")
+                    .has("copyAttached"));
+        });
+
+        var request = ArgumentCaptor.forClass(DocumentTemplateRequest.class);
+        verify(service).update(eq(OWNER), eq(8), request.capture(), anyInt());
+        assertEquals(new TemplateSigning(null, true), request.getValue().signing());
+        assertEquals(
+                "Wir stimmen zu.",
+                request.getValue()
+                        .body()
+                        .getFirst()
+                        .cells()
+                        .getFirst()
+                        .config()
+                        .path("statement")
+                        .asString());
     }
 
     @Test

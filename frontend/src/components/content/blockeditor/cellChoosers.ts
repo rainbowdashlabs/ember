@@ -17,6 +17,7 @@ export const CHOOSER_CATEGORIES = [
         {type: 'DIVIDER', icon: 'minus', key: 'chooseDivider'},
         {type: 'SPACER', icon: 'arrows-up-down', key: 'chooseSpacer'},
         {type: 'SIGNATURE', icon: 'signature', key: 'chooseSignature'},
+        {type: 'FILL_IN', icon: 'pen-to-square', key: 'chooseFillIn'},
         {type: 'ACCORDION', icon: 'chevron-down', key: 'chooseAccordion'},
         {type: 'TABS', icon: 'table-columns', key: 'chooseTabs'},
         {type: 'HERO_BANNER', icon: 'rocket', key: 'chooseHero'},
@@ -61,7 +62,7 @@ export const CHOOSER_CATEGORIES = [
 export type ChooserCategory = {key: string, items: readonly (typeof CHOOSER_CATEGORIES)[number]['items'][number][]}
 
 /** The kinds only a printed letter holds, offered only where an editor names them. */
-const LETTER_ONLY: readonly string[] = ['SIGNATURE']
+const LETTER_ONLY: readonly string[] = ['SIGNATURE', 'FILL_IN']
 
 /**
  * The chooser's categories, narrowed to the kinds an editor allows; a category left empty is left out.

@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.storage.backend;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.time.Instant;
 import java.util.List;
@@ -72,6 +73,27 @@ public interface StorageBackend extends AutoCloseable {
      * @throws StorageException when an existing object cannot be read
      */
     Optional<StoredStream> read(String fullKey);
+
+    /**
+     * Copies an object with its metadata onto another key of this backend, replacing whatever is there.
+     * The default reads the bytes and stores them again; a backend whose server can copy by itself does
+     * so instead, and the bytes never leave the storage.
+     *
+     * @param sourceKey the full key to copy
+     * @param targetKey the full key to copy to
+     * @return false when there is no object under {@code sourceKey}
+     * @throws StorageException when the copy could not be made
+     */
+    default boolean copy(String sourceKey, String targetKey) {
+        Optional<StoredStream> source = read(sourceKey);
+        if (source.isEmpty()) return false;
+        try (StoredStream stream = source.get()) {
+            store(targetKey, stream.body(), stream.contentLength(), stream.metadata());
+        } catch (IOException e) {
+            throw new StorageException("Copying " + sourceKey + " to " + targetKey + " failed", e);
+        }
+        return true;
+    }
 
     /** Removes an object and its metadata; nothing happens when it does not exist. */
     void delete(String fullKey);

@@ -293,6 +293,44 @@ class LetterLayoutTest {
                 .get("fields");
     }
 
+    /**
+     * Each field of a line confirms what the line says, trimmed; a line without a statement and a line the
+     * member does not get leave their fields out, so they keep the default.
+     */
+    @Test
+    void eachFieldOfALineConfirmsWhatTheLineSays() {
+        var letter = body(
+                row(block(
+                        CellContentType.SIGNATURE,
+                        "",
+                        new CellConfig.SignatureConfig(SignatureRole.EACH_GUARDIAN, " Wir sind einverstanden. "))),
+                row(block(
+                        CellContentType.SIGNATURE, "", new CellConfig.SignatureConfig(SignatureRole.PARTICIPANT, " "))),
+                row(new ContentCell(
+                        0,
+                        0,
+                        0,
+                        100,
+                        CellContentType.SIGNATURE,
+                        "",
+                        new CellConfig.SignatureConfig(SignatureRole.ISSUER, "Nur zur Probe."),
+                        TRIAL_ONLY,
+                        null)));
+
+        assertEquals(
+                Map.of("guardian1", "Wir sind einverstanden.", "guardian2", "Wir sind einverstanden."),
+                LetterLayout.signatureStatements(letter, withGuardians(2)));
+        assertEquals(
+                Map.of(
+                        "issuer",
+                        "Nur zur Probe.",
+                        "guardian1",
+                        "Wir sind einverstanden.",
+                        "guardian2",
+                        "Wir sind einverstanden."),
+                LetterLayout.signatureStatements(letter, MemberView.EVERYBODY));
+    }
+
     @Test
     void aSecondGuardiansLineIsLeftOutForAMemberWithOne() {
         var letter = body(row(signature(SignatureRole.GUARDIAN_2, "Erziehungsberechtigte 2")));

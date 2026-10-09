@@ -49,6 +49,9 @@ import java.util.List;
  * <p>A manager may pick another issuer for one document ({@link DocumentIssuerService}); every other way
  * of generating takes the template's.
  *
+ * <p>Before a document is filed, {@link IssuerSigning} may sign it for its issuer, where the issuer agreed
+ * to that; what is filed and logged is then the signed file.
+ *
  * <p>A manager may generate a document whose values are not all there; the gaps print as lines to fill
  * in by hand on a letter and stay empty on a filled-in PDF, and the screen has warned before. Self service refuses that instead
  * ({@link SelfServiceDocumentService}).
@@ -65,6 +68,7 @@ public class DocumentGenerationService {
     private final DocumentGenerationRepository generations;
     private final TemplateChecks checks;
     private final DocumentIssuerService issuers;
+    private final IssuerSigning issuerSigning;
     private final Clock clock;
 
     @Inject
@@ -75,11 +79,26 @@ public class DocumentGenerationService {
             DocumentIntake intake,
             DocumentGenerationRepository generations,
             TemplateChecks checks,
+            DocumentIssuerService issuers,
+            IssuerSigning issuerSigning) {
+        this(templates, generator, documents, intake, generations, checks, issuers, issuerSigning, Clock.systemUTC());
+    }
+
+    /** Files every letter as it was drawn, signing none for its issuer. */
+    public DocumentGenerationService(
+            DocumentTemplateService templates,
+            DocumentGeneratorService generator,
+            DocumentService documents,
+            DocumentIntake intake,
+            DocumentGenerationRepository generations,
+            TemplateChecks checks,
             DocumentIssuerService issuers) {
-        this(templates, generator, documents, intake, generations, checks, issuers, Clock.systemUTC());
+        this(templates, generator, documents, intake, generations, checks, issuers, IssuerSigning.NONE);
     }
 
     /**
+     * Files every letter as it was drawn, signing none for its issuer.
+     *
      * @param clock when a document is logged as generated, which a test moves
      */
     public DocumentGenerationService(
@@ -91,6 +110,23 @@ public class DocumentGenerationService {
             TemplateChecks checks,
             DocumentIssuerService issuers,
             Clock clock) {
+        this(templates, generator, documents, intake, generations, checks, issuers, IssuerSigning.NONE, clock);
+    }
+
+    /**
+     * @param issuerSigning signs a letter for its issuer before it is filed, where the issuer agreed to it
+     * @param clock         when a document is logged as generated, which a test moves
+     */
+    public DocumentGenerationService(
+            DocumentTemplateService templates,
+            DocumentGeneratorService generator,
+            DocumentService documents,
+            DocumentIntake intake,
+            DocumentGenerationRepository generations,
+            TemplateChecks checks,
+            DocumentIssuerService issuers,
+            IssuerSigning issuerSigning,
+            Clock clock) {
         this.templates = templates;
         this.generator = generator;
         this.documents = documents;
@@ -98,6 +134,7 @@ public class DocumentGenerationService {
         this.generations = generations;
         this.checks = checks;
         this.issuers = issuers;
+        this.issuerSigning = issuerSigning;
         this.clock = clock;
     }
 
@@ -236,7 +273,21 @@ public class DocumentGenerationService {
             GenerationOrigin origin,
             DocumentGeneratorService.Prepared prepared) {
         requireKept(prepared);
-        return file(template, memberId, generatedBy, origin, prepared, generator.render(prepared));
+        return file(
+                template, memberId, generatedBy, origin, prepared, signForIssuer(prepared, generator.render(prepared)));
+    }
+
+    /**
+     * Signs a drawn letter for its issuer where they agreed to it, before it is filed. It may wait for
+     * outside services, so a caller filing inside a transaction calls this first.
+     *
+     * @param prepared what the letter was drawn from
+     * @param rendered the letter as drawn
+     * @return the letter to file
+     */
+    IssuerSigning.Signed signForIssuer(
+            DocumentGeneratorService.Prepared prepared, DocumentGeneratorService.Rendered rendered) {
+        return issuerSigning.sign(prepared, rendered);
     }
 
     /**
@@ -258,7 +309,7 @@ public class DocumentGenerationService {
      * @param generatedBy the member who generates it
      * @param origin      in which role it is generated, and for which appointment
      * @param prepared    the values it was drawn from
-     * @param rendered    the document, drawn from them
+     * @param signed      the document drawn from them, signed for its issuer where that applies
      * @return the filed document
      */
     GeneratedDocumentResponse file(
@@ -267,7 +318,8 @@ public class DocumentGenerationService {
             int generatedBy,
             GenerationOrigin origin,
             DocumentGeneratorService.Prepared prepared,
-            DocumentGeneratorService.Rendered rendered) {
+            IssuerSigning.Signed signed) {
+        var rendered = signed.rendered();
         int stationId = prepared.stationId();
         var issuer = prepared.issuer();
         var upload = new DocumentIntake.Upload(rendered.fileName(), PDF, rendered.pdf());
@@ -304,6 +356,7 @@ public class DocumentGenerationService {
                         issuer.issuer().fixed(),
                         issuer.signs()),
                 rendered.resolved().subjects());
+        signed.record().accept(entry.id());
         log.info(
                 "Document {} generated from template {} (version {}) for member {}",
                 document.id(),

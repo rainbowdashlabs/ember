@@ -18,6 +18,9 @@ export const SIGNERS: readonly SignatureRole[] = [
     SignatureRole.EACH_GUARDIAN,
 ]
 
+/** The signers a field to fill in may ask: everybody but the issuer, whose letters are signed unattended. */
+export const FILL_IN_SIGNERS: readonly SignatureRole[] = SIGNERS.filter(role => role !== SignatureRole.ISSUER)
+
 /** The signers that ask the same guardian to sign as another one, so the two never stand together. */
 const CLASHES: Readonly<Partial<Record<SignatureRole, readonly SignatureRole[]>>> = {
     [SignatureRole.EACH_GUARDIAN]: [SignatureRole.GUARDIAN_1, SignatureRole.GUARDIAN_2],

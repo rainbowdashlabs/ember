@@ -9,8 +9,10 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.account.entity.AccountAction;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AccountEmailService;
+import dev.chojo.ember.feature.account.service.AccountReach;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.account.service.LoginNameService;
 import dev.chojo.ember.feature.members.entity.NameParts;
@@ -34,7 +36,9 @@ import java.util.stream.Stream;
  * <p>Everything here is deliberately narrow. A guardian speaks for a child, so they may give the
  * child an address, a name and switch its access on and off - but only for the members they manage,
  * only for the member types a guardian can be assigned to, and only for this one permission. Nothing
- * else about the account is theirs to change.
+ * else about the account is theirs to change. The address, the password and the passkey code reach
+ * past the station, so they are refused for an account that also belongs elsewhere, as
+ * {@link AccountReach} decides.
  *
  * <p>The name is what makes a child with no address of their own reachable at all: it is what they
  * type at the login screen, and the mail Ember would have written to them goes to their guardians.
@@ -53,6 +57,7 @@ public class ManagedAccessService {
     private final AuthService authService;
     private final AccountEmailService accountEmailService;
     private final PasskeyEnrollmentService enrollmentService;
+    private final AccountReach accountReach;
 
     @Inject
     public ManagedAccessService(
@@ -63,7 +68,8 @@ public class ManagedAccessService {
             ManagedLoginNoticeService noticeService,
             AuthService authService,
             AccountEmailService accountEmailService,
-            PasskeyEnrollmentService enrollmentService) {
+            PasskeyEnrollmentService enrollmentService,
+            AccountReach accountReach) {
         this.memberRepository = memberRepository;
         this.accountRepository = accountRepository;
         this.loginNameService = loginNameService;
@@ -72,6 +78,7 @@ public class ManagedAccessService {
         this.authService = authService;
         this.accountEmailService = accountEmailService;
         this.enrollmentService = enrollmentService;
+        this.accountReach = accountReach;
     }
 
     /**
@@ -107,7 +114,9 @@ public class ManagedAccessService {
      * <p>This is what makes a login possible for a child with no address of their own: the name is
      * what they type, and everything Ember would write to them goes to their guardians instead.
      * Clearing it is refused while it is the only way in and signing in is switched on, because that
-     * would lock the member out without saying so.
+     * would lock the member out without saying so. The name is a way into the account, so like the
+     * address it is the guardian's only where {@link AccountReach} finds the account this station's
+     * alone and confirmed by its owner.
      *
      * @param guardianMemberId the member acting as guardian
      * @param memberId         the member in their care
@@ -117,6 +126,7 @@ public class ManagedAccessService {
     public ManagedAccess setUsername(int guardianMemberId, int memberId, String username) {
         StationMember member = requireManaged(guardianMemberId, memberId);
         var account = account(member);
+        accountReach.require(member.stationId(), account.id(), AccountAction.GUARDIAN_USERNAME);
         accountRepository.updateUsername(account.id(), loginNameService.validatedFor(account, username));
         log.info(
                 "Guardian {} set the username of managed member {} (account {})",
@@ -142,6 +152,7 @@ public class ManagedAccessService {
     public ManagedAccess setEmail(int guardianMemberId, int memberId, String email) {
         StationMember member = requireManaged(guardianMemberId, memberId);
         var account = account(member);
+        accountReach.require(member.stationId(), account.id(), AccountAction.GUARDIAN_EMAIL);
         if (accountEmailService.setEmail(account.id(), email)) {
             log.info(
                     "Guardian {} set the email of managed member {} (account {})",
@@ -171,6 +182,7 @@ public class ManagedAccessService {
         if (account.hasRealEmail()) {
             throw MemberRefusal.MANAGED_MEMBER_SETS_THEIR_OWN_PASSWORD.raise();
         }
+        accountReach.require(member.stationId(), account.id(), AccountAction.GUARDIAN_PASSWORD);
         if (password == null || password.isBlank()) {
             throw MemberRefusal.MANAGED_PASSWORD_TOO_SHORT.raise();
         }
@@ -204,6 +216,7 @@ public class ManagedAccessService {
         if (account.hasRealEmail()) {
             throw MemberRefusal.MANAGED_MEMBER_HAS_OWN_ADDRESS.raise();
         }
+        accountReach.require(member.stationId(), account.id(), AccountAction.GUARDIAN_PASSKEY_CODE);
         return enrollmentService.issueCodeWithQr(
                 account.id(), actorAccountId, PasskeyEnrollmentService.QR_TTL, userAgent, country);
     }
@@ -236,6 +249,7 @@ public class ManagedAccessService {
     public ManagedAccess setLogin(int guardianMemberId, int memberId, boolean enabled) {
         StationMember member = requireManaged(guardianMemberId, memberId);
         var account = account(member);
+        accountReach.require(member.stationId(), account.id(), AccountAction.GUARDIAN_LOGIN);
         var permission = memberRepository
                 .findPermissionByName(StationPermission.LOGIN)
                 .orElseThrow(MemberRefusal.MANAGED_SIGN_IN_PERMISSION_MISSING::raise);

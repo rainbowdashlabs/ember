@@ -88,6 +88,11 @@ final class LocalFileTree implements FileTree {
     }
 
     @Override
+    public void copy(String source, String target) throws IOException {
+        Files.copy(resolve(source), resolve(target), StandardCopyOption.REPLACE_EXISTING);
+    }
+
+    @Override
     public boolean remove(String path) throws IOException {
         return Files.deleteIfExists(resolve(path));
     }

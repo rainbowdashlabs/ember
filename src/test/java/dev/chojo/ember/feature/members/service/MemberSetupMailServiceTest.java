@@ -11,6 +11,7 @@ import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.account.entity.Account;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
+import dev.chojo.ember.feature.account.service.AccountReach;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.mail.service.MailRecipientService;
 import dev.chojo.ember.feature.members.entity.StationMember;
@@ -52,7 +53,7 @@ class MemberSetupMailServiceTest {
         accounts = mock(AccountRepository.class);
         recipients = mock(MailRecipientService.class);
         auth = mock(AuthService.class);
-        service = new MemberSetupMailService(accounts, recipients, auth);
+        service = new MemberSetupMailService(accounts, recipients, auth, mock(AccountReach.class));
     }
 
     @Test

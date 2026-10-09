@@ -427,6 +427,7 @@ public class StorageQuotaService {
                     IMAGE_DOCUMENT_TEMPLATE_PICTURE,
                     IMAGE_ASSOCIATION_DOCUMENT_TEMPLATE_PICTURE,
                     IMAGE_AVATAR,
+                    IMAGE_SIGNATURE,
                     IMAGE_STATION_LOGO,
                     DOCUMENT,
                     DISCOVERY_KEY,

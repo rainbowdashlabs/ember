@@ -11,11 +11,13 @@ import dev.chojo.ember.feature.generator.entity.BuiltInPlaceholder;
 import dev.chojo.ember.feature.generator.entity.DataSubject;
 import dev.chojo.ember.feature.generator.entity.DateFormat;
 import dev.chojo.ember.feature.generator.entity.DateKind;
+import dev.chojo.ember.feature.generator.entity.DocumentIssuer;
 import dev.chojo.ember.feature.generator.entity.DocumentLanguage;
 import dev.chojo.ember.feature.generator.entity.GenerationContext;
 import dev.chojo.ember.feature.generator.entity.PlaceholderKey;
 import dev.chojo.ember.feature.generator.entity.PronounKey;
 import dev.chojo.ember.feature.generator.entity.ResolvedValues;
+import dev.chojo.ember.feature.generator.entity.SignerCaptions;
 import dev.chojo.ember.feature.generator.entity.SubjectRole;
 import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.NameParts;
@@ -194,6 +196,40 @@ public class PlaceholderResolver {
     }
 
     /**
+     * The values of a document about nobody in particular, drawn at a station for one date of an appointment:
+     * the values of the appointment, today's date and the data of the station and its association. A key that
+     * reads a person stays without a value.
+     *
+     * @param stationId the station the document is drawn at
+     * @param keys      the keys the template names, a date with the format it names
+     * @param language  the language the template writes in
+     * @param event     the appointment on that date
+     * @return the values by the keys that name them, and the keys without one
+     */
+    public ResolvedValues forAppointment(
+            int stationId, Set<String> keys, DocumentLanguage language, GenerationContext.EventFacts event) {
+        var place = new StationFacts(new Place(
+                stations.findById(stationId).orElse(null),
+                clusters.findByStation(stationId).orElse(null)));
+        var context = new GenerationContext(null, event, DocumentIssuer.NONE);
+        var reading = new Reading(batch(List.of()), place, 0, language, context);
+        var values = new LinkedHashMap<String, String>();
+        var missing = new ArrayList<String>();
+        for (String key : keys) {
+            boolean aboutNobody = BuiltInPlaceholder.of(key)
+                    .filter(BuiltInPlaceholder::needsNoPerson)
+                    .isPresent();
+            String value = aboutNobody ? reading.value(key).map(String::strip).orElse("") : "";
+            if (value.isEmpty()) {
+                missing.add(key);
+            } else {
+                values.put(key, value);
+            }
+        }
+        return new ResolvedValues(values, missing, List.of());
+    }
+
+    /**
      * Where values are read. It reaches {@link StationFacts} as one record because the null check
      * misplaces a nullable parameter on the constructor of an inner class.
      *
@@ -243,6 +279,22 @@ public class PlaceholderResolver {
          */
         public int guardians(int memberId) {
             return guardiansOf(memberId).size();
+        }
+
+        /**
+         * The names printed under the signature fields of a member's document: the member's, their
+         * guardians' in their set order and the issuer's, each the official name.
+         *
+         * @param memberId a member
+         * @param language the language the document is written in
+         * @param issuer   the issuer's name as the document prints it, or null where it names none
+         * @return the captions
+         */
+        public SignerCaptions captions(int memberId, DocumentLanguage language, @Nullable String issuer) {
+            var guardianNames = guardiansOf(memberId).stream()
+                    .map(guardian -> names.official(guardian.id()))
+                    .toList();
+            return new SignerCaptions(language, names.official(memberId), guardianNames, issuer);
         }
 
         /**

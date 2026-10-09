@@ -34,6 +34,7 @@ useHead({
   <ClientOnly><ToastContainer /></ClientOnly>
   <ClientOnly><StepUpModal /></ClientOnly>
   <ClientOnly><ConsentModal /></ClientOnly>
+  <ClientOnly><LinkRequestPrompt /></ClientOnly>
   <ClientOnly><ProblemReportModal /></ClientOnly>
   <ClientOnly><DocumentViewHost /></ClientOnly>
 </template>

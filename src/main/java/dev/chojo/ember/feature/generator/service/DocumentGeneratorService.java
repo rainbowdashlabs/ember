@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.generator.entity.DocumentIssuer;
 import dev.chojo.ember.feature.generator.entity.DocumentLanguage;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplate;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplateDraft;
+import dev.chojo.ember.feature.generator.entity.FieldStatements;
 import dev.chojo.ember.feature.generator.entity.GenerationContext;
 import dev.chojo.ember.feature.generator.entity.LetterContent;
 import dev.chojo.ember.feature.generator.entity.MemberView;
@@ -23,6 +24,7 @@ import dev.chojo.ember.feature.generator.entity.Placeholder;
 import dev.chojo.ember.feature.generator.entity.PlaceholderTokens;
 import dev.chojo.ember.feature.generator.entity.ResolvedValues;
 import dev.chojo.ember.feature.generator.entity.SignatureRole;
+import dev.chojo.ember.feature.generator.entity.SignerCaptions;
 import dev.chojo.ember.feature.generator.entity.TemplateContent;
 import dev.chojo.ember.feature.generator.service.pdf.PdfStamper;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
@@ -81,6 +83,12 @@ public class DocumentGeneratorService {
     /** The longest file name, before its extension. */
     private static final int MAX_FILE_NAME = 150;
 
+    /**
+     * What a document about nobody in particular shows: no block meant for some only, and one guardian, so
+     * a guardian's line stands once.
+     */
+    private static final MemberView NOBODY_IN_PARTICULAR = MemberView.anyMember(1);
+
     private final DocumentTemplateService templates;
     private final PlaceholderResolver resolver;
     private final PlaceholderCatalogue catalogue;
@@ -133,6 +141,7 @@ public class DocumentGeneratorService {
      * @param view      which blocks of a letter the member sees and how many guardians sign for them
      * @param resolved  the values and what is missing
      * @param issuer    the issuer as the document names them
+     * @param signers   the names printed under the signature fields
      * @param missing   the placeholders without a value, in the words of the template's owner
      */
     public record Prepared(
@@ -141,6 +150,7 @@ public class DocumentGeneratorService {
             MemberView view,
             ResolvedValues resolved,
             IssuerUse issuer,
+            SignerCaptions signers,
             List<MissingValue> missing) {}
 
     /**
@@ -231,6 +241,45 @@ public class DocumentGeneratorService {
                             .anyMatch(SignatureRole.ISSUER.fieldNames(view.guardians())::contains);
                 case PdfContent pdf ->
                     pdf.layout().fields().stream().anyMatch(field -> field.role() == SignatureRole.ISSUER);
+            };
+        }
+
+        /**
+         * @param view what of a letter the member sees
+         * @return whether the member's document carries a signature field for somebody other than the
+         *         issuer: the member or a guardian
+         */
+        public boolean asksMemberSideToSign(MemberView view) {
+            return switch (content) {
+                case LetterContent letter -> {
+                    var issuer = SignatureRole.ISSUER.fieldNames(view.guardians());
+                    yield LetterLayout.signatureFields(letter, view).stream().anyMatch(name -> !issuer.contains(name));
+                }
+                case PdfContent pdf ->
+                    pdf.layout().fields().stream()
+                            .anyMatch(field -> field.role() != null && field.role() != SignatureRole.ISSUER);
+            };
+        }
+
+        /**
+         * @param view what of a letter the member sees
+         * @return what the signer of each signature field of the member's document confirms, by the name of
+         *         the field, for the fields whose line or box says so
+         */
+        public Map<String, String> signatureStatements(MemberView view) {
+            return switch (content) {
+                case LetterContent letter -> LetterLayout.signatureStatements(letter, view);
+                case PdfContent pdf -> {
+                    var statements = new LinkedHashMap<String, String>();
+                    for (var field : pdf.layout().fields()) {
+                        var role = field.role();
+                        String statement = field.statement();
+                        if (role == null || statement == null || statement.isBlank()) continue;
+                        role.fieldNames(view.guardians())
+                                .forEach(name -> statements.putIfAbsent(name, statement.strip()));
+                    }
+                    yield statements;
+                }
             };
         }
 
@@ -344,6 +393,35 @@ public class DocumentGeneratorService {
     }
 
     /**
+     * Whether a member's document from a template asks the member or a guardian to sign, matched to the
+     * member as a document drawn now would be. A document that asks only the issuer does not.
+     *
+     * @param template the template
+     * @param memberId the member the document would be about
+     * @return whether it carries a signature field for the member or a guardian
+     */
+    public boolean asksMemberSideToSign(DocumentTemplate template, int memberId) {
+        var view = batch(List.of(memberId)).viewOf(memberId);
+        return sourceOf(template).asksMemberSideToSign(view);
+    }
+
+    /**
+     * What the signers of a member's document from a template confirm, as the template says now. The lines
+     * and boxes are matched to the member as a document drawn now would be: the blocks they see and the
+     * guardians they have.
+     *
+     * @param templateId the template the document came from
+     * @param memberId   the member the document is about
+     * @return the statements, all of them the defaults of their signers in German where the template is gone
+     */
+    public FieldStatements fieldStatements(int templateId, int memberId) {
+        var template = templates.find(templateId).orElse(null);
+        if (template == null) return FieldStatements.defaults(DocumentLanguage.DE);
+        var view = batch(List.of(memberId)).viewOf(memberId);
+        return new FieldStatements(template.language(), sourceOf(template).signatureStatements(view));
+    }
+
+    /**
      * Refuses a document whose values are not all there, naming the missing ones in the words of the
      * template's owner.
      *
@@ -373,8 +451,51 @@ public class DocumentGeneratorService {
         String title = title(source, values);
         var labels = new LinkedHashMap<String, String>();
         prepared.missing().forEach(missing -> labels.put(missing.key(), missing.label()));
-        var drawn = drawing.draw(new Sheet(prepared.stationId(), prepared.view(), title, values, labels, false, today));
+        var drawn = drawing.draw(new Sheet(
+                prepared.stationId(), prepared.view(), title, values, labels, false, prepared.signers(), today));
         return new Rendered(drawn.pdf(), title, fileName(source, values), prepared.resolved(), drawn.unprintable());
+    }
+
+    /**
+     * Draws a template about nobody in particular for one date of an appointment, as the one copy every
+     * partner's signer signs alike: the values of the appointment, today's date and the station's data. A
+     * value without one is left as a line, as in a member's document; the template is meant to name no
+     * person ({@link MemberNeutralTemplates}), and a person it names all the same stays empty.
+     *
+     * @param template  the template, which reads alike for every member
+     * @param stationId the station that holds the appointment, where the document is drawn
+     * @param event     the appointment on that date
+     * @return the document
+     */
+    public Rendered drawForAppointment(DocumentTemplate template, int stationId, GenerationContext.EventFacts event) {
+        var source = sourceOf(template);
+        var view = NOBODY_IN_PARTICULAR;
+        var keys = new LinkedHashSet<>(source.valueKeys(view));
+        var resolved = resolver.forAppointment(stationId, keys, source.language(), event);
+        var known = catalogue.byKey(source.owner());
+        var missing = resolved.missing().stream()
+                .map(key -> new MissingValue(key, PlaceholderCatalogue.labelOf(known, key)))
+                .toList();
+        var prepared = new Prepared(
+                source,
+                stationId,
+                view,
+                resolved,
+                new IssuerUse(DocumentIssuer.NONE, false, false, null),
+                SignerCaptions.roles(source.language()),
+                missing);
+        return render(prepared);
+    }
+
+    /**
+     * What the signers of a template's document about nobody in particular confirm, as {@link
+     * #drawForAppointment} draws it.
+     *
+     * @param template the template
+     * @return the statements the template words itself, in the template's language
+     */
+    public FieldStatements statementsForAppointment(DocumentTemplate template) {
+        return new FieldStatements(template.language(), sourceOf(template).signatureStatements(NOBODY_IN_PARTICULAR));
     }
 
     /**
@@ -425,6 +546,7 @@ public class DocumentGeneratorService {
                         values,
                         labels,
                         true,
+                        SignerCaptions.roles(source.language()),
                         () -> today(stationId)));
     }
 
@@ -470,10 +592,7 @@ public class DocumentGeneratorService {
          */
         public Prepared prepare(Source source, int memberId, GenerationContext context) {
             int stationId = values.stationOf(memberId).orElseThrow(MemberRefusal.MEMBER_NOT_HERE::raise);
-            var member = audienceOf(memberId);
-            Predicate<RestrictionAudience> audience =
-                    member == null ? restriction -> false : restriction -> restriction.includes(member);
-            var view = MemberView.of(audience, values.guardians(memberId));
+            var view = viewOf(memberId);
             if (source.content() instanceof LetterContent letter) {
                 LetterLayout.requireSignersOnce(letter, view, DocumentRefusal.DOCUMENT_SIGNER_TWICE_FOR_MEMBER);
             }
@@ -483,9 +602,11 @@ public class DocumentGeneratorService {
             boolean named = signs || BuiltInPlaceholder.namesIssuer(keys);
             if (named) keys.add(BuiltInPlaceholder.ISSUER_FULL_NAME.key());
             var resolved = values.resolve(stationId, memberId, keys, source.language(), context);
-            var issuer = new IssuerUse(
-                    context.issuer(), named, signs, resolved.values().get(BuiltInPlaceholder.ISSUER_FULL_NAME.key()));
-            return new Prepared(source, stationId, view, resolved, issuer, missingOf(source.owner(), resolved));
+            String issuerName = resolved.values().get(BuiltInPlaceholder.ISSUER_FULL_NAME.key());
+            var issuer = new IssuerUse(context.issuer(), named, signs, issuerName);
+            var signers = values.captions(memberId, source.language(), issuerName);
+            return new Prepared(
+                    source, stationId, view, resolved, issuer, signers, missingOf(source.owner(), resolved));
         }
 
         /**
@@ -512,6 +633,17 @@ public class DocumentGeneratorService {
                     prepared.missing(),
                     rendered.unprintable(),
                     prepared.issuer().preview());
+        }
+
+        /**
+         * @param memberId a member of this batch
+         * @return which blocks of a letter the member sees and how many guardians sign for them
+         */
+        public MemberView viewOf(int memberId) {
+            var member = audienceOf(memberId);
+            Predicate<RestrictionAudience> audience =
+                    member == null ? restriction -> false : restriction -> restriction.includes(member);
+            return MemberView.of(audience, values.guardians(memberId));
         }
 
         private @Nullable RestrictionMember audienceOf(int memberId) {
@@ -551,6 +683,7 @@ public class DocumentGeneratorService {
      * @param values     the value of every placeholder that has one
      * @param labels     the words of the placeholders shown where there is no value
      * @param showLabels whether a placeholder without a value shows its label
+     * @param signers    the names printed under the signature fields
      * @param today      the day the document is dated, read only where it prints one
      */
     private record Sheet(
@@ -560,6 +693,7 @@ public class DocumentGeneratorService {
             Map<String, String> values,
             Map<String, String> labels,
             boolean showLabels,
+            SignerCaptions signers,
             Supplier<LocalDate> today) {}
 
     /** What a template is drawn with, read once for as many documents as are drawn from it. */
@@ -590,6 +724,7 @@ public class DocumentGeneratorService {
                     sheet.values(),
                     sheet.labels(),
                     sheet.showLabels(),
+                    sheet.signers(),
                     sheet.today().get());
             return new PdfStamper.Stamped(letters.render(job, setting), List.of());
         }
@@ -611,7 +746,8 @@ public class DocumentGeneratorService {
                         String value = sheet.values().get(key);
                         if (value != null) return value;
                         return sheet.showLabels() ? "[" + sheet.labels().getOrDefault(key, key) + "]" : "";
-                    }));
+                    }),
+                    sheet.signers());
         }
     }
 

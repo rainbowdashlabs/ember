@@ -32,7 +32,7 @@ class StatisticsRoutesTest {
         when(statistics.forInstance())
                 .thenReturn(
                         new AdminStatistics(null, List.of(), List.of(), List.of(), List.of(), List.of(), List.of()));
-        when(statistics.overview()).thenReturn(new AdminOverview(0, 0, 0, 0, 0, 0, 0, 0, 0, List.of(), List.of()));
+        when(statistics.overview()).thenReturn(new AdminOverview(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, List.of(), List.of()));
         var harness = RouteHarness.serving(new StatisticsRoutes(statistics));
 
         harness.run((server, client) -> {

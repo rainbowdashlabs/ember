@@ -30,6 +30,7 @@ import {useCluster} from '@/composables/useCluster'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useDemoAccounts} from '@/composables/useDemoAccounts'
 import {useLoginConsent} from '@/composables/useLoginConsent'
+import {useLinkRequests} from '@/composables/useLinkRequests'
 import DemoLogin from '@/views/loginview/DemoLogin.vue'
 import ConsentStep from '@/components/consent/ConsentStep.vue'
 import LoginForm from '@/views/loginview/LoginForm.vue'
@@ -48,6 +49,7 @@ const {
 } = demo
 
 const legal = useLoginConsent()
+const linkRequests = useLinkRequests()
 const {consent} = legal
 
 const identifier = ref('')
@@ -146,6 +148,7 @@ async function completeSignIn(result: LoginResponse) {
     return
   }
   await legal.recordAfterLogin()
+  await linkRequests.checkAfterSignIn()
   if (await shouldOfferPasskey()) {
     const redirect = route.query.redirect as string | undefined
     await navigateTo({path: '/passkey-offer', query: redirect ? {redirect} : {}})

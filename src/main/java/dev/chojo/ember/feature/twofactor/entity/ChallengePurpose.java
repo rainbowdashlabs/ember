@@ -37,5 +37,11 @@ public enum ChallengePurpose {
     /**
      * A registration opened by a device-enrolment token rather than a session.
      */
-    DEVICE_ENROLLMENT
+    DEVICE_ENROLLMENT,
+    /**
+     * A started signing act: the field, the signer, the nonce and the challenge bound to the document,
+     * the proofs the signer may give and what they typed. Spent once by the act's completion, whatever
+     * proof it carries, and verified against the session's own account.
+     */
+    SIGNING
 }

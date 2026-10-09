@@ -11,10 +11,13 @@ import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.feature.content.entity.CellConfig;
 import dev.chojo.ember.feature.content.entity.ContentCell;
 import dev.chojo.ember.feature.generator.entity.DocumentLanguage;
+import dev.chojo.ember.feature.generator.entity.FillInField;
 import dev.chojo.ember.feature.generator.entity.LetterContent;
 import dev.chojo.ember.feature.generator.entity.MemberView;
 import dev.chojo.ember.feature.generator.entity.PlaceholderTokens;
+import dev.chojo.ember.feature.generator.entity.SignerCaptions;
 import dev.chojo.ember.feature.generator.service.font.FontLibrary;
+import dev.chojo.ember.feature.generator.service.pdf.FillInFields;
 import dev.chojo.ember.feature.generator.service.pdf.SignatureFields;
 import dev.chojo.ember.feature.generator.service.store.OwnerStores;
 import dev.chojo.ember.feature.knowledgebase.service.KbPdfPictures;
@@ -67,8 +70,11 @@ import java.util.Optional;
  * printed, so the converted texts stay right whatever the owner reaches.
  *
  * <p>A signature block is drawn by {@code letter.typ} as an empty box on a line for each of its fields,
- * with its short text below, and {@link SignatureFields#replaceMarkers} turns each box into a real,
- * empty PDF signature field afterwards.
+ * with the name of whoever signs there right below ({@link SignerCaptions}), left out where the block's
+ * short text already prints that name, and the short text below that, and {@link SignatureFields#replaceMarkers} turns each box into a real,
+ * empty PDF signature field afterwards. A block to fill in at signing is drawn as its label over a boxed
+ * line for each of its fields, and {@link FillInFields#replaceMarkers} turns each box into an empty text
+ * field the same way.
  */
 @Singleton
 public class LetterRenderer {
@@ -118,6 +124,7 @@ public class LetterRenderer {
      * @param values     the value of every placeholder that has one
      * @param labels     the words for every placeholder, shown in place of a value where labels are asked for
      * @param showLabels whether a placeholder without a value shows its label rather than a line to fill in
+     * @param signers    the names printed under the signature fields
      * @param date       the day the document is dated
      */
     public record LetterJob(
@@ -130,6 +137,7 @@ public class LetterRenderer {
             Map<String, String> values,
             Map<String, String> labels,
             boolean showLabels,
+            SignerCaptions signers,
             LocalDate date) {}
 
     /**
@@ -188,6 +196,7 @@ public class LetterRenderer {
         int logoStation = Objects.requireNonNullElse(job.stationId(), library);
         var files = new HashMap<String, byte[]>();
         var resources = new HashMap<String, String>();
+        var fillIns = new HashMap<String, FillInField>();
         var layout = new LetterLayout(job.view(), new LetterLayout.Blocks() {
                     @Override
                     public Map<String, Object> text(int index, ContentCell cell) {
@@ -201,7 +210,29 @@ public class LetterRenderer {
 
                     @Override
                     public Map<String, Object> signature(int index, ContentCell cell, List<String> fields) {
-                        return Map.of("kind", "signature", "file", textFile(index, cell), "fields", fields);
+                        return Map.of(
+                                "kind",
+                                "signature",
+                                "file",
+                                textFile(index, cell),
+                                "fields",
+                                fields,
+                                "captions",
+                                captions(job, cell, fields));
+                    }
+
+                    @Override
+                    public Map<String, Object> fillIn(ContentCell cell, List<FillInField> fields) {
+                        fields.forEach(field -> fillIns.put(field.name(), field));
+                        return Map.of(
+                                "kind",
+                                "fillIn",
+                                "label",
+                                fields.getFirst().label(),
+                                "required",
+                                fields.getFirst().required(),
+                                "fields",
+                                fields.stream().map(FillInField::name).toList());
                     }
 
                     private String textFile(int index, ContentCell cell) {
@@ -216,6 +247,8 @@ public class LetterRenderer {
         String marker = SignatureFields.newMarker();
         var data = new LinkedHashMap<String, Object>(layout);
         data.put("signatureMarker", marker);
+        String fillInMarker = FillInFields.newMarker();
+        data.put("fillInMarker", fillInMarker);
         data.put("title", job.title());
         data.put("language", job.language().code());
         data.put(
@@ -236,7 +269,7 @@ public class LetterRenderer {
         data.put("spanFonts", typeset.spans());
         data.put("uprightFamilies", typeset.uprightFamilies());
         try {
-            return SignatureFields.replaceMarkers(
+            byte[] drawn = SignatureFields.replaceMarkers(
                     TypstCompiler.compileTemplate(
                             data,
                             "letter.typ",
@@ -247,6 +280,7 @@ public class LetterRenderer {
                             Map.of(),
                             setting.fontDirectories()),
                     marker);
+            return FillInFields.replaceMarkers(drawn, fillInMarker, fillIns);
         } catch (IOException e) {
             log.error("A letter of {} could not be rendered", job.owner(), e);
             throw DocumentRefusal.DOCUMENT_RENDER_FAILED.raise();
@@ -254,6 +288,18 @@ public class LetterRenderer {
             Thread.currentThread().interrupt();
             throw DocumentRefusal.DOCUMENT_RENDER_FAILED.raise();
         }
+    }
+
+    /**
+     * The name printed under each field of a signature line, empty where the line's own text already prints
+     * that name.
+     */
+    private static List<String> captions(LetterJob job, ContentCell cell, List<String> fields) {
+        String printed = PlaceholderTokens.fill(cell.content(), job.values());
+        return fields.stream()
+                .map(job.signers()::of)
+                .map(name -> printed.contains(name) ? "" : name)
+                .toList();
     }
 
     /**

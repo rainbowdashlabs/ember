@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.form.service.FormService;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.news.service.NewsService;
 import dev.chojo.ember.feature.page.service.PageService;
+import dev.chojo.ember.feature.signing.service.PublishedCertificates;
 import dev.chojo.ember.feature.station.entity.DiscoveryVisibility;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.entity.ThemeFeel;
@@ -93,7 +94,8 @@ class PublicStationReachTest {
                 mock(PageService.class),
                 mock(WaitingListService.class),
                 mock(NewsService.class),
-                formService));
+                formService,
+                mock(PublishedCertificates.class)));
     }
 
     private static Response askFor(PublicStationRoutes routes) {

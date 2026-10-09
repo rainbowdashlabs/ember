@@ -259,6 +259,7 @@ export default {
             pageEdit: 'Nur für Seiten-Bearbeiter',
             pageManager: 'Nur für Seiten-Verwalter',
             stationAdministrator: 'Nur für die Administration der Wache',
+            documentEditMember: 'Nur für Verwalter von Mitgliederdokumenten',
         },
         welcome: {
             title: 'Willkommen im Hilfe-Center',
@@ -320,6 +321,92 @@ export default {
             sidebarHosting: 'Selbst betreiben',
             sidebarHostingConfiguration: 'Konfiguration',
             sidebarFederation: 'Föderation',
+            sidebarSeals: 'Dokumente prüfen',
+            sidebarSignature: 'Deine Unterschrift',
+            signature: {
+                title: 'Deine Unterschrift',
+                subtitle: 'So legst du deine Unterschrift für Dokumente an.',
+                whatIs: 'Wofür ist die Unterschrift?',
+                whatIsText: 'Wenn du in Ember ein Dokument unterschreibst, kommt ein Bild deiner Unterschrift in dein Feld. So zeigt auch ein ausgedrucktes Dokument, wer unterschrieben hat.',
+                whatIsText2: 'Die Unterschrift gehört zu deinem Konto und gilt an jeder Wache. Niemand sonst kann sie in ein Dokument setzen.',
+                howTo: 'Wie lege ich sie an?',
+                step1: 'Öffne die Einstellungen deines Kontos und dort den Bereich Unterschrift.',
+                step2: 'Zeichne im weißen Feld mit dem Finger, einem Stift oder der Maus. Oder wähle Name tippen, dann setzt Ember deinen Namen in eine Schreibschrift.',
+                step3: 'Klicke auf Unterschrift speichern. Du kannst auch ein Foto deiner Unterschrift auf Papier hochladen. Ember schneidet sie aus und macht den Hintergrund durchsichtig.',
+                exampleTitle: 'So sieht das aus',
+                consentTitle: 'Briefe automatisch unterschreiben',
+                consentText: 'Manche Briefe stellst du für die Wache aus, zum Beispiel Urkunden. Schaltest du den Schalter ein, setzt Ember deine Unterschrift in diese Briefe, sobald jemand sie erstellt. Danach versiegelt Ember den Brief für die Wache.',
+                consentText2: 'Das gilt nur für Vorlagen, die dich selbst als ausstellende Person nennen. Ohne Zustimmung oder ohne gespeicherte Unterschrift bleibt das Feld leer und der Brief unversiegelt.',
+                withoutTitle: 'Ohne gespeicherte Unterschrift',
+                withoutText: 'Du musst keine Unterschrift speichern. Dann fragt Ember dich beim Unterschreiben jedes Mal nach einer, und du kannst sie dort auch für das nächste Mal speichern.',
+                tip: 'Löschst du deine Unterschrift, bleibt sie in Dokumenten, die du schon unterschrieben hast. Neue Dokumente bekommen dann eine neue Unterschrift.',
+            },
+            sidebarAccountLinks: 'Konto mit einer Wache verknüpfen',
+            accountLinks: {
+                title: 'Konto mit einer Wache verknüpfen',
+                subtitle: 'Warum eine Wache dich fragt, bevor sie dein Konto bekommt.',
+                whatIs: 'Worum geht es?',
+                whatIsText: 'Dein Konto gehört dir. Eine Wache kann deine Adresse einladen oder bei einem Umzug mitbringen. Gibt es zu der Adresse schon ein Konto, fragt Ember dich zuerst. Bis du zustimmst, kann die Wache dein Konto nicht erreichen.',
+                askedTitle: 'Wann wirst du gefragt?',
+                askedText: 'Nach deiner nächsten Anmeldung erscheint ein Fenster mit der Anfrage. Kann deine Installation Mails versenden, bekommst du zusätzlich eine Mail mit einem Link. Der Link öffnet die Anfrage nur, wenn du mit diesem Konto angemeldet bist. Zugestimmt ist damit noch nichts.',
+                howTo: 'Wie antworte ich?',
+                step1: 'Lies, welche Wache fragt und für welches Mitglied.',
+                step2: 'Klicke auf Zustimmen, wenn du dazugehören möchtest. Die Wache bekommt dann Bescheid.',
+                step3: 'Klicke auf Ablehnen, wenn du die Wache nicht kennst. Das Mitglied bleibt dann ohne Konto.',
+                step4: 'Mit Später schließt du das Fenster. Die Anfrage findest du unter Konto bei Verknüpfungen. Nach 30 Tagen ohne Antwort verfällt sie.',
+                exampleTitle: 'So sieht eine Anfrage aus',
+                exampleStation: 'Jugendfeuerwehr Musterstadt',
+                exampleMember: 'Lena Weber',
+                exampleInviter: 'Jonas Becker',
+                stationTitle: 'Was sieht die Wache?',
+                stationText: 'Beim Mitglied steht, ob die Anfrage wartet, abgelehnt wurde oder abgelaufen ist. Solange sie wartet, fehlen dort alle Aktionen für das Konto.',
+                associationTitle: 'Anfragen von Verbänden',
+                associationText: 'Auch ein Verband fragt zuerst, wenn er eine Adresse aufnimmt, zu der es schon ein Konto gibt. Die Anfrage nennt den Verband und die Rolle, die er dir anbietet. Erst wenn du zustimmst, gehörst du mit dieser Rolle zum Verband. Lehnst du ab, entsteht nichts. Bis dahin erreicht der Verband dein Konto nicht.',
+                exampleAssociation: 'Kreisverband Musterland',
+                sharedTitle: 'Konten, die mehreren gehören',
+                sharedText: 'Gehört dein Konto mehreren Wachen oder einem Verband, darf keine Wache deine Adresse oder deine Anmeldung ändern. Das machst nur du selbst. Hat ein Umzug ein Konto für dich angelegt, gilt das auch, bis du es über den Link in deiner Mail eingerichtet hast. Kann dich keine Mail erreichen, weil deine Installation keine Mails versendet oder weder du noch eine erziehungsberechtigte Person eine Adresse hat, reicht es, dich mit dem mitgebrachten Passwort anzumelden und es durch ein neues zu ersetzen.',
+                tip: 'Kennst du die Wache nicht, lehne die Anfrage ab. Niemand bekommt dadurch Zugriff auf dein Konto.',
+            },
+            seals: {
+                title: 'Dokumente prüfen',
+                subtitle: 'So prüfst du, ob ein versiegeltes Dokument echt und unverändert ist.',
+                whatIs: 'Was ist ein Siegel?',
+                whatIsText: 'Manche Dokumente versiegelt deine Wache in Ember. Das Siegel ist eine einfache elektronische Signatur der Wache. Es zeigt, welche Wache das Dokument ausgestellt hat und dass seitdem niemand etwas daran geändert hat.',
+                whatIsText2: 'Ein Siegel ist keine Unterschrift einer Person. Es sagt auch nicht, ob der Inhalt stimmt.',
+                howTo: 'Wie prüfe ich ein Dokument?',
+                step1: 'Öffne die Seite Dokument prüfen. Du erreichst sie über den Link hier oder über Dokument prüfen unten auf den öffentlichen Seiten einer Wache. Ein Konto brauchst du nicht.',
+                openPage: 'Zur Seite Dokument prüfen',
+                step2: 'Ziehe das PDF in das Feld oder klicke auf PDF auswählen. Die Datei darf höchstens 25 MB groß sein.',
+                step3: 'Ember prüft die Datei sofort und zeigt dir das Ergebnis. Gespeichert wird die Datei dabei nicht.',
+                resultsTitle: 'Was bedeuten die Ergebnisse?',
+                resultSealedHere: 'Grün: Eine Wache dieser Installation hat das Dokument versiegelt, und es ist unverändert.',
+                resultAltered: 'Rot mit Kreuz: Der versiegelte Inhalt wurde verändert oder die Datei ist beschädigt. Verlass dich nicht auf sie.',
+                resultModifiedAfterSealing: 'Rot mit Warnzeichen: Der versiegelte Inhalt ist unverändert, aber die Datei wurde danach geändert. Was sie zeigt, ist nicht genau das, was versiegelt wurde.',
+                resultNotIssuedHere: 'Blau: Das Siegel stammt nicht von dieser Installation. Die Seite kann dazu nichts sagen.',
+                resultInvalid: 'Rot mit Sperrzeichen: Das Siegel ist ungültig, etwa weil sein Zertifikat gesperrt oder abgelaufen ist.',
+                resultUnclear: 'Grau: Das Siegel ließ sich nicht sicher prüfen. In den Einzelheiten steht, warum.',
+                resultNone: 'Trägt das PDF gar kein Siegel, steht das auch dort.',
+                exampleTitle: 'So sieht das aus',
+                revokedTitle: 'Gesperrter Schlüssel',
+                revokedText: 'Manchmal sperrt eine Wache ihren Schlüssel später. Hat ein Zeitstempel das Siegel vor der Sperre bestätigt, bleibt es gültig. Die Seite sagt dir dann, dass der Schlüssel erst später gesperrt wurde und das Siegel von davor stammt.',
+                heldTitle: 'Liegt die Datei bei Ember?',
+                heldText: 'Unter dem Ergebnis steht, ob diese Installation genau diese Datei aufbewahrt. Wenn nicht, ist das kein schlechtes Zeichen. Eine Kopie kann auch woanders liegen.',
+                evidenceTitle: 'Wer hat unterschrieben?',
+                evidenceText: 'Bei einem unterschriebenen Dokument zeigt die Seite außerdem, wer welches Feld wann und womit unterschrieben hat, und ob mehrere Felder in einem Schritt bestätigt wurden. Diese Angaben trägt die Datei unsichtbar bei sich. Ob sie unverändert sind, sagt die Prüfung des Siegels darüber. Den ausführlichen Nachweis zum Ausdrucken lädst du in Ember neben dem Dokument herunter.',
+                compareTitle: 'Selbst nachprüfen',
+                compareText: 'Klappe die Einzelheiten auf. Dort steht der SHA-256-Fingerabdruck unter Ausgestellt von. Vergleiche ihn mit dem Fingerabdruck unten auf den öffentlichen Seiten der Wache. Stimmen beide überein, stammt das Siegel von dieser Installation.',
+                compareText2: 'Ein Fingerabdruck ist eine lange Folge aus Zahlen und Buchstaben. Jede Zertifizierungsstelle hat ihren eigenen.',
+                offlineTitle: 'Ohne Ember prüfen',
+                offlineText: 'Das Siegel steckt im PDF selbst. Deshalb lässt es sich auch in einem PDF-Programm wie dem Adobe Acrobat Reader prüfen, ohne Internet und auch dann, wenn es die Wache in Ember nicht mehr gibt.',
+                offlineStep1: 'Lade auf den öffentlichen Seiten der Wache unten das Zertifikat herunter. Prüfe, dass sein Fingerabdruck mit dem auf der Seite übereinstimmt.',
+                offlineStep2: 'Füge das Zertifikat in deinem PDF-Programm als vertrauenswürdig hinzu. Im Acrobat Reader geht das unter Einstellungen, Unterschriften, Identitäten und vertrauenswürdige Zertifikate.',
+                offlineStep3: 'Öffne das Dokument. Das Programm zeigt in der Leiste der Unterschriften, ob das Siegel gültig ist und ob das Dokument seitdem geändert wurde.',
+                offlineText2: 'Ohne diesen Schritt meldet das Programm, dass es die Identität nicht kennt. Das heißt nur, dass es der Wache noch nicht vertraut. Über eine Änderung am Dokument sagt diese Meldung nichts.',
+                limitsTitle: 'Was beweist ein unterschriebenes Dokument nicht?',
+                limitsText: 'Eine Unterschrift in Ember ist eine einfache elektronische Unterschrift. Sie zeigt, welches Konto unterschrieben hat und dass das Dokument danach unverändert blieb. Wer gerade am Gerät saß, kann sie nicht beweisen.',
+                limitsText2: 'Verlangt ein Gesetz die Schriftform, ersetzt sie die Unterschrift auf Papier nicht. Für solche Dokumente braucht es weiter ein unterschriebenes Blatt Papier.',
+                tip: 'Bekommst du ein versiegeltes Dokument per Mail, prüfe es am besten gleich. So weißt du sicher, dass es unterwegs niemand verändert hat.',
+            },
             videos: {
                 title: 'Erklärvideos',
                 subtitle: 'Ember in kurzen Videos, eines pro Thema.',
@@ -659,7 +746,7 @@ volumes:
                 dataAccount: 'Konto-bezogene Dateien - derzeit nur Profilbilder. Pro Konto ein Unterordner.',
                 dataInst: 'Instanz-weite Dateien - Logo-Fragmente und ähnliche Branding-Bilder.',
                 dataDiscovery: 'Schlüsselpaar für die Föderation. Geht der private Schlüssel verloren, müssen alle Partner-Wachen die Verbindung neu aufbauen.',
-                dataSecrets: 'Der Schlüssel in encryption.key, mit dem Ember gespeicherte Geheimnisse verschlüsselt: die Föderations-Schlüssel der Wachen, Anmeldedaten für ausgelagerten Speicher und Postfach-Passwörter. Ember erzeugt ihn beim ersten Start, wenn storage.credentialEncryptionKey nicht gesetzt ist, und legt ihn bewusst nicht in der Datenbank ab: ein Datenbank-Dump allein enthält so nichts Verwendbares. Geht die Datei verloren, sind diese Geheimnisse nicht mehr lesbar und alle Föderationen müssen neu aufgebaut werden.',
+                dataSecrets: 'Der Schlüssel in encryption.key, mit dem Ember gespeicherte Geheimnisse verschlüsselt: die Föderations-Schlüssel der Wachen, Anmeldedaten für ausgelagerten Speicher, Postfach-Passwörter und die Siegel-Schlüssel, mit denen die Wachen PDFs versiegeln, samt der Zertifizierungsstelle, die sie ausstellt. Ember erzeugt ihn beim ersten Start, wenn storage.credentialEncryptionKey nicht gesetzt ist, und legt ihn bewusst nicht in der Datenbank ab: ein Datenbank-Dump allein enthält so nichts Verwendbares. Geht die Datei verloren, sind diese Geheimnisse nicht mehr lesbar und alle Föderationen müssen neu aufgebaut werden. Auch die Siegel-Schlüssel lassen sich dann nicht mehr öffnen, und keine Wache kann versiegeln. Neue Siegel-Schlüssel gibt es erst, wenn ein Administrator die alten unter Einstellungen → Sicherheit → Siegel-Schlüssel aufgibt. Von selbst tut Ember das nie, weil ein nur falsch eingetragener Schlüssel genauso aussieht. Schon versiegelte Dokumente bleiben über die im Dokument eingebettete Zertifikatskette gültig, einen alten Siegel-Schlüssel kann Ember aber nicht mehr sperren.',
                 dataMaps: 'Karten-Tile-Cache. Reine Caches, dürfen verloren gehen - werden bei Bedarf neu geladen.',
                 dataDirText2: 'Beim ersten Start werden Vorlagen für die rechtlichen Dokumente automatisch aus dem Container kopiert, wenn sie noch nicht vorhanden sind.',
                 dataDirText3: 'Wache-Inhalte können wahlweise auf einem entfernten Speicher (S3, SMB, SFTP) liegen statt auf der lokalen Festplatte. Dann sind die Dateien dort und nicht im data/ Verzeichnis. Die Einstellung erfolgt entweder über die Admin-Oberfläche (Instanz-Standard) oder pro Wache durch deren Verwalter.',
@@ -683,9 +770,9 @@ volumes:
                 backupConfigTitle: 'Konfigurations-Ordner',
                 backupConfig: 'Der auf den Container gemappte config/ Ordner. Enthält die config.yaml mit allen Einstellungen und den Schlüsseln, die Ember beim ersten Start erzeugt, sowie verschlüsselte Anmeldedaten für ausgelagerten Speicher (S3, SMB, SFTP), falls die Admin-Oberfläche zum Setzen verwendet wurde.',
                 backupDataTitle: 'Daten-Ordner',
-                backupData: 'Der auf den Container gemappte data/ Ordner. Enthält alles aus dem Datenverzeichnis oben - rechtliche Dokumente, hochgeladene Dateien (sofern lokal gespeichert), den Discovery-Schlüssel, den Verschlüsselungs-Schlüssel in data/secrets/ und Logo-Fragmente. Ein Datenbank-Backup ohne diesen Ordner ist nur zur Hälfte brauchbar: die verschlüsselten Föderations-Schlüssel und Anmeldedaten darin lassen sich ohne data/secrets/encryption.key nicht mehr lesen. Wenn Wache-Dateien auf S3/SMB/SFTP liegen, brauchst du zusätzlich ein Backup beim jeweiligen Anbieter.',
+                backupData: 'Der auf den Container gemappte data/ Ordner. Enthält alles aus dem Datenverzeichnis oben - rechtliche Dokumente, hochgeladene Dateien (sofern lokal gespeichert), den Discovery-Schlüssel, den Verschlüsselungs-Schlüssel in data/secrets/ und Logo-Fragmente. Ein Datenbank-Backup ohne diesen Ordner ist nur zur Hälfte brauchbar: die verschlüsselten Föderations-Schlüssel, Siegel-Schlüssel und Anmeldedaten darin lassen sich ohne data/secrets/encryption.key nicht mehr lesen. Wenn Wache-Dateien auf S3/SMB/SFTP liegen, brauchst du zusätzlich ein Backup beim jeweiligen Anbieter.',
                 backupSecretsTitle: 'Schlüssel',
-                backupSecrets: 'Token-Pepper und 2FA-Schlüssel erzeugt Ember beim ersten Start selbst und schreibt sie in die config.yaml. Den Verschlüsselungs-Schlüssel legt Ember als data/secrets/encryption.key im Daten-Ordner an, sofern storage.credentialEncryptionKey nicht gesetzt ist; ein gesetzter Wert hat immer Vorrang. Setzt du Schlüssel per Umgebungsvariable, sichere sie zusätzlich außerhalb des Servers (z.B. im Passwort-Manager). Ohne den 2FA-Schlüssel ist keine Authenticator-App mehr lesbar, ohne den Verschlüsselungs-Schlüssel weder eine gespeicherte Speicher-Anmeldung noch ein Föderations-Schlüssel, und ohne den Token-Pepper sind alle Sitzungen ungültig.',
+                backupSecrets: 'Token-Pepper und 2FA-Schlüssel erzeugt Ember beim ersten Start selbst und schreibt sie in die config.yaml. Den Verschlüsselungs-Schlüssel legt Ember als data/secrets/encryption.key im Daten-Ordner an, sofern storage.credentialEncryptionKey nicht gesetzt ist; ein gesetzter Wert hat immer Vorrang. Setzt du Schlüssel per Umgebungsvariable, sichere sie zusätzlich außerhalb des Servers (z.B. im Passwort-Manager). Ohne den 2FA-Schlüssel ist keine Authenticator-App mehr lesbar, ohne den Verschlüsselungs-Schlüssel weder eine gespeicherte Speicher-Anmeldung noch ein Föderations- oder Siegel-Schlüssel, und ohne den Token-Pepper sind alle Sitzungen ungültig.',
                 backupsRemoteText: 'Hinweis: Wenn Wache-Dateien auf einem entfernten Speicher (S3, SMB, SFTP) liegen, sind sie nicht im data/ Ordner. Sorge dafür, dass der Anbieter dort sein eigenes Backup hat oder erstelle es selbst.',
                 tip: 'Teste Updates und Backup-Wiederherstellung zuerst in einer Testumgebung, bevor du dich im Notfall darauf verlassen musst.',
             },
@@ -740,6 +827,8 @@ volumes:
                 envGroupMailImport: 'Dokumente aus Postfächern (Backend)',
                 envGroupDocuments: 'Erstellte Dokumente (Backend)',
                 envGroupDocumentsNote: 'Die Standardschrift erstellter Dokumente. Ohne sie druckt Ember in Liberation Sans.',
+                envGroupSigning: 'Siegel und Zeitstempel (Backend)',
+                envGroupSigningNote: 'Zeitstempel für die Siegel, mit denen die Wachen Dokumente versiegeln. Für den Zeitstempel eines Siegels fragt Ember öffentliche Zeitstempeldienste der Reihe nach und schickt ihnen nur einen Hashwert des Dokuments. Außerdem lädt Ember die öffentlichen Sperrlisten der Zeitstempeldienste und fragt deren Statusdienste (OCSP) nach dem Stand ihrer Zertifikate. Dabei geht nur die Seriennummer eines Zertifikats hinaus, keine Daten aus dem Dokument. Ein Zeitstempel zählt nur, wenn sein Zertifikat zur Stammzertifizierungsstelle führt, die für diesen Dienst hinterlegt ist; sonst fragt Ember den nächsten Dienst. Für die voreingestellten Dienste bringt Ember diese Stammzertifikate mit. Ein selbst ergänzter Dienst braucht sein Stammzertifikat als Datei unter signing.timestampRoots, sonst wird er nie gefragt. Für eine Instanz ohne Internetzugang die Zeitstempel abschalten. Wer ein versiegeltes Dokument prüfen will, lädt es ohne Anmeldung auf der Seite /verify hoch (Dokument prüfen, auch unten auf den öffentlichen Seiten einer Wache verlinkt); die Datei wird dabei nicht gespeichert. Unabhängig von dieser Installation vergleicht man den SHA-256-Fingerabdruck der Zertifizierungsstelle im Dokument mit dem auf der öffentlichen Seite der Wache. Zertifikat und Sperrliste der Zertifizierungsstelle sind ohne Anmeldung abrufbar, unter /api/v1/public/signing/ca/ mit der Seriennummer und der Endung .crt oder .crl. Die Adresse der Sperrliste steht auch in jedem Siegel-Zertifikat einer Wache.',
                 envGroupDefaultFont: 'Standardschrift (Container)',
                 envGroupDefaultFontNote: 'Diese Variablen liest der Backend-Container beim Start, bevor Ember startet. Er lädt die Schrift Berlin Type herunter, prüft die Datei und legt den normalen und den fetten Schnitt im Verzeichnis der Standardschrift ab (DOCUMENTS_DEFAULTFONTDIR, im Docker-Image /app/data/default-font), dazu dieselben zwei Schnitte als Webschrift, in der der Editor einer Vorlage den Text zeigt. Liegen sie dort schon, lädt er nichts. Klappt der Download nicht, startet Ember trotzdem und druckt in Liberation Sans. Die Schrift ist nicht Teil von Ember und wird deshalb nicht mitgeliefert.',
                 envGroupFederation: 'Föderation (Backend)',
@@ -928,7 +1017,7 @@ volumes:
                                 basePath: 'Optionales Präfix innerhalb des Buckets. Nützlich, wenn der Bucket mit anderen Anwendungen geteilt wird.',
                             },
                         },
-                        credentialEncryptionKey: 'AES-256-Schlüssel (base64) zur Verschlüsselung gespeicherter Geheimnisse: Föderations-Schlüssel der Wachen, wache-eigene Speicher-Anmeldedaten (S3, SMB, SFTP) und Postfach-Passwörter. Bleibt er leer, erzeugt Ember beim ersten Start einen Schlüssel in data/secrets/encryption.key (nicht in der Datenbank); ein hier gesetzter Wert hat Vorrang. Backup zwingend - bei Verlust sind alle damit verschlüsselten Daten nicht mehr entschlüsselbar.',
+                        credentialEncryptionKey: 'AES-256-Schlüssel (base64) zur Verschlüsselung gespeicherter Geheimnisse: Föderations-Schlüssel der Wachen, wache-eigene Speicher-Anmeldedaten (S3, SMB, SFTP), Postfach-Passwörter und die Siegel-Schlüssel der Wachen samt ihrer Zertifizierungsstelle. Bleibt er leer, erzeugt Ember beim ersten Start einen Schlüssel in data/secrets/encryption.key (nicht in der Datenbank); ein hier gesetzter Wert hat Vorrang. Backup zwingend - bei Verlust sind alle damit verschlüsselten Daten nicht mehr entschlüsselbar.',
                     },
                     metrics: {
                         requestStatsRetentionDays: 'Wie viele Tage einzelne API-Request-Logs aufbewahrt werden. Die Tabelle wächst linear mit dem Traffic - Standard ist 3 Tage.',
@@ -975,6 +1064,12 @@ volumes:
                     },
                     documents: {
                         defaultFontDir: 'Verzeichnis, aus dem Ember beim Start die Standardschrift für erstellte Dokumente liest. Ember nimmt die Schriftfamilie, deren normalen Schnitt es dort findet, und druckt darin jeden Text, für den eine Vorlage keine Schrift wählt. Ist das Verzeichnis leer oder fehlt es, druckt Ember in Liberation Sans.',
+                    },
+                    signing: {
+                        timestamps: 'Ob jedes Siegel einen Zeitstempel von einem Zeitstempeldienst bekommt. Der Zeitstempel belegt, wann das Siegel entstanden ist, so dass es niemand nachträglich zurückdatieren kann, auch der Betreiber nicht. Antwortet kein Dienst, wird ohne Zeitstempel gesiegelt statt abgebrochen; ein unterschriebenes Dokument bekommt seinen Zeitstempel dann stündlich nachgereicht, sobald wieder ein Dienst antwortet, als neue Fassung. Aus heißt: keine Anfrage nach außen, die Zeit eines Siegels ist dann nur die Uhr dieses Servers.',
+                        archiveTimestamps: 'Ob Ember die Zeitstempel versiegelter Dokumente erneuert, bevor sie ablaufen (PAdES B-LTA). Ein Zeitstempel belegt die Zeit eines Siegels nur, solange die Zertifikate seines Zeitstempeldienstes gültig sind, meist etwa zehn Jahre. Eingeschaltet sucht Ember täglich nach versiegelten Dokumenten, deren neuester Zeitstempel auf einem Zertifikat beruht, das in weniger als einem halben Jahr endet, ergänzt die aktuellen Prüfdaten und einen neuen Zeitstempel über das ganze Dokument und legt das Ergebnis als neue Fassung neben die alte. Jede Erneuerung schickt einen weiteren Hashwert an einen Zeitstempeldienst. Das hilft nur, solange es über die ganze Aufbewahrungszeit der Dokumente weiterläuft, und ist deshalb normal aus. Braucht eingeschaltete Zeitstempel.',
+                        timestampUrls: 'Komma-getrennte Liste der Zeitstempeldienste (RFC 3161), die der Reihe nach gefragt werden, bis einer antwortet. Es sind öffentliche Dienste, kostenlos und ohne Konto. Jeder Dienst bekommt nur einen Hashwert, nie das Dokument. Nicht alle stehen auf der Liste vertrauenswürdiger Dienste von Adobe (FreeTSA nicht), daher kann Adobe Reader den Zeitstempel eines späteren Dienstes als nicht geprüft anzeigen; die Zeit belegt er trotzdem. Eine leere Liste schaltet Zeitstempel ab.',
+                        timestampRoots: 'Wurzelzertifikate für Zeitstempeldienste, nach der Adresse des Dienstes so geschrieben wie in der Liste oben, jeweils der Pfad zu einer PEM- oder DER-Datei. Ein Zeitstempel zählt nur, wenn er zu der Wurzel führt, die für seinen Dienst hinterlegt ist. Für die vorgegebenen Dienste bringt Ember die Wurzeln mit; ein selbst hinzugefügter Dienst braucht hier einen Eintrag, sonst wird er nie gefragt.',
                     },
                 },
                 variables: {
@@ -1077,6 +1172,55 @@ volumes:
             exampleQuiz: 'Grundwissen Brandschutz',
             exampleEvent: 'Sommerfest',
             exampleEventText: 'Der Termin am 15.08.2026 stellt eine neue Frage. Deine Anmeldung braucht dafür noch eine Antwort.',
+            signaturesText: 'Dokumente unterschreiben - Wartet ein Dokument auf deine Unterschrift, führt dich die Karte direkt '
+                + 'zum Unterschreiben. Als Erziehungsberechtigter siehst du hier auch die Dokumente der Mitglieder, für die du '
+                + 'unterschreibst oder die über dein Konto unterschreiben. Warten mehrere, unterschreibst du sie mit '
+                + '„Alle auf einmal unterschreiben" in einem Durchgang und bestätigst nur einmal.',
+            exampleSignature: 'Einverständnis Zeltlager',
+        },
+        signing: {
+            title: 'Unterschreiben',
+            subtitle: 'Alles, was auf deine Unterschrift wartet, in kleinen Schritten und mit einer Bestätigung.',
+            whatIs: 'Was passiert hier?',
+            whatIsText: 'Hier unterschreibst du Dokumente, die die Wache für dich oder für ein Kind in deiner Obhut erstellt hat. '
+                + 'Alles, was gerade auf dich wartet, machst du in einem Durchgang: für dich, für jedes Kind und für ein Kind, das selbst unterschreibt.',
+            reachText: 'Du kommst über die offenen Aufgaben hierher, nach der Anmeldung zu einem Termin, oder über einen Link aus einer E-Mail.',
+            steps: 'Die Schritte',
+            stepOverview: '1. Übersicht - Du siehst, welche Unterschriften noch fehlen, sortiert nach Dokument. Alle sind ausgewählt. Willst du eine später machen, nimm den Haken weg. Dann tippe auf „Los geht\'s“.',
+            stepDocument: '2. Ein Dokument nach dem anderen - Du liest das Dokument. Darunter steht, wer unterschreibt und in welchem Feld. Mit der Lupe unter dem Dokument vergrößerst du es. Setze den Haken, wenn du zustimmst. Fragt das Dokument etwas, etwa eine Telefonnummer, trägst du es hier ein.',
+            stepPicture: '3. Deine Unterschrift - So sieht deine Unterschrift im Dokument aus. Du kannst sie neu zeichnen. Unterschreibt ein Kind selbst, zeichnet es seine Unterschrift auf einem eigenen Schritt.',
+            stepCheck: '4. Prüfen - Du siehst noch einmal alles, was du jetzt unterschreibst.',
+            stepConfirm: '5. Bestätigen - Ein Schritt bestätigt alles auf einmal: mit deinem Passkey, mit dem Code aus der Authenticator-App oder mit deinem Passwort, je nachdem, was dein Konto hat.',
+            stepDone: '6. Fertig - Alles ist unterschrieben. Du bekommst eine Kopie per E-Mail.',
+            stepBack: 'Mit „Zurück“ kommst du jederzeit einen Schritt zurück. Was du angekreuzt oder eingetragen hast, bleibt dabei erhalten.',
+            exampleFillIn: 'Telefon im Notfall',
+            exampleTitle: 'Fotoerlaubnis Bürgerfest',
+            exampleChild: 'Ben Beispiel',
+            exampleGuardian: 'Jana Beispiel',
+            exampleStatement: 'Ich bin erziehungsberechtigt und erlaube Fotos von Ben beim Bürgerfest.',
+            proofs: 'Wie bestätige ich?',
+            proofsBound: 'Am besten mit einem Passkey oder Sicherheitsschlüssel. Er bindet die Bestätigung an genau diese Dokumente.',
+            proofsUnbound: 'Ohne Passkey geht es mit dem Code aus deiner Authenticator-App. Hat dein Konto keinen zweiten Faktor, '
+                + 'reicht dein Passwort. Beides wird festgehalten, ist aber nicht an die Dokumente selbst gebunden.',
+            proofsNever: 'Backup-Codes und die Bestätigung auf einem anderen Gerät gelten beim Unterschreiben nicht, denn das andere Gerät zeigt die Dokumente nicht.',
+            forOthers: 'Für Kinder unterschreiben',
+            forOthersGuardian: 'Als erziehungsberechtigte Person unterschreibst du in deinem eigenen Feld für das Kind.',
+            forOthersThrough: 'Hat ein Kind kein eigenes Konto, unterschreibt es sein eigenes Feld über dein Konto: Gib ihm das Gerät zum Lesen und Ankreuzen. Danach bestätigst du.',
+            forOthersMark: 'Das Kind zeichnet seine Unterschrift dabei selbst. Deine gespeicherte Unterschrift kommt nie in sein Feld.',
+            mail: 'Erinnerungen und deine Kopie',
+            mailReminder: 'Bittet die Wache um deine Unterschrift, bekommst du eine Benachrichtigung und eine E-Mail. Fehlt die Unterschrift nach einer Woche noch, '
+                + 'erinnert Ember dich, und danach jede Woche, höchstens dreimal.',
+            mailCopy: 'Sobald ein Dokument mit deiner Unterschrift versiegelt ist, bekommst du eine E-Mail als eigene Kopie, mit Links zum Dokument und zu seinem Signaturnachweis. '
+                + 'Das PDF hängt nur an, wenn die Vorlage es erlaubt, sonst liegt es in Ember bei deinen Dokumenten.',
+            withdraw: 'Unterschrift widerrufen',
+            withdrawText: 'Eine Unterschrift lässt sich zurücknehmen: beim Dokument unter „Meine Dokumente" oder auf der Terminseite mit „Unterschrift widerrufen". '
+                + 'Das können die Person, um die es geht, ihre Erziehungsberechtigten und alle, die selbst ein Feld unterschrieben haben. Ein Grund ist freiwillig.',
+            withdrawRecord: 'Die unterschriebene Fassung bleibt als Nachweis erhalten. Der Widerruf kommt in eine neue versiegelte Fassung, deren Signaturnachweis sagt, wer wann widerrufen hat. '
+                + 'Wer die Unterschrift angefragt hat oder den Termin betreut, wird benachrichtigt. Verlangt ein Termin das Dokument, wird die Unterschrift neu angefragt.',
+            access: 'Mit Tastatur und Screenreader',
+            accessText: 'Jeder Schritt hat eine eigene Überschrift, auf die der Fokus springt, und ist mit der Tastatur erreichbar. Angesagt wird, bei welchem Schritt du bist. '
+                + 'Die Vorschau eines Dokuments ist ein Bild, deshalb gibt es daneben Speichern und Öffnen im PDF-Betrachter, wo ein Screenreader den Text vorlesen kann.',
+            tip: 'Die Bestätigung bleibt fünf Minuten gültig. Dauert es länger oder war ein Code falsch, gibst du sie einfach noch einmal ein.',
         },
         newsList: {
             federatedTitle: 'Neuigkeiten von Partnerwachen',
@@ -1926,15 +2070,37 @@ volumes:
             signatureTitle: 'Unterschriften',
             signatureText: 'Eine Unterschriftszeile setzt du im Text als eigenen Baustein. Wähle, wer unterschreibt: '
                 + 'die teilnehmende Person, die ausstellende Person, die erste oder zweite erziehungsberechtigte Person, '
-                + 'alle Erziehungsberechtigten mit je einer eigenen Linie oder eine beliebige von ihnen. Darunter '
-                + 'steht ein kurzer Text mit Platzhaltern, etwa Name und Funktion. Im Dokument steht eine Linie zum '
-                + 'Unterschreiben, und das PDF enthält dort ein leeres Unterschriftsfeld.',
+                + 'alle Erziehungsberechtigten mit je einer eigenen Linie oder eine beliebige von ihnen. Im Dokument '
+                + 'steht eine Linie zum Unterschreiben, und das PDF enthält dort ein leeres Unterschriftsfeld. Direkt '
+                + 'unter der Linie druckt Ember immer den Namen der Person, die dort unterschreibt, bei einer '
+                + 'beliebigen erziehungsberechtigten Person mit dem Namen des Mitglieds. Ist niemand bekannt, steht '
+                + 'dort die Rolle. Darunter folgt ein kurzer Text mit Platzhaltern, etwa die Funktion. Nennt dieser '
+                + 'Text den Namen schon, steht er nur einmal da.',
             signatureGuardiansText: 'Hat ein Mitglied nur eine erziehungsberechtigte Person, fällt die Zeile für die '
                 + 'zweite weg, und ihre Angaben bleiben leer, ohne als fehlend zu gelten. Fehlt jede '
                 + 'erziehungsberechtigte Person, nennt Ember die Angaben der ersten als fehlend.',
             signatureTwiceText: 'Jede Person unterschreibt in einem Dokument höchstens einmal. Zwei Zeilen für '
                 + 'dieselbe Person sind nur als Alternativen möglich, deren Sichtbarkeit sich nie überschneidet. '
                 + 'Trifft beides doch auf ein Mitglied zu, erstellt Ember das Dokument für dieses Mitglied nicht.',
+            signatureStatementText: 'Jede Zeile und jedes Unterschriftsfeld kann eine eigene Erklärung haben, etwa '
+                + '„Ich bin einverstanden, dass mein Kind am Zeltlager teilnimmt." Sie steht beim Unterschreiben über '
+                + 'der Bestätigung und wird mit unterschrieben. Ohne eigene Erklärung gilt die übliche in der Sprache '
+                + 'der Vorlage: Erziehungsberechtigte erklären dabei mit Namen des Mitglieds, dass sie '
+                + 'erziehungsberechtigt sind.',
+            fillInText: 'Ein Feld zum Ausfüllen (im Brief ein Baustein, im PDF eine Feldart) fragt die unterschreibende '
+                + 'Person nach eigenen Angaben, etwa einer Telefonnummer für den Notfall. Du gibst ihm eine Bezeichnung, '
+                + 'wählst, wer es ausfüllt, und legst fest, ob es Pflicht ist und wie viele Zeichen es fasst. Die Person '
+                + 'füllt es beim Unterschreiben aus, Ember schreibt den Wert vor dem Versiegeln an seine Stelle und nennt '
+                + 'ihn im Signaturnachweis. Gilt es für alle Erziehungsberechtigten, füllt jede ihr eigenes aus. Die '
+                + 'Vorlage braucht dafür ein Unterschriftsfeld derselben Person. Unterschreibt jemand auf Papier, '
+                + 'bleibt das Feld zum Ausfüllen von Hand.',
+            signatureRequestText: 'Erstellen allein bittet niemanden um eine Unterschrift. Nach dem Erstellen zeigt '
+                + 'Ember, wer welches Feld unterschreiben soll, und fordert die Unterschriften auf Knopfdruck an. '
+                + 'Das geht auch später mit einem Klick auf das Dokument in der Liste der erstellten Dokumente.',
+            signatureKeepText: 'Unter „Unterschriften" im Reiter Allgemein legst du fest, wie lange unterschriebene '
+                + 'Dokumente nach dem Austritt aufbewahrt werden und ob die Kopie per E-Mail das PDF enthält. Eine '
+                + 'Anforderung übernimmt diese Einstellungen und die Erklärungen, wenn sie gestellt wird. Spätere '
+                + 'Änderungen der Vorlage gelten nur für neue Anforderungen.',
             pdfTitle: 'PDF und Felder',
             pdfText: 'Eine PDF-Vorlage füllt ein hochgeladenes Formular aus. Speichere die Vorlage, lade das PDF hoch '
                 + 'und setze Felder auf seine Seiten: ein Textfeld schreibt Text mit Platzhaltern, ein Ankreuzfeld setzt '
@@ -2044,6 +2210,19 @@ volumes:
                 + 'auswählen" jedes, das der Filter findet, über alle Seiten. „Ausgewählte '
                 + 'löschen" entfernt sie nach einer Rückfrage in einem Zug, auch die zum Behalten '
                 + 'markierten. Dafür brauchst du „Mitgliederdokumente verwalten".',
+            sealedTitle: 'Versiegelte Dokumente und Unterschriften',
+            sealedText: 'Ein unterschriebenes Dokument ist versiegelt. Es lässt sich nicht löschen und bleibt bei '
+                + 'den Mitgliedern, für die es versiegelt wurde. Jede neue Unterschrift ergibt eine neue Fassung.',
+            sealedStateText: 'Wurde um Unterschriften gebeten, zeigt die Kachel, wie es steht: unterschrieben, '
+                + 'teilweise unterschrieben mit der Zahl der Unterschriften, offen, zurückgezogen oder ersetzt. '
+                + '„Niemand kann unterschreiben" heißt, dass ein Feld auf jemanden wartet, den es nicht gibt.',
+            sealedVersionsText: '„Herunterladen" speichert die aktuelle Fassung. Unter „Versiegelte Fassungen" '
+                + 'speicherst du jede frühere Fassung einzeln, über das Symbol neben ihr.',
+            sealedRecordText: 'Neben jeder Fassung gibt es den Nachweis: Er zeigt, wer wann und womit unterschrieben hat. '
+                + 'Das Dokument selbst zeigt nur die Unterschriften. Der Nachweis wird beim Herunterladen erstellt und von der Wache versiegelt, '
+                + 'zum Aufheben und Ausdrucken. „Mit Nachweis" gibt dir eine Kopie aus Dokument und Nachweis zum Weitergeben, aber keine neue Fassung.',
+            sealedManageText: 'Wer Mitgliederdokumente verwalten darf, sieht im geöffneten Dokument jedes '
+                + 'Unterschriftsfeld. Wie das geht, steht unter Erstellte Dokumente.',
             filingRulesTitle: 'Dokumente aus Postfächern',
             filingRulesText: 'Ember kann Anhänge aus E-Mail-Postfächern in die Ablage legen. Die Regeln dafür '
                 + 'gehören zu den Postfächern und stehen unter Verwalten → Post-Import. Wer sie ändern darf, '
@@ -2089,6 +2268,25 @@ volumes:
             pagesText: 'Die Liste zeigt zuerst die 500 neuesten Dokumente. Mit „Ältere laden" kommen die nächsten '
                 + 'dazu; Suche und Filter wirken auf alles, was geladen ist.',
             rightsText: 'Die Liste sieht, wer „Mitgliederdokumente einsehen" hat.',
+            signatureTitle: 'Unterschriften',
+            signatureText: 'Die Spalte „Unterschriften" zeigt, wie es um ein Dokument steht: unterschrieben, '
+                + 'teilweise unterschrieben mit der Zahl der Unterschriften, offen, zurückgezogen, ersetzt oder '
+                + 'nicht angefordert. Du kannst auch danach filtern.',
+            signatureNobodyText: '„Niemand kann unterschreiben" heißt, dass ein Feld auf niemanden wartet, der es '
+                + 'unterschreiben kann. Das passiert zum Beispiel, wenn es keine zweite erziehungsberechtigte '
+                + 'Person gibt oder die Vorlage keine ausstellende Person nennt.',
+            manageTitle: 'Unterschriften verwalten',
+            manageText: 'Ein Klick auf eine Zeile öffnet die Anfrage. Du siehst jedes Feld mit der Person, die '
+                + 'unterschreiben soll, ihrer Erklärung und wann und womit unterschrieben wurde. „Aktuelle Fassung '
+                + 'herunterladen" speichert das Dokument, wie es jetzt ist.',
+            manageSettleText: 'Ein offenes Feld bestätigst du als „Auf Papier unterschrieben", lässt es mit '
+                + '„Erlassen" ohne Unterschrift gelten oder bittest mit „Zurückziehen" nicht mehr darum. Ember '
+                + 'fragt vorher noch einmal nach. Die nächste versiegelte Fassung zeigt es nach wenigen Minuten.',
+            manageWithdrawText: '„Ganze Anfrage zurückziehen" bittet um keine offene Unterschrift mehr. Was schon '
+                + 'unterschrieben ist, bleibt. Danach kannst du für das Dokument wieder um Unterschriften bitten.',
+            manageCorrectionText: 'Hast du das Dokument nach einer Änderung neu erstellt, wähle es unter „Nach einer '
+                + 'Änderung neu anfragen". Die alte Anfrage wird ersetzt, ihre Unterschriften bleiben erhalten.',
+            exampleStatement: 'Ich bin erziehungsberechtigt und stimme der Teilnahme zu.',
             tip: 'Willst du ein Dokument erneut erstellen, öffne die Seite des Mitglieds und wähle „Dokument '
                 + 'erstellen".',
         },
@@ -2908,8 +3106,22 @@ volumes:
             attachmentsTitle: 'Dateien zum Termin',
             attachmentsText: 'Gibt der Termin Dateien mit, stehen sie unter den Angaben, jede mit ihrer Größe und einer Schaltfläche zum Herunterladen. Du siehst nur die Dateien, die für dich gedacht sind: eine interne Datei trägt ein Abzeichen „Intern" und erscheint nur bei den Leuten, die den Termin durchführen.',
             documentsToBringTitle: 'Mitzubringende Dokumente',
-            documentsToBringText: 'Verlangt der Termin Dokumente, etwa eine Einverständniserklärung, nennt er sie unter „Mitzubringende Dokumente". Sobald du oder eines deiner Kinder angemeldet ist, gibt es dort für jede angemeldete Person eine eigene Zeile zum Herunterladen. Wer die Anmeldungen verwaltet, sieht dort zusätzlich für alle Teilnehmenden, ob ihr Exemplar schon erstellt ist.',
+            documentsToBringText: 'Verlangt der Termin Dokumente, etwa eine Einverständniserklärung, nennt er sie unter „Mitzubringende Dokumente". Sobald du oder eines deiner Kinder angemeldet ist, gibt es dort für jede angemeldete Person eine eigene Kachel mit ihrem Namen. Darunter steht jedes Dokument mit den Knöpfen „Herunterladen“, „Hochladen“ und, wo es Unterschriftsfelder hat, „Online unterschreiben“, und darunter, wie es steht. Am einfachsten ist „Online unterschreiben“: Es öffnet die Unterschrift für alle Felder dieses Dokuments, die du für die Person unterschreiben kannst, in einem Durchgang. Wer die Anmeldungen verwaltet, sieht zusätzlich eine Kachel je Dokument und darunter für jedes Dokument den Bereich „Dokumente der Teilnehmenden".',
             documentsToBringDownloadText: '„Herunterladen" füllt das Dokument mit den Daten der Person und des Termins aus und legt es zusätzlich bei ihren Dokumenten ab. Drucke es aus, unterschreibe es und bring es zum Termin mit. Ändert die Wache die Vorlage, wird beim nächsten Herunterladen ein neues Dokument erstellt.',
+            documentsToBringScanText: 'Statt das Papier mitzubringen, kannst du das unterschriebene Exemplar einscannen oder fotografieren und mit „Hochladen“ einreichen, für dich selbst und für jedes deiner Kinder. Danach bestätigt eine Meldung, dass der Scan angekommen ist. Dafür brauchst du kein Recht zum Hochladen von Dokumenten. Der Scan wird bei den Dokumenten der Person abgelegt und steht auf „Scan eingereicht, wartet auf Bestätigung", bis die Terminverwaltung ihn prüft. Solange er wartet, fragt niemand nach der Online-Unterschrift für dieses Dokument und es kommen keine Erinnerungen. Solange er wartet, heißt der Knopf „Ersetzen“: Ein neuer Scan ersetzt den wartenden. Mit „Scan zurückziehen“ wird ein wartender Scan entfernt, und die Unterschriften werden wieder angefragt. Ein bestätigter Scan lässt sich nicht mehr ersetzen.',
+            documentsToBringPartnersText: 'Ist der Termin mit Partnerwachen geteilt, bekommen auch deren angemeldete Mitglieder eine Kachel, mit dem Namen ihrer Wache. Sie unterschreiben bei ihrer eigenen Wache, das versiegelte Exemplar kommt hierher zurück und lässt sich mit „Herunterladen" speichern. „Wird bei der Partnerwache unterschrieben" heißt, dass die Partnerwache das Dokument übernommen hat. „Unterschrift fehlt" heißt, dass die Partnerwache nicht unterschreiben kann, etwa mit einer älteren Version von Ember; die Anmeldung gilt trotzdem, und mit „Papierexemplar bestätigen" lässt sich ein unterschriebenes Papierexemplar bestätigen.',
+            documentsToBringWithdrawText: 'Eine Unterschrift lässt sich mit „Unterschrift widerrufen" zurücknehmen, auf der Terminseite oder beim Dokument unter „Meine Dokumente", wahlweise mit einem Grund. Das gilt auch für eine Unterschrift, die auf Papier bestätigt wurde. Das unterschriebene Dokument bleibt als Nachweis erhalten; bei einer Online-Unterschrift wird der Widerruf in einer neuen versiegelten Fassung vermerkt, bei einer auf Papier bestätigten beim Dokument, und ein neuer Scan lässt sich danach wieder hochladen. Bei einem Termin mit Anmeldung wird die Unterschrift neu angefragt, und die Anmeldung trägt den Hinweis „Vereinbarung widerrufen", bis neu unterschrieben ist. Wer den Termin betreut, wird benachrichtigt.',
+            documentsToBringSigningText: 'Hat ein mitzubringendes Dokument Unterschriftsfelder, etwa für die teilnehmende Person und eine erziehungsberechtigte Person, wird es bei der Anmeldung gleich für die angemeldete Person erstellt, und die Unterschriften werden angefragt. Die Anmeldung endet dann auf einem Schritt „Dokumente unterschreiben": mit „Jetzt unterschreiben" alle Unterschriften in einem Durchgang erledigen, ein Dokument mit „Herunterladen" erst lesen oder zum Unterschreiben von Hand ausdrucken, das unterschriebene Exemplar als Scan hochladen oder „Später". Offene Unterschriften stehen danach bei den Aufgaben und unter „Mitzubringende Dokumente". Ein Feld für jemand anderen, etwa die zweite erziehungsberechtigte Person, wird bei dieser Person angefragt.',
+            documentsToBringPartnersChangesText: 'Widerruft ein Mitglied einer Partnerwache seine Unterschrift, kommt auch der Widerruf versiegelt hierher zurück. Das Dokument steht dann auf „Zurückgezogen", das unterschriebene Exemplar bleibt erhalten, die Anmeldung trägt den Hinweis „Unterschrift bei der Partnerwache widerrufen", und wer den Termin betreut, wird benachrichtigt. Kommt nach den Anmeldungen ein Dokument hinzu, erfahren die Partnerwachen davon und fragen ihre schon angemeldeten Mitglieder für die kommenden Tage danach. Fällt ein Dokument weg, ziehen sie die offenen Unterschriften dafür zurück. Ist eine Partnerwache gerade nicht erreichbar, wird es später noch einmal versucht.',
+            documentsToBringAgreementText: 'Bei einem Termin ohne Anmeldung fragt niemand nach der Unterschrift. Hat eines seiner Dokumente Unterschriftsfelder für dich oder dein Kind, steht dort „Online unterschreiben": Das Dokument wird für die Person erstellt, und du kommst gleich zur Unterschrift. Die Unterschrift gilt als Zusage. Hattest du für diesen Tag abgesagt, wird die Absage damit zurückgenommen. Wer die Anmeldungen verwaltet, sieht im Tab „Anwesenheit" unter „Zusagen per Unterschrift", wer unterschrieben hat und wer später doch abgesagt hat. Ist der Termin geteilt, unterschreiben Mitglieder von Partnerwachen auf der Terminseite bei ihrer eigenen Wache und stehen, sobald ihr unterschriebenes Exemplar hier ist, mit dem Namen ihrer Wache in derselben Liste.',
+            documentsToBringSigningStatusText: 'Jedes Unterschriftsfeld zeigt seinen Stand: „Unterschrieben", „Unterschrift offen", „Auf Papier bestätigt" oder „Erlassen". Das Feld der ausstellenden Person steht für Teilnehmende und Erziehungsberechtigte als „Wird von der Wache unterschrieben" da: Darum kümmert sich die Wache, es fehlt nichts von dir. Die Terminverwaltung sieht es als offen, bis es unterschrieben ist. Bestätigt die Terminverwaltung einen Scan, gelten alle noch offenen Felder des Dokuments als auf Papier bestätigt. Wer sich wieder abmeldet, für den werden die offenen Unterschriften zurückgezogen und nicht mehr erinnert; schon Unterschriebenes bleibt erhalten.',
+            documentsReviewTitle: 'Dokumente der Teilnehmenden',
+            documentsReviewText: 'Wer die Anmeldungen verwaltet, findet unter den mitzubringenden Dokumenten für jedes Dokument einen Bereich „Dokumente der Teilnehmenden". Dort hat jede angemeldete Person eine Kachel. Ein Klick auf die Überschrift klappt den Bereich zu oder auf.',
+            documentsReviewGroupsText: 'Die Kacheln stehen in drei Gruppen. „Zu erledigen" heißt: Du bist dran, etwa bei einem Scan zum Prüfen. „Fehlt noch" heißt: Die Person muss noch etwas tun, die Erinnerungen laufen. „Erledigt" heißt: unterschrieben, auf Papier bestätigt oder erlassen. Die Zahl in Klammern sagt, wie viele Personen in der Gruppe sind.',
+            documentsReviewOpenText: 'Am Anfang ist nur „Zu erledigen" offen, und nur wenn dort jemand steht. Ein Klick auf eine Gruppe klappt sie auf oder zu. Dein Browser merkt sich das für alle Termine, wenn du das Speichern der „Einstellungen der Ansicht" erlaubt hast.',
+            documentsReviewActionsText: 'Mit „Herunterladen" speicherst du das Exemplar der Person, nach einer Online-Unterschrift die versiegelte Fassung. „Scan herunterladen" speichert einen eingereichten Scan. Kann niemand ein Feld unterschreiben, etwa weil es keine zweite erziehungsberechtigte Person gibt, steht das auf der Kachel. Wer Mitgliederdokumente bearbeiten darf, bestätigt das Feld dann auf Papier oder erlässt es. Eine widerrufene Vereinbarung steht mit Datum auf der Kachel.',
+            documentsReviewSample: 'Einverständnis',
+            documentsToBringScanReviewText:'Ein eingereichter Scan steht unter „Zu erledigen". Dort lässt er sich herunterladen und bestätigen („Auf Papier bestätigt") oder mit einem kurzen Grund ablehnen. Bei einer Ablehnung bekommen die Person und ihre Erziehungsberechtigten eine Benachrichtigung mit dem Grund, das Dokument ist wieder offen, und die Unterschriften werden wieder angefragt. Lädt die Terminverwaltung selbst einen Scan für jemanden hoch, gilt er sofort als bestätigt.',
             commentsTitle: 'Kommentare',
             commentsText: 'Unter dem Termin findest du einen Kommentarbereich. Hier können alle Mitglieder Fragen stellen oder Hinweise geben. Deine eigenen Kommentare kannst du ändern und löschen, und wer Termine verwaltet, kann auch die Kommentare anderer löschen.',
             notesTitle: 'Notizen',
@@ -3797,10 +4009,16 @@ volumes:
             whatIsText: 'Partnerwachen können Termine mit euch teilen - zum Beispiel eine gemeinsame Übung. Hier siehst du alle Angaben dazu und kannst dich anmelden, wenn eine Anmeldung verlangt wird.',
             howTo: 'Wie benutze ich die Seite?',
             howToStep1: 'Oben stehen Titel, Zeit, Ort und die weiteren Angaben der Partnerwache.',
-            howToStep2: 'Verlangt der Termin eine Anmeldung, wähle darunter die Person aus und melde sie an.',
+            howToStep2: 'Verlangt der Termin eine Anmeldung, wähle darunter die Person aus und melde sie an. Braucht er keine Anmeldung, aber eine Unterschrift, steht dort stattdessen die „Vereinbarung der Partnerwache".',
             howToStep3: 'Ganz unten kannst du mitreden - Kommentare sehen beide Wachen.',
             registrationTitle: 'Anmelden und abmelden',
             registrationText: 'Verwaltest du weitere Personen, etwa deine Kinder, kannst du sie hier auswählen und für sie anmelden. Eine Anmeldung lässt sich mit derselben Schaltfläche wieder zurücknehmen.',
+            signingTitle: 'Dokumente unterschreiben',
+            signingText: 'Verlangt die Partnerwache für den Termin ein Dokument mit Unterschrift, etwa eine Einverständniserklärung, wird es bei der Anmeldung in die Dokumente der angemeldeten Person gelegt, und die Anmeldung endet auf dem Schritt „Dokumente für die Partnerwache unterschreiben". Unterschrieben wird hier bei der eigenen Wache, mit derselben Bestätigung wie bei allen anderen Unterschriften. Offene Unterschriften stehen danach bei den Aufgaben.',
+            signingCopyText: 'Das versiegelte Exemplar geht danach an die Partnerwache, eine Kopie bleibt in den eigenen Dokumenten. Wer sich wieder abmeldet, für den werden die offenen Unterschriften zurückgezogen; schon Unterschriebenes bleibt erhalten.',
+            signingAgreementText: 'Braucht der Termin keine Anmeldung, wählst du unter „Vereinbarung der Partnerwache" die Person aus und tippst auf „Online unterschreiben". Das Dokument kommt in ihre Dokumente und wird hier unterschrieben. Die Unterschrift gilt bei der Partnerwache als Zusage.',
+            signingWithdrawText: 'Eine Unterschrift lässt sich auch hier mit „Unterschrift widerrufen" zurücknehmen. Das unterschriebene Dokument bleibt als Nachweis erhalten, der Widerruf wird versiegelt vermerkt und geht an die Partnerwache, die ihn ebenfalls aufbewahrt. Bist du für einen kommenden Tag noch angemeldet, wird die Unterschrift neu angefragt.',
+            signingLaterText: 'Fügt die Partnerwache nach deiner Anmeldung ein Dokument hinzu, wird es dir für die kommenden Tage genauso zum Unterschreiben gegeben wie bei der Anmeldung. Nimmt sie ein Dokument weg, werden die offenen Unterschriften dafür zurückgezogen. Schon Unterschriebenes bleibt erhalten, und vergangene Tage ändern sich nicht.',
             visibleTitle: 'Nur was geteilt wurde',
             visibleText: 'Du siehst nur die Angaben, die die Partnerwache als öffentlich markiert hat. Interne Notizen der anderen Wache bleiben verborgen.',
             tip: 'Der Zurück-Pfeil bringt dich zur Liste der anstehenden Termine, in der geteilte Termine mit dem Namen der Partnerwache stehen.',
@@ -4725,6 +4943,10 @@ volumes:
             typesText: 'Ein Mitglied darf sehen, was ihm freigegeben wurde. Eine Verwaltung darf alles im Verband, auch weitere Mitglieder aufnehmen und Rechte vergeben.',
             separateTitle: 'Getrennt von der Wache',
             separateText: 'Wer den Verband verwaltet, ist deswegen in keiner Wache angemeldet, und wer eine Wache leitet, hat deswegen keine Rechte im Verband. Beides muss getrennt vergeben werden.',
+            requestsTitle: 'Adressen mit einem Konto',
+            requestsText: 'Gibt es zu der Adresse schon ein Konto, wird die Person zuerst gefragt. Sie sieht die Anfrage nach ihrer nächsten Anmeldung und bekommt eine Mail, wenn die Installation Mails versendet. Erst wenn sie zustimmt, gehört sie mit der gewählten Rolle zum Verband, und die Verwaltung bekommt Bescheid. Bis dahin steht die Anfrage unter Anfragen und der Verband erreicht das Konto nicht.',
+            sendAgainTitle: 'Erneut senden',
+            sendAgainText: 'Unter Anfragen steht, ob eine Anfrage wartet, abgelehnt wurde oder nach 30 Tagen abgelaufen ist. Eine wartende oder abgelaufene Anfrage lässt sich einmal am Tag erneut senden. Eine abgelehnte nicht, denn das ist die Antwort der Person.',
             tip: 'Gibt es zu der Adresse noch kein Konto, fragt der Dialog nach Vor- und Nachnamen, legt eines an und verschickt eine Einladung zum Passwort setzen.',
         },
         clusterMemberGroups: {
@@ -5016,6 +5238,9 @@ volumes:
             changesText: 'Zeigt alle Profiländerungen dieses Mitglieds. Du kannst Änderungen bestätigen und optional einen Kommentar hinterlassen.',
             formerTitle: 'Als ehemalig markieren',
             formerText: 'Über den Button kannst du das Mitglied als ehemalig markieren. Voraussetzung: Alle zugewiesenen Gegenstände müssen zurückgegeben sein.',
+            linkTitle: 'Kontoverknüpfung',
+            linkText: 'Gab es zur eingeladenen Adresse schon ein Konto, wird die Person erst gefragt. Bis sie zustimmt, hat das Mitglied kein Konto. Oben auf der Seite steht dann, ob die Anfrage wartet, abgelehnt wurde oder abgelaufen ist.',
+            linkSendAgainText: 'Eine wartende oder abgelaufene Anfrage kannst du erneut senden, frühestens einen Tag nach dem letzten Mal. Hat die Person abgelehnt, lade lieber eine andere Adresse ein.',
             tip: 'Klicke auf „Bearbeiten", um die Rollen und Profilfelder des Mitglieds zu ändern.',
         },
         membersEdit: {
@@ -5138,6 +5363,7 @@ volumes:
             documentsTitle: 'Mitzubringende Dokumente',
             documentsText: 'Unter „Mitzubringende Dokumente" öffnet „Dokument hinzufügen" die Auswahl der Dokumentvorlagen, die als „Für Termine" markiert sind, etwa eine Einverständniserklärung. Dort suchst du, siehst die erste Seite jeder Vorlage und übernimmst mehrere auf einmal. Jede angemeldete Person oder ihre Erziehungsberechtigten laden auf der Terminseite ein Exemplar herunter, ausgefüllt mit ihren Daten und denen des Termins.',
             documentsTemplateText: 'Wird der Termin aus einer Termin-Vorlage erstellt, kommen deren Dokumente mit. Eine archivierte Vorlage bleibt in der Liste, bis du sie entfernst, lässt sich aber nicht neu hinzufügen.',
+            documentsPartnersText: 'Teilt die Wache den Termin mit Partnerwachen, unterschreiben deren Mitglieder ein Dokument mit Unterschriftsfeldern bei ihrer eigenen Wache, und alle dasselbe Exemplar je Termintag. Deshalb darf ein solches Dokument nur den Termin, die Wache und das heutige Datum nennen, keine Person, keine Blöcke nur für manche enthalten und nur die teilnehmende Person, die erste oder eine beliebige erziehungsberechtigte Person unterschreiben lassen. Das wird geprüft, wenn die Dokumente eines geteilten Termins gesetzt werden und wenn ein Termin mit solchen Dokumenten geteilt wird.',
             title: 'Termin erstellen / bearbeiten',
             subtitle: 'Einen Termin einrichten oder ändern.',
             whatShown: 'Was kannst du hier tun?',
@@ -6212,6 +6438,22 @@ volumes:
             fields: 'Die Felder',
             fieldsText: 'Aktiviert: Schaltet beide Prüfungen ein. Endpunkt-URL: HIBP-Range-Endpunkt, muss mit Schrägstrich enden. Erneut prüfen nach: Wartezeit (1–365 Tage) bis dasselbe Passwort wieder geprüft wird. Timeout: HTTP-Timeout der Anfrage (1–30 Sekunden).',
             tip: 'Setze keinen niedrigen Timeout-Wert in Umgebungen mit instabiler Internet-Verbindung - sonst werden Passwörter still „durchgewinkt".',
+        },
+        adminSecuritySigningKeys: {
+            title: 'Siegel-Schlüssel',
+            subtitle: 'Prüfen, ob sich die Schlüssel zum Versiegeln öffnen lassen, und sie notfalls aufgeben.',
+            whatIs: 'Was finde ich hier?',
+            whatIsText: 'Die Wachen versiegeln Dokumente mit eigenen Schlüsseln. Diese Schlüssel stellt eine Zertifizierungsstelle aus, die zu dieser Installation gehört. Ember speichert alle Schlüssel verschlüsselt, mit dem Schlüssel aus data/secrets/encryption.key oder storage.credentialEncryptionKey. Die Seite zeigt, ob sich die Schlüssel damit öffnen lassen.',
+            lockedTitle: 'Wenn sich Schlüssel nicht öffnen lassen',
+            lockedText: 'Geht die Datei encryption.key verloren, erzeugt Ember beim nächsten Start eine neue. Mit ihr lassen sich die alten Schlüssel nicht öffnen, und keine Wache kann mehr versiegeln. Die Seite listet dann jeden betroffenen Schlüssel mit Seriennummer und Fingerabdruck. Auch die Übersicht im Admin-Bereich zeigt eine rote Kachel.',
+            recoverTitle: 'Schlüssel aufgeben',
+            recoverText: 'Hole zuerst die alte Datei aus einem Backup zurück, wenn es eines gibt. Nach einem Neustart öffnen sich dann alle Schlüssel wieder. Geht das nicht, klick auf Schlüssel aufgeben, setze im Dialog das Häkchen und bestätige. Ember fragt dabei nach deinem zweiten Faktor. Beim nächsten Versiegeln bekommt jede Wache einen neuen Schlüssel, wo nötig von einer neuen Zertifizierungsstelle.',
+            keepsText: 'Schon versiegelte Dokumente bleiben gültig. Die Zertifikate der alten Schlüssel und die letzte Sperrliste der alten Zertifizierungsstelle bleiben veröffentlicht, auch für die Prüfung auf /verify. Einen aufgegebenen Schlüssel kann aber niemand mehr sperren.',
+            historyTitle: 'Bisher aufgegeben',
+            historyText: 'Unten steht jedes Mal, an dem Schlüssel aufgegeben wurden: wann, von wem und wie viele.',
+            sampleStation: 'Jugendfeuerwehr Musterstadt',
+            sampleAdmin: 'Petra Schneider',
+            tip: 'Ember gibt Schlüssel nie von selbst auf. Ein nur falsch eingetragener Schlüssel sieht genauso aus wie ein verlorener. Neue Schlüssel würden dann die Zertifizierungsstelle grundlos austauschen, und die Wachen zeigen einen neuen Fingerabdruck.',
         },
         adminTwoFactor: {
             title: 'Zwei-Faktor verwalten',

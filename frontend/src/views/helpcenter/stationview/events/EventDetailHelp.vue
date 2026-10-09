@@ -24,6 +24,7 @@ import InfoBadge from '@/components/badge/InfoBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import DetailLabel from '@/components/typography/DetailLabel.vue'
 import EventCancellationBanner from '@/views/stationview/events/eventdetailview/EventCancellationBanner.vue'
+import DocumentsReviewSample from './eventdetailhelp/DocumentsReviewSample.vue'
 import {CancellationCause, StationPermission, type CancellationNotice} from '@/api/generated/schema'
 
 const {t} = useI18n()
@@ -194,7 +195,25 @@ const sampleCancellation: CancellationNotice = {
     <HelpSection :title="t('helpCenter.eventDetail.documentsToBringTitle')">
       <p>{{ t('helpCenter.eventDetail.documentsToBringText') }}</p>
       <p>{{ t('helpCenter.eventDetail.documentsToBringDownloadText') }}</p>
+      <p>{{ t('helpCenter.eventDetail.documentsToBringScanText') }}</p>
+      <p>{{ t('helpCenter.eventDetail.documentsToBringSigningText') }}</p>
+      <p>{{ t('helpCenter.eventDetail.documentsToBringSigningStatusText') }}</p>
+      <p>{{ t('helpCenter.eventDetail.documentsToBringAgreementText') }}</p>
+      <p>{{ t('helpCenter.eventDetail.documentsToBringWithdrawText') }}</p>
     </HelpSection>
+
+    <HelpPermissionGuard :permissions="[StationPermission.EVENT_REGISTRATION]" :label="t('helpCenter.permissionLabel.eventManage')">
+      <HelpSection :title="t('helpCenter.eventDetail.documentsReviewTitle')">
+        <p>{{ t('helpCenter.eventDetail.documentsReviewText') }}</p>
+        <p>{{ t('helpCenter.eventDetail.documentsReviewGroupsText') }}</p>
+        <p>{{ t('helpCenter.eventDetail.documentsReviewOpenText') }}</p>
+        <p>{{ t('helpCenter.eventDetail.documentsToBringScanReviewText') }}</p>
+        <p>{{ t('helpCenter.eventDetail.documentsReviewActionsText') }}</p>
+        <p>{{ t('helpCenter.eventDetail.documentsToBringPartnersText') }}</p>
+        <p>{{ t('helpCenter.eventDetail.documentsToBringPartnersChangesText') }}</p>
+        <DocumentsReviewSample class="mt-3"/>
+      </HelpSection>
+    </HelpPermissionGuard>
 
     <HelpSection :title="t('helpCenter.eventDetail.commentsTitle')">
       <p>{{ t('helpCenter.eventDetail.commentsText') }}</p>

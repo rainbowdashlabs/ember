@@ -37,10 +37,14 @@ import java.util.stream.Stream;
  * A row holds at most three columns, at any depth. A picture is the station logo or an image of the
  * station's media library, and the texts of the header and the footer are short.
  *
- * <p>A signature line stands in the body only, names its signer and has a short text under it. Two
+ * <p>A signature line stands in the body only, names its signer, has a short text under it and may say
+ * what its signer confirms, at most {@link SignatureStatementChecks#MAX_STATEMENT} characters. Two
  * lines may name the same signer as alternatives, for members of different audiences; what is refused
  * here is only a pair that every member with some number of guardians would get together. Whether a
  * pair meets in the document of one particular member is checked when it is generated for them.
+ *
+ * <p>A box to fill in at signing stands in the body only as well, with a label and a signer that one of the
+ * letter's signature lines names ({@link FillInChecks}).
  */
 @Singleton
 public class LetterChecks {
@@ -82,7 +86,23 @@ public class LetterChecks {
             throw DocumentRefusal.DOCUMENT_TEMPLATE_TEXT_TOO_LONG.raise(RefusalDetail.count(MAX_BLOCKS));
         }
         requireSignersOnce(letter);
+        FillInChecks.requireSigners(
+                signersOf(letter, CellContentType.SIGNATURE), signersOf(letter, CellContentType.FILL_IN));
         return letter;
+    }
+
+    /** The signers the blocks of one kind name, one entry per block, wherever they stand in the letter. */
+    private static List<SignatureRole> signersOf(LetterContent letter, CellContentType kind) {
+        return Stream.of(letter.header(), letter.footer(), letter.body())
+                .flatMap(LetterContent::blocks)
+                .filter(cell -> cell.contentType() == kind)
+                .map(cell -> switch (cell.config()) {
+                    case CellConfig.SignatureConfig signature -> signature.signer();
+                    case CellConfig.FillInConfig fillIn -> fillIn.signer();
+                    default -> null;
+                })
+                .filter(Objects::nonNull)
+                .toList();
     }
 
     /**
@@ -96,8 +116,13 @@ public class LetterChecks {
         return Arrays.stream(CellContentType.values())
                 .filter(ContentBlockService.Scope.LETTER::takes)
                 .filter(type -> type != CellContentType.EMPTY && type != CellContentType.NESTED_ROWS)
-                .filter(type -> part.signatures() || type != CellContentType.SIGNATURE)
+                .filter(type -> part.signatures() || !signing(type))
                 .toList();
+    }
+
+    /** Whether a kind of block belongs to a signature, which only the body takes. */
+    private static boolean signing(CellContentType type) {
+        return type == CellContentType.SIGNATURE || type == CellContentType.FILL_IN;
     }
 
     private List<ContentRow> rows(int stationId, @Nullable List<BlockRowRequest> sent, LetterPart part) {
@@ -105,8 +130,7 @@ public class LetterChecks {
         blocks.requireFits(stationId, data, ContentBlockService.Scope.LETTER);
         var rows = ContentBlockService.rowsOf(data);
         requireColumns(rows, part.maxColumns());
-        if (!part.signatures()
-                && LetterContent.blocks(rows).anyMatch(cell -> cell.contentType() == CellContentType.SIGNATURE)) {
+        if (!part.signatures() && LetterContent.blocks(rows).anyMatch(cell -> signing(cell.contentType()))) {
             throw DocumentRefusal.DOCUMENT_TEMPLATE_SIGNATURE_OUTSIDE_BODY.raise();
         }
         LetterContent.blocks(rows).forEach(cell -> requireBlock(stationId, cell, part.maxText()));
@@ -144,8 +168,16 @@ public class LetterChecks {
             }
             case IMAGE -> requirePicture(stationId, cell.content());
             case SIGNATURE -> requireSignature(cell);
+            case FILL_IN -> requireFillIn(cell);
             default -> {}
         }
+    }
+
+    private static void requireFillIn(ContentCell cell) {
+        if (!(cell.config() instanceof CellConfig.FillInConfig fillIn)) {
+            throw DocumentRefusal.DOCUMENT_TEMPLATE_FILL_IN_INCOMPLETE.raise();
+        }
+        FillInChecks.checked(fillIn.signer(), fillIn.label(), fillIn.maxLength());
     }
 
     private static void requireSignature(ContentCell cell) {
@@ -155,6 +187,7 @@ public class LetterChecks {
         if (cell.content().length() > MAX_SIGNATURE_TEXT) {
             throw DocumentRefusal.DOCUMENT_TEMPLATE_TEXT_TOO_LONG.raise(RefusalDetail.count(MAX_SIGNATURE_TEXT));
         }
+        SignatureStatementChecks.checked(signature.statement());
     }
 
     private void requirePicture(int stationId, String content) {

@@ -5,7 +5,7 @@
  */
 package dev.chojo.ember.feature.station.service;
 
-import dev.chojo.ember.feature.federation.service.FederationPartnerTransferFixupService;
+import dev.chojo.ember.feature.federation.service.MovedStationSwitchover;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,16 +29,17 @@ class StationTransferServiceTest {
 
     private StationRepository stations;
     private StationExportService exports;
-    private FederationPartnerTransferFixupService fixup;
+    private MovedStationSwitchover switchover;
     private StationTransferService service;
+    private Station station;
 
     @BeforeEach
     void setup() {
         stations = mock(StationRepository.class);
         exports = mock(StationExportService.class);
-        fixup = mock(FederationPartnerTransferFixupService.class);
-        service = new StationTransferService(stations, exports, fixup);
-        var station = mock(Station.class);
+        switchover = mock(MovedStationSwitchover.class);
+        service = new StationTransferService(stations, exports, switchover);
+        station = mock(Station.class);
         when(station.uid()).thenReturn(STATION_UID);
         when(stations.findById(9)).thenReturn(Optional.of(station));
         when(exports.findTransferTarget(9)).thenReturn(Optional.of("https://recorded.test"));
@@ -65,23 +66,25 @@ class StationTransferServiceTest {
         service.complete(9, "https://signalled.test");
 
         verify(exports).markTransferComplete(9);
-        verify(fixup).flipSourceSideRetainedPartners(STATION_UID, "https://signalled.test");
+        verify(stations).markMovedAway(9, "https://signalled.test");
+        verify(switchover).switchOver(station, "https://signalled.test");
     }
 
     @Test
     void withoutASignalTheRecordedDestinationIsUsed() {
         service.complete(9, " ");
 
-        verify(fixup).flipSourceSideRetainedPartners(STATION_UID, "https://recorded.test");
+        verify(stations).markMovedAway(9, "https://recorded.test");
+        verify(switchover).switchOver(station, "https://recorded.test");
     }
 
     @Test
-    void aStationThatIsGoneHasNoPartnersToPointElsewhere() {
+    void aStationThatIsGoneHasNoPartnersToSwitchOver() {
         when(exports.findTransferTarget(7)).thenReturn(Optional.empty());
 
         service.complete(7, null);
 
         verify(exports).markTransferComplete(7);
-        verify(fixup, never()).flipSourceSideRetainedPartners(any(), any());
+        verify(switchover, never()).switchOver(any(), any());
     }
 }

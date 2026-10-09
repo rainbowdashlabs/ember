@@ -535,6 +535,22 @@ class AccountRepositoryTest extends RepositoryTestBase {
     }
 
     @Test
+    @Order(82)
+    void anAccountWaitsForItsOwnerUntilConfirmedOnce() {
+        var fresh = accountRepo.create("unconfirmed-" + System.nanoTime() + "@test.com", "U", "C", true);
+        assertFalse(accountRepo.isUnconfirmed(fresh.id()), "an account made any other way never waits");
+        assertFalse(accountRepo.confirm(fresh.id()), "confirming an account that never waited changes nothing");
+
+        accountRepo.markUnconfirmed(fresh.id());
+        assertTrue(accountRepo.isUnconfirmed(fresh.id()));
+
+        assertTrue(accountRepo.confirm(fresh.id()));
+        assertFalse(accountRepo.isUnconfirmed(fresh.id()));
+        assertFalse(accountRepo.confirm(fresh.id()));
+        accountRepo.delete(fresh.id());
+    }
+
+    @Test
     @Order(99)
     void deleteAccount() {
         assertTrue(accountRepo.delete(accountId));

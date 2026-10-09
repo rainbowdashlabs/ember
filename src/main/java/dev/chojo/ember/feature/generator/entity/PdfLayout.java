@@ -29,10 +29,16 @@ public record PdfLayout(List<PdfField> fields, List<FormBinding> bindings) {
         return new PdfLayout(List.of(), List.of());
     }
 
-    /** @return every text of the fields and the form fields that can name placeholders */
+    /**
+     * @return every text of the fields and the form fields that can name placeholders, which leaves out the
+     *     labels of fields to fill in at signing
+     */
     public Stream<String> texts() {
         return Stream.concat(
-                fields.stream().map(PdfField::text).filter(Objects::nonNull),
+                fields.stream()
+                        .filter(field -> field.kind() != PdfFieldKind.FILL_IN)
+                        .map(PdfField::text)
+                        .filter(Objects::nonNull),
                 bindings.stream().map(FormBinding::text));
     }
 
