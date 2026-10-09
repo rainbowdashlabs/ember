@@ -8,9 +8,11 @@ package dev.chojo.ember.feature.mail.service;
 import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.feature.mail.entity.MailDeliveryStatus;
 import dev.chojo.ember.feature.mail.repository.EmailQueueRepository;
+import dev.chojo.ember.feature.mail.repository.InstanceMailGrantRepository;
 import dev.chojo.ember.feature.mail.repository.MailProviderBlockRepository;
 import dev.chojo.ember.feature.mail.repository.ProviderSecretRepository;
 import dev.chojo.ember.feature.mail.repository.StationMailProviderRepository;
+import dev.chojo.ember.feature.mail.repository.StationMailSenderRepository;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
@@ -38,8 +40,12 @@ class MailDeliveryServiceTest extends RepositoryTestBase {
     @BeforeAll
     static void setup() {
         var mailing = new Mailing();
-        var chainService =
-                new MailChainService(mailing, new StationMailProviderRepository(), new ProviderSecretRepository());
+        var chainService = new MailChainService(
+                mailing,
+                new StationMailProviderRepository(),
+                new ProviderSecretRepository(),
+                new InstanceMailGrantRepository(),
+                new StationMailSenderRepository());
         service = new MailDeliveryService(queue, chainService, new MailProviderBlockRepository());
         stationA = stationRepo.create("Delivery Station A");
         stationB = stationRepo.create("Delivery Station B");

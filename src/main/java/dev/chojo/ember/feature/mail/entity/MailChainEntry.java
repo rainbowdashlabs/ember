@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.mail.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
 import dev.chojo.ember.feature.station.entity.MailProviderType;
+import org.jspecify.annotations.Nullable;
 
 /**
  * One provider in the order a mail is tried through.
@@ -16,14 +17,21 @@ import dev.chojo.ember.feature.station.entity.MailProviderType;
  * block list, for one. So sending is not one provider but a list: each gets a number of attempts,
  * and when it has used them the next one takes over.
  *
- * @param position       where in the order this provider sits, counted from zero
- * @param smtpEncryption how the connection to the relay is secured
- * @param attempts       how many attempts it gets before the next one takes over
- * @param dailySendLimit how many mails it may send in a day, or zero for no limit. Free tiers are
- *                       sold by the day, so a chain that ignores the allowance keeps pushing at a
- *                       provider that has already spent it instead of moving to the next.
- * @param providerName   the provider name shown to members, empty when none was given
- * @param providerUrl    the provider website shown to members, empty when none was given
+ * @param position         where in the order this provider sits, counted from zero
+ * @param smtpEncryption   how the connection to the relay is secured
+ * @param attempts         how many attempts it gets before the next one takes over
+ * @param dailySendLimit   how many mails it may send in a day, or zero for no limit. Free tiers are
+ *                         sold by the day, so a chain that ignores the allowance keeps pushing at a
+ *                         provider that has already spent it instead of moving to the next.
+ * @param providerName     the provider name shown to members, empty when none was given
+ * @param providerUrl      the provider website shown to members, empty when none was given
+ * @param instancePosition where this provider sits in the instance's list when it is one of the
+ *                         instance's, or null for a station's own provider. A station granted the
+ *                         instance's providers has them after its own, so its chain holds both
+ *                         kinds, and the allowance of an instance provider is counted by this
+ *                         position whoever's mail it carries.
+ * @param replyTo          where replies to a mail sent through this provider go, empty for the
+ *                         sender address itself
  */
 public record MailChainEntry(
         int position,
@@ -39,13 +47,132 @@ public record MailChainEntry(
         int attempts,
         int dailySendLimit,
         String providerName,
-        String providerUrl) {
+        String providerUrl,
+        @Nullable Integer instancePosition,
+        String replyTo) {
+
+    /**
+     * A station's own provider as its list stores it, replies going to its sender address.
+     */
+    public MailChainEntry(
+            int position,
+            MailProviderType provider,
+            String smtpHost,
+            int smtpPort,
+            SmtpEncryption smtpEncryption,
+            String smtpUser,
+            String smtpPassword,
+            String apiKey,
+            String senderAddress,
+            String senderName,
+            int attempts,
+            int dailySendLimit,
+            String providerName,
+            String providerUrl) {
+        this(
+                position,
+                provider,
+                smtpHost,
+                smtpPort,
+                smtpEncryption,
+                smtpUser,
+                smtpPassword,
+                apiKey,
+                senderAddress,
+                senderName,
+                attempts,
+                dailySendLimit,
+                providerName,
+                providerUrl,
+                null,
+                "");
+    }
 
     /**
      * Whether this entry names a provider that could actually send something.
      */
     public boolean isConfigured() {
         return provider != null && provider != MailProviderType.NONE;
+    }
+
+    /**
+     * Whether this is one of the instance's providers rather than a station's own.
+     */
+    public boolean isInstanceProvider() {
+        return instancePosition != null;
+    }
+
+    /**
+     * This entry at another place in the order it is tried through.
+     */
+    public MailChainEntry withPosition(int newPosition) {
+        return new MailChainEntry(
+                newPosition,
+                provider,
+                smtpHost,
+                smtpPort,
+                smtpEncryption,
+                smtpUser,
+                smtpPassword,
+                apiKey,
+                senderAddress,
+                senderName,
+                attempts,
+                dailySendLimit,
+                providerName,
+                providerUrl,
+                instancePosition,
+                replyTo);
+    }
+
+    /**
+     * This entry marked as the instance's provider at the given place of the instance's list.
+     */
+    public MailChainEntry asInstanceProvider(int inInstanceList) {
+        return new MailChainEntry(
+                position,
+                provider,
+                smtpHost,
+                smtpPort,
+                smtpEncryption,
+                smtpUser,
+                smtpPassword,
+                apiKey,
+                senderAddress,
+                senderName,
+                attempts,
+                dailySendLimit,
+                providerName,
+                providerUrl,
+                inInstanceList,
+                replyTo);
+    }
+
+    /**
+     * This entry sending under another display name, with replies going elsewhere. The sender
+     * address stays: it is the one the provider has authorised.
+     *
+     * @param displayName the name shown beside the sender address
+     * @param replyAddress where replies go, empty for the sender address itself
+     */
+    public MailChainEntry sendingAs(String displayName, String replyAddress) {
+        return new MailChainEntry(
+                position,
+                provider,
+                smtpHost,
+                smtpPort,
+                smtpEncryption,
+                smtpUser,
+                smtpPassword,
+                apiKey,
+                senderAddress,
+                displayName,
+                attempts,
+                dailySendLimit,
+                providerName,
+                providerUrl,
+                instancePosition,
+                replyAddress);
     }
 
     /**

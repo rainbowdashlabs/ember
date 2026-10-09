@@ -138,10 +138,27 @@ class InstanceMailSettingsServiceTest {
 
     @Test
     void theDigestIntervalIsWrittenToTheFile() {
-        assertEquals(15, service.updateMailing(new MailingConfigRequest(15)).notificationDigestIntervalMinutes());
+        assertEquals(
+                15, service.updateMailing(new MailingConfigRequest(15, null)).notificationDigestIntervalMinutes());
 
         assertEquals(15, reread().main().mailing().notificationDigestIntervalMinutes());
         assertEquals(15, service.mailing().notificationDigestIntervalMinutes());
+        assertEquals(50, service.mailing().stationShare(), "a request without the share leaves it alone");
+    }
+
+    @Test
+    void theStationsShareIsWrittenToTheFileWithinZeroToAHundred() {
+        assertEquals(30, service.updateMailing(new MailingConfigRequest(60, 30)).stationShare());
+        assertEquals(30, reread().main().mailing().stationShare());
+
+        var refused =
+                assertThrows(RefusalResponse.class, () -> service.updateMailing(new MailingConfigRequest(60, 101)));
+        assertEquals(SystemRefusal.INSTANCE_MAIL_SHARE_OUT_OF_RANGE, refused.refusal());
+        assertEquals(
+                SystemRefusal.INSTANCE_MAIL_SHARE_OUT_OF_RANGE,
+                assertThrows(RefusalResponse.class, () -> service.updateMailing(new MailingConfigRequest(60, -1)))
+                        .refusal());
+        assertEquals(30, reread().main().mailing().stationShare(), "nothing was written");
     }
 
     @Test
@@ -169,10 +186,11 @@ class InstanceMailSettingsServiceTest {
                 assertThrows(RefusalResponse.class, failing::clear).refusal());
         assertEquals(
                 SystemRefusal.SETTINGS_NOT_SAVED,
-                assertThrows(RefusalResponse.class, () -> failing.updateMailing(new MailingConfigRequest(15)))
+                assertThrows(RefusalResponse.class, () -> failing.updateMailing(new MailingConfigRequest(15, 20)))
                         .refusal());
 
         assertEquals(before, mailing.senders());
         assertEquals(60, mailing.notificationDigestIntervalMinutes());
+        assertEquals(50, mailing.stationShare());
     }
 }

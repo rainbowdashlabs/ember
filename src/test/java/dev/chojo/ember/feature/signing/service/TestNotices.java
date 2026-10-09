@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.documents.repository.DocumentRepository;
 import dev.chojo.ember.feature.mail.repository.EmailQueueRepository;
 import dev.chojo.ember.feature.mail.repository.MailProviderBlockRepository;
 import dev.chojo.ember.feature.mail.service.EmailService;
+import dev.chojo.ember.feature.mail.service.MailAllowance;
 import dev.chojo.ember.feature.mail.service.MailChainService;
 import dev.chojo.ember.feature.mail.service.MailRecipientService;
 import dev.chojo.ember.feature.mail.service.MailRetryService;
@@ -54,7 +55,8 @@ public final class TestNotices {
                 mock(StationReadOnlyGuard.class),
                 mock(MailChainService.class),
                 mock(MailProviderBlockRepository.class),
-                mock(MailRetryService.class));
+                mock(MailRetryService.class),
+                mock(MailAllowance.class));
     }
 
     /**

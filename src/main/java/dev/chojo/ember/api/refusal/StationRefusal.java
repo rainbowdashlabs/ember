@@ -303,9 +303,13 @@ public enum StationRefusal implements Refusal {
     /** A station whose look was saved, gone before the save reached it. */
     STATION_NOT_HERE_FOR_LOOK(73, HttpStatus.NOT_FOUND, Sentences.STATION_NOT_HERE),
 
+    /** An address for replies to the station's mail that is plainly not an address. */
+    MAIL_REPLY_TO_NOT_AN_ADDRESS(
+            74, HttpStatus.BAD_REQUEST, "That is not an email address, so the reply address was not saved"),
+
     /** A failed import into a station that was here before, which a retry would have to delete. */
     STATION_IMPORT_INTO_NOT_RETRIED(
-            74,
+            75,
             HttpStatus.CONFLICT,
             "An import into an existing station cannot be tried again here, since that would remove the station"),
 

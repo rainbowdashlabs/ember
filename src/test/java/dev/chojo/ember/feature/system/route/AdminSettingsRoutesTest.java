@@ -262,8 +262,8 @@ class AdminSettingsRoutesTest {
 
     @Test
     void theInstanceMailGoesThroughTheMailSettings() {
-        when(mailSettings.mailing()).thenReturn(new MailingConfigResponse(60));
-        when(mailSettings.updateMailing(any())).thenReturn(new MailingConfigResponse(15));
+        when(mailSettings.mailing()).thenReturn(new MailingConfigResponse(60, 50));
+        when(mailSettings.updateMailing(any())).thenReturn(new MailingConfigResponse(15, 40));
         when(mailSettings.providers()).thenReturn(new MailFallbackChain(2, List.of()));
         when(mailSettings.updateProviders(any())).thenReturn(new MailFallbackChain(2, List.of()));
         when(mailSettings.regenerateWebhookKey()).thenReturn(new WebhookUrlResponse("https://ember.test/hook"));
@@ -277,7 +277,8 @@ class AdminSettingsRoutesTest {
             assertEquals(
                     15,
                     json(put(client, "/admin/config/mailing", """
-                                    {"notificationDigestIntervalMinutes": 15, "deliveryWebhookUrl": "ignored"}"""))
+                                    {"notificationDigestIntervalMinutes": 15, "stationShare": 40,
+                                     "deliveryWebhookUrl": "ignored"}"""))
                             .path("notificationDigestIntervalMinutes")
                             .asInt());
             assertEquals(
@@ -296,7 +297,7 @@ class AdminSettingsRoutesTest {
             assertEquals(204, delete(client, "/admin/config/mailing").code());
         });
 
-        verify(mailSettings).updateMailing(new MailingConfigRequest(15));
+        verify(mailSettings).updateMailing(new MailingConfigRequest(15, 40));
         verify(mailSettings).updateProviders(new MailFallbackChain(2, List.of()));
         verify(mailSettings).clear();
     }

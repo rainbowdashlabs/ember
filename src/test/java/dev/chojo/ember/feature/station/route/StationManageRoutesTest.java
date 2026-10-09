@@ -11,10 +11,12 @@ import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.api.refusal.StationRefusal;
 import dev.chojo.ember.feature.account.service.AuthService;
 import dev.chojo.ember.feature.cluster.service.ClusterService;
+import dev.chojo.ember.feature.mail.entity.InstanceMailStation;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.mail.service.MailDashboardService;
 import dev.chojo.ember.feature.mail.service.MailLocaleService;
 import dev.chojo.ember.feature.mail.service.StationMailSettingsService;
+import dev.chojo.ember.feature.mail.service.StationMailSettingsService.MailReplyTo;
 import dev.chojo.ember.feature.mail.service.StationMailSettingsService.WebhookUrl;
 import dev.chojo.ember.feature.members.entity.UserSettings;
 import dev.chojo.ember.feature.members.route.UserSettingsRoutes;
@@ -178,6 +180,39 @@ class StationManageRoutesTest {
     }
 
     @Test
+    void theReplyAddressBelongsToTheStationAsking() {
+        when(mail.replyTo(STATION_ID)).thenReturn(new MailReplyTo("kontakt@nord.test"));
+        when(mail.updateReplyTo(STATION_ID, "neu@nord.test")).thenReturn(new MailReplyTo("neu@nord.test"));
+
+        harness.run((server, client) -> {
+            assertEquals(
+                    "kontakt@nord.test",
+                    json(as(client, "GET", "/station/manage/mail/reply-to", null))
+                            .path("replyTo")
+                            .asString());
+            assertEquals(
+                    "neu@nord.test",
+                    json(as(client, "PUT", "/station/manage/mail/reply-to", body("{\"replyTo\": \"neu@nord.test\"}")))
+                            .path("replyTo")
+                            .asString());
+        });
+
+        verify(mail).updateReplyTo(STATION_ID, "neu@nord.test");
+    }
+
+    @Test
+    void theStationSeesWhetherTheInstanceCarriesItsMail() {
+        when(mail.instanceMail(STATION_ID))
+                .thenReturn(new InstanceMailStation(
+                        UUID.fromString("00000000-0000-0000-0000-000000000003"), "Nord", true, null, 20, 6));
+
+        var answer = harness.request(client -> as(client, "GET", "/station/manage/mail/instance", null));
+
+        assertEquals(20, json(answer).path("dailyLimit").asInt());
+        assertEquals(6, json(answer).path("sentToday").asInt());
+    }
+
+    @Test
     void aTestMailNeedsAProviderAndOnlyAMovedStationIsDeletedAtOnce() {
         doThrow(StationRefusal.NO_MAIL_PROVIDER_SET.raise()).when(mail).requireProvider(STATION_ID);
         doThrow(StationRefusal.STATION_NOT_MOVED.raise()).when(stations).deleteMoved(STATION_ID);
@@ -207,5 +242,6 @@ class StationManageRoutesTest {
 
         assertEquals(false, json(answer).path("mailConfigured").asBoolean());
         verify(mail).firstEntry(STATION_ID);
+        verify(mail).sendsMail(STATION_ID);
     }
 }

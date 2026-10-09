@@ -159,6 +159,10 @@
   "env" : "MAILING_SWEEGOWEBHOOKSECRET",
   "default" : "-"
 }, {
+  "configKey" : "mailing.stationShare",
+  "env" : "MAILING_STATIONSHARE",
+  "default" : "50"
+}, {
   "configKey" : "auth.tokenBytes",
   "env" : "AUTH_TOKENBYTES",
   "default" : "32"
