@@ -340,6 +340,7 @@ export default {
         type: 'Type the name',
         drawHint: 'Sign in the white area with a finger, a pen or the mouse.',
         drawLabel: 'Area for the signature',
+        signer: 'Signature of ',
         clear: 'Start over',
         typeLabel: 'Name for the signature',
         typeHint: 'The name is set in a handwriting style. This works without drawing, with the keyboard alone.',

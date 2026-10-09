@@ -11,6 +11,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import SignatureCanvas from './signaturepad/SignatureCanvas.vue'
 import SignatureTyped from './signaturepad/SignatureTyped.vue'
+import SignerCaption from './signaturepad/SignerCaption.vue'
 import {SignatureImageSource} from '@/api/generated/schema'
 import type {SignatureDraft} from '@/util/signatureDraft'
 
@@ -23,6 +24,11 @@ import type {SignatureDraft} from '@/util/signatureDraft'
  * the picture of the tab that is open.
  */
 const model = defineModel<SignatureDraft | null>({required: true})
+
+defineProps<{
+  /** Who signs here, printed under the signature as a document prints it under the field. */
+  signer?: string | null
+}>()
 
 const {t} = useI18n()
 
@@ -53,10 +59,14 @@ watch(mode, () => {
     <div v-if="mode === SignatureImageSource.DRAWN" class="space-y-2">
       <MutedText tag="p" size="sm">{{ t('signaturePad.drawHint') }}</MutedText>
       <SignatureCanvas ref="canvas" :label="t('signaturePad.drawLabel')" @change="drawn"/>
+      <SignerCaption v-if="signer" :name="signer"/>
       <SecondaryButton type="button" :icon="['fas', 'rotate-left']" data-testid="signature-clear" @click="canvas?.clear()">
         {{ t('signaturePad.clear') }}
       </SecondaryButton>
     </div>
-    <SignatureTyped v-else @change="typed"/>
+    <div v-else class="space-y-2">
+      <SignatureTyped @change="typed"/>
+      <SignerCaption v-if="signer" :name="signer"/>
+    </div>
   </div>
 </template>

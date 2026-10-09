@@ -135,6 +135,17 @@ export function holderSigns(fields: readonly OpenSignatureResponse[]): boolean {
 }
 
 /**
+ * The official name of the reader as the chosen fields they sign with their own picture print it, or null
+ * where none of those fields names them (any guardian may sign).
+ *
+ * @param fields the chosen fields
+ */
+export function holderName(fields: readonly OpenSignatureResponse[]): string | null {
+    return fields.find(field => field.capacity !== SignerCapacity.MEMBER_THROUGH_ACCOUNT && field.signerName)
+        ?.signerName ?? null
+}
+
+/**
  * The screens of the flow for the chosen fields: the overview, one per document, the reader's picture
  * where they sign themselves, one per member drawing their own, the check and the confirmation.
  *

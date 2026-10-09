@@ -35,7 +35,7 @@ const title = computed(() => t('signing.flow.memberPicture.heading', {name: prop
 <template>
   <SigningStepFrame :title="title" :position="position" :total="total">
     <MutedText tag="p" size="sm">{{ t('signing.flow.memberPicture.hint', {name: signer.name}) }}</MutedText>
-    <SignaturePad v-model="draft"/>
+    <SignaturePad v-model="draft" :signer="signer.name"/>
     <template #actions>
       <SigningStepNav :blocked="draft === null" @next="$emit('next')" @back="$emit('back')"/>
     </template>

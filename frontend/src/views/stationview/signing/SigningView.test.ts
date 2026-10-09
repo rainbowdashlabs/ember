@@ -198,6 +198,20 @@ describe('SigningView', () => {
         view.unmount()
     })
 
+    it('names whoever signs under each signature', async () => {
+        const view = await open()
+        await click(view, 'signing-start')
+        await agreeToDocuments(view, 2)
+
+        expect(view.get('[data-testid="signing-picture-saved"]').text()).toContain('Jana Beispiel')
+        await click(view, 'signing-mark-new')
+        expect(view.findComponent({name: 'SignaturePad'}).props('signer')).toBe('Jana Beispiel')
+        await click(view, 'signing-mark-saved')
+        await click(view, 'signing-next')
+        expect(view.findComponent({name: 'SignaturePad'}).props('signer')).toBe('Ben Beispiel')
+        view.unmount()
+    })
+
     it('keeps what was ticked and typed when going back and forth', async () => {
         const view = await open()
         await click(view, 'signing-start')

@@ -19,7 +19,8 @@ import SigningMemberPictureStep from './signingview/SigningMemberPictureStep.vue
 import SigningCheckStep from './signingview/SigningCheckStep.vue'
 import SigningConfirmStep from './signingview/SigningConfirmStep.vue'
 import SigningDone from './signingview/SigningDone.vue'
-import {namedFields} from './signingview/batchFlow'
+import {holderName, namedFields} from './signingview/batchFlow'
+import {useSession} from '@/composables/useSession'
 import {useSigningFlow} from './signingview/useSigningFlow'
 import type {TypedProof} from './signingview/useBatchSigning'
 import {describeSigningFailure} from './signingview/signingFailure'
@@ -55,6 +56,8 @@ const {loading, failure: loadFailure} = useAsyncLoader(async (isCurrent) => {
 const notWaiting = computed(() => firstFieldId.value !== null
     && !flow.fields.value.some(field => field.fieldId === firstFieldId.value))
 const total = computed(() => flow.steps.value.length)
+const {fullName} = useSession()
+const holder = computed(() => holderName(flow.selected.value.flatMap(group => group.fields)) ?? fullName())
 const announcement = ref('')
 
 const {running: preparing, failure: prepareFailure, run: prepare} = useAsyncAction(() => flow.act.prepare())
@@ -123,7 +126,7 @@ const title = computed(() => (firstFieldId.value === null ? t('pages.station-sig
                            :index="step.index" :count="step.count" :fill-ins="flow.fillIns.value"
                            :position="flow.position.value" :total="total" @next="flow.next" @back="flow.back"/>
       <SigningHolderPictureStep v-else-if="step.kind === 'holderPicture'" v-model="flow.holderMark.value"
-                                :saved-url="savedSignature" :position="flow.position.value" :total="total"
+                                :saved-url="savedSignature" :signer="holder" :position="flow.position.value" :total="total"
                                 @next="flow.next" @back="flow.back"/>
       <SigningMemberPictureStep v-else-if="step.kind === 'memberPicture'" :key="step.signer.memberId"
                                 :model-value="flow.memberMarks.value[step.signer.memberId] ?? null"

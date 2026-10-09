@@ -11,6 +11,7 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import FormLabel from '@/components/input/FormLabel.vue'
 import SignaturePad from '@/components/input/SignaturePad.vue'
+import SignerCaption from '@/components/input/signaturepad/SignerCaption.vue'
 import SigningStepFrame from './SigningStepFrame.vue'
 import SigningStepNav from './SigningStepNav.vue'
 import type {SigningMarkChoice} from './useBatchSigning'
@@ -22,6 +23,8 @@ import type {SigningMarkChoice} from './useBatchSigning'
  */
 const props = defineProps<{
   savedUrl: string | null
+  /** The reader's name, printed under the signature as the documents print it under their fields. */
+  signer: string
   position: number
   total: number
 }>()
@@ -59,6 +62,7 @@ function useSaved(saved: boolean) {
           :alt="t('signing.mark.savedAlt')"
           class="block max-w-sm max-h-28 rounded border border-bg-light-accent dark:border-bg-dark-accent bg-white p-2"
       />
+      <SignerCaption :name="signer" class="max-w-sm"/>
       <MutedText tag="p" size="sm">{{ t('signing.flow.picture.savedHint') }}</MutedText>
       <SecondaryButton type="button" :icon="['fas', 'pen']" data-testid="signing-mark-new" @click="useSaved(false)">
         {{ t('signing.mark.drawNew') }}
@@ -66,12 +70,13 @@ function useSaved(saved: boolean) {
     </div>
     <div v-else class="space-y-3">
       <MutedText tag="p" size="sm">{{ t('signing.mark.drawHint') }}</MutedText>
-      <SignaturePad v-model="draft"/>
+      <SignaturePad v-model="draft" :signer="signer"/>
       <div class="flex items-center gap-2">
         <CheckboxInput :id="keepId" v-model="keep"/>
         <FormLabel :for="keepId" class="mb-0">{{ t('signing.mark.keep') }}</FormLabel>
       </div>
-      <SecondaryButton v-if="savedUrl" type="button" :icon="['fas', 'rotate-left']" @click="useSaved(true)">
+      <SecondaryButton v-if="savedUrl" type="button" :icon="['fas', 'rotate-left']" data-testid="signing-mark-saved"
+                       @click="useSaved(true)">
         {{ t('signing.mark.useSaved') }}
       </SecondaryButton>
     </div>

@@ -11211,6 +11211,7 @@ export default {
         type: 'Name tippen',
         drawHint: 'Unterschreibe im weißen Feld mit dem Finger, einem Stift oder der Maus.',
         drawLabel: 'Feld für die Unterschrift',
+        signer: 'Unterschrift von ',
         clear: 'Neu anfangen',
         typeLabel: 'Name für die Unterschrift',
         typeHint: 'Der Name erscheint in einer Schreibschrift. So geht es auch ohne Zeichnen, nur mit der Tastatur.',
