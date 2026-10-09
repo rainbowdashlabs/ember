@@ -50,6 +50,7 @@ public class StationMailSettingsService {
     private final Api api;
     private final InstanceMailGrantRepository grants;
     private final StationMailSenderRepository senders;
+    private final MailChainService chains;
 
     @Inject
     public StationMailSettingsService(
@@ -58,13 +59,15 @@ public class StationMailSettingsService {
             WebhookKeyService webhookKeys,
             Api api,
             InstanceMailGrantRepository grants,
-            StationMailSenderRepository senders) {
+            StationMailSenderRepository senders,
+            MailChainService chains) {
         this.providers = providers;
         this.secrets = secrets;
         this.webhookKeys = webhookKeys;
         this.api = api;
         this.grants = grants;
         this.senders = senders;
+        this.chains = chains;
     }
 
     /**
@@ -99,11 +102,13 @@ public class StationMailSettingsService {
 
     /**
      * Whether the station sends mail at all: through a provider of its own, or through the
-     * instance's where it was granted them.
+     * instance's where it was granted them and the instance has at least one. A grant on an
+     * instance without providers carries nothing, so members are not offered mail that would
+     * never arrive.
      */
     public boolean sendsMail(int stationId) {
         return !providers.findByStation(stationId).isEmpty()
-                || grants.find(stationId).isPresent();
+                || (grants.find(stationId).isPresent() && !chains.forInstance().isEmpty());
     }
 
     private MailProviderType firstProvider(int stationId) {

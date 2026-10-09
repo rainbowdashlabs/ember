@@ -41,7 +41,7 @@ describe('InstanceMailStandingPanel', () => {
         await flushPromises()
 
         expect(view.find('[data-testid="instance-mail-granted"]').exists()).toBe(true)
-        expect(view.find('[data-testid="instance-mail-use"]').text()).toContain('6 von 20')
+        expect(view.find('[data-testid="instance-mail-use"]').text()).toContain('6 von höchstens 20 Mails')
     })
 
     it('says so without a limit of its own', async () => {
@@ -49,7 +49,7 @@ describe('InstanceMailStandingPanel', () => {
         const view = mount(InstanceMailStandingPanel)
         await flushPromises()
 
-        expect(view.find('[data-testid="instance-mail-use"]').text()).toContain('kein eigenes Limit')
+        expect(view.find('[data-testid="instance-mail-use"]').text()).toContain('keine eigene Grenze')
     })
 
     it('says who decides where the station is not granted', async () => {

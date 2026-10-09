@@ -46,6 +46,7 @@ class StationMailSettingsServiceTest {
     private WebhookKeyService webhookKeys;
     private InstanceMailGrantRepository grants;
     private StationMailSenderRepository senders;
+    private MailChainService chains;
     private StationMailSettingsService service;
 
     private static MailChainEntry stored(String password) {
@@ -95,7 +96,8 @@ class StationMailSettingsServiceTest {
                 .thenReturn("https://ember.test/hook");
         grants = mock(InstanceMailGrantRepository.class);
         senders = mock(StationMailSenderRepository.class);
-        service = new StationMailSettingsService(providers, secrets, webhookKeys, api, grants, senders);
+        chains = mock(MailChainService.class);
+        service = new StationMailSettingsService(providers, secrets, webhookKeys, api, grants, senders, chains);
     }
 
     @Test
@@ -129,9 +131,22 @@ class StationMailSettingsServiceTest {
     @Test
     void aStationGrantedTheInstancesProvidersSendsMailWithoutAnyOfItsOwn() {
         when(grants.find(3)).thenReturn(Optional.of(new InstanceMailGrant(3, Instant.EPOCH, null)));
+        when(chains.forInstance()).thenReturn(List.of(mock(MailChainEntry.class)));
 
         assertTrue(service.sendsMail(3));
         service.requireProvider(3);
+    }
+
+    @Test
+    void aGrantOnAnInstanceWithoutProvidersSendsNoMail() {
+        when(grants.find(3)).thenReturn(Optional.of(new InstanceMailGrant(3, Instant.EPOCH, null)));
+        when(chains.forInstance()).thenReturn(List.of());
+
+        assertFalse(service.sendsMail(3));
+        assertEquals(
+                StationRefusal.NO_MAIL_PROVIDER_SET,
+                assertThrows(RefusalResponse.class, () -> service.requireProvider(3))
+                        .refusal());
     }
 
     @Test

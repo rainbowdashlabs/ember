@@ -10,6 +10,7 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
+import Alert from '@/components/feedback/Alert.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import LabelledField from '@/components/input/LabelledField.vue'
 import NumberInput from '@/components/input/number/NumberInput.vue'
@@ -27,7 +28,14 @@ import {useDataTable} from '@/composables/useDataTable'
 /**
  * Which stations may send their own mail through the instance's providers, granted and withdrawn for
  * many at once. A single station is set on its own page as well.
+ *
+ * <p>A grant on an instance without providers carries no mail, so the panel says so instead of
+ * leaving the grant to look like it works.
  */
+const props = defineProps<{
+  instanceHasProviders: boolean
+}>()
+
 const {t} = useI18n()
 
 const stations = ref<InstanceMailStation[]>([])
@@ -67,6 +75,9 @@ const {running, failure: actionFailure, run: apply} = useAsyncAction(async (gran
   <NeutralContainer class="space-y-4">
     <SectionHeader>{{ t('instanceMail.stations.title') }}</SectionHeader>
     <MutedText tag="p" size="sm">{{ t('instanceMail.stations.hint') }}</MutedText>
+    <Alert v-if="!props.instanceHasProviders" variant="info" data-testid="instance-mail-no-providers">
+      {{ t('instanceMail.stations.noProviders') }}
+    </Alert>
     <Spinner v-if="loading" size="md"/>
     <FailureAlert :failure="failure ?? actionFailure"/>
     <StationGrantsTable v-if="!loading" :table="table" :selected="selected" @toggle="toggle"/>

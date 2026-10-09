@@ -5825,10 +5825,11 @@ export default {
                 + 'Instanz, nach ihren eigenen. Die Mails kommen von der Adresse der Instanz, mit dem '
                 + 'Namen der Wache als Absender.',
             toggle: 'Anbieter der Instanz freigeben',
-            dailyLimit: 'Tageslimit der Wache',
-            dailyLimitHint: 'So viele Mails darf die Wache am Tag über die Instanz verschicken. Leer '
-                + 'heißt kein eigenes Limit, der Anteil aller Wachen gilt trotzdem.',
-            noLimit: 'Kein eigenes Limit',
+            dailyLimit: 'Höchstens Mails pro Tag für diese Wache',
+            dailyLimitHint: 'Eine feste Anzahl: so viele Mails darf die Wache pro Tag über die Anbieter '
+                + 'der Instanz verschicken. Leer heißt keine eigene Grenze; der Anteil aller Wachen in '
+                + 'Prozent gilt trotzdem.',
+            noLimit: 'Keine eigene Grenze',
             sentToday: 'Heute über die Instanz verschickt: {count}',
         },
         stations: {
@@ -5837,22 +5838,26 @@ export default {
                 + 'Eine einzelne Wache lässt sich auch auf ihrer Seite unter Wachen einstellen.',
             colName: 'Wache',
             colGranted: 'Freigabe',
-            colDailyLimit: 'Tageslimit',
+            colDailyLimit: 'Höchstens pro Tag',
             colSentToday: 'Heute verschickt',
             granted: 'Freigegeben',
             notGranted: 'Nicht freigegeben',
             select: '{name} auswählen',
-            noLimit: 'Kein eigenes Limit',
+            noLimit: 'Keine eigene Grenze',
             none: 'Es gibt noch keine Wachen.',
-            dailyLimit: 'Tageslimit je Wache',
-            dailyLimitHint: 'Gilt für jede ausgewählte Wache, die freigegeben wird. Leer heißt kein '
-                + 'eigenes Limit.',
+            dailyLimit: 'Höchstens Mails pro Tag je Wache',
+            dailyLimitHint: 'Eine feste Anzahl, die für jede ausgewählte Wache gilt, die freigegeben '
+                + 'wird. Leer heißt keine eigene Grenze.',
+            noProviders: 'Die Instanz hat noch keinen Mailanbieter. Freigegebene Wachen verschicken '
+                + 'erst Mails über die Instanz, wenn oben einer eingetragen ist, und ihre Mitglieder '
+                + 'können Mails bis dahin nicht einschalten.',
             grant: '{count} freigeben',
             withdraw: '{count} entziehen',
         },
         pool: {
             overview: 'Alle freigegebenen Wachen zusammen dürfen {share} % vom Tageslimit jedes '
-                + 'Anbieters nutzen. Freigegeben sind {count} Wache(n).',
+                + 'Anbieters nutzen, dazu gilt für jede Wache ihre eigene feste Grenze, wo eine '
+                + 'gesetzt ist. Freigegeben sind {count} Wache(n).',
             noLimitWarning: 'Ohne Tageslimit hält ein Anbieter nichts für die Mails der Instanz frei: '
                 + '{providers}. Trage dort ein Tageslimit ein, damit der Anteil der Wachen greift.',
             sentOfLimit: 'Wachen heute: {sent} von {limit}',
@@ -5870,8 +5875,8 @@ export default {
                 + 'Instanz, mit dem Namen der Wache als Absender.',
             notGranted: 'Die Mailanbieter der Instanz sind für diese Wache nicht freigegeben. Das '
                 + 'entscheidet die Verwaltung der Instanz.',
-            sentOfLimit: 'Heute über die Instanz verschickt: {sent} von {limit}',
-            sentNoLimit: 'Heute über die Instanz verschickt: {sent}, kein eigenes Limit',
+            sentOfLimit: 'Heute über die Instanz verschickt: {sent} von höchstens {limit} Mails',
+            sentNoLimit: 'Heute über die Instanz verschickt: {sent} Mails, keine eigene Grenze',
             replyTo: 'Antwortadresse',
             replyToHint: 'Antworten auf Mails der Wache gehen an diese Adresse, über welchen Anbieter '
                 + 'die Mail auch ging. Leer gehen Antworten an die Absenderadresse.',
@@ -5922,10 +5927,11 @@ export default {
             instanceTitle: 'Einstellungen der Instanz',
             digestInterval: 'Benachrichtigungsintervall (Minuten)',
             digestIntervalHint: 'Mindestabstand in Minuten zwischen zwei Sammelmails an dieselbe Wache. 0 schaltet die Sammelmail ab. Gilt erst nach einem Neustart.',
-            stationShare: 'Anteil der Wachen (Prozent)',
-            stationShareHint: 'So viel vom Tageslimit jedes Anbieters dürfen alle freigegebenen Wachen '
-                + 'zusammen nutzen. Der Rest bleibt für die Mails der Instanz frei. Bei einem Anbieter '
-                + 'ohne Tageslimit gilt nur das Limit der einzelnen Wache.',
+            stationShare: 'Anteil aller Wachen in Prozent',
+            stationShareHint: 'So viel Prozent vom Tageslimit jedes Anbieters dürfen alle freigegebenen '
+                + 'Wachen zusammen nutzen, etwa 50 % von 300 Mails, also 150 Mails am Tag. Der Rest '
+                + 'bleibt für die Mails der Instanz frei. Bei einem Anbieter ohne Tageslimit gilt nur '
+                + 'die feste Grenze der einzelnen Wache.',
             clear: 'Alle Anbieter entfernen',
             clearConfirm: 'Die Anbieterliste der Instanz wird vollständig geleert. Bis ein neuer '
                 + 'Anbieter eingetragen ist, bleibt jede Mail liegen. Fortfahren?',

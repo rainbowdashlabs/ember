@@ -157,7 +157,7 @@ const {running: clearing, failure: clearFailure, run: clearMailingConfig} = useA
             @test-mail="sendTestMail"
         />
 
-        <StationGrantsPanel/>
+        <StationGrantsPanel :instance-has-providers="!providersLoaded || providers.length > 0"/>
 
         <MailProviderFreeTiers/>
       </template>

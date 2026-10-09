@@ -37,9 +37,10 @@ describe('StationGrantsPanel', () => {
 
     it('grants the stations ticked, with the limit typed in, and clears the selection', async () => {
         api.grantInstanceMailTo.mockResolvedValue([{...NORD, granted: true, dailyLimit: 10}, SUED])
-        const view = mount(StationGrantsPanel)
+        const view = mount(StationGrantsPanel, {props: {instanceHasProviders: true}})
         await flushPromises()
 
+        expect(view.find('[data-testid="instance-mail-no-providers"]').exists()).toBe(false)
         expect(view.find('[data-testid="instance-mail-grant"]').attributes('disabled')).toBeDefined()
         view.findComponent(StationGrantsTable).vm.$emit('toggle', NORD.stationUid)
         view.findComponent(NumberInput).vm.$emit('update:modelValue', 10)
@@ -53,7 +54,7 @@ describe('StationGrantsPanel', () => {
 
     it('withdraws the stations ticked', async () => {
         api.withdrawInstanceMailFrom.mockResolvedValue([NORD, {...SUED, granted: false}])
-        const view = mount(StationGrantsPanel)
+        const view = mount(StationGrantsPanel, {props: {instanceHasProviders: true}})
         await flushPromises()
 
         view.findComponent(StationGrantsTable).vm.$emit('toggle', SUED.stationUid)
@@ -64,5 +65,12 @@ describe('StationGrantsPanel', () => {
         await flushPromises()
 
         expect(api.withdrawInstanceMailFrom).toHaveBeenCalledWith([SUED.stationUid])
+    })
+
+    it('says a grant carries nothing while the instance has no provider', async () => {
+        const view = mount(StationGrantsPanel, {props: {instanceHasProviders: false}})
+        await flushPromises()
+
+        expect(view.find('[data-testid="instance-mail-no-providers"]').exists()).toBe(true)
     })
 })
