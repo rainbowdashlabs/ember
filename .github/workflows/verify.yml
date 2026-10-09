@@ -65,6 +65,8 @@ jobs:
           - suite: testRepositories
           - suite: testServices
             tools: true
+          - suite: testPeopleServices
+            tools: true
           - suite: testOther
             tools: true
           - suite: testTracking

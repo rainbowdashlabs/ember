@@ -175,8 +175,11 @@ Backend
   be-test1 <pattern> [suite]
                         One test class, e.g. be-test1 '*PageServiceTest*'. Defaults to the
                         testServices suite. A --tests filter must target a single suite: Gradle
-                        fails any suite the pattern matches nothing in.
-                        Suites: testServices, testRepositories, testOther, testTracking
+                        fails any suite the pattern matches nothing in. The service tests of
+                        accounts, members, appointments, documents and signing are in
+                        testPeopleServices.
+                        Suites: testServices, testPeopleServices, testRepositories, testOther,
+                        testTracking
   be-compile            Compile main and test sources
   be-spotless           Apply Java formatting
   be-coverage           The coverage gates on what the last test run recorded, without running the
