@@ -43,7 +43,19 @@ class MailProviderEntryTest {
     @Test
     void anExplicitChoiceWinsOverTheOldFlag() {
         var entry = new MailProviderEntry(
-                MailProviderType.SMTP, "relay.local", 25, SmtpEncryption.NONE, "", "", "", "a@b.test", "", 2, 0);
+                MailProviderType.SMTP,
+                "relay.local",
+                25,
+                SmtpEncryption.NONE,
+                "",
+                "",
+                "",
+                "a@b.test",
+                "",
+                2,
+                0,
+                "",
+                "");
 
         assertEquals(SmtpEncryption.NONE, entry.encryption());
     }

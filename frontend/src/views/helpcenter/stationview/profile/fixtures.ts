@@ -52,8 +52,10 @@ export const DEMO_SETTINGS: SettingsResponse = {
   theme: 'default',
   emailEnabled: true,
   mailConfigured: true,
-  mailProviderName: 'Beispiel Mail GmbH',
-  mailProviderUrl: 'https://mail.beispiel.de/datenschutz',
+  mailProviders: [
+    {type: 'SMTP', name: 'Beispiel Mail GmbH', url: 'https://mail.beispiel.de/datenschutz'},
+    {type: 'BREVO', name: '', url: 'https://www.brevo.com/legal/privacypolicy/'},
+  ],
   notifications: {
     NEW_NEWS: {app: true, email: true, feed: true},
     NEWS_COMMENT: {app: true, email: false, feed: true},

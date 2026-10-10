@@ -65,7 +65,19 @@ class MailChainServiceTest extends RepositoryTestBase {
 
     private static MailProviderEntry instanceProvider(MailProviderType provider) {
         return new MailProviderEntry(
-                provider, "", 587, SmtpEncryption.STARTTLS, "user", "secret", "key", "post@instance", "Ember", 2, 100);
+                provider,
+                "",
+                587,
+                SmtpEncryption.STARTTLS,
+                "user",
+                "secret",
+                "key",
+                "post@instance",
+                "Ember",
+                2,
+                100,
+                "",
+                "");
     }
 
     /**
@@ -245,7 +257,9 @@ class MailChainServiceTest extends RepositoryTestBase {
                         "post@example",
                         "Ember",
                         2,
-                        0)));
+                        0,
+                        "Brevo",
+                        "https://www.brevo.com/legal/privacypolicy/")));
 
         var chain = withList.forInstance();
 
@@ -253,6 +267,9 @@ class MailChainServiceTest extends RepositoryTestBase {
         assertEquals(MailProviderType.BREVO, chain.getFirst().provider());
         assertEquals("post@example", chain.getFirst().senderAddress());
         assertEquals(0, chain.getFirst().instancePosition(), "the instance's own entries carry their place");
+        assertEquals("Brevo", chain.getFirst().providerName(), "members see the name the operator gave");
+        assertEquals(
+                "https://www.brevo.com/legal/privacypolicy/", chain.getFirst().providerUrl());
     }
 
     private static void setField(Object target, String field, Object value) {

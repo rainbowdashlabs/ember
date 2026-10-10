@@ -1,5 +1,18 @@
 # Änderungsprotokoll
 
+## v26.22.2
+
+Die Benachrichtigungseinstellungen nennen jeden Mailanbieter, über den eine Mail an ein Mitglied gehen kann, jeweils mit seinen Datenschutzhinweisen. Die Mailanbieter der Instanz lassen sich für Mitglieder mit Namen und Datenschutzhinweisen versehen.
+
+### Verbesserungen
+
+- **Jeder Mailanbieter steht in den Benachrichtigungseinstellungen.** Kann eine Mail über mehrere Anbieter rausgehen, listen die Benachrichtigungseinstellungen alle in der Reihenfolge, in der sie versucht werden, jeweils mit ihren Datenschutzhinweisen. Beim Einschalten der Mails werden alle als Empfänger der Adresse genannt.
+- **Die Mailanbieter der Instanz haben einen Namen und Datenschutzhinweise.** Unter Einstellungen → E-Mail bekommt jeder Anbieter der Instanz einen Namen und eine Adresse für Datenschutzhinweise, die Mitglieder jeder Wache sehen, die über ihn verschickt.
+
+### Fehlerbehebungen
+
+- **Der Mailanbieter hieß „Unbekannt".** Bei einer Wache, die nur über die Anbieter der Instanz verschickt, nannten die Benachrichtigungseinstellungen den Anbieter „Unbekannt". Jetzt zeigen sie den für ihn vergebenen Namen oder, wenn keiner vergeben ist, die Art des Anbieters.
+
 ## v26.22.1
 
 Benachrichtigungsmails zeigen das Logo der Wache, schreiben Daten so, wie es die Sprache der Lesenden tut, und verlinken auf die richtige Einstellungsseite.
