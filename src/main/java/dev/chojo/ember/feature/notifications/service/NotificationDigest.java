@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.notifications.entity.LinkHome;
 import dev.chojo.ember.feature.notifications.entity.Notification;
 import dev.chojo.ember.feature.notifications.repository.NotificationRepository;
 import dev.chojo.ember.feature.notifications.repository.NotificationScheduleRepository;
+import dev.chojo.ember.feature.station.entity.StationAddresses;
 import dev.chojo.ember.feature.station.service.StationLogoService;
 import dev.chojo.ember.lifecycle.Schedule;
 import dev.chojo.ember.lifecycle.ScheduledTask;
@@ -69,6 +70,9 @@ public class NotificationDigest implements TaskSource {
     private static final Duration PRUNE_INTERVAL = Duration.ofDays(1);
 
     private static final String TEMPLATE = "notification-digest.html";
+
+    /** The edge of the logo in the mail's header, twice its shown height so it stays sharp on dense screens. */
+    private static final int LOGO_SIZE = 128;
 
     private final NotificationRepository notificationRepository;
     private final NotificationScheduleRepository scheduleRepository;
@@ -306,8 +310,8 @@ public class NotificationDigest implements TaskSource {
     private String logoHtml(DigestGroup group, String baseUrl) {
         if (group.key().kind() != DigestGroup.Kind.STATION
                 || !logoService.exists(group.key().id())) return "";
-        return "<img src=\"" + baseUrl + "/api/v1/stations/" + group.key().id()
-                + "/logo\" alt=\"\" style=\"height:40px;border-radius:4px\">";
+        return "<img src=\"" + StationAddresses.logo(baseUrl, group.uid()) + "?size=" + LOGO_SIZE
+                + "\" alt=\"\" style=\"height:40px;border-radius:4px\">";
     }
 
     /**

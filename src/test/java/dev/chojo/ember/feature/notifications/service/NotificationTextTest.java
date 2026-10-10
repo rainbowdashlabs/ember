@@ -79,19 +79,19 @@ class NotificationTextTest {
     @Test
     void anExpiryReminderIsWordedByWhatItIsAbout() {
         assertEquals(
-                "Erste Hilfe von Anna läuft in 12 Tagen ab (2026-03-31)",
+                "Erste Hilfe von Anna läuft in 12 Tagen ab (31.03.2026)",
                 expiryMessage(ExpiryReminderKind.EXPIRES_IN, 12, null, null));
         assertEquals(
-                "Erste Hilfe von Anna läuft morgen ab (2026-03-31)",
+                "Erste Hilfe von Anna läuft morgen ab (31.03.2026)",
                 expiryMessage(ExpiryReminderKind.EXPIRES_IN, 1, null, null));
         assertEquals(
-                "Erste Hilfe von Anna läuft heute ab (2026-03-31)",
+                "Erste Hilfe von Anna läuft heute ab (31.03.2026)",
                 expiryMessage(ExpiryReminderKind.EXPIRES_TODAY, 0, null, null));
         assertEquals(
-                "Erste Hilfe von Anna war bis vor 3 Tagen gültig (2026-03-31)",
+                "Erste Hilfe von Anna war bis vor 3 Tagen gültig (31.03.2026)",
                 expiryMessage(ExpiryReminderKind.EXPIRED, 3, null, null));
         assertEquals(
-                "Erste Hilfe von Anna war bis gestern gültig (2026-03-31)",
+                "Erste Hilfe von Anna war bis gestern gültig (31.03.2026)",
                 expiryMessage(ExpiryReminderKind.EXPIRED, 1, null, null));
         assertEquals(
                 "Erste Hilfe: bei 5 Mitgliedern fällig (Anna, Ben, Carla, …)",
@@ -374,6 +374,18 @@ class NotificationTextTest {
                 new NotificationParams.EventReminder("Probe", 5, LocalDate.parse("2026-09-20")),
                 205);
         assertTrue(text.resolveFeedTitle("en", later).contains("5 days"));
+    }
+
+    /** A date reads the way the reader's language writes it, never as the stored 2026-09-20. */
+    @Test
+    void aDateReadsInTheReadersLanguage() {
+        var reminder = notificationWith(
+                NotificationType.EVENT_REMINDER,
+                new NotificationParams.EventReminder("Probe", 5, LocalDate.parse("2026-09-20")),
+                206);
+        assertTrue(text.resolveMessage("de", reminder).contains("20.09.2026"), text.resolveMessage("de", reminder));
+        assertTrue(text.resolveMessage("en", reminder).contains("Sep 20, 2026"), text.resolveMessage("en", reminder));
+        assertFalse(text.resolveFeedTitle("de", reminder).contains("2026-09-20"));
     }
 
     /** Where every placeholder falls away the title is the bare category, never "News: ". */

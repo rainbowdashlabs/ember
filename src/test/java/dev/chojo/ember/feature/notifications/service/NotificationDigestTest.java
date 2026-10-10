@@ -237,7 +237,9 @@ class NotificationDigestTest extends RepositoryTestBase {
         assertDoesNotThrow(() -> digest.sweep(Instant.now()));
 
         assertEquals(1, mails.size());
-        assertTrue(mails.getFirst().contains("/api/v1/stations/" + station.id() + "/logo"));
+        assertTrue(
+                mails.getFirst().contains(BASE + "/api/v1/public/stations/" + station.uid() + "/logo?size=128"),
+                "the logo is loaded from the address that needs no sign-in");
         assertTrue(mails.getFirst().contains("locale=en"));
         assertTrue(waiting(failing).isEmpty());
     }

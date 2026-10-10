@@ -17,8 +17,13 @@ import org.jspecify.annotations.Nullable;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.time.format.FormatStyle;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.StringJoiner;
 import java.util.UUID;
@@ -46,6 +51,8 @@ public class NotificationText {
 
     /** Param keys that drive pluralisation in {@link #resolveMessage}. */
     private static final List<String> COUNT_PARAMS = List.of("count", "days", "daysBefore", "pendingCount");
+
+    private static final List<String> DATE_PARAMS = List.of("eventDate", "firstEventDate", "nextDate", "expiresOn");
 
     /**
      * Truncates a snippet to {@code maxChars} on a word boundary, appending a Unicode ellipsis
@@ -128,6 +135,7 @@ public class NotificationText {
         String typeKey = n.type().name();
         var params = new LinkedHashMap<>(n.data().paramsAsMap());
         augmentTitleParams(locale, n, params);
+        localizeDateParams(locale, params);
 
         String template = templateFor(templates, typeKey, n, params);
         if (template == null) return resolveCategory(locale, n.type());
@@ -157,6 +165,7 @@ public class NotificationText {
         String localeKey = n.type().localeKey();
         var params = new LinkedHashMap<>(n.data().paramsAsMap());
         localizeStatusParam(locale, params);
+        localizeDateParams(locale, params);
 
         String template = templateFor(templates, localeKey, n, params);
         if (template == null) {
@@ -288,6 +297,26 @@ public class NotificationText {
     private static void localizeStatusParam(String locale, Map<String, String> params) {
         localizeLabelParam(locale, params, "status", "ical", "status.");
         localizeLabelParam(locale, params, "answer", "waitlistAnswer", "");
+    }
+
+    /**
+     * Writes the dates a notification carries the way the reader's language writes them, such as
+     * {@code 17.10.2026} in German and {@code Oct 17, 2026} in English, instead of the stored
+     * {@code 2026-10-17}. A value that is not a date is left as it is.
+     */
+    private static void localizeDateParams(String locale, Map<String, String> params) {
+        var format = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(Locale.forLanguageTag(locale));
+        for (String param : DATE_PARAMS) {
+            params.computeIfPresent(param, (key, value) -> formatDate(value, format));
+        }
+    }
+
+    private static String formatDate(String value, DateTimeFormatter format) {
+        try {
+            return LocalDate.parse(value).format(format);
+        } catch (DateTimeParseException notADate) {
+            return value;
+        }
     }
 
     private static void localizeLabelParam(

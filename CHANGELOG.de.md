@@ -2,11 +2,13 @@
 
 ## v26.22.1
 
-Der Link unten in Benachrichtigungsmails öffnet die Benachrichtigungseinstellungen der Wache oder des Verbands, von dem die Mail kommt.
+Benachrichtigungsmails zeigen das Logo der Wache, schreiben Daten so, wie es die Sprache der Lesenden tut, und verlinken auf die richtige Einstellungsseite.
 
 ### Fehlerbehebungen
 
 - **Der Einstellungslink in Benachrichtigungsmails führte ins Leere.** Der Link unten in einer Benachrichtigungsmail öffnete eine Seite, die es nicht gibt, und bei Verbänden zeigte er auf eine Seite der Wache. Jetzt öffnet er die Benachrichtigungseinstellungen der Wache oder des Verbands, von dem die Mail kommt.
+- **Benachrichtigungsmails zeigten ein kaputtes Logo.** Das Logo der Wache oben in einer Benachrichtigungsmail wurde nie geladen. Jetzt erscheint es in jedem Mailprogramm.
+- **Daten in Benachrichtigungsmails und Feeds waren schwer zu lesen.** Daten erschienen als 2026-10-17, auch auf Deutsch. Jetzt stehen sie als 17.10.2026 auf Deutsch und als Oct 17, 2026 auf Englisch da.
 
 ## v26.22.0
 
