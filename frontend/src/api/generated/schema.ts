@@ -67015,6 +67015,11 @@ export interface components {
             /** Format: int32 */
             stationShare: number;
         };
+        MailProvider: {
+            name: string;
+            type: components["schemas"]["MailProviderType"];
+            url: string;
+        };
         /** @enum {string} */
         MailProviderType: "NONE" | "SMTP" | "RAPIDMAIL" | "TWILIO" | "SWEEGO" | "BREVO";
         /** @enum {string} */
@@ -70938,8 +70943,7 @@ export interface components {
             emailEnabled: boolean;
             feel: string;
             mailConfigured: boolean;
-            mailProviderName: string;
-            mailProviderUrl: string;
+            mailProviders: components["schemas"]["MailProvider"][];
             notifications: {
                 [key: string]: components["schemas"]["NotificationToggle"];
             };
@@ -73813,6 +73817,7 @@ export type MailFallbackPayload = components['schemas']['MailFallbackPayload'];
 export type MailImportOutcome = components['schemas']['MailImportOutcome'];
 export type MailingConfigRequest = components['schemas']['MailingConfigRequest'];
 export type MailingConfigResponse = components['schemas']['MailingConfigResponse'];
+export type MailProvider = components['schemas']['MailProvider'];
 export type MailProviderType = components['schemas']['MailProviderType'];
 export type MailReaches = components['schemas']['MailReaches'];
 export type MailRecord = components['schemas']['MailRecord'];

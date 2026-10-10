@@ -7,9 +7,10 @@
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
-import InfoContainer from '@/components/container/InfoContainer.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
+import {mailProviderLabel} from '@/util/mailProviders'
+import MailProviderNotice from './MailProviderNotice.vue'
 import type {NotificationToggle, NotificationType, SettingsResponse} from '@/api/generated/schema'
 
 const props = defineProps<{
@@ -49,23 +50,21 @@ const allRows: NotifyRow[] = [
  */
 const notifyRows = computed(() => allRows.filter(row => row.type in props.settings.notifications))
 
+/** What switching mail on agrees to: the address goes to every provider the mail may pass through. */
+const consent = computed(() => {
+  const names = props.settings.mailProviders
+      .map(provider => `„${mailProviderLabel(provider, t('userSettings.mailProviderOwnServer'))}"`)
+  if (names.length > 1) return t('userSettings.emailConsentMany', {providers: names.join(', ')})
+  return t('userSettings.emailConsent', {provider: names[0] ?? `„${t('userSettings.mailProviderUnknown')}"`})
+})
+
 function getToggle(type: string): NotificationToggle {
   return props.settings.notifications?.[type] ?? {app: true, email: false, feed: true}
 }
 </script>
 
 <template>
-  <InfoContainer v-if="settings.mailConfigured" class="space-y-2">
-    <p class="text-sm">
-      {{ t('userSettings.mailProviderInfo', {provider: settings.mailProviderName || t('userSettings.mailProviderUnknown')}) }}
-    </p>
-    <p v-if="settings.mailProviderUrl" class="text-xs">
-      <a :href="settings.mailProviderUrl" target="_blank" rel="noopener noreferrer"
-         class="text-primary hover:underline">
-        {{ t('userSettings.mailProviderPrivacy') }}
-      </a>
-    </p>
-  </InfoContainer>
+  <MailProviderNotice v-if="settings.mailConfigured" :providers="settings.mailProviders"/>
 
   <NeutralContainer v-if="!settings.mailConfigured" class="text-sm text-(--text-muted) py-3">
     {{ t('userSettings.mailNotConfigured') }}
@@ -78,7 +77,7 @@ function getToggle(type: string): NotificationToggle {
         <span class="text-sm font-medium">{{ t('userSettings.emailEnabled') }}</span>
         <p class="text-xs text-(--text-muted)">{{ t('userSettings.emailEnabledHint') }}</p>
         <p v-if="settings.mailConfigured" class="text-xs text-(--text-muted)">
-          {{ t('userSettings.emailConsent', {provider: settings.mailProviderName || t('userSettings.mailProviderUnknown')}) }}
+          {{ consent }}
         </p>
       </div>
       <ToggleInput :model-value="settings.emailEnabled" :disabled="!settings.mailConfigured"

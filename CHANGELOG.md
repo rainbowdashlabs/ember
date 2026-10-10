@@ -2,10 +2,16 @@
 
 ## v26.22.2
 
-Guardians receive one notification mail for themselves and the children they look after.
+The notification settings name every mail provider a member's mail may go through, each with its privacy notice. The instance's mail providers can be given a name and a privacy notice for members. Guardians receive one notification mail for themselves and the children they look after.
+
+### Improvements
+
+- **Every mail provider is named in the notification settings.** Where mail can go out through several providers, the notification settings list all of them in the order they are tried, each with its privacy notice. Switching on mail names all of them as receiving the address.
+- **The instance's mail providers carry a name and a privacy notice.** Under Settings → Mailing each provider of the instance takes a name and a privacy notice address, shown to members of every station that sends through it.
 
 ### Fixes
 
+- **The mail provider was named "Unknown".** For a station sending only through the instance's providers, the notification settings named the provider "Unknown". They now show the name given for it, or the kind of provider where none is given.
 - **Guardians received the same notification several times.** A guardian got their own notification mail and one more for each child without an email address, often with the same news in each. They now get one mail, which lists each notification once and names the child on items meant only for a child.
 
 ## v26.22.1

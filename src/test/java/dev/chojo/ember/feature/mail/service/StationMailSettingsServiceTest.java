@@ -163,6 +163,15 @@ class StationMailSettingsServiceTest {
         assertEquals("Brevo", service.firstEntry(3).orElseThrow().providerName());
     }
 
+    /** The providers members are told about are the whole chain the station's mail goes through. */
+    @Test
+    void theSendersAreTheWholeChain() {
+        var chain = List.of(stored("pw"), stored("pw").asInstanceProvider(0));
+        when(chains.forStation(3)).thenReturn(chain);
+
+        assertEquals(chain, service.senders(3));
+    }
+
     @Test
     void aStationWithoutProvidersSignsNothingAndCannotSendATestMail() {
         assertFalse(service.webhook(3).signingSecretSet());

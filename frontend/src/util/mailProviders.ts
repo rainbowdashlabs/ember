@@ -11,6 +11,14 @@ export const RELAY_PROVIDER_NAMES: Record<string, string> = {
 }
 
 /**
+ * What members are told a provider is called: the name its owner gave it, otherwise the relay's own
+ * name, otherwise the label for a mail server of somebody's own.
+ */
+export function mailProviderLabel(provider: {type: string, name: string}, ownServerLabel: string): string {
+    return provider.name || RELAY_PROVIDER_NAMES[provider.type] || ownServerLabel
+}
+
+/**
  * Providers reached at an address the sender has to supply.
  *
  * Most relays answer at one well-known name for everybody. Sweego does not: every account gets its

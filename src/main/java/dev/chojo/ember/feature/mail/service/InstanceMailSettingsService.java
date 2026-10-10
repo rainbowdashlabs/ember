@@ -140,7 +140,9 @@ public class InstanceMailSettingsService {
                 entry.senderAddress(),
                 entry.senderName(),
                 Math.max(1, entry.attempts()),
-                Math.max(0, entry.dailySendLimit()));
+                Math.max(0, entry.dailySendLimit()),
+                entry.providerName() == null ? "" : entry.providerName().strip(),
+                entry.providerUrl() == null ? "" : entry.providerUrl().strip());
     }
 
     private MailFallbackPayload payloadOf(MailProviderEntry entry) {
@@ -156,8 +158,8 @@ public class InstanceMailSettingsService {
                         entry.senderName(),
                         entry.attempts(),
                         entry.dailySendLimit(),
-                        "",
-                        "",
+                        entry.providerName(),
+                        entry.providerUrl(),
                         "")
                 .masked()
                 .withWebhookUrl(webhookKeys.webhookUrl(
