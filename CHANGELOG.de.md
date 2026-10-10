@@ -2,7 +2,7 @@
 
 ## v26.22.2
 
-Die Benachrichtigungseinstellungen nennen jeden Mailanbieter, über den eine Mail an ein Mitglied gehen kann, jeweils mit seinen Datenschutzhinweisen. Die Mailanbieter der Instanz lassen sich für Mitglieder mit Namen und Datenschutzhinweisen versehen.
+Die Benachrichtigungseinstellungen nennen jeden Mailanbieter, über den eine Mail an ein Mitglied gehen kann, jeweils mit seinen Datenschutzhinweisen. Die Mailanbieter der Instanz lassen sich für Mitglieder mit Namen und Datenschutzhinweisen versehen. Erziehungsberechtigte bekommen eine Benachrichtigungsmail für sich und die Kinder, um die sie sich kümmern.
 
 ### Verbesserungen
 
@@ -12,6 +12,7 @@ Die Benachrichtigungseinstellungen nennen jeden Mailanbieter, über den eine Mai
 ### Fehlerbehebungen
 
 - **Der Mailanbieter hieß „Unbekannt".** Bei einer Wache, die nur über die Anbieter der Instanz verschickt, nannten die Benachrichtigungseinstellungen den Anbieter „Unbekannt". Jetzt zeigen sie den für ihn vergebenen Namen oder, wenn keiner vergeben ist, die Art des Anbieters.
+- **Erziehungsberechtigte bekamen dieselbe Benachrichtigung mehrfach.** Sie erhielten ihre eigene Benachrichtigungsmail und eine weitere für jedes Kind ohne E-Mail-Adresse, oft mit denselben Neuigkeiten. Jetzt kommt eine Mail, die jede Benachrichtigung einmal aufführt und bei Einträgen nur für ein Kind dessen Namen nennt.
 
 ## v26.22.1
 

@@ -197,7 +197,8 @@
   },
   "digest": {
     "subject.one": "{stationName}: 1 new notification",
-    "subject.other": "{stationName}: {count} new notifications"
+    "subject.other": "{stationName}: {count} new notifications",
+    "forMembers": "For {names}"
   },
   "category": {
     "NEW_NEWS": "News",
