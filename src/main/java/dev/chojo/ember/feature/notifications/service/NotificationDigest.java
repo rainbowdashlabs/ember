@@ -69,7 +69,6 @@ public class NotificationDigest implements TaskSource {
     private static final Duration PRUNE_INTERVAL = Duration.ofDays(1);
 
     private static final String TEMPLATE = "notification-digest.html";
-
     private final NotificationRepository notificationRepository;
     private final NotificationScheduleRepository scheduleRepository;
     private final AccountRepository accountRepository;
@@ -281,6 +280,7 @@ public class NotificationDigest implements TaskSource {
         vars.put("count", count);
         vars.put("items", items.toString());
         vars.put("actionUrl", NotificationText.landingUrl(baseUrl, group.linkHome()));
+        vars.put("preferencesUrl", NotificationText.preferencesUrl(baseUrl, group.linkHome()));
         vars.put("logoHtml", logoHtml(group, baseUrl));
 
         String subject = text.resolveLocalized(
@@ -303,10 +303,11 @@ public class NotificationDigest implements TaskSource {
     }
 
     private String logoHtml(DigestGroup group, String baseUrl) {
-        if (group.key().kind() != DigestGroup.Kind.STATION
-                || !logoService.exists(group.key().id())) return "";
-        return "<img src=\"" + baseUrl + "/api/v1/stations/" + group.key().id()
-                + "/logo\" alt=\"\" style=\"height:40px;border-radius:4px\">";
+        if (group.key().kind() != DigestGroup.Kind.STATION) return "";
+        return logoService
+                .mailAddress(baseUrl, group.key().id())
+                .map(address -> "<img src=\"" + address + "\" alt=\"\" style=\"height:40px;border-radius:4px\">")
+                .orElse("");
     }
 
     /**

@@ -97,6 +97,16 @@ class MailTemplateRendererTest {
                 "logoHtml should be rendered raw via the {{ ... | raw }} filter");
     }
 
+    /** A station mail shows the station's logo in its header, and a mail without one shows no empty image. */
+    @Test
+    void theHeaderShowsTheStationLogoWhereOneIsGiven() {
+        var vars = new HashMap<>(VARS);
+        vars.put("logoUrl", "https://example.test/api/v1/public/stations/abc/logo?size=128");
+        assertTrue(renderer.render("application-accepted.html", "en", vars)
+                .contains("<img src=\"https://example.test/api/v1/public/stations/abc/logo?size=128\""));
+        assertFalse(renderer.render("application-accepted.html", "en", VARS).contains("<img"));
+    }
+
     @Test
     void renderFallsBackToEnglishWhenLocaleMissing() {
         var vars = new HashMap<>(VARS);

@@ -6,6 +6,7 @@ count=2
 items=<li class="notification-item"><a href="https://ember.example.com/station/news/42?station={stationUid}" style="text-decoration:none;color:inherit"><span class="category">Neuigkeit</span><p class="message">Dienstplan Oktober - von Anna</p><p class="detail">Der neue Plan ist da.</p></a></li><li class="notification-item"><a href="https://ember.example.com/station/news/42?comment=7&station={stationUid}" style="text-decoration:none;color:inherit"><span class="category">Kommentar</span><p class="message">Ben hat "Dienstplan Oktober" kommentiert</p><p class="detail">Passt!</p></a></li>
 logoHtml=
 name=Greta Golden
+preferencesUrl=https://ember.example.com/station/profile/settings/notifications?station={stationUid}
 stationName=Wache Golden
 to=golden@test.com
 subject=Wache Golden: 2 neue Benachrichtigungen

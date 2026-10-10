@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.mail.repository.MailProviderBlockRepository;
 import dev.chojo.ember.feature.mail.service.mail.MailProvider;
 import dev.chojo.ember.feature.mail.service.mail.SmtpMailProvider;
 import dev.chojo.ember.feature.station.entity.MailProviderType;
+import dev.chojo.ember.feature.station.service.StationLogoService;
 import dev.chojo.ember.feature.storage.service.StationReadOnlyGuard;
 import dev.chojo.ember.lifecycle.Schedule;
 import dev.chojo.ember.lifecycle.ScheduledTask;
@@ -81,6 +82,7 @@ public class EmailService implements TaskSource {
     private final MailProviderBlockRepository blockRepository;
     private final MailRetryService retryService;
     private final MailAllowance allowance;
+    private final StationLogoService logoService;
 
     @Inject
     public EmailService(
@@ -93,8 +95,10 @@ public class EmailService implements TaskSource {
             MailChainService chainService,
             MailProviderBlockRepository blockRepository,
             MailRetryService retryService,
-            MailAllowance allowance) {
+            MailAllowance allowance,
+            StationLogoService logoService) {
         this.allowance = allowance;
+        this.logoService = logoService;
         this.chainService = chainService;
         this.blockRepository = blockRepository;
         this.retryService = retryService;
@@ -690,9 +694,7 @@ public class EmailService implements TaskSource {
         var vars = baseVars(name, stationId);
         vars.put("stationName", stationName);
         vars.put("url", url);
-        if (stationId != null) {
-            vars.put("logoUrl", api.baseUrl() + "/api/v1/stations/" + stationId + "/logo");
-        }
+        putStationLogo(vars, stationId);
         enqueueGlobal(
                 email,
                 subject("application-accepted", locale, stationPlaceholders(stationName)),
@@ -736,9 +738,7 @@ public class EmailService implements TaskSource {
         var vars = baseVars(name, stationId);
         vars.put("url", url);
         vars.put("stationName", stationName != null ? stationName : "");
-        if (stationId != null) {
-            vars.put("logoUrl", api.baseUrl() + "/api/v1/stations/" + stationId + "/logo");
-        }
+        putStationLogo(vars, stationId);
         enqueueGlobal(
                 email,
                 subject("waitlist-registered", locale, waitlistPlaceholders(stationName)),
@@ -769,9 +769,7 @@ public class EmailService implements TaskSource {
         vars.put("appointmentTime", details.time());
         vars.put("arrivalTime", details.arrivalTime());
         vars.put("location", details.location());
-        if (stationId != null) {
-            vars.put("logoUrl", api.baseUrl() + "/api/v1/stations/" + stationId + "/logo");
-        }
+        putStationLogo(vars, stationId);
         enqueueGlobal(
                 email,
                 subject("waitlist-invitation", locale, waitlistPlaceholders(stationName)),
@@ -793,9 +791,7 @@ public class EmailService implements TaskSource {
         var vars = baseVars(name, stationId);
         vars.put("url", url);
         vars.put("stationName", stationName != null ? stationName : "");
-        if (stationId != null) {
-            vars.put("logoUrl", api.baseUrl() + "/api/v1/stations/" + stationId + "/logo");
-        }
+        putStationLogo(vars, stationId);
         enqueueGlobal(
                 email,
                 subject("waitlist-confirm-reminder", locale, waitlistPlaceholders(stationName)),
@@ -817,9 +813,7 @@ public class EmailService implements TaskSource {
         var vars = baseVars(name, stationId);
         vars.put("url", url);
         vars.put("stationName", stationName != null ? stationName : "");
-        if (stationId != null) {
-            vars.put("logoUrl", api.baseUrl() + "/api/v1/stations/" + stationId + "/logo");
-        }
+        putStationLogo(vars, stationId);
         enqueueGlobal(
                 email,
                 subject("waitlist-removal-warning", locale, waitlistPlaceholders(stationName)),
@@ -836,9 +830,7 @@ public class EmailService implements TaskSource {
         var vars = baseVars(name, stationId);
         vars.put("url", url);
         vars.put("stationName", stationName != null ? stationName : "");
-        if (stationId != null) {
-            vars.put("logoUrl", api.baseUrl() + "/api/v1/stations/" + stationId + "/logo");
-        }
+        putStationLogo(vars, stationId);
         enqueueGlobal(
                 email,
                 subject("waitlist-verify", locale, waitlistPlaceholders(stationName)),
@@ -1173,6 +1165,14 @@ public class EmailService implements TaskSource {
         vars.put("baseUrl", api.baseUrl());
         vars.put("senderName", resolveProviderSenderName(stationId));
         return vars;
+    }
+
+    /**
+     * Adds the station's logo to a mail's header where the mail is about a station that has one.
+     */
+    private void putStationLogo(Map<String, String> vars, @Nullable Integer stationId) {
+        if (stationId == null) return;
+        logoService.mailAddress(api.baseUrl(), stationId).ifPresent(address -> vars.put("logoUrl", address));
     }
 
     private static Map<String, String> stationPlaceholders(String stationName) {

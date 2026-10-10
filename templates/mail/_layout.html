@@ -34,7 +34,7 @@
 <div class="wrapper">
   <div class="card">
     <div class="header">
-      {% block header %}<h1>{{ senderName }}</h1>{% endblock %}
+      {% block header %}<div class="header-logo">{% if logoUrl is not empty %}<img src="{{ logoUrl }}" alt="">{% endif %}<h1>{{ senderName }}</h1></div>{% endblock %}
     </div>
     <div class="body">
       {% block body %}{% endblock %}

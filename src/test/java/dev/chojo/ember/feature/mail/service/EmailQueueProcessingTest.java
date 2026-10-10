@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.mail.repository.EmailQueueRepository;
 import dev.chojo.ember.feature.mail.repository.EmailQueueRepository.QueuedEmail;
 import dev.chojo.ember.feature.mail.repository.MailProviderBlockRepository;
 import dev.chojo.ember.feature.station.entity.MailProviderType;
+import dev.chojo.ember.feature.station.service.StationLogoService;
 import dev.chojo.ember.feature.storage.service.StationReadOnlyGuard;
 import jakarta.mail.internet.InternetAddress;
 import org.jspecify.annotations.Nullable;
@@ -87,7 +88,8 @@ class EmailQueueProcessingTest {
                 chains,
                 blocks,
                 mock(MailRetryService.class),
-                allowance);
+                allowance,
+                mock(StationLogoService.class));
     }
 
     private static MailChainEntry relayEntry(int position) {

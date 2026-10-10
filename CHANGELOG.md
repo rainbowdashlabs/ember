@@ -1,5 +1,15 @@
 # Changelog
 
+## v26.22.1
+
+Notification mails show the station's logo, write dates the way the reader's language does and link to the right settings page.
+
+### Fixes
+
+- **The settings link in notification mails led nowhere.** The link at the bottom of a notification mail opened a page that does not exist, and for associations it pointed at a station page. It now opens the notification settings of the station or association the mail comes from.
+- **Station mails showed no logo or a broken one.** The station's logo at the top of a notification mail never loaded, and mails about applications and waiting lists showed none at all. These mails now show the station's logo where it has one.
+- **Dates in notification mails and feeds were hard to read.** Dates appeared as 2026-10-17, in German too. They now read as 17.10.2026 in German and Oct 17, 2026 in English.
+
 ## v26.22.0
 
 Stations turn their own templates and those of their association into documents for their members: letters written in blocks like the station's pages, with placeholders and blocks only some members get, and uploaded PDF forms such as a consent form, filled in place. An appointment can ask its participants to bring such a form or to hand in a scan of the signed copy. Letters and forms leave a signature field for each signer, and each template names the member who issues its documents, whose saved signature can sign them automatically. Once a manager asks for their signatures, members and guardians are told by mail and sign online from their open tasks with a signature drawn there or kept in the account, and the station seals each signed version, mails each signer a copy and lets anyone check it on the verification page. Documents name people by their official names and guardians in their set order, and pronouns follow the new gender profile field or use the first name. Managers generate documents on the member page, in the document store or for many members at once, and members and guardians generate those marked for self service in the new Documents menu. Templates take their body from a Word or OpenDocument text, print in built-in fonts or in fonts that the instance, an association or the station uploaded, and are duplicated as the start of new ones. Stations can send their mail through the instance's providers, within a share of each provider the instance sets aside for them. A short profile opens from any member's name, a new name members give themselves waits for the member management to approve it, and private tags are seen by the member management alone. A station asks the owner before an existing account joins one of its members, and only the owner changes the address or sign-in of an account that several stations share.

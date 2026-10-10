@@ -10,6 +10,7 @@ import dev.chojo.ember.conf.file.elements.Demo;
 import dev.chojo.ember.conf.file.elements.Mailing;
 import dev.chojo.ember.feature.mail.repository.EmailQueueRepository;
 import dev.chojo.ember.feature.mail.repository.MailProviderBlockRepository;
+import dev.chojo.ember.feature.station.service.StationLogoService;
 import dev.chojo.ember.feature.storage.service.StationReadOnlyGuard;
 import dev.chojo.ember.lifecycle.Schedule;
 import org.junit.jupiter.api.Test;
@@ -37,7 +38,8 @@ class MailTasksTest {
                         mock(MailChainService.class),
                         mock(MailProviderBlockRepository.class),
                         mock(MailRetryService.class),
-                        mock(MailAllowance.class))
+                        mock(MailAllowance.class),
+                        mock(StationLogoService.class))
                 .scheduledTasks();
 
         tasks.forEach(task -> task.work().run());

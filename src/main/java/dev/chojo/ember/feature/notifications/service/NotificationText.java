@@ -17,11 +17,16 @@ import org.jspecify.annotations.Nullable;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.FormatStyle;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.StringJoiner;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 /**
  * How a notification reads: its message, its feed title, its category and the address it leads to,
@@ -46,6 +51,9 @@ public class NotificationText {
 
     /** Param keys that drive pluralisation in {@link #resolveMessage}. */
     private static final List<String> COUNT_PARAMS = List.of("count", "days", "daysBefore", "pendingCount");
+
+    private static final List<String> DATE_PARAMS = List.of("eventDate", "firstEventDate", "nextDate", "expiresOn");
+    private static final Pattern ISO_DATE = Pattern.compile("\\d{4}-\\d{2}-\\d{2}");
 
     /**
      * Truncates a snippet to {@code maxChars} on a word boundary, appending a Unicode ellipsis
@@ -128,6 +136,7 @@ public class NotificationText {
         String typeKey = n.type().name();
         var params = new LinkedHashMap<>(n.data().paramsAsMap());
         augmentTitleParams(locale, n, params);
+        localizeDateParams(locale, params);
 
         String template = templateFor(templates, typeKey, n, params);
         if (template == null) return resolveCategory(locale, n.type());
@@ -157,6 +166,7 @@ public class NotificationText {
         String localeKey = n.type().localeKey();
         var params = new LinkedHashMap<>(n.data().paramsAsMap());
         localizeStatusParam(locale, params);
+        localizeDateParams(locale, params);
 
         String template = templateFor(templates, localeKey, n, params);
         if (template == null) {
@@ -240,6 +250,17 @@ public class NotificationText {
         return withHome(baseUrl + NotificationPages.landingOf(home.kind()), home);
     }
 
+    /**
+     * The notification preferences of a station or an association, where a mail's footer leads.
+     *
+     * @param baseUrl public base URL of the deployment
+     * @param home    the station or association
+     * @return the address, carrying its identity where it is known
+     */
+    public static String preferencesUrl(String baseUrl, LinkHome home) {
+        return withHome(baseUrl + NotificationPages.preferencesOf(home.kind()), home);
+    }
+
     private static String filled(String template, @Nullable Map<String, Object> routeParams) {
         String path = template;
         if (routeParams != null) {
@@ -277,6 +298,22 @@ public class NotificationText {
     private static void localizeStatusParam(String locale, Map<String, String> params) {
         localizeLabelParam(locale, params, "status", "ical", "status.");
         localizeLabelParam(locale, params, "answer", "waitlistAnswer", "");
+    }
+
+    /**
+     * Writes the dates a notification carries the way the reader's language writes them, such as
+     * {@code 17.10.2026} in German and {@code Oct 17, 2026} in English, instead of the stored
+     * {@code 2026-10-17}. A value that is not a date is left as it is.
+     */
+    private static void localizeDateParams(String locale, Map<String, String> params) {
+        var format = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(Locale.forLanguageTag(locale));
+        for (String param : DATE_PARAMS) {
+            params.computeIfPresent(
+                    param,
+                    (key, value) -> ISO_DATE.matcher(value).matches()
+                            ? LocalDate.parse(value).format(format)
+                            : value);
+        }
     }
 
     private static void localizeLabelParam(

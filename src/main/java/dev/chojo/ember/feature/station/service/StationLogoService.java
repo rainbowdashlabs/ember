@@ -9,6 +9,7 @@ import dev.chojo.ember.feature.media.entity.MediaContent;
 import dev.chojo.ember.feature.media.image.ImageFormat;
 import dev.chojo.ember.feature.media.image.ImageProfile;
 import dev.chojo.ember.feature.media.service.ImageVariants;
+import dev.chojo.ember.feature.station.entity.StationAddresses;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.storage.entity.StorageCategory;
 import dev.chojo.ember.feature.storage.entity.StorageScope;
@@ -36,6 +37,7 @@ public class StationLogoService {
     private static final Logger log = LoggerFactory.getLogger(StationLogoService.class);
     private static final int MAX_LOGO_SIZE = 2 * 1024 * 1024;
     private static final String KEY = "logo";
+    private static final int MAIL_SIZE = 128;
     private static final ImageProfile PROFILE = ImageProfile.ICON_SET;
     private static final StorageCategory CATEGORY = StorageCategory.IMAGE_STATION_LOGO;
 
@@ -84,6 +86,20 @@ public class StationLogoService {
     public boolean exists(int stationId) {
         return images.exists(PROFILE, scope(stationId), CATEGORY, KEY)
                 || stationRepository.findLogo(stationId).isPresent();
+    }
+
+    /**
+     * The address a mail loads the station's logo from. It needs no sign-in, so a mail program can
+     * load it, and asks for twice the logo's shown height so it stays sharp on dense screens.
+     *
+     * @param baseUrl   the instance's base URL, without a trailing slash
+     * @param stationId the station
+     * @return the address, or empty where the station has no logo
+     */
+    public Optional<String> mailAddress(String baseUrl, int stationId) {
+        if (!exists(stationId)) return Optional.empty();
+        return Optional.ofNullable(stationRepository.resolveUid(stationId))
+                .map(uid -> StationAddresses.logo(baseUrl, uid) + "?size=" + MAIL_SIZE);
     }
 
     /**
