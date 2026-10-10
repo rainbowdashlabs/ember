@@ -13,8 +13,8 @@ import dev.chojo.ember.feature.mail.service.MailRecipientService;
 import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.notifications.entity.DigestGroup;
 import dev.chojo.ember.feature.notifications.entity.DigestItem;
+import dev.chojo.ember.feature.notifications.entity.DigestMail;
 import dev.chojo.ember.feature.notifications.entity.LinkHome;
-import dev.chojo.ember.feature.notifications.entity.Notification;
 import dev.chojo.ember.feature.notifications.repository.NotificationRepository;
 import dev.chojo.ember.feature.notifications.repository.NotificationScheduleRepository;
 import dev.chojo.ember.feature.station.service.StationLogoService;
@@ -232,24 +232,17 @@ public class NotificationDigest implements TaskSource {
     }
 
     /**
-     * The mails of one group: one per reader who wants any of what is waiting for them by mail.
+     * The mails of one group: one per address that receives any of what is waiting by mail, whether
+     * for its owner or on behalf of the members it looks after.
      */
     private void send(DigestGroup group, List<DigestItem> items, Map<Integer, Account> accounts) {
         if (!canSend(group)) return;
-        var byReader = items.stream()
-                .filter(DigestItem::mailWanted)
-                .collect(Collectors.groupingBy(DigestItem::recipientId, LinkedHashMap::new, Collectors.toList()));
-        for (var reader : byReader.values()) {
-            var accountId = reader.getFirst().accountId();
-            var account = accountId == null ? null : accounts.get(accountId);
-            if (account == null) continue;
+        for (var mail : DigestAddresses.gather(
+                items, accounts, mailRecipientService::forAccount, NotificationDigest::firstNameOf)) {
             try {
-                sendTo(
-                        group,
-                        account,
-                        reader.stream().map(DigestItem::notification).toList());
+                sendTo(group, mail);
             } catch (RuntimeException e) {
-                log.warn("Failed to send the digest of {} to account {}", group.key(), account.id(), e);
+                log.warn("Failed to send the digest of {} to one address", group.key(), e);
             }
         }
     }
@@ -261,20 +254,17 @@ public class NotificationDigest implements TaskSource {
         };
     }
 
-    private void sendTo(DigestGroup group, Account account, List<Notification> notifications) {
-        var recipients = mailRecipientService.forAccount(account);
-        if (recipients.isEmpty()) return;
-
+    private void sendTo(DigestGroup group, DigestMail mail) {
         String locale = text.resolveLocale(group.locale());
         String baseUrl = emailService.getBaseUrl();
-        String count = String.valueOf(notifications.size());
+        String count = String.valueOf(mail.entries().size());
         var items = new StringBuilder();
-        for (var notification : notifications) {
-            items.append(itemHtml(notification, locale, baseUrl, group.linkHome()));
+        for (var entry : mail.entries()) {
+            items.append(itemHtml(entry, locale, baseUrl, group.linkHome()));
         }
 
         var vars = new HashMap<String, String>();
-        vars.put("name", nameOf(account));
+        vars.put("name", greetingOf(mail));
         vars.put("baseUrl", baseUrl);
         vars.put("stationName", group.name());
         vars.put("count", count);
@@ -286,15 +276,31 @@ public class NotificationDigest implements TaskSource {
         String subject = text.resolveLocalized(
                 locale,
                 "digest",
-                notifications.size() == 1 ? "subject.one" : "subject.other",
+                mail.entries().size() == 1 ? "subject.one" : "subject.other",
                 Map.of("stationName", group.name(), "count", count));
         String body = emailService.loadTemplate(TEMPLATE, locale, vars);
-        for (var recipient : recipients) {
-            switch (group.key().kind()) {
-                case STATION -> emailService.queueStationEmail(group.key().id(), recipient.email(), subject, body);
-                case CLUSTER -> emailService.queueInstanceEmail(recipient.email(), subject, body);
-            }
+        switch (group.key().kind()) {
+            case STATION -> emailService.queueStationEmail(group.key().id(), mail.address(), subject, body);
+            case CLUSTER -> emailService.queueInstanceEmail(mail.address(), subject, body);
         }
+    }
+
+    /**
+     * Who the mail greets: the owner of the address, never a member it receives on behalf of. Where
+     * the owner reads nothing of their own in this mail, their account is found by the address.
+     */
+    private String greetingOf(DigestMail mail) {
+        if (mail.owner() != null) return nameOf(mail.owner());
+        return accountRepository
+                .findByEmail(mail.address())
+                .map(NotificationDigest::nameOf)
+                .orElse("");
+    }
+
+    /** How a child is named on an item in their guardian's mail: as the family calls them. */
+    private static String firstNameOf(Account account) {
+        String name = NameParts.of(account).greeting();
+        return name == null || name.isEmpty() ? nameOf(account) : name;
     }
 
     private static String nameOf(Account account) {
@@ -312,9 +318,11 @@ public class NotificationDigest implements TaskSource {
 
     /**
      * One notification as it reads in a digest mail, its link carrying the station or the cluster
-     * the mail is about.
+     * the mail is about, and naming the members it reaches the address for where it is not for the
+     * owner of the address.
      */
-    private String itemHtml(Notification notification, String locale, String baseUrl, LinkHome home) {
+    private String itemHtml(DigestMail.Entry entry, String locale, String baseUrl, LinkHome home) {
+        var notification = entry.notification();
         String itemUrl = text.resolveNotificationUrl(baseUrl, home, notification.data());
         var item = new StringBuilder("<li class=\"notification-item\">");
         if (itemUrl != null) {
@@ -330,10 +338,25 @@ public class NotificationDigest implements TaskSource {
         if (detail != null) {
             item.append("<p class=\"detail\">").append(detail).append("</p>");
         }
+        if (!entry.forMembers().isEmpty()) {
+            String names = entry.forMembers().stream()
+                    .map(NotificationDigest::escapeHtml)
+                    .collect(Collectors.joining(", "));
+            item.append("<p class=\"for-members\" style=\"color:#666;font-size:12px;margin:4px 0 0\">")
+                    .append(text.resolveLocalized(locale, "digest", "forMembers", Map.of("names", names)))
+                    .append("</p>");
+        }
         if (itemUrl != null) {
             item.append("</a>");
         }
         return item.append("</li>").toString();
+    }
+
+    private static String escapeHtml(String text) {
+        return text.replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;");
     }
 
     @Override

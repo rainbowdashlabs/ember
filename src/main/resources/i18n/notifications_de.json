@@ -197,7 +197,8 @@
   },
   "digest": {
     "subject.one": "{stationName}: 1 neue Benachrichtigung",
-    "subject.other": "{stationName}: {count} neue Benachrichtigungen"
+    "subject.other": "{stationName}: {count} neue Benachrichtigungen",
+    "forMembers": "Für {names}"
   },
   "category": {
     "NEW_NEWS": "Neuigkeit",

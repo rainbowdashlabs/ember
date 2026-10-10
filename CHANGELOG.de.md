@@ -1,5 +1,13 @@
 # Änderungsprotokoll
 
+## v26.22.2
+
+Erziehungsberechtigte bekommen eine Benachrichtigungsmail für sich und die Kinder, um die sie sich kümmern.
+
+### Fehlerbehebungen
+
+- **Erziehungsberechtigte bekamen dieselbe Benachrichtigung mehrfach.** Sie erhielten ihre eigene Benachrichtigungsmail und eine weitere für jedes Kind ohne E-Mail-Adresse, oft mit denselben Neuigkeiten. Jetzt kommt eine Mail, die jede Benachrichtigung einmal aufführt und bei Einträgen nur für ein Kind dessen Namen nennt.
+
 ## v26.22.1
 
 Benachrichtigungsmails zeigen das Logo der Wache, schreiben Daten so, wie es die Sprache der Lesenden tut, und verlinken auf die richtige Einstellungsseite.

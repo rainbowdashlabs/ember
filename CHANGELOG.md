@@ -1,5 +1,13 @@
 # Changelog
 
+## v26.22.2
+
+Guardians receive one notification mail for themselves and the children they look after.
+
+### Fixes
+
+- **Guardians received the same notification several times.** A guardian got their own notification mail and one more for each child without an email address, often with the same news in each. They now get one mail, which lists each notification once and names the child on items meant only for a child.
+
 ## v26.22.1
 
 Notification mails show the station's logo, write dates the way the reader's language does and link to the right settings page.

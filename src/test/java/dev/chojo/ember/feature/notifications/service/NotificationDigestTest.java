@@ -365,6 +365,107 @@ class NotificationDigestTest extends RepositoryTestBase {
                 station.id(), accountRepo.create(address, "Digest", "Reader").id());
     }
 
+    /**
+     * A guardian receives one mail for themselves and the children they look after: news for the
+     * whole station once, an item for one child naming that child, an item for both children once,
+     * naming both, and the guardian greeted rather than a child.
+     */
+    @Test
+    void aGuardianReceivesOneMailForThemselvesAndTheirChildren() {
+        var station = station("Wache Familie", "de-DE", "Europe/Berlin");
+        var greta = memberWithMail(station, "greta@family.test", "Greta", "Groß");
+        var lena = memberWithMail(station, "lena@family.local", "Lena", "Groß");
+        var max = memberWithMail(station, "max@family.local", "Max", "Groß");
+        for (var member : List.of(greta, lena, max)) {
+            notificationSettingsRepo.upsert(member.id(), NotificationType.NEW_NEWS, true, true, true);
+            stationMemberRepo.addManager(greta.id(), member.id());
+        }
+        notifyAll(List.of(greta, lena, max), news("Dienstplan"));
+        notify(lena, NotificationType.NEW_NEWS, news("Nur Lena"));
+        notifyAll(List.of(lena, max), news("Beide Kinder"));
+
+        digest.sweep(Instant.now());
+
+        assertEquals(1, mails.size(), "one mail for the whole household");
+        var mail = mails.getFirst();
+        assertTrue(mail.contains("to=greta@family.test"));
+        assertTrue(mail.contains("name=Greta"), "the guardian is greeted, not a child");
+        assertTrue(mail.contains("count=3"), "the news for all three is listed once");
+        assertEquals(3, mail.split("<li ", -1).length - 1);
+        assertTrue(mail.contains("Für Lena<"), "an item for one child names the child");
+        assertTrue(mail.contains("Für Lena, Max<"), "an item for both children names both, once");
+        assertEquals(2, mail.split("Für ", -1).length - 1, "the guardian's own item names nobody");
+        assertTrue(waiting(lena).isEmpty()
+                && waiting(max).isEmpty()
+                && waiting(greta).isEmpty());
+    }
+
+    /**
+     * A guardian who has nothing of their own in a sweep is still greeted by their own name, found by
+     * the address the child's item goes to.
+     */
+    @Test
+    void aGuardianWithNothingOfTheirOwnIsStillGreetedByName() {
+        var station = station("Wache Gruß", "de-DE", "Europe/Berlin");
+        var hanna = memberWithMail(station, "hanna@greeting.test", "Hanna", "Hof");
+        var tim = memberWithMail(station, "tim@greeting.local", "Tim", "Hof");
+        notificationSettingsRepo.upsert(tim.id(), NotificationType.NEW_NEWS, true, true, true);
+        stationMemberRepo.addManager(hanna.id(), tim.id());
+        notify(tim, NotificationType.NEW_NEWS, news("Nur Tim"));
+
+        digest.sweep(Instant.now());
+
+        assertEquals(1, mails.size());
+        assertTrue(mails.getFirst().contains("to=hanna@greeting.test"));
+        assertTrue(mails.getFirst().contains("name=Hanna"));
+        assertTrue(mails.getFirst().contains("Für Tim<"));
+    }
+
+    /** A child with an address of their own keeps their own mail, and adds nothing to the guardian's. */
+    @Test
+    void aChildWithAnAddressOfTheirOwnKeepsTheirOwnMail() {
+        var station = station("Wache Eigen", "de-DE", "Europe/Berlin");
+        var paula = memberWithMail(station, "paula@own.test", "Paula", "Pohl");
+        var jonas = memberWithMail(station, "jonas@own.test", "Jonas", "Pohl");
+        for (var member : List.of(paula, jonas)) {
+            notificationSettingsRepo.upsert(member.id(), NotificationType.NEW_NEWS, true, true, true);
+        }
+        stationMemberRepo.addManager(paula.id(), jonas.id());
+        notifyAll(List.of(paula, jonas), news("Dienstplan"));
+
+        digest.sweep(Instant.now());
+
+        assertEquals(2, mails.size());
+        assertTrue(mails.stream().anyMatch(mail -> mail.contains("to=paula@own.test")));
+        assertTrue(mails.stream().anyMatch(mail -> mail.contains("to=jonas@own.test")));
+        assertTrue(mails.stream().noneMatch(mail -> mail.contains("Für ")));
+    }
+
+    /** A child whose mail is switched off adds nothing to the guardian's mail, and is still marked. */
+    @Test
+    void aChildWhoseMailIsOffAddsNothing() {
+        var station = station("Wache Aus", "de-DE", "Europe/Berlin");
+        var olga = memberWithMail(station, "olga@off.test", "Olga", "Ost");
+        var ben = memberWithMail(station, "ben@off.local", "Ben", "Ost");
+        userSettingsRepo.updateEmailEnabled(ben.id(), false);
+        notificationSettingsRepo.upsert(ben.id(), NotificationType.NEW_NEWS, true, true, true);
+        stationMemberRepo.addManager(olga.id(), ben.id());
+        notify(ben, NotificationType.NEW_NEWS, news("Nur Ben"));
+
+        digest.sweep(Instant.now());
+
+        assertTrue(mails.isEmpty());
+        assertTrue(waiting(ben).isEmpty(), "what was due is marked whether or not it went out");
+    }
+
+    private static void notifyAll(List<StationMember> members, NotificationData data) {
+        notificationRepo.insertForStation(
+                StationAudience.members(members.stream().map(StationMember::id).toList()),
+                NotificationType.NEW_NEWS,
+                data,
+                Delivery.EVERY_TIME);
+    }
+
     private static StationMember memberWithMail(Station station, String address, String first, String last) {
         var member = stationMemberRepo.create(
                 station.id(), accountRepo.create(address, first, last).id());
