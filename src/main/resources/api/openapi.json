@@ -63424,6 +63424,21 @@
         "type" : "string",
         "enum" : [ "IMPORTED", "DUPLICATE", "SENDER_NOT_ALLOWED", "NO_RULE_MATCHED", "TYPE_NOT_ALLOWED", "TOO_LARGE", "TOO_SMALL", "NO_ATTACHMENT", "QUOTA_EXCEEDED", "AUTHENTICATION_FAILED", "NO_SIGNATURE", "SIGNATURE_NOT_ALIGNED", "SIGNATURE_FAILED", "FAILED" ]
       },
+      "MailProvider" : {
+        "type" : "object",
+        "properties" : {
+          "type" : {
+            "$ref" : "#/components/schemas/MailProviderType"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "url" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "type", "name", "url" ]
+      },
       "MailProviderType" : {
         "type" : "string",
         "enum" : [ "NONE", "SMTP", "RAPIDMAIL", "TWILIO", "SWEEGO", "BREVO" ]
@@ -75314,14 +75329,14 @@
           "mailConfigured" : {
             "type" : "boolean"
           },
-          "mailProviderName" : {
-            "type" : "string"
-          },
-          "mailProviderUrl" : {
-            "type" : "string"
+          "mailProviders" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/MailProvider"
+            }
           }
         },
-        "required" : [ "emailEnabled", "theme", "darkMode", "feel", "notifications", "mailConfigured", "mailProviderName", "mailProviderUrl" ]
+        "required" : [ "emailEnabled", "theme", "darkMode", "feel", "notifications", "mailConfigured", "mailProviders" ]
       },
       "SetupStatus" : {
         "type" : "object",
