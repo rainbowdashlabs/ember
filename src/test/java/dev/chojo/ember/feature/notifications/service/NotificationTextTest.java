@@ -223,6 +223,18 @@ class NotificationTextTest {
         assertEquals(BASE + "/cluster", NotificationText.landingUrl(BASE, LinkHome.cluster(null)));
     }
 
+    /** The footer of a mail opens the notification preferences of the station or association it is about. */
+    @Test
+    void thePreferencesAreTheAreasOwn() {
+        var uid = UUID.fromString("00000000-0000-0000-0000-000000000042");
+        assertEquals(
+                BASE + "/station/profile/settings/notifications?station=" + uid,
+                NotificationText.preferencesUrl(BASE, LinkHome.station(uid)));
+        assertEquals(
+                BASE + "/cluster/notifications?cluster=" + uid,
+                NotificationText.preferencesUrl(BASE, LinkHome.cluster(uid)));
+    }
+
     /**
      * A mail or feed entry about a comment opens on that comment, and still carries the station it
      * belongs to.

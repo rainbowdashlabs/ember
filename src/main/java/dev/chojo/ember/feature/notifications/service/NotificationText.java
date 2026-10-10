@@ -240,6 +240,17 @@ public class NotificationText {
         return withHome(baseUrl + NotificationPages.landingOf(home.kind()), home);
     }
 
+    /**
+     * The notification preferences of a station or an association, where a mail's footer leads.
+     *
+     * @param baseUrl public base URL of the deployment
+     * @param home    the station or association
+     * @return the address, carrying its identity where it is known
+     */
+    public static String preferencesUrl(String baseUrl, LinkHome home) {
+        return withHome(baseUrl + NotificationPages.preferencesOf(home.kind()), home);
+    }
+
     private static String filled(String template, @Nullable Map<String, Object> routeParams) {
         String path = template;
         if (routeParams != null) {

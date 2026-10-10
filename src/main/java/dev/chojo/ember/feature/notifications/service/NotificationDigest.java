@@ -281,6 +281,7 @@ public class NotificationDigest implements TaskSource {
         vars.put("count", count);
         vars.put("items", items.toString());
         vars.put("actionUrl", NotificationText.landingUrl(baseUrl, group.linkHome()));
+        vars.put("preferencesUrl", NotificationText.preferencesUrl(baseUrl, group.linkHome()));
         vars.put("logoHtml", logoHtml(group, baseUrl));
 
         String subject = text.resolveLocalized(

@@ -164,6 +164,8 @@ class NotificationDigestTest extends RepositoryTestBase {
         verify(email, never()).queueStationEmail(anyInt(), anyString(), anyString(), anyString());
         assertTrue(mails.getFirst().contains("locale=de"));
         assertTrue(mails.getFirst().contains("actionUrl=" + BASE + "/cluster?cluster=" + cluster.uid()));
+        assertTrue(mails.getFirst()
+                .contains("preferencesUrl=" + BASE + "/cluster/notifications?cluster=" + cluster.uid()));
         assertTrue(
                 mails.getFirst().contains("href=\"" + BASE + "/cluster/applications?cluster=" + cluster.uid() + "\""),
                 "the item opens the association's applications, not a station's dashboard");
