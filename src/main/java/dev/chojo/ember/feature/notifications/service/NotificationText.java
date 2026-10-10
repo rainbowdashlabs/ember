@@ -19,7 +19,6 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import java.time.format.FormatStyle;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -27,6 +26,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.StringJoiner;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 /**
  * How a notification reads: its message, its feed title, its category and the address it leads to,
@@ -53,6 +53,7 @@ public class NotificationText {
     private static final List<String> COUNT_PARAMS = List.of("count", "days", "daysBefore", "pendingCount");
 
     private static final List<String> DATE_PARAMS = List.of("eventDate", "firstEventDate", "nextDate", "expiresOn");
+    private static final Pattern ISO_DATE = Pattern.compile("\\d{4}-\\d{2}-\\d{2}");
 
     /**
      * Truncates a snippet to {@code maxChars} on a word boundary, appending a Unicode ellipsis
@@ -307,15 +308,11 @@ public class NotificationText {
     private static void localizeDateParams(String locale, Map<String, String> params) {
         var format = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(Locale.forLanguageTag(locale));
         for (String param : DATE_PARAMS) {
-            params.computeIfPresent(param, (key, value) -> formatDate(value, format));
-        }
-    }
-
-    private static String formatDate(String value, DateTimeFormatter format) {
-        try {
-            return LocalDate.parse(value).format(format);
-        } catch (DateTimeParseException notADate) {
-            return value;
+            params.computeIfPresent(
+                    param,
+                    (key, value) -> ISO_DATE.matcher(value).matches()
+                            ? LocalDate.parse(value).format(format)
+                            : value);
         }
     }
 
