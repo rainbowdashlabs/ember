@@ -32,6 +32,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.TreeMap;
 import java.util.UUID;
 
@@ -223,7 +224,8 @@ class NotificationDigestTest extends RepositoryTestBase {
     @Test
     void aFailingMailDoesNotStopTheOthers() {
         var station = station("Wache Logo", "en-GB", "Europe/Berlin");
-        when(logos.exists(station.id())).thenReturn(true);
+        var logo = BASE + "/api/v1/public/stations/" + station.uid() + "/logo?size=128";
+        when(logos.mailAddress(BASE, station.id())).thenReturn(Optional.of(logo));
         var failing = memberWithMail(station, "failing@test.com", "Fay", "Failing");
         var fine = memberWithMail(station, "fine@test.com", "Finn", "Fine");
         for (var member : List.of(failing, fine)) {
@@ -237,9 +239,7 @@ class NotificationDigestTest extends RepositoryTestBase {
         assertDoesNotThrow(() -> digest.sweep(Instant.now()));
 
         assertEquals(1, mails.size());
-        assertTrue(
-                mails.getFirst().contains(BASE + "/api/v1/public/stations/" + station.uid() + "/logo?size=128"),
-                "the logo is loaded from the address that needs no sign-in");
+        assertTrue(mails.getFirst().contains("<img src=\"" + logo + "\""), "the station's logo heads the mail");
         assertTrue(mails.getFirst().contains("locale=en"));
         assertTrue(waiting(failing).isEmpty());
     }

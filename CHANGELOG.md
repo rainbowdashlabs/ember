@@ -7,7 +7,7 @@ Notification mails show the station's logo, write dates the way the reader's lan
 ### Fixes
 
 - **The settings link in notification mails led nowhere.** The link at the bottom of a notification mail opened a page that does not exist, and for associations it pointed at a station page. It now opens the notification settings of the station or association the mail comes from.
-- **Notification mails showed a broken logo.** The station's logo at the top of a notification mail never loaded. It now loads in every mail program.
+- **Station mails showed no logo or a broken one.** The station's logo at the top of a notification mail never loaded, and mails about applications and waiting lists showed none at all. These mails now show the station's logo where it has one.
 - **Dates in notification mails and feeds were hard to read.** Dates appeared as 2026-10-17, in German too. They now read as 17.10.2026 in German and Oct 17, 2026 in English.
 
 ## v26.22.0
