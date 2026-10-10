@@ -290,7 +290,8 @@ public class NotificationDigest implements TaskSource {
      * the owner reads nothing of their own in this mail, their account is found by the address.
      */
     private String greetingOf(DigestMail mail) {
-        if (mail.owner() != null) return nameOf(mail.owner());
+        var owner = mail.owner();
+        if (owner != null) return nameOf(owner);
         return accountRepository
                 .findByEmail(mail.address())
                 .map(NotificationDigest::nameOf)
