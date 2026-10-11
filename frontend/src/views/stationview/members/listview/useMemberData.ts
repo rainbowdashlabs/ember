@@ -61,7 +61,7 @@ export function getMemberLastName(m: NamedMember): string {
  */
 export type RosterMember = Pick<RichMember,
     'id' | 'stationId' | 'accountId' | 'name' | 'firstName' | 'lastName' | 'email' | 'accountSetupPending'
-    | 'setupMailExpiresAt' | 'mailReaches' | 'former' | 'roles' | 'groups' | 'tags' | 'profileValues'>
+    | 'setupMailExpiresAt' | 'mailReaches' | 'former' | 'roles' | 'groups' | 'tags' | 'profileValues' | 'joinDate'>
     & Partial<Pick<RichMember, 'profileComplete'>>
     & {userType: string; identity: MemberIdentity; linkStatus?: LinkStatus}
 

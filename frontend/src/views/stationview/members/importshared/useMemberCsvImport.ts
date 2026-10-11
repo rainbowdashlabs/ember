@@ -122,6 +122,7 @@ export function useMemberCsvImport<TResult>(options: MemberCsvImportOptions) {
             {value: 'lastName', label: t('memberImport.targetLastName'), group},
             {value: 'email', label: t('memberImport.targetEmail'), group},
             {value: 'group', label: t('memberImport.targetGroup'), group},
+            {value: 'joinDate', label: t('memberImport.targetJoinDate'), group},
         ]
         for (let manager = 1; manager <= managerCount.value; manager++) {
             const managerGroup = t('memberImport.groupManager', {n: manager})
@@ -145,6 +146,7 @@ export function useMemberCsvImport<TResult>(options: MemberCsvImportOptions) {
         if (name === 'name' || name === 'nachname' || name === 'last name' || name === 'lastname') return 'lastName'
         if (name === 'email' || name === 'e-mail') return 'email'
         if (name === 'gruppe' || name === 'group') return 'group'
+        if (['eintritt', 'eintrittsdatum', 'beigetreten', 'beigetreten am', 'mitglied seit', 'join date'].includes(name)) return 'joinDate'
         for (let manager = 1; manager <= managerCount.value; manager++) {
             if (name.includes(`kontakt ${manager}`) || name.includes(`contact ${manager}`)) return `manager:${manager}:firstName`
             if (name === `email ${manager}`) return `manager:${manager}:email`

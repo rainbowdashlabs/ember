@@ -64703,6 +64703,13 @@
           "group" : {
             "type" : "string"
           },
+          "joinDate" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/LocalDate"
+            }, {
+              "type" : "null"
+            } ]
+          },
           "profileFields" : {
             "type" : "object",
             "additionalProperties" : {
@@ -64723,7 +64730,7 @@
             "type" : "boolean"
           }
         },
-        "required" : [ "firstName", "lastName", "email", "group", "profileFields", "contacts", "row", "ignored" ]
+        "required" : [ "firstName", "lastName", "email", "group", "joinDate", "profileFields", "contacts", "row", "ignored" ]
       },
       "MemberProfile" : {
         "type" : "object",

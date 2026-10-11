@@ -56,7 +56,7 @@ test.describe('Members', () => {
                 await expect(rows.first()).toBeVisible()
             }
 
-            await rows.nth(index).getByRole('button', {name: 'Details'}).click()
+            await rows.nth(index).getByRole('link', {name: 'Details'}).click()
             await page.waitForURL(/\/station\/members\/detail\/\d+/)
 
             const mark = page.getByRole('button', {name: 'Als ehemalig markieren'})
@@ -98,7 +98,7 @@ test.describe('Members', () => {
         await page.goto('/station/members/list')
         await page.getByPlaceholder(/Suche/).first().fill(surname)
         await page.getByTestId('member-row').filter({hasText: surname}).first()
-            .getByRole('button', {name: 'Details'}).click()
+            .getByRole('link', {name: 'Details'}).click()
         await page.waitForURL(/\/station\/members\/detail\/\d+/)
 
         await page.getByRole('button', {name: 'Als ehemalig markieren'}).first().click()
@@ -134,7 +134,7 @@ test.describe('Members', () => {
 
         await page.goto('/station/members/list')
         await page.getByPlaceholder(/Suche/).first().fill(created)
-        await page.getByTestId('member-row').first().getByRole('button', {name: 'Details'}).click()
+        await page.getByTestId('member-row').first().getByRole('link', {name: 'Details'}).click()
         await page.waitForURL(/\/station\/members\/detail\/(\d+)/)
         const id = page.url().match(/detail\/(\d+)/)?.[1]
 
@@ -157,7 +157,7 @@ test.describe('Members', () => {
 
         await page.goto('/station/members/list')
         await page.getByPlaceholder(/Suche/).first().fill(created)
-        await page.getByTestId('member-row').first().getByRole('button', {name: 'Details'}).click()
+        await page.getByTestId('member-row').first().getByRole('link', {name: 'Details'}).click()
         await page.waitForURL(/\/station\/members\/detail\/(\d+)/)
         const id = page.url().match(/detail\/(\d+)/)?.[1]
 
@@ -225,7 +225,7 @@ test.describe('Members', () => {
 
         await page.goto('/station/members/list')
         await page.getByPlaceholder(/Suche/).first().fill(created)
-        await page.getByTestId('member-row').first().getByRole('button', {name: 'Details'}).click()
+        await page.getByTestId('member-row').first().getByRole('link', {name: 'Details'}).click()
         await page.waitForURL(/\/station\/members\/detail\/(\d+)/)
         const id = page.url().match(/detail\/(\d+)/)?.[1]
 
@@ -260,7 +260,7 @@ test.describe('Members', () => {
 
         await page.goto('/station/members/list')
         await page.getByPlaceholder(/Suche/).first().fill(created)
-        await page.getByTestId('member-row').first().getByRole('button', {name: 'Details'}).click()
+        await page.getByTestId('member-row').first().getByRole('link', {name: 'Details'}).click()
         await page.waitForURL(/\/station\/members\/detail\/(\d+)/)
         const id = page.url().match(/detail\/(\d+)/)?.[1]
 
@@ -323,7 +323,7 @@ test.describe('Members', () => {
 
         await page.goto('/station/members/list')
         await page.getByPlaceholder(/Suche/).first().fill(created)
-        await page.getByTestId('member-row').first().getByRole('button', {name: 'Details'}).click()
+        await page.getByTestId('member-row').first().getByRole('link', {name: 'Details'}).click()
         await page.waitForURL(/\/station\/members\/detail\/(\d+)/)
         const id = page.url().match(/detail\/(\d+)/)?.[1]
 
@@ -473,7 +473,7 @@ test.describe('Members', () => {
     async function openImported(page: Page, surname: string) {
         await page.goto('/station/members/list')
         await page.getByPlaceholder(/Suche/).first().fill(surname)
-        await page.getByTestId('member-row').first().getByRole('button', {name: 'Details'}).click()
+        await page.getByTestId('member-row').first().getByRole('link', {name: 'Details'}).click()
         await page.waitForURL(/\/station\/members\/detail\/\d+/)
     }
 
@@ -612,7 +612,7 @@ test.describe('Members', () => {
         const note = unique('Notiz')
 
         await managerPage.goto('/station/members/list')
-        await managerPage.getByTestId('member-row').first().getByRole('button', {name: 'Details'}).click()
+        await managerPage.getByTestId('member-row').first().getByRole('link', {name: 'Details'}).click()
         await managerPage.waitForURL(/\/station\/members\/detail\/(\d+)/)
         const id = managerPage.url().match(/detail\/(\d+)/)?.[1]
 

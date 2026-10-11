@@ -67440,6 +67440,7 @@ export interface components {
             firstName: string;
             group: string;
             ignored: boolean;
+            joinDate: components["schemas"]["LocalDate"] | null;
             lastName: string;
             profileFields: {
                 [key: string]: string;
