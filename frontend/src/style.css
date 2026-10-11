@@ -255,7 +255,7 @@ a:not(:has(button)):not(.row-link):hover {
 /* Rendered markdown content (knowledge base, etc.) */
 .markdown-content {
     color: var(--text);
-    line-height: 1.75;
+    line-height: 1.6;
     font-size: 0.9375rem;
     word-wrap: break-word;
     overflow-wrap: break-word;
@@ -307,9 +307,17 @@ a:not(:has(button)):not(.row-link):hover {
     margin-bottom: 0.5rem;
 }
 
+/*
+ * An area of the letter template editor shows its text in the size the letter prints it in, which the
+ * area hands down as a variable; everywhere else text keeps the size above.
+ */
+[data-editor-fonts] .markdown-content {
+    font-size: var(--editor-page-size, 0.9375rem);
+}
+
 .markdown-content p {
-    margin-top: 0.75rem;
-    margin-bottom: 0.75rem;
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
 }
 
 /**
@@ -317,12 +325,12 @@ a:not(:has(button)):not(.row-link):hover {
  * The spacing between its paragraphs, and every text outside a row, stays as it is.
  */
 .row-cell > .markdown-content > :first-child,
-.row-cell > .markdown-content > [data-align]:first-child > :first-child {
+.row-cell > .markdown-content > :is([data-align], [data-line-height]):first-child > :first-child {
     margin-top: 0;
 }
 
 .row-cell > .markdown-content > :last-child,
-.row-cell > .markdown-content > [data-align]:last-child > :last-child {
+.row-cell > .markdown-content > :is([data-align], [data-line-height]):last-child > :last-child {
     margin-bottom: 0;
 }
 
@@ -454,6 +462,20 @@ a:not(:has(button)):not(.row-link):hover {
 :is(.markdown-content, .prose) [data-align="justify"] {
     text-align: justify;
 }
+
+/*
+ * The line heights and letter spacings the text editor offers, stored as data attributes so each is a
+ * named step whose measure lives here and in the printed letter alike.
+ */
+:is(.markdown-content, .prose) [data-line-height="1"] { line-height: 1; }
+:is(.markdown-content, .prose) [data-line-height="1.15"] { line-height: 1.15; }
+:is(.markdown-content, .prose) [data-line-height="1.5"] { line-height: 1.5; }
+:is(.markdown-content, .prose) [data-line-height="2"] { line-height: 2; }
+
+[data-spacing="tight"] { letter-spacing: -0.03em; }
+[data-spacing="wide"] { letter-spacing: 0.05em; }
+[data-spacing="wider"] { letter-spacing: 0.1em; }
+[data-spacing="widest"] { letter-spacing: 0.2em; }
 
 .markdown-content mark {
     background-color: #fef08a;

@@ -21,10 +21,16 @@
 --- the family when the letter is printed. Without it the tag is dropped and the words are kept, since
 --- no other template defines that function.
 ---
---- Sizes: the editor stores words in a size of their own as `<span style="font-size: 14px">`, in whole
---- pixels from 6 to 96. The pair becomes `text(size: ...)` in points, a pixel being three quarters of
---- one; a size beyond the bounds is held to them, and a size in anything but whole pixels drops the tag
---- and keeps the words. A span that sets a colour as well prints in both.
+--- Sizes: the editor stores words in a size of their own as `<span style="font-size: 11pt">`, in whole
+--- points from 5 to 72. Texts written before sizes were in points carry whole pixels instead, read as
+--- three quarters of a point each. The pair becomes `text(size: ...)` in points; a size beyond the
+--- bounds is held to them, and a size in anything but whole points or pixels drops the tag and keeps
+--- the words. A span that sets a colour as well prints in both.
+---
+--- Spacing: words set closer or further apart are stored as `<span data-spacing="wide">`, one of four
+--- named steps, and print with the same tracking the stylesheet gives them. A paragraph's line height
+--- rides on the block wrapper alignment uses, as `data-line-height`, and becomes the leading between its
+--- lines, picked so the printed lines stand as far apart as on screen.
 ---
 --- Alignment: the editor stores a centred, right-aligned or justified paragraph or heading wrapped in
 --- `<div data-align="...">`, a blank line on either side, so the markdown reader still reads what is
@@ -75,13 +81,27 @@ local function font_family(tag)
   return family and unescape(family):match("^%s*(.-)%s*$")
 end
 
-local SMALLEST_SIZE, LARGEST_SIZE = 6, 96
+local SMALLEST_SIZE, LARGEST_SIZE = 5, 72
+
+local function points_of(value)
+  local points = tonumber(value:match("^(%d+)pt$"))
+  if points then return points end
+  local pixels = tonumber(value:match("^(%d+)px$"))
+  return pixels and pixels * PIXEL
+end
 
 local function text_size(tag)
-  local size = tonumber((css(attribute(tag, "style"), "font%-size") or ""):match("^(%d+)px$"))
+  local size = points_of(css(attribute(tag, "style"), "font%-size") or "")
   if not size then return nil end
-  return string.format("%gpt", math.min(math.max(size, SMALLEST_SIZE), LARGEST_SIZE) * PIXEL)
+  return string.format("%gpt", math.min(math.max(size, SMALLEST_SIZE), LARGEST_SIZE))
 end
+
+local TRACKINGS = {
+  tight = "-0.03em",
+  wide = "0.05em",
+  wider = "0.1em",
+  widest = "0.2em",
+}
 
 local function opener(name, tag)
   if name == "u" then return "#underline[" end
@@ -97,6 +117,8 @@ local function opener(name, tag)
     if size then table.insert(settings, "size: " .. size) end
     local fill = typst_color(css(attribute(tag, "style"), "color"))
     if fill then table.insert(settings, "fill: " .. fill) end
+    local tracking = TRACKINGS[attribute(tag, "data%-spacing") or ""]
+    if tracking then table.insert(settings, "tracking: " .. tracking) end
     return #settings > 0 and ("#text(" .. table.concat(settings, ", ") .. ")[") or nil
   end
   return nil
@@ -108,9 +130,25 @@ local ALIGNMENTS = {
   justify = "#[#set par(justify: true)\n",
 }
 
+local SET_ALIGNMENTS = {
+  center = "#set align(center)\n",
+  right = "#set align(right)\n",
+  justify = "#set par(justify: true)\n",
+}
+
+local LEADINGS = {
+  ["1"] = "0.05em",
+  ["1.15"] = "0.2em",
+  ["1.5"] = "0.55em",
+  ["2"] = "1.05em",
+}
+
 local function block_opener(name, tag)
   if name ~= "div" then return nil end
-  return ALIGNMENTS[attribute(tag, "data%-align") or ""]
+  local alignment = attribute(tag, "data%-align") or ""
+  local leading = LEADINGS[attribute(tag, "data%-line%-height") or ""]
+  if not leading then return ALIGNMENTS[alignment] end
+  return "#[#set par(leading: " .. leading .. ")\n" .. (SET_ALIGNMENTS[alignment] or "")
 end
 
 local function html_tag(el)

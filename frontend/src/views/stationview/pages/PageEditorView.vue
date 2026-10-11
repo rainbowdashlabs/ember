@@ -20,7 +20,6 @@ import {toBlockRequests, toEditRows} from '@/util/blockSwitch'
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {describeFailure} from '@/util/failure'
-import {showToast} from '@/util/toast'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -97,7 +96,6 @@ async function save() {
         rows.value = toEditRows(updated.rows)
         hasUnsavedChanges.value = false
         editor.value?.draftSaved()
-        showToast(t('common.saved'), 'success')
     } catch (e) {
         failure.value = {...describeFailure(e, t), message: t('stationPages.saveFailed')}
         throw e

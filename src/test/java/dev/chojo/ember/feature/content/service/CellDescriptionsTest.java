@@ -95,7 +95,7 @@ class CellDescriptionsTest {
 
     @Test
     void everyCellOfEveryRowIsDescribed() {
-        var image = new CellConfig.ImageConfig(null, null, null, null, null, null, null, null, null, null, null);
+        var image = new CellConfig.ImageConfig(null, null, null, null, null, null, null, null, null, null, null, null);
         var rows = List.of(new ContentRow(1, 1, 0, List.of(cell(CellContentType.IMAGE, "known", image))));
 
         var described = (CellConfig.ImageConfig) descriptions
@@ -154,7 +154,7 @@ class CellDescriptionsTest {
                 .set(
                         "config",
                         CellConfig.MAPPER.valueToTree(new CellConfig.ImageConfig(
-                                null, null, null, null, null, null, null, null, null, null, null))));
+                                null, null, null, null, null, null, null, null, null, null, null, null))));
         cells.add(CellConfig.MAPPER
                 .createObjectNode()
                 .put("contentType", "PAGE_LINK")

@@ -7,8 +7,8 @@
 import {computed, onMounted, ref, watch} from 'vue'
 import {useI18n} from 'vue-i18n'
 import ViewContent from '@/components/layout/ViewContent.vue'
-import MutedText from '@/components/typography/MutedText.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
+import SaveStatus from '@/components/feedback/SaveStatus.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import DiscoveryPanel from './federationsettingsview/DiscoveryPanel.vue'
 import PublicKbPanel from '@/components/knowledge/PublicKbPanel.vue'
@@ -118,16 +118,7 @@ watch(loaded, (v) => { if (v) loadSettings() })
       :subtitle="t('pages.station-federation-settings.subtitle')"
   >
     <div class="flex items-center justify-end mb-4">
-      <Transition name="fade">
-        <MutedText v-if="saving" size="sm" class="flex items-center gap-1">
-          <font-awesome-icon :icon="['fas', 'spinner']" spin class="h-3 w-3"/>
-          {{ t('common.saving') }}
-        </MutedText>
-        <MutedText v-else-if="savedMessage" size="sm" class="flex items-center gap-1 text-success">
-          <font-awesome-icon :icon="['fas', 'check']" class="h-3 w-3"/>
-          {{ savedMessage }}
-        </MutedText>
-      </Transition>
+      <SaveStatus :saving="saving" :saved="savedMessage !== ''"/>
     </div>
 
     <FailureAlert :failure="failure" class="mb-2"/>

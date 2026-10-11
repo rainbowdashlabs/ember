@@ -421,6 +421,7 @@ public class DemoPageSeeder implements DemoPerStationSeeder {
                         null,
                         8,
                         0,
+                        null,
                         null)));
         rows.add(row(
                 sort++,

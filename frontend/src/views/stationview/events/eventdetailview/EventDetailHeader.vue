@@ -20,6 +20,7 @@ import {isRecurringEvent} from '@/api/events'
 import type {StationEvent} from '@/api/generated/schema'
 import {eventTypeLabelKey} from '../eventshared/eventTypeLabel'
 import {formatDate} from '@/util/format'
+import {goBack} from '@/util/goBack'
 import {computed} from 'vue'
 
 const props = defineProps<{
@@ -84,8 +85,8 @@ const canRestoreDate = computed(() =>
 const hasMenu = computed(() =>
     props.canWriteNews || hasAttendance.value || canCancelDate.value || canCancelSeries.value || canRestoreDate.value)
 
-function goBack() {
-  router.push({name: props.canManageEvents ? 'events' : 'events-upcoming'})
+function back() {
+  goBack(router, {name: 'events-upcoming'})
 }
 
 function goEdit() {
@@ -121,7 +122,7 @@ function announce() {
       <ErrorBadge v-if="dateCancelled">{{ t('events.cancelled') }}</ErrorBadge>
     </div>
     <ButtonRow align="end">
-      <SecondaryButton @click="goBack"><font-awesome-icon :icon="['fas', 'arrow-left']" class="mr-1"/>{{ t('common.back') }}</SecondaryButton>
+      <SecondaryButton @click="back"><font-awesome-icon :icon="['fas', 'arrow-left']" class="mr-1"/>{{ t('common.back') }}</SecondaryButton>
       <PrimaryButton v-if="canManageEvents" @click="goEdit"><font-awesome-icon :icon="['fas', 'pen']" class="mr-1"/>{{ t('events.editEvent') }}</PrimaryButton>
       <ActionsMenu v-if="hasMenu" :label="t('common.actions')" test-id="event-actions">
         <DropdownMenuItem v-if="canWriteNews" :icon="['fas', 'bullhorn']" data-testid="event-announce"

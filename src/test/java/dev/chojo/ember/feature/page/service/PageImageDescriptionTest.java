@@ -137,7 +137,7 @@ class PageImageDescriptionTest extends RepositoryTestBase {
 
     private static CellConfig.ImageConfig imageSaying(String alt, String description) {
         return new CellConfig.ImageConfig(
-                CellConfig.ImageFit.COVER, alt, null, description, null, null, null, null, null, null, null);
+                CellConfig.ImageFit.COVER, alt, null, description, null, null, null, null, null, null, null, null);
     }
 
     private static StationPage pageShowing(String imageHash, CellConfig.ImageConfig config) {

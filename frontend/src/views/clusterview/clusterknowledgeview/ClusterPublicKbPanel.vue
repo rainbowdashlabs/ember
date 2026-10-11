@@ -11,7 +11,8 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {clusterGovernance} from '@/api'
 import {useSession} from '@/composables/useSession'
 import {ClusterPermission} from '@/api/clusters'
-import {showToast} from '@/util/toast'
+import SaveStatus from '@/components/feedback/SaveStatus.vue'
+import {useFlashMessage} from '@/composables/useFlashMessage'
 import {describeFailure, type Failure} from '@/util/failure'
 
 /**
@@ -32,6 +33,8 @@ const mode = ref('OFF')
 const stationUid = ref('')
 const failure = ref<Failure | null>(null)
 const loaded = ref(false)
+const saving = ref(false)
+const {message: savedMessage, flash: flashSaved} = useFlashMessage(2000)
 
 const mayManage = computed(() => hasClusterPermission(ClusterPermission.CLUSTER_KNOWLEDGE_MANAGER))
 
@@ -59,18 +62,25 @@ watch(mayManage, async (may) => {
 
 watch(mode, async (next, previous) => {
     if (!loaded.value || next === previous) return
+    saving.value = true
+    failure.value = null
     try {
         await clusterGovernance.setPublicKb(next)
-        showToast(t('stationManage.publicKb.saved'), 'success')
+        flashSaved(t('common.saved'))
     } catch (e) {
         mode.value = previous
         failure.value = describeFailure(e, t)
+    } finally {
+        saving.value = false
     }
 })
 </script>
 
 <template>
     <div v-if="mayManage && loaded" class="mb-4">
+        <div class="flex justify-end mb-1">
+            <SaveStatus :saving="saving" :saved="savedMessage !== ''"/>
+        </div>
         <FailureAlert :failure="failure" class="mb-2"/>
         <PublicKbPanel v-model:mode="mode" :public-url="publicUrl"/>
     </div>

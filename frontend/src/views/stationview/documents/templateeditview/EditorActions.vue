@@ -7,7 +7,7 @@
 import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import ButtonRow from '@/components/button/ButtonRow.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import SaveButton from '@/components/button/SaveButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import type {DocumentTemplateResponse} from '@/api/generated/schema'
@@ -21,7 +21,8 @@ import type {DocumentTemplateResponse} from '@/api/generated/schema'
  */
 defineProps<{
   saved: DocumentTemplateResponse | null
-  saving: boolean
+  /** Saves the template; the button shows its progress and rejects back to idle on a failure. */
+  save: () => Promise<unknown>
   duplicating: boolean
   canSave: boolean
   /** The route of the list the template belongs to. */
@@ -29,7 +30,6 @@ defineProps<{
 }>()
 
 const emit = defineEmits<{
-  save: []
   duplicate: []
   archive: [archived: boolean]
 }>()
@@ -56,9 +56,7 @@ const router = useRouter()
                        @click="emit('archive', !saved.archivedAt)">
         {{ saved.archivedAt ? t('documentTemplates.restore') : t('documentTemplates.archive') }}
       </SecondaryButton>
-      <PrimaryButton :icon="['fas', 'floppy-disk']" :disabled="!canSave || saving" data-testid="template-save" @click="emit('save')">
-        {{ t('common.save') }}
-      </PrimaryButton>
+      <SaveButton :action="save" :disabled="!canSave" data-testid="template-save"/>
     </ButtonRow>
   </div>
 </template>

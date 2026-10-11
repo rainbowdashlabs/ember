@@ -103,7 +103,7 @@ watch(memberId, (newId) => {
             @update="setValue"
         />
 
-        <ReaderDocuments :offers="false"/>
+        <ReaderDocuments/>
         <SelfServiceCentreLink/>
       </template>
     </div>

@@ -73,7 +73,7 @@ onUnmounted(() => {
         </AppLink>
       </ButtonRow>
       <div role="group" :aria-label="t('signing.document.drawnLabel', {title})" :aria-describedby="hintId">
-        <DocumentPdfFrame :pdf="pdf" :title="title"/>
+        <DocumentPdfFrame :pdf="pdf" :title="title" class="h-[70vh]"/>
       </div>
     </template>
   </section>

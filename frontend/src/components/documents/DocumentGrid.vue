@@ -15,14 +15,18 @@ import type {MemberDocumentResponse} from '@/api/generated/schema'
 
 const props = withDefaults(defineProps<{
   documents: MemberDocumentResponse[]
-  /** Where a tile's picture comes from, or null where the door the reader comes through serves none. */
+  /**
+   * Where a tile's picture comes from, or null where the door the reader comes through serves none. Its
+   * default is built by a factory: for a prop that may be a function or null, Vue calls a bare function
+   * default to make the value, which handed the store a string in place of the station's addresses.
+   */
   thumbnailUrl?: ((documentId: number) => string) | null
   /** Whether each tile can be chosen, for removing several documents at once. A sealed one never can. */
   selectable?: boolean
   /** Whether the choice is held as it is, because the documents shown are about to be replaced. */
   choiceHeld?: boolean
 }>(), {
-  thumbnailUrl: (documentId: number) => stationThumbnailUrl(documentId),
+  thumbnailUrl: () => (documentId: number) => stationThumbnailUrl(documentId),
   selectable: false,
   choiceHeld: false,
 })
@@ -59,7 +63,7 @@ function choose(documentId: number, chosen: boolean) {
 <template>
   <EmptyHint v-if="props.documents.length === 0">{{ t('documents.none') }}</EmptyHint>
   <div v-else class="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
-    <div v-for="document in props.documents" :key="document.id" class="relative">
+    <div v-for="document in props.documents" :key="document.id" class="relative min-w-0">
       <div v-if="props.selectable && !document.sealed" class="absolute top-2 left-2 z-10">
         <CheckboxInput
             :model-value="selected.includes(document.id)"

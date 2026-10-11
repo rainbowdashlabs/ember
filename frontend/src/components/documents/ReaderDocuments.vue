@@ -4,52 +4,52 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
-import {computed, ref, watch} from 'vue'
-import {useI18n} from 'vue-i18n'
-import OwnDocuments from './OwnDocuments.vue'
-import type {DocumentOpening} from './documentOpening'
-import {managedMembers as managedMembersApi} from '@/api'
-import {StationPermission, type ManagedMember} from '@/api/generated/schema'
+import {computed} from 'vue'
+import {StationPermission} from '@/api/generated/schema'
 import {useSession} from '@/composables/useSession'
+import {useReaderPeople} from '@/composables/useReaderPeople'
+import MemberDocumentsPanel from './MemberDocumentsPanel.vue'
+import ReaderPersonTabs from './ReaderPersonTabs.vue'
+import type {DocumentOpening} from './documentOpening'
+import {useReaderPersonChoice} from './readerPersonChoice'
 
 /**
- * The reader's own documents, then those of every member in their care, each under their name.
+ * The reader's own documents and those of every member in their care, one person at a time, chosen by
+ * a tab with their name where there is more than one.
  *
  * <p>Reading one's own documents needs nothing; adding to them is a right a station grants. The
- * documents of a child only read, adding is the child's own to do. With `offers` each list also shows
- * the documents that can be generated for that member.
+ * documents of a child only read, adding is the child's own to do. Every person's list is loaded, the
+ * others hidden, so a document a link asks for is found whoever it belongs to, and that person's tab
+ * comes to the front with it open. The people are handed to the open document as well, which names
+ * whom it belongs to from them, since a reader may not read the station's member list.
  */
 withDefaults(defineProps<{
-  offers: boolean
   /** A document a link asks to open, in whichever of the lists holds it. */
   opening?: DocumentOpening | null
 }>(), {
   opening: null,
 })
 
-const {t} = useI18n()
-const {sessionInfo, hasPermission, isGuardian} = useSession()
+const {hasPermission} = useSession()
+const people = useReaderPeople()
+const {selected} = useReaderPersonChoice(people)
 
-const memberId = computed(() => sessionInfo.value?.member?.id ?? null)
 const canUploadOwn = computed(() => hasPermission(StationPermission.MEMBER_SELF_UPLOAD))
-const managed = ref<ManagedMember[]>([])
-
-watch(memberId, async id => {
-  managed.value = id && isGuardian() ? await managedMembersApi.listManaged() : []
-}, {immediate: true})
 </script>
 
 <template>
-  <div v-if="memberId" class="space-y-6">
-    <OwnDocuments :member-id="memberId" :can-upload="canUploadOwn" :offers="offers" :opening="opening"/>
-    <OwnDocuments
-        v-for="child in managed"
-        :key="child.id"
-        :can-upload="false"
-        :member-id="child.id"
-        :offers="offers"
-        :opening="opening"
-        :title="t('profile.documentsOf', {name: child.name})"
+  <div v-if="people.length > 0" class="space-y-4">
+    <ReaderPersonTabs v-model="selected" :people="people"/>
+    <MemberDocumentsPanel
+        v-for="person in people"
+        v-show="person.id === selected"
+        :key="person.id"
+        :member-id="person.id"
+        :can-upload="person.own && canUploadOwn"
+        :all-members="people"
+        :open-document-id="opening?.documentId ?? null"
+        :focus-record="opening?.record ?? null"
+        :on-asked-found="() => { selected = person.id }"
     />
   </div>
 </template>

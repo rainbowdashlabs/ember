@@ -177,7 +177,8 @@ public class CellDescriptions {
                 image.cropLeft(),
                 image.borderRadiusPercent(),
                 image.borderWidthPx(),
-                image.borderColor());
+                image.borderColor(),
+                image.imageAlign());
     }
 
     private CellConfig.ImageGalleryConfig describedGallery(

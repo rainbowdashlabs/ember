@@ -64,10 +64,21 @@ export function useAsyncAction<A extends unknown[], R>(
         }
     }
 
+    /**
+     * The same as `run`, but rejects when the action failed, for a `SaveButton`: it shows saving
+     * while the action runs and saved once it resolves, and goes back to idle on a rejection. The
+     * failure is still described in `failure`, for the alert beside the button.
+     */
+    async function runOrReject(...args: A): Promise<R | undefined> {
+        const result = await run(...args)
+        if (failure.value) throw new Error(failure.value.message)
+        return result
+    }
+
     function clearError() {
         error.value = ''
         failure.value = null
     }
 
-    return {running: readonly(running), error: readonly(error), failure: readonly(failure), run, clearError}
+    return {running: readonly(running), error: readonly(error), failure: readonly(failure), run, runOrReject, clearError}
 }

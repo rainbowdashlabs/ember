@@ -11,20 +11,24 @@ import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import NotificationInbox from '@/components/notifications/NotificationInbox.vue'
 import ClusterMailSwitch from '@/views/clusterview/clusternotificationsview/ClusterMailSwitch.vue'
 import type {NotificationInboxApi} from '@/api/notifications'
+import type {NotificationResponse} from '@/api/generated/schema'
 
 const {t} = useI18n()
 
+const demoApplication: NotificationResponse = {
+  id: 1,
+  type: 'CLUSTER_APPLICATION_SUBMITTED',
+  localeKey: 'notification.clusterApplicationSubmitted',
+  params: {stationName: 'Wache Süd'},
+  link: {route: 'cluster-applications', routeParams: {}, query: null},
+  createdAt: '2026-10-01T08:00:00Z',
+  acknowledgedAt: null,
+}
+
 /** An inbox holding one application, which reads and clears like the real one and tells nobody. */
 const demoInbox: NotificationInboxApi = {
-  listUnread: async () => [{
-    id: 1,
-    type: 'CLUSTER_APPLICATION_SUBMITTED',
-    localeKey: 'notification.clusterApplicationSubmitted',
-    params: {stationName: 'Wache Süd'},
-    link: {route: 'cluster-applications', routeParams: {}, query: null},
-    createdAt: '2026-10-01T08:00:00Z',
-    acknowledgedAt: null,
-  }],
+  listUnread: async () => [demoApplication],
+  listRecent: async () => [demoApplication],
   count: async () => 1,
   acknowledge: async () => {},
   acknowledgeAll: async () => {},

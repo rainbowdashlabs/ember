@@ -84,6 +84,6 @@ describe('text in a row of blocks', () => {
         const {marginTop, marginBottom} = getComputedStyle(text.querySelector('p')!)
         text.remove()
 
-        expect([marginTop, marginBottom]).toEqual(['12px', '12px'])
+        expect([marginTop, marginBottom]).toEqual(['8px', '8px'])
     })
 })

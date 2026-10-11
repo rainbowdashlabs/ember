@@ -19,7 +19,7 @@ const demoContent = ref(`# Willkommen zum Texteditor
 
 Das ist ein **fetter Text**, das ist *kursiv* und das ist ~~durchgestrichen~~.
 
-Du kannst auch <u>unterstrichenen</u> und ==markierten== Text verwenden, und Wörter <span style="font-size: 22px">größer</span> setzen.
+Du kannst auch <u>unterstrichenen</u> und ==markierten== Text verwenden, und Wörter <span style="font-size: 16pt">größer</span> setzen.
 
 <div data-align="center">
 
@@ -116,6 +116,10 @@ Normaler Absatztext darunter.`)
 
     <HelpSection :title="t('helpCenter.kb.editor.sizeTitle')">
       <p>{{ t('helpCenter.kb.editor.sizeText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.kb.editor.spacingTitle')">
+      <p>{{ t('helpCenter.kb.editor.spacingText') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.kb.editor.alignTitle')">

@@ -120,6 +120,15 @@ public sealed interface CellConfig {
         FILL
     }
 
+    /**
+     * Where a picture stands in its column when it is narrower than the column, centred where none is set.
+     */
+    enum ImageAlign {
+        LEFT,
+        CENTER,
+        RIGHT
+    }
+
     enum CalloutVariant {
         INFO,
         WARNING,
@@ -188,7 +197,8 @@ public sealed interface CellConfig {
             @Nullable Double cropLeft,
             @Nullable Integer borderRadiusPercent,
             @Nullable Integer borderWidthPx,
-            @Nullable String borderColor)
+            @Nullable String borderColor,
+            @Nullable ImageAlign imageAlign)
             implements CellConfig {}
 
     @JsonInclude(JsonInclude.Include.NON_NULL)

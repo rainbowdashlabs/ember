@@ -6,6 +6,7 @@
 import type {Editor} from '@tiptap/core'
 import {TextAlign} from '@tiptap/extension-text-align'
 import type TurndownService from 'turndown'
+import {lineHeightOf} from './textSpacing'
 
 /** The alignments a paragraph or heading is stored with; left is the default and stores nothing. */
 export const STORED_ALIGNMENTS = ['center', 'right', 'justify'] as const
@@ -96,19 +97,31 @@ function blockMarkdown(node: HTMLElement, content: string): string {
     return level ? `${'#'.repeat(Number(level))} ${content}` : content
 }
 
-function isAlignedBlock(node: HTMLElement): boolean {
-    return /^(P|H[1-6])$/.test(node.nodeName) && isStored(node.getAttribute('data-align'))
+/** What a paragraph or heading is wrapped with: its alignment and its line height, each where it has one. */
+function wrapperAttributes(node: HTMLElement): string {
+    const alignment = node.getAttribute('data-align')
+    const lineHeight = lineHeightOf(node)
+    return [
+        isStored(alignment) ? `data-align="${alignment}"` : null,
+        lineHeight ? `data-line-height="${lineHeight}"` : null,
+    ].filter(Boolean).join(' ')
 }
 
-/** Writes an aligned paragraph or heading back as the wrapped block it is stored as. */
-export function extendTurndownWithBlockAlign(turndown: TurndownService): void {
-    turndown.addRule('blockAlign', {
-        filter: (node) => isAlignedBlock(node as HTMLElement),
+function isWrappedBlock(node: HTMLElement): boolean {
+    return /^(P|H[1-6])$/.test(node.nodeName) && wrapperAttributes(node) !== ''
+}
+
+/**
+ * Writes an aligned paragraph or heading, or one with a line height of its own, back as the wrapped
+ * block it is stored as: one `div` carrying both, so neither wraps the other.
+ */
+export function extendTurndownWithWrappedBlocks(turndown: TurndownService): void {
+    turndown.addRule('wrappedBlock', {
+        filter: (node) => isWrappedBlock(node as HTMLElement),
         replacement: (content, node) => {
             const element = node as HTMLElement
             if (!content.trim()) return '\n\n'
-            const alignment = element.getAttribute('data-align')
-            return `\n\n<div data-align="${alignment}">\n\n${blockMarkdown(element, content)}\n\n</div>\n\n`
+            return `\n\n<div ${wrapperAttributes(element)}>\n\n${blockMarkdown(element, content)}\n\n</div>\n\n`
         },
     })
 }

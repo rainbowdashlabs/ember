@@ -32,13 +32,15 @@ const props = defineProps<{
   catalogue: LetterCatalogue
   /** The family the part prints in, null for the default font. */
   family: string | null
+  /** The size in points the letter prints its text in. */
+  sizePt: number
 }>()
 
 const {t} = useI18n()
 const editing = ref(false)
 
 provideBlockEditorOptions(() => letterBlockOptions(props.catalogue, LetterPart.LETTERHEAD))
-const font = useEditorFontArea(() => props.family)
+const font = useEditorFontArea(() => props.family, () => props.sizePt)
 
 const context = computed(() => internalContentContext(props.stationUid, props.title))
 const rendered = computed(() => rows.value as unknown as ContentRow[])

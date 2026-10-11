@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import {computed} from 'vue'
 import {configOf, isLayoutKind, type LayoutKindName} from '@/api/pageManage'
-import {CellContentType, type ContentCell as CellData, type ImageConfig} from '@/api/generated/schema'
+import {CellContentType, ImageAlign, type ContentCell as CellData, type ImageConfig} from '@/api/generated/schema'
 import CellLayoutRender from '@/components/content/blockeditor/CellLayoutRender.vue'
 import CellImagePreview from '@/components/content/blockeditor/CellImagePreview.vue'
 import EnlargeableImage from '@/components/button/EnlargeableImage.vue'
@@ -47,6 +47,14 @@ const nestedRows = computed<NestedRow[]>(() => {
 
 const imageConfig = computed<ImageConfig>(() => configOf(props.cell, CellContentType.IMAGE) ?? {})
 
+/** The caption stands on the same side as its picture. */
+const CAPTION_CLASS_BY_IMAGE_ALIGN: Record<ImageAlign, string> = {
+    LEFT: 'text-left',
+    CENTER: 'text-center',
+    RIGHT: 'text-right',
+}
+const captionClass = computed(() => CAPTION_CLASS_BY_IMAGE_ALIGN[imageConfig.value.imageAlign ?? ImageAlign.CENTER])
+
 const imageUrl = computed(() => blockImageUrl(props.context.stationUid, props.cell.content, props.context.fileUrl))
 const imageHash = computed(() => blockImageHash(props.cell.content))
 const enlargedUrl = computed(() => {
@@ -80,7 +88,7 @@ function youtubeEmbedUrl(url: string): string | null {
                 :width-hint="context.widthHint"
             />
         </EnlargeableImage>
-        <figcaption v-if="imageConfig.description" class="text-xs text-(--text-muted) italic text-center">
+        <figcaption v-if="imageConfig.description" class="text-xs text-(--text-muted) italic" :class="captionClass">
             {{ imageConfig.description }}
         </figcaption>
     </figure>

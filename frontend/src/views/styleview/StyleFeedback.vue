@@ -14,6 +14,7 @@ import PrimaryButton from '@/components/button/PrimaryButton.vue'
 
 import ProgressBar from '@/components/feedback/ProgressBar.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
+import SaveStatus from '@/components/feedback/SaveStatus.vue'
 import Alert from '@/components/feedback/Alert.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import Popover from '@/components/feedback/Popover.vue'
@@ -65,6 +66,14 @@ const floatingText = ref('')
         <Spinner size="lg"/>
         <MutedText size="sm">Large</MutedText>
       </div>
+    </div>
+  </section>
+
+  <section class="space-y-4">
+    <SectionHeader>Save Status</SectionHeader>
+    <div class="flex flex-wrap items-center gap-4 sm:gap-6">
+      <SaveStatus saving :saved="false"/>
+      <SaveStatus :saving="false" saved/>
     </div>
   </section>
 

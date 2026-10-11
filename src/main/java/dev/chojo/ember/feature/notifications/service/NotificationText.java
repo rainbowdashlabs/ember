@@ -251,6 +251,19 @@ public class NotificationText {
     }
 
     /**
+     * Appends {@code read=<id>} to a link that opens a notification, so the app marks it read once
+     * it is opened from a mail or a feed.
+     *
+     * @param url            the address the notification leads to
+     * @param notificationId the notification it opens
+     * @return the address carrying the read marker
+     */
+    public static String withReadMarker(String url, int notificationId) {
+        char separator = url.contains("?") ? '&' : '?';
+        return url + separator + "read=" + notificationId;
+    }
+
+    /**
      * The notification preferences of a station or an association, where a mail's footer leads.
      *
      * @param baseUrl public base URL of the deployment

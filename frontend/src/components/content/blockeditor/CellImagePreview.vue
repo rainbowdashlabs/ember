@@ -5,13 +5,20 @@
  */
 <script lang="ts" setup>
 import {computed, onBeforeUnmount, onMounted, ref, watch, type CSSProperties} from 'vue'
-import {ImageFit, type ImageConfig} from '@/api/generated/schema'
+import {ImageAlign, ImageFit, type ImageConfig} from '@/api/generated/schema'
 import {mediaImageSrcset} from '@/api/media'
 
 const OBJECT_FIT_BY_IMAGE_FIT: Record<ImageFit, CSSProperties['objectFit']> = {
     COVER: 'cover',
     CONTAIN: 'contain',
     FILL: 'fill',
+}
+
+/** The margins that put a picture narrower than its column on the left, in the middle or on the right. */
+const MARGIN_BY_IMAGE_ALIGN: Record<ImageAlign, string> = {
+    LEFT: '0 auto 0 0',
+    CENTER: '0 auto',
+    RIGHT: '0 0 0 auto',
 }
 
 const props = defineProps<{
@@ -101,7 +108,7 @@ const containerStyle = computed(() => {
     const c = cfg.value
     const style: Record<string, string> = {
         maxWidth: '100%',
-        margin: '0 auto',
+        margin: MARGIN_BY_IMAGE_ALIGN[c.imageAlign ?? ImageAlign.CENTER],
     }
     const aspect = visibleAspect.value
     if (aspect != null) {

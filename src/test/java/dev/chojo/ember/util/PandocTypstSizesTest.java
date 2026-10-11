@@ -15,11 +15,21 @@ import java.io.IOException;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
- * Words the editor set in a size of their own, stored as {@code <span style="font-size: 24px">}, reach Typst as
- * {@code text(size: ...)} in points, a pixel being three quarters of a point, for letters and the wiki export
- * alike. The formatting, fonts and colours around and inside them are converted as anywhere else.
+ * Words the editor set in a size of their own, stored as {@code <span style="font-size: 18pt">}, reach Typst as
+ * {@code text(size: ...)} in the same points, for letters and the wiki export alike. Texts written before sizes
+ * were in points store whole pixels, read as three quarters of a point each. The formatting, fonts and colours
+ * around and inside them are converted as anywhere else.
  */
 class PandocTypstSizesTest {
+
+    @Test
+    void aSizeInPointsKeepsItsPoints() throws IOException {
+        assertEquals(
+                "Ein #text(size: 18pt)[großes] und #text(size: 11pt)[kleines] Wort.",
+                PandocConverter.markdownToTypst("Ein <span style=\"font-size: 18pt\">großes</span> und "
+                                + "<span style=\"font-size: 11pt\">kleines</span> Wort.")
+                        .strip());
+    }
 
     @Test
     void aSizeInPixelsBecomesTheSizeInPoints() throws IOException {
@@ -60,18 +70,18 @@ class PandocTypstSizesTest {
 
     /** A size beyond what the editor offers is held to the smallest or the largest it offers. */
     @ParameterizedTest
-    @CsvSource({"5, 4.5pt", "0, 4.5pt", "97, 72pt", "400, 72pt"})
+    @CsvSource({"4pt, 5pt", "0pt, 5pt", "73pt, 72pt", "5px, 5pt", "0px, 5pt", "97px, 72pt", "400px, 72pt"})
     void aSizeOutOfBoundsIsHeldToTheBounds(String size, String points) throws IOException {
         assertEquals(
                 "Ein #text(size: " + points + ")[Wort].",
-                PandocConverter.markdownToTypst("Ein <span style=\"font-size: " + size + "px\">Wort</span>.")
+                PandocConverter.markdownToTypst("Ein <span style=\"font-size: " + size + "\">Wort</span>.")
                         .strip());
     }
 
-    /** A size the editor never writes, in anything but whole pixels, is dropped with its tags, and the words are kept. */
+    /** A size the editor never writes, in anything but whole points or pixels, is dropped with its tags, and the words are kept. */
     @ParameterizedTest
-    @ValueSource(strings = {"12.5px", "12", "1em", "12pt", ""})
-    void aSizeNotInWholePixelsKeepsTheWordsOnly(String size) throws IOException {
+    @ValueSource(strings = {"12.5px", "10.5pt", "12", "1em", ""})
+    void aSizeNotInWholeUnitsKeepsTheWordsOnly(String size) throws IOException {
         assertEquals(
                 "Ein Wort.",
                 PandocConverter.markdownToTypst("Ein <span style=\"font-size: " + size + "\">Wort</span>.")

@@ -188,17 +188,27 @@ export function useEditorFonts(
 
 /**
  * Marks an area of the template, such as the body or the header, whose text shows in a family of the
- * page, and hands the same to the editors below it, which a dialog may lift out of the area.
+ * page and in the size the letter prints its text in, and hands the same to the editors below it, which a
+ * dialog may lift out of the area.
  *
  * @param family the family the area's text prints in, null for the default font
+ * @param size   the size in points the area's text prints in, null for the editor's own
  * @returns the attributes the area's element carries; none outside the template editor
  */
-export function useEditorFontArea(family: () => string | null): ComputedRef<FontAreaAttrs> {
+export function useEditorFontArea(
+    family: () => string | null,
+    size: () => number | null = () => null,
+): ComputedRef<FontAreaAttrs> {
     const fonts = inject(EDITOR_FONTS, null)
     const attrs = computed<FontAreaAttrs>(() => {
         if (!fonts) return {}
         const css = fonts.fontFamily(family())
-        return {'data-editor-fonts': fonts.scope, ...(css ? {style: {'--editor-page-font': css}} : {})}
+        const points = size()
+        const style: Record<string, string> = {
+            ...(css ? {'--editor-page-font': css} : {}),
+            ...(points ? {'--editor-page-size': `${points}pt`} : {}),
+        }
+        return {'data-editor-fonts': fonts.scope, ...(Object.keys(style).length > 0 ? {style} : {})}
     })
     provide(FONT_AREA, attrs)
     return attrs

@@ -30,7 +30,8 @@ import java.util.stream.Collectors;
  * reader of their own as well. Gathered by reader, a guardian with two children received news for the
  * whole station three times. Gathered by address, they receive one mail, which lists a notification
  * once however many readers it reached them through, and names the children on an item that reaches
- * them only on a child's behalf.
+ * them only on a child's behalf. An item a guardian has already read themselves is not mailed to
+ * them again on a child's behalf, while the child's own copy stays unread for the child.
  *
  * <p>Two notifications count as one when their type and their data are equal, which is what a
  * notification written for several readers at once looks like.
@@ -64,14 +65,20 @@ final class DigestAddresses {
             var account = accountId == null ? null : accounts.get(accountId);
             if (account == null) continue;
             for (var recipient : recipientsOf.apply(account)) {
-                var draft = byAddress.computeIfAbsent(
-                        recipient.email().toLowerCase(Locale.ROOT), key -> new MailDraft(recipient.email()));
+                String address = recipient.email().toLowerCase(Locale.ROOT);
+                var draft = byAddress.computeIfAbsent(address, key -> new MailDraft(recipient.email()));
                 if (!recipient.guardian()) draft.owner = account;
                 String onBehalfOf = recipient.guardian() ? nameOf.apply(account) : null;
-                reader.forEach(item -> draft.add(item.notification(), onBehalfOf));
+                reader.stream()
+                        .filter(item ->
+                                !recipient.guardian() || !item.readByGuardians().contains(address))
+                        .forEach(item -> draft.add(item.notification(), onBehalfOf));
             }
         }
-        return byAddress.values().stream().map(MailDraft::mail).toList();
+        return byAddress.values().stream()
+                .map(MailDraft::mail)
+                .filter(mail -> !mail.entries().isEmpty())
+                .toList();
     }
 
     private static final class MailDraft {
@@ -88,6 +95,7 @@ final class DigestAddresses {
                     notification.type() + ":" + notification.data().toJson(), key -> new EntryDraft(notification));
             if (onBehalfOf == null) {
                 entry.own = true;
+                entry.notification = notification;
             } else {
                 entry.forMembers.add(onBehalfOf);
             }
@@ -101,8 +109,12 @@ final class DigestAddresses {
         }
     }
 
+    /**
+     * One item of a mail while it is gathered. Where the owner of the address reads it themselves,
+     * it carries the owner's own copy, so opening its link marks that copy read.
+     */
     private static final class EntryDraft {
-        private final Notification notification;
+        private Notification notification;
         private final Set<String> forMembers = new LinkedHashSet<>();
         private boolean own;
 
