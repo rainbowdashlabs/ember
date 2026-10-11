@@ -4,7 +4,9 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import TurndownService from 'turndown'
-import {extendTurndownWithBlockAlign} from './blockAlign'
+import {extendTurndownWithWrappedBlocks} from './blockAlign'
+import {extendTurndownWithLetterSpacing} from './textSpacing'
+import {blankReplacement} from './emptyLines'
 import {cssColorHex} from '@/util/contrastColor'
 import {extendTurndownWithTextSize} from './textSize'
 
@@ -24,6 +26,7 @@ export function createMarkdownTurndown(): TurndownService {
     codeBlockStyle: 'fenced',
     bulletListMarker: '-',
     preformattedCode: true,
+    blankReplacement,
   })
 
   turndown.addRule('strikethrough', {filter: ['del', 's'], replacement: (c) => `~~${c}~~`})
@@ -89,8 +92,9 @@ export function createMarkdownTurndown(): TurndownService {
     },
   })
 
-  extendTurndownWithBlockAlign(turndown)
+  extendTurndownWithWrappedBlocks(turndown)
   extendTurndownWithTextSize(turndown)
+  extendTurndownWithLetterSpacing(turndown)
 
   return turndown
 }

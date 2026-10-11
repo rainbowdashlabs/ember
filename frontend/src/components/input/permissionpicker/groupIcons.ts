@@ -19,6 +19,7 @@ export const GROUP_ICONS: Record<string, string[]> = {
   POLL_MANAGER: ['fas', 'square-poll-vertical'],
   LOST_AND_FOUND_MANAGER: ['fas', 'magnifying-glass'],
   CHECKLIST_MANAGER: ['fas', 'square-check'],
+  DOCUMENT_MANAGER: ['fas', 'file'],
   TEST_MANAGER: ['fas', 'graduation-cap'],
   PROTOCOL_MANAGER: ['fas', 'clipboard-list'],
   BOARD_MANAGER: ['fas', 'table-columns'],

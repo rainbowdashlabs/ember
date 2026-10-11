@@ -29,9 +29,9 @@ export default {
             whatIsText: 'Der Einrichtungs-Assistent führt dich beim ersten Login durch die wichtigsten Einstellungen - Adresse, Module, Berechtigungen, Gruppen - damit du sofort Mitglieder einladen und loslegen kannst.',
             requiredVsOptional: 'Pflicht- und Optional-Schritte',
             requiredVsOptionalText: 'Pflicht-Schritte (Adresse, Module, Mitgliedstypen, Gruppen) müssen vor dem Abschluss erledigt sein. Alle anderen Schritte sind optional und können später nachgeholt werden.',
-            dashboardChecklist: 'Dashboard-Checkliste',
-            dashboardChecklistText: 'Solange Punkte offen sind, zeigt das Dashboard eine Checkliste mit Direktlinks zu den fehlenden Schritten. Nach dem Abschluss bleibt sie versteckt.',
-            overviewTip: 'Du kannst den Assistenten jederzeit über das X verlassen - die offenen Punkte erscheinen dann auf dem Dashboard.',
+            dashboardChecklist: 'Checkliste auf der Übersicht',
+            dashboardChecklistText: 'Solange Punkte offen sind, zeigt die Übersicht eine Checkliste mit Direktlinks zu den fehlenden Schritten. Nach dem Abschluss bleibt sie versteckt.',
+            overviewTip: 'Du kannst den Assistenten jederzeit über das X verlassen - die offenen Punkte erscheinen dann auf der Übersicht.',
             frameTitle: 'So sieht jeder Schritt aus',
             frameText: 'Jeder Schritt hat oben den Namen, rechts daneben die Zählung („Schritt 3 von 12") und darunter einen Fortschrittsbalken. Ganz unten stehen die Schaltflächen: links zurück, rechts speichern und weiter. Optionale Schritte haben zusätzlich „Überspringen".',
             frameHintNote: 'Der graue Satz unter dem Balken sagt dir kurz, worum es in diesem Schritt geht.',
@@ -47,7 +47,7 @@ export default {
             exampleTitle: 'So sieht die Seite aus',
             exampleText: 'Eine kurze Begrüßung und eine Liste mit dem, was du gleich einrichtest.',
             leaveTitle: 'Zwischendurch aufhören',
-            leaveText: 'Du musst nicht alles auf einmal machen. Wenn du den Assistenten verlässt, zeigt dir das Dashboard eine Liste mit den Punkten, die noch offen sind.',
+            leaveText: 'Du musst nicht alles auf einmal machen. Wenn du den Assistenten verlässt, zeigt dir die Übersicht eine Liste mit den Punkten, die noch offen sind.',
             tip: 'Nimm dir für den ganzen Assistenten etwa 15 Minuten Zeit. Die Pflicht-Schritte sind schnell erledigt.',
         },
         setupAddress: {
@@ -205,10 +205,10 @@ export default {
             title: 'Schritt: Fertig',
             subtitle: 'Der Abschluss der Einrichtung.',
             whatIs: 'Was ist das?',
-            whatIsText: 'Das ist der letzte Schritt. Hier schließt du die Einrichtung ab, und die Checkliste auf dem Dashboard verschwindet.',
+            whatIsText: 'Das ist der letzte Schritt. Hier schließt du die Einrichtung ab, und die Checkliste auf der Übersicht verschwindet.',
             howTo: 'Wie benutze ich das?',
             howToStep1: 'Klicke auf „Geführte Tour starten", wenn du dir Ember erklären lassen willst.',
-            howToStep2: 'Oder klicke auf „Zum Dashboard", um sofort loszulegen.',
+            howToStep2: 'Oder klicke auf „Zur Übersicht", um sofort loszulegen.',
             exampleTitle: 'So sieht die Seite aus',
             exampleText: 'Ein kurzer Glückwunsch und zwei Schaltflächen in der Mitte.',
             missingTitle: 'Wenn noch etwas fehlt',
@@ -570,7 +570,7 @@ export default {
                 toggleText2: 'Deaktivierte Module sind komplett ausgeblendet. Keine Daten gehen verloren - wenn du ein Modul wieder aktivierst, sind alle Daten noch da.',
                 navigation: 'Navigation in Ember',
                 navigationText: 'Ember hat eine Seitenleiste links mit allen verfügbaren Bereichen. So findest du dich zurecht:',
-                nav1: 'Dashboard - Deine persönliche Startseite mit Benachrichtigungen und Übersicht.',
+                nav1: 'Übersicht - Deine persönliche Startseite mit Benachrichtigungen und allem, was gerade wichtig ist.',
                 nav2: 'Die einzelnen Module (Mitglieder, Inventar, Anwesenheit etc.) - je nach aktivierten Modulen.',
                 nav3: 'Profil - Dein persönliches Profil, Einstellungen und Abwesenheiten.',
                 nav4: 'Wache verwalten - Einstellungen der Wache (nur für Verwalter).',
@@ -578,7 +578,7 @@ export default {
                     + 'stattdessen über die Adresszeile auf, während du angemeldet bist, landest du wieder '
                     + 'in dem Bereich, in dem du zuletzt gearbeitet hast: Wache, Verband oder Verwaltung.',
                 notifications: 'Benachrichtigungen',
-                notificationsText: 'Ember informiert dich über wichtige Änderungen per Benachrichtigung im Dashboard. Die Zahl neben dem Glockensymbol zeigt, wie viele ungelesene Benachrichtigungen du hast.',
+                notificationsText: 'Ember informiert dich über wichtige Änderungen per Benachrichtigung auf der Übersicht. Die Zahl neben dem Glockensymbol zeigt, wie viele ungelesene Benachrichtigungen du hast.',
                 notificationsText2: 'Du kannst in deinen Einstellungen festlegen, welche Benachrichtigungen du auch per E-Mail erhalten möchtest.',
                 tip: 'Du brauchst nicht alle Module gleichzeitig. Fang mit dem an, was ihr am meisten braucht, und aktiviere weitere Module nach und nach.',
             },
@@ -1095,10 +1095,10 @@ volumes:
             },
         },
         dashboard: {
-            title: 'Dashboard - Übersicht',
+            title: 'Übersicht',
             subtitle: 'Deine persönliche Startseite mit allen wichtigen Infos.',
-            whatIs: 'Was ist das Dashboard?',
-            whatIsText: 'Das Dashboard ist deine Startseite. Hier siehst du auf einen Blick alles, was gerade wichtig ist - wie ein schwarzes Brett an der Wand, nur digital.',
+            whatIs: 'Was ist die Übersicht?',
+            whatIsText: 'Die Übersicht ist deine Startseite. Hier siehst du auf einen Blick alles, was gerade wichtig ist - wie ein schwarzes Brett an der Wand, nur digital.',
             whatYouSee: 'Das siehst du hier',
             notifications: 'Benachrichtigungen - Neue Nachrichten, Statusänderungen und andere Hinweise. Du kannst sie als gelesen markieren.',
             exchanges: 'Tausch-Anfragen - Wenn du einen Tausch von Ausrüstung angefragt hast, siehst du hier den aktuellen Status.',
@@ -1136,7 +1136,7 @@ volumes:
             dummyEventDate: 'Mittwoch, 10.06.2026 · 18:00 – 20:00',
             dummyEventName2: 'Wettkampf Vorbereitung',
             dummyEventDate2: 'Samstag, 13.06.2026 · 10:00 – 14:00',
-            tip: 'Schau regelmäßig auf dein Dashboard - so verpasst du keine wichtigen Neuigkeiten oder anstehenden Termine.',
+            tip: 'Schau regelmäßig auf deine Übersicht - so verpasst du keine wichtigen Neuigkeiten oder anstehenden Termine.',
         },
         statistics: {
             title: 'Statistiken',
@@ -1314,7 +1314,7 @@ volumes:
             typeGroups: 'Gruppenzuweisung - Wenn du einer Gruppe hinzugefügt wirst.',
             typeProfile: 'Profiländerungen - Wenn ein Mitglied ein überwachtes Feld ändert.',
             typeProcurement: 'Beschaffung - Wenn eine Beschaffungsanfrage für dich erstellt wird.',
-            tip: 'Auch ohne E-Mail-Benachrichtigungen siehst du alle Infos auf dem Dashboard. E-Mails sind nur ein extra Hinweis.',
+            tip: 'Auch ohne E-Mail-Benachrichtigungen siehst du alle Infos auf der Übersicht. E-Mails sind nur ein extra Hinweis.',
         },
         theming: {
             title: 'Erscheinungsbild',
@@ -1375,14 +1375,14 @@ volumes:
             typesTitle: 'Benachrichtigungstypen',
             typesText: 'Es gibt acht verschiedene Typen: Neuigkeiten, Kommentare, Termine, Anmeldungsstatus, Tauschanfragen, Gruppenzuweisungen, Profiländerungen und Beschaffung.',
             matrixTitle: 'Benachrichtigungsmatrix',
-            matrixText: 'Für jeden Typ kannst du drei Kanäle einzeln aktivieren: App (erscheint auf dem Dashboard), E-Mail und Feed. Die Tabelle zeigt alle acht Typen mit Schaltern für jeden Kanal.',
+            matrixText: 'Für jeden Typ kannst du drei Kanäle einzeln aktivieren: App (erscheint auf der Übersicht), E-Mail und Feed. Die Tabelle zeigt alle acht Typen mit Schaltern für jeden Kanal.',
             feedsTitle: 'Feed-Token',
             feedsText: 'Du kannst einen persönlichen Feed-Token generieren, um deine Benachrichtigungen als iCal-, RSS- oder Atom-Feed zu abonnieren. Kopiere die jeweilige URL in deine Kalender- oder Feed-App.',
             guidesTitle: 'Anleitungen',
             guidesText: 'Detaillierte Anleitungen zum Einrichten der Feeds findest du hier:',
             rssFeedGuide: 'RSS/Atom-Anleitung',
             icalGuide: 'iCal-Anleitung',
-            tip: 'App-Benachrichtigungen erscheinen auf dem Dashboard. E-Mails und Feeds sind zusätzliche Kanäle.',
+            tip: 'App-Benachrichtigungen erscheinen auf der Übersicht. E-Mails und Feeds sind zusätzliche Kanäle.',
         },
         feedPhone: {
             title: 'Den Feed aufs Handy holen',
@@ -1863,7 +1863,8 @@ volumes:
                 + 'der Vorlage aus.',
             selfServiceTitle: 'Selbst erstellen lassen',
             selfServiceText: 'Ist eine Vorlage zum Selbst-Erstellen freigegeben, finden Mitglieder sie unter Dokumente → '
-                + 'Meine Dokumente neben ihren Dokumenten. Erziehungsberechtigte erstellen sie dort für jedes Kind. Fehlen Angaben im '
+                + 'Selbst erstellen. Erziehungsberechtigte wählen dort oben das Kind, für das sie erstellen. Das '
+                + 'erstellte Dokument steht danach unter Meine Dokumente, je Person in einem eigenen Reiter. Fehlen Angaben im '
                 + 'Profil, erklärt Ember, welche, und erstellt erst, wenn sie eingetragen sind.',
             cooldownText: 'Damit niemand dasselbe Dokument ständig neu erstellt, hat jede Vorlage eine Wartezeit, '
                 + 'normal 30 Tage. Danach ist es wieder möglich, und Ember zeigt bis dahin das Datum an.',
@@ -1884,7 +1885,7 @@ volumes:
             listPickerText: 'Wo eine Vorlage gewählt wird, beim Erstellen für ein Mitglied, für viele Mitglieder und '
                 + 'bei den mitzubringenden Dokumenten eines Termins, öffnet sich dieselbe Auswahl mit Kacheln, Suche '
                 + 'und Seiten. Die Lupe auf einer Kachel zeigt die erste Seite groß. Bei einem Termin markierst du '
-                + 'mehrere Vorlagen und übernimmst sie zusammen. Unter Meine Dokumente stehen die Vorlagen oben, die '
+                + 'mehrere Vorlagen und übernimmst sie zusammen. Unter Selbst erstellen stehen die Vorlagen oben, die '
                 + 'zuletzt für dieses Mitglied selbst erstellt wurden.',
             duplicateTitle: 'Vorlage duplizieren',
             duplicateText: '„Duplizieren" auf der Kachel einer Vorlage oder im Editor legt eine Kopie mit dem Namen '
@@ -1906,6 +1907,23 @@ volumes:
             forAppointmentsText: 'Ist eine Vorlage „Für Termine", kann ein Termin sie als mitzubringendes Dokument '
                 + 'verlangen. Nur dann bietet der Editor die Angaben des Termins als Platzhalter an: Name, Beginn, Ende '
                 + 'und Ort. Eine solche Vorlage ist immer ein rechtliches Dokument.',
+        },
+        documentSelfService: {
+            title: 'Selbst erstellen',
+            subtitle: 'Dokumente aus den Vorlagen der Wache für dich und deine Kinder erstellen',
+            whatIs: 'Was ist das?',
+            whatIsText: 'Hier stehen die Vorlagen, die die Wache zum Selbst-Erstellen freigegeben hat, etwa eine '
+                + 'Teilnahmebescheinigung. Ein erstelltes Dokument wird bei der Person abgelegt und steht danach unter '
+                + 'Meine Dokumente.',
+            createTitle: 'Ein Dokument erstellen',
+            createText: 'Klicke bei einer Vorlage auf „Erstellen“. Damit dasselbe Dokument nicht ständig neu entsteht, '
+                + 'hat jede Vorlage eine Wartezeit; bis dahin steht dort das Datum, ab dem es wieder geht.',
+            missingText: 'Fehlen Angaben im Profil, nennt die Vorlage sie, und das Dokument lässt sich erst erstellen, '
+                + 'wenn sie eingetragen sind.',
+            childrenTitle: 'Für Kinder',
+            childrenText: 'Erziehungsberechtigte sehen oben einen Reiter je Person: „Meine“ und eines für jedes Kind. '
+                + 'Die Vorlagen und Wartezeiten gelten je Person.',
+            tip: 'Steht hier nichts, hat die Wache gerade keine Vorlage zum Selbst-Erstellen freigegeben.',
         },
         documentFonts: {
             title: 'Schriftarten',
@@ -1960,7 +1978,7 @@ volumes:
                 + 'sie für Mitglieder auf deren Seite. Hier legt die Wache fest, ob ihre Mitglieder sie selbst '
                 + 'erstellen und wer ihre Dokumente an der Wache ausstellt.',
             selfServiceTitle: 'Selbst erstellen lassen',
-            selfServiceText: 'Mit dem Schalter erscheint die Vorlage bei den Mitgliedern unter Meine Dokumente. Ohne Auswahl bei „Für '
+            selfServiceText: 'Mit dem Schalter erscheint die Vorlage bei den Mitgliedern unter Selbst erstellen. Ohne Auswahl bei „Für '
                 + 'wen" gilt sie für alle Mitglieder, sonst nur für die gewählten Gruppen, Mitgliedsarten, Tags oder '
                 + 'Personen. Die Wartezeit legt der Verband fest.',
             offeredText: 'Bietet der Verband die Vorlage nicht zum Selbst-Erstellen an, bleibt die Einstellung ohne '
@@ -2121,7 +2139,7 @@ volumes:
                 + 'für den Satzanfang. Sein/ihr gibt es zusätzlich mit Endung, etwa seine/ihre oder seinen/ihren. '
                 + 'Steht der Vorname, wird beim Besitz „Lenas" geschrieben, ohne Endung.',
             selfServiceTitle: 'Selbst erstellen',
-            selfServiceText: 'Gib die Vorlage frei, damit Mitglieder sie unter Meine Dokumente selbst erstellen. Lege fest, für '
+            selfServiceText: 'Gib die Vorlage frei, damit Mitglieder sie unter Dokumente → Selbst erstellen finden. Lege fest, für '
                 + 'wen das gilt und wie viele Tage bis zum nächsten Mal vergehen müssen.',
             previewTitle: 'Vorschau',
             previewText: 'Die Vorschau zeigt den Brief so, wie er gedruckt wird. Ohne Mitglied stehen die Namen der '
@@ -3075,7 +3093,7 @@ volumes:
             changingTitle: 'Antwort ändern',
             changingText: 'Solange die Anmeldung läuft, könnt ihr eure Antwort jederzeit ändern. Danach kann das nur noch, wer den Termin betreut, weil bis dahin mit der Liste geplant wurde. Wer sich erst abmeldet und später doch teilnimmt, meldet sich neu an: einen einmal freigegebenen Platz behält niemand.',
             laterQuestionTitle: 'Nachträglich gestellte Fragen',
-            laterQuestionText: 'Kommt eine Pflichtfrage erst dazu, nachdem sich jemand angemeldet hat, fehlt dieser Anmeldung eine Antwort. Die betroffene Person und wer für sie antwortet bekommen einmal eine Benachrichtigung, auf dem Dashboard und in der Anmeldeliste steht "Antwort erforderlich", und im Block "Deine Antwort" öffnet "Antworten aktualisieren" die Fragen erneut. Das geht auch nach Anmeldeschluss, denn die Frage ist jünger als die Frist.',
+            laterQuestionText: 'Kommt eine Pflichtfrage erst dazu, nachdem sich jemand angemeldet hat, fehlt dieser Anmeldung eine Antwort. Die betroffene Person und wer für sie antwortet bekommen einmal eine Benachrichtigung, auf der Übersicht und in der Anmeldeliste steht "Antwort erforderlich", und im Block "Deine Antwort" öffnet "Antworten aktualisieren" die Fragen erneut. Das geht auch nach Anmeldeschluss, denn die Frage ist jünger als die Frist.',
             reminderTitle: 'Erinnerung vor Anmeldeschluss',
             reminderText: 'Drei Tage und einen Tag vor Anmeldeschluss bekommt eine Benachrichtigung, wer sich weder an- noch abgemeldet hat. Sie geht an alle, die antworten dürfen, und nennt, um wessen Antwort es geht.',
             title: 'Termin-Detailansicht',
@@ -4181,19 +4199,28 @@ volumes:
                 colorTitle: 'Farben',
                 colorText: 'Textfarbe und Hervorhebung bieten eine Auswahl fertiger Farben. Jede andere Farbe gibst du als Hex-Code ein, etwa #1a2b3c oder kurz #abc, und bestätigst mit Enter, oder du wählst sie im Farbwähler daneben. Das Kreuz nimmt die Farbe wieder weg. Seiten, Artikel und PDFs zeigen die Farbe genauso.',
                 sizeTitle: 'Schriftgröße',
-                sizeText: 'Markierte Wörter bekommen über den Button für die Schriftgröße eine eigene Größe in Pixeln, '
-                    + 'als ganze Zahl von 6 bis 96. Steht nur der Cursor in einem Wort, gilt die Größe für dieses Wort. '
+                sizeText: 'Markierte Wörter bekommen über den Button für die Schriftgröße eine eigene Größe in Punkt (pt), '
+                    + 'als ganze Zahl von 5 bis 72. Steht nur der Cursor in einem Wort, gilt die Größe für dieses Wort. '
                     + 'Das Feld beginnt bei der Größe, in der die Wörter gerade stehen, und die Pfeile zählen von dort '
                     + 'weiter. Jede Größe gilt sofort, ob getippt oder mit den Pfeilen gezählt; Enter schließt das '
                     + 'Feld. Ein leeres Feld '
                     + 'oder „Normale Größe“ gibt den Wörtern die normale Größe zurück. Seiten, Artikel und PDFs zeigen '
-                    + 'die Wörter in derselben Größe, im PDF als Punkte, ein Pixel als drei Viertel eines Punkts.',
+                    + 'die Wörter in derselben Größe. Texte, deren Größen noch in Pixeln stehen, zeigt der Editor in '
+                    + 'Punkt an, ein Pixel als drei Viertel eines Punkts, und speichert sie beim nächsten Mal in Punkt.',
+                spacingTitle: 'Abstände',
+                spacingText: 'Der Button „Abstände“ bietet zwei Listen. Die Zeilenhöhe gilt für den Absatz oder die '
+                    + 'Überschrift, in der der Cursor steht, oder für alle markierten: 1-fach, 1,15-fach, 1,5-fach '
+                    + 'oder 2-fach. Der Zeichenabstand gilt für die markierten Wörter oder das Wort am Cursor: eng, '
+                    + 'weit, weiter oder sehr weit. „Normal“ nimmt die Einstellung wieder weg. Seiten, Artikel und '
+                    + 'PDFs zeigen beides genauso. In einer Tabelle gibt es keine eigene Zeilenhöhe.',
                 alignTitle: 'Ausrichtung',
                 alignText: 'Mit den vier Ausrichtungs-Buttons stellst du den Absatz oder die Überschrift, in der der Cursor steht, linksbündig, zentriert, rechtsbündig oder in den Blocksatz. Hast du mehrere Absätze markiert, gilt die Ausrichtung für alle. Die Seite, der Artikel und das PDF zeigen den Text genauso. In einer Tabelle gibt es keine Ausrichtung.',
                 listsTitle: 'Listen und Zitate',
                 listsText: 'Erstelle Aufzählungen (Punkte), nummerierte Listen, Zitate oder Codeblöcke. Mit dem Minus-Button fügst du eine horizontale Trennlinie ein.',
                 linksTitle: 'Links und Medien',
-                linksText: 'Füge Links, hervorgehobenen Text, Tabellen oder YouTube-Videos ein. Bei Dateien im Wiki kannst du auch Bilder direkt hochladen.',
+                linksText: 'Füge Links, hervorgehobenen Text, Tabellen oder YouTube-Videos ein. Bei Dateien im Wiki kannst du auch Bilder direkt hochladen. '
+                    + 'Fügst du die Adresse einer Ember-Seite ein, etwa einer Neuigkeit, eines Termins oder eines Wiki-Artikels, steht dort kurz darauf ihr Titel als Link. '
+                    + 'Strg+Z holt die Adresse zurück.',
                 tableTitle: 'Tabellen bearbeiten',
                 tableText: 'Wenn du in einer Tabelle bist, erscheint eine zweite Leiste. Damit kannst du Spalten und Zeilen hinzufügen oder entfernen und die ganze Tabelle löschen.',
                 bubbleTitle: 'Schnellformatierung',
@@ -5708,13 +5735,13 @@ volumes:
             arrival: 'Ankunft',
         },
         dashboardOverview: {
-            overviewTitle: 'Dashboard',
+            overviewTitle: 'Übersicht',
             overviewSubtitle: 'Deine Startseite nach dem Anmelden.',
-            whatIs: 'Was ist das Dashboard?',
-            whatIsText: 'Das Dashboard ist die erste Seite, die du nach dem Anmelden siehst. Hier findest du alles Wichtige auf einen Blick - offene Benachrichtigungen, anstehende Termine, Tausch-Anfragen und den Status deines Profils.',
+            whatIs: 'Was ist die Übersicht?',
+            whatIsText: 'Die Übersicht ist die erste Seite, die du nach dem Anmelden siehst. Hier findest du alles Wichtige auf einen Blick - offene Benachrichtigungen, anstehende Termine, Tausch-Anfragen und den Status deines Profils.',
             pagesTitle: 'Was findest du hier?',
             pagesText: 'Die Übersichtsseite mit Benachrichtigungen, Anmeldungen und Tausch-Anfragen, sowie eine Statistik-Seite mit Diagrammen zu Anwesenheiten und Mitgliedern.',
-            overviewTip: 'Auf dem Dashboard siehst du immer, ob es etwas Neues gibt - auch ohne E-Mail-Benachrichtigungen.',
+            overviewTip: 'Auf der Übersicht siehst du immer, ob es etwas Neues gibt - auch ohne E-Mail-Benachrichtigungen.',
         },
         newsOverview: {
             overviewTitle: 'Neuigkeiten',
@@ -5933,7 +5960,7 @@ volumes:
             contentTypesTitle: 'Inhaltstypen',
             contentTypesText: 'Jede Zelle hat einen Typ:',
             contentTypeMarkdown: 'Formatierter Text mit Überschriften, Listen und Links.',
-            contentTypeImage: 'Ein Bild, das du hochladen kannst.',
+            contentTypeImage: 'Ein Bild, das du hochladen kannst. In den Bildeinstellungen legst du fest, ob es links, mittig oder rechts steht, wenn es schmaler als seine Spalte ist, etwa mit einer maximalen Höhe.',
             contentTypeVideo: 'Ein YouTube-Video oder eine andere Video-URL.',
             contentTypeNewsTeaser: 'Verweist auf eine Neuigkeit der Wache und zeigt sie immer mit ihrem aktuellen Titel, Datum und Anfang. Gesucht wird nach dem Titel, die neuesten zuerst, mit „Mehr anzeigen" kommen ältere dazu. Der Block zeigt allen Lesern dasselbe, deshalb stehen auf einer Seite nur Neuigkeiten aus dem öffentlichen Blog zur Wahl, in einer Neuigkeit oder einem Wiki-Artikel alle veröffentlichten Neuigkeiten, die alle Mitglieder lesen dürfen, auch interne. Neuigkeiten nur für einen Teil der Wache lassen sich nicht wählen und nicht speichern. Ist eine Neuigkeit hier nicht mehr verfügbar, zeigt der Block einen Hinweis.',
             contentTypeFeaturedEvent: 'Zeigt einen Termin immer mit seinem aktuellen Namen, seiner Zeit und einem Link. Auf einer Seite stehen nur Termine aus dem öffentlichen Kalender zur Wahl, in einer Neuigkeit oder einem Wiki-Artikel alle Termine, die alle Mitglieder sehen dürfen, auch interne. Termine nur für einen Teil der Wache lassen sich nicht wählen und nicht speichern.',
@@ -5970,7 +5997,10 @@ volumes:
             ownTitle: 'Eigene Uploads',
             ownText: 'Wer keine Rechte an Seiten, Neuigkeiten oder Wiki hat, darf trotzdem Bilder hochladen und einfügen, sieht in der Auswahl aber nur die eigenen Uploads. Angezeigt werden die Bilder danach für alle, die den Inhalt lesen dürfen.',
             foldersTitle: 'Ordner',
-            foldersText: 'Erstelle Ordner, um Dateien thematisch zu gruppieren. Ordner können auch verschachtelt werden.',
+            foldersText: 'Erstelle Ordner, um Dateien thematisch zu gruppieren. Ordner können auch verschachtelt werden. '
+                + 'Ziehe eine Datei mit der Maus auf einen Ordner in der Seitenleiste, auf eine Ordnerkachel oder auf einen '
+                + 'Schritt im Pfad darüber, um sie dorthin zu verschieben. Hast du mehrere Dateien ausgewählt und ziehst eine '
+                + 'davon, wandern alle ausgewählten mit.',
             tagsTitle: 'Tags',
             tagsText: 'Tags sind farbige Marker. Eine Datei kann mehrere Tags haben. Über die Tag-Leiste filterst du die Anzeige.',
             pruneTitle: 'Unbenutzte aufräumen',

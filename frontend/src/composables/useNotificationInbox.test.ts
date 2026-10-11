@@ -24,6 +24,7 @@ function waiting(id: number): NotificationResponse {
 function fakeInbox(entries: NotificationResponse[]) {
     return {
         listUnread: vi.fn(async () => entries),
+        listRecent: vi.fn(async () => entries),
         count: vi.fn(async () => entries.length),
         acknowledge: vi.fn(async () => {}),
         acknowledgeAll: vi.fn(async () => {}),
@@ -66,6 +67,23 @@ describe('useNotificationInbox', () => {
         expect(api.acknowledgeAll).toHaveBeenCalledTimes(1)
         expect(changed).toHaveBeenCalledTimes(1)
         expect(inbox.notifications.value).toEqual([])
+    })
+
+    it('lists only the read ones as earlier, and takes in what is marked read while they are shown', async () => {
+        const read = {...waiting(3), createdAt: '2026-09-01T08:00:00Z', acknowledgedAt: '2026-09-02T08:00:00Z'}
+        const api = fakeInbox([waiting(1), waiting(2)])
+        api.listRecent.mockResolvedValueOnce([waiting(1), waiting(2), read])
+        const inbox = useNotificationInbox(api)
+        await inbox.load()
+
+        expect(inbox.earlier.value).toBeNull()
+        await inbox.loadEarlier()
+        expect(inbox.earlier.value?.map(entry => entry.id)).toEqual([3])
+
+        await inbox.acknowledge(1)
+
+        expect(inbox.earlier.value?.map(entry => entry.id)).toEqual([1, 3])
+        expect(inbox.earlier.value?.[0]?.acknowledgedAt).not.toBeNull()
     })
 
     it('shows an empty inbox where it cannot be read', async () => {

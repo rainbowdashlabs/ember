@@ -24,6 +24,7 @@ import dev.chojo.ember.feature.system.service.DemoDocumentTemplateSeeder;
 import dev.chojo.ember.owner.Owner;
 import dev.chojo.ember.util.PdfText;
 import org.apache.pdfbox.text.TextPosition;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -106,6 +107,20 @@ class LetterPlacementTest extends GeneratorTestBase {
         float bodyText = capTop(page, body);
         assertEquals(pictures.getFirst(), headerText, TOLERANCE, "the header's text starts at its picture's top");
         assertEquals(pictures.get(1), bodyText, TOLERANCE, "the body's text starts at its picture's top");
+    }
+
+    /** A picture narrower than its column stands where its alignment says, centred where none is set. */
+    @Test
+    void aPictureStandsWhereItsAlignmentSays() throws IOException {
+        var left = darkSpan(alignedPicture(CellConfig.ImageAlign.LEFT));
+        var centre = darkSpan(alignedPicture(null));
+        var right = darkSpan(alignedPicture(CellConfig.ImageAlign.RIGHT));
+        float pageCentre = (centre[0] + centre[1]) / 2;
+
+        assertTrue(left[1] < pageCentre, () -> "left ends at " + left[1] + ", the middle is at " + pageCentre);
+        assertTrue(right[0] > pageCentre, () -> "right starts at " + right[0] + ", the middle is at " + pageCentre);
+        assertEquals(left[1] - left[0], right[1] - right[0], TOLERANCE, "the same picture on both sides");
+        assertTrue(left[0] < centre[0] && centre[1] < right[1], "centred between the two");
     }
 
     /** Four columns of six lines above and three below, on a page with ten millimetres at each edge. */
@@ -217,6 +232,32 @@ class LetterPlacementTest extends GeneratorTestBase {
                 List.of(
                         new ContentCell(0, 0, 0, 50, CellContentType.IMAGE, ContentCell.STATION_LOGO, CellConfig.EMPTY),
                         new ContentCell(0, 0, 0, 50, CellContentType.MARKDOWN, text, CellConfig.EMPTY)));
+    }
+
+    /** The page of a letter whose body is the station's square logo alone, a hundred pixels high. */
+    private static BufferedImage alignedPicture(CellConfig.@Nullable ImageAlign align) throws IOException {
+        var config = new CellConfig.ImageConfig(null, null, 100, null, null, null, null, null, null, null, null, align);
+        var row = new ContentRow(
+                0,
+                0,
+                0,
+                List.of(new ContentCell(0, 0, 0, 100, CellContentType.IMAGE, ContentCell.STATION_LOGO, config)));
+        return TestPdfs.picture(render(new LetterContent(List.of(), List.of(), List.of(row), LetterPage.defaults())));
+    }
+
+    /** The leftmost and the rightmost dark column of a page, in points from its left edge. */
+    private static float[] darkSpan(BufferedImage page) {
+        float from = Float.MAX_VALUE;
+        float to = -1;
+        for (float y = 1; y < A4_HEIGHT - 1; y += 1) {
+            for (float x = 1; x < page.getWidth() / TestPdfs.SCALE - 1; x += 1) {
+                if (!TestPdfs.darkAt(page, x, A4_HEIGHT - y)) continue;
+                from = Math.min(from, x);
+                to = Math.max(to, x);
+            }
+        }
+        assertTrue(to >= 0, "something is drawn on the page");
+        return new float[] {from, to};
     }
 
     /** A row of columns, each a text of lines written in one letter. */

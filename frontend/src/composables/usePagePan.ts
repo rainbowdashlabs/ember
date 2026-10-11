@@ -10,9 +10,11 @@ import {useEventListener} from '@vueuse/core'
  * Lets a zoomed page be dragged around inside the box that scrolls it, for a mouse or a pen without a
  * wheel that scrolls both ways.
  *
- * <p>A press on the page itself drags it; a press on a field is the field's own, which already keeps
- * the press to itself. Touch is left to the browser, which scrolls under a finger anyway, and the
- * keyboard and the scroll bars reach every part of the page as before.
+ * <p>Every viewer of a document uses it, so a zoomed page moves the same way wherever it is shown. A
+ * press on the page itself drags it; a press on something laid over it that keeps the press to itself,
+ * such as a field of the template editor, stays that thing's own. Touch is left to the browser, which
+ * scrolls under a finger anyway, and the keyboard and the scroll bars reach every part of the page as
+ * before.
  *
  * @param box the element that scrolls the page
  * @return whether the page is being dragged right now, for the cursor

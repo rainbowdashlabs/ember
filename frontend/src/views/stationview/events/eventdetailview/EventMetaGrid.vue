@@ -25,8 +25,7 @@ const props = defineProps<{
   fields: AppointmentField[]
   allMembers: MemberLike[]
   currentMemberId: number
-  startFormatted: string
-  endFormatted: string
+  /** The attendance template, which takes a row of its own so the fields below line up beneath it. */
   templateName: string
   /** Which sheet the attendance is taken on is a setting, so only whoever sets it is shown it. */
   canEditEvent: boolean
@@ -82,15 +81,7 @@ async function toggle(field: AppointmentField) {
 
 <template>
   <div class="grid grid-cols-6 gap-4">
-    <div class="col-span-3">
-      <DetailLabel>{{ t('events.startTime') }}</DetailLabel>
-      <p class="text-sm" data-testid="event-start">{{ startFormatted }}</p>
-    </div>
-    <div class="col-span-3">
-      <DetailLabel>{{ t('events.endTime') }}</DetailLabel>
-      <p class="text-sm" data-testid="event-end">{{ endFormatted }}</p>
-    </div>
-    <div v-if="canEditEvent" class="col-span-6 sm:col-span-3">
+    <div v-if="canEditEvent" class="col-span-6">
       <DetailLabel>{{ t('events.template') }}</DetailLabel>
       <p class="text-sm">{{ templateName }}</p>
     </div>

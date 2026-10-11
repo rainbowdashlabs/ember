@@ -14,6 +14,7 @@ import PdfCanvas from '@/components/documents/PdfCanvas.vue'
 import PagePager from '@/components/documents/PagePager.vue'
 import PdfZoomControls from '@/components/documents/PdfZoomControls.vue'
 import {fileKindOf} from '@/util/fileKind'
+import {usePagePan} from '@/composables/usePagePan'
 import {describeFailure, FailureKind, type Failure} from '@/util/failure'
 
 /**
@@ -27,13 +28,20 @@ import {describeFailure, FailureKind, type Failure} from '@/util/failure'
  *
  * <p>A PDF is drawn page by page rather than handed to the browser in a frame, because a phone has no
  * viewer behind a frame and shows an empty box instead of the document. It zooms in steps, and a
- * zoomed page scrolls inside its frame, so small print can be read without leaving the page.
+ * zoomed page scrolls inside its frame and is dragged around with the mouse, so small print can be
+ * read without leaving the page. Every document viewer is this one, so they all zoom and move alike.
+ *
+ * <p>On its own the page takes most of the window's height. Placed in a frame that sets its own height,
+ * `fill` makes the page take what the frame leaves beside the page and zoom controls, which stay in
+ * sight; a fixed height inside a fixed frame cut the controls off.
  */
 const props = defineProps<{
   /** The bytes themselves, or the endpoint to ask for them. */
   source: string | Blob
   title: string
   mimeType?: string | null
+  /** Whether the viewer fills the height its frame gives it rather than taking its own. */
+  fill?: boolean
 }>()
 
 const {t} = useI18n()
@@ -56,6 +64,9 @@ const loading = ref(false)
 const failure = ref<Failure | null>(null)
 
 const kind = computed(() => fileKindOf(props.mimeType, props.title))
+
+const pdfBox = ref<HTMLElement | null>(null)
+const panning = usePagePan(pdfBox)
 
 function revoke() {
   if (objectUrl.value) {
@@ -141,7 +152,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="min-h-40 space-y-3" data-testid="file-view">
+  <div class="min-h-40" :class="fill ? 'flex h-full flex-col gap-3' : 'space-y-3'" data-testid="file-view">
     <Spinner v-if="loading" size="md"/>
     <FailureAlert v-else-if="failure" :failure="failure"/>
     <EmptyHint v-else-if="kind === 'other'">{{ t('files.noPreview') }}</EmptyHint>
@@ -167,7 +178,9 @@ onUnmounted(() => {
     <div
         v-if="kind === 'pdf' && pdfBytes && !failure"
         v-show="!loading"
-        class="h-[70vh] w-full flex overflow-auto rounded-theme border border-bg-light-accent dark:border-bg-dark-accent"
+        ref="pdfBox"
+        class="w-full flex overflow-auto rounded-theme border border-bg-light-accent dark:border-bg-dark-accent"
+        :class="[fill ? 'min-h-0 flex-1' : 'h-[70vh]', zoom > 1 ? (panning ? 'cursor-grabbing' : 'cursor-grab') : '']"
         data-testid="file-view-pdf"
     >
       <PdfCanvas

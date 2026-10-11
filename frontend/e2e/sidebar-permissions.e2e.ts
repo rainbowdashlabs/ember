@@ -30,7 +30,7 @@ test.describe('Sidebar permissions', () => {
             await expect(sidebarEntry(managerPage, point.entry)).toBeVisible()
 
             await memberPage.goto('/station/dashboard/overview')
-            await expect(sidebarEntry(memberPage, 'Dashboard')).toBeVisible()
+            await expect(sidebarEntry(memberPage, 'Übersicht').first()).toBeVisible()
             await expect(sidebarEntry(memberPage, point.entry)).toHaveCount(0)
         })
     }

@@ -1,5 +1,40 @@
 # Änderungsprotokoll
 
+## v26.22.3
+
+Benachrichtigungen gelten als gelesen, sobald sie aus einer Mail, einem Feed oder der App geöffnet werden, und gelesene kommen nicht mehr in die nächste Mail. Ältere Benachrichtigungen lassen sich unter den ungelesenen wieder anzeigen. Die Startseite heißt auf Deutsch „Übersicht“.
+
+### Verbesserungen
+
+- **Der Brief-Editor zeigt die Schriftgröße des Briefs.** Kopf, Text und Fußzeile einer Briefvorlage zeigen ihren Text in der Größe, in der der Brief ihn druckt, und folgen der Seiteneinstellung, wenn sie sich ändert. Die Schriftgröße der Seite lässt sich mit einem Klick auf den Standard zurücksetzen.
+- **Mediendateien lassen sich in Ordner ziehen.** In der Mediathek lässt sich eine Datei auf einen Ordner in der Seitenleiste, auf eine Ordnerkachel oder auf einen Schritt im Pfad darüber ziehen, um sie dorthin zu verschieben. Wird eine von mehreren ausgewählten Dateien gezogen, wandern alle mit.
+- **Eingefügte Ember-Links zeigen ihren Titel.** Wird die Adresse einer Neuigkeit, eines Termins, eines Wiki-Artikels oder einer Seite der Wache oder einer Partnerwache in den Texteditor eingefügt, steht dort ein Link mit ihrem Titel oder dem Namen der Seite. Rückgängig holt die Adresse zurück, Links zu anderen Seiten bleiben wie eingefügt.
+- **Zeilenhöhe und Zeichenabstand im Texteditor.** Ein neuer Button für Abstände setzt die Zeilenhöhe von Absätzen und den Abstand zwischen den Buchstaben markierter Wörter, jeweils in wenigen festen Stufen. Seiten, Artikel, Neuigkeiten und gedruckte Briefe zeigen beides genauso.
+- **Bilder stehen links, mittig oder rechts.** Ein Bildblock, der schmaler als seine Spalte ist, etwa mit einer maximalen Höhe, lässt sich links, mittig oder rechts ausrichten, die Bildunterschrift steht auf derselben Seite. Seiten, Artikel, Neuigkeiten und gedruckte Briefe zeigen es dort.
+- **Ältere Benachrichtigungen lassen sich wieder anzeigen.** Ein Knopf unter den ungelesenen Benachrichtigungen listet die schon gelesenen unter den 50 neuesten. Das geht auf der Übersicht und auf der Benachrichtigungsseite eines Verbands.
+
+### Änderungen
+
+- **Die Startseite heißt „Übersicht“.** Oberfläche und Hilfe nennen die Startseite auf Deutsch „Übersicht“ statt „Dashboard“.
+- **Dokumente erstellen hat einen eigenen Menüpunkt.** Dokumente, die Mitglieder aus den Vorlagen der Wache selbst erstellen, stehen nicht mehr unter Meine Dokumente, sondern unter Dokumente → Selbst erstellen, wo sich ein erstelltes Dokument gleich öffnet. Meine Dokumente zeigt Erziehungsberechtigten einen Reiter je Person, für sich und jedes Kind, mit einem größeren Suchfeld über der Liste.
+- **Speichern zeigt sich am Speichern-Knopf.** Dokumentvorlagen, die Nutzung einer Verbandsvorlage durch die Wache, Seiten, die Zusammensetzung einer Checkliste und Eintragungen pro Termindatum zeigen Speichern und Gespeichert am Knopf statt in einer eingeblendeten Meldung. Einstellungen, die sofort gespeichert werden, etwa die der Instanz und das öffentliche Wiki eines Verbands, zeigen denselben Stand daneben.
+- **Termine zeigen zuerst ihre Zeit.** Die allgemeinen Angaben eines Termins zeigen Beginn und Ende über der Beschreibung, und die Anwesenheitsvorlage steht in einer eigenen Zeile.
+- **Absätze stehen enger beieinander.** Neuigkeiten, Seiten, Artikel und die Hilfe lassen weniger Platz zwischen Zeilen und Absätzen, so dass ein neuer Absatz nicht mehr wie eine Leerzeile aussieht.
+- **Schriftgrößen stehen in Punkt.** Der Texteditor setzt Wörter in einer Größe in Punkt von 5 bis 72, wie es Briefe schon tun. Texte mit Größen in Pixeln sehen weiter gleich aus und werden beim nächsten Speichern in Punkt abgelegt.
+
+### Fehlerbehebungen
+
+- **Dokumentvorschauen ließen sich nicht vergrößern oder verschieben.** Die Vorschau einer Vorlage, eines erstellten Dokuments und einer Sammelerstellung zeigte keine Zoom-Knöpfe, und ein vergrößertes Dokument ließ sich nicht mit der Maus verschieben. Jede Dokumentansicht lässt sich jetzt vergrößern und vergrößert verschieben.
+- **Dokumente hatten in der Rechteauswahl kein Symbol.** Die Rechte für Dokumente waren die einzige Gruppe in der Rechteauswahl ohne Symbol. Sie zeigen jetzt das Dokumentsymbol.
+- **Die Ablage zeigte keine Vorschauen.** Jedes Dokument in der Ablage zeigte nur ein Dateisymbol, obwohl eine Vorschau erstellt worden war. Die Ablage zeigt die Vorschauen wieder.
+- **Dokumentkacheln waren unterschiedlich breit.** In der Ablage zog ein langer Titel seine Kachel in die Breite und ließ große Lücken zwischen den Kacheln. Die Kacheln füllen jetzt ihre Spalte, lange Titel brechen um.
+- **Ein geöffnetes Dokument nannte niemanden, dem es gehört.** Unter Meine Dokumente stand bei einem geöffneten Dokument, es sei keinem Mitglied zugeordnet, obwohl es als Dokument einer Person gelistet war. Es nennt jetzt diese Person.
+- **Die Standardschrift fehlte auf der Schriftenseite.** Die Schrift, in der Dokumente standardmäßig gedruckt werden, etwa Berlin Type, stand in jeder Schriftauswahl, aber nicht auf der Schriftenseite. Sie steht jetzt mit einem Beispiel an erster Stelle der verfügbaren Schriften.
+- **Leerzeilen verschwanden aus Texten.** Absichtlich leer gelassene Zeilen in Neuigkeiten, Seiten, Artikeln und Briefen wurden beim Speichern entfernt. Sie bleiben jetzt erhalten und erscheinen auf der Seite und im gedruckten Brief als Leerzeilen.
+- **Gelesene Benachrichtigungen wurden trotzdem gemailt.** Schon in der App Gelesenes stand trotzdem in der nächsten Benachrichtigungsmail, bei Erziehungsberechtigten auch im Namen eines Kindes. Gelesenes bleibt jetzt aus der Mail heraus, und die Benachrichtigung des Kindes bleibt für das Kind ungelesen.
+- **Der Zurück-Knopf eines Termins führte zur falschen Liste.** Für die Terminverwaltung öffnete der Zurück-Knopf eines Termins immer die Terminübersicht, egal von wo der Termin geöffnet wurde. Er führt jetzt zur vorherigen Seite zurück, oder zu den anstehenden Terminen, wenn es keine gibt.
+- **Aus einer Mail oder einem Feed geöffnet, blieb eine Benachrichtigung ungelesen.** Wer dem Link einer Benachrichtigung aus einer Mail oder einem Feedreader folgte, hatte sie danach nicht als gelesen markiert. Das Öffnen markiert sie jetzt als gelesen, auch wenn vorher noch eine Anmeldung nötig ist.
+
 ## v26.22.2
 
 Die Benachrichtigungseinstellungen nennen jeden Mailanbieter, über den eine Mail an ein Mitglied gehen kann, jeweils mit seinen Datenschutzhinweisen. Die Mailanbieter der Instanz lassen sich für Mitglieder mit Namen und Datenschutzhinweisen versehen. Erziehungsberechtigte bekommen eine Benachrichtigungsmail für sich und die Kinder, um die sie sich kümmern.

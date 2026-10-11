@@ -12,9 +12,11 @@ import dev.chojo.ember.feature.mail.service.MailRecipientService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.notifications.entity.Delivery;
 import dev.chojo.ember.feature.notifications.entity.DigestItem;
+import dev.chojo.ember.feature.notifications.entity.Notification;
 import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
+import dev.chojo.ember.feature.notifications.entity.Recipient;
 import dev.chojo.ember.feature.notifications.entity.StationAudience;
 import dev.chojo.ember.feature.notifications.repository.NotificationRepository;
 import dev.chojo.ember.feature.notifications.repository.NotificationScheduleRepository;
@@ -118,6 +120,7 @@ class NotificationDigestTest extends RepositoryTestBase {
                 NotificationData.of(
                         new NotificationParams.NewsComment("Dienstplan Oktober", "Ben", "Passt!"),
                         new NotificationData.NotificationLink("news-detail", Map.of("id", 42), Map.of("comment", 7))));
+        var ids = waiting(greta).stream().map(item -> item.notification().id()).toList();
 
         digest.sweep(Instant.now());
 
@@ -125,7 +128,11 @@ class NotificationDigestTest extends RepositoryTestBase {
         try (var in = getClass().getResourceAsStream("/notifications/station-digest.txt")) {
             golden = new String(Objects.requireNonNull(in).readAllBytes(), StandardCharsets.UTF_8);
         }
-        assertEquals(List.of(golden.replace("{stationUid}", station.uid().toString())), mails);
+        assertEquals(
+                List.of(golden.replace("{stationUid}", station.uid().toString())
+                        .replace("{newsId}", String.valueOf(ids.getFirst()))
+                        .replace("{commentId}", String.valueOf(ids.getLast()))),
+                mails);
         assertTrue(waiting(greta).isEmpty(), "what went out is marked as mailed");
     }
 
@@ -168,7 +175,8 @@ class NotificationDigestTest extends RepositoryTestBase {
         assertTrue(mails.getFirst()
                 .contains("preferencesUrl=" + BASE + "/cluster/notifications?cluster=" + cluster.uid()));
         assertTrue(
-                mails.getFirst().contains("href=\"" + BASE + "/cluster/applications?cluster=" + cluster.uid() + "\""),
+                mails.getFirst()
+                        .contains("href=\"" + BASE + "/cluster/applications?cluster=" + cluster.uid() + "&read="),
                 "the item opens the association's applications, not a station's dashboard");
         assertTrue(mails.getFirst().contains("subject=Kreisverband Nord: 1 neue Benachrichtigung"));
         assertTrue(notificationRepo.findWaitingForDigest().isEmpty(), "both are marked, mailed or not");
@@ -456,6 +464,75 @@ class NotificationDigestTest extends RepositoryTestBase {
 
         assertTrue(mails.isEmpty());
         assertTrue(waiting(ben).isEmpty(), "what was due is marked whether or not it went out");
+    }
+
+    /** A notification read in the app before the mail goes out is not mailed. */
+    @Test
+    void aNotificationReadInTheAppIsNotMailed() {
+        var station = station("Wache Gelesen", "de-DE", "Europe/Berlin");
+        var rita = memberWithMail(station, "rita@read.test", "Rita", "Rot");
+        notificationSettingsRepo.upsert(rita.id(), NotificationType.NEW_NEWS, true, true, true);
+        notify(rita, NotificationType.NEW_NEWS, news("Schon gelesen"));
+        notificationRepo.acknowledge(
+                Recipient.stationMember(rita.id()), onlyUnread(rita).id());
+
+        digest.sweep(Instant.now());
+
+        assertTrue(mails.isEmpty());
+    }
+
+    /**
+     * A guardian who read a notification themselves is not mailed it again on a child's behalf, and
+     * the child's copy stays unread for the child.
+     */
+    @Test
+    void aGuardianIsNotMailedForAChildWhatTheyAlreadyRead() {
+        var station = station("Wache Gesehen", "de-DE", "Europe/Berlin");
+        var gina = memberWithMail(station, "gina@seen.test", "Gina", "Grün");
+        var leo = memberWithMail(station, "leo@seen.local", "Leo", "Grün");
+        for (var member : List.of(gina, leo)) {
+            notificationSettingsRepo.upsert(member.id(), NotificationType.NEW_NEWS, true, true, true);
+        }
+        stationMemberRepo.addManager(gina.id(), leo.id());
+        notifyAll(List.of(gina, leo), news("Dienstplan"));
+        notify(leo, NotificationType.NEW_NEWS, news("Nur Leo"));
+        notificationRepo.acknowledge(
+                Recipient.stationMember(gina.id()), onlyUnread(gina).id());
+
+        digest.sweep(Instant.now());
+
+        assertEquals(1, mails.size());
+        var mail = mails.getFirst();
+        assertTrue(mail.contains("count=1"), "only the news the guardian has not read yet");
+        assertTrue(mail.contains("Für Leo<"));
+        assertEquals(2, notificationRepo.countUnacknowledged(Recipient.stationMember(leo.id())));
+    }
+
+    /** Only the address owner's own items mark themselves read when opened, never a child's. */
+    @Test
+    void onlyTheOwnersOwnItemsCarryTheReadMarker() {
+        var station = station("Wache Marke", "de-DE", "Europe/Berlin");
+        var mara = memberWithMail(station, "mara@marker.test", "Mara", "Mohn");
+        var finn = memberWithMail(station, "finn@marker.local", "Finn", "Mohn");
+        for (var member : List.of(mara, finn)) {
+            notificationSettingsRepo.upsert(member.id(), NotificationType.NEW_NEWS, true, true, true);
+        }
+        stationMemberRepo.addManager(mara.id(), finn.id());
+        notifyAll(List.of(mara, finn), news("Für beide"));
+        notify(finn, NotificationType.NEW_NEWS, news("Nur Finn"));
+        int own = onlyUnread(mara).id();
+
+        digest.sweep(Instant.now());
+
+        var mail = mails.getFirst();
+        assertTrue(mail.contains("read=" + own + "\""), "the guardian's own copy is marked by its link");
+        assertEquals(1, mail.split("read=", -1).length - 1, "the child's item carries no marker");
+    }
+
+    private static Notification onlyUnread(StationMember member) {
+        return notificationRepo
+                .findUnacknowledged(Recipient.stationMember(member.id()))
+                .getFirst();
     }
 
     private static void notifyAll(List<StationMember> members, NotificationData data) {

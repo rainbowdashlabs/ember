@@ -139,6 +139,15 @@ class NotificationTextTest {
      * is missing where there is no link, and carries the station for a reader of several stations.
      */
     @Test
+    void theReadMarkerJoinsWhateverQueryTheAddressAlreadyCarries() {
+        assertEquals(
+                BASE + "/station/events/42?read=7", NotificationText.withReadMarker(BASE + "/station/events/42", 7));
+        assertEquals(
+                BASE + "/station/news/3?comment=5&read=7",
+                NotificationText.withReadMarker(BASE + "/station/news/3?comment=5", 7));
+    }
+
+    @Test
     void resolveNotificationUrlHandlesMissingLinkUnknownRouteAndKnownRoute() {
         var noLink = new NotificationData(new NotificationParams.MemberAddedToGroup("Alpha", null), null);
         assertNull(text.resolveNotificationUrl(BASE, LinkHome.station(null), noLink));

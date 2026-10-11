@@ -33,17 +33,29 @@ export function useMediaBulkActions(deps: PageFileBulkDeps) {
         bulkMoveOpen.value = true
     }
 
-    async function runBulkMove() {
-        const target = bulkMoveTarget.value
-        const ids = [...selectedIds.value]
+    async function moveFiles(ids: number[], target: number | null) {
         for (const id of ids) {
             await moveMediaFileToFolder(id, target)
         }
         entries.value = entries.value.map(e => ids.includes(e.file.id)
             ? {...e, file: {...e.file, folderId: target}}
             : e)
+    }
+
+    async function runBulkMove() {
+        await moveFiles([...selectedIds.value], bulkMoveTarget.value)
         bulkMoveOpen.value = false
         selectedIds.value = []
+    }
+
+    /**
+     * Moves a file dropped on a folder, and the whole selection with it where it was among the selected
+     * files; a file dragged from outside the selection moves on its own and the selection stays.
+     */
+    async function dropOnFolder(fileId: number, target: number | null) {
+        const withSelection = selectedIds.value.includes(fileId)
+        await moveFiles(withSelection ? [...selectedIds.value] : [fileId], target)
+        if (withSelection) selectedIds.value = []
     }
 
     async function runBulkDelete() {
@@ -76,6 +88,7 @@ export function useMediaBulkActions(deps: PageFileBulkDeps) {
         bulkDeleteOpen,
         openBulkMove,
         runBulkMove,
+        dropOnFolder,
         runBulkDelete,
         showPruneConfirm,
         pruning,

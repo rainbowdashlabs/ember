@@ -10,6 +10,7 @@ import {useRouter, type RouteLocationRaw} from 'vue-router'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
+import LinkButton from '@/components/button/LinkButton.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import NotificationRow from './NotificationRow.vue'
@@ -18,7 +19,8 @@ import {useNotificationInbox} from '@/composables/useNotificationInbox'
 
 /**
  * The unread notifications of one inbox, to open and to mark read: a station member's on the
- * dashboard, an association member's on the association's notifications page.
+ * dashboard, an association member's on the association's notifications page. Below them, a button
+ * lists the read ones among the most recent, to open again.
  *
  * <p>Whose inbox it is comes in as the api; everything else is the same for both. `onChanged` runs
  * after something was marked read, for the counters beside the menu entries. It is a prop rather
@@ -35,7 +37,7 @@ const props = defineProps<{
 
 const {t} = useI18n()
 const router = useRouter()
-const {notifications, loading, load, acknowledge, acknowledgeAll} =
+const {notifications, earlier, loading, load, loadEarlier, acknowledge, acknowledgeAll} =
     useNotificationInbox(props.api, () => props.onChanged?.())
 
 function openSettings() {
@@ -78,6 +80,17 @@ onMounted(load)
 
       <NotificationRow v-for="entry in notifications" :key="entry.id" :notification="entry"
                        @acknowledge="acknowledge"/>
+
+      <div v-if="!loading && earlier === null" class="flex justify-center pt-1">
+        <LinkButton data-testid="notifications-earlier" @click="loadEarlier">
+          <font-awesome-icon :icon="['fas', 'clock-rotate-left']" class="mr-1"/>
+          {{ t('dashboard.showEarlier') }}
+        </LinkButton>
+      </div>
+      <p v-else-if="earlier?.length === 0" class="text-center text-sm text-(--text-muted)">
+        {{ t('dashboard.noEarlier') }}
+      </p>
+      <NotificationRow v-for="entry in earlier ?? []" :key="entry.id" :notification="entry"/>
     </div>
   </NeutralContainer>
 </template>

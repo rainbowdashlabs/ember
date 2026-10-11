@@ -116,14 +116,20 @@ test.describe('Document templates', () => {
         await expect(managerPage.getByText('Dokument erstellt und abgelegt.')).toBeVisible()
         await expect(managerPage.getByText(name).first()).toBeVisible()
 
-        await memberPage.goto('/station/documents')
+        await memberPage.goto('/station/documents/self-service')
         const offer = memberPage.getByTestId('self-service-offer').filter({hasText: name})
         await offer.getByTestId('self-service-generate').click()
-        await expect(memberPage.getByText(name).first()).toBeVisible()
+        const created = memberPage.getByRole('dialog')
+        await expect(created.getByTestId('file-view')).toBeVisible()
+        await memberPage.keyboard.press('Escape')
+        await expect(created).toBeHidden()
         await expect(offer.getByText(/Wieder möglich ab/)).toBeVisible()
 
         await offer.getByTestId('self-service-generate').click()
         await expect(memberPage.getByTestId('self-service-documents')
             .getByText(/kann wieder erstellt werden ab/)).toBeVisible()
+
+        await memberPage.goto('/station/documents')
+        await expect(memberPage.getByText(name).first()).toBeVisible()
     })
 })

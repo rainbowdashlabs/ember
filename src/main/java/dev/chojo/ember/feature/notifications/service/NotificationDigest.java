@@ -23,6 +23,7 @@ import dev.chojo.ember.lifecycle.ScheduledTask;
 import dev.chojo.ember.lifecycle.TaskSource;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -320,11 +321,12 @@ public class NotificationDigest implements TaskSource {
     /**
      * One notification as it reads in a digest mail, its link carrying the station or the cluster
      * the mail is about, and naming the members it reaches the address for where it is not for the
-     * owner of the address.
+     * owner of the address. Where it is the owner's own, the link marks it read once opened; a
+     * child's copy stays unread for the child.
      */
     private String itemHtml(DigestMail.Entry entry, String locale, String baseUrl, LinkHome home) {
         var notification = entry.notification();
-        String itemUrl = text.resolveNotificationUrl(baseUrl, home, notification.data());
+        String itemUrl = itemUrl(entry, baseUrl, home);
         var item = new StringBuilder("<li class=\"notification-item\">");
         if (itemUrl != null) {
             item.append("<a href=\"").append(itemUrl).append("\" style=\"text-decoration:none;color:inherit\">");
@@ -351,6 +353,13 @@ public class NotificationDigest implements TaskSource {
             item.append("</a>");
         }
         return item.append("</li>").toString();
+    }
+
+    private @Nullable String itemUrl(DigestMail.Entry entry, String baseUrl, LinkHome home) {
+        var notification = entry.notification();
+        String url = text.resolveNotificationUrl(baseUrl, home, notification.data());
+        if (url == null || !entry.forMembers().isEmpty()) return url;
+        return NotificationText.withReadMarker(url, notification.id());
     }
 
     private static String escapeHtml(String text) {

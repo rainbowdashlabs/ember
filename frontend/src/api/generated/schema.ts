@@ -43024,6 +43024,42 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/notifications/{id}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark a notification read that was opened through its link */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/notifications/acknowledge-all": {
         parameters: {
             query?: never;
@@ -65627,6 +65663,8 @@ export interface components {
         };
         /** @enum {string} */
         IdentityType: "ACCOUNT_ID" | "MEMBER_ID" | "MEMBER_UID";
+        /** @enum {string} */
+        ImageAlign: "LEFT" | "CENTER" | "RIGHT";
         ImageConfig: {
             altText?: string;
             borderColor?: string;
@@ -65639,6 +65677,7 @@ export interface components {
             cropRight?: number;
             cropTop?: number;
             description?: string;
+            imageAlign?: components["schemas"]["ImageAlign"];
             imageFit?: components["schemas"]["ImageFit"];
             /** Format: int32 */
             maxHeight?: number;
@@ -73639,6 +73678,7 @@ export type HourlyTrafficRow = components['schemas']['HourlyTrafficRow'];
 export type IdentityColumn = components['schemas']['IdentityColumn'];
 export type IdentityResponse = components['schemas']['IdentityResponse'];
 export type IdentityType = components['schemas']['IdentityType'];
+export type ImageAlign = components['schemas']['ImageAlign'];
 export type ImageConfig = components['schemas']['ImageConfig'];
 export type ImageFit = components['schemas']['ImageFit'];
 export type ImageGalleryConfig = components['schemas']['ImageGalleryConfig'];
@@ -75109,6 +75149,12 @@ export const IdentityType = {
     ACCOUNT_ID: "ACCOUNT_ID",
     MEMBER_ID: "MEMBER_ID",
     MEMBER_UID: "MEMBER_UID",
+} as const;
+
+export const ImageAlign = {
+    CENTER: "CENTER",
+    LEFT: "LEFT",
+    RIGHT: "RIGHT",
 } as const;
 
 export const ImageFit = {

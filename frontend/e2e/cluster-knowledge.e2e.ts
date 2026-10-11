@@ -205,7 +205,7 @@ test.describe('Cluster knowledge', () => {
                 .toHaveAttribute('data-reach', 'federated')
 
             await page.getByRole('switch').first().click()
-            await expect(page.getByText('Öffentliches Wiki gespeichert.'),
+            await expect(page.getByTestId('save-status-saved'),
                 'the switch is saved before the page is read again').toBeVisible()
             await expect(async () => {
                 await page.reload()

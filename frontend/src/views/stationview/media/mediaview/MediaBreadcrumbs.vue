@@ -5,8 +5,8 @@
  */
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
-import BaseButton from '@/components/button/BaseButton.vue'
 import type {StationFileFolder} from '@/api/generated/schema'
+import MediaCrumb from './MediaCrumb.vue'
 
 const props = defineProps<{
   breadcrumbs: StationFileFolder[]
@@ -22,19 +22,15 @@ const {t} = useI18n()
 
 <template>
   <nav class="flex items-center gap-1 text-sm flex-wrap">
-    <BaseButton compact class="!font-normal hover:bg-(--bg-accent)"
-                :class="props.activeFolder === null ? '!text-primary !font-medium' : '!text-(--text-muted)'"
-                @click="emit('navigate', null)">
+    <MediaCrumb :folder-id="null" :current="props.activeFolder === null" @navigate="emit('navigate', $event)">
       <font-awesome-icon :icon="['fas', 'house']" class="mr-1"/>
       {{ t('stationPages.editor.root') }}
-    </BaseButton>
+    </MediaCrumb>
     <template v-for="(b, i) in props.breadcrumbs" :key="b.id">
       <span class="text-(--text-muted)">/</span>
-      <BaseButton compact class="!font-normal hover:bg-(--bg-accent)"
-                  :class="i === props.breadcrumbs.length - 1 ? '!text-primary !font-medium' : '!text-(--text-muted)'"
-                  @click="emit('navigate', b.id)">
+      <MediaCrumb :folder-id="b.id" :current="i === props.breadcrumbs.length - 1" @navigate="emit('navigate', $event)">
         {{ b.name }}
-      </BaseButton>
+      </MediaCrumb>
     </template>
   </nav>
 </template>

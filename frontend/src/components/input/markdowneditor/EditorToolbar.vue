@@ -11,6 +11,7 @@ import type { FontFamilyOption } from '@/api/generated/schema'
 import EditorFontPicker from './EditorFontPicker.vue'
 import EditorColorPicker from './EditorColorPicker.vue'
 import EditorSizePicker from './EditorSizePicker.vue'
+import EditorSpacingPicker from './EditorSpacingPicker.vue'
 import EditorToolbarButton from './EditorToolbarButton.vue'
 import { applyTextSize, shownSizeAtCursor, sizeAtCursor, TEXT_SIZE } from './textSize'
 import { NORMAL_TEXT_SIZE } from '@/util/textSize'
@@ -180,6 +181,7 @@ const toolbarButtons: ToolbarButton[][] = [
       :shown="editor ? shownSizeAtCursor(editor) : NORMAL_TEXT_SIZE"
       @pick="setTextSize"
     />
+    <EditorSpacingPicker :editor="editor" />
 
     <EditorFontPicker v-if="fonts" :editor="editor" :fonts="fonts" />
   </div>

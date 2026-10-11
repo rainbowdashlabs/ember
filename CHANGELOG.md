@@ -1,5 +1,40 @@
 # Changelog
 
+## v26.22.3
+
+Notifications opened from a mail, a feed or the app count as read, and read notifications stay out of the next mail. Earlier notifications can be shown again below the unread ones. The German interface calls the start page "Übersicht".
+
+### Improvements
+
+- **The letter editor shows the letter's text size.** Header, body and footer of a letter template show their text in the size the letter prints it in, and follow the page setting as it changes. The text size of the page can be set back to the default in one click.
+- **Media files can be dragged into folders.** In the media library a file can be dragged onto a folder in the sidebar, onto a folder tile or onto a step of the path above to move it there. Dragging one of several selected files moves all of them.
+- **Pasted Ember links read as their title.** Pasting the address of a news entry, an appointment, a wiki article or a page, of the station or of a partner station, into the text editor puts in a link named by its title, or by the name of the page. Undo brings the address back, and links to other sites stay as pasted.
+- **Line height and letter spacing in the text editor.** A new spacing button sets the line height of paragraphs and the spacing between the letters of selected words, each in a few fixed steps. Pages, articles, news and printed letters show both the same way.
+- **Pictures can stand left, centred or right.** A picture block that is narrower than its column, for example with a maximum height, can be aligned to the left, the middle or the right, with its caption on the same side. Pages, articles, news and printed letters all show it there.
+- **Earlier notifications can be shown again.** A button below the unread notifications lists the ones already read, among the 50 most recent. It works on the start page and on an association's notifications page.
+
+### Changes
+
+- **The start page is called "Übersicht" in German.** The German interface and help center name the start page "Übersicht" instead of "Dashboard".
+- **Creating documents has its own menu entry.** Documents members create for themselves from the station's templates moved from My Documents to Documents → Create yourself, where a created document opens right away. My Documents shows one tab per person for guardians, their own and each child's, with a larger search field above the list.
+- **Saving shows on the save button.** Document templates, a station's use of an association template, pages, checklist membership and answers per appointment date show saving and saved on their button instead of a pop-up message. Settings that save as soon as they change, such as the instance settings and an association's public wiki, show the same status beside them.
+- **Appointments show their time first.** The general information of an appointment shows begin and end above the description, and the attendance template takes a row of its own.
+- **Paragraphs sit closer together.** News, pages, articles and the help center show less space between lines and between paragraphs, so a new paragraph no longer looks like an empty line.
+- **Text sizes are given in points.** The text editor sets words in a size in points from 5 to 72, as letters already do. Texts sized in pixels before keep their look and are stored in points once saved again.
+
+### Fixes
+
+- **Document previews could not be zoomed or moved.** The preview of a template, of a generated document and of a bulk run showed no zoom controls, and a zoomed document could not be dragged with the mouse. Every document view now zooms and can be dragged when zoomed in.
+- **Documents had no icon in the permission picker.** The documents permissions were the only group in the permission picker shown without an icon. They now show the documents icon.
+- **The document store showed no previews.** Every document in the store showed only a file icon, although a preview had been made for it. The store shows the previews again.
+- **Document tiles had uneven widths.** In the document store a long title stretched its tile and left wide gaps between tiles. Tiles now fill their column, and long titles wrap.
+- **An open document named nobody it belonged to.** Under My Documents an opened document said it belonged to no member, although it was listed as the document of a person. It now names that person.
+- **The default font was missing from the fonts page.** The font documents print in by default, such as Berlin Type, was offered in every font picker but not listed on the fonts page. It now heads the list of available fonts with a sample.
+- **Empty lines disappeared from texts.** Lines left empty on purpose in news, pages, articles and letters were removed on saving. They are now kept and show as empty lines on the page and in printed letters.
+- **Read notifications were mailed anyway.** A notification already read in the app still appeared in the next notification mail, and a guardian received news on a child's behalf that they had already read themselves. Read notifications now stay out of the mail, while a child's own copy stays unread for the child.
+- **The back button of an appointment led to the wrong list.** For the event management, the back button of an appointment always opened the events overview, wherever the appointment had been opened from. It now returns to the page before, or to the upcoming appointments where there is none.
+- **Opening a notification from a mail or a feed left it unread.** Following a notification's link from a mail or a feed reader did not mark it read. Opening it now marks it read, also after signing in first.
+
 ## v26.22.2
 
 The notification settings name every mail provider a member's mail may go through, each with its privacy notice. The instance's mail providers can be given a name and a privacy notice for members. Guardians receive one notification mail for themselves and the children they look after.

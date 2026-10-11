@@ -64,7 +64,18 @@ class ContentContainerRepositoryTest extends RepositoryTestBase {
                     CellContentType.IMAGE,
                     "abc123",
                     new CellConfig.ImageConfig(
-                            CellConfig.ImageFit.COVER, null, null, null, null, null, null, null, null, null, null));
+                            CellConfig.ImageFit.COVER,
+                            null,
+                            null,
+                            null,
+                            null,
+                            null,
+                            null,
+                            null,
+                            null,
+                            null,
+                            null,
+                            null));
 
             var rows = contentContainerRepo.findRows(container.id());
             assertEquals(1, rows.size());

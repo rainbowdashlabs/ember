@@ -261,19 +261,14 @@ function onSaveMeta(payload: {name: string; description: string; orderedColumnId
  * Changes what the list is made of. Nobody arrives or leaves on saving: the new source decides who
  * the next refresh brings in, and rows already here stay where they are either way.
  */
-const {running: savingMembership, failure: membershipFailure, run: runSaveMembership} = useAsyncAction(
+const {failure: membershipFailure, runOrReject: runSaveMembership} = useAsyncAction(
     async (payload: Pick<ChecklistUpdateRequest, 'restriction' | 'source'>) => {
       if (!detail.value) return
       await checklists.updateChecklist(detail.value.id, payload)
       showMembership.value = false
       await catchUp()
-      showToast(t('checklist.membershipSaved'), 'success')
     },
 )
-
-function onSaveMembership(payload: Pick<ChecklistUpdateRequest, 'restriction' | 'source'>) {
-  return runSaveMembership(payload)
-}
 
 const {failure: deleteFailure, run: runDeleteChecklist} = useAsyncAction(
     async () => {
@@ -407,9 +402,8 @@ const pageSubtitle = computed(() => detail.value?.description || t('pages.checkl
             :groups="groups"
             :tags="tags"
             :members="members"
-            :saving="savingMembership"
+            :save="runSaveMembership"
             :failure="membershipFailure"
-            @submit="onSaveMembership"
         />
 
         <ConfirmDeleteModal

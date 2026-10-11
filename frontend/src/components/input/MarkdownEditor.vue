@@ -29,6 +29,9 @@ import type { EditorTokens } from './markdowneditor/editorTokens'
 import { extendTurndownWithTextFont, TextFont } from './markdowneditor/textFont'
 import { BlockAlign } from './markdowneditor/blockAlign'
 import { TextSize } from './markdowneditor/textSize'
+import { BlockLineHeight, TextLetterSpacing } from './markdowneditor/textSpacing'
+import { openEmptyLines, withoutOuterEmptyLines } from './markdowneditor/emptyLines'
+import { InternalLinkTitles, useLinkTitleResolver } from './markdowneditor/linkTitles'
 import type { FontFamilyOption } from '@/api/generated/schema'
 import { isYoutubeUrl, videoEmbedUrl } from '@/util/youtube'
 import EditorToolbar from './markdowneditor/EditorToolbar.vue'
@@ -108,6 +111,8 @@ function leavesEscapeToPage(event: KeyboardEvent): boolean {
  * resizable, which keeps column widths in a colgroup; the stylesheet lays tables out fixed, the
  * only layout under which a browser reads those widths rather than sizing columns by their content.
  */
+const linkTitle = useLinkTitleResolver()
+
 const editor = useEditor({
   extensions: [
     StarterKit.configure({ heading: { levels: [1, 2, 3] }, link: false, underline: false }),
@@ -118,7 +123,8 @@ const editor = useEditor({
     TableRow, TableHeader, TableCell,
     Highlight.configure({ multicolor: true }),
     Youtube.configure({ inline: false }),
-    ResizableImage, TextStyle, Color, TextSize, BlockAlign,
+    ResizableImage, TextStyle, Color, TextSize, BlockAlign, TextLetterSpacing, BlockLineHeight,
+    InternalLinkTitles.configure({ resolve: linkTitle }),
     ...(props.tokens?.extensions ?? []),
     ...(props.fonts ? [TextFont.configure({ shown: family => editorFonts?.shown(family) ?? false })] : []),
   ],
@@ -148,7 +154,7 @@ const editor = useEditor({
 
 /** What the editor holds, as the markdown that is stored, with several spaces in a row kept. */
 function markdownOf(ed: EditorContentAccess): string {
-  return turndown.turndown(htmlWithStoredSpaces(ed))
+  return withoutOuterEmptyLines(turndown.turndown(htmlWithStoredSpaces(ed)))
 }
 
 function updateState(ed: { isActive: (n: string, a?: Record<string, unknown>) => boolean; getAttributes: (n: string) => Record<string, unknown> }) {
@@ -161,7 +167,7 @@ async function setEditorContent(md: string) {
   if (!editor.value) return
   isUpdatingFromProp.value = true
   let html = renderMarkdown(props.tokens ? props.tokens.prepare(md) : md)
-  html = keepInlineCodeSpaces(html.replace(/<p>(<img [^>]*>)<\/p>/g, '$1'))
+  html = openEmptyLines(keepInlineCodeSpaces(html.replace(/<p>(<img [^>]*>)<\/p>/g, '$1')))
   editor.value.commands.setContent(html, { emitUpdate: false })
   showTypedSpaces(editor.value)
   await nextTick()

@@ -18,6 +18,7 @@ import {useMediaSelection} from './mediaview/useMediaSelection'
 import {useMediaUpload} from './mediaview/useMediaUpload'
 import {useMediaEditing} from './mediaview/useMediaEditing'
 import {useMediaBulkActions} from './mediaview/useMediaBulkActions'
+import {provideMediaDrop} from '@/composables/useMediaDrop'
 import {PAGE_SIZE_OPTIONS, useMediaPaging} from './mediaview/useMediaPaging'
 import type {StationFile} from '@/api/generated/schema'
 
@@ -103,12 +104,15 @@ const {
     bulkDeleteOpen,
     openBulkMove,
     runBulkMove,
+    dropOnFolder,
     runBulkDelete,
     showPruneConfirm,
     pruning,
     runPrune,
     confirmPrune,
 } = useMediaBulkActions({entries, selectedIds, activeFolder, clearSelection, reload: load})
+
+provideMediaDrop((fileId, folderId) => void dropOnFolder(fileId, folderId))
 
 function openPreview(f: StationFile) {
     previewFile.value = f

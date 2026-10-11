@@ -59,21 +59,21 @@ describe('EditorSizePicker', () => {
         expect(panel()).not.toBeNull()
     })
 
-    it.each(['5', '97', '12.5'])('refuses %s and says so', async typed => {
+    it.each(['4', '73', '12.5'])('refuses %s and says so', async typed => {
         const wrapper = await opened()
         await field().setValue(typed)
         await field().trigger('keydown', {key: 'Enter'})
 
         expect(wrapper.emitted('pick')).toBeUndefined()
         expect(field().attributes('aria-invalid')).toBe('true')
-        expect(panel()?.textContent).toContain('ganze Zahl von 6 bis 96')
+        expect(panel()?.textContent).toContain('ganze Zahl von 5 bis 72')
     })
 
     it('shows the size at the cursor and on its button', async () => {
         const wrapper = await opened(18)
 
         expect(field().element.value).toBe('18')
-        expect(wrapper.find('[data-testid="editor-size"]').text()).toBe('18 px')
+        expect(wrapper.find('[data-testid="editor-size"]').text()).toBe('18 pt')
     })
 
     it('takes the size off for an emptied field', async () => {

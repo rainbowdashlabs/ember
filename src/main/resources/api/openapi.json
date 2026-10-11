@@ -34037,6 +34037,26 @@
         } ]
       }
     },
+    "/api/v1/notifications/{id}/read" : {
+      "post" : {
+        "summary" : "Mark a notification read that was opened through its link",
+        "tags" : [ "Notifications" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
     "/api/v1/onboarding/instance" : {
       "get" : {
         "summary" : "What this instance still has to set up",
@@ -59804,6 +59824,10 @@
         "type" : "string",
         "enum" : [ "ACCOUNT_ID", "MEMBER_ID", "MEMBER_UID" ]
       },
+      "ImageAlign" : {
+        "type" : "string",
+        "enum" : [ "LEFT", "CENTER", "RIGHT" ]
+      },
       "ImageConfig" : {
         "type" : "object",
         "properties" : {
@@ -59842,6 +59866,9 @@
           },
           "borderColor" : {
             "type" : "string"
+          },
+          "imageAlign" : {
+            "$ref" : "#/components/schemas/ImageAlign"
           }
         }
       },

@@ -168,7 +168,7 @@ class NotificationFeedRendererTest {
                 1, NotificationType.MEMBER_ADDED_TO_GROUP, new NotificationParams.MemberAddedToGroup("Alpha", null));
         var entry = renderer.render(n, richCtx());
         assertNotNull(entry.getLink());
-        assertEquals("https://ember.example.com/station/dashboard/overview", entry.getLink());
+        assertEquals("https://ember.example.com/station/dashboard/overview?read=1", entry.getLink());
     }
 
     @Test
@@ -177,7 +177,7 @@ class NotificationFeedRendererTest {
                 .thenReturn("https://ember.example.com/station/events/42");
         var n = notification(2, NotificationType.NEW_EVENT, new NotificationParams.NewEvent("Probe", "Konzert"));
         var entry = renderer.render(n, richCtx());
-        assertEquals("https://ember.example.com/station/events/42", entry.getLink());
+        assertEquals("https://ember.example.com/station/events/42?read=2", entry.getLink());
     }
 
     @Test

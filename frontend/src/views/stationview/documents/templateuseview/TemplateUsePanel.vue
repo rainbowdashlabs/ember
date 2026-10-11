@@ -9,7 +9,7 @@ import {useI18n} from 'vue-i18n'
 import {useRouter} from 'vue-router'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import SaveButton from '@/components/button/SaveButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import Alert from '@/components/feedback/Alert.vue'
@@ -41,11 +41,8 @@ const props = defineProps<{
   groups: MemberGroup[]
   tags: UserTag[]
   members: MemberWithName[]
-  saving: boolean
-}>()
-
-const emit = defineEmits<{
-  save: []
+  /** Saves the station's use; the button shows its progress and rejects back to idle on a failure. */
+  save: () => Promise<unknown>
 }>()
 
 const {t} = useI18n()
@@ -77,9 +74,7 @@ const issuers = computed(() => props.members.map(fromMember))
       <SecondaryButton :icon="['fas', 'arrow-left']" @click="router.push({name: STATION_TEMPLATE_SCREENS.listRoute})">
         {{ t('documentTemplates.backToList') }}
       </SecondaryButton>
-      <PrimaryButton :icon="['fas', 'floppy-disk']" :disabled="saving" data-testid="template-use-save" @click="emit('save')">
-        {{ t('common.save') }}
-      </PrimaryButton>
+      <SaveButton :action="save" data-testid="template-use-save"/>
     </ButtonRow>
   </NeutralContainer>
 </template>
