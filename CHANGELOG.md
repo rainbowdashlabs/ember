@@ -7,6 +7,7 @@ Notifications opened from a mail, a feed or the app count as read, and read noti
 ### Improvements
 
 - **The letter editor shows the letter's text size.** Header, body and footer of a letter template show their text in the size the letter prints it in, and follow the page setting as it changes. The text size of the page can be set back to the default in one click.
+- **Media files can be dragged into folders.** In the media library a file can be dragged onto a folder in the sidebar, onto a folder tile or onto a step of the path above to move it there. Dragging one of several selected files moves all of them.
 - **Pasted Ember links read as their title.** Pasting the address of a news entry, an appointment, a wiki article or a page, of the station or of a partner station, into the text editor puts in a link named by its title, or by the name of the page. Undo brings the address back, and links to other sites stay as pasted.
 - **Line height and letter spacing in the text editor.** A new spacing button sets the line height of paragraphs and the spacing between the letters of selected words, each in a few fixed steps. Pages, articles, news and printed letters show both the same way.
 - **Pictures can stand left, centred or right.** A picture block that is narrower than its column, for example with a maximum height, can be aligned to the left, the middle or the right, with its caption on the same side. Pages, articles, news and printed letters all show it there.
@@ -17,7 +18,8 @@ Notifications opened from a mail, a feed or the app count as read, and read noti
 - **The start page is called "Übersicht" in German.** The German interface and help center name the start page "Übersicht" instead of "Dashboard".
 - **Creating documents has its own menu entry.** Documents members create for themselves from the station's templates moved from My Documents to Documents → Create yourself, where a created document opens right away. My Documents shows one tab per person for guardians, their own and each child's, with a larger search field above the list.
 - **Saving shows on the save button.** Document templates, a station's use of an association template, pages, checklist membership and answers per appointment date show saving and saved on their button instead of a pop-up message. Settings that save as soon as they change, such as the instance settings and an association's public wiki, show the same status beside them.
-- **Paragraphs sit closer together.** News, pages and articles show less space between lines and between paragraphs, so a new paragraph no longer looks like an empty line.
+- **Appointments show their time first.** The general information of an appointment shows begin and end above the description, and the attendance template takes a row of its own.
+- **Paragraphs sit closer together.** News, pages, articles and the help center show less space between lines and between paragraphs, so a new paragraph no longer looks like an empty line.
 - **Text sizes are given in points.** The text editor sets words in a size in points from 5 to 72, as letters already do. Texts sized in pixels before keep their look and are stored in points once saved again.
 
 ### Fixes

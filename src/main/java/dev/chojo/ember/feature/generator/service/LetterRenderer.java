@@ -371,8 +371,8 @@ public class LetterRenderer {
         if (cell.config() instanceof CellConfig.ImageConfig image) {
             Integer maxHeight = image.maxHeight();
             if (maxHeight != null && maxHeight > 0) drawn.put("maxHeightMm", maxHeight * LetterLayout.MM_PER_PIXEL);
-            if (image.imageAlign() != null)
-                drawn.put("align", image.imageAlign().name().toLowerCase(Locale.ROOT));
+            CellConfig.ImageAlign align = image.imageAlign();
+            if (align != null) drawn.put("align", align.name().toLowerCase(Locale.ROOT));
         }
         return drawn;
     }

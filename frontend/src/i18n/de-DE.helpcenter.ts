@@ -5997,7 +5997,10 @@ volumes:
             ownTitle: 'Eigene Uploads',
             ownText: 'Wer keine Rechte an Seiten, Neuigkeiten oder Wiki hat, darf trotzdem Bilder hochladen und einfügen, sieht in der Auswahl aber nur die eigenen Uploads. Angezeigt werden die Bilder danach für alle, die den Inhalt lesen dürfen.',
             foldersTitle: 'Ordner',
-            foldersText: 'Erstelle Ordner, um Dateien thematisch zu gruppieren. Ordner können auch verschachtelt werden.',
+            foldersText: 'Erstelle Ordner, um Dateien thematisch zu gruppieren. Ordner können auch verschachtelt werden. '
+                + 'Ziehe eine Datei mit der Maus auf einen Ordner in der Seitenleiste, auf eine Ordnerkachel oder auf einen '
+                + 'Schritt im Pfad darüber, um sie dorthin zu verschieben. Hast du mehrere Dateien ausgewählt und ziehst eine '
+                + 'davon, wandern alle ausgewählten mit.',
             tagsTitle: 'Tags',
             tagsText: 'Tags sind farbige Marker. Eine Datei kann mehrere Tags haben. Über die Tag-Leiste filterst du die Anzeige.',
             pruneTitle: 'Unbenutzte aufräumen',

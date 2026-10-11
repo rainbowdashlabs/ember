@@ -7,6 +7,7 @@ Benachrichtigungen gelten als gelesen, sobald sie aus einer Mail, einem Feed ode
 ### Verbesserungen
 
 - **Der Brief-Editor zeigt die Schriftgröße des Briefs.** Kopf, Text und Fußzeile einer Briefvorlage zeigen ihren Text in der Größe, in der der Brief ihn druckt, und folgen der Seiteneinstellung, wenn sie sich ändert. Die Schriftgröße der Seite lässt sich mit einem Klick auf den Standard zurücksetzen.
+- **Mediendateien lassen sich in Ordner ziehen.** In der Mediathek lässt sich eine Datei auf einen Ordner in der Seitenleiste, auf eine Ordnerkachel oder auf einen Schritt im Pfad darüber ziehen, um sie dorthin zu verschieben. Wird eine von mehreren ausgewählten Dateien gezogen, wandern alle mit.
 - **Eingefügte Ember-Links zeigen ihren Titel.** Wird die Adresse einer Neuigkeit, eines Termins, eines Wiki-Artikels oder einer Seite der Wache oder einer Partnerwache in den Texteditor eingefügt, steht dort ein Link mit ihrem Titel oder dem Namen der Seite. Rückgängig holt die Adresse zurück, Links zu anderen Seiten bleiben wie eingefügt.
 - **Zeilenhöhe und Zeichenabstand im Texteditor.** Ein neuer Button für Abstände setzt die Zeilenhöhe von Absätzen und den Abstand zwischen den Buchstaben markierter Wörter, jeweils in wenigen festen Stufen. Seiten, Artikel, Neuigkeiten und gedruckte Briefe zeigen beides genauso.
 - **Bilder stehen links, mittig oder rechts.** Ein Bildblock, der schmaler als seine Spalte ist, etwa mit einer maximalen Höhe, lässt sich links, mittig oder rechts ausrichten, die Bildunterschrift steht auf derselben Seite. Seiten, Artikel, Neuigkeiten und gedruckte Briefe zeigen es dort.
@@ -17,7 +18,8 @@ Benachrichtigungen gelten als gelesen, sobald sie aus einer Mail, einem Feed ode
 - **Die Startseite heißt „Übersicht“.** Oberfläche und Hilfe nennen die Startseite auf Deutsch „Übersicht“ statt „Dashboard“.
 - **Dokumente erstellen hat einen eigenen Menüpunkt.** Dokumente, die Mitglieder aus den Vorlagen der Wache selbst erstellen, stehen nicht mehr unter Meine Dokumente, sondern unter Dokumente → Selbst erstellen, wo sich ein erstelltes Dokument gleich öffnet. Meine Dokumente zeigt Erziehungsberechtigten einen Reiter je Person, für sich und jedes Kind, mit einem größeren Suchfeld über der Liste.
 - **Speichern zeigt sich am Speichern-Knopf.** Dokumentvorlagen, die Nutzung einer Verbandsvorlage durch die Wache, Seiten, die Zusammensetzung einer Checkliste und Eintragungen pro Termindatum zeigen Speichern und Gespeichert am Knopf statt in einer eingeblendeten Meldung. Einstellungen, die sofort gespeichert werden, etwa die der Instanz und das öffentliche Wiki eines Verbands, zeigen denselben Stand daneben.
-- **Absätze stehen enger beieinander.** Neuigkeiten, Seiten und Artikel lassen weniger Platz zwischen Zeilen und Absätzen, so dass ein neuer Absatz nicht mehr wie eine Leerzeile aussieht.
+- **Termine zeigen zuerst ihre Zeit.** Die allgemeinen Angaben eines Termins zeigen Beginn und Ende über der Beschreibung, und die Anwesenheitsvorlage steht in einer eigenen Zeile.
+- **Absätze stehen enger beieinander.** Neuigkeiten, Seiten, Artikel und die Hilfe lassen weniger Platz zwischen Zeilen und Absätzen, so dass ein neuer Absatz nicht mehr wie eine Leerzeile aussieht.
 - **Schriftgrößen stehen in Punkt.** Der Texteditor setzt Wörter in einer Größe in Punkt von 5 bis 72, wie es Briefe schon tun. Texte mit Größen in Pixeln sehen weiter gleich aus und werden beim nächsten Speichern in Punkt abgelegt.
 
 ### Fehlerbehebungen

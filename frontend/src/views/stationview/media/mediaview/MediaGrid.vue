@@ -5,9 +5,9 @@
  */
 <script lang="ts" setup>
 import {onBeforeUnmount, onMounted, ref} from 'vue'
-import BaseButton from '@/components/button/BaseButton.vue'
 import type {FileListing, StationFile, StationFileFolder, StationFileTag} from '@/api/generated/schema'
 import MediaGridItem from './mediagrid/MediaGridItem.vue'
+import MediaFolderTile from './mediagrid/MediaFolderTile.vue'
 
 const props = defineProps<{
     folders: StationFileFolder[]
@@ -63,16 +63,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocClick))
 
 <template>
     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-        <BaseButton v-for="f in folders" :key="'f-' + f.id"
-                    class="!p-0 !flex-col !rounded-theme !border !border-(--border) overflow-hidden hover:!border-primary hover:!bg-primary/5"
-                    @click="emit('open-folder', f.id)">
-            <div class="aspect-square w-full bg-(--bg-accent) flex items-center justify-center">
-                <font-awesome-icon :icon="['fas', 'folder']" class="text-4xl text-primary"/>
-            </div>
-            <div class="p-2 text-xs min-w-0 w-full text-left">
-                <p class="truncate font-medium" :title="f.name">{{ f.name }}</p>
-            </div>
-        </BaseButton>
+        <MediaFolderTile v-for="f in folders" :key="'f-' + f.id" :folder="f" @open="emit('open-folder', $event)"/>
 
         <MediaGridItem v-for="(e, idx) in files" :key="'e-' + e.file.id"
                            :entry="e" :index="idx" :tags="tags" :station-uid="stationUid"
