@@ -1,5 +1,14 @@
 # Änderungsprotokoll
 
+## v26.22.4
+
+Der Tag, an dem ein Mitglied beigetreten ist, steht in der Mitgliederliste und auf der Seite des Mitglieds und lässt sich beim Import übernehmen. Mitglieder öffnen sich aus der Liste in einem neuen Tab.
+
+### Verbesserungen
+
+- **Das Eintrittsdatum ist sichtbar und importierbar.** Der Tag, an dem ein Mitglied beigetreten ist, steht als Spalte der Mitgliederliste zur Auswahl, erscheint auf der Seite des Mitglieds und lässt sich beim Import aus einer Spalte übernehmen.
+- **Mitgliederseiten öffnen sich aus der Liste in einem neuen Tab.** Die Knöpfe zum Ansehen und Bearbeiten in der Mitgliederliste sind Links, so dass sich ein Mitglied mit der mittleren Maustaste oder dem Kontextmenü in einem neuen Tab öffnet.
+
 ## v26.22.3
 
 Benachrichtigungen gelten als gelesen, sobald sie aus einer Mail, einem Feed oder der App geöffnet werden, und gelesene kommen nicht mehr in die nächste Mail. Ältere Benachrichtigungen lassen sich unter den ungelesenen wieder anzeigen. Die Startseite heißt auf Deutsch „Übersicht“.

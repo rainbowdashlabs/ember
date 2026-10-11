@@ -25,6 +25,8 @@ export interface MemberPreview {
     lastName: string
     email: string
     group: string
+    /** The day the member joined, as an ISO date, where the file names one that reads as a date. */
+    joinDate: string | null
     profileFields: Record<string, string>
     contacts: ContactPreview[]
     /** Where the row came from in the file, which is what striking one out refers to. */

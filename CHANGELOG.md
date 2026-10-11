@@ -1,5 +1,14 @@
 # Changelog
 
+## v26.22.4
+
+The day a member joined is visible in the member list and on the member's page, and can be taken over when importing members. Members open from the list in a new tab.
+
+### Improvements
+
+- **The join date is shown and can be imported.** The day a member joined is offered as a column of the member list, shown on the member's page and can be mapped from a column when importing members.
+- **Member pages open in a new tab from the list.** The view and edit buttons of the member list are links, so a member opens in a new tab with the middle mouse button or the context menu.
+
 ## v26.22.3
 
 Notifications opened from a mail, a feed or the app count as read, and read notifications stay out of the next mail. Earlier notifications can be shown again below the unread ones. The German interface calls the start page "Übersicht".

@@ -1788,7 +1788,7 @@ volumes:
             searchDates: 'Datumsspalten filtern über ganze Jahre und Monate, die sich bis auf den Tag aufklappen lassen, dazu ein Zeitraum „Ab" (einschließlich) und „Vor" (ausschließlich). Bei einem Geburtsdatum steht hinter dem Datum das aktuelle Alter, und der Filter grenzt zusätzlich nach aktuellem Alter und nach Kalenderalter ein, dem Alter am 31. Dezember: „Mindestens" schließt den Wert ein, „Unter" schließt ihn aus.',
             searchSave: 'Häufig genutzte Filter kannst du speichern und später mit einem Klick wieder laden.',
             columnsTitle: 'Spalten anpassen',
-            columnsText: 'Klicke auf Spalten, um zusätzliche Profilfelder als Spalten in der Tabelle anzuzeigen. Dein Browser merkt sich die Auswahl, für jeden Reiter getrennt. Jede Spalte filtert passend zu ihrem Inhalt: Zahlen über einen Bereich, Auswahlfelder über ihre Optionen, Daten über Jahre, Monate und Tage.',
+            columnsText: 'Klicke auf Spalten, um zusätzliche Profilfelder als Spalten in der Tabelle anzuzeigen, auch „Beigetreten am“. Dein Browser merkt sich die Auswahl, für jeden Reiter getrennt. Jede Spalte filtert passend zu ihrem Inhalt: Zahlen über einen Bereich, Auswahlfelder über ihre Optionen, Daten über Jahre, Monate und Tage.',
             exportTitle: 'Export',
             exportText: 'Du kannst die Mitgliederliste als CSV-Datei exportieren. Wähle die Mitglieder und Spalten aus, die du exportieren möchtest.',
             tip: 'Klicke auf einen Namen, um die Detailseite des Mitglieds zu öffnen.',
@@ -5319,7 +5319,8 @@ volumes:
             step1: 'Schritt 1: Datei hochladen',
             step1Text: 'Lade eine CSV-Datei hoch (z.B. aus Excel exportiert). Wähle das passende Trennzeichen (Komma, Semikolon oder Tab).',
             step2: 'Schritt 2: Spalten zuordnen',
-            step2Text: 'Ordne jede CSV-Spalte einem Zielfeld zu (z.B. „Spalte A" → „Vorname"). Nicht benötigte Spalten auf „Überspringen" setzen.',
+            step2Text: 'Ordne jede CSV-Spalte einem Zielfeld zu (z.B. „Spalte A" → „Vorname"). Nicht benötigte Spalten auf „Überspringen" setzen. '
+                + 'Eine Spalte mit dem Eintrittsdatum ordnest du „Beigetreten am“ zu, als 01.04.2019 oder 2019-04-01. Ohne sie gilt der Tag des Imports.',
             mergeTitle: 'Zusammenführen & Aufteilen',
             mergeText: 'Du kannst zwei Spalten zu einem Feld zusammenführen (z.B. Straße + Hausnummer) oder eine Spalte auf mehrere Felder aufteilen (z.B. „Max Mustermann" → Vorname + Nachname).',
             valueMapTitle: 'Werte zuordnen',

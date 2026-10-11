@@ -23,6 +23,7 @@ import dev.chojo.ember.feature.question.QuestionKind;
 import dev.chojo.ember.feature.question.QuestionValues;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tools.jackson.databind.JsonNode;
@@ -216,6 +217,8 @@ public class MemberImportService {
             }
 
             profileFieldsSet += storeAnswers(member.id(), mapped, profileFields, i + 2, warnings);
+            LocalDate joinDate = mapped.joinDate();
+            if (joinDate != null) stationMemberRepository.setJoinDate(member.id(), joinDate);
 
             for (var contact : mapped.contacts()) {
                 if (contact.name().isBlank()) continue;
@@ -353,6 +356,8 @@ public class MemberImportService {
             }
 
             profileFieldsSet += storeAnswers(member.id(), mapped, profileFields, i + 2, warnings);
+            LocalDate joinDate = mapped.joinDate();
+            if (joinDate != null) stationMemberRepository.setJoinDate(member.id(), joinDate);
         }
 
         log.info(
@@ -376,6 +381,7 @@ public class MemberImportService {
         byTarget.values().forEach(list -> list.sort(Comparator.comparingInt(ColumnMapping::mergeOrder)));
 
         String firstName = "", lastName = "", email = "", group = "";
+        LocalDate joinDate = null;
         var profileFieldValues = new LinkedHashMap<String, String>();
         var managerData = new HashMap<Integer, String[]>();
 
@@ -389,6 +395,7 @@ public class MemberImportService {
                 case "lastName" -> lastName = val;
                 case "email" -> email = val;
                 case "group" -> group = val;
+                case "joinDate" -> joinDate = asDate(val);
                 default -> {
                     if (target.startsWith("field:")) {
                         profileFieldValues.put(target.substring(6), val);
@@ -420,7 +427,7 @@ public class MemberImportService {
             }
         });
 
-        return new MemberPreview(firstName, lastName, email, group, profileFieldValues, contacts);
+        return new MemberPreview(firstName, lastName, email, group, joinDate, profileFieldValues, contacts);
     }
 
     /**
@@ -656,6 +663,15 @@ public class MemberImportService {
         return value;
     }
 
+    /** A date written the German way or as ISO, or nothing where the cell is neither. */
+    private static @Nullable LocalDate asDate(String value) {
+        try {
+            return LocalDate.parse(asIsoDate(value.trim()));
+        } catch (DateTimeParseException notADate) {
+            return null;
+        }
+    }
+
     /** A German date as an ISO one, or the cell unchanged where it is not one. */
     private static String asIsoDate(String value) {
         try {
@@ -729,6 +745,11 @@ public class MemberImportService {
             String email,
             String group,
             /**
+             * The day the member joined the station, or nothing where the file names none or names it
+             * in a way no date reads, in which case the member joins on the day of the import.
+             */
+            @Nullable LocalDate joinDate,
+            /**
              * The answers this row carries, by the identifier of the question they answer. By
              * identifier and not by name, because the import writes them and looks the question up by
              * that: keyed by name, every mapped column was quietly dropped on the way in.
@@ -744,14 +765,16 @@ public class MemberImportService {
                 String lastName,
                 String email,
                 String group,
+                @Nullable LocalDate joinDate,
                 Map<String, String> profileFields,
                 List<ContactPreview> contacts) {
-            this(firstName, lastName, email, group, profileFields, contacts, -1, false);
+            this(firstName, lastName, email, group, joinDate, profileFields, contacts, -1, false);
         }
 
         /** The same row, told where it came from and whether it was struck out. */
         public MemberPreview at(int row, boolean ignored) {
-            return new MemberPreview(firstName, lastName, email, group, profileFields, contacts, row, ignored);
+            return new MemberPreview(
+                    firstName, lastName, email, group, joinDate, profileFields, contacts, row, ignored);
         }
     }
 

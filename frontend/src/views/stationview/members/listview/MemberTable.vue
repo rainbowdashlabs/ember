@@ -98,8 +98,8 @@ function onRowClick(member: RosterMember) {
           :export-mode="exportMode"
           :member="row"
           :selected="exporting.selectedIds.value.has(row.id)"
-          @navigate-detail="c.navigateToDetail(row, $event)"
-          @navigate-edit="c.navigateToEdit(row, $event)"
+          :detail-to="c.detailRouteOf(row)"
+          :edit-to="c.editRouteOf(row)"
           @toggle-select="exporting.toggleRow(row.id)"
       />
     </template>

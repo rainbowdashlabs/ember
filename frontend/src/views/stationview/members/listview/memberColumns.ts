@@ -72,7 +72,7 @@ export function holdsAnswer(field: Pick<ProfileField, 'fieldType'>): boolean {
 }
 
 /**
- * The columns of the member list: the name, the kind of member, the address, on a station's own
+ * The columns of the member list: the name, the kind of member, the address, the day they joined, on a station's own
  * list its groups and tags, and one per question the tab's people are asked and can answer.
  */
 export function memberColumns(fields: readonly ProfileField[], sources: MemberColumnSources): TableColumn<RosterMember>[] {
@@ -81,6 +81,7 @@ export function memberColumns(fields: readonly ProfileField[], sources: MemberCo
         memberNameColumn(t),
         {key: 'userType', label: t('membersList.colRole'), type: ColumnTypes.ENUM, value: member => member.userType, options: userTypeOptions()},
         {key: 'email', label: t('membersList.colEmail'), type: ColumnTypes.TEXT, value: member => member.email},
+        {key: 'joinDate', label: t('membersList.colJoinDate'), type: ColumnTypes.DATE, value: member => member.joinDate, defaultVisible: false},
         ...(sources.stationLocalColumns ? [
             {key: 'groups', label: t('membersList.colGroups'), type: ColumnTypes.TEXT, value: (member: RosterMember) => sources.groupsOf(member.id)},
             {key: 'tags', label: t('membersList.colTags'), type: ColumnTypes.TEXT, value: (member: RosterMember) => sources.tagsOf(member.id)},
