@@ -22,10 +22,10 @@ const {t} = useI18n()
 
 <template>
   <Transition name="fade" mode="out-in">
-    <span v-if="saving" key="saving" class="text-xs text-(--text-muted) flex items-center gap-1">
+    <span v-if="saving" key="saving" class="text-xs text-(--text-muted) flex items-center gap-1" data-testid="save-status-saving">
       <Spinner size="sm"/> {{ t('common.saving') }}
     </span>
-    <span v-else-if="saved" key="saved" class="text-xs text-success flex items-center gap-1">
+    <span v-else-if="saved" key="saved" class="text-xs text-success flex items-center gap-1" data-testid="save-status-saved">
       <font-awesome-icon :icon="['fas', 'check']"/> {{ t('common.saved') }}
     </span>
   </Transition>
