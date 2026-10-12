@@ -6,7 +6,7 @@
 import {beforeEach, describe, expect, it, vi} from 'vitest'
 import {flushPromises, type VueWrapper} from '@vue/test-utils'
 import {mountSuspended} from '@nuxt/test-utils/runtime'
-import {FieldRole, FieldState, RequestState, SignerCapacity} from '@/api/generated/schema'
+import {FieldRole, FieldState, RequestState, SignerCapacity, TemplateQuestionKind} from '@/api/generated/schema'
 import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
 import GenerateDocumentModal from './GenerateDocumentModal.vue'
 import IssuerOverride from './IssuerOverride.vue'
@@ -14,6 +14,7 @@ import TemplateChoice from './TemplateChoice.vue'
 
 const previewForMember = vi.fn()
 const generateForMember = vi.fn()
+const suggestedAnswers = vi.fn()
 const getSignatureAsk = vi.fn()
 const requestSignatures = vi.fn()
 
@@ -21,6 +22,7 @@ vi.mock('@/api', () => ({
     documentTemplates: {
         previewForMember: (...args: unknown[]) => previewForMember(...args),
         generateForMember: (...args: unknown[]) => generateForMember(...args),
+        suggestedAnswers: (...args: unknown[]) => suggestedAnswers(...args),
     },
     signing: {
         getSignatureAsk: (...args: unknown[]) => getSignatureAsk(...args),
@@ -56,6 +58,7 @@ describe('GenerateDocumentModal', () => {
         previewForMember.mockResolvedValue({missing: [], pdfBase64: '', unprintable: []})
         generateForMember.mockResolvedValue({documentId: 42, generationId: 7, missing: [], title: 'Ausweis'})
         getSignatureAsk.mockResolvedValue({request: null, fields: []})
+        suggestedAnswers.mockResolvedValue([])
     })
 
     it('closes once a document without fields to sign is filed', async () => {
@@ -108,12 +111,12 @@ describe('GenerateDocumentModal', () => {
         expect(dialog.findComponent(MemberSelectInput).exists()).toBe(false)
 
         await chooseTemplate(dialog, 3)
-        expect(previewForMember).toHaveBeenCalledWith(3, 4, null)
+        expect(previewForMember).toHaveBeenCalledWith(3, 4, null, {})
 
         await dialog.find('[data-testid="generate-file"]').trigger('click')
         await flushPromises()
 
-        expect(generateForMember).toHaveBeenCalledWith(3, 4, null)
+        expect(generateForMember).toHaveBeenCalledWith(3, 4, null, {})
         expect(dialog.emitted('filed')).toEqual([[42]])
     })
 
@@ -125,12 +128,12 @@ describe('GenerateDocumentModal', () => {
 
         dialog.findComponent(MemberSelectInput).vm.$emit('update:modelValue', '9')
         await flushPromises()
-        expect(previewForMember).toHaveBeenCalledWith(1, 9, null)
+        expect(previewForMember).toHaveBeenCalledWith(1, 9, null, {})
 
         await dialog.find('[data-testid="generate-file"]').trigger('click')
         await flushPromises()
 
-        expect(generateForMember).toHaveBeenCalledWith(1, 9, null)
+        expect(generateForMember).toHaveBeenCalledWith(1, 9, null, {})
         expect(dialog.emitted('filed')).toEqual([[42]])
     })
 
@@ -144,7 +147,7 @@ describe('GenerateDocumentModal', () => {
         const dialog = await mountDialog({memberId: 4})
 
         await chooseTemplate(dialog, 1)
-        expect(previewForMember).toHaveBeenLastCalledWith(1, 4, null)
+        expect(previewForMember).toHaveBeenLastCalledWith(1, 4, null, {})
         const override = dialog.findComponent(IssuerOverride)
         expect(override.text()).toContain('Erika Wehr, Jugendwartin')
 
@@ -153,6 +156,28 @@ describe('GenerateDocumentModal', () => {
         await dialog.find('[data-testid="generate-file"]').trigger('click')
         await flushPromises()
 
-        expect(generateForMember).toHaveBeenCalledWith(1, 4, {memberId: 7, function: 'Kassenwart'})
+        expect(generateForMember).toHaveBeenCalledWith(1, 4, {memberId: 7, function: 'Kassenwart'}, {})
+    })
+
+    it('asks the template\'s questions prefilled for the member and files with the answers', async () => {
+        suggestedAnswers.mockResolvedValue([
+            {question: {key: 'am', label: 'Ausgetreten am', kind: TemplateQuestionKind.DATE, suggestion: '', required: true}, suggestion: '2026-10-12'},
+            {question: {key: 'raus', label: 'Ausgetreten', kind: TemplateQuestionKind.CHECK, suggestion: '', required: false}, suggestion: 'true'},
+            {question: {key: 'grund', label: 'Grund', kind: TemplateQuestionKind.TEXT, suggestion: '', required: false}, suggestion: ''},
+        ])
+        const dialog = await mountDialog({memberId: 4})
+        await chooseTemplate(dialog, 2)
+
+        const asked = dialog.find('[data-testid="generation-answers"]')
+        expect(asked.text()).toContain('Ausgetreten am *')
+        expect(dialog.find<HTMLInputElement>('[data-testid="generation-answer-raus"] input').element.checked).toBe(true)
+        expect(previewForMember).toHaveBeenLastCalledWith(2, 4, null, {am: '2026-10-12', raus: 'true', grund: ''})
+
+        await dialog.find('[data-testid="generation-answer-grund"]').setValue('Umzug')
+        await dialog.find('[data-testid="generation-answer-raus"] input').setValue(false)
+        await dialog.find('[data-testid="generate-file"]').trigger('click')
+        await flushPromises()
+
+        expect(generateForMember).toHaveBeenCalledWith(2, 4, null, {am: '2026-10-12', raus: 'false', grund: 'Umzug'})
     })
 })

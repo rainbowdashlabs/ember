@@ -32,6 +32,9 @@ import dev.chojo.ember.feature.generator.service.LetterImportService.Importer;
 import dev.chojo.ember.feature.generator.service.LetterImportService.LetterImport;
 import dev.chojo.ember.feature.generator.service.PdfTemplateService;
 import dev.chojo.ember.feature.generator.service.TemplateQuery.TemplatePage;
+import dev.chojo.ember.feature.generator.service.WordFormImportService;
+import dev.chojo.ember.feature.generator.service.WordFormImportService.MissingFonts;
+import dev.chojo.ember.feature.generator.service.WordFormImportService.WordFormImport;
 import dev.chojo.ember.owner.Owner;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
@@ -67,6 +70,7 @@ public class AssociationDocumentTemplateRoutes implements Routes {
     private final LetterImportService imports;
     private final PdfTemplateService pdfs;
     private final DocumentTemplateCopyService copies;
+    private final WordFormImportService forms;
 
     @Inject
     public AssociationDocumentTemplateRoutes(
@@ -74,12 +78,14 @@ public class AssociationDocumentTemplateRoutes implements Routes {
             DocumentGenerationService generation,
             LetterImportService imports,
             PdfTemplateService pdfs,
-            DocumentTemplateCopyService copies) {
+            DocumentTemplateCopyService copies,
+            WordFormImportService forms) {
         this.templates = templates;
         this.generation = generation;
         this.imports = imports;
         this.pdfs = pdfs;
         this.copies = copies;
+        this.forms = forms;
     }
 
     @Override
@@ -89,6 +95,8 @@ public class AssociationDocumentTemplateRoutes implements Routes {
         routes.get(prefix + "/cluster/document-placeholders", this::catalogue, edit);
         routes.post(prefix + "/cluster/document-placeholders/date-format", this::checkDateFormat, edit);
         routes.post(prefix + "/cluster/document-template-import", this::importLetter, edit);
+        routes.post(prefix + "/cluster/document-template-form-import", this::importForm, edit);
+        routes.post(prefix + "/cluster/document-template-form-import/fonts", this::formFonts, edit);
         routes.post(prefix + "/cluster/document-template-preview", this::preview, edit);
         routes.get(base, this::list, edit);
         routes.post(base, this::create, edit);
@@ -136,6 +144,34 @@ public class AssociationDocumentTemplateRoutes implements Routes {
             })
     private void importLetter(Context ctx) {
         ctx.json(imports.read(new Importer(association(ctx), null), ctx.uploadedFile("file")));
+    }
+
+    @OpenApi(
+            path = "/api/v1/cluster/document-template-form-import",
+            methods = HttpMethod.POST,
+            summary = "Make a PDF template of the association from a Word form",
+            tags = {"Cluster"},
+            responses = {
+                @OpenApiResponse(status = "201", content = @OpenApiContent(from = WordFormImport.class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void importForm(Context ctx) {
+        ctx.status(HttpStatus.CREATED)
+                .json(forms.importForm(
+                        association(ctx), ctx.uploadedFile("file"), FormFontChoices.of(ctx), accountId(ctx)));
+    }
+
+    @OpenApi(
+            path = "/api/v1/cluster/document-template-form-import/fonts",
+            methods = HttpMethod.POST,
+            summary = "The fonts of a Word form the association cannot draw it in, to choose a replacement for each",
+            tags = {"Cluster"},
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = MissingFonts.class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void formFonts(Context ctx) {
+        ctx.json(forms.fontsOf(association(ctx), ctx.uploadedFile("file")));
     }
 
     @OpenApi(

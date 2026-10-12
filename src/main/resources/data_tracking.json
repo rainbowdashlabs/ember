@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:767a07564614d537a893f02fc5334f860b8f5dcc559b68695f5f514cbfc557d9",
-  "generatedAt": "2026-10-20T14:55:13Z",
+  "schemaHash": "sha256:78dae33f75f0f4b967ba77fd57f86219e924def7978cc30a46f7dd6118924472",
+  "generatedAt": "2026-10-20T21:57:01Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -6672,7 +6672,7 @@
       "description": "A font uploaded for documents, one file per family and style. Owned by the instance (station_id and cluster_id both NULL), an association (cluster_id) or a station (station_id). A station reaches its own fonts, its association's and the instance's; on a family name found at several, the nearest owner wins. The file is kept in the owner's storage under fonts/<id>, an optional web version beside it under fonts/<id>-web. A browser receives either only in the template editor, the web version where there is one."
     },
     "document_generation": {
-      "tableHash": "sha256:432d4f9379816a510702311d3709173ce94e38bfd59b604700e8fca381e4f0ac",
+      "tableHash": "sha256:5fa82adf3e4e9cf539a18a5287042f64c464e2cb5c0a3b3ec69091d323e93df0",
       "columns": [
         {
           "name": "id",
@@ -6792,6 +6792,13 @@
           "nullable": false,
           "verified": true,
           "description": "Whether the document carries the empty signature field named issuer, which issuer_id is to sign."
+        },
+        {
+          "name": "answers",
+          "type": "jsonb",
+          "nullable": true,
+          "verified": true,
+          "description": "What the template's questions were answered with, by the key of the question, or NULL where it asks none."
         }
       ],
       "foreignKeys": [
@@ -7863,6 +7870,87 @@
         ]
       },
       "description": "Every uploaded version of the PDF a PDF template fills in. The file is kept in the storage of the template's owner under document-templates/<id>/original (an association's in its home station), as it arrived, and never changed; a new upload is a new row."
+    },
+    "document_template_question": {
+      "tableHash": "sha256:d0f72db836ae83b2307b4f415d064fefa7d9cce3fff1df7a2fe6be1987a4a51f",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Auto-generated primary key."
+        },
+        {
+          "name": "template_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "References the template that asks it."
+        },
+        {
+          "name": "position",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The order the questions are asked in, counted from 0."
+        },
+        {
+          "name": "key",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "The name the template names the answer by, as {{ask.<key>}}. Unique within the template."
+        },
+        {
+          "name": "label",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "What the person generating is asked."
+        },
+        {
+          "name": "kind",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "TEXT takes a text, DATE a day and CHECK a tick, which prints as a ticked or an empty box."
+        },
+        {
+          "name": "suggestion",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "A text with placeholders, filled in for the member to suggest the answer. For a CHECK it ticks the box where it says yes. Where nobody answers, as in self service, the suggestion is the answer."
+        },
+        {
+          "name": "required",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether an empty answer counts as a missing value of the document."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "template_id",
+          "refTable": "document_template",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED"
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Template content written by the station, not per-member data"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Template content written by the station, not per-member data"
+      },
+      "description": "What the person generating a document from a template is asked. The template names each answer as {{ask.<key>}}."
     },
     "document_template_restriction": {
       "tableHash": "sha256:9c35756d1fbb6fba6ea356c3fa0aa13d6548bb7792b18e5b54198effa3628aa3",

@@ -19,14 +19,17 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * The font families every installation offers its templates, whatever was uploaded.
  *
- * <p>Liberation Sans, Serif and Mono ship with the application in all four styles
- * ({@code fonts/Liberation*.ttf}, under the SIL Open Font License in {@code fonts/Liberation-LICENSE.txt}),
- * so letters and fields
- * on an uploaded PDF print in them alike. Libertinus Serif, New Computer Modern and DejaVu Sans Mono
+ * <p>Liberation Sans, Serif and Mono, Carlito, Caladea and Open Sans ship with the application in all four
+ * styles ({@code fonts/*.ttf}, each under the SIL Open Font License in {@code fonts/<Family>-LICENSE.txt}),
+ * so letters and fields on an uploaded PDF print in them alike. Liberation takes the measure of Arial, Times
+ * New Roman and Courier New, Carlito that of Calibri and Caladea that of Cambria, so a document written in
+ * one of those keeps its lines; Open Sans stands in for humanist fonts such as Frutiger, and also ships its
+ * Light cut, which a Word form set in a light weight is drawn in. Libertinus Serif, New Computer Modern and DejaVu Sans Mono
  * are the families Typst carries inside itself: letters print in them without a file, and since there
  * is no file to embed, fields on an uploaded PDF are not offered them.
  *
@@ -38,11 +41,31 @@ public final class BuiltInFonts {
             bundled("Liberation Sans", "LiberationSans"),
             bundled("Liberation Serif", "LiberationSerif"),
             bundled("Liberation Mono", "LiberationMono"),
+            bundled("Carlito", "Carlito"),
+            bundled("Caladea", "Caladea"),
+            bundled("Open Sans", "OpenSans"),
             carriedByTypst("Libertinus Serif", FontOutline.CFF),
             carriedByTypst("New Computer Modern", FontOutline.CFF),
             carriedByTypst("DejaVu Sans Mono", FontOutline.TRUETYPE));
 
-    private static final Map<String, byte[]> FILES = FAMILIES.stream()
+    /** The light cuts of built-in families, which no template names but a Word form in a light weight is drawn in. */
+    private static final Map<String, FontFamily> LIGHT_CUTS = Map.of(
+            "Open Sans",
+            new FontFamily(
+                    "Open Sans Light",
+                    FontOrigin.BUILT_IN,
+                    Map.of(
+                            FontStyle.REGULAR,
+                            new BuiltInFace(
+                                    "Open Sans Light", FontStyle.REGULAR, FontOutline.TRUETYPE, "OpenSans-Light.ttf"),
+                            FontStyle.ITALIC,
+                            new BuiltInFace(
+                                    "Open Sans Light",
+                                    FontStyle.ITALIC,
+                                    FontOutline.TRUETYPE,
+                                    "OpenSans-LightItalic.ttf"))));
+
+    private static final Map<String, byte[]> FILES = Stream.concat(FAMILIES.stream(), LIGHT_CUTS.values().stream())
             .flatMap(family -> family.files().values().stream())
             .map(BuiltInFace.class::cast)
             .filter(BuiltInFace::bundled)
@@ -54,6 +77,14 @@ public final class BuiltInFonts {
     /** @return the built-in families, by name */
     public static List<FontFamily> families() {
         return FAMILIES;
+    }
+
+    /**
+     * @param family the name of a built-in family
+     * @return its light cut, where it ships one
+     */
+    public static Optional<FontFamily> lightCut(String family) {
+        return Optional.ofNullable(LIGHT_CUTS.get(family));
     }
 
     /** @return Liberation Sans, which a text naming no family prints in where there is no default font */

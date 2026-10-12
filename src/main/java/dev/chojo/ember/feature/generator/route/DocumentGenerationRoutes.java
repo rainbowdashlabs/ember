@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.generator.entity.DocumentTemplateKind;
 import dev.chojo.ember.feature.generator.entity.TemplateSort;
 import dev.chojo.ember.feature.generator.service.DocumentGenerationService;
 import dev.chojo.ember.feature.generator.service.DocumentGenerationService.GeneratedDocumentResponse;
+import dev.chojo.ember.feature.generator.service.DocumentGenerationService.SuggestedAnswer;
 import dev.chojo.ember.feature.generator.service.DocumentGeneratorService.PreviewResponse;
 import dev.chojo.ember.feature.generator.service.DocumentIssuerService.IssuerChoice;
 import dev.chojo.ember.feature.generator.service.DocumentTemplateRequest;
@@ -36,6 +37,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -73,6 +75,10 @@ public class DocumentGenerationRoutes implements Routes {
         routes.post(
                 prefix + "/document-generation/templates/{templateId}/members/{memberId}/preview",
                 this::preview,
+                StationPermission.DOCUMENT_EDIT_MEMBER);
+        routes.post(
+                prefix + "/document-generation/templates/{templateId}/members/{memberId}/suggestions",
+                this::suggestions,
                 StationPermission.DOCUMENT_EDIT_MEMBER);
         routes.post(
                 prefix + "/document-generation/templates/{templateId}/members/{memberId}",
@@ -147,12 +153,20 @@ public class DocumentGenerationRoutes implements Routes {
     /**
      * How a manager wants a document generated, beyond the template and the member.
      *
-     * @param issuer the member to issue it instead of the template's issuer, or null to keep the template's
+     * @param issuer  the member to issue it instead of the template's issuer, or null to keep the template's
+     * @param answers the answers to the template's questions by their keys: a text, an ISO date, or true or
+     *                false; a question left out takes its suggestion
      */
-    public record ManagerGenerationRequest(@Nullable IssuerChoice issuer) {
+    public record ManagerGenerationRequest(
+            @Nullable IssuerChoice issuer, @Nullable Map<String, String> answers) {
 
         /** Nothing asked beyond the template's own settings. */
-        static final ManagerGenerationRequest AS_THE_TEMPLATE_SAYS = new ManagerGenerationRequest(null);
+        static final ManagerGenerationRequest AS_THE_TEMPLATE_SAYS = new ManagerGenerationRequest(null, null);
+
+        /** @return the answers, none where nothing was answered */
+        Map<String, String> given() {
+            return answers == null ? Map.of() : answers;
+        }
 
         static ManagerGenerationRequest of(Context ctx) {
             return ctx.body().isBlank() ? AS_THE_TEMPLATE_SAYS : ctx.bodyAsClass(ManagerGenerationRequest.class);
@@ -177,7 +191,28 @@ public class DocumentGenerationRoutes implements Routes {
         var session = StationSession.from(ctx);
         int memberId = requireOwnedMember(ctx, RouteSupport.pathInt(ctx, "memberId"));
         var request = ManagerGenerationRequest.of(ctx);
-        ctx.json(generation.preview(session, requireOwnedTemplate(ctx), memberId, request.issuer()));
+        ctx.json(generation.preview(session, requireOwnedTemplate(ctx), memberId, request.issuer(), request.given()));
+    }
+
+    @OpenApi(
+            path = "/api/v1/document-generation/templates/{templateId}/members/{memberId}/suggestions",
+            methods = HttpMethod.POST,
+            summary = "The questions of a template, each with the answer it suggests for a member",
+            tags = {"Documents"},
+            pathParams = {
+                @OpenApiParam(name = "templateId", type = Integer.class, required = true),
+                @OpenApiParam(name = "memberId", type = Integer.class, required = true)
+            },
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = ManagerGenerationRequest.class)),
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = SuggestedAnswer[].class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void suggestions(Context ctx) {
+        var session = StationSession.from(ctx);
+        int memberId = requireOwnedMember(ctx, RouteSupport.pathInt(ctx, "memberId"));
+        var request = ManagerGenerationRequest.of(ctx);
+        ctx.json(generation.suggestions(session, requireOwnedTemplate(ctx), memberId, request.issuer()));
     }
 
     @OpenApi(
@@ -199,7 +234,8 @@ public class DocumentGenerationRoutes implements Routes {
         int memberId = requireOwnedMember(ctx, RouteSupport.pathInt(ctx, "memberId"));
         var request = ManagerGenerationRequest.of(ctx);
         ctx.status(HttpStatus.CREATED)
-                .json(generation.generate(session, requireOwnedTemplate(ctx), memberId, request.issuer()));
+                .json(generation.generate(
+                        session, requireOwnedTemplate(ctx), memberId, request.issuer(), request.given()));
     }
 
     @OpenApi(

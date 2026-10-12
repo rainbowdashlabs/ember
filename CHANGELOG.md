@@ -2,16 +2,23 @@
 
 ## v26.23.0
 
-Families on a waiting list take part in the trial from its first day. Guardians get their account when the trial begins, follow it on their start page and can end it themselves. An invitation always names an appointment, shows where the mail goes before it is sent and can carry a personal note.
+Document templates can ask the person generating a document for details that the member's data does not hold, such as the date of a change or which of several boxes applies. Word forms with fields to fill in become PDF templates that keep their look, so a paper form such as a change notification is filled out in Ember. Check marks of existing PDF templates keep following the member's data and can now also be ticked by hand. Families on a waiting list take part in the trial from its first day. Guardians get their account when the trial begins, follow it on their start page and can end it themselves. An invitation always names an appointment, shows where the mail goes before it is sent and can carry a personal note.
 
 ### New Features
 
+- **Templates ask when a document is generated.** A template can ask for a text, a date or a tick, and prints each answer wherever it names it, a tick as a ticked or an empty box. Each question can suggest its answer from the member's data, which is then the answer in self service and in runs for many members.
+- **Word forms become PDF templates.** A Word form with fields to fill in becomes a PDF template that looks like the original, with member data where a field's label is recognised and a question for every other field and check box. A font the form uses that is not uploaded is replaced by one chosen before the form is converted, and a list afterwards names what was recognised.
 - **Guardians take part in the trial.** When a trial begins, the guardians of the waiting list entry get their account and can sign in, take the child off appointments and see the trial on their start page with the visits so far. They can end the trial there themselves, which deletes the accounts made for it unless they are still needed, and the station is notified.
 
 ### Improvements
 
+- **More fonts come with every installation.** Carlito and Caladea set text exactly as wide as Calibri and Cambria, and Open Sans stands in for fonts such as Frutiger. All three can be chosen for letters and fields, and importing a Word form set in Calibri, Cambria, Arial or Times New Roman offers the matching one first.
 - **Invitations name their appointment and recipients.** An invitation can only be sent once an appointment is picked, and the dialog lists the addresses the mail goes to, or says that nobody is written to. The appointment picker shows the start time next to the date.
 - **Invitations carry a personal note.** A note written when inviting stands in the mail and on the page where the invitation is answered. The note given with an answer is shown in the notification the station receives.
+
+### Changes
+
+- **Check marks can be ticked by hand.** The check marks of existing PDF templates became questions that follow the member's data as before, so self service and runs for many members tick what they ticked before. A manager generating a single document can now tick or clear each of them.
 
 ### Fixes
 

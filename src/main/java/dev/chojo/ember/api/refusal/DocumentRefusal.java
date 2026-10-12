@@ -710,7 +710,38 @@ public enum DocumentRefusal implements Refusal {
     SIGNING_PICTURE_TWICE(304, HttpStatus.BAD_REQUEST, "Two signature pictures were sent for one person"),
 
     /** The signature record asked for a sealed version that carries no evidence of signatures. */
-    SIGNATURE_RECORD_NONE(305, HttpStatus.NOT_FOUND, "This version carries no record of signatures");
+    SIGNATURE_RECORD_NONE(305, HttpStatus.NOT_FOUND, "This version carries no record of signatures"),
+
+    /** A question of a template named by a key other than letters, digits and underscores, or a longer one. */
+    DOCUMENT_TEMPLATE_QUESTION_KEY_INVALID(
+            306, HttpStatus.BAD_REQUEST, "A question is named by letters, digits and underscores, at most 40"),
+
+    /** Two questions of one template named by the same key. */
+    DOCUMENT_TEMPLATE_QUESTION_KEY_TWICE(307, HttpStatus.BAD_REQUEST, "Two questions have the same name"),
+
+    /** A question of a template without the words it is asked by. */
+    DOCUMENT_TEMPLATE_QUESTION_LABEL_MISSING(308, HttpStatus.BAD_REQUEST, "A question needs a label"),
+
+    /** A template asking more questions than it may. */
+    DOCUMENT_TEMPLATE_QUESTIONS_TOO_MANY(309, HttpStatus.BAD_REQUEST, "A template asks at most 100 questions"),
+
+    /** An answer to a date question that names no day. */
+    DOCUMENT_ANSWER_NOT_A_DAY(310, HttpStatus.BAD_REQUEST, "An answer to a date question is no date"),
+
+    /** A Word form without a single field to fill in. */
+    DOCUMENT_FORM_IMPORT_NO_FIELDS(
+            311, HttpStatus.BAD_REQUEST, "The Word document has no fields to fill in; import it as a letter instead"),
+
+    /** A Word form that could not be read or turned into a PDF. */
+    DOCUMENT_FORM_IMPORT_FAILED(312, HttpStatus.BAD_REQUEST, "The Word document could not be turned into a form"),
+
+    /** The suggestion of a question naming the answer to a question. */
+    DOCUMENT_TEMPLATE_QUESTION_IN_SUGGESTION(
+            313, HttpStatus.BAD_REQUEST, "A suggestion cannot name the answer to a question"),
+
+    /** A Word form naming a font the owner cannot draw, imported without a replacement chosen for it. */
+    DOCUMENT_FORM_IMPORT_FONT_UNCHOSEN(
+            314, HttpStatus.BAD_REQUEST, "Choose a replacement for a font of the form that is not available");
 
     private final Definition definition;
 

@@ -26,10 +26,12 @@ import dev.chojo.ember.feature.generator.entity.PdfLayout;
 import dev.chojo.ember.feature.generator.entity.PdfOriginal;
 import dev.chojo.ember.feature.generator.entity.Placeholder;
 import dev.chojo.ember.feature.generator.entity.TemplateContent;
+import dev.chojo.ember.feature.generator.entity.TemplateQuestion;
 import dev.chojo.ember.feature.generator.entity.TemplateSigning;
 import dev.chojo.ember.feature.generator.entity.TemplateStationUse;
 import dev.chojo.ember.feature.generator.repository.DocumentTemplateRepository;
 import dev.chojo.ember.feature.generator.repository.PdfTemplateRepository;
+import dev.chojo.ember.feature.generator.repository.TemplateQuestionRepository;
 import dev.chojo.ember.feature.generator.repository.TemplateStationUseRepository;
 import dev.chojo.ember.feature.generator.service.store.OwnerStores;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
@@ -77,6 +79,19 @@ public class DocumentTemplateService {
     private final RestrictionService restrictions;
     private final PlaceholderCatalogue catalogue;
     private final OwnerStores stores;
+    private final TemplateQuestionRepository questions;
+
+    /** A service reading and writing the questions of templates in the database it reads everything else from. */
+    public DocumentTemplateService(
+            DocumentTemplateRepository templates,
+            PdfTemplateRepository pdfTemplates,
+            TemplateStationUseRepository uses,
+            TemplateChecks checks,
+            RestrictionService restrictions,
+            PlaceholderCatalogue catalogue,
+            OwnerStores stores) {
+        this(templates, pdfTemplates, uses, checks, restrictions, catalogue, stores, new TemplateQuestionRepository());
+    }
 
     @Inject
     public DocumentTemplateService(
@@ -86,7 +101,8 @@ public class DocumentTemplateService {
             TemplateChecks checks,
             RestrictionService restrictions,
             PlaceholderCatalogue catalogue,
-            OwnerStores stores) {
+            OwnerStores stores,
+            TemplateQuestionRepository questions) {
         this.templates = templates;
         this.pdfTemplates = pdfTemplates;
         this.uses = uses;
@@ -94,6 +110,7 @@ public class DocumentTemplateService {
         this.restrictions = restrictions;
         this.catalogue = catalogue;
         this.stores = stores;
+        this.questions = questions;
     }
 
     /**
@@ -224,6 +241,14 @@ public class DocumentTemplateService {
     }
 
     /**
+     * @param template the template
+     * @return what it asks the person generating a document, in the order it asks
+     */
+    public List<TemplateQuestion> questionsOf(DocumentTemplate template) {
+        return questions.findByTemplate(template.id());
+    }
+
+    /**
      * A template with everything the editor shows of it.
      *
      * @param owner      the station or the association
@@ -264,6 +289,7 @@ public class DocumentTemplateService {
             Owner owner, DocumentTemplateDraft draft, @Nullable RestrictionAudience audience, int authorId) {
         var written = templates.create(owner, draft, authorId);
         writeContent(written.id(), draft.content());
+        questions.write(written.id(), draft.questions());
         writeAudience(written.id(), audience);
         return written;
     }
@@ -295,6 +321,7 @@ public class DocumentTemplateService {
                     .update(templateId, draft, authorId)
                     .orElseThrow(DocumentRefusal.DOCUMENT_TEMPLATE_NOT_HERE::raise);
             writeContent(templateId, draft.content());
+            questions.write(templateId, draft.questions());
             writeAudience(templateId, request.audience());
             return written;
         });
@@ -389,7 +416,8 @@ public class DocumentTemplateService {
                 template.version(),
                 template.updatedAt(),
                 template.archivedAt(),
-                template.signing());
+                template.signing(),
+                questionsOf(template));
     }
 
     /**
@@ -474,6 +502,7 @@ public class DocumentTemplateService {
      * @param updatedAt       when it was last changed
      * @param archivedAt      when it was archived, or null while it is in use
      * @param signing         how its documents are kept and sent once they are signed
+     * @param questions       what it asks the person generating a document, in the order it asks
      */
     public record DocumentTemplateResponse(
             int id,
@@ -502,7 +531,8 @@ public class DocumentTemplateService {
             int version,
             Instant updatedAt,
             @Nullable Instant archivedAt,
-            TemplateSigning signing) {}
+            TemplateSigning signing,
+            List<TemplateQuestion> questions) {}
 
     /**
      * What a template of the owner can name.

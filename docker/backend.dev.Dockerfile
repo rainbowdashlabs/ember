@@ -7,8 +7,8 @@ FROM gradle:jdk25-alpine
 WORKDIR /home/gradle/project
 
 # Runtime tools the app shells out to (typst for PDF rendering, pandoc, libreoffice
-# for the legacy Word path, libwebp for image processing, qpdf for PDF wrangling).
-RUN apk add --no-cache typst pandoc libreoffice-impress font-liberation libwebp-tools qpdf curl unzip
+# for presentations and Word forms, libwebp for image processing, qpdf for PDF wrangling).
+RUN apk add --no-cache typst pandoc libreoffice-impress libreoffice-writer font-liberation libwebp-tools qpdf curl unzip
 
 COPY --chmod=755 docker/default-font.sh /usr/local/bin/default-font
 
