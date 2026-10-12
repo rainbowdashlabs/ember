@@ -43256,6 +43256,42 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/notifications/{id}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark a notification read that was opened through its link */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/notifications/acknowledge-all": {
         parameters: {
             query?: never;
@@ -65865,6 +65901,8 @@ export interface components {
         };
         /** @enum {string} */
         IdentityType: "ACCOUNT_ID" | "MEMBER_ID" | "MEMBER_UID";
+        /** @enum {string} */
+        ImageAlign: "LEFT" | "CENTER" | "RIGHT";
         ImageConfig: {
             altText?: string;
             borderColor?: string;
@@ -65877,6 +65915,7 @@ export interface components {
             cropRight?: number;
             cropTop?: number;
             description?: string;
+            imageAlign?: components["schemas"]["ImageAlign"];
             imageFit?: components["schemas"]["ImageFit"];
             /** Format: int32 */
             maxHeight?: number;
@@ -67253,6 +67292,11 @@ export interface components {
             /** Format: int32 */
             stationShare: number;
         };
+        MailProvider: {
+            name: string;
+            type: components["schemas"]["MailProviderType"];
+            url: string;
+        };
         /** @enum {string} */
         MailProviderType: "NONE" | "SMTP" | "RAPIDMAIL" | "TWILIO" | "SWEEGO" | "BREVO";
         /** @enum {string} */
@@ -67637,6 +67681,7 @@ export interface components {
             firstName: string;
             group: string;
             ignored: boolean;
+            joinDate: components["schemas"]["LocalDate"] | null;
             lastName: string;
             profileFields: {
                 [key: string]: string;
@@ -71186,8 +71231,7 @@ export interface components {
             emailEnabled: boolean;
             feel: string;
             mailConfigured: boolean;
-            mailProviderName: string;
-            mailProviderUrl: string;
+            mailProviders: components["schemas"]["MailProvider"][];
             notifications: {
                 [key: string]: components["schemas"]["NotificationToggle"];
             };
@@ -73908,6 +73952,7 @@ export type HourlyTrafficRow = components['schemas']['HourlyTrafficRow'];
 export type IdentityColumn = components['schemas']['IdentityColumn'];
 export type IdentityResponse = components['schemas']['IdentityResponse'];
 export type IdentityType = components['schemas']['IdentityType'];
+export type ImageAlign = components['schemas']['ImageAlign'];
 export type ImageConfig = components['schemas']['ImageConfig'];
 export type ImageFit = components['schemas']['ImageFit'];
 export type ImageGalleryConfig = components['schemas']['ImageGalleryConfig'];
@@ -74086,6 +74131,7 @@ export type MailFallbackPayload = components['schemas']['MailFallbackPayload'];
 export type MailImportOutcome = components['schemas']['MailImportOutcome'];
 export type MailingConfigRequest = components['schemas']['MailingConfigRequest'];
 export type MailingConfigResponse = components['schemas']['MailingConfigResponse'];
+export type MailProvider = components['schemas']['MailProvider'];
 export type MailProviderType = components['schemas']['MailProviderType'];
 export type MailReaches = components['schemas']['MailReaches'];
 export type MailRecord = components['schemas']['MailRecord'];
@@ -75383,6 +75429,12 @@ export const IdentityType = {
     ACCOUNT_ID: "ACCOUNT_ID",
     MEMBER_ID: "MEMBER_ID",
     MEMBER_UID: "MEMBER_UID",
+} as const;
+
+export const ImageAlign = {
+    CENTER: "CENTER",
+    LEFT: "LEFT",
+    RIGHT: "RIGHT",
 } as const;
 
 export const ImageFit = {

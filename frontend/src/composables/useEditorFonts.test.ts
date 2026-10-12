@@ -64,11 +64,11 @@ describe('useEditorFonts', () => {
         document.head.querySelectorAll('style[data-editor-fonts]').forEach(sheet => sheet.remove())
     })
 
-    function open(used: Ref<(string | null)[]>, area: string | null = 'Hausschrift') {
+    function open(used: Ref<(string | null)[]>, area: string | null = 'Hausschrift', sizePt: number | null = null) {
         let fonts: EditorFonts | null = null
         const Area = defineComponent({
             setup() {
-                const attrs = useEditorFontArea(() => area)
+                const attrs = useEditorFontArea(() => area, () => sizePt)
                 return () => h('div', {...attrs.value, 'data-testid': 'area'}, [h('span', {'data-font': 'Hausschrift'}, 'Wort')])
             },
         })
@@ -112,6 +112,14 @@ describe('useEditorFonts', () => {
         expect(bold?.source).not.toBe(regular?.source)
         expect(fonts().shown('Hausschrift')).toBe(true)
         expect(fonts().fontFamily('HAUSSCHRIFT')).toBe(`"${name}", sans-serif`)
+        wrapper.unmount()
+    })
+
+    it('hands the text size the letter prints in to the area, with or without a loaded font', async () => {
+        const {wrapper} = open(ref([]), null, 12)
+        await flushPromises()
+
+        expect(wrapper.get('[data-testid="area"]').attributes('style')).toContain('--editor-page-size: 12pt')
         wrapper.unmount()
     })
 

@@ -12,8 +12,8 @@ import ReaderDocuments from '@/components/documents/ReaderDocuments.vue'
 import {documentOpeningOf} from '@/components/documents/documentOpening'
 
 /**
- * The self service centre: the reader's own documents and those of each child, each with the
- * documents the reader may create for that member from the station's templates.
+ * The reader's own documents and those of each child, one person at a time. Creating documents from
+ * the station's templates has a page of its own, so this one stays a place to find documents.
  *
  * <p>A link from a signer's copy mail names a document (`?document=`) and maybe its record
  * (`&record=`): that document opens, and its record's download takes the focus.
@@ -26,6 +26,6 @@ const opening = computed(() => documentOpeningOf(route.query))
 
 <template>
   <ViewContent :title="t('pages.documents-own.title')" :subtitle="t('pages.documents-own.subtitle')">
-    <ReaderDocuments offers :opening="opening"/>
+    <ReaderDocuments :opening="opening"/>
   </ViewContent>
 </template>

@@ -35,6 +35,8 @@ const state = vi.hoisted(() => ({
     forgotten: 0,
     firstStationNeeded: false,
     soleStation: null as string | null,
+    opened: [] as number[],
+    markingFails: false,
 }))
 
 mockNuxtImport('navigateTo', () => (target: unknown) => {
@@ -108,6 +110,13 @@ vi.mock('~/util/landingMemoryState', () => ({
 
 vi.mock('~/api/stations', () => ({
     isFirstStationNeeded: async () => state.firstStationNeeded,
+}))
+
+vi.mock('~/api/notifications', () => ({
+    markOpened: async (id: number) => {
+        if (state.markingFails) throw new Error('server away')
+        state.opened.push(id)
+    },
 }))
 
 vi.mock('~/composables/useStations', () => ({
@@ -193,7 +202,50 @@ describe('auth route guard', () => {
         state.sessionCleared = 0
         state.remembered = []
         state.forgotten = 0
+        state.opened = []
+        state.markingFails = false
         localStorage.clear()
+    })
+
+    describe('opening a notification through its link', () => {
+        it('marks it read and follows the link without the marker', async () => {
+            await run(route('/station/news/view', {station: STATION, read: '42'}))
+
+            expect(state.opened).toEqual([42])
+            expect(state.navigations).toEqual([
+                {path: '/station/news/view', query: {station: STATION}, hash: undefined, replace: true},
+            ])
+        })
+
+        it('still follows the link when the notification cannot be marked', async () => {
+            state.markingFails = true
+
+            await run(route('/station/news/view', {read: '42'}))
+
+            expect(state.navigations).toEqual([
+                {path: '/station/news/view', query: {}, hash: undefined, replace: true},
+            ])
+        })
+
+        it('drops a marker that names no notification without asking the server', async () => {
+            await run(route('/station/news/view', {read: 'nonsense'}))
+
+            expect(state.opened).toEqual([])
+            expect(state.navigations).toEqual([
+                {path: '/station/news/view', query: {}, hash: undefined, replace: true},
+            ])
+        })
+
+        it('waits for the login before marking anything', async () => {
+            state.carriesSession = false
+
+            await run(route('/station/news/view', {read: '42'}))
+
+            expect(state.opened).toEqual([])
+            expect(state.navigations).toEqual([
+                {path: '/login', query: {redirect: '/station/news/view?read=42'}},
+            ])
+        })
     })
 
     describe('signing in through a link', () => {

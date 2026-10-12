@@ -95,7 +95,7 @@ class LetterFormattingTest extends RepositoryTestBase {
 
     @Test
     void sizedWordsPrintInTheirSize() throws IOException {
-        var positions = TestPdfs.positions(render(row("normal <span style=\"font-size: 48px\">G</span>")), 1);
+        var positions = TestPdfs.positions(render(row("normal <span style=\"font-size: 36pt\">G</span>")), 1);
 
         float normal = first(positions, "n").getFontSizeInPt();
         float sized = first(positions, "G").getFontSizeInPt();

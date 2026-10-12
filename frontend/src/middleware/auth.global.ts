@@ -3,8 +3,10 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
+import type {RouteLocationNormalized} from 'vue-router'
 import {demoLogin} from '~/api/auth'
 import {isFirstStationNeeded} from '~/api/stations'
+import {markOpened} from '~/api/notifications'
 import {FIRST_STATION_PATH} from '~/util/signInLanding'
 import {getDemoStatus} from '~/api/demo'
 import {hasSessionCookie} from '~/api/sessionCookie'
@@ -52,6 +54,21 @@ async function switchAccount(email: string): Promise<void> {
 }
 
 /**
+ * Marks the notification a mail or feed link names as read, then follows the link without the
+ * marker. A marker naming no notification is dropped, and a failure to mark it never stops the
+ * reader from reaching the page.
+ *
+ * @param to the navigation carrying {@code ?read=<id>}
+ */
+async function followReadMarker(to: RouteLocationNormalized) {
+    const query = {...to.query}
+    delete query.read
+    const opened = Number(to.query.read)
+    if (Number.isInteger(opened)) await markOpened(opened).catch(() => {})
+    return navigateTo({path: to.path, query, hash: to.hash, replace: true})
+}
+
+/**
  * Whether the reader administers an instance that has no station at all yet. Such an instance has
  * nothing to choose between and no station to open, so the reader is led to found the first one.
  */
@@ -71,7 +88,9 @@ async function waitsForFirstStation(): Promise<boolean> {
  * anyone who is not an instance administrator, and stays closed when the session cannot be
  * established. A cluster area is closed to anyone who may act for no cluster, whose shell would
  * otherwise open on an emptiness that reads as a page they are meant to be on, and a {@code ?cluster=}
- * link from an association's mail switches to that association where the reader may act for it. A {@code ?station=}
+ * link from an association's mail switches to that association where the reader may act for it. A
+ * {@code ?read=} link from a mail or a feed marks its notification read and is followed without the
+ * marker, once the reader is signed in, so the login redirect carries it along. A {@code ?station=}
  * link hands its station over before anything can redirect and drop it, and the idle check runs only
  * once a station is known, since the requirements page is station-scoped. The activity stamp is
  * written only when the navigation is let through, so a redirect never spends the idle window.
@@ -103,6 +122,8 @@ export default defineNuxtRouteMiddleware(async (to) => {
     if (needsReconsent.value && to.path !== '/reconsent') {
         return navigateTo('/reconsent')
     }
+
+    if (to.query.read !== undefined) return followReadMarker(to)
 
     if (to.path === '/admin' || to.path.startsWith('/admin/')) {
         const {loaded, load, isAdmin} = useSession()

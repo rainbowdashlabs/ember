@@ -46,7 +46,7 @@ const stationUid = computed(() => actingStation() ?? sessionInfo.value?.stationI
 const catalogue = computed<LetterCatalogue>(() => ({...props.catalogue, legal: draft.value.legal}))
 
 provideBlockEditorOptions(() => letterBlockOptions(catalogue.value, LetterPart.BODY))
-const bodyFont = useEditorFontArea(() => draft.value.page.bodyFont ?? null)
+const bodyFont = useEditorFontArea(() => draft.value.page.bodyFont ?? null, () => draft.value.page.fontSizePt)
 
 function imported(rows: ContentRow[]) {
   draft.value.body = toEditRows(rows)
@@ -57,7 +57,8 @@ function imported(rows: ContentRow[]) {
   <div class="space-y-6">
     <NeutralContainer>
       <LetterEdgeEditor v-model="draft.header" :title="t('documentTemplates.header')" :station-uid="stationUid"
-                        :catalogue="catalogue" :family="draft.page.headerFont ?? null" data-testid="letter-header"/>
+                        :catalogue="catalogue" :family="draft.page.headerFont ?? null" :size-pt="draft.page.fontSizePt"
+                        data-testid="letter-header"/>
     </NeutralContainer>
     <NeutralContainer class="space-y-4">
       <SubHeader>{{ t('documentTemplates.bodyTitle') }}</SubHeader>
@@ -69,7 +70,8 @@ function imported(rows: ContentRow[]) {
     </NeutralContainer>
     <NeutralContainer>
       <LetterEdgeEditor v-model="draft.footer" :title="t('documentTemplates.footer')" :station-uid="stationUid"
-                        :catalogue="catalogue" :family="draft.page.footerFont ?? null" data-testid="letter-footer"/>
+                        :catalogue="catalogue" :family="draft.page.footerFont ?? null" :size-pt="draft.page.fontSizePt"
+                        data-testid="letter-footer"/>
     </NeutralContainer>
     <PageSettings v-model="draft.page" :fonts="catalogue.fonts" :default-family="defaultFamily"/>
   </div>

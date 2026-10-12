@@ -31,21 +31,25 @@ describe('DocumentsSidebarGroup', () => {
         sessionWriter().setInfo(null)
     })
 
-    it('leads a member without rights to their own documents only', async () => {
+    it('leads a member without rights to their own documents and to creating documents for themselves', async () => {
         signIn([])
 
-        expect(await entries()).toEqual(['/station/documents'])
+        expect(await entries()).toEqual(['/station/documents', '/station/documents/self-service'])
     })
 
     it('shows the store to whoever reads it, and the generated documents to whoever reads those of members', async () => {
         signIn([StationPermission.DOCUMENT_READ, StationPermission.DOCUMENT_READ_MEMBER])
 
-        expect(await entries()).toEqual(['/station/documents', '/station/documents/store', '/station/documents/generated'])
+        expect(await entries()).toEqual([
+            '/station/documents', '/station/documents/self-service', '/station/documents/store', '/station/documents/generated',
+        ])
     })
 
     it('shows templates and fonts to whoever writes templates', async () => {
         signIn([StationPermission.DOCUMENT_TEMPLATE_EDIT])
 
-        expect(await entries()).toEqual(['/station/documents', '/station/documents/templates', '/station/documents/fonts'])
+        expect(await entries()).toEqual([
+            '/station/documents', '/station/documents/self-service', '/station/documents/templates', '/station/documents/fonts',
+        ])
     })
 })

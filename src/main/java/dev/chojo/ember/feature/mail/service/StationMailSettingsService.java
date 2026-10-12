@@ -123,6 +123,15 @@ public class StationMailSettingsService {
     }
 
     /**
+     * Every provider a mail of the station may go out through, in the order they are tried: its own,
+     * then the instance's where it may use them. Members are shown all of them, because a provider
+     * only reached when the ones before it fail still receives their address.
+     */
+    public List<MailChainEntry> senders(int stationId) {
+        return chains.forStation(stationId);
+    }
+
+    /**
      * The address the station's first provider reports delivery events to.
      */
     public WebhookUrl webhook(int stationId) {

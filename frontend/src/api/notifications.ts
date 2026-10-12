@@ -12,6 +12,8 @@ import type {CountResponse, NotificationResponse} from './generated/schema'
  */
 export interface NotificationInboxApi {
     listUnread(): Promise<NotificationResponse[]>
+    /** The fifty most recent, read or not. */
+    listRecent(): Promise<NotificationResponse[]>
     count(): Promise<number>
     acknowledge(id: number): Promise<void>
     acknowledgeAll(): Promise<void>
@@ -36,6 +38,11 @@ export async function acknowledge(id: number): Promise<void> {
     await client.post(`/notifications/${id}/acknowledge`)
 }
 
+/** Marks a notification read that was opened through its link, wherever the caller received it. */
+export async function markOpened(id: number): Promise<void> {
+    await client.post(`/notifications/${id}/read`)
+}
+
 export async function acknowledgeAll(): Promise<void> {
     await client.post('/notifications/acknowledge-all')
 }
@@ -43,6 +50,7 @@ export async function acknowledgeAll(): Promise<void> {
 /** The inbox of the caller's membership at the current station. */
 export const stationInbox: NotificationInboxApi = {
     listUnread: listUnacknowledged,
+    listRecent: listAll,
     count: getCount,
     acknowledge,
     acknowledgeAll,
@@ -52,6 +60,10 @@ export const stationInbox: NotificationInboxApi = {
 export const clusterInbox: NotificationInboxApi = {
     async listUnread() {
         const res = await client.get<NotificationResponse[]>('/cluster/notifications/unacknowledged')
+        return res.data
+    },
+    async listRecent() {
+        const res = await client.get<NotificationResponse[]>('/cluster/notifications')
         return res.data
     },
     async count() {

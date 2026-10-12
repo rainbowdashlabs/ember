@@ -269,7 +269,7 @@ class KbBlockContentServiceTest extends RepositoryTestBase {
         return row(
                 CellContentType.IMAGE,
                 "abc",
-                new CellConfig.ImageConfig(null, null, null, null, null, null, null, null, null, null, null));
+                new CellConfig.ImageConfig(null, null, null, null, null, null, null, null, null, null, null, null));
     }
 
     @Test

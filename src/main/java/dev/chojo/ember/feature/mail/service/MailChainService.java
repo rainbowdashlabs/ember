@@ -80,8 +80,8 @@ public class MailChainService {
                     entry.senderName(),
                     Math.max(1, entry.attempts()),
                     entry.dailySendLimit(),
-                    "",
-                    ""));
+                    entry.providerName(),
+                    entry.providerUrl()));
         }
         return configured(chain).stream()
                 .map(entry -> entry.asInstanceProvider(entry.position()))

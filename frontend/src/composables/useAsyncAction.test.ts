@@ -86,6 +86,19 @@ describe('useAsyncAction', () => {
         secondGate.resolve('b')
     })
 
+    it('rejects for a save button where the action failed, and still describes the failure', async () => {
+        const {runOrReject, failure} = useAsyncAction(() => Promise.reject(new Error('boom')))
+
+        await expect(runOrReject()).rejects.toThrow('failure.UNKNOWN.message')
+        expect(failure.value?.kind).toBe('UNKNOWN')
+    })
+
+    it('resolves with the result for a save button where the action worked', async () => {
+        const {runOrReject} = useAsyncAction(async () => 7)
+
+        expect(await runOrReject()).toBe(7)
+    })
+
     it('reports a failure and stops running', async () => {
         const fn = vi.fn(() => Promise.reject(new Error('boom')))
         const {run, error, failure, running} = useAsyncAction(fn)

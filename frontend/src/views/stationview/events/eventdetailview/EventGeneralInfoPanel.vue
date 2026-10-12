@@ -14,6 +14,10 @@ import type {AppointmentField, StationEvent} from '@/api/generated/schema'
 import type {MemberLike} from '@/components/input/select/memberOption'
 import ProseContent from '@/components/display/ProseContent.vue'
 
+/**
+ * The general facts of an appointment: when it begins and ends first, since that is what a reader looks
+ * for, then its description, then its template and the answers to its questions.
+ */
 defineProps<{
   event: StationEvent
   eventId: number
@@ -38,6 +42,16 @@ const {t} = useI18n()
 <template>
   <NeutralContainer class="space-y-3">
     <SubHeader>{{ t('events.general') }}</SubHeader>
+    <div class="grid grid-cols-2 gap-4">
+      <div>
+        <DetailLabel>{{ t('events.startTime') }}</DetailLabel>
+        <p class="text-sm" data-testid="event-start">{{ startFormatted }}</p>
+      </div>
+      <div>
+        <DetailLabel>{{ t('events.endTime') }}</DetailLabel>
+        <p class="text-sm" data-testid="event-end">{{ endFormatted }}</p>
+      </div>
+    </div>
     <div>
       <DetailLabel>{{ t('events.description') }}</DetailLabel>
       <ProseContent v-if="event.description" class="mt-1" v-html="renderMarkdown(event.description)"/>
@@ -48,8 +62,6 @@ const {t} = useI18n()
         :fields="fields"
         :all-members="allMembers"
         :current-member-id="currentMemberId"
-        :start-formatted="startFormatted"
-        :end-formatted="endFormatted"
         :template-name="templateName"
         :can-edit-event="canEditEvent"
         :effective-date="effectiveDate"

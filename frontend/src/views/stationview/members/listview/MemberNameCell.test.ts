@@ -24,6 +24,7 @@ function member(overrides: Partial<RosterMember> = {}): RosterMember {
     setupMailExpiresAt: null,
     mailReaches: 'SELF',
     former: false,
+    joinDate: '2026-01-15',
     roles: [],
     groups: [],
     tags: [],

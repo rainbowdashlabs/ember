@@ -24,6 +24,13 @@ describe('memberColumns', () => {
         const keys = memberColumns([field(1, 'TEXT'), field(2, 'SECTION'), field(3, 'SPACER'), field(4, 'AGE')], sources)
             .map(column => column.key)
 
-        expect(keys).toEqual(['name', 'userType', 'email', '1', '4'])
+        expect(keys).toEqual(['name', 'userType', 'email', 'joinDate', '1', '4'])
+    })
+
+    it('offers the day a member joined as a date column, hidden until chosen', () => {
+        const joined = memberColumns([], sources).find(column => column.key === 'joinDate')
+
+        expect(joined?.type).toBe('date')
+        expect(joined?.defaultVisible).toBe(false)
     })
 })

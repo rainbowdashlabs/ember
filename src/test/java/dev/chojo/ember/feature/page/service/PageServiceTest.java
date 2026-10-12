@@ -155,6 +155,7 @@ class PageServiceTest extends RepositoryTestBase {
                                         null,
                                         null,
                                         null,
+                                        null,
                                         null)))));
         assertTrue(service.savePage(pageId, "Welcome", "welcome-page", null, "Test desc", null, rows));
 

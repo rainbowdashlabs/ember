@@ -16,6 +16,7 @@ import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {provideFontSamples} from '@/composables/useFontSamples'
 import {showToast} from '@/util/toast'
 import FontUploadForm from './FontUploadForm.vue'
+import {sameFamily} from './fontOptions'
 import OwnFontList from './OwnFontList.vue'
 import ReachedFamilyList from './ReachedFamilyList.vue'
 import WebFontDialog from './WebFontDialog.vue'
@@ -65,7 +66,8 @@ const removingWeb = useAsyncAction(async (font: DocumentFontView) => {
   return fonts.value
 })
 
-const reached = computed(() => fonts.value.reachable.filter(family => family.origin !== props.origin))
+const reached = computed(() => fonts.value.reachable.filter(family =>
+    family.origin !== props.origin && !sameFamily(family.family, fonts.value.defaultFamily)))
 const shownFailure = computed(() => failure.value ?? uploading.failure.value ?? removing.failure.value
     ?? uploadingWeb.failure.value ?? removingWeb.failure.value)
 
@@ -100,7 +102,8 @@ async function remove() {
       <FontUploadForm :busy="uploading.running.value" @upload="upload"/>
       <OwnFontList :fonts="fonts.own" :reachable="fonts.reachable" :default-family="fonts.defaultFamily" @remove="font => pending = font"
                    @web="font => webTarget = font" @remove-web="removeWeb"/>
-      <ReachedFamilyList v-if="reached.length > 0" :families="reached"/>
+      <ReachedFamilyList v-if="reached.length > 0 || fonts.defaultFamily" :families="reached"
+                         :default-family="fonts.defaultFamily" :default-styles="fonts.defaultStyles"/>
     </template>
     <WebFontDialog :font="webTarget" :busy="uploadingWeb.running.value" @upload="uploadWeb" @close="webTarget = null"/>
     <ConfirmDeleteModal

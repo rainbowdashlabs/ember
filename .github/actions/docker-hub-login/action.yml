@@ -1,0 +1,21 @@
+name: Log in to Docker Hub
+description: >-
+  Pulls from Docker Hub as the project's account rather than anonymously, so base images and test
+  containers count against its rate limit instead of the one a shared runner address shares with
+  everyone else. Skipped where the token is not passed on, as in a pull request from a fork, which
+  then pulls anonymously as before.
+inputs:
+  username:
+    description: The Docker Hub account name.
+    required: true
+  token:
+    description: A read-only personal access token of that account.
+    required: true
+runs:
+  using: composite
+  steps:
+    - if: inputs.username != '' && inputs.token != ''
+      uses: docker/login-action@v4
+      with:
+        username: ${{ inputs.username }}
+        password: ${{ inputs.token }}

@@ -29,6 +29,7 @@ function richMember(id: number, name: string, mailReaches: RosterMember['mailRea
     setupMailExpiresAt: '2026-09-01T10:00:00Z',
     mailReaches,
     former: false,
+    joinDate: '2026-01-15',
     userType: 'MEMBER',
     roles: [],
     groups: [],

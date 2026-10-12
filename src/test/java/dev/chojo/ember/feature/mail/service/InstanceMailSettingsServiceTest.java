@@ -94,6 +94,33 @@ class InstanceMailSettingsServiceTest {
         assertEquals("two.test", providers.get(1).host());
     }
 
+    /** The name and privacy notice members are shown are kept in the file and read back as entered. */
+    @Test
+    void theNameAndPrivacyNoticeMembersSeeAreKept() {
+        var named = new MailFallbackPayload(
+                MailProviderType.BREVO,
+                "",
+                587,
+                SmtpEncryption.STARTTLS,
+                "",
+                "",
+                "key",
+                "post@instance.test",
+                "Ember",
+                2,
+                0,
+                " Brevo ",
+                "https://www.brevo.com/legal/privacypolicy/",
+                null);
+
+        var answer = service.updateProviders(new MailFallbackChain(2, List.of(named)));
+
+        var stored = reread().main().mailing().providers().getFirst();
+        assertEquals("Brevo", stored.providerName());
+        assertEquals("https://www.brevo.com/legal/privacypolicy/", stored.providerUrl());
+        assertEquals("Brevo", answer.fallbacks().getFirst().providerName());
+    }
+
     @Test
     void aMaskedSecretKeepsTheOneStoredAtItsPlaceAndGoesOutMasked() {
         service.updateProviders(new MailFallbackChain(2, List.of(smtp("one.test", "secret"))));

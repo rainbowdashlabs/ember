@@ -84,7 +84,7 @@ const activeTab = ref('profile')
 
   <ProfileTab
     v-if="activeTab === 'profile'"
-    :applicable-fields="applicableFields" :member-id="memberId"
+    :applicable-fields="applicableFields" :member-id="memberId" :join-date="member.joinDate"
     :current-member-id="currentMemberId" :changes="changes"
     :show-change-history="showChangeHistory" :get-field-value="getFieldValue"
     @reload="$emit('reload-changes')"

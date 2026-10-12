@@ -33,7 +33,7 @@ async function uploadDocument(page: Page, title: string, fileName: string, says:
  */
 async function openFirstMembersDocuments(page: Page) {
     await page.goto('/station/members/list')
-    await page.getByTestId('member-row').first().getByRole('button', {name: 'Details'}).click()
+    await page.getByTestId('member-row').first().getByRole('link', {name: 'Details'}).click()
     await page.waitForURL(/\/station\/members\/detail\/\d+/)
     await page.getByRole('tab', {name: 'Dokumente'}).first().click()
 }

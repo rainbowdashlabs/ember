@@ -77,10 +77,8 @@ const failure = computed(() => loader.failure.value ?? saving.failure.value ?? a
     ?? uploading.failure.value ?? editor.pdfLoader.failure.value ?? duplication.failure.value)
 
 async function save() {
-  const written = await saving.run()
-  if (!written) return
-  showToast(t('documentTemplates.saved'), 'success')
-  if (templateId.value !== written.id) {
+  const written = await saving.runOrReject()
+  if (written && templateId.value !== written.id) {
     await router.replace({name: props.screens.editRoute, params: {id: written.id}})
   }
 }
@@ -107,11 +105,10 @@ async function upload(file: File) {
     <div v-if="!loader.loading.value && !loader.failure.value" class="space-y-6">
       <EditorActions
           :saved="saved"
-          :saving="saving.running.value"
+          :save="save"
           :duplicating="duplication.running.value"
           :can-save="draft.name.trim().length > 0"
           :list-route="screens.listRoute"
-          @save="save"
           @duplicate="duplicate"
           @archive="setArchived"
       />

@@ -17,6 +17,74 @@ Dokumentvorlagen können beim Erstellen nach Angaben fragen, die nicht in den Da
 
 - **Ankreuzfelder lassen sich von Hand setzen.** Die Ankreuzfelder bestehender PDF-Vorlagen sind zu Abfragen geworden, die wie bisher den Daten des Mitglieds folgen, beim Selbst-Erstellen und beim Erstellen für viele Mitglieder also unverändert ankreuzen. Wer ein einzelnes Dokument erstellt, kann jedes Kreuz jetzt setzen oder entfernen.
 
+## v26.22.4
+
+Der Tag, an dem ein Mitglied beigetreten ist, steht in der Mitgliederliste und auf der Seite des Mitglieds und lässt sich beim Import übernehmen. Mitglieder öffnen sich aus der Liste in einem neuen Tab.
+
+### Verbesserungen
+
+- **Das Eintrittsdatum ist sichtbar und importierbar.** Der Tag, an dem ein Mitglied beigetreten ist, steht als Spalte der Mitgliederliste zur Auswahl, erscheint auf der Seite des Mitglieds und lässt sich beim Import aus einer Spalte übernehmen.
+- **Mitgliederseiten öffnen sich aus der Liste in einem neuen Tab.** Die Knöpfe zum Ansehen und Bearbeiten in der Mitgliederliste sind Links, so dass sich ein Mitglied mit der mittleren Maustaste oder dem Kontextmenü in einem neuen Tab öffnet.
+
+## v26.22.3
+
+Benachrichtigungen gelten als gelesen, sobald sie aus einer Mail, einem Feed oder der App geöffnet werden, und gelesene kommen nicht mehr in die nächste Mail. Ältere Benachrichtigungen lassen sich unter den ungelesenen wieder anzeigen. Die Startseite heißt auf Deutsch „Übersicht“.
+
+### Verbesserungen
+
+- **Der Brief-Editor zeigt die Schriftgröße des Briefs.** Kopf, Text und Fußzeile einer Briefvorlage zeigen ihren Text in der Größe, in der der Brief ihn druckt, und folgen der Seiteneinstellung, wenn sie sich ändert. Die Schriftgröße der Seite lässt sich mit einem Klick auf den Standard zurücksetzen.
+- **Mediendateien lassen sich in Ordner ziehen.** In der Mediathek lässt sich eine Datei auf einen Ordner in der Seitenleiste, auf eine Ordnerkachel oder auf einen Schritt im Pfad darüber ziehen, um sie dorthin zu verschieben. Wird eine von mehreren ausgewählten Dateien gezogen, wandern alle mit.
+- **Eingefügte Ember-Links zeigen ihren Titel.** Wird die Adresse einer Neuigkeit, eines Termins, eines Wiki-Artikels oder einer Seite der Wache oder einer Partnerwache in den Texteditor eingefügt, steht dort ein Link mit ihrem Titel oder dem Namen der Seite. Rückgängig holt die Adresse zurück, Links zu anderen Seiten bleiben wie eingefügt.
+- **Zeilenhöhe und Zeichenabstand im Texteditor.** Ein neuer Button für Abstände setzt die Zeilenhöhe von Absätzen und den Abstand zwischen den Buchstaben markierter Wörter, jeweils in wenigen festen Stufen. Seiten, Artikel, Neuigkeiten und gedruckte Briefe zeigen beides genauso.
+- **Bilder stehen links, mittig oder rechts.** Ein Bildblock, der schmaler als seine Spalte ist, etwa mit einer maximalen Höhe, lässt sich links, mittig oder rechts ausrichten, die Bildunterschrift steht auf derselben Seite. Seiten, Artikel, Neuigkeiten und gedruckte Briefe zeigen es dort.
+- **Ältere Benachrichtigungen lassen sich wieder anzeigen.** Ein Knopf unter den ungelesenen Benachrichtigungen listet die schon gelesenen unter den 50 neuesten. Das geht auf der Übersicht und auf der Benachrichtigungsseite eines Verbands.
+
+### Änderungen
+
+- **Die Startseite heißt „Übersicht“.** Oberfläche und Hilfe nennen die Startseite auf Deutsch „Übersicht“ statt „Dashboard“.
+- **Dokumente erstellen hat einen eigenen Menüpunkt.** Dokumente, die Mitglieder aus den Vorlagen der Wache selbst erstellen, stehen nicht mehr unter Meine Dokumente, sondern unter Dokumente → Selbst erstellen, wo sich ein erstelltes Dokument gleich öffnet. Meine Dokumente zeigt Erziehungsberechtigten einen Reiter je Person, für sich und jedes Kind, mit einem größeren Suchfeld über der Liste.
+- **Speichern zeigt sich am Speichern-Knopf.** Dokumentvorlagen, die Nutzung einer Verbandsvorlage durch die Wache, Seiten, die Zusammensetzung einer Checkliste und Eintragungen pro Termindatum zeigen Speichern und Gespeichert am Knopf statt in einer eingeblendeten Meldung. Einstellungen, die sofort gespeichert werden, etwa die der Instanz und das öffentliche Wiki eines Verbands, zeigen denselben Stand daneben.
+- **Termine zeigen zuerst ihre Zeit.** Die allgemeinen Angaben eines Termins zeigen Beginn und Ende über der Beschreibung, und die Anwesenheitsvorlage steht in einer eigenen Zeile.
+- **Absätze stehen enger beieinander.** Neuigkeiten, Seiten, Artikel und die Hilfe lassen weniger Platz zwischen Zeilen und Absätzen, so dass ein neuer Absatz nicht mehr wie eine Leerzeile aussieht.
+- **Schriftgrößen stehen in Punkt.** Der Texteditor setzt Wörter in einer Größe in Punkt von 5 bis 72, wie es Briefe schon tun. Texte mit Größen in Pixeln sehen weiter gleich aus und werden beim nächsten Speichern in Punkt abgelegt.
+
+### Fehlerbehebungen
+
+- **Dokumentvorschauen ließen sich nicht vergrößern oder verschieben.** Die Vorschau einer Vorlage, eines erstellten Dokuments und einer Sammelerstellung zeigte keine Zoom-Knöpfe, und ein vergrößertes Dokument ließ sich nicht mit der Maus verschieben. Jede Dokumentansicht lässt sich jetzt vergrößern und vergrößert verschieben.
+- **Dokumente hatten in der Rechteauswahl kein Symbol.** Die Rechte für Dokumente waren die einzige Gruppe in der Rechteauswahl ohne Symbol. Sie zeigen jetzt das Dokumentsymbol.
+- **Die Ablage zeigte keine Vorschauen.** Jedes Dokument in der Ablage zeigte nur ein Dateisymbol, obwohl eine Vorschau erstellt worden war. Die Ablage zeigt die Vorschauen wieder.
+- **Dokumentkacheln waren unterschiedlich breit.** In der Ablage zog ein langer Titel seine Kachel in die Breite und ließ große Lücken zwischen den Kacheln. Die Kacheln füllen jetzt ihre Spalte, lange Titel brechen um.
+- **Ein geöffnetes Dokument nannte niemanden, dem es gehört.** Unter Meine Dokumente stand bei einem geöffneten Dokument, es sei keinem Mitglied zugeordnet, obwohl es als Dokument einer Person gelistet war. Es nennt jetzt diese Person.
+- **Die Standardschrift fehlte auf der Schriftenseite.** Die Schrift, in der Dokumente standardmäßig gedruckt werden, etwa Berlin Type, stand in jeder Schriftauswahl, aber nicht auf der Schriftenseite. Sie steht jetzt mit einem Beispiel an erster Stelle der verfügbaren Schriften.
+- **Leerzeilen verschwanden aus Texten.** Absichtlich leer gelassene Zeilen in Neuigkeiten, Seiten, Artikeln und Briefen wurden beim Speichern entfernt. Sie bleiben jetzt erhalten und erscheinen auf der Seite und im gedruckten Brief als Leerzeilen.
+- **Gelesene Benachrichtigungen wurden trotzdem gemailt.** Schon in der App Gelesenes stand trotzdem in der nächsten Benachrichtigungsmail, bei Erziehungsberechtigten auch im Namen eines Kindes. Gelesenes bleibt jetzt aus der Mail heraus, und die Benachrichtigung des Kindes bleibt für das Kind ungelesen.
+- **Der Zurück-Knopf eines Termins führte zur falschen Liste.** Für die Terminverwaltung öffnete der Zurück-Knopf eines Termins immer die Terminübersicht, egal von wo der Termin geöffnet wurde. Er führt jetzt zur vorherigen Seite zurück, oder zu den anstehenden Terminen, wenn es keine gibt.
+- **Aus einer Mail oder einem Feed geöffnet, blieb eine Benachrichtigung ungelesen.** Wer dem Link einer Benachrichtigung aus einer Mail oder einem Feedreader folgte, hatte sie danach nicht als gelesen markiert. Das Öffnen markiert sie jetzt als gelesen, auch wenn vorher noch eine Anmeldung nötig ist.
+
+## v26.22.2
+
+Die Benachrichtigungseinstellungen nennen jeden Mailanbieter, über den eine Mail an ein Mitglied gehen kann, jeweils mit seinen Datenschutzhinweisen. Die Mailanbieter der Instanz lassen sich für Mitglieder mit Namen und Datenschutzhinweisen versehen. Erziehungsberechtigte bekommen eine Benachrichtigungsmail für sich und die Kinder, um die sie sich kümmern.
+
+### Verbesserungen
+
+- **Jeder Mailanbieter steht in den Benachrichtigungseinstellungen.** Kann eine Mail über mehrere Anbieter rausgehen, listen die Benachrichtigungseinstellungen alle in der Reihenfolge, in der sie versucht werden, jeweils mit ihren Datenschutzhinweisen. Beim Einschalten der Mails werden alle als Empfänger der Adresse genannt.
+- **Die Mailanbieter der Instanz haben einen Namen und Datenschutzhinweise.** Unter Einstellungen → E-Mail bekommt jeder Anbieter der Instanz einen Namen und eine Adresse für Datenschutzhinweise, die Mitglieder jeder Wache sehen, die über ihn verschickt.
+
+### Fehlerbehebungen
+
+- **Der Mailanbieter hieß „Unbekannt".** Bei einer Wache, die nur über die Anbieter der Instanz verschickt, nannten die Benachrichtigungseinstellungen den Anbieter „Unbekannt". Jetzt zeigen sie den für ihn vergebenen Namen oder, wenn keiner vergeben ist, die Art des Anbieters.
+- **Erziehungsberechtigte bekamen dieselbe Benachrichtigung mehrfach.** Sie erhielten ihre eigene Benachrichtigungsmail und eine weitere für jedes Kind ohne E-Mail-Adresse, oft mit denselben Neuigkeiten. Jetzt kommt eine Mail, die jede Benachrichtigung einmal aufführt und bei Einträgen nur für ein Kind dessen Namen nennt.
+
+## v26.22.1
+
+Benachrichtigungsmails zeigen das Logo der Wache, schreiben Daten so, wie es die Sprache der Lesenden tut, und verlinken auf die richtige Einstellungsseite.
+
+### Fehlerbehebungen
+
+- **Der Einstellungslink in Benachrichtigungsmails führte ins Leere.** Der Link unten in einer Benachrichtigungsmail öffnete eine Seite, die es nicht gibt, und bei Verbänden zeigte er auf eine Seite der Wache. Jetzt öffnet er die Benachrichtigungseinstellungen der Wache oder des Verbands, von dem die Mail kommt.
+- **Mails der Wache zeigten kein oder ein kaputtes Logo.** Das Logo der Wache oben in einer Benachrichtigungsmail wurde nie geladen, und Mails zu Bewerbungen und Wartelisten zeigten gar keins. Jetzt zeigen diese Mails das Logo der Wache, wenn sie eines hat.
+- **Daten in Benachrichtigungsmails und Feeds waren schwer zu lesen.** Daten erschienen als 2026-10-17, auch auf Deutsch. Jetzt stehen sie als 17.10.2026 auf Deutsch und als Oct 17, 2026 auf Englisch da.
+
 ## v26.22.0
 
 Wachen erstellen aus eigenen Vorlagen und denen ihres Verbands Dokumente für ihre Mitglieder: Briefe aus Bausteinen wie die Seiten der Wache, mit Platzhaltern und mit Bausteinen, die nur manche Mitglieder bekommen, und ausgefüllte PDF-Formulare, etwa eine hochgeladene Einverständniserklärung. Ein Termin kann seine Teilnehmenden bitten, ein solches Formular mitzubringen oder einen Scan des unterschriebenen Exemplars einzureichen. Briefe und Formulare lassen für jede Person, die unterschreibt, ein leeres Unterschriftsfeld, und jede Vorlage nennt das Mitglied, das ihre Dokumente ausstellt und sie mit seiner gespeicherten Unterschrift automatisch unterschreiben lassen kann. Fordert die Verwaltung die Unterschriften an, werden Mitglieder und Erziehungsberechtigte per E-Mail darum gebeten und unterschreiben online aus ihren offenen Aufgaben, mit einer dort gezeichneten oder im Konto gespeicherten Unterschrift, und die Wache versiegelt jede unterschriebene Fassung, schickt allen, die unterschrieben haben, eine Kopie und lässt sie auf der Prüfseite nachprüfen. Dokumente nennen Personen mit ihrem amtlichen Namen und Erziehungsberechtigte in ihrer festgelegten Reihenfolge, und Pronomen folgen dem neuen Profilfeld für das Geschlecht oder verwenden den Vornamen. Die Verwaltung erstellt Dokumente auf der Seite eines Mitglieds, in der Ablage oder für viele Mitglieder auf einmal, und Mitglieder und Erziehungsberechtigte erstellen freigegebene Dokumente selbst im neuen Menü Dokumente. Vorlagen übernehmen ihren Text aus einem Word- oder OpenDocument-Dokument, drucken in mitgelieferten Schriften oder in Schriften, die die Instanz, ein Verband oder die Wache hochgeladen hat, und lassen sich als Ausgangspunkt für neue duplizieren. Wachen können ihre Mails über die Anbieter der Instanz verschicken, innerhalb eines Anteils jedes Anbieters, den die Instanz dafür freigibt. Hinter jedem Mitgliedsnamen liegt ein Kurzprofil, einen neuen eigenen Namen bestätigt zuerst die Mitgliederverwaltung, und private Tags sieht nur sie. Bevor ein bestehendes Konto zu einem Mitglied einer Wache kommt, fragt die Wache die Person, der es gehört, und Adresse und Anmeldung eines Kontos, das mehreren Wachen gehört, ändert nur sie selbst.

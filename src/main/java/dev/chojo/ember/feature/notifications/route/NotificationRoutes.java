@@ -8,6 +8,7 @@ package dev.chojo.ember.feature.notifications.route;
 import dev.chojo.ember.api.MessageResponse;
 import dev.chojo.ember.api.Routes;
 import dev.chojo.ember.api.StationSession;
+import dev.chojo.ember.api.UserSession;
 import dev.chojo.ember.api.auth.StationPermission;
 import dev.chojo.ember.feature.notifications.entity.Notification;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
@@ -50,6 +51,7 @@ public class NotificationRoutes implements Routes {
         routes.get(prefix + "/notifications/count", this::count, StationPermission.USER);
         routes.post(prefix + "/notifications/{id}/acknowledge", this::acknowledge, StationPermission.USER);
         routes.post(prefix + "/notifications/acknowledge-all", this::acknowledgeAll, StationPermission.USER);
+        routes.post(prefix + "/notifications/{id}/read", this::markOpened, StationPermission.LOGIN);
     }
 
     @OpenApi(
@@ -109,6 +111,19 @@ public class NotificationRoutes implements Routes {
     private void acknowledgeAll(Context ctx) {
         int count = inbox.acknowledgeAll(recipient(ctx));
         ctx.json(new MessageResponse(count + " notifications acknowledged"));
+    }
+
+    @OpenApi(
+            path = "/api/v1/notifications/{id}/read",
+            methods = HttpMethod.POST,
+            summary = "Mark a notification read that was opened through its link",
+            description = "Reaches the caller's own notifications in every station and association.",
+            tags = {"Notifications"},
+            pathParams = @OpenApiParam(name = "id", type = Integer.class, required = true),
+            responses = @OpenApiResponse(status = "204"))
+    private void markOpened(Context ctx) {
+        inbox.markOpened(UserSession.from(ctx).accountId(), pathInt(ctx, "id"));
+        ctx.status(HttpStatus.NO_CONTENT);
     }
 
     private static Recipient recipient(Context ctx) {

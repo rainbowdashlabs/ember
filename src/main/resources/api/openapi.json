@@ -34206,6 +34206,26 @@
         } ]
       }
     },
+    "/api/v1/notifications/{id}/read" : {
+      "post" : {
+        "summary" : "Mark a notification read that was opened through its link",
+        "tags" : [ "Notifications" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
     "/api/v1/onboarding/instance" : {
       "get" : {
         "summary" : "What this instance still has to set up",
@@ -59997,6 +60017,10 @@
         "type" : "string",
         "enum" : [ "ACCOUNT_ID", "MEMBER_ID", "MEMBER_UID" ]
       },
+      "ImageAlign" : {
+        "type" : "string",
+        "enum" : [ "LEFT", "CENTER", "RIGHT" ]
+      },
       "ImageConfig" : {
         "type" : "object",
         "properties" : {
@@ -60035,6 +60059,9 @@
           },
           "borderColor" : {
             "type" : "string"
+          },
+          "imageAlign" : {
+            "$ref" : "#/components/schemas/ImageAlign"
           }
         }
       },
@@ -63617,6 +63644,21 @@
         "type" : "string",
         "enum" : [ "IMPORTED", "DUPLICATE", "SENDER_NOT_ALLOWED", "NO_RULE_MATCHED", "TYPE_NOT_ALLOWED", "TOO_LARGE", "TOO_SMALL", "NO_ATTACHMENT", "QUOTA_EXCEEDED", "AUTHENTICATION_FAILED", "NO_SIGNATURE", "SIGNATURE_NOT_ALIGNED", "SIGNATURE_FAILED", "FAILED" ]
       },
+      "MailProvider" : {
+        "type" : "object",
+        "properties" : {
+          "type" : {
+            "$ref" : "#/components/schemas/MailProviderType"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "url" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "type", "name", "url" ]
+      },
       "MailProviderType" : {
         "type" : "string",
         "enum" : [ "NONE", "SMTP", "RAPIDMAIL", "TWILIO", "SWEEGO", "BREVO" ]
@@ -64860,6 +64902,13 @@
           "group" : {
             "type" : "string"
           },
+          "joinDate" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/LocalDate"
+            }, {
+              "type" : "null"
+            } ]
+          },
           "profileFields" : {
             "type" : "object",
             "additionalProperties" : {
@@ -64880,7 +64929,7 @@
             "type" : "boolean"
           }
         },
-        "required" : [ "firstName", "lastName", "email", "group", "profileFields", "contacts", "row", "ignored" ]
+        "required" : [ "firstName", "lastName", "email", "group", "joinDate", "profileFields", "contacts", "row", "ignored" ]
       },
       "MemberProfile" : {
         "type" : "object",
@@ -75534,14 +75583,14 @@
           "mailConfigured" : {
             "type" : "boolean"
           },
-          "mailProviderName" : {
-            "type" : "string"
-          },
-          "mailProviderUrl" : {
-            "type" : "string"
+          "mailProviders" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/MailProvider"
+            }
           }
         },
-        "required" : [ "emailEnabled", "theme", "darkMode", "feel", "notifications", "mailConfigured", "mailProviderName", "mailProviderUrl" ]
+        "required" : [ "emailEnabled", "theme", "darkMode", "feel", "notifications", "mailConfigured", "mailProviders" ]
       },
       "SetupStatus" : {
         "type" : "object",

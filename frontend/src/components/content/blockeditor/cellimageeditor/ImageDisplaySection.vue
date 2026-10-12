@@ -8,7 +8,7 @@ import {useI18n} from 'vue-i18n'
 import SelectInput from '@/components/input/select/SelectInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import LabeledNumberInput from './LabeledNumberInput.vue'
-import {ImageFit, type ImageConfig} from '@/api/generated/schema'
+import {ImageAlign, ImageFit, type ImageConfig} from '@/api/generated/schema'
 
 defineProps<{
     config: ImageConfig
@@ -33,6 +33,18 @@ const {t} = useI18n()
                 <option :value="ImageFit.COVER">{{ t('stationPages.imageFit.cover') }}</option>
                 <option :value="ImageFit.CONTAIN">{{ t('stationPages.imageFit.contain') }}</option>
                 <option :value="ImageFit.FILL">{{ t('stationPages.imageFit.fill') }}</option>
+            </SelectInput>
+        </div>
+        <div>
+            <FieldLabel hint class="mb-1">{{ t('stationPages.editor.imageAlign') }}</FieldLabel>
+            <SelectInput
+                :model-value="config.imageAlign ?? ImageAlign.CENTER"
+                data-testid="image-align"
+                @update:model-value="$emit('update', {imageAlign: $event})"
+            >
+                <option :value="ImageAlign.LEFT">{{ t('stationPages.imageAlign.left') }}</option>
+                <option :value="ImageAlign.CENTER">{{ t('stationPages.imageAlign.center') }}</option>
+                <option :value="ImageAlign.RIGHT">{{ t('stationPages.imageAlign.right') }}</option>
             </SelectInput>
         </div>
         <LabeledNumberInput

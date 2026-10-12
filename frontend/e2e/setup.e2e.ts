@@ -155,7 +155,7 @@ test.describe('Setup assistant', () => {
         await expect(page).toHaveURL(/\/station\/setup\/finish/)
         await expect(page.getByText('Geschafft!')).toBeVisible()
 
-        await page.getByRole('button', {name: 'Zum Dashboard'}).click()
+        await page.getByRole('button', {name: 'Zur Übersicht'}).click()
         await expect(page).toHaveURL(/\/station\/dashboard\/overview/)
 
         await page.goto('/station/setup')

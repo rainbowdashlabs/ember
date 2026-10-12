@@ -12,7 +12,7 @@ import type {Page} from '@playwright/test'
 async function openEditPage(page: Page, surname: string) {
     await page.goto('/station/members/list')
     await page.getByPlaceholder(/Suche/).first().fill(surname)
-    await page.getByTestId('member-row').first().getByRole('button', {name: 'Details'}).click()
+    await page.getByTestId('member-row').first().getByRole('link', {name: 'Details'}).click()
     await page.waitForURL(/\/station\/members\/detail\/(\d+)/)
     const id = page.url().match(/detail\/(\d+)/)?.[1]
     await page.goto(`/station/members/edit/${id}`)

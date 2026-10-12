@@ -18,7 +18,7 @@ const {isModuleEnabled} = useSession()
 </script>
 
 <template>
-  <AppLink v-if="isModuleEnabled(StationModule.DOCUMENTS)" href="/station/documents"
+  <AppLink v-if="isModuleEnabled(StationModule.DOCUMENTS)" href="/station/documents/self-service"
            :icon="['fas', 'file-circle-plus']" data-testid="profile-own-documents-link">
     {{ t('profile.createDocuments') }}
   </AppLink>

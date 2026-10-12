@@ -44,6 +44,7 @@ function toRich(member: ManagedMemberResponse): RosterMember {
         setupMailExpiresAt: null,
         mailReaches: 'SELF' as const,
         former: member.former,
+        joinDate: member.joinDate,
         userType: member.userType,
         roles: [],
         groups: [],

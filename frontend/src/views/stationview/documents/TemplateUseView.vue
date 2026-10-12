@@ -17,7 +17,6 @@ import type {RestrictionSelection} from '@/api/types'
 import {toRestriction} from '@/components/input/restriction'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {useAsyncAction} from '@/composables/useAsyncAction'
-import {showToast} from '@/util/toast'
 import TemplateUsePanel from './templateuseview/TemplateUsePanel.vue'
 
 /**
@@ -66,7 +65,6 @@ const saving = useAsyncAction(async () => {
     issuerId: issuerId.value,
     issuerFunction: issuerFunction.value.trim() || null,
   }))
-  showToast(t('documentTemplates.use.saved'), 'success')
 })
 
 const pageTitle = computed(() => use.value
@@ -88,8 +86,7 @@ const pageTitle = computed(() => use.value
         :groups="groups"
         :tags="tags"
         :members="members"
-        :saving="saving.running.value"
-        @save="saving.run()"
+        :save="saving.runOrReject"
     />
   </ViewContent>
 </template>

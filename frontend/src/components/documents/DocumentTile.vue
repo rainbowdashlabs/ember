@@ -18,7 +18,8 @@ import {fileKindIcon} from '@/util/fileKind'
 
 /**
  * One document as the store shows it: the picture of it where there is one, its title, whether it is
- * sealed, how the signatures asked for on it stand, and the words it was filed under.
+ * sealed, how the signatures asked for on it stand, and the words it was filed under. The tile fills its
+ * column of the grid and a long title wraps inside it, so every tile of a row is as wide as the next.
  */
 const props = defineProps<{
   document: MemberDocumentResponse
@@ -38,15 +39,15 @@ const icon = computed(() => fileKindIcon(props.document.mimeType))
 <template>
   <BareButton
       data-testid="document-tile"
-      class="text-left rounded-theme border border-bg-light-accent dark:border-bg-dark-accent overflow-hidden hover:border-primary transition-colors"
+      class="flex h-full w-full flex-col whitespace-normal text-left rounded-theme border border-bg-light-accent dark:border-bg-dark-accent overflow-hidden hover:border-primary transition-colors"
       @click="emit('open', props.document)"
   >
-    <div class="aspect-[4/3] bg-bg-light-accent/40 dark:bg-bg-dark-accent/40 flex items-center justify-center overflow-hidden">
+    <div class="aspect-[4/3] w-full bg-bg-light-accent/40 dark:bg-bg-dark-accent/40 flex items-center justify-center overflow-hidden">
       <img v-if="props.thumbnail" :src="props.thumbnail" :alt="props.document.title" class="h-full w-full object-cover object-top"/>
       <font-awesome-icon v-else :icon="icon" class="h-10 w-10 text-(--text-muted)"/>
     </div>
     <div class="p-3 space-y-1">
-      <div class="font-medium text-sm truncate" :title="props.document.title">{{ props.document.title }}</div>
+      <div class="font-medium text-sm break-words">{{ props.document.title }}</div>
       <MutedText size="sm">{{ formatSize(props.document.sizeBytes) }} · {{ formatDate(props.document.createdAt) }}</MutedText>
       <div v-if="props.document.sealed || props.document.signature" class="flex flex-wrap gap-1 pt-1">
         <SuccessBadge v-if="props.document.sealed" data-testid="document-sealed">

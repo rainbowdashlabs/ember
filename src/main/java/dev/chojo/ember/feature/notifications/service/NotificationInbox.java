@@ -69,6 +69,17 @@ public class NotificationInbox {
     }
 
     /**
+     * Marks one notification read that was opened through its link, where it is one of the
+     * account's own, in any station or association.
+     *
+     * @param accountId the account that opened it
+     * @param id        the notification
+     */
+    public void markOpened(int accountId, int id) {
+        notificationRepository.acknowledgeForAccount(accountId, id);
+    }
+
+    /**
      * Marks everything waiting as read.
      *
      * @param recipient whose feed

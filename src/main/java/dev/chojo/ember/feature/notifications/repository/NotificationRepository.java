@@ -22,6 +22,7 @@ import jakarta.inject.Singleton;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
 import static de.chojo.sadu.queries.api.call.Call.call;
 import static de.chojo.sadu.queries.api.query.Query.query;
@@ -240,13 +241,16 @@ public class NotificationRepository {
     }
 
     /**
-     * Every notification not yet mailed, station members' and cluster members' alike, with the group
-     * whose mail it goes out with, the account behind its reader and whether they want it by mail.
+     * Every unread notification not yet mailed, station members' and cluster members' alike, with the
+     * group whose mail it goes out with, the account behind its reader and whether they want it by mail.
      *
      * <p>One statement for the whole sweep, so the digest costs the same whether ten people or a
      * thousand have something waiting. A station member wants a notification by mail when their mail
      * switch is on and the mail setting of its type is too; a cluster member has one switch for
-     * everything.
+     * everything. A notification read in the app before its mail went out is not mailed at all.
+     *
+     * <p>Each item also names the addresses of the member's guardians who have read the same
+     * notification themselves, so a guardian is not mailed on a child's behalf what they already saw.
      *
      * @return the waiting notifications, grouped by station or cluster and by reader, oldest first
      */
@@ -259,14 +263,25 @@ public class NotificationRepository {
                        coalesce(sm.account_id, cm.account_id) AS account_id,
                        CASE WHEN n.member_id IS NOT NULL
                             THEN coalesce(us.email_enabled, FALSE) AND coalesce(uns.email_enabled, FALSE)
-                            ELSE cm.email_enabled END AS mail_wanted
+                            ELSE cm.email_enabled END AS mail_wanted,
+                       ARRAY(
+                           SELECT lower(ga.email)
+                           FROM member_manager mm
+                           JOIN station_member g ON g.id = mm.manager_id
+                           JOIN account ga ON ga.id = g.account_id
+                           WHERE mm.managed_id = n.member_id
+                             AND exists (
+                                 SELECT 1 FROM notification seen
+                                 WHERE seen.member_id = g.id AND seen.acknowledged_at IS NOT NULL
+                                   AND seen.type = n.type AND seen.data = n.data)
+                       ) AS read_by_guardians
                 FROM notification n
                 LEFT JOIN station_member sm ON sm.id = n.member_id
                 LEFT JOIN user_settings us ON us.member_id = n.member_id
                 LEFT JOIN user_notification_settings uns
                        ON uns.member_id = n.member_id AND uns.notification_type = n.type
                 LEFT JOIN cluster_member cm ON cm.id = n.cluster_member_id
-                WHERE n.emailed_at IS NULL
+                WHERE n.emailed_at IS NULL AND n.acknowledged_at IS NULL
                 ORDER BY group_kind DESC, group_id, recipient_id, n.created_at, n.id;""", SqlSupport.alias("n", NOTIFICATION_COLUMNS))
                 .single()
                 .map(row -> new DigestItem(
@@ -274,8 +289,31 @@ public class NotificationRepository {
                         new DigestGroup.Key(row.getEnum("group_kind", DigestGroup.Kind.class), row.getInt("group_id")),
                         row.getInt("recipient_id"),
                         row.getObject("account_id", Integer.class),
-                        row.getBoolean("mail_wanted")))
+                        row.getBoolean("mail_wanted"),
+                        Set.copyOf(List.of(
+                                (String[]) row.getArray("read_by_guardians").getArray()))))
                 .all();
+    }
+
+    /**
+     * Marks one notification read where its reader belongs to the given account, whether as a
+     * station member or as a cluster member. This is what opening a notification's link does, from
+     * a mail, a feed or the app, wherever the reader happens to be signed in.
+     *
+     * @param accountId the account opening the notification
+     * @param id        the notification
+     * @return {@code true} if the notification was theirs and unread
+     */
+    public boolean acknowledgeForAccount(int accountId, int id) {
+        return query("""
+                UPDATE notification n SET acknowledged_at = :now
+                WHERE n.id = :id AND n.acknowledged_at IS NULL
+                  AND (exists (SELECT 1 FROM station_member sm WHERE sm.id = n.member_id AND sm.account_id = :account)
+                       OR exists (SELECT 1 FROM cluster_member cm
+                                  WHERE cm.id = n.cluster_member_id AND cm.account_id = :account));""")
+                .single(call().bind("id", id).bind("account", accountId).bind("now", Instant.now(), INSTANT_TIMESTAMP))
+                .update()
+                .changed();
     }
 
     /**

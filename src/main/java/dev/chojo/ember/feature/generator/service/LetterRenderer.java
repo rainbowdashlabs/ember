@@ -41,6 +41,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -353,7 +354,9 @@ public class LetterRenderer {
     private record PictureSource(int library, int logoStation) {}
 
     /**
-     * Places a picture block's picture next to the document, or nothing where it cannot be read.
+     * Places a picture block's picture next to the document, or nothing where it cannot be read. Its
+     * height limit and where it stands in its column come along; the template centres it where no
+     * alignment is set.
      */
     private @Nullable Map<String, Object> picture(PictureSource source, ContentCell cell, Map<String, byte[]> files) {
         var picture = read(source, cell.content())
@@ -365,8 +368,12 @@ public class LetterRenderer {
         var drawn = new LinkedHashMap<String, Object>();
         drawn.put("kind", "image");
         drawn.put("file", file);
-        Integer maxHeight = cell.config() instanceof CellConfig.ImageConfig image ? image.maxHeight() : null;
-        if (maxHeight != null && maxHeight > 0) drawn.put("maxHeightMm", maxHeight * LetterLayout.MM_PER_PIXEL);
+        if (cell.config() instanceof CellConfig.ImageConfig image) {
+            Integer maxHeight = image.maxHeight();
+            if (maxHeight != null && maxHeight > 0) drawn.put("maxHeightMm", maxHeight * LetterLayout.MM_PER_PIXEL);
+            CellConfig.ImageAlign align = image.imageAlign();
+            if (align != null) drawn.put("align", align.name().toLowerCase(Locale.ROOT));
+        }
         return drawn;
     }
 

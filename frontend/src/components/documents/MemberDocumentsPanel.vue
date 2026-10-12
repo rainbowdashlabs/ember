@@ -11,7 +11,7 @@ import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
-import TextInput from '@/components/input/text/TextInput.vue'
+import SearchInput from '@/components/input/text/SearchInput.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import DocumentGrid from './DocumentGrid.vue'
 import DocumentModal from './DocumentModal.vue'
@@ -50,9 +50,15 @@ const props = withDefaults(defineProps<{
   openDocumentId?: number | null
   /** The sealed version of that document whose record the reader came for. */
   focusRecord?: number | null
+  /**
+   * Runs when this list holds the document a link asks for and opens it, so a screen showing one list
+   * of several brings this one to the front. A prop, since the list answers after it has loaded.
+   */
+  onAskedFound?: () => void
 }>(), {
   openDocumentId: null,
   focusRecord: null,
+  onAskedFound: undefined,
   source: () => stationDocumentSource,
   title: undefined,
   hint: undefined,
@@ -77,7 +83,10 @@ const {loading, failure: loadFailure, reload} = useAsyncLoader(async (isCurrent)
   if (!isCurrent()) return
   documents.value = found
   const asked = found.find(document => document.id === props.openDocumentId)
-  if (asked && !showDocument.value) open(asked)
+  if (asked && !showDocument.value) {
+    open(asked)
+    props.onAskedFound?.()
+  }
 }, {autoLoad: false})
 
 /**
@@ -157,21 +166,20 @@ async function act(action: Promise<unknown>) {
   <NeutralContainer class="space-y-4">
     <div class="flex items-center justify-between gap-2 flex-wrap">
       <SectionHeader>{{ props.title ?? t('documents.title') }}</SectionHeader>
-      <div class="flex items-center gap-2">
-        <TextInput
-            v-if="documents.length > 0"
-            v-model="search"
-            class="min-w-56"
-            :placeholder="t('documents.searchOwnPlaceholder')"
-            :aria-label="t('documents.search')"
-        />
-        <PrimaryButton v-if="props.canUpload" :icon="['fas', 'upload']" @click="showUpload = true">
-          {{ t('documents.upload') }}
-        </PrimaryButton>
-      </div>
+      <PrimaryButton v-if="props.canUpload" :icon="['fas', 'upload']" @click="showUpload = true">
+        {{ t('documents.upload') }}
+      </PrimaryButton>
     </div>
 
     <MutedText v-if="props.hint" size="sm" tag="p">{{ props.hint }}</MutedText>
+
+    <SearchInput
+        v-if="documents.length > 0"
+        v-model="search"
+        :placeholder="t('documents.searchOwnPlaceholder')"
+        :aria-label="t('documents.search')"
+        data-testid="documents-search"
+    />
 
     <FailureAlert :failure="actionFailure ?? loadFailure"/>
     <Spinner v-if="loading" size="md"/>

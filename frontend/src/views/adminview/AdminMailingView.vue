@@ -134,6 +134,7 @@ const {running: clearing, failure: clearFailure, run: clearMailingConfig} = useA
             :ready="providersLoaded"
             :testing-position="testingPosition"
             :test-results="testResults"
+            show-display-fields
             @test="test"
             @clear="showClearModal = true"
         >

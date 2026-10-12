@@ -20,7 +20,10 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -187,6 +190,41 @@ class MemberImportServiceTest extends RepositoryTestBase {
         importMembers(station.id(), csv, ";", List.of(map("Vorname", "firstName"), map("Name", "lastName")), List.of());
 
         verify(authService, never()).sendPasswordSetup(anyInt());
+    }
+
+    /** The day a member joined, written the German way or as ISO, is taken from the file. */
+    @ParameterizedTest
+    @ValueSource(strings = {"01.04.2019", "2019-04-01"})
+    void theJoinDateIsTakenFromTheFile(String written) {
+        String csv = "Vorname;Name;Eintritt\nMax;Müller;" + written + "\n";
+
+        importMembers(
+                station.id(),
+                csv,
+                ";",
+                List.of(map("Vorname", "firstName"), map("Name", "lastName"), map("Eintritt", "joinDate")),
+                List.of());
+
+        assertEquals(
+                LocalDate.of(2019, 4, 1),
+                stationMemberRepo.findById(onlyMember()).orElseThrow().joinDate());
+    }
+
+    /** A cell no date reads leaves the member joining on the day of the import, as without the column. */
+    @Test
+    void anUnreadableJoinDateLeavesTheDayOfTheImport() {
+        String csv = "Vorname;Name;Eintritt\nMax;Müller;irgendwann\n";
+
+        importMembers(
+                station.id(),
+                csv,
+                ";",
+                List.of(map("Vorname", "firstName"), map("Name", "lastName"), map("Eintritt", "joinDate")),
+                List.of());
+
+        assertEquals(
+                LocalDate.now(),
+                stationMemberRepo.findById(onlyMember()).orElseThrow().joinDate());
     }
 
     private ColumnMapping map(String column, String target) {

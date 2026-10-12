@@ -38,7 +38,6 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 
 import static dev.chojo.ember.api.RouteHarness.PREFIX;
@@ -228,20 +227,21 @@ class StationManageRoutesTest {
     }
 
     @Test
-    void theMemberSettingsNameTheStationsFirstProvider() {
+    void theMemberSettingsNameTheStationsProviders() {
         var userSettings = mock(UserSettingsService.class);
         var own = mock(UserSettings.class);
         when(userSettings.getSettings(TestSessions.MEMBER_ID)).thenReturn(own);
         var preferences = mock(NotificationPreferences.class);
         when(preferences.settingsOf(TestSessions.MEMBER_ID)).thenReturn(Map.of());
-        when(mail.firstEntry(STATION_ID)).thenReturn(Optional.empty());
+        when(mail.senders(STATION_ID)).thenReturn(List.of());
         var settingsHarness = RouteHarness.serving(new UserSettingsRoutes(userSettings, preferences, mail));
 
         var answer = settingsHarness.request(client -> client.get(
                 PREFIX + "/settings", settingsHarness.as(TestSessions.member(STATION_ID, StationPermission.LOGIN))));
 
         assertEquals(false, json(answer).path("mailConfigured").asBoolean());
-        verify(mail).firstEntry(STATION_ID);
+        assertEquals(0, json(answer).path("mailProviders").size());
+        verify(mail).senders(STATION_ID);
         verify(mail).sendsMail(STATION_ID);
     }
 }

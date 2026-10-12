@@ -22,6 +22,7 @@ import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.notifications.service.NotificationText;
 import dev.chojo.ember.feature.notifications.service.Notifier;
 import dev.chojo.ember.feature.station.repository.StationRepository;
+import dev.chojo.ember.feature.station.service.StationLogoService;
 import dev.chojo.ember.feature.storage.service.StationReadOnlyGuard;
 
 import static org.mockito.Mockito.mock;
@@ -56,7 +57,8 @@ public final class TestNotices {
                 mock(MailChainService.class),
                 mock(MailProviderBlockRepository.class),
                 mock(MailRetryService.class),
-                mock(MailAllowance.class));
+                mock(MailAllowance.class),
+                mock(StationLogoService.class));
     }
 
     /**

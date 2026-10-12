@@ -8,12 +8,13 @@ import {useI18n} from 'vue-i18n'
 import BaseButton from '@/components/button/BaseButton.vue'
 import IconButton from '@/components/button/IconButton.vue'
 import type {StationFileFolder} from '@/api/generated/schema'
+import {useFolderDrop} from '@/composables/useMediaDrop'
 
 interface FolderNodeData extends StationFileFolder {
     children: FolderNodeData[]
 }
 
-defineProps<{
+const props = defineProps<{
     folder: FolderNodeData
     active: number | null
 }>()
@@ -25,13 +26,18 @@ const emit = defineEmits<{
 }>()
 
 const {t} = useI18n()
+
+/** Files of the library dropped on the folder move into it, where the library takes drops. */
+const drop = useFolderDrop(() => props.folder.id)
 </script>
 
 <template>
     <div class="space-y-1">
         <div class="flex items-center group">
             <BaseButton compact class="flex-1 !justify-start !font-normal hover:bg-(--bg-accent)"
-                        :class="active === folder.id ? '!bg-primary/10 !text-primary' : ''"
+                        :class="[active === folder.id ? '!bg-primary/10 !text-primary' : '', drop.over.value ? '!ring-2 !ring-primary' : '']"
+                        data-testid="media-folder-node"
+                        v-on="drop.handlers"
                         @click="emit('select', folder.id)">
                 <font-awesome-icon :icon="['fas', 'folder']" class="mr-1"/>
                 {{ folder.name }}

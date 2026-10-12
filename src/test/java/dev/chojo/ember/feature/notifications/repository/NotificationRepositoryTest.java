@@ -229,6 +229,50 @@ class NotificationRepositoryTest extends RepositoryTestBase {
     }
 
     /**
+     * Opening a notification through its link marks it read for the account behind its reader,
+     * station member or cluster member alike, and for nobody else.
+     */
+    @Test
+    @Order(23)
+    void opensOnlyTheAccountsOwnNotifications() {
+        var cluster = clusterService.create("Kreisverband Link", null);
+        var clusterMember = clusterService.addMember(cluster.id(), account.id(), ClusterUserType.CLUSTER_ADMIN);
+        var stranger = accountRepo.create("stranger-notif@test.com", "Fremd", "Person");
+        var own = create(
+                member.id(),
+                NotificationType.NEW_NEWS,
+                NotificationData.of(new NotificationParams.NewNews("Link", null, null)));
+        var office = createForClusterMember(
+                clusterMember.id(),
+                NotificationType.CLUSTER_APPLICATION_SUBMITTED,
+                NotificationData.of(new NotificationParams.ClusterApplicationSubmitted("Wache Link")));
+
+        assertFalse(notificationRepo.acknowledgeForAccount(stranger.id(), own.id()), "nobody opens another's");
+        assertTrue(notificationRepo.acknowledgeForAccount(account.id(), own.id()));
+        assertFalse(notificationRepo.acknowledgeForAccount(account.id(), own.id()), "opening twice changes nothing");
+        assertTrue(notificationRepo.acknowledgeForAccount(account.id(), office.id()), "the account's cluster copy too");
+
+        clusterService.removeMember(clusterMember.id());
+        accountRepo.delete(stranger.id());
+        clusterService.delete(cluster.id());
+    }
+
+    /** A notification read before the mail went out is not waiting for the mail any more. */
+    @Test
+    @Order(24)
+    void aReadNotificationIsNotWaitingForTheDigest() {
+        var read = create(
+                member.id(),
+                NotificationType.NEW_NEWS,
+                NotificationData.of(new NotificationParams.NewNews("Gelesen", null, null)));
+        assertTrue(waitingIds().contains(read.id()));
+
+        notificationRepo.acknowledge(reader(), read.id());
+
+        assertFalse(waitingIds().contains(read.id()));
+    }
+
+    /**
      * Withdrawing by what a notification points at reaches exactly that one, where withdrawing by
      * the words it carries reaches every notification worded the same.
      */

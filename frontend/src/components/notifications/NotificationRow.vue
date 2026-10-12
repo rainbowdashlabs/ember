@@ -158,7 +158,7 @@ function routeValues(values: Record<string, unknown> | null): Record<string, str
   <RowLink :to="page">
     <NeutralContainer data-testid="notification-entry"
                       class="flex items-start justify-between gap-3 py-2 px-3"
-                      :class="{ 'cursor-pointer hover:bg-(--bg-accent)': page }"
+                      :class="{ 'cursor-pointer hover:bg-(--bg-accent)': page, 'opacity-60': notification.acknowledgedAt }"
                       @click="emit('acknowledge', notification.id)">
       <div class="flex items-start gap-3">
         <font-awesome-icon :icon="['fas', typeIcons[notification.type] ?? 'bell']"
@@ -169,7 +169,7 @@ function routeValues(values: Record<string, unknown> | null): Record<string, str
           <p class="text-xs text-(--text-muted)">{{ formatDateTime(notification.createdAt) }}</p>
         </div>
       </div>
-      <LinkButton class="shrink-0 mt-1" @click="emit('acknowledge', notification.id)">
+      <LinkButton v-if="!notification.acknowledgedAt" class="shrink-0 mt-1" @click="emit('acknowledge', notification.id)">
         <font-awesome-icon :icon="['fas', 'check']" class="mr-0.5"/>
         {{ t('dashboard.acknowledge') }}
       </LinkButton>

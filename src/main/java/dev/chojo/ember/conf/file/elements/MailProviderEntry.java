@@ -51,6 +51,17 @@ public class MailProviderEntry {
     private int dailySendLimit = 0;
 
     /**
+     * The provider's name as members see it in their notification settings, empty to show the kind of
+     * provider instead.
+     */
+    private String providerName = "";
+
+    /**
+     * The provider's privacy notice, linked for members in their notification settings, empty for none.
+     */
+    private String providerUrl = "";
+
+    /**
      * Required by the configuration reader, which builds the object before filling it.
      */
     public MailProviderEntry() {}
@@ -69,7 +80,9 @@ public class MailProviderEntry {
             String senderAddress,
             String senderName,
             int attempts,
-            int dailySendLimit) {
+            int dailySendLimit,
+            String providerName,
+            String providerUrl) {
         this.provider = provider;
         this.host = host;
         this.port = port;
@@ -82,6 +95,8 @@ public class MailProviderEntry {
         this.senderName = senderName;
         this.attempts = attempts;
         this.dailySendLimit = dailySendLimit;
+        this.providerName = providerName;
+        this.providerUrl = providerUrl;
     }
 
     public MailProviderType provider() {
@@ -130,5 +145,13 @@ public class MailProviderEntry {
 
     public int dailySendLimit() {
         return dailySendLimit;
+    }
+
+    public String providerName() {
+        return providerName == null ? "" : providerName;
+    }
+
+    public String providerUrl() {
+        return providerUrl == null ? "" : providerUrl;
     }
 }

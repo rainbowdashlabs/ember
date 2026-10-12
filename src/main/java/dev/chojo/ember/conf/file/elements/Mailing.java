@@ -161,7 +161,9 @@ public class Mailing {
                 senderAddress,
                 senderName,
                 Math.max(1, attempts),
-                dailySendLimit));
+                dailySendLimit,
+                "",
+                ""));
         if (fallbacks != null) folded.addAll(fallbacks);
         return folded;
     }

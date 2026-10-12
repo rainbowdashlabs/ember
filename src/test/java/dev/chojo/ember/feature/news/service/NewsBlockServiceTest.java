@@ -137,6 +137,7 @@ class NewsBlockServiceTest extends RepositoryTestBase {
                                                     null,
                                                     null,
                                                     null,
+                                                    null,
                                                     null))))
                     .orElseThrow();
 
@@ -239,7 +240,7 @@ class NewsBlockServiceTest extends RepositoryTestBase {
                                     CellContentType.IMAGE,
                                     "abc",
                                     new CellConfig.ImageConfig(
-                                            null, "Plan", null, null, null, null, null, null, null, null, null))))
+                                            null, "Plan", null, null, null, null, null, null, null, null, null, null))))
                     .orElseThrow();
             assertTrue(
                     saved.contentMarkdown().contains("![Plan](/api/v1/public/media/instance/abc)"),
@@ -333,6 +334,6 @@ class NewsBlockServiceTest extends RepositoryTestBase {
         return row(
                 CellContentType.IMAGE,
                 "abc",
-                new CellConfig.ImageConfig(null, null, null, null, null, null, null, null, null, null, null));
+                new CellConfig.ImageConfig(null, null, null, null, null, null, null, null, null, null, null, null));
     }
 }

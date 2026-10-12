@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.members.service.UserSettingsService;
 import dev.chojo.ember.feature.notifications.entity.NotificationSetting;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.feature.notifications.service.NotificationPreferences;
+import dev.chojo.ember.feature.station.entity.MailProviderType;
 import io.javalin.http.Context;
 import io.javalin.openapi.HttpMethod;
 import io.javalin.openapi.OpenApi;
@@ -26,6 +27,7 @@ import jakarta.inject.Singleton;
 
 import java.util.EnumMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -127,9 +129,8 @@ public class UserSettingsRoutes implements Routes {
             String feel,
             Map<NotificationType, NotificationSetting> notifSettings,
             int stationId) {
-        var first = mailSettings.firstEntry(stationId);
-        String mailProviderName = first.map(MailChainEntry::providerName).orElse("");
-        String mailProviderUrl = first.map(MailChainEntry::providerUrl).orElse("");
+        var mailProviders =
+                mailSettings.senders(stationId).stream().map(MailProvider::of).toList();
         boolean mailConfigured = mailSettings.sendsMail(stationId);
 
         var responseMap = new LinkedHashMap<NotificationType, NotificationToggle>();
@@ -141,8 +142,7 @@ public class UserSettingsRoutes implements Routes {
             responseMap.put(type, new NotificationToggle(app, email, feed));
         }
 
-        return new SettingsResponse(
-                emailEnabled, theme, darkMode, feel, responseMap, mailConfigured, mailProviderName, mailProviderUrl);
+        return new SettingsResponse(emailEnabled, theme, darkMode, feel, responseMap, mailConfigured, mailProviders);
     }
 
     public record NotificationToggle(boolean app, boolean email, boolean feed) {}
@@ -161,6 +161,18 @@ public class UserSettingsRoutes implements Routes {
             String feel,
             Map<NotificationType, NotificationToggle> notifications,
             boolean mailConfigured,
-            String mailProviderName,
-            String mailProviderUrl) {}
+            List<MailProvider> mailProviders) {}
+
+    /**
+     * One provider a member's mail may go out through, as the member is told about it.
+     *
+     * @param type the kind of provider, shown where no name was given
+     * @param name the name its owner gave it, empty for none
+     * @param url  its privacy notice, empty for none
+     */
+    public record MailProvider(MailProviderType type, String name, String url) {
+        static MailProvider of(MailChainEntry entry) {
+            return new MailProvider(entry.provider(), entry.providerName(), entry.providerUrl());
+        }
+    }
 }

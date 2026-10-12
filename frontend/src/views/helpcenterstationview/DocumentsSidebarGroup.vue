@@ -23,6 +23,10 @@ const {t} = useI18n()
 <template>
   <SidebarGroup :icon="['fas', 'file']" :label="t('sidebar.documents')"
                 to="/helpcenter/station/documents" name="help-documents-module-overview" @navigate="close">
+    <SidebarLink :icon="['fas', 'file-circle-plus']" name="help-documents-self-service"
+                 to="/helpcenter/station/documents/self-service" @navigate="close">
+      {{ t('sidebar.documentSelfService') }}
+    </SidebarLink>
     <SidebarLink :icon="['fas', 'box-archive']" name="help-documents-store"
                  to="/helpcenter/station/documents/store" @navigate="close">
       {{ t('sidebar.documentStore') }}

@@ -248,7 +248,7 @@ test.describe('Cluster member screens', () => {
         await page.goto('/cluster/members')
         const row = page.getByTestId('member-row').first()
         await expect(row).toBeVisible({timeout: 15000})
-        await row.getByRole('button').first().click()
+        await row.getByRole('link', {name: 'Details'}).click()
 
         await expect(page).toHaveURL(/\/cluster\/members\/\d+$/)
         await expect(page.getByRole('heading', {name: 'Angaben', exact: true})).toBeVisible({timeout: 15000})
@@ -348,7 +348,7 @@ test.describe('Cluster member screens', () => {
         await page.goto('/cluster/members')
         const row = page.getByTestId('member-row').first()
         await expect(row).toBeVisible({timeout: 15000})
-        await row.getByRole('button').first().click()
+        await row.getByRole('link', {name: 'Details'}).click()
         await expect(page).toHaveURL(/\/cluster\/members\/\d+$/)
 
         const panel = page.getByTestId('cluster-member-documents')

@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -15,8 +16,10 @@ import TRow from '@/components/table/TRow.vue'
 import Th from '@/components/table/Th.vue'
 import Td from '@/components/table/Td.vue'
 import type { PreviewResult } from './memberImport'
+import { formatDate } from '@/util/format'
 
-defineProps<{
+/** The rows an import would bring in, each to strike out; the join date column shows where the file names one. */
+const props = defineProps<{
   preview: PreviewResult
   title: string
   showContacts?: boolean
@@ -30,6 +33,8 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+
+const showJoinDate = computed(() => props.preview.members.some(member => member.joinDate))
 </script>
 
 <template>
@@ -42,6 +47,7 @@ const { t } = useI18n()
         <Th>{{ t('memberImport.name') }}</Th>
         <Th>{{ t('memberImport.email') }}</Th>
         <Th>{{ t('memberImport.group') }}</Th>
+        <Th v-if="showJoinDate">{{ t('memberImport.targetJoinDate') }}</Th>
         <Th>{{ t('memberImport.fields') }}</Th>
         <Th v-if="showContacts">{{ t('memberImport.contacts') }}</Th>
         <Th/>
@@ -55,6 +61,7 @@ const { t } = useI18n()
         <Td class="font-medium">{{ member.firstName }} {{ member.lastName }}</Td>
         <Td class="text-xs">{{ member.email }}</Td>
         <Td>{{ member.group }}</Td>
+        <Td v-if="showJoinDate" data-testid="preview-join-date">{{ member.joinDate ? formatDate(member.joinDate) : '' }}</Td>
         <Td class="text-xs">
           <span v-for="(value, key) in member.profileFields" :key="String(key)" class="inline-block mr-2">
             <MutedText size="base">{{ fieldLabel(String(key)) }}:</MutedText> {{ value }}

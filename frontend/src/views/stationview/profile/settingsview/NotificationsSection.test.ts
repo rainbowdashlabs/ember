@@ -24,8 +24,7 @@ describe('NotificationsSection', () => {
         theme: 'default',
         emailEnabled: true,
         mailConfigured: true,
-        mailProviderName: 'Beispiel Mail GmbH',
-        mailProviderUrl: '',
+        mailProviders: [{type: 'SMTP', name: 'Beispiel Mail GmbH', url: ''}],
         notifications: {
             NEW_NEWS: {app: true, email: false, feed: true},
             EXPIRY_REMINDER: {app: true, email: false, feed: true},
@@ -44,5 +43,27 @@ describe('NotificationsSection', () => {
         for (const [type] of view.emitted('toggleFeed') ?? []) switched.add(String(type))
 
         expect([...switched].sort()).toEqual(['EXPIRY_REMINDER', 'NEW_NEWS'])
+    })
+
+    it('names every provider the mail may go through, the type where no name was given', () => {
+        const view = mount(NotificationsSection, {
+            props: {
+                settings: {
+                    ...settings,
+                    mailProviders: [
+                        {type: 'SMTP', name: 'Wache Mail', url: 'https://wache.example/privacy'},
+                        {type: 'BREVO', name: '', url: ''},
+                    ],
+                },
+            },
+        })
+
+        const items = view.findAll('ol li').map(item => item.text())
+        expect(items).toHaveLength(2)
+        expect(items[0]).toContain('Wache Mail')
+        expect(items[1]).toContain('Brevo')
+        expect(view.find('ol a').attributes('href')).toBe('https://wache.example/privacy')
+        expect(view.text()).toContain('„Wache Mail", „Brevo"')
+        expect(view.text()).not.toContain('Unbekannt')
     })
 })

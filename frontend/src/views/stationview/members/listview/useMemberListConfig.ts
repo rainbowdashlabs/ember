@@ -5,7 +5,7 @@
  */
 import {computed, onMounted, type ComputedRef} from 'vue'
 import {useI18n} from 'vue-i18n'
-import {useRouter, type RouteLocationRaw} from 'vue-router'
+import type {RouteLocationRaw} from 'vue-router'
 import {
     useMemberData, getMemberFirstName, getMemberLastName,
     type MemberDataSource, type RosterMember,
@@ -67,7 +67,6 @@ export interface MemberListPort {
  */
 export function useMemberListConfig(port: MemberListPort) {
     const {t} = useI18n()
-    const router = useRouter()
 
     const {
         members, fields, assignments, allGroups, allTags,
@@ -195,17 +194,10 @@ export function useMemberListConfig(port: MemberListPort) {
         return port.routes.detail ? {name: port.routes.detail, params: {id: member.id}} : null
     }
 
-    /** Opens a person's screen, or does nothing where this reader has no such screen to open. */
-    function navigateTo(routeName: string | undefined, member: RosterMember, event: Event) {
-        event.stopPropagation()
-        if (!routeName) return
-        router.push({name: routeName, params: {id: member.id}})
+    /** The page a person is edited on, or nothing where this reader has no such page. */
+    function editRouteOf(member: RosterMember): RouteLocationRaw | null {
+        return port.routes.edit ? {name: port.routes.edit, params: {id: member.id}} : null
     }
-
-    const navigateToDetail = (member: RosterMember, event: Event) =>
-        navigateTo(port.routes.detail, member, event)
-    const navigateToEdit = (member: RosterMember, event: Event) =>
-        navigateTo(port.routes.edit, member, event)
 
     onMounted(() => {
         loadSavedFilters()
@@ -224,7 +216,7 @@ export function useMemberListConfig(port: MemberListPort) {
         canExport: port.canExport,
         canEdit: port.canEdit,
         canGenerateDocuments: port.canGenerateDocuments ?? computed(() => false),
-        detailRouteOf, navigateToDetail, navigateToEdit,
+        detailRouteOf, editRouteOf,
     }
 }
 

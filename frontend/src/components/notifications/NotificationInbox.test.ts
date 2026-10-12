@@ -31,9 +31,14 @@ function waiting(id: number, route: string): NotificationResponse {
     }
 }
 
-async function inboxWith(entries: NotificationResponse[], acknowledged: () => Promise<void> = async () => {}) {
+async function inboxWith(
+    entries: NotificationResponse[],
+    acknowledged: () => Promise<void> = async () => {},
+    read: NotificationResponse[] = [],
+) {
     const api: NotificationInboxApi = {
         listUnread: async () => entries,
+        listRecent: vi.fn(async () => [...entries, ...read]),
         count: async () => entries.length,
         acknowledge: vi.fn(acknowledged),
         acknowledgeAll: vi.fn(async () => {}),
@@ -88,5 +93,29 @@ describe('NotificationInbox', () => {
         await flushPromises()
 
         expect(onChanged).toHaveBeenCalledTimes(1)
+    })
+
+    it('lists the read ones below only once asked, without a button to mark them read', async () => {
+        const read = {...waiting(2, 'cluster-applications'), acknowledgedAt: '2026-10-02T08:00:00Z'}
+        const {view, api} = await inboxWith([waiting(1, 'cluster-applications')], undefined, [read])
+        expect(api.listRecent).not.toHaveBeenCalled()
+
+        await view.find('[data-testid="notifications-earlier"]').trigger('click')
+        await flushPromises()
+
+        const rows = view.findAll('[data-testid="notification-entry"]')
+        expect(rows).toHaveLength(2)
+        expect(rows[0]!.text()).toContain('Gelesen')
+        expect(rows[1]!.text()).not.toContain('Gelesen')
+        expect(view.find('[data-testid="notifications-earlier"]').exists()).toBe(false)
+    })
+
+    it('says so when nothing was read before', async () => {
+        const {view} = await inboxWith([])
+
+        await view.find('[data-testid="notifications-earlier"]').trigger('click')
+        await flushPromises()
+
+        expect(view.text()).toContain('Keine älteren Benachrichtigungen.')
     })
 })

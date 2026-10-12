@@ -7,6 +7,8 @@ package dev.chojo.ember.feature.station.entity;
 
 import org.jspecify.annotations.Nullable;
 
+import java.util.UUID;
+
 /**
  * Where a station's logo and its public page are found: as a path on this instance, or as a full
  * address behind an instance's base URL. The public page is addressed by the station's readable name
@@ -26,6 +28,18 @@ public final class StationAddresses {
      */
     public static String logo(Station station) {
         return LOGO_PATH.formatted(station.uid());
+    }
+
+    /**
+     * The address of a station's logo behind the given base URL, for a station known only by its
+     * identifier. It needs no sign-in, so a mail client can load it.
+     *
+     * @param baseUrl    the instance's base URL, without a trailing slash
+     * @param stationUid the station's identifier
+     * @return the address
+     */
+    public static String logo(String baseUrl, UUID stationUid) {
+        return baseUrl + LOGO_PATH.formatted(stationUid);
     }
 
     /**

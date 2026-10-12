@@ -137,7 +137,8 @@ public class NotificationFeedRenderer {
 
         var home = LinkHome.station(ctx.stationUid());
         String link = notificationText.resolveNotificationUrl(ctx.baseUrl(), home, notification.data());
-        String target = link != null ? link : NotificationText.landingUrl(ctx.baseUrl(), home);
+        String target = NotificationText.withReadMarker(
+                link != null ? link : NotificationText.landingUrl(ctx.baseUrl(), home), notification.id());
         entry.setLink(target);
 
         String author = author(notification);

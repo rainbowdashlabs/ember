@@ -10,7 +10,7 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {describeFailure} from '@/util/failure'
-import Alert from '@/components/feedback/Alert.vue'
+import SaveStatus from '@/components/feedback/SaveStatus.vue'
 import GeneralPanel from '@/views/adminview/adminsettingsview/GeneralPanel.vue'
 import ThemePanel from '@/views/adminview/adminsettingsview/ThemePanel.vue'
 import LoggingPanel from '@/views/adminview/adminsettingsview/LoggingPanel.vue'
@@ -22,7 +22,8 @@ import {useFlashMessage} from '@/composables/useFlashMessage'
 const {t} = useI18n()
 const themeCtrl = useTheme()
 
-const {message: success, flash} = useFlashMessage(3000)
+const {message: savedMessage, flash} = useFlashMessage(2000)
+const saving = ref(false)
 const registrationEnabled = ref(true)
 const forcePrideFlag = ref(false)
 const instanceDefaultTheme = ref('ember')
@@ -58,28 +59,46 @@ function record(e: unknown) {
   failure.value = describeFailure(e, t)
 }
 
-async function saveMailLocale() {
+/**
+ * Keeps a setting that is saved as soon as it changes, showing its progress beside the page's alerts.
+ * A failure is recorded and undone, since there is no button to try again from.
+ *
+ * @param write what to save
+ * @param undo  puts the control back where the server still has it
+ */
+async function saveInstantly(write: () => Promise<void>, undo: () => void = () => {}) {
   failure.value = null
+  saving.value = true
   try {
-    const result = await adminSettings.updateSettings(buildSettings())
-    defaultMailLocale.value = result.defaultMailLocale ?? 'en'
-    flash(t('adminSettings.saved'))
+    await write()
+    flash(t('common.saved'))
   } catch (e) {
+    undo()
     record(e)
-    throw e
+  } finally {
+    saving.value = false
   }
 }
 
-async function toggleRegistration(value: boolean) {
-  failure.value = null
-  try {
+function saveMailLocale() {
+  return saveInstantly(async () => {
+    const result = await adminSettings.updateSettings(buildSettings())
+    defaultMailLocale.value = result.defaultMailLocale ?? 'en'
+  })
+}
+
+function savePride() {
+  return saveInstantly(async () => {
+    const result = await adminSettings.updateSettings(buildSettings())
+    forcePrideFlag.value = result.forcePrideFlag ?? false
+  })
+}
+
+function toggleRegistration(value: boolean) {
+  return saveInstantly(async () => {
     const result = await adminSettings.updateSettings({...buildSettings(), stationRegistrationEnabled: value})
     registrationEnabled.value = result.stationRegistrationEnabled
-    flash(t('adminSettings.saved'))
-  } catch (e) {
-    record(e)
-    registrationEnabled.value = !value
-  }
+  }, () => { registrationEnabled.value = !value })
 }
 
 watch(instanceDefaultTheme, (newTheme) => {
@@ -106,7 +125,9 @@ async function saveInstanceTheme() {
     <div class="space-y-6">
       <Spinner v-if="loading" size="lg"/>
       <FailureAlert :failure="failure"/>
-      <Alert v-if="success" variant="success">{{ success }}</Alert>
+      <div class="flex justify-end">
+        <SaveStatus :saving="saving" :saved="savedMessage !== ''"/>
+      </div>
 
       <template v-if="!loading">
         <GeneralPanel
@@ -114,7 +135,7 @@ async function saveInstanceTheme() {
             v-model:default-mail-locale="defaultMailLocale"
             :registration-enabled="registrationEnabled"
             :available-mail-locales="availableMailLocales"
-            @save-pride="saveInstanceTheme"
+            @save-pride="savePride"
             @save-mail-locale="saveMailLocale"
             @toggle-registration="toggleRegistration"
         />

@@ -19,8 +19,7 @@ export const NOTIFICATION_SETTINGS: SettingsResponse = {
     darkMode: 'system',
     feel: 'ROUNDED',
     mailConfigured: true,
-    mailProviderName: 'Postmark',
-    mailProviderUrl: 'https://postmarkapp.com/privacy-policy',
+    mailProviders: [{type: 'SMTP', name: 'Postmark', url: 'https://postmarkapp.com/privacy-policy'}],
     notifications: {
         NEW_NEWS: toggle(true, true, true),
         NEWS_COMMENT: toggle(true, false, true),

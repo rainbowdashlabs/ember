@@ -12,7 +12,8 @@ import {useSession} from '@/composables/useSession'
 
 /**
  * The documents of the station. The group itself opens the reader's own documents, which every member
- * has; the store, the templates, the list of generated documents and the fonts each need their right.
+ * has, and so does creating documents for oneself; the store, the templates, the list of generated
+ * documents and the fonts each need their right.
  */
 defineProps<{
   openGroup: string | null
@@ -35,6 +36,10 @@ function close() {
 <template>
   <SidebarGroup :open-group="isDesktop ? undefined : openGroup" :icon="['fas', 'file']" :label="t('sidebar.documents')"
                 to="/station/documents" name="documents-own" @update:open-group="v => emit('update:openGroup', v)" @navigate="close">
+    <SidebarLink :icon="['fas', 'file-circle-plus']" name="documents-self-service"
+                 to="/station/documents/self-service" @navigate="close">
+      {{ t('sidebar.documentSelfService') }}
+    </SidebarLink>
     <SidebarLink v-if="hasPermission(StationPermission.DOCUMENT_READ)" :icon="['fas', 'box-archive']" name="documents-store"
                  to="/station/documents/store" @navigate="close">
       {{ t('sidebar.documentStore') }}

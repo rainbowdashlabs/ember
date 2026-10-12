@@ -36,7 +36,7 @@ class ContentProjectionTest {
     @Test
     void anImageBecomesAnImageWithItsCaptionUnderIt() {
         var config = new CellConfig.ImageConfig(
-                null, "Das Fahrzeug", null, "Bei der Übung", null, null, null, null, null, null, null);
+                null, "Das Fahrzeug", null, "Bei der Übung", null, null, null, null, null, null, null, null);
         assertEquals(
                 "![Das Fahrzeug](/media/abc)\n\nBei der Übung", project(cell(CellContentType.IMAGE, "abc", config)));
         assertEquals("", project(cell(CellContentType.IMAGE, "  ", config)), "an image cell with no file is dropped");
@@ -62,7 +62,7 @@ class ContentProjectionTest {
     @Test
     void aReaderThatSetsCaptionsApartGetsEveryLineUnderAPictureMarked() {
         var image = new CellConfig.ImageConfig(
-                null, "Das Fahrzeug", null, "Bei der Übung", null, null, null, null, null, null, null);
+                null, "Das Fahrzeug", null, "Bei der Übung", null, null, null, null, null, null, null, null);
         var gallery = new CellConfig.ImageGalleryConfig(
                 List.of(
                         new CellConfig.GalleryItem("one", "Erstes", "Untertitel"),
@@ -265,7 +265,7 @@ class ContentProjectionTest {
                                 CellContentType.IMAGE,
                                 "abc",
                                 new CellConfig.ImageConfig(
-                                        null, "alt", null, null, null, null, null, null, null, null, null)))));
+                                        null, "alt", null, null, null, null, null, null, null, null, null, null)))));
         String text = ContentProjection.toPlainText(rows, FILE_URL);
         assertTrue(text.contains("Überschrift"));
         assertTrue(text.contains("fett und ein Link"));

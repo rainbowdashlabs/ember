@@ -135,6 +135,7 @@ export const HELP_PAGES: HelpPage[] = [
     {route: 'help-documents-module-overview', path: '/helpcenter/station/documents', i18nPrefix: 'helpCenter.documentsOverview'},
     {route: 'help-documents-fonts', path: '/helpcenter/station/documents/fonts', i18nPrefix: 'helpCenter.documentFonts'},
     {route: 'help-documents-generated', path: '/helpcenter/station/documents/generated', i18nPrefix: 'helpCenter.generatedDocuments'},
+    {route: 'help-documents-self-service', path: '/helpcenter/station/documents/self-service', i18nPrefix: 'helpCenter.documentSelfService'},
     {route: 'help-documents-store', path: '/helpcenter/station/documents/store', i18nPrefix: 'helpCenter.documents'},
     {route: 'help-documents-templates', path: '/helpcenter/station/documents/templates', i18nPrefix: 'helpCenter.documentTemplates'},
     {route: 'help-documents-template-edit', path: '/helpcenter/station/documents/templates/0', i18nPrefix: 'helpCenter.documentTemplateEditor'},

@@ -25,6 +25,8 @@ import java.util.Optional;
 final class NotificationPages {
     private static final String STATION_LANDING = "/station/dashboard/overview";
     private static final String CLUSTER_LANDING = "/cluster";
+    private static final String STATION_PREFERENCES = "/station/profile/settings/notifications";
+    private static final String CLUSTER_PREFERENCES = "/cluster/notifications";
 
     private static final Map<String, String> PATHS = Map.ofEntries(
             Map.entry("news-list", "/station/news"),
@@ -91,6 +93,19 @@ final class NotificationPages {
         return switch (kind) {
             case STATION -> STATION_LANDING;
             case CLUSTER -> CLUSTER_LANDING;
+        };
+    }
+
+    /**
+     * Where a reader decides which notifications reach them by mail.
+     *
+     * @param kind station or association
+     * @return the address of that preferences page
+     */
+    static String preferencesOf(DigestGroup.Kind kind) {
+        return switch (kind) {
+            case STATION -> STATION_PREFERENCES;
+            case CLUSTER -> CLUSTER_PREFERENCES;
         };
     }
 

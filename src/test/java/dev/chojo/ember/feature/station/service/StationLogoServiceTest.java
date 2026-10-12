@@ -77,6 +77,19 @@ class StationLogoServiceTest {
         assertFalse(logoService.exists(STATION_ID));
     }
 
+    /** A mail loads the logo from the address that needs no sign-in, and only where there is one. */
+    @Test
+    void aMailLoadsTheLogoFromThePublicAddress() throws IOException {
+        assertTrue(
+                logoService.mailAddress("https://ember.example.com", STATION_ID).isEmpty());
+
+        logoService.store(STATION_ID, pngBytes(300, 200), "image/png");
+
+        assertEquals(
+                Optional.of("https://ember.example.com/api/v1/public/stations/" + STATION_UID + "/logo?size=128"),
+                logoService.mailAddress("https://ember.example.com", STATION_ID));
+    }
+
     @Test
     void readReturnsEmptyWhenNoLogo() {
         assertTrue(logoService.read(STATION_ID, 64).isEmpty());

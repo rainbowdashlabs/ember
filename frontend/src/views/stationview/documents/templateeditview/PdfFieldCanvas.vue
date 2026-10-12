@@ -16,7 +16,7 @@ import {movedBy, resizedBy} from './pdfFields'
 import {scaleOf, screenBoxOf, type PageGeometry, type ScreenBox} from './pdfViewport'
 import {fieldTextLook} from './pdfFieldLook'
 import {useInjectedEditorFonts} from '@/composables/useEditorFonts'
-import {usePagePan} from './usePagePan'
+import {usePagePan} from '@/composables/usePagePan'
 
 /**
  * One page of the PDF with the fields on it laid over it, where they will print.

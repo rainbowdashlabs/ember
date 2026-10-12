@@ -17,6 +17,74 @@ Document templates can ask the person generating a document for details that the
 
 - **Check marks can be ticked by hand.** The check marks of existing PDF templates became questions that follow the member's data as before, so self service and runs for many members tick what they ticked before. A manager generating a single document can now tick or clear each of them.
 
+## v26.22.4
+
+The day a member joined is visible in the member list and on the member's page, and can be taken over when importing members. Members open from the list in a new tab.
+
+### Improvements
+
+- **The join date is shown and can be imported.** The day a member joined is offered as a column of the member list, shown on the member's page and can be mapped from a column when importing members.
+- **Member pages open in a new tab from the list.** The view and edit buttons of the member list are links, so a member opens in a new tab with the middle mouse button or the context menu.
+
+## v26.22.3
+
+Notifications opened from a mail, a feed or the app count as read, and read notifications stay out of the next mail. Earlier notifications can be shown again below the unread ones. The German interface calls the start page "Übersicht".
+
+### Improvements
+
+- **The letter editor shows the letter's text size.** Header, body and footer of a letter template show their text in the size the letter prints it in, and follow the page setting as it changes. The text size of the page can be set back to the default in one click.
+- **Media files can be dragged into folders.** In the media library a file can be dragged onto a folder in the sidebar, onto a folder tile or onto a step of the path above to move it there. Dragging one of several selected files moves all of them.
+- **Pasted Ember links read as their title.** Pasting the address of a news entry, an appointment, a wiki article or a page, of the station or of a partner station, into the text editor puts in a link named by its title, or by the name of the page. Undo brings the address back, and links to other sites stay as pasted.
+- **Line height and letter spacing in the text editor.** A new spacing button sets the line height of paragraphs and the spacing between the letters of selected words, each in a few fixed steps. Pages, articles, news and printed letters show both the same way.
+- **Pictures can stand left, centred or right.** A picture block that is narrower than its column, for example with a maximum height, can be aligned to the left, the middle or the right, with its caption on the same side. Pages, articles, news and printed letters all show it there.
+- **Earlier notifications can be shown again.** A button below the unread notifications lists the ones already read, among the 50 most recent. It works on the start page and on an association's notifications page.
+
+### Changes
+
+- **The start page is called "Übersicht" in German.** The German interface and help center name the start page "Übersicht" instead of "Dashboard".
+- **Creating documents has its own menu entry.** Documents members create for themselves from the station's templates moved from My Documents to Documents → Create yourself, where a created document opens right away. My Documents shows one tab per person for guardians, their own and each child's, with a larger search field above the list.
+- **Saving shows on the save button.** Document templates, a station's use of an association template, pages, checklist membership and answers per appointment date show saving and saved on their button instead of a pop-up message. Settings that save as soon as they change, such as the instance settings and an association's public wiki, show the same status beside them.
+- **Appointments show their time first.** The general information of an appointment shows begin and end above the description, and the attendance template takes a row of its own.
+- **Paragraphs sit closer together.** News, pages, articles and the help center show less space between lines and between paragraphs, so a new paragraph no longer looks like an empty line.
+- **Text sizes are given in points.** The text editor sets words in a size in points from 5 to 72, as letters already do. Texts sized in pixels before keep their look and are stored in points once saved again.
+
+### Fixes
+
+- **Document previews could not be zoomed or moved.** The preview of a template, of a generated document and of a bulk run showed no zoom controls, and a zoomed document could not be dragged with the mouse. Every document view now zooms and can be dragged when zoomed in.
+- **Documents had no icon in the permission picker.** The documents permissions were the only group in the permission picker shown without an icon. They now show the documents icon.
+- **The document store showed no previews.** Every document in the store showed only a file icon, although a preview had been made for it. The store shows the previews again.
+- **Document tiles had uneven widths.** In the document store a long title stretched its tile and left wide gaps between tiles. Tiles now fill their column, and long titles wrap.
+- **An open document named nobody it belonged to.** Under My Documents an opened document said it belonged to no member, although it was listed as the document of a person. It now names that person.
+- **The default font was missing from the fonts page.** The font documents print in by default, such as Berlin Type, was offered in every font picker but not listed on the fonts page. It now heads the list of available fonts with a sample.
+- **Empty lines disappeared from texts.** Lines left empty on purpose in news, pages, articles and letters were removed on saving. They are now kept and show as empty lines on the page and in printed letters.
+- **Read notifications were mailed anyway.** A notification already read in the app still appeared in the next notification mail, and a guardian received news on a child's behalf that they had already read themselves. Read notifications now stay out of the mail, while a child's own copy stays unread for the child.
+- **The back button of an appointment led to the wrong list.** For the event management, the back button of an appointment always opened the events overview, wherever the appointment had been opened from. It now returns to the page before, or to the upcoming appointments where there is none.
+- **Opening a notification from a mail or a feed left it unread.** Following a notification's link from a mail or a feed reader did not mark it read. Opening it now marks it read, also after signing in first.
+
+## v26.22.2
+
+The notification settings name every mail provider a member's mail may go through, each with its privacy notice. The instance's mail providers can be given a name and a privacy notice for members. Guardians receive one notification mail for themselves and the children they look after.
+
+### Improvements
+
+- **Every mail provider is named in the notification settings.** Where mail can go out through several providers, the notification settings list all of them in the order they are tried, each with its privacy notice. Switching on mail names all of them as receiving the address.
+- **The instance's mail providers carry a name and a privacy notice.** Under Settings → Mailing each provider of the instance takes a name and a privacy notice address, shown to members of every station that sends through it.
+
+### Fixes
+
+- **The mail provider was named "Unknown".** For a station sending only through the instance's providers, the notification settings named the provider "Unknown". They now show the name given for it, or the kind of provider where none is given.
+- **Guardians received the same notification several times.** A guardian got their own notification mail and one more for each child without an email address, often with the same news in each. They now get one mail, which lists each notification once and names the child on items meant only for a child.
+
+## v26.22.1
+
+Notification mails show the station's logo, write dates the way the reader's language does and link to the right settings page.
+
+### Fixes
+
+- **The settings link in notification mails led nowhere.** The link at the bottom of a notification mail opened a page that does not exist, and for associations it pointed at a station page. It now opens the notification settings of the station or association the mail comes from.
+- **Station mails showed no logo or a broken one.** The station's logo at the top of a notification mail never loaded, and mails about applications and waiting lists showed none at all. These mails now show the station's logo where it has one.
+- **Dates in notification mails and feeds were hard to read.** Dates appeared as 2026-10-17, in German too. They now read as 17.10.2026 in German and Oct 17, 2026 in English.
+
 ## v26.22.0
 
 Stations turn their own templates and those of their association into documents for their members: letters written in blocks like the station's pages, with placeholders and blocks only some members get, and uploaded PDF forms such as a consent form, filled in place. An appointment can ask its participants to bring such a form or to hand in a scan of the signed copy. Letters and forms leave a signature field for each signer, and each template names the member who issues its documents, whose saved signature can sign them automatically. Once a manager asks for their signatures, members and guardians are told by mail and sign online from their open tasks with a signature drawn there or kept in the account, and the station seals each signed version, mails each signer a copy and lets anyone check it on the verification page. Documents name people by their official names and guardians in their set order, and pronouns follow the new gender profile field or use the first name. Managers generate documents on the member page, in the document store or for many members at once, and members and guardians generate those marked for self service in the new Documents menu. Templates take their body from a Word or OpenDocument text, print in built-in fonts or in fonts that the instance, an association or the station uploaded, and are duplicated as the start of new ones. Stations can send their mail through the instance's providers, within a share of each provider the instance sets aside for them. A short profile opens from any member's name, a new name members give themselves waits for the member management to approve it, and private tags are seen by the member management alone. A station asks the owner before an existing account joins one of its members, and only the owner changes the address or sign-in of an account that several stations share.

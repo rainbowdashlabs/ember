@@ -10,7 +10,7 @@ import Modal from '@/components/feedback/Modal.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import SaveButton from '@/components/button/SaveButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import ChecklistMembershipEditor from './checklistmodals/ChecklistMembershipEditor.vue'
@@ -44,13 +44,10 @@ const props = defineProps<{
   groups: MemberGroup[]
   tags: UserTag[]
   members: MemberLike[]
-  saving: boolean
+  /** Saves what the list is made of; the button shows its progress and rejects back to idle on a failure. */
+  save: (payload: Pick<ChecklistUpdateRequest, 'restriction' | 'source'>) => Promise<unknown>
   /** What the last save ran into, described, or nothing where nothing has. */
   failure?: Failure | null
-}>()
-
-const emit = defineEmits<{
-  (e: 'submit', payload: Pick<ChecklistUpdateRequest, 'restriction' | 'source'>): void
 }>()
 
 const {t} = useI18n()
@@ -78,12 +75,10 @@ watch(visible, opened => {
 const incomplete = computed(() => follows.value === 'EVENT' && occurrence.value === null)
 
 function submit() {
-  if (incomplete.value) return
   if (follows.value === 'EVENT' && occurrence.value) {
-    emit('submit', {source: occurrence.value})
-    return
+    return props.save({source: occurrence.value})
   }
-  emit('submit', {
+  return props.save({
     restriction: {
       userTypes: restriction.value.userTypes,
       groupIds: restriction.value.groupIds,
@@ -115,9 +110,9 @@ function submit() {
 
       <ButtonRow pair align="end" class="pt-2">
         <SecondaryButton data-cancel @click="visible = false">{{ t('checklist.cancel') }}</SecondaryButton>
-        <PrimaryButton :disabled="saving || incomplete" data-testid="checklist-membership-save" @click="submit">
+        <SaveButton :action="submit" :disabled="incomplete" data-testid="checklist-membership-save">
           {{ t('checklist.save') }}
-        </PrimaryButton>
+        </SaveButton>
       </ButtonRow>
     </div>
   </Modal>

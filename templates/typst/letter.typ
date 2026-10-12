@@ -52,7 +52,8 @@
 
 #let picture(c, max-height) = {
   let limit = if c.at("maxHeightMm", default: none) == none { max-height } else { c.maxHeightMm * 1mm }
-  align(center, fit(image(c.file), limit))
+  let side = (left: left, center: center, right: right).at(c.at("align", default: "center"), default: center)
+  align(side, fit(image(c.file), limit))
 }
 
 #let rule = 0.5pt + luma(150)
