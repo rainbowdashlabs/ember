@@ -4,7 +4,9 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
+import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
@@ -31,11 +33,16 @@ const props = defineProps<{
 const emit = defineEmits<{
   acknowledge: []
   correct: []
-  open: []
   pick: []
 }>()
 
 const {t} = useI18n()
+const routes = useInventoryRoutes()
+
+/** The movement's own page, a link so it also opens in a new tab; nothing where the area has no such page. */
+const detailRoute = computed(() => routes.movement
+    ? {name: routes.movement, params: {id: String(props.movement.id)}}
+    : null)
 </script>
 
 <template>
@@ -62,7 +69,7 @@ const {t} = useI18n()
     >
       {{ t('movements.queue.correct') }}
     </SecondaryButton>
-    <SecondaryButton class="text-xs" data-testid="movement-open" @click="emit('open')">
+    <SecondaryButton v-if="detailRoute" class="text-xs" data-testid="movement-open" :to="detailRoute">
       {{ t('movements.queue.openDetail') }}
     </SecondaryButton>
   </ButtonRow>

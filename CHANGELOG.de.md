@@ -2,12 +2,17 @@
 
 ## v26.22.4
 
-Der Tag, an dem ein Mitglied beigetreten ist, steht in der Mitgliederliste und auf der Seite des Mitglieds und lässt sich beim Import übernehmen. Mitglieder öffnen sich aus der Liste in einem neuen Tab.
+Der Tag, an dem ein Mitglied beigetreten ist, steht in der Mitgliederliste und auf der Seite des Mitglieds und lässt sich beim Import übernehmen. Mitglieder öffnen sich aus der Liste in einem neuen Tab. Das Menü bleibt auf älteren Tablets nicht mehr über der Seite stehen.
 
 ### Verbesserungen
 
 - **Das Eintrittsdatum ist sichtbar und importierbar.** Der Tag, an dem ein Mitglied beigetreten ist, steht als Spalte der Mitgliederliste zur Auswahl, erscheint auf der Seite des Mitglieds und lässt sich beim Import aus einer Spalte übernehmen.
 - **Mitgliederseiten öffnen sich aus der Liste in einem neuen Tab.** Die Knöpfe zum Ansehen und Bearbeiten in der Mitgliederliste sind Links, so dass sich ein Mitglied mit der mittleren Maustaste oder dem Kontextmenü in einem neuen Tab öffnet.
+- **Bewegungen öffnen sich aus ihrer Liste in einem neuen Tab.** Der Knopf „Ablauf ansehen“ ist ein Link, so dass sich eine Bewegung auch in einem neuen Tab öffnet.
+
+### Fehlerbehebungen
+
+- **Das Menü blieb auf manchen Tablets offen.** In manchen älteren Tablet-Browsern verdeckte das Menü einen Teil der Seite und ließ sich weder schließen noch einklappen. Es gleitet dort jetzt wie auf anderen Geräten zur Seite.
 
 ## v26.22.3
 
