@@ -26,6 +26,7 @@ import dev.chojo.ember.feature.generator.entity.ResolvedValues;
 import dev.chojo.ember.feature.generator.entity.SignatureRole;
 import dev.chojo.ember.feature.generator.entity.SignerCaptions;
 import dev.chojo.ember.feature.generator.entity.TemplateContent;
+import dev.chojo.ember.feature.generator.entity.TemplateQuestion;
 import dev.chojo.ember.feature.generator.service.pdf.PdfStamper;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import dev.chojo.ember.feature.restriction.RestrictionMember;
@@ -143,6 +144,8 @@ public class DocumentGeneratorService {
      * @param issuer    the issuer as the document names them
      * @param signers   the names printed under the signature fields
      * @param missing   the placeholders without a value, in the words of the template's owner
+     * @param answers   what the template's questions were answered with, by the key of the question, as an
+     *                  answer is sent; empty where it asks nothing
      */
     public record Prepared(
             Source source,
@@ -151,7 +154,8 @@ public class DocumentGeneratorService {
             ResolvedValues resolved,
             IssuerUse issuer,
             SignerCaptions signers,
-            List<MissingValue> missing) {}
+            List<MissingValue> missing,
+            Map<String, String> answers) {}
 
     /**
      * The issuer as one member's document names them.
@@ -204,6 +208,7 @@ public class DocumentGeneratorService {
      * @param content         the letter, or the PDF with what is laid over it
      * @param language        the language its documents are written in
      * @param legal           whether it makes a legal document
+     * @param questions       what it asks the person generating a document
      */
     public record Source(
             Owner owner,
@@ -212,7 +217,16 @@ public class DocumentGeneratorService {
             String fileNamePattern,
             TemplateContent content,
             DocumentLanguage language,
-            boolean legal) {
+            boolean legal,
+            List<TemplateQuestion> questions) {
+
+        /**
+         * @param known the placeholders of the owner by key
+         * @return the words each placeholder the template can name is shown by, its answers included
+         */
+        Map<String, Placeholder> labelled(Map<String, Placeholder> known) {
+            return PlaceholderCatalogue.withQuestions(known, questions, language);
+        }
 
         /**
          * The keys that stand for values in what a member sees of the template: the title, the file
@@ -330,7 +344,8 @@ public class DocumentGeneratorService {
                 template.fileNamePattern(),
                 templates.contentOf(template),
                 template.language(),
-                template.legal());
+                template.legal(),
+                templates.questionsOf(template));
     }
 
     /**
@@ -346,7 +361,8 @@ public class DocumentGeneratorService {
                 draft.fileNamePattern(),
                 draft.content(),
                 draft.language(),
-                draft.legal());
+                draft.legal(),
+                draft.questions());
     }
 
     /**
@@ -471,8 +487,15 @@ public class DocumentGeneratorService {
         var source = sourceOf(template);
         var view = NOBODY_IN_PARTICULAR;
         var keys = new LinkedHashSet<>(source.valueKeys(view));
-        var resolved = resolver.forAppointment(stationId, keys, source.language(), event);
-        var known = catalogue.byKey(source.owner());
+        var asked = QuestionAnswers.askedIn(keys);
+        var read = new LinkedHashSet<>(keys);
+        read.removeAll(asked);
+        read.addAll(QuestionAnswers.suggestionKeys(source.questions()));
+        var values = resolver.forAppointment(stationId, read, source.language(), event);
+        var answers = QuestionAnswers.answers(
+                source.questions(), Map.of(), QuestionAnswers.suggested(source.questions(), values.values()));
+        var resolved = QuestionAnswers.printed(values, keys, source.questions(), answers, source.language());
+        var known = source.labelled(catalogue.byKey(source.owner()));
         var missing = resolved.missing().stream()
                 .map(key -> new MissingValue(key, PlaceholderCatalogue.labelOf(known, key)))
                 .toList();
@@ -483,7 +506,8 @@ public class DocumentGeneratorService {
                 resolved,
                 new IssuerUse(DocumentIssuer.NONE, false, false, null),
                 SignerCaptions.roles(source.language()),
-                missing);
+                missing,
+                answers);
         return render(prepared);
     }
 
@@ -534,7 +558,7 @@ public class DocumentGeneratorService {
                 source.fileNamePattern(),
                 source.content().texts());
         var values = resolver.withoutMember(source.owner(), source.language(), keys);
-        var known = catalogue.byKey(source.owner());
+        var known = source.labelled(catalogue.byKey(source.owner()));
         var labels = new LinkedHashMap<String, String>();
         keys.forEach(key -> labels.put(key, PlaceholderCatalogue.labelOf(known, key)));
         Integer stationId = source.owner() instanceof Owner.Station station ? station.stationId() : null;
@@ -601,12 +625,37 @@ public class DocumentGeneratorService {
             boolean signs = source.asksIssuerToSign(view);
             boolean named = signs || BuiltInPlaceholder.namesIssuer(keys);
             if (named) keys.add(BuiltInPlaceholder.ISSUER_FULL_NAME.key());
-            var resolved = values.resolve(stationId, memberId, keys, source.language(), context);
+            var read = new LinkedHashSet<>(keys);
+            read.removeAll(QuestionAnswers.askedIn(keys));
+            var data = values.resolve(stationId, memberId, read, source.language(), context);
+            var answers = QuestionAnswers.answers(
+                    source.questions(), context.answers(), suggested(source, stationId, memberId, context));
+            var resolved = QuestionAnswers.printed(data, keys, source.questions(), answers, source.language());
             String issuerName = resolved.values().get(BuiltInPlaceholder.ISSUER_FULL_NAME.key());
             var issuer = new IssuerUse(context.issuer(), named, signs, issuerName);
             var signers = values.captions(memberId, source.language(), issuerName);
             return new Prepared(
-                    source, stationId, view, resolved, issuer, signers, missingOf(source.owner(), resolved));
+                    source, stationId, view, resolved, issuer, signers, missingOf(source, resolved), answers);
+        }
+
+        /**
+         * What each question of a template suggests for one member, as the screen prefills it.
+         *
+         * @param source   the template
+         * @param memberId the member the document would be about
+         * @param context  who generates it and who issues it
+         * @return the suggested answer of every question by its key, as an answer is sent
+         */
+        public Map<String, String> suggestions(Source source, int memberId, GenerationContext context) {
+            int stationId = values.stationOf(memberId).orElseThrow(MemberRefusal.MEMBER_NOT_HERE::raise);
+            return suggested(source, stationId, memberId, context);
+        }
+
+        private Map<String, String> suggested(Source source, int stationId, int memberId, GenerationContext context) {
+            if (source.questions().isEmpty()) return Map.of();
+            var keys = QuestionAnswers.suggestionKeys(source.questions());
+            var read = values.resolve(stationId, memberId, keys, source.language(), context);
+            return QuestionAnswers.suggested(source.questions(), read.values());
         }
 
         /**
@@ -653,9 +702,9 @@ public class DocumentGeneratorService {
             return audiences.get(memberId);
         }
 
-        private List<MissingValue> missingOf(Owner owner, ResolvedValues resolved) {
+        private List<MissingValue> missingOf(Source source, ResolvedValues resolved) {
             if (resolved.missing().isEmpty()) return List.of();
-            var known = labels.computeIfAbsent(owner, catalogue::byKey);
+            var known = source.labelled(labels.computeIfAbsent(source.owner(), catalogue::byKey));
             return resolved.missing().stream()
                     .map(key -> new MissingValue(key, PlaceholderCatalogue.labelOf(known, key)))
                     .toList();

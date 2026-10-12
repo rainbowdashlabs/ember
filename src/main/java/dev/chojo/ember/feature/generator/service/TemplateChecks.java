@@ -167,7 +167,8 @@ public class TemplateChecks {
                 issuer.memberId(),
                 issuer.function(),
                 content,
-                signing(request.signing(), existing, legal));
+                signing(request.signing(), existing, legal),
+                QuestionChecks.checked(request.questions()));
         catalogue.requireKnown(owner, draft);
         fonts.requireReachable(owner, content);
         return draft;

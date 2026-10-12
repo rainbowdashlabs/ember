@@ -1,5 +1,22 @@
 # Changelog
 
+## v26.23.0
+
+Document templates can ask the person generating a document for details that the member's data does not hold, such as the date of a change or which of several boxes applies. Word forms with fields to fill in become PDF templates that keep their look, so a paper form such as a change notification is filled out in Ember. Check marks of existing PDF templates keep following the member's data and can now also be ticked by hand.
+
+### New Features
+
+- **Templates ask when a document is generated.** A template can ask for a text, a date or a tick, and prints each answer wherever it names it, a tick as a ticked or an empty box. Each question can suggest its answer from the member's data, which is then the answer in self service and in runs for many members.
+- **Word forms become PDF templates.** A Word form with fields to fill in becomes a PDF template that looks like the original, with member data where a field's label is recognised and a question for every other field and check box. A font the form uses that is not uploaded is replaced by one chosen before the form is converted, and a list afterwards names what was recognised.
+
+### Improvements
+
+- **More fonts come with every installation.** Carlito and Caladea set text exactly as wide as Calibri and Cambria, and Open Sans stands in for fonts such as Frutiger. All three can be chosen for letters and fields, and importing a Word form set in Calibri, Cambria, Arial or Times New Roman offers the matching one first.
+
+### Changes
+
+- **Check marks can be ticked by hand.** The check marks of existing PDF templates became questions that follow the member's data as before, so self service and runs for many members tick what they ticked before. A manager generating a single document can now tick or clear each of them.
+
 ## v26.22.0
 
 Stations turn their own templates and those of their association into documents for their members: letters written in blocks like the station's pages, with placeholders and blocks only some members get, and uploaded PDF forms such as a consent form, filled in place. An appointment can ask its participants to bring such a form or to hand in a scan of the signed copy. Letters and forms leave a signature field for each signer, and each template names the member who issues its documents, whose saved signature can sign them automatically. Once a manager asks for their signatures, members and guardians are told by mail and sign online from their open tasks with a signature drawn there or kept in the account, and the station seals each signed version, mails each signer a copy and lets anyone check it on the verification page. Documents name people by their official names and guardians in their set order, and pronouns follow the new gender profile field or use the first name. Managers generate documents on the member page, in the document store or for many members at once, and members and guardians generate those marked for self service in the new Documents menu. Templates take their body from a Word or OpenDocument text, print in built-in fonts or in fonts that the instance, an association or the station uploaded, and are duplicated as the start of new ones. Stations can send their mail through the instance's providers, within a share of each provider the instance sets aside for them. A short profile opens from any member's name, a new name members give themselves waits for the member management to approve it, and private tags are seen by the member management alone. A station asks the owner before an existing account joins one of its members, and only the owner changes the address or sign-in of an account that several stations share.

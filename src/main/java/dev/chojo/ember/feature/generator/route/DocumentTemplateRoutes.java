@@ -30,6 +30,9 @@ import dev.chojo.ember.feature.generator.service.TemplateQuery.TemplatePage;
 import dev.chojo.ember.feature.generator.service.TemplateStationUseService;
 import dev.chojo.ember.feature.generator.service.TemplateStationUseService.TemplateUseRequest;
 import dev.chojo.ember.feature.generator.service.TemplateStationUseService.TemplateUseResponse;
+import dev.chojo.ember.feature.generator.service.WordFormImportService;
+import dev.chojo.ember.feature.generator.service.WordFormImportService.MissingFonts;
+import dev.chojo.ember.feature.generator.service.WordFormImportService.WordFormImport;
 import io.javalin.http.Context;
 import io.javalin.http.HttpStatus;
 import io.javalin.openapi.HttpMethod;
@@ -62,6 +65,7 @@ public class DocumentTemplateRoutes implements Routes {
     private final PdfTemplateService pdfs;
     private final TemplateStationUseService uses;
     private final DocumentTemplateCopyService copies;
+    private final WordFormImportService forms;
 
     @Inject
     public DocumentTemplateRoutes(
@@ -69,12 +73,14 @@ public class DocumentTemplateRoutes implements Routes {
             LetterImportService imports,
             PdfTemplateService pdfs,
             TemplateStationUseService uses,
-            DocumentTemplateCopyService copies) {
+            DocumentTemplateCopyService copies,
+            WordFormImportService forms) {
         this.templates = templates;
         this.imports = imports;
         this.pdfs = pdfs;
         this.uses = uses;
         this.copies = copies;
+        this.forms = forms;
     }
 
     @Override
@@ -85,6 +91,12 @@ public class DocumentTemplateRoutes implements Routes {
                 this::checkDateFormat,
                 StationPermission.DOCUMENT_TEMPLATE_EDIT);
         routes.post(prefix + "/document-template-import", this::importLetter, StationPermission.DOCUMENT_TEMPLATE_EDIT);
+        routes.post(
+                prefix + "/document-template-form-import", this::importForm, StationPermission.DOCUMENT_TEMPLATE_EDIT);
+        routes.post(
+                prefix + "/document-template-form-import/fonts",
+                this::formFonts,
+                StationPermission.DOCUMENT_TEMPLATE_EDIT);
         routes.get(prefix + "/document-templates", this::list, StationPermission.DOCUMENT_TEMPLATE_EDIT);
         routes.post(prefix + "/document-templates", this::create, StationPermission.DOCUMENT_TEMPLATE_EDIT);
         routes.get(prefix + "/document-templates/{id}", this::detail, StationPermission.DOCUMENT_TEMPLATE_EDIT);
@@ -200,6 +212,36 @@ public class DocumentTemplateRoutes implements Routes {
             })
     private void importLetter(Context ctx) {
         ctx.json(imports.read(Importer.of(StationSession.from(ctx)), ctx.uploadedFile("file")));
+    }
+
+    @OpenApi(
+            path = "/api/v1/document-template-form-import",
+            methods = HttpMethod.POST,
+            summary =
+                    "Make a PDF template from a Word form, its fields filled from member data or asked when generating",
+            tags = {"Documents"},
+            responses = {
+                @OpenApiResponse(status = "201", content = @OpenApiContent(from = WordFormImport.class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void importForm(Context ctx) {
+        var session = StationSession.from(ctx);
+        ctx.status(HttpStatus.CREATED)
+                .json(forms.importForm(
+                        session.owner(), ctx.uploadedFile("file"), FormFontChoices.of(ctx), session.accountId()));
+    }
+
+    @OpenApi(
+            path = "/api/v1/document-template-form-import/fonts",
+            methods = HttpMethod.POST,
+            summary = "The fonts of a Word form the station cannot draw it in, to choose a replacement for each",
+            tags = {"Documents"},
+            responses = {
+                @OpenApiResponse(status = "200", content = @OpenApiContent(from = MissingFonts.class)),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void formFonts(Context ctx) {
+        ctx.json(forms.fontsOf(StationSession.from(ctx).owner(), ctx.uploadedFile("file")));
     }
 
     @OpenApi(

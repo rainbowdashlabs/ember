@@ -11,6 +11,7 @@ import {
     DocumentTemplateKind,
     GuardianCondition,
     StationUserType,
+    TemplateQuestionKind,
     type DocumentTemplateResponse,
 } from '@/api/generated/schema'
 import {DEFAULT_PAGE, LEGAL_RETENTION_MONTHS, draftOf, emptyDraft, requestOf, signingOf} from './templateDraft'
@@ -55,6 +56,7 @@ const saved: DocumentTemplateResponse = {
     updatedAt: '2026-10-02T10:00:00Z',
     archivedAt: null,
     signing: {retentionMonths: 120, copyAttached: true},
+    questions: [{key: 'grund', label: 'Grund', kind: TemplateQuestionKind.TEXT, suggestion: '', required: true}],
 }
 
 describe('template drafts', () => {
@@ -101,6 +103,11 @@ describe('template drafts', () => {
         expect(request.body?.[0]?.columnLines).toBe(true)
         expect(cells[0]?.guardianCondition).toBeUndefined()
         expect(cells[1]?.guardianCondition).toBe(GuardianCondition.SECOND_GUARDIAN)
+        expect(request.questions).toEqual(saved.questions)
+    })
+
+    it('start a new template asking nothing', () => {
+        expect(requestOf(emptyDraft()).questions).toEqual([])
     })
 
     it('leave empty patterns to the server', () => {

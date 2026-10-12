@@ -3,6 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
+import {readFileSync} from 'node:fs'
+import {fileURLToPath} from 'node:url'
 import type {Locator, Page} from '@playwright/test'
 import {test, expect} from './fixtures/auth'
 import {ownMember} from './fixtures/ownMember'
@@ -126,4 +128,41 @@ test.describe('Document templates', () => {
         await expect(memberPage.getByTestId('self-service-documents')
             .getByText(/kann wieder erstellt werden ab/)).toBeVisible()
     })
+
+    test('a Word form becomes a template that asks for what the member data does not hold', async ({managerPage}) => {
+        const name = unique('Änderungsmeldung')
+        await managerPage.goto('/station/documents/templates')
+        await managerPage.getByTestId('template-import-form-file').setInputFiles({
+            name: `${name}.docx`,
+            mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            buffer: readFileSync(CHANGE_FORM),
+        })
+        const report = managerPage.getByTestId('form-import-report')
+        await expect(report).toContainText('Aus den Daten des Mitglieds: Verein, Bearbeiter, Datum, Name, Vorname')
+        await expect(report).toContainText('Beim Erstellen abgefragt: ist am, aus dem Verein ausgetreten')
+        await report.getByTestId('form-import-open').click()
+        await managerPage.waitForURL(/\/station\/documents\/templates\/\d+/)
+        await managerPage.getByRole('tab', {name: 'Abfragen'}).click()
+        await expect(managerPage.getByTestId('template-question-label').first()).toHaveValue('ist am')
+
+        const member = await ownMember(managerPage, 'Formular')
+        await managerPage.goto(`/station/members/detail/${member.memberId}`)
+        await managerPage.getByRole('tab', {name: 'Dokumente'}).first().click()
+        await managerPage.getByTestId('document-generate-open').click()
+        const dialog = managerPage.getByTestId('generate-document-modal')
+        await dialog.getByTestId('template-choice-open').click()
+        const picker = managerPage.getByTestId('template-picker')
+        await picker.getByTestId('template-search').locator('input').fill(name)
+        await picker.getByTestId('template-tile').filter({hasText: name}).getByTestId('template-tile-choose').click()
+        const answers = dialog.getByTestId('generation-answers')
+        await answers.getByTestId('generation-answer-ist_am').fill('2026-09-30')
+        await answers.getByTestId('generation-answer-aus_dem_verein_ausgetreten').locator('input').check()
+        await answers.getByTestId('generation-answer-sonstiges').fill('Umzug')
+        await expect(dialog.getByTestId('generated-preview')).toBeVisible()
+        await dialog.getByTestId('generate-file').click()
+        await expect(managerPage.getByText('Dokument erstellt und abgelegt.')).toBeVisible()
+    })
 })
+
+/** The neutral stand-in of a change notification the backend tests read too. */
+const CHANGE_FORM = fileURLToPath(new URL('../../src/test/resources/generator/change-form.docx', import.meta.url))

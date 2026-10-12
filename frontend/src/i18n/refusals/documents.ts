@@ -198,4 +198,13 @@ export default {
     'D-303': 'Ein Unterschriftsbild kam für jemanden, der hier nichts unterschreibt',
     'D-304': 'Für eine Person kamen zwei Unterschriftsbilder',
     'D-305': 'Diese Fassung enthält keinen Signaturnachweis',
+    'D-306': 'Der Name einer Abfrage besteht aus Buchstaben, Ziffern und Unterstrichen, höchstens 40',
+    'D-307': 'Zwei Abfragen haben denselben Namen',
+    'D-308': 'Eine Abfrage braucht eine Beschriftung',
+    'D-309': 'Eine Vorlage stellt höchstens 100 Abfragen',
+    'D-310': 'Die Antwort auf eine Datumsabfrage ist kein Datum',
+    'D-311': 'Das Word-Dokument hat keine Felder zum Ausfüllen. Importiere es stattdessen als Brief',
+    'D-312': 'Aus dem Word-Dokument ließ sich kein Formular machen',
+    'D-313': 'Ein Vorschlag kann keine Antwort auf eine Abfrage nennen',
+    'D-314': 'Wähle einen Ersatz für eine Schrift des Formulars, die nicht verfügbar ist',
 }

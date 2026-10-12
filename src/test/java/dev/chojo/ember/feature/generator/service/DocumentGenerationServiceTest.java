@@ -27,6 +27,8 @@ import dev.chojo.ember.feature.generator.entity.LetterPage;
 import dev.chojo.ember.feature.generator.entity.MissingValue;
 import dev.chojo.ember.feature.generator.entity.SignatureRole;
 import dev.chojo.ember.feature.generator.entity.SubjectRole;
+import dev.chojo.ember.feature.generator.entity.TemplateQuestion;
+import dev.chojo.ember.feature.generator.entity.TemplateQuestionKind;
 import dev.chojo.ember.feature.generator.repository.DocumentGenerationRepository;
 import dev.chojo.ember.feature.generator.repository.DocumentTemplateRepository;
 import dev.chojo.ember.feature.generator.repository.PdfTemplateRepository;
@@ -418,6 +420,94 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
         assertEquals("Jugendwartin", logged.issuerFunction());
         assertTrue(logged.issuerFixed());
         assertTrue(logged.issuerSigns());
+    }
+
+    private static int asking(String name) {
+        var request = letterOf(
+                        name,
+                        true,
+                        false,
+                        0,
+                        rowsOf("Ausgetreten am {{ask.tag|long}} wegen {{ask.grund}}. Schule: {{ask.schule}}"))
+                .questions(
+                        new TemplateQuestion("tag", "Tag des Austritts", TemplateQuestionKind.DATE, "{{today}}", true),
+                        new TemplateQuestion("grund", "Grund", TemplateQuestionKind.TEXT, "", true),
+                        new TemplateQuestion(
+                                "schule",
+                                "Geht zur Schule",
+                                TemplateQuestionKind.CHECK,
+                                "{{profile.%d}}".formatted(schoolField),
+                                false))
+                .build();
+        return templates.create(owner, request, author).id();
+    }
+
+    @Test
+    void theManagersAnswersPrintAndAreLogged() {
+        int templateId = asking("Austritt");
+
+        var generated = generation.generate(
+                as(manager), templateId, lena.id(), null, Map.of("tag", "2026-09-30", "grund", "Umzug"));
+
+        assertTrue(generated.missing().isEmpty(), generated.missing().toString());
+        String text = textOf(generated.documentId());
+        assertTrue(text.contains("Ausgetreten am 30. September 2026 wegen Umzug."), text);
+        assertTrue(text.contains("Schule: ☒"), text);
+    }
+
+    @Test
+    void eachQuestionSuggestsAnAnswerForTheMember() {
+        int templateId = asking("Vorschlag");
+
+        var suggested = generation.suggestions(as(manager), templateId, lena.id(), null);
+
+        assertEquals(
+                List.of("tag=2026-10-02", "grund=", "schule=true"),
+                suggested.stream()
+                        .map(answer -> answer.question().key() + "=" + answer.suggestion())
+                        .toList());
+    }
+
+    @Test
+    void aRequiredQuestionNobodyAnsweredIsMissingByItsLabel() {
+        int templateId = asking("Unbeantwortet");
+
+        var generated = generation.generate(as(manager), templateId, lena.id(), null, Map.of("schule", "false"));
+
+        assertEquals(
+                List.of("Grund"),
+                generated.missing().stream().map(MissingValue::label).toList());
+        assertTrue(textOf(generated.documentId()).contains("Schule: ☐"));
+        refused(
+                DocumentRefusal.DOCUMENT_SELF_SERVICE_VALUES_MISSING,
+                () -> selfService.generate(as(lena), templateId, lena.id()));
+    }
+
+    @Test
+    void aDateAnswerThatNamesNoDayIsRefusedNamingTheQuestion() {
+        int templateId = asking("Kein Datum");
+
+        var refusal = assertThrows(
+                RefusalResponse.class,
+                () -> generation.generate(as(manager), templateId, lena.id(), null, Map.of("tag", "morgen")));
+
+        assertEquals(DocumentRefusal.DOCUMENT_ANSWER_NOT_A_DAY, refusal.refusal());
+        assertEquals(RefusalDetail.text("Tag des Austritts"), refusal.detail());
+    }
+
+    @Test
+    void aTemplateNamesOnlyTheAnswersItAsksFor() {
+        var unasked = letterOf("Ohne Abfrage", false, false, 0, rowsOf("{{ask.grund}}"))
+                .build();
+        refused(DocumentRefusal.DOCUMENT_TEMPLATE_PLACEHOLDER_UNKNOWN, () -> templates.create(owner, unasked, author));
+        var twice = letterOf("Doppelte Abfrage", false, false, 0, rowsOf("Text"))
+                .questions(
+                        new TemplateQuestion("grund", "Grund", TemplateQuestionKind.TEXT, "", false),
+                        new TemplateQuestion("grund", "Anlass", TemplateQuestionKind.TEXT, "", false))
+                .build();
+        var refusal = assertThrows(RefusalResponse.class, () -> templates.create(owner, twice, author));
+        assertEquals(DocumentRefusal.DOCUMENT_TEMPLATE_QUESTION_KEY_TWICE, refusal.refusal());
+        assertEquals(RefusalDetail.text("Anlass"), refusal.detail());
     }
 
     @Test

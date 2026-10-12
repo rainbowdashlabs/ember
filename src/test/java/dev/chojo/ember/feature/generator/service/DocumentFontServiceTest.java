@@ -90,12 +90,15 @@ import static org.mockito.Mockito.when;
 class DocumentFontServiceTest extends RepositoryTestBase {
     /** The built-in families by name, sorted. */
     private static final List<String> BUILT_IN = List.of(
+            "Caladea",
+            "Carlito",
             "DejaVu Sans Mono",
             "Liberation Mono",
             "Liberation Sans",
             "Liberation Serif",
             "Libertinus Serif",
-            "New Computer Modern");
+            "New Computer Modern",
+            "Open Sans");
 
     private static DocumentFontService fonts;
     private static FontLibrary library;

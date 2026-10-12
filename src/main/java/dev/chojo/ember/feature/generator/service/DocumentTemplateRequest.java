@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.generator.entity.DocumentTemplateKind;
 import dev.chojo.ember.feature.generator.entity.FormBinding;
 import dev.chojo.ember.feature.generator.entity.LetterPage;
 import dev.chojo.ember.feature.generator.entity.PdfField;
+import dev.chojo.ember.feature.generator.entity.TemplateQuestion;
 import dev.chojo.ember.feature.generator.entity.TemplateSigning;
 import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import org.jspecify.annotations.Nullable;
@@ -53,6 +54,8 @@ import java.util.List;
  * @param signing         how the documents are kept and sent once they are signed; left out, a new
  *                        template starts as {@link TemplateSigning#startingWith} says and a change keeps
  *                        what the template had
+ * @param questions       what the template asks the person generating a document, in the order it asks;
+ *                        left out, it asks nothing
  */
 public record DocumentTemplateRequest(
         @Nullable DocumentTemplateKind kind,
@@ -76,7 +79,58 @@ public record DocumentTemplateRequest(
         @Nullable LetterPage page,
         @Nullable List<PdfField> fields,
         @Nullable List<FormBinding> formBindings,
-        @Nullable TemplateSigning signing) {
+        @Nullable TemplateSigning signing,
+        @Nullable List<TemplateQuestion> questions) {
+
+    /** A request that asks nothing. */
+    public DocumentTemplateRequest(
+            @Nullable DocumentTemplateKind kind,
+            @Nullable String name,
+            @Nullable String titlePattern,
+            @Nullable String fileNamePattern,
+            @Nullable List<String> tags,
+            boolean hidden,
+            @Nullable Boolean keepOnArchive,
+            boolean legal,
+            boolean forAppointments,
+            boolean selfService,
+            @Nullable Integer cooldownDays,
+            @Nullable RestrictionAudience audience,
+            @Nullable DocumentLanguage language,
+            @Nullable Integer issuerId,
+            @Nullable String issuerFunction,
+            @Nullable List<BlockRowRequest> header,
+            @Nullable List<BlockRowRequest> footer,
+            @Nullable List<BlockRowRequest> body,
+            @Nullable LetterPage page,
+            @Nullable List<PdfField> fields,
+            @Nullable List<FormBinding> formBindings,
+            @Nullable TemplateSigning signing) {
+        this(
+                kind,
+                name,
+                titlePattern,
+                fileNamePattern,
+                tags,
+                hidden,
+                keepOnArchive,
+                legal,
+                forAppointments,
+                selfService,
+                cooldownDays,
+                audience,
+                language,
+                issuerId,
+                issuerFunction,
+                header,
+                footer,
+                body,
+                page,
+                fields,
+                formBindings,
+                signing,
+                null);
+    }
 
     /** A request that leaves out how signed documents are kept and sent. */
     public DocumentTemplateRequest(

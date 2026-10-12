@@ -20,9 +20,17 @@ import GeneratedPreview from './GeneratedPreview.vue'
 import TemplateChoice from './TemplateChoice.vue'
 import IssuerOverride from './IssuerOverride.vue'
 import SignatureAskStep from './SignatureAskStep.vue'
+import GenerationAnswers from './GenerationAnswers.vue'
 import {fromCompletion} from '@/components/input/select/memberOption'
 import {documentTemplates, stationMembers} from '@/api'
-import type {DocumentTemplateSummary, IssuerChoice, PreviewIssuer, PreviewResponse} from '@/api/generated/schema'
+import type {
+  DocumentTemplateSummary,
+  IssuerChoice,
+  PreviewIssuer,
+  PreviewResponse,
+  TemplateQuestion,
+} from '@/api/generated/schema'
+import type {GenerationAnswers as Answers} from '@/api/documentTemplates'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {showToast} from '@/util/toast'
@@ -41,6 +49,10 @@ import {showToast} from '@/util/toast'
  *
  * <p>Where the document names its issuer, the template's issuer is shown and another current member of
  * the station can be picked for this one document; the preview follows the choice.
+ *
+ * <p>Where the template asks the person generating something, its questions are shown with what each
+ * suggests for the member, a check ticked where the member's data says yes. The preview follows the
+ * answers, and they go with the document when it is filed.
  *
  * <p>A filed document with fields to sign leads on to asking for the signatures, which may be skipped and
  * done later from the list of generated documents; one without closes the dialog.
@@ -61,7 +73,7 @@ const emit = defineEmits<{
   filed: [documentId: number]
 }>()
 
-const ISSUER_SETTLE_MS = 400
+const SETTLE_MS = 400
 
 const {t} = useI18n()
 
@@ -81,8 +93,25 @@ const loader = useAsyncLoader(async () => {
   issuerCandidates.value = completions.map(fromCompletion)
 })
 
+const questions = ref<TemplateQuestion[]>([])
+const answers = ref<Answers>({})
+
+const suggesting = useAsyncAction(async (id: number, member: number) => {
+  const suggested = await documentTemplates.suggestedAnswers(id, member, issuer.value)
+  questions.value = suggested.map(answer => answer.question)
+  answers.value = Object.fromEntries(suggested.map(answer => [answer.question.key, answer.suggestion]))
+})
+
+/** What the preview shown was drawn with, so a change that comes back to it draws nothing again. */
+const drawnWith = ref('')
+
+function drawingInputs(): string {
+  return JSON.stringify([templateId.value, memberId.value, issuer.value, answers.value])
+}
+
 const drawing = useAsyncAction(async (id: number, member: number) => {
-  preview.value = await documentTemplates.previewForMember(id, member, issuer.value)
+  drawnWith.value = drawingInputs()
+  preview.value = await documentTemplates.previewForMember(id, member, issuer.value, answers.value)
   if (issuer.value === null) templateIssuer.value = preview.value.issuer ?? null
 })
 
@@ -90,7 +119,7 @@ const filedGeneration = ref<number | null>(null)
 
 const filing = useAsyncAction(async () => {
   if (templateId.value === null || memberId.value === null) return
-  const filed = await documentTemplates.generateForMember(templateId.value, memberId.value, issuer.value)
+  const filed = await documentTemplates.generateForMember(templateId.value, memberId.value, issuer.value, answers.value)
   showToast(t('documentTemplates.generated'), 'success')
   emit('filed', filed.documentId)
   filedGeneration.value = filed.generationId
@@ -108,12 +137,16 @@ watch([templateId, memberId], ([id, member]) => {
   preview.value = null
   templateIssuer.value = null
   issuer.value = null
-  if (id !== null && member !== null) drawing.run(id, member)
+  questions.value = []
+  answers.value = {}
+  if (id === null || member === null) return
+  void suggesting.run(id, member).then(() => drawing.run(id, member))
 })
 
-watchDebounced(issuer, () => {
-  if (templateId.value !== null && memberId.value !== null) drawing.run(templateId.value, memberId.value)
-}, {debounce: ISSUER_SETTLE_MS, deep: true})
+watchDebounced([issuer, answers], () => {
+  if (templateId.value === null || memberId.value === null || drawingInputs() === drawnWith.value) return
+  drawing.run(templateId.value, memberId.value)
+}, {debounce: SETTLE_MS, deep: true})
 </script>
 
 <template>
@@ -121,13 +154,14 @@ watchDebounced(issuer, () => {
     <SignatureAskStep v-if="filedGeneration !== null" :generation-id="filedGeneration" skip-when-none @done="finish"/>
     <div v-else class="space-y-4" data-testid="generate-document-modal">
       <SubHeader>{{ t('documentTemplates.generateTitle') }}</SubHeader>
-      <FailureAlert :failure="loader.failure.value ?? drawing.failure.value ?? filing.failure.value"/>
+      <FailureAlert :failure="loader.failure.value ?? suggesting.failure.value ?? drawing.failure.value ?? filing.failure.value"/>
       <TemplateChoice v-model="chosen" :fixed="NOT_FOR_APPOINTMENTS"/>
       <LabelledField v-if="props.memberId === null" :label="t('documentTemplates.generateMember')">
         <MemberSelectInput v-model="chosenMember" :members="props.members" data-testid="generate-member"/>
       </LabelledField>
       <IssuerOverride v-if="templateIssuer" :key="templateId ?? 0" v-model="issuer" :template-issuer="templateIssuer"
                       :members="issuerCandidates"/>
+      <GenerationAnswers v-if="questions.length > 0" v-model="answers" :questions="questions"/>
       <GeneratedPreview v-if="preview && chosen" :preview="preview" :title="chosen.name"/>
       <ButtonRow pair align="end">
         <SecondaryButton @click="open = false">{{ t('common.cancel') }}</SecondaryButton>

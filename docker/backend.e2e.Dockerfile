@@ -10,7 +10,7 @@ FROM eclipse-temurin:25-alpine
 
 ENV DOCKER=true
 
-RUN apk add --no-cache typst pandoc libreoffice-impress font-liberation libwebp-tools qpdf curl unzip
+RUN apk add --no-cache typst pandoc libreoffice-impress libreoffice-writer font-liberation libwebp-tools qpdf curl unzip
 
 WORKDIR /app
 
