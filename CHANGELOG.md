@@ -2,12 +2,17 @@
 
 ## v26.22.4
 
-The day a member joined is visible in the member list and on the member's page, and can be taken over when importing members. Members open from the list in a new tab.
+The day a member joined is visible in the member list and on the member's page, and can be taken over when importing members. Members open from the list in a new tab. The menu no longer stays stuck over the page on older tablets.
 
 ### Improvements
 
 - **The join date is shown and can be imported.** The day a member joined is offered as a column of the member list, shown on the member's page and can be mapped from a column when importing members.
 - **Member pages open in a new tab from the list.** The view and edit buttons of the member list are links, so a member opens in a new tab with the middle mouse button or the context menu.
+- **Movements open in a new tab from their list.** The button that shows the course of a movement is a link, so a movement also opens in a new tab.
+
+### Fixes
+
+- **The menu stayed open on some tablets.** On some older tablet browsers the menu covered part of the page and could neither be closed nor collapsed. It now slides away there as on other devices.
 
 ## v26.22.3
 

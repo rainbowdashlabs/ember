@@ -6,7 +6,6 @@
 <script lang="ts" setup>
 import {computed, ref} from 'vue'
 import {useI18n} from 'vue-i18n'
-import {useRouter} from 'vue-router'
 import ViewContent from '@/components/layout/ViewContent.vue'
 import AsyncSection from '@/components/feedback/AsyncSection.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
@@ -23,7 +22,6 @@ import {MovementState, StationPermission, type MovementResponse, type ProfileFie
 import {useSession} from '@/composables/useSession'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
 import {emptyTableState, useDataTable} from '@/composables/useDataTable'
-import {useInventoryRoutes} from '@/composables/useInventoryRoutes'
 import {presentFile} from '@/util/documentFile'
 import {useExport} from '@/composables/useExport'
 import {describeFailure, type Failure} from '@/util/failure'
@@ -36,8 +34,6 @@ import {describeFailure, type Failure} from '@/util/failure'
  * carries the button that acknowledges it. Nothing on a row is a status: there is none.
  */
 const {t} = useI18n()
-const router = useRouter()
-const routes = useInventoryRoutes()
 const {hasPermission} = useSession()
 
 const rows = ref<MovementResponse[]>([])
@@ -113,11 +109,6 @@ async function downloadPdf() {
   }
 }
 
-function openDetail(movement: MovementResponse) {
-  if (!routes.movement) return
-  void router.push({name: routes.movement, params: {id: String(movement.id)}})
-}
-
 function afterChange() {
   acknowledging.value = null
   correcting.value = null
@@ -158,7 +149,6 @@ function afterChange() {
             :total="rows.length"
             @acknowledge="movement => acknowledging = movement.id"
             @correct="movement => correcting = movement.id"
-            @open="openDetail"
             @pick="movement => exportFlow.toggleRow(movement.id)"
         />
       </div>

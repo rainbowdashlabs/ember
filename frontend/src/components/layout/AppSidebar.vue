@@ -12,6 +12,14 @@ import {emberLogo} from '@/composables/useEmberLogo'
 import {SIDEBAR_COLLAPSIBLE, useSidebarCollapse} from '@/composables/useSidebarCollapse'
 import SidebarCollapseToggle from '@/components/layout/SidebarCollapseToggle.vue'
 
+/**
+ * The sidebar of every signed-in area: beside the page from the `lg` width up, and below it a drawer
+ * that slides in over the page while `open`, with a backdrop that closes it.
+ *
+ * <p>The drawer slides with a plain `transform` rather than Tailwind's translate utilities. Those set
+ * the newer `translate` property, which older tablet browsers do not know: there the closed drawer
+ * never slid away and stayed over the page, covering the menu button, with no backdrop to tap.
+ */
 const props = withDefaults(defineProps<{
   open: boolean
   stationName?: string
@@ -47,8 +55,8 @@ const logoSizeClass = computed(() => collapsed.value ? 'h-8 w-8 lg:h-10 lg:w-10 
   />
 
   <aside
-      :class="[open ? 'translate-x-0' : '-translate-x-full', desktopWidthClass]"
-      class="fixed top-0 left-0 z-40 h-full w-64 shrink-0 flex flex-col bg-bg-light-accent dark:bg-bg-dark-accent border-r border-bg-light-accent dark:border-bg-dark transition-[transform,width] duration-300 ease-in-out lg:translate-x-0 lg:static lg:z-auto lg:sticky lg:top-0 lg:h-screen overflow-hidden"
+      :class="[open ? 'app-sidebar-open' : '', desktopWidthClass]"
+      class="app-sidebar fixed top-0 left-0 z-40 h-full w-64 shrink-0 flex flex-col bg-bg-light-accent dark:bg-bg-dark-accent border-r border-bg-light-accent dark:border-bg-dark transition-[transform,width] duration-300 ease-in-out lg:static lg:z-auto lg:sticky lg:top-0 lg:h-screen overflow-hidden"
   >
     <div class="flex items-stretch min-h-14 border-b border-bg-light dark:border-bg-dark shrink-0">
       <router-link
@@ -86,3 +94,19 @@ const logoSizeClass = computed(() => collapsed.value ? 'h-8 w-8 lg:h-10 lg:w-10 
     />
   </div>
 </template>
+
+<style scoped>
+.app-sidebar {
+  transform: translateX(-100%);
+}
+
+.app-sidebar-open {
+  transform: none;
+}
+
+@media (min-width: 64rem) {
+  .app-sidebar {
+    transform: none;
+  }
+}
+</style>
