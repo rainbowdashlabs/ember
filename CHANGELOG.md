@@ -17,6 +17,10 @@ Document templates can ask the person generating a document for details that the
 
 - **Check marks can be ticked by hand.** The check marks of existing PDF templates became questions that follow the member's data as before, so self service and runs for many members tick what they ticked before. A manager generating a single document can now tick or clear each of them.
 
+### Fixes
+
+- **Notification mails show readable descriptions.** The description of an appointment arrived in notification mails with its formatting marks, such as asterisks and hash signs, and at full length. It now reads as plain text, and a long one is cut short with a "Read more" button.
+
 ## v26.22.4
 
 The day a member joined is visible in the member list and on the member's page, and can be taken over when importing members. Members open from the list in a new tab.

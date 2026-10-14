@@ -17,6 +17,10 @@ Dokumentvorlagen können beim Erstellen nach Angaben fragen, die nicht in den Da
 
 - **Ankreuzfelder lassen sich von Hand setzen.** Die Ankreuzfelder bestehender PDF-Vorlagen sind zu Abfragen geworden, die wie bisher den Daten des Mitglieds folgen, beim Selbst-Erstellen und beim Erstellen für viele Mitglieder also unverändert ankreuzen. Wer ein einzelnes Dokument erstellt, kann jedes Kreuz jetzt setzen oder entfernen.
 
+### Fehlerbehebungen
+
+- **Benachrichtigungsmails zeigen lesbare Beschreibungen.** Die Beschreibung eines Termins kam in Benachrichtigungsmails mit ihren Formatierungszeichen wie Sternchen und Rauten an, und zwar in voller Länge. Sie erscheint jetzt als reiner Text, und eine lange Beschreibung wird gekürzt und bekommt einen Knopf "Weiterlesen".
+
 ## v26.22.4
 
 Der Tag, an dem ein Mitglied beigetreten ist, steht in der Mitgliederliste und auf der Seite des Mitglieds und lässt sich beim Import übernehmen. Mitglieder öffnen sich aus der Liste in einem neuen Tab.
