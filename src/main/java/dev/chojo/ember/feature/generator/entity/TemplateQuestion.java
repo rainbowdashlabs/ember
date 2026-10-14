@@ -20,14 +20,23 @@ import java.util.regex.Pattern;
  * The suggestion of a check ticks it where it says yes ({@code YesWords}), so a check can follow
  * the member's data and still be ticked or cleared by hand.
  *
+ * <p>An answer outside the limits is refused. A suggestion outside them counts as no answer, so a run
+ * over many members is not stopped by one member's data.
+ *
  * @param key        the name the template names the answer by, letters, digits and underscores
  * @param label      what the person generating is asked
  * @param kind       what the answer is
  * @param suggestion the text with placeholders that suggests the answer, empty for none
  * @param required   whether an empty answer counts as a missing value
+ * @param limits     what counts as an answer
  */
 public record TemplateQuestion(
-        String key, String label, TemplateQuestionKind kind, String suggestion, boolean required) {
+        String key,
+        String label,
+        TemplateQuestionKind kind,
+        String suggestion,
+        boolean required,
+        QuestionLimits limits) {
 
     /** What a template writes before the key of a question to name its answer. */
     public static final String PREFIX = "ask.";
@@ -36,7 +45,32 @@ public record TemplateQuestion(
     public static final Pattern KEY = Pattern.compile("[A-Za-z0-9_]{1,40}");
 
     /** The columns {@link #map()} reads, in a form a query can splice in. */
-    public static final String COLUMNS = "key, label, kind, suggestion, required";
+    public static final String COLUMNS = "key, label, kind, suggestion, required, limits";
+
+    public TemplateQuestion {
+        limits = limits == null ? QuestionLimits.NONE : limits;
+    }
+
+    /**
+     * A question without limits.
+     *
+     * @param key        the name the template names the answer by
+     * @param label      what the person generating is asked
+     * @param kind       what the answer is
+     * @param suggestion the text with placeholders that suggests the answer, empty for none
+     * @param required   whether an empty answer counts as a missing value
+     */
+    public TemplateQuestion(String key, String label, TemplateQuestionKind kind, String suggestion, boolean required) {
+        this(key, label, kind, suggestion, required, QuestionLimits.NONE);
+    }
+
+    /**
+     * @param limits what counts as an answer
+     * @return this question with those limits
+     */
+    public TemplateQuestion withLimits(QuestionLimits limits) {
+        return new TemplateQuestion(key, label, kind, suggestion, required, limits);
+    }
 
     /** @return the key of the placeholder that names the answer */
     public String placeholderKey() {
@@ -65,6 +99,7 @@ public record TemplateQuestion(
                 row.getString("label"),
                 row.getEnum("kind", TemplateQuestionKind.class),
                 row.getString("suggestion"),
-                row.getBoolean("required"));
+                row.getBoolean("required"),
+                QuestionLimits.parse(row.getString("limits")));
     }
 }

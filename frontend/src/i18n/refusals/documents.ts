@@ -207,4 +207,12 @@ export default {
     'D-312': 'Aus dem Word-Dokument ließ sich kein Formular machen',
     'D-313': 'Ein Vorschlag kann keine Antwort auf eine Abfrage nennen',
     'D-314': 'Wähle einen Ersatz für eine Schrift des Formulars, die nicht verfügbar ist',
+    'D-315': 'Die Grenzen einer Abfrage widersprechen sich',
+    'D-316': 'Eine Auswahl bietet 1 bis 50 verschiedene Einträge mit höchstens 120 Zeichen',
+    'D-317': 'Dieses Datum ist für die Abfrage nicht möglich',
+    'D-318': 'Die Antwort ist länger, als die Abfrage zulässt',
+    'D-319': 'Die Antwort hat nicht das Format, das die Abfrage verlangt',
+    'D-320': 'Die Antwort auf eine Zahlenabfrage ist keine Zahl',
+    'D-321': 'Diese Zahl ist für die Abfrage nicht möglich',
+    'D-322': 'Die Antwort ist keiner der Einträge der Abfrage',
 }

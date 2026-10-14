@@ -21,9 +21,10 @@ CREATE TABLE IF NOT EXISTS ember_schema.document_template_question
     position    INTEGER NOT NULL,
     key         TEXT    NOT NULL CHECK (key ~ '^[A-Za-z0-9_]{1,40}$'),
     label       TEXT    NOT NULL,
-    kind        TEXT    NOT NULL CHECK (kind IN ('TEXT', 'DATE', 'CHECK')),
+    kind        TEXT    NOT NULL CHECK (kind IN ('TEXT', 'DATE', 'NUMBER', 'CHOICE', 'CHECK')),
     suggestion  TEXT    NOT NULL DEFAULT '',
     required    BOOLEAN NOT NULL DEFAULT FALSE,
+    limits      JSONB   NOT NULL DEFAULT '{}',
     UNIQUE (template_id, key)
 );
 
@@ -39,11 +40,13 @@ COMMENT ON COLUMN ember_schema.document_template_question.key IS
     'The name the template names the answer by, as {{ask.<key>}}. Unique within the template.';
 COMMENT ON COLUMN ember_schema.document_template_question.label IS 'What the person generating is asked.';
 COMMENT ON COLUMN ember_schema.document_template_question.kind IS
-    'TEXT takes a text, DATE a day and CHECK a tick, which prints as a ticked or an empty box.';
+    'TEXT takes a text, DATE a day, NUMBER a number, CHOICE one of the offered entries and CHECK a tick, which prints as a ticked or an empty box.';
 COMMENT ON COLUMN ember_schema.document_template_question.suggestion IS
     'A text with placeholders, filled in for the member to suggest the answer. For a CHECK it ticks the box where it says yes. Where nobody answers, as in self service, the suggestion is the answer.';
 COMMENT ON COLUMN ember_schema.document_template_question.required IS
     'Whether an empty answer counts as a missing value of the document.';
+COMMENT ON COLUMN ember_schema.document_template_question.limits IS
+    'What counts as an answer: earliest and latest day of a DATE, longest length and format of a TEXT, bounds of a NUMBER, the entries of a CHOICE. An answer outside them is refused; a suggestion outside them counts as no answer.';
 
 ALTER TABLE ember_schema.document_generation
     ADD COLUMN IF NOT EXISTS answers JSONB NULL;

@@ -492,8 +492,12 @@ public class DocumentGeneratorService {
         read.removeAll(asked);
         read.addAll(QuestionAnswers.suggestionKeys(source.questions()));
         var values = resolver.forAppointment(stationId, read, source.language(), event);
+        var today = today(stationId);
         var answers = QuestionAnswers.answers(
-                source.questions(), Map.of(), QuestionAnswers.suggested(source.questions(), values.values()));
+                source.questions(),
+                Map.of(),
+                QuestionAnswers.suggested(source.questions(), values.values(), today),
+                today);
         var resolved = QuestionAnswers.printed(values, keys, source.questions(), answers, source.language());
         var known = source.labelled(catalogue.byKey(source.owner()));
         var missing = resolved.missing().stream()
@@ -629,7 +633,10 @@ public class DocumentGeneratorService {
             read.removeAll(QuestionAnswers.askedIn(keys));
             var data = values.resolve(stationId, memberId, read, source.language(), context);
             var answers = QuestionAnswers.answers(
-                    source.questions(), context.answers(), suggested(source, stationId, memberId, context));
+                    source.questions(),
+                    context.answers(),
+                    suggested(source, stationId, memberId, context),
+                    today(stationId));
             var resolved = QuestionAnswers.printed(data, keys, source.questions(), answers, source.language());
             String issuerName = resolved.values().get(BuiltInPlaceholder.ISSUER_FULL_NAME.key());
             var issuer = new IssuerUse(context.issuer(), named, signs, issuerName);
@@ -655,7 +662,7 @@ public class DocumentGeneratorService {
             if (source.questions().isEmpty()) return Map.of();
             var keys = QuestionAnswers.suggestionKeys(source.questions());
             var read = values.resolve(stationId, memberId, keys, source.language(), context);
-            return QuestionAnswers.suggested(source.questions(), read.values());
+            return QuestionAnswers.suggested(source.questions(), read.values(), today(stationId));
         }
 
         /**

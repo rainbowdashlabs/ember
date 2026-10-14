@@ -14,6 +14,7 @@ import {
     TemplateQuestionKind,
     type DocumentTemplateResponse,
 } from '@/api/generated/schema'
+import {NO_LIMITS} from '@/components/documents/questionLimits'
 import {DEFAULT_PAGE, LEGAL_RETENTION_MONTHS, draftOf, emptyDraft, requestOf, signingOf} from './templateDraft'
 
 const trialOnly = {userTypes: [StationUserType.TRIAL], groupIds: [], tagIds: [], memberIds: [], mode: 'AND' as const}
@@ -56,7 +57,7 @@ const saved: DocumentTemplateResponse = {
     updatedAt: '2026-10-02T10:00:00Z',
     archivedAt: null,
     signing: {retentionMonths: 120, copyAttached: true},
-    questions: [{key: 'grund', label: 'Grund', kind: TemplateQuestionKind.TEXT, suggestion: '', required: true}],
+    questions: [{key: 'grund', label: 'Grund', kind: TemplateQuestionKind.TEXT, suggestion: '', required: true, limits: NO_LIMITS}],
 }
 
 describe('template drafts', () => {

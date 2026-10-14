@@ -96,17 +96,17 @@ final class FormFonts {
     /** Every attribute of a part that holds the name of a family. */
     private static List<Attr> names(Document document) {
         var out = new ArrayList<Attr>();
-        var runs = document.getElementsByTagNameNS(WordFormScanner.W, "rFonts");
+        var runs = document.getElementsByTagNameNS(WordXml.W, "rFonts");
         for (int index = 0; index < runs.getLength(); index++) {
             var element = (Element) runs.item(index);
             for (String attribute : RUN_FONTS) {
-                var named = element.getAttributeNodeNS(WordFormScanner.W, attribute);
+                var named = element.getAttributeNodeNS(WordXml.W, attribute);
                 if (named != null) out.add(named);
             }
         }
-        var listed = document.getElementsByTagNameNS(WordFormScanner.W, "font");
+        var listed = document.getElementsByTagNameNS(WordXml.W, "font");
         for (int index = 0; index < listed.getLength(); index++) {
-            var named = ((Element) listed.item(index)).getAttributeNodeNS(WordFormScanner.W, "name");
+            var named = ((Element) listed.item(index)).getAttributeNodeNS(WordXml.W, "name");
             if (named != null) out.add(named);
         }
         var theme = document.getElementsByTagNameNS(A, "*");

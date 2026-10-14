@@ -9,6 +9,7 @@ import dev.chojo.ember.feature.generator.entity.BuiltInPlaceholder;
 import dev.chojo.ember.feature.generator.entity.FieldRect;
 import dev.chojo.ember.feature.generator.entity.PdfField;
 import dev.chojo.ember.feature.generator.entity.PdfFieldKind;
+import dev.chojo.ember.feature.generator.entity.QuestionLimits;
 import dev.chojo.ember.feature.generator.entity.TemplateQuestion;
 import dev.chojo.ember.feature.generator.entity.TemplateQuestionKind;
 import dev.chojo.ember.feature.generator.entity.TextAlign;
@@ -101,7 +102,8 @@ final class FormLayout {
     private void place(FormSpot spot, FieldRect rect, boolean firstNameApart) {
         String label = labelOf(spot);
         if (spot.kind() == FormSpotKind.CHECK) {
-            var question = ask(label, TemplateQuestionKind.CHECK, "true".equals(spot.preset()) ? YES : "");
+            var question = ask(
+                    label, TemplateQuestionKind.CHECK, "true".equals(spot.preset()) ? YES : "", QuestionLimits.NONE);
             laid.add(field(PdfFieldKind.CHECK, rect, question.placeholderKey(), TextAlign.CENTER));
             return;
         }
@@ -111,11 +113,9 @@ final class FormLayout {
             laid.add(field(PdfFieldKind.TEXT, rect, key, TextAlign.LEFT));
             return;
         }
-        var kind = spot.kind() == FormSpotKind.DATE || readsLikeADay(label)
-                ? TemplateQuestionKind.DATE
-                : TemplateQuestionKind.TEXT;
+        var kind = questionKind(spot, label);
         String preset = spot.preset();
-        var question = ask(label, kind, preset == null ? "" : preset);
+        var question = ask(label, kind, preset == null ? "" : preset, spot.limits());
         laid.add(field(PdfFieldKind.TEXT, rect, question.placeholderKey(), TextAlign.LEFT));
     }
 
@@ -130,8 +130,19 @@ final class FormLayout {
         return key;
     }
 
-    private TemplateQuestion ask(String label, TemplateQuestionKind kind, String suggestion) {
-        var question = new TemplateQuestion(freeKey(label), label, kind, suggestion, false);
+    /** A text that reads like a day by its label is asked as one; every other place is asked as Word describes it. */
+    private static TemplateQuestionKind questionKind(FormSpot spot, String label) {
+        return switch (spot.kind()) {
+            case TEXT -> readsLikeADay(label) ? TemplateQuestionKind.DATE : TemplateQuestionKind.TEXT;
+            case DATE -> TemplateQuestionKind.DATE;
+            case NUMBER -> TemplateQuestionKind.NUMBER;
+            case CHOICE -> TemplateQuestionKind.CHOICE;
+            case CHECK -> TemplateQuestionKind.CHECK;
+        };
+    }
+
+    private TemplateQuestion ask(String label, TemplateQuestionKind kind, String suggestion, QuestionLimits limits) {
+        var question = new TemplateQuestion(freeKey(label), label, kind, suggestion, false, limits);
         questions.add(question);
         return question;
     }

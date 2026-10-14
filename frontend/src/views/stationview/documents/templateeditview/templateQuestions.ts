@@ -8,8 +8,19 @@ import {
     PlaceholderCategory,
     TemplateQuestionKind,
     type Placeholder,
+    type QuestionLimits,
     type TemplateQuestion,
 } from '@/api/generated/schema'
+import {NO_LIMITS} from '@/components/documents/questionLimits'
+
+/** The kinds of question a template can ask, in the order they are offered. */
+export const QUESTION_KINDS: readonly TemplateQuestionKind[] = [
+    TemplateQuestionKind.TEXT,
+    TemplateQuestionKind.DATE,
+    TemplateQuestionKind.NUMBER,
+    TemplateQuestionKind.CHOICE,
+    TemplateQuestionKind.CHECK,
+]
 
 /** What a template writes before the key of a question to name its answer. */
 export const ANSWER_PREFIX = 'ask.'
@@ -71,5 +82,15 @@ export function newQuestion(kind: TemplateQuestionKind, questions: readonly Temp
         kind,
         suggestion: '',
         required: false,
+        limits: limitsFor(kind),
     }
+}
+
+/**
+ * The limits a question of a kind starts from: none, and for a choice one entry to write.
+ *
+ * @param kind what the question takes
+ */
+export function limitsFor(kind: TemplateQuestionKind): QuestionLimits {
+    return {...NO_LIMITS, choices: kind === TemplateQuestionKind.CHOICE ? [''] : []}
 }

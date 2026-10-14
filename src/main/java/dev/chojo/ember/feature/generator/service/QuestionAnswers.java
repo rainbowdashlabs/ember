@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.generator.service;
 
 import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.api.refusal.RefusalDetail;
+import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.generator.entity.DateFormat;
 import dev.chojo.ember.feature.generator.entity.DateKind;
 import dev.chojo.ember.feature.generator.entity.DocumentLanguage;
@@ -14,6 +15,7 @@ import dev.chojo.ember.feature.generator.entity.PlaceholderKey;
 import dev.chojo.ember.feature.generator.entity.PlaceholderTokens;
 import dev.chojo.ember.feature.generator.entity.ResolvedValues;
 import dev.chojo.ember.feature.generator.entity.TemplateQuestion;
+import dev.chojo.ember.feature.generator.entity.TemplateQuestionKind;
 import dev.chojo.ember.feature.generator.service.pdf.YesWords;
 import org.jspecify.annotations.Nullable;
 
@@ -33,11 +35,12 @@ import java.util.stream.Collectors;
 /**
  * The answers to the questions of a template for one document, and what they print as.
  *
- * <p>An answer is kept the way it is sent: a text as written, a day as an ISO date, a tick as
- * {@code true} or {@code false}. A question the person generating did not answer takes its suggestion,
+ * <p>An answer is kept the way it is sent: a text as written, a day as an ISO date, a number as a plain
+ * decimal, a choice as its entry is written, a tick as {@code true} or {@code false}. A question the person generating did not answer takes its suggestion,
  * filled in for the member: a text as it reads, a day where the text names one, a tick where it says yes.
  *
- * <p>A text prints as written, a day in the format its placeholder names or as {@code 03.10.2026}, and a
+ * <p>A text and a choice print as written, a number with the decimal mark of the template's language, a
+ * day in the format its placeholder names or as {@code 03.10.2026}, and a
  * tick as a ticked or an empty box, which ticks a check field or a check box ({@link YesWords}) and shows
  * as a box in a letter. A required question without an answer is a missing value; any other prints
  * empty.
@@ -74,24 +77,32 @@ final class QuestionAnswers {
     }
 
     /**
-     * The answer each question suggests for one member.
+     * The answer each question suggests for one member, empty where the suggestion is outside the
+     * question's limits.
      *
      * @param questions the questions of a template
      * @param values    the values of the keys the suggestions name, for the member
+     * @param today     the day the document is generated
      * @return the suggested answer of every question by its key, as an answer is sent
      */
-    static Map<String, String> suggested(List<TemplateQuestion> questions, Map<String, String> values) {
+    static Map<String, String> suggested(
+            List<TemplateQuestion> questions, Map<String, String> values, LocalDate today) {
         var out = new LinkedHashMap<String, String>();
         for (var question : questions) {
             String filled =
                     PlaceholderTokens.fill(question.suggestion(), values).strip();
-            out.put(
-                    question.key(),
+            String answer =
                     switch (question.kind()) {
                         case TEXT -> filled;
                         case DATE -> day(filled).map(LocalDate::toString).orElse("");
+                        case NUMBER ->
+                            AnswerLimits.number(filled).map(AnswerLimits::kept).orElse("");
+                        case CHOICE -> AnswerLimits.choice(question, filled).orElse("");
                         case CHECK -> String.valueOf(YesWords.saysYes(filled));
-                    });
+                    };
+            boolean fits = answer.isEmpty()
+                    || AnswerLimits.broken(question, answer, today).isEmpty();
+            out.put(question.key(), fits ? answer : "");
         }
         return out;
     }
@@ -103,14 +114,19 @@ final class QuestionAnswers {
      * @param questions the questions of a template
      * @param given     what the person generating answered, by the key of the question
      * @param suggested what each question suggests, by its key
+     * @param today     the day the document is generated
      * @return the answers, in the order the questions are asked
+     * @throws dev.chojo.ember.api.refusal.RefusalResponse where a given answer is outside its question's limits
      */
     static Map<String, String> answers(
-            List<TemplateQuestion> questions, Map<String, String> given, Map<String, String> suggested) {
+            List<TemplateQuestion> questions,
+            Map<String, String> given,
+            Map<String, String> suggested,
+            LocalDate today) {
         var out = new LinkedHashMap<String, String>();
         for (var question : questions) {
             String answer = given.containsKey(question.key())
-                    ? normalized(question, given.get(question.key()))
+                    ? normalized(question, given.get(question.key()), today)
                     : suggested.getOrDefault(question.key(), "");
             out.put(question.key(), answer);
         }
@@ -159,7 +175,8 @@ final class QuestionAnswers {
     private static String print(
             TemplateQuestion question, String answer, @Nullable String format, DocumentLanguage language) {
         return switch (question.kind()) {
-            case TEXT -> answer;
+            case TEXT, CHOICE -> answer;
+            case NUMBER -> language.pick(answer.replace('.', ','), answer);
             case CHECK -> Boolean.parseBoolean(answer) ? TICKED : EMPTY_BOX;
             case DATE ->
                 day(answer)
@@ -172,21 +189,36 @@ final class QuestionAnswers {
     }
 
     /**
-     * An answer as it was sent, checked: a day has to name one, a tick is true or false.
+     * An answer as it was sent, checked: a day has to name one, a number one, a choice one of its entries,
+     * a tick is true or false, and every answer has to keep the question's limits.
      */
-    private static String normalized(TemplateQuestion question, @Nullable String raw) {
+    private static String normalized(TemplateQuestion question, @Nullable String raw, LocalDate today) {
         String answer = raw == null ? "" : raw.strip();
-        return switch (question.kind()) {
-            case TEXT -> answer;
-            case CHECK -> String.valueOf(Boolean.parseBoolean(answer));
-            case DATE -> {
-                if (answer.isEmpty()) yield "";
-                yield day(answer)
-                        .map(LocalDate::toString)
-                        .orElseThrow(() ->
-                                DocumentRefusal.DOCUMENT_ANSWER_NOT_A_DAY.raise(RefusalDetail.text(question.label())));
-            }
-        };
+        if (answer.isEmpty() && question.kind() != TemplateQuestionKind.CHECK) return "";
+        String kept =
+                switch (question.kind()) {
+                    case TEXT -> answer;
+                    case CHECK -> String.valueOf(Boolean.parseBoolean(answer));
+                    case DATE ->
+                        day(answer)
+                                .map(LocalDate::toString)
+                                .orElseThrow(() -> refused(question, DocumentRefusal.DOCUMENT_ANSWER_NOT_A_DAY));
+                    case NUMBER ->
+                        AnswerLimits.number(answer)
+                                .map(AnswerLimits::kept)
+                                .orElseThrow(() -> refused(question, DocumentRefusal.DOCUMENT_ANSWER_NOT_A_NUMBER));
+                    case CHOICE ->
+                        AnswerLimits.choice(question, answer)
+                                .orElseThrow(() -> refused(question, DocumentRefusal.DOCUMENT_ANSWER_NOT_A_CHOICE));
+                };
+        AnswerLimits.broken(question, kept, today).ifPresent(refusal -> {
+            throw refused(question, refusal);
+        });
+        return kept;
+    }
+
+    private static RefusalResponse refused(TemplateQuestion question, DocumentRefusal refusal) {
+        return refusal.raise(RefusalDetail.text(question.label()));
     }
 
     /** The day a text names: an ISO date, or a day written as {@code 3.10.2026}. */

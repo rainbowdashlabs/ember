@@ -24,6 +24,8 @@ import java.util.Objects;
  *
  * <p>A suggestion may name any value the template could name itself, but no answer: a suggestion is
  * filled in before anybody answers.
+ *
+ * <p>A question keeps only the limits of its own kind ({@link AnswerLimits#checked}).
  */
 final class QuestionChecks {
     /** The most questions one template asks. */
@@ -74,7 +76,8 @@ final class QuestionChecks {
                 throw DocumentRefusal.DOCUMENT_TEMPLATE_QUESTION_IN_SUGGESTION.raise(RefusalDetail.text(named));
             }
             var kind = Objects.requireNonNullElse(question.kind(), TemplateQuestionKind.TEXT);
-            out.add(new TemplateQuestion(key, label, kind, suggestion, question.required()));
+            var limits = AnswerLimits.checked(kind, question.limits(), named);
+            out.add(new TemplateQuestion(key, label, kind, suggestion, question.required(), limits));
         }
         return List.copyOf(out);
     }

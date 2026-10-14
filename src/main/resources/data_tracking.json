@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:78dae33f75f0f4b967ba77fd57f86219e924def7978cc30a46f7dd6118924472",
-  "generatedAt": "2026-10-20T21:57:01Z",
+  "schemaHash": "sha256:5bb8699bbdcda8f53947b1474fd7d478287344d8399c2daa0b7d72a03733d9c7",
+  "generatedAt": "2026-10-20T21:58:47Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -7872,7 +7872,7 @@
       "description": "Every uploaded version of the PDF a PDF template fills in. The file is kept in the storage of the template's owner under document-templates/<id>/original (an association's in its home station), as it arrived, and never changed; a new upload is a new row."
     },
     "document_template_question": {
-      "tableHash": "sha256:d0f72db836ae83b2307b4f415d064fefa7d9cce3fff1df7a2fe6be1987a4a51f",
+      "tableHash": "sha256:4d6b1c3448f66b18f1430764b269a67dc261d3869be17371228921034bc15f8d",
       "columns": [
         {
           "name": "id",
@@ -7914,7 +7914,7 @@
           "type": "text",
           "nullable": false,
           "verified": true,
-          "description": "TEXT takes a text, DATE a day and CHECK a tick, which prints as a ticked or an empty box."
+          "description": "TEXT takes a text, DATE a day, NUMBER a number, CHOICE one of the offered entries and CHECK a tick, which prints as a ticked or an empty box."
         },
         {
           "name": "suggestion",
@@ -7929,6 +7929,13 @@
           "nullable": false,
           "verified": true,
           "description": "Whether an empty answer counts as a missing value of the document."
+        },
+        {
+          "name": "limits",
+          "type": "jsonb",
+          "nullable": false,
+          "verified": true,
+          "description": "What counts as an answer: earliest and latest day of a DATE, longest length and format of a TEXT, bounds of a NUMBER, the entries of a CHOICE. An answer outside them is refused; a suggestion outside them counts as no answer."
         }
       ],
       "foreignKeys": [

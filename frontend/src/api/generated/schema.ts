@@ -63900,6 +63900,11 @@ export interface components {
         DateValue: {
             value: string;
         };
+        DayBound: {
+            day: components["schemas"]["LocalDate"] | null;
+            /** Format: int32 */
+            fromToday: number | null;
+        };
         DayCount: {
             /** Format: int32 */
             count: number;
@@ -69763,6 +69768,17 @@ export interface components {
             ORDERING: components["schemas"]["Ordering"];
             TRUE_FALSE: components["schemas"]["TrueFalse"];
         };
+        QuestionLimits: {
+            choices: string[];
+            earliest: components["schemas"]["DayBound"] | null;
+            format: components["schemas"]["TextFormat"] | null;
+            latest: components["schemas"]["DayBound"] | null;
+            max: number | null;
+            /** Format: int32 */
+            maxLength: number | null;
+            min: number | null;
+            whole: boolean;
+        };
         QuizAccessRequest: {
             closesAt?: components["schemas"]["Instant"] | null;
             /** Format: int32 */
@@ -72434,11 +72450,12 @@ export interface components {
             key: string;
             kind: components["schemas"]["TemplateQuestionKind"];
             label: string;
+            limits: components["schemas"]["QuestionLimits"];
             required: boolean;
             suggestion: string;
         };
         /** @enum {string} */
-        TemplateQuestionKind: "TEXT" | "DATE" | "CHECK";
+        TemplateQuestionKind: "TEXT" | "DATE" | "NUMBER" | "CHOICE" | "CHECK";
         TemplateRequest: {
             name?: string;
         };
@@ -72608,6 +72625,8 @@ export interface components {
             kind: "TEXT";
             text: string;
         };
+        /** @enum {string} */
+        TextFormat: "DIGITS" | "LETTERS" | "POSTAL_CODE" | "EMAIL" | "PHONE";
         /** @enum {string} */
         ThemeFeel: "ROUNDED" | "CORNERS";
         ThemeInfo: {
@@ -73787,6 +73806,7 @@ export type DateFormatProblem = components['schemas']['DateFormatProblem'];
 export type DateKind = components['schemas']['DateKind'];
 export type DateTokenOption = components['schemas']['DateTokenOption'];
 export type DateValue = components['schemas']['DateValue'];
+export type DayBound = components['schemas']['DayBound'];
 export type DayCount = components['schemas']['DayCount'];
 export type DeclineBody = components['schemas']['DeclineBody'];
 export type Deleted = components['schemas']['Deleted'];
@@ -74590,6 +74610,7 @@ export type QuestionBranch = components['schemas']['QuestionBranch'];
 export type QuestionColumn = components['schemas']['QuestionColumn'];
 export type QuestionConfig = components['schemas']['QuestionConfig'];
 export type QuestionConfigByType = components['schemas']['QuestionConfigByType'];
+export type QuestionLimits = components['schemas']['QuestionLimits'];
 export type QuizAccessRequest = components['schemas']['QuizAccessRequest'];
 export type QuizAnswerRequest = components['schemas']['QuizAnswerRequest'];
 export type QuizAttemptDetail = components['schemas']['QuizAttemptDetail'];
@@ -74976,6 +74997,7 @@ export type TextAlign = components['schemas']['TextAlign'];
 export type TextAnswer = components['schemas']['TextAnswer'];
 export type TextConfig = components['schemas']['TextConfig'];
 export type TextDetail = components['schemas']['TextDetail'];
+export type TextFormat = components['schemas']['TextFormat'];
 export type ThemeFeel = components['schemas']['ThemeFeel'];
 export type ThemeInfo = components['schemas']['ThemeInfo'];
 export type TicketLabelMapping = components['schemas']['TicketLabelMapping'];
@@ -76549,7 +76571,9 @@ export const TaskOutcome = {
 
 export const TemplateQuestionKind = {
     CHECK: "CHECK",
+    CHOICE: "CHOICE",
     DATE: "DATE",
+    NUMBER: "NUMBER",
     TEXT: "TEXT",
 } as const;
 
@@ -76570,6 +76594,14 @@ export const TextAlign = {
     CENTER: "CENTER",
     LEFT: "LEFT",
     RIGHT: "RIGHT",
+} as const;
+
+export const TextFormat = {
+    DIGITS: "DIGITS",
+    EMAIL: "EMAIL",
+    LETTERS: "LETTERS",
+    PHONE: "PHONE",
+    POSTAL_CODE: "POSTAL_CODE",
 } as const;
 
 export const ThemeFeel = {

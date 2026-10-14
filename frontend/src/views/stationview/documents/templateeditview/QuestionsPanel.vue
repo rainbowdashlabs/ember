@@ -13,14 +13,15 @@ import DragList from '@/components/input/DragList.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import MutedText from '@/components/typography/MutedText.vue'
-import {TemplateQuestionKind, type Placeholder} from '@/api/generated/schema'
+import type {Placeholder, TemplateQuestionKind} from '@/api/generated/schema'
 import {moveWithin} from '@/util/reorder'
 import type {TemplateDraft} from './templateDraft'
 import QuestionRow from './QuestionRow.vue'
-import {ANSWER_PREFIX, newQuestion} from './templateQuestions'
+import {ANSWER_PREFIX, QUESTION_KINDS, newQuestion} from './templateQuestions'
 
 /**
- * What a template asks the person generating a document: a text, a date or a tick. The template names
+ * What a template asks the person generating a document: a text, a date, a number, one of a few
+ * entries or a tick, each within the limits the template sets. The template names
  * each answer as a placeholder of its own, in a letter's text, on a PDF's field or in a form field of
  * the PDF. A tick prints as a ticked or an empty box and ticks a check field.
  *
@@ -37,8 +38,6 @@ defineProps<{
 }>()
 
 const {t} = useI18n()
-
-const ADDABLE: readonly TemplateQuestionKind[] = [TemplateQuestionKind.TEXT, TemplateQuestionKind.DATE, TemplateQuestionKind.CHECK]
 
 /** Everything the template writes except its questions, where an answer can be named. */
 const written = computed(() => {
@@ -80,7 +79,7 @@ function named(key: string): boolean {
       </template>
     </DragList>
     <ButtonRow>
-      <SecondaryButton v-for="kind in ADDABLE" :key="kind" :icon="['fas', 'plus']" :data-testid="`template-question-add-${kind}`"
+      <SecondaryButton v-for="kind in QUESTION_KINDS" :key="kind" :icon="['fas', 'plus']" :data-testid="`template-question-add-${kind}`"
                        @click="add(kind)">
         {{ t(`documentTemplates.questions.add.${kind}`) }}
       </SecondaryButton>

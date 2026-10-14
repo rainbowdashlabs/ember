@@ -13,11 +13,13 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import ToggleSetting from '@/components/input/toggle/ToggleSetting.vue'
 import {TemplateQuestionKind, type Placeholder, type TemplateQuestion} from '@/api/generated/schema'
 import PlaceholderTextInput from './placeholderpicker/PlaceholderTextInput.vue'
-import {ANSWER_PREFIX, keyFromLabel} from './templateQuestions'
+import QuestionLimitsEditor from './questionlimits/QuestionLimitsEditor.vue'
+import {ANSWER_PREFIX, QUESTION_KINDS, keyFromLabel, limitsFor} from './templateQuestions'
 
 /**
  * One question of a template: what the person generating is asked, what kind of answer it takes, what
- * it suggests for the member and whether it has to be answered.
+ * counts as an answer, what it suggests for the member and whether it has to be answered. Changing the
+ * kind starts the limits over, since the limits of one kind say nothing about another.
  *
  * <p>The question is named in the template as `{{ask.<name>}}`. Its name follows its label for as long
  * as nothing in the template names it yet, so a new question gets a readable name without being typed
@@ -41,8 +43,6 @@ const emit = defineEmits<{
 
 const {t} = useI18n()
 
-const KINDS: readonly TemplateQuestionKind[] = [TemplateQuestionKind.TEXT, TemplateQuestionKind.DATE, TemplateQuestionKind.CHECK]
-
 const written = computed(() => `{{${ANSWER_PREFIX}${question.value.key}}}`)
 
 function setLabel(written: string | undefined) {
@@ -51,8 +51,9 @@ function setLabel(written: string | undefined) {
   question.value = {...question.value, label, key: follows ? keyFromLabel(label, props.taken) : question.value.key}
 }
 
-function setKind(kind: string | number | null | undefined) {
-  question.value = {...question.value, kind: KINDS.find(candidate => candidate === kind) ?? TemplateQuestionKind.TEXT}
+function setKind(written: string | number | null | undefined) {
+  const kind = QUESTION_KINDS.find(candidate => candidate === written) ?? TemplateQuestionKind.TEXT
+  question.value = {...question.value, kind, limits: limitsFor(kind)}
 }
 </script>
 
@@ -64,7 +65,7 @@ function setKind(kind: string | number | null | undefined) {
     </LabelledField>
     <LabelledField :label="t('documentTemplates.questions.kind')">
       <SelectInput :model-value="question.kind" data-testid="template-question-kind" @update:model-value="setKind">
-        <option v-for="kind in KINDS" :key="kind" :value="kind">{{ t(`documentTemplates.questions.kindName.${kind}`) }}</option>
+        <option v-for="kind in QUESTION_KINDS" :key="kind" :value="kind">{{ t(`documentTemplates.questions.kindName.${kind}`) }}</option>
       </SelectInput>
     </LabelledField>
     <LabelledField :label="t('documentTemplates.questions.suggestion')" :help="t(`documentTemplates.questions.suggestionHelp.${question.kind}`)">
@@ -74,6 +75,7 @@ function setKind(kind: string | number | null | undefined) {
     <LabelledField :label="t('documentTemplates.questions.key')" :help="t('documentTemplates.questions.keyHelp', {written})">
       <TextInput v-model="question.key" data-testid="template-question-key"/>
     </LabelledField>
+    <QuestionLimitsEditor v-model="question.limits" :kind="question.kind" class="sm:col-span-2"/>
     <ToggleSetting v-model="question.required" :label="t('documentTemplates.questions.required')"
                    :hint="t('documentTemplates.questions.requiredHint')"/>
     <div class="flex items-end justify-end">

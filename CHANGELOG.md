@@ -6,8 +6,8 @@ Document templates can ask the person generating a document for details that the
 
 ### New Features
 
-- **Templates ask when a document is generated.** A template can ask for a text, a date or a tick, and prints each answer wherever it names it, a tick as a ticked or an empty box. Each question can suggest its answer from the member's data, which is then the answer in self service and in runs for many members.
-- **Word forms become PDF templates.** A Word form with fields to fill in becomes a PDF template that looks like the original, with member data where a field's label is recognised and a question for every other field and check box. A font the form uses that is not uploaded is replaced by one chosen before the form is converted, and a list afterwards names what was recognised.
+- **Templates ask when a document is generated.** A template can ask for a text, a date, a number, an entry from a list or a tick, each within limits such as a latest day or a longest text, and prints each answer wherever it names it. Each question can suggest its answer from the member's data, which is then the answer in self service and in runs for many members.
+- **Word forms become PDF templates.** A Word form with fields to fill in becomes a PDF template that looks like the original, with member data where a field's label is recognised and a question for every other field, list and check box that keeps the entries of a list. A font the form uses that is not uploaded is replaced by one chosen before the form is converted, and a list afterwards names what was recognised.
 - **Guardians take part in the trial.** When a trial begins, the guardians of the waiting list entry get their account and can sign in, take the child off appointments and see the trial on their start page with the visits so far. They can end the trial there themselves, which deletes the accounts made for it unless they are still needed, and the station is notified.
 
 ### Improvements

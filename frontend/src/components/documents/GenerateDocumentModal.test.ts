@@ -9,6 +9,7 @@ import {mountSuspended} from '@nuxt/test-utils/runtime'
 import {FieldRole, FieldState, RequestState, SignerCapacity, TemplateQuestionKind} from '@/api/generated/schema'
 import MemberSelectInput from '@/components/input/select/MemberSelectInput.vue'
 import GenerateDocumentModal from './GenerateDocumentModal.vue'
+import {NO_LIMITS} from './questionLimits'
 import IssuerOverride from './IssuerOverride.vue'
 import TemplateChoice from './TemplateChoice.vue'
 
@@ -161,9 +162,9 @@ describe('GenerateDocumentModal', () => {
 
     it('asks the template\'s questions prefilled for the member and files with the answers', async () => {
         suggestedAnswers.mockResolvedValue([
-            {question: {key: 'am', label: 'Ausgetreten am', kind: TemplateQuestionKind.DATE, suggestion: '', required: true}, suggestion: '2026-10-12'},
-            {question: {key: 'raus', label: 'Ausgetreten', kind: TemplateQuestionKind.CHECK, suggestion: '', required: false}, suggestion: 'true'},
-            {question: {key: 'grund', label: 'Grund', kind: TemplateQuestionKind.TEXT, suggestion: '', required: false}, suggestion: ''},
+            {question: {key: 'am', label: 'Ausgetreten am', kind: TemplateQuestionKind.DATE, suggestion: '', required: true, limits: NO_LIMITS}, suggestion: '2026-10-12'},
+            {question: {key: 'raus', label: 'Ausgetreten', kind: TemplateQuestionKind.CHECK, suggestion: '', required: false, limits: NO_LIMITS}, suggestion: 'true'},
+            {question: {key: 'grund', label: 'Grund', kind: TemplateQuestionKind.TEXT, suggestion: '', required: false, limits: NO_LIMITS}, suggestion: ''},
         ])
         const dialog = await mountDialog({memberId: 4})
         await chooseTemplate(dialog, 2)
@@ -179,5 +180,20 @@ describe('GenerateDocumentModal', () => {
         await flushPromises()
 
         expect(generateForMember).toHaveBeenCalledWith(2, 4, null, {am: '2026-10-12', raus: 'false', grund: 'Umzug'})
+    })
+
+    it('says what is wrong with an answer outside its limits and files nothing while it is', async () => {
+        suggestedAnswers.mockResolvedValue([
+            {question: {key: 'anzahl', label: 'Anzahl', kind: TemplateQuestionKind.NUMBER, suggestion: '', required: false,
+                limits: {...NO_LIMITS, min: 1, max: 10}}, suggestion: '2'},
+        ])
+        const dialog = await mountDialog({memberId: 4})
+        await chooseTemplate(dialog, 2)
+
+        await dialog.find('[data-testid="generation-answer-anzahl"]').setValue('11')
+        await flushPromises()
+
+        expect(dialog.find('[role="alert"]').text()).toBe('Diese Zahl ist hier nicht möglich')
+        expect(dialog.find('[data-testid="generate-file"]').attributes('disabled')).toBeDefined()
     })
 })
