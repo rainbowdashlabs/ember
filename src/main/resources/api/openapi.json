@@ -53720,6 +53720,23 @@
         },
         "required" : [ "event", "nextDate", "previousDate", "cancellation" ]
       },
+      "DayBound" : {
+        "type" : "object",
+        "properties" : {
+          "day" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/LocalDate"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "fromToday" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          }
+        },
+        "required" : [ "day", "fromToday" ]
+      },
       "DayCount" : {
         "type" : "object",
         "properties" : {
@@ -70741,6 +70758,52 @@
         },
         "required" : [ "MULTIPLE_CHOICE", "FILL_IN_THE_BLANK", "FREE_ANSWER", "CONNECT", "IMAGE_TEXT", "TRUE_FALSE", "ORDERING", "ENUMERATION" ]
       },
+      "QuestionLimits" : {
+        "type" : "object",
+        "properties" : {
+          "earliest" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/DayBound"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "latest" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/DayBound"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "maxLength" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "format" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/TextFormat"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "min" : {
+            "type" : [ "number", "null" ]
+          },
+          "max" : {
+            "type" : [ "number", "null" ]
+          },
+          "whole" : {
+            "type" : "boolean"
+          },
+          "choices" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        },
+        "required" : [ "earliest", "latest", "maxLength", "format", "min", "max", "whole", "choices" ]
+      },
       "QuizAccessRequest" : {
         "type" : "object",
         "properties" : {
@@ -78611,13 +78674,16 @@
           },
           "required" : {
             "type" : "boolean"
+          },
+          "limits" : {
+            "$ref" : "#/components/schemas/QuestionLimits"
           }
         },
-        "required" : [ "key", "label", "kind", "suggestion", "required" ]
+        "required" : [ "key", "label", "kind", "suggestion", "required", "limits" ]
       },
       "TemplateQuestionKind" : {
         "type" : "string",
-        "enum" : [ "TEXT", "DATE", "CHECK" ]
+        "enum" : [ "TEXT", "DATE", "NUMBER", "CHOICE", "CHECK" ]
       },
       "TemplateRequest" : {
         "type" : "object",
@@ -79028,6 +79094,10 @@
           }
         },
         "required" : [ "kind", "text" ]
+      },
+      "TextFormat" : {
+        "type" : "string",
+        "enum" : [ "DIGITS", "LETTERS", "POSTAL_CODE", "EMAIL", "PHONE" ]
       },
       "ThemeFeel" : {
         "type" : "string",

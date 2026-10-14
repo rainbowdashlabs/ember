@@ -741,7 +741,34 @@ public enum DocumentRefusal implements Refusal {
 
     /** A Word form naming a font the owner cannot draw, imported without a replacement chosen for it. */
     DOCUMENT_FORM_IMPORT_FONT_UNCHOSEN(
-            314, HttpStatus.BAD_REQUEST, "Choose a replacement for a font of the form that is not available");
+            314, HttpStatus.BAD_REQUEST, "Choose a replacement for a font of the form that is not available"),
+
+    /** Limits of a question that contradict each other or reach past what a question can take. */
+    DOCUMENT_TEMPLATE_QUESTION_LIMITS_INVALID(
+            315, HttpStatus.BAD_REQUEST, "The limits of a question contradict each other"),
+
+    /** A choice question without entries, with too many, with one twice or with one too long. */
+    DOCUMENT_TEMPLATE_QUESTION_CHOICES_INVALID(
+            316, HttpStatus.BAD_REQUEST, "A choice offers 1 to 50 different entries of at most 120 characters"),
+
+    /** An answer to a date question before its earliest or after its latest day. */
+    DOCUMENT_ANSWER_DAY_OUT_OF_RANGE(317, HttpStatus.BAD_REQUEST, "An answer is a day the question does not take"),
+
+    /** An answer to a text question longer than the question takes. */
+    DOCUMENT_ANSWER_TOO_LONG(318, HttpStatus.BAD_REQUEST, "An answer is longer than the question takes"),
+
+    /** An answer to a text question without the format the question asks for. */
+    DOCUMENT_ANSWER_WRONG_FORMAT(319, HttpStatus.BAD_REQUEST, "An answer does not have the format its question asks"),
+
+    /** An answer to a number question that is no number. */
+    DOCUMENT_ANSWER_NOT_A_NUMBER(320, HttpStatus.BAD_REQUEST, "An answer to a number question is no number"),
+
+    /** An answer to a number question below its lowest or above its highest number, or a fraction for a whole one. */
+    DOCUMENT_ANSWER_NUMBER_OUT_OF_RANGE(
+            321, HttpStatus.BAD_REQUEST, "An answer is a number the question does not take"),
+
+    /** An answer to a choice question that is none of its entries. */
+    DOCUMENT_ANSWER_NOT_A_CHOICE(322, HttpStatus.BAD_REQUEST, "An answer is none of the entries its question offers");
 
     private final Definition definition;
 

@@ -48,15 +48,17 @@ public class TemplateQuestionRepository {
             var question = questions.get(position);
             query("""
                     INSERT INTO document_template_question(template_id, position, key, label, kind, suggestion,
-                                                           required)
-                    VALUES (:template_id, :position, :key, :label, :kind, :suggestion, :required);""")
+                                                           required, limits)
+                    VALUES (:template_id, :position, :key, :label, :kind, :suggestion, :required,
+                            :limits::jsonb);""")
                     .single(call().bind("template_id", templateId)
                             .bind("position", position)
                             .bind("key", question.key())
                             .bind("label", question.label())
                             .bind("kind", question.kind())
                             .bind("suggestion", question.suggestion())
-                            .bind("required", question.required()))
+                            .bind("required", question.required())
+                            .bind("limits", question.limits().toJson()))
                     .insert();
         }
     }

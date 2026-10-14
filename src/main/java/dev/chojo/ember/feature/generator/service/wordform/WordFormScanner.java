@@ -18,6 +18,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import static dev.chojo.ember.feature.generator.service.wordform.WordXml.W;
+import static dev.chojo.ember.feature.generator.service.wordform.WordXml.W14;
+import static dev.chojo.ember.feature.generator.service.wordform.WordXml.attribute;
+import static dev.chojo.ember.feature.generator.service.wordform.WordXml.children;
+import static dev.chojo.ember.feature.generator.service.wordform.WordXml.first;
+
 /**
  * Finds the places of a Word form that are filled in and makes LibreOffice export each of them as a form
  * field of its own.
@@ -35,8 +41,6 @@ import java.util.regex.Pattern;
  * though Word keeps a second copy of it for older programs.
  */
 final class WordFormScanner {
-    static final String W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
-    static final String W14 = "http://schemas.microsoft.com/office/word/2010/wordml";
     private static final String MC = "http://schemas.openxmlformats.org/markup-compatibility/2006";
 
     /** What an emptied text place holds, wide enough for LibreOffice to give its field some room. */
@@ -181,12 +185,17 @@ final class WordFormScanner {
      * A place before its label is known.
      *
      * @param number the place counted from one
-     * @param kind   what is filled in
+     * @param shape  what is filled in and what counts as filled in
      * @param preset what it holds already, or null
      * @param hint   the words its form field shows as help, or empty
      */
     private record Place(
-            int number, FormSpotKind kind, @Nullable String preset, String hint) implements Piece {}
+            int number, FieldShape shape, @Nullable String preset, String hint) implements Piece {
+
+        FormSpotKind kind() {
+            return shape.kind();
+        }
+    }
 
     /** The parts of one paragraph, its places registered and their rewrites queued. */
     private List<Piece> pieces(Element paragraph) {
@@ -292,10 +301,9 @@ final class WordFormScanner {
         /** A form field of the old kind, from the run that begins it to the run that ends it. */
         private void legacy(Element begin, Element end, Element data) {
             if (begin.getParentNode() != end.getParentNode()) return;
-            var kind = first(data, W, "checkBox") != null ? FormSpotKind.CHECK : FormSpotKind.TEXT;
             String preset = legacyPreset(data);
             String hint = attribute(first(data, W, "statusText"), "val");
-            var place = place(kind, preset, hint);
+            var place = place(FieldShape.ofLegacy(data), preset, hint);
             var properties = first(begin, W, "rPr");
             rewrites.add(() -> {
                 var control = namedControl(place, properties);
@@ -336,13 +344,11 @@ final class WordFormScanner {
                 return;
             }
             var box = first(properties, W14, "checkbox");
-            FormSpotKind kind = box != null
-                    ? FormSpotKind.CHECK
-                    : first(properties, W, "date") != null ? FormSpotKind.DATE : FormSpotKind.TEXT;
             String preset = box != null
                     ? String.valueOf("1".equals(attribute(first(box, W14, "checked"), W14, "val")))
                     : first(properties, W, "showingPlcHdr") != null ? null : blankToNull(content.getTextContent());
-            var place = place(kind, preset, attribute(first(properties, W, "alias"), "val"));
+            var place =
+                    place(FieldShape.ofControl(properties), preset, attribute(first(properties, W, "alias"), "val"));
             var runProperties = first(first(content, W, "r"), W, "rPr");
             rewrites.add(() -> control.getParentNode().replaceChild(namedControl(place, runProperties), control));
         }
@@ -354,9 +360,9 @@ final class WordFormScanner {
             return false;
         }
 
-        private Place place(FormSpotKind kind, @Nullable String preset, String hint) {
+        private Place place(FieldShape shape, @Nullable String preset, String hint) {
             flush();
-            var place = new Place(++counted, kind, preset, hint);
+            var place = new Place(++counted, shape, preset, hint);
             pieces.add(place);
             return place;
         }
@@ -385,7 +391,12 @@ final class WordFormScanner {
             if (label.isEmpty() && byColumn) label = cleaned(underneath.get(places.indexOf(place)));
             if (label.isEmpty()) label = heading;
             if (label.isEmpty()) label = cleaned(place.hint());
-            spots.add(new FormSpot(place.number(), place.kind(), label, place.preset()));
+            spots.add(new FormSpot(
+                    place.number(),
+                    place.kind(),
+                    label,
+                    place.preset(),
+                    place.shape().limits()));
         }
     }
 
@@ -515,38 +526,10 @@ final class WordFormScanner {
         return text == null || text.isBlank() ? null : text.strip();
     }
 
-    private static @Nullable Element first(@Nullable Element parent, String namespace, String name) {
-        if (parent == null) return null;
-        for (Node child = parent.getFirstChild(); child != null; child = child.getNextSibling()) {
-            if (child instanceof Element element
-                    && namespace.equals(element.getNamespaceURI())
-                    && name.equals(element.getLocalName())) return element;
-        }
-        return null;
-    }
-
-    private static List<Element> children(Element parent, String namespace, String name) {
-        var out = new ArrayList<Element>();
-        for (Node child = parent.getFirstChild(); child != null; child = child.getNextSibling()) {
-            if (child instanceof Element element
-                    && namespace.equals(element.getNamespaceURI())
-                    && name.equals(element.getLocalName())) out.add(element);
-        }
-        return out;
-    }
-
     private static @Nullable Element ancestor(Element element, String namespace, String name) {
         for (Node node = element.getParentNode(); node instanceof Element parent; node = parent.getParentNode()) {
             if (namespace.equals(parent.getNamespaceURI()) && name.equals(parent.getLocalName())) return parent;
         }
         return null;
-    }
-
-    private static String attribute(@Nullable Element element, String name) {
-        return attribute(element, W, name);
-    }
-
-    private static String attribute(@Nullable Element element, String namespace, String name) {
-        return element == null ? "" : element.getAttributeNS(namespace, name);
     }
 }

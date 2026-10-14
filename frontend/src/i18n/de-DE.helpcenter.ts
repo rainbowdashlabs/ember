@@ -2132,8 +2132,8 @@ volumes:
             pdfVersionText: 'Kommt eine neue Fassung des Formulars, lade sie einfach hoch. Die Felder bleiben, wo sie '
                 + 'waren, und du prüfst sie über den neuen Seiten. Schon erstellte Dokumente bleiben, wie sie sind.',
             questionsTitle: 'Abfragen beim Erstellen',
-            questionsText: 'Unter „Abfragen" legst du fest, was beim Erstellen eingetragen wird: ein Text, ein Datum '
-                + 'oder ein Kreuz, etwa „Ausgetreten am" oder „In eine andere Gruppe gewechselt". Jede Abfrage steht '
+            questionsText: 'Unter „Abfragen" legst du fest, was beim Erstellen eingetragen wird: ein Text, ein Datum, '
+                + 'eine Zahl, ein Eintrag aus einer Auswahl oder ein Kreuz, etwa „Ausgetreten am" oder „In eine andere Gruppe gewechselt". Jede Abfrage steht '
                 + 'danach in der Platzhalter-Auswahl unter „Abfragen" und lässt sich im Text, auf PDF-Feldern und in '
                 + 'Formularfeldern einsetzen. Ein Datum nimmt dieselben Formate wie jedes andere Datum.',
             questionsSuggestionText: 'Ein Vorschlag füllt die Antwort für das gewählte Mitglied vor, mit festem Text '
@@ -2144,11 +2144,17 @@ volumes:
                 + 'einem PDF das Kreuz eines Ankreuzfelds. Nennt sein Vorschlag ein Ja-Nein-Feld des Profils, ist es '
                 + 'bei Ja schon angekreuzt, und beim Erstellen lässt es sich trotzdem setzen oder entfernen. '
                 + 'Ankreuzfelder aus der Zeit vor den Abfragen sind dafür schon zu Abfragen geworden.',
+            questionsLimitsText: 'Jede Abfrage kann eingrenzen, was als Antwort gilt: ein Datum frühestens oder '
+                + 'spätestens an einem festen Tag oder einige Tage ab dem Erstellen, ein Text höchstens so lang oder in '
+                + 'einem Format wie Postleitzahl, eine Zahl zwischen zwei Grenzen oder nur ganz. Eine Auswahl bietet '
+                + 'genau ihre Einträge an. Eine Antwort außerhalb der Grenzen nimmt Ember nicht an. Liegt ein '
+                + 'Vorschlag außerhalb, gilt er als nicht beantwortet.',
             wordFormTitle: 'Word-Formular importieren',
             wordFormText: 'Hast du ein Formular als Word-Datei mit Feldern zum Ausfüllen, wähle in der Liste der '
                 + 'Vorlagen „Aus Word-Formular erstellen". Ember macht daraus eine PDF-Vorlage mit demselben Aussehen '
                 + 'und setzt ein Feld an jede Stelle, die im Formular ausgefüllt wird. Das gilt für Textfelder, '
-                + 'Kontrollkästchen und Datumsfelder, alte wie neue.',
+                + 'Zahlenfelder, Kontrollkästchen, Datumsfelder und Auswahllisten, alte wie neue. Die Einträge einer '
+                + 'Auswahlliste und die Höchstlänge eines Textfelds übernimmt Ember als Grenzen der Abfrage.',
             wordFormFieldsText: 'Steht vor einem Feld eine bekannte Bezeichnung wie Name, Vorname, Geb.-Datum, '
                 + 'Eintritt, Datum, Bearbeiter oder der Name eines Profilfelds, füllt Ember es mit den Daten des '
                 + 'Mitglieds. Eine Ausweis-, Personal- oder Mitgliedsnummer findet ihr Profilfeld unter jedem dieser '

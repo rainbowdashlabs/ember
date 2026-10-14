@@ -6,8 +6,8 @@ Dokumentvorlagen können beim Erstellen nach Angaben fragen, die nicht in den Da
 
 ### Neue Funktionen
 
-- **Vorlagen fragen beim Erstellen nach.** Eine Vorlage kann nach einem Text, einem Datum oder einem Kreuz fragen und druckt jede Antwort dort, wo sie sie nennt, ein Kreuz als angekreuztes oder leeres Kästchen. Jede Abfrage kann ihre Antwort aus den Daten des Mitglieds vorschlagen, und beim Selbst-Erstellen und beim Erstellen für viele Mitglieder gilt dann dieser Vorschlag.
-- **Word-Formulare werden zu PDF-Vorlagen.** Ein Word-Formular mit Feldern zum Ausfüllen wird zu einer PDF-Vorlage im Aussehen des Originals: Daten des Mitglieds dort, wo die Bezeichnung eines Felds erkannt wird, und eine Abfrage für jedes andere Feld und Kontrollkästchen. Eine Schrift des Formulars, die nicht hochgeladen ist, wird vor dem Umwandeln durch eine gewählte ersetzt, und danach steht in einer Liste, was erkannt wurde.
+- **Vorlagen fragen beim Erstellen nach.** Eine Vorlage kann nach einem Text, einem Datum, einer Zahl, einem Eintrag aus einer Liste oder einem Kreuz fragen, jeweils in Grenzen wie einem spätesten Tag oder einer Höchstlänge, und druckt jede Antwort dort, wo sie sie nennt. Jede Abfrage kann ihre Antwort aus den Daten des Mitglieds vorschlagen, und beim Selbst-Erstellen und beim Erstellen für viele Mitglieder gilt dann dieser Vorschlag.
+- **Word-Formulare werden zu PDF-Vorlagen.** Ein Word-Formular mit Feldern zum Ausfüllen wird zu einer PDF-Vorlage im Aussehen des Originals: Daten des Mitglieds dort, wo die Bezeichnung eines Felds erkannt wird, und eine Abfrage für jedes andere Feld, jede Auswahlliste mit ihren Einträgen und jedes Kontrollkästchen. Eine Schrift des Formulars, die nicht hochgeladen ist, wird vor dem Umwandeln durch eine gewählte ersetzt, und danach steht in einer Liste, was erkannt wurde.
 
 ### Verbesserungen
 

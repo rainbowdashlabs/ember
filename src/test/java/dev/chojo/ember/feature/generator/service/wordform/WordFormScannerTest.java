@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.generator.service.wordform;
 
+import dev.chojo.ember.feature.generator.entity.QuestionLimits;
 import dev.chojo.ember.feature.generator.service.wordform.FormSpot.FormSpotKind;
 import org.junit.jupiter.api.Test;
 
@@ -69,18 +70,16 @@ class WordFormScannerTest {
 
         var body = DocxPackage.read(scanned.docx()).xml(DocxPackage.BODY).orElseThrow();
         var tags = new ArrayList<String>();
-        var all = body.getElementsByTagNameNS(WordFormScanner.W, "tag");
+        var all = body.getElementsByTagNameNS(WordXml.W, "tag");
         for (int index = 0; index < all.getLength(); index++) {
-            tags.add(((org.w3c.dom.Element) all.item(index)).getAttributeNS(WordFormScanner.W, "val"));
+            tags.add(((org.w3c.dom.Element) all.item(index)).getAttributeNS(WordXml.W, "val"));
         }
         assertEquals(17, tags.size());
         for (int number = 1; number <= 17; number++) {
             assertEquals("ember-f" + number, tags.get(number - 1));
         }
-        assertEquals(
-                0, body.getElementsByTagNameNS(WordFormScanner.W, "fldChar").getLength());
-        assertEquals(
-                4, body.getElementsByTagNameNS(WordFormScanner.W14, "checkbox").getLength());
+        assertEquals(0, body.getElementsByTagNameNS(WordXml.W, "fldChar").getLength());
+        assertEquals(4, body.getElementsByTagNameNS(WordXml.W14, "checkbox").getLength());
         String text = body.getDocumentElement().getTextContent();
         assertTrue(!text.contains("keine") && !text.contains("☒"), "the presets are cleared from the page");
     }
@@ -102,11 +101,47 @@ class WordFormScannerTest {
                 WordFormScanner.scan(docx).spots());
     }
 
+    @Test
+    void whatWordLetsBeFilledInIsKept() throws IOException {
+        byte[] docx = docxOf(
+                "<w:p><w:r><w:t>Anzahl</w:t></w:r>" + legacy("<w:textInput><w:type w:val=\"number\"/></w:textInput>")
+                        + "</w:p><w:p><w:r><w:t>Kürzel</w:t></w:r>"
+                        + legacy("<w:textInput><w:maxLength w:val=\"3\"/></w:textInput>")
+                        + "</w:p><w:p><w:r><w:t>Rolle</w:t></w:r>"
+                        + legacy("<w:ddList><w:listEntry w:val=\"Helfer\"/><w:listEntry w:val=\"helfer\"/>"
+                                + "<w:listEntry w:val=\"Leitung\"/></w:ddList>")
+                        + "</w:p><w:p><w:r><w:t>Gruppe</w:t></w:r><w:sdt><w:sdtPr><w:dropDownList>"
+                        + "<w:listItem w:displayText=\"Wählen Sie ein Element.\" w:value=\"\"/>"
+                        + "<w:listItem w:displayText=\"Rot\" w:value=\"r\"/><w:listItem w:value=\"Blau\"/>"
+                        + "</w:dropDownList><w:showingPlcHdr/></w:sdtPr><w:sdtContent><w:r><w:t>Wählen</w:t></w:r>"
+                        + "</w:sdtContent></w:sdt></w:p>");
+
+        assertEquals(
+                List.of(
+                        new FormSpot(1, FormSpotKind.NUMBER, "Anzahl", null),
+                        new FormSpot(2, FormSpotKind.TEXT, "Kürzel", null, QuestionLimits.text(3, null)),
+                        new FormSpot(
+                                3,
+                                FormSpotKind.CHOICE,
+                                "Rolle",
+                                "Helfer",
+                                QuestionLimits.choice(List.of("Helfer", "Leitung"))),
+                        new FormSpot(
+                                4, FormSpotKind.CHOICE, "Gruppe", null, QuestionLimits.choice(List.of("Rot", "Blau")))),
+                WordFormScanner.scan(docx).spots());
+    }
+
+    private static String legacy(String data) {
+        return "<w:r><w:fldChar w:fldCharType=\"begin\"><w:ffData>" + data + "</w:ffData></w:fldChar></w:r>"
+                + "<w:r><w:fldChar w:fldCharType=\"separate\"/></w:r><w:r><w:t>  </w:t></w:r>"
+                + "<w:r><w:fldChar w:fldCharType=\"end\"/></w:r>";
+    }
+
     private static byte[] docxOf(String body) throws IOException {
         var out = new ByteArrayOutputStream();
         try (var zip = new ZipOutputStream(out)) {
             zip.putNextEntry(new ZipEntry(DocxPackage.BODY));
-            zip.write(("<w:document xmlns:w=\"" + WordFormScanner.W + "\"><w:body>" + body + "</w:body></w:document>")
+            zip.write(("<w:document xmlns:w=\"" + WordXml.W + "\"><w:body>" + body + "</w:body></w:document>")
                     .getBytes(StandardCharsets.UTF_8));
             zip.closeEntry();
         }

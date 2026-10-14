@@ -66,6 +66,7 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.documentTemplateEditor.questionsText') }}</p>
       <p>{{ t('helpCenter.documentTemplateEditor.questionsSuggestionText') }}</p>
       <p>{{ t('helpCenter.documentTemplateEditor.questionsCheckText') }}</p>
+      <p>{{ t('helpCenter.documentTemplateEditor.questionsLimitsText') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.documentTemplateEditor.wordFormTitle')">

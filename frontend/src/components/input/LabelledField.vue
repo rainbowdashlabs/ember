@@ -20,6 +20,8 @@ defineProps<{
   hint?: boolean
   /** A line under the field, for the ones whose consequence is not obvious from the label. */
   help?: string
+  /** What is wrong with what the field holds, shown under it in place of the help. */
+  error?: string
 }>()
 </script>
 
@@ -27,6 +29,7 @@ defineProps<{
   <div class="space-y-1">
     <FieldLabel :hint="hint">{{ label }}</FieldLabel>
     <slot/>
-    <MutedText v-if="help" size="sm" tag="p">{{ help }}</MutedText>
+    <p v-if="error" class="text-sm text-error" role="alert">{{ error }}</p>
+    <MutedText v-else-if="help" size="sm" tag="p">{{ help }}</MutedText>
   </div>
 </template>

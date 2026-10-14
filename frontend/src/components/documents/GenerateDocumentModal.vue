@@ -21,6 +21,7 @@ import TemplateChoice from './TemplateChoice.vue'
 import IssuerOverride from './IssuerOverride.vue'
 import SignatureAskStep from './SignatureAskStep.vue'
 import GenerationAnswers from './GenerationAnswers.vue'
+import {anyAnswerProblem, todayIso} from './questionLimits'
 import {fromCompletion} from '@/components/input/select/memberOption'
 import {documentTemplates, stationMembers} from '@/api'
 import type {
@@ -52,7 +53,8 @@ import {showToast} from '@/util/toast'
  *
  * <p>Where the template asks the person generating something, its questions are shown with what each
  * suggests for the member, a check ticked where the member's data says yes. The preview follows the
- * answers, and they go with the document when it is filed.
+ * answers, and they go with the document when it is filed. While an answer is outside its question's
+ * limits, the preview keeps what it last drew and nothing can be filed.
  *
  * <p>A filed document with fields to sign leads on to asking for the signatures, which may be skipped and
  * done later from the list of generated documents; one without closes the dialog.
@@ -95,6 +97,8 @@ const loader = useAsyncLoader(async () => {
 
 const questions = ref<TemplateQuestion[]>([])
 const answers = ref<Answers>({})
+const today = todayIso()
+const answersWrong = computed(() => anyAnswerProblem(questions.value, answers.value, today))
 
 const suggesting = useAsyncAction(async (id: number, member: number) => {
   const suggested = await documentTemplates.suggestedAnswers(id, member, issuer.value)
@@ -145,6 +149,7 @@ watch([templateId, memberId], ([id, member]) => {
 
 watchDebounced([issuer, answers], () => {
   if (templateId.value === null || memberId.value === null || drawingInputs() === drawnWith.value) return
+  if (answersWrong.value) return
   drawing.run(templateId.value, memberId.value)
 }, {debounce: SETTLE_MS, deep: true})
 </script>
@@ -161,11 +166,11 @@ watchDebounced([issuer, answers], () => {
       </LabelledField>
       <IssuerOverride v-if="templateIssuer" :key="templateId ?? 0" v-model="issuer" :template-issuer="templateIssuer"
                       :members="issuerCandidates"/>
-      <GenerationAnswers v-if="questions.length > 0" v-model="answers" :questions="questions"/>
+      <GenerationAnswers v-if="questions.length > 0" v-model="answers" :questions="questions" :today="today"/>
       <GeneratedPreview v-if="preview && chosen" :preview="preview" :title="chosen.name"/>
       <ButtonRow pair align="end">
         <SecondaryButton @click="open = false">{{ t('common.cancel') }}</SecondaryButton>
-        <PrimaryButton :icon="['fas', 'file-circle-plus']" :disabled="!preview || filing.running.value"
+        <PrimaryButton :icon="['fas', 'file-circle-plus']" :disabled="!preview || answersWrong || filing.running.value"
                        data-testid="generate-file" @click="filing.run()">
           {{ preview && preview.missing.length > 0 ? t('documentTemplates.generateAnyway') : t('common.create') }}
         </PrimaryButton>

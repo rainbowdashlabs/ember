@@ -6,7 +6,8 @@
 /** @vitest-environment happy-dom */
 import {describe, expect, it} from 'vitest'
 import {DateKind, PlaceholderCategory, TemplateQuestionKind} from '@/api/generated/schema'
-import {answerPlaceholders, keyFromLabel, newQuestion} from './templateQuestions'
+import {NO_LIMITS} from '@/components/documents/questionLimits'
+import {answerPlaceholders, keyFromLabel, limitsFor, newQuestion} from './templateQuestions'
 
 /** The questions of a template: their names, and their answers as placeholders the picker offers. */
 describe('template questions', () => {
@@ -20,15 +21,20 @@ describe('template questions', () => {
     it('start a new question empty under a free name', () => {
         const first = newQuestion(TemplateQuestionKind.CHECK, [])
 
-        expect(first).toEqual({key: 'abfrage', label: '', kind: TemplateQuestionKind.CHECK, suggestion: '', required: false})
+        expect(first).toEqual({key: 'abfrage', label: '', kind: TemplateQuestionKind.CHECK, suggestion: '', required: false, limits: NO_LIMITS})
         expect(newQuestion(TemplateQuestionKind.TEXT, [first]).key).toBe('abfrage_2')
+    })
+
+    it('start a choice with one entry to write and every other kind without limits', () => {
+        expect(limitsFor(TemplateQuestionKind.CHOICE).choices).toEqual([''])
+        expect(limitsFor(TemplateQuestionKind.DATE)).toEqual(NO_LIMITS)
     })
 
     it('offer each answer below the questions, a date with the date formats, and none still without a label', () => {
         const offered = answerPlaceholders([
-            {key: 'am', label: 'Ausgetreten am', kind: TemplateQuestionKind.DATE, suggestion: '', required: false},
-            {key: 'grund', label: 'Grund', kind: TemplateQuestionKind.TEXT, suggestion: '', required: false},
-            {key: 'leer', label: '', kind: TemplateQuestionKind.TEXT, suggestion: '', required: false},
+            {key: 'am', label: 'Ausgetreten am', kind: TemplateQuestionKind.DATE, suggestion: '', required: false, limits: NO_LIMITS},
+            {key: 'grund', label: 'Grund', kind: TemplateQuestionKind.TEXT, suggestion: '', required: false, limits: NO_LIMITS},
+            {key: 'leer', label: '', kind: TemplateQuestionKind.TEXT, suggestion: '', required: false, limits: NO_LIMITS},
         ], 'Abfragen')
 
         expect(offered.map(placeholder => placeholder.key)).toEqual(['ask.am', 'ask.grund'])
