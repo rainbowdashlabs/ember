@@ -134,6 +134,19 @@ class NotificationTextTest {
                 5, MEMBER, null, NotificationType.NEW_NEWS, new NotificationData(null, null), Instant.now(), null)));
     }
 
+    /** An appointment's description is markdown, and the detail reads it as plain text. */
+    @Test
+    void anAppointmentsDescriptionLosesItsMarkup() {
+        var event = notificationWith(
+                NotificationType.NEW_EVENT,
+                new NotificationParams.NewEvent("Probe", "## Ablauf\n\n**Treffpunkt** am *Tor*"),
+                6);
+        assertEquals("Ablauf\n\nTreffpunkt am Tor", text.resolveDetail(event));
+
+        var blank = notificationWith(NotificationType.NEW_EVENT, new NotificationParams.NewEvent("Probe", ""), 7);
+        assertNull(text.resolveDetail(blank));
+    }
+
     /**
      * An address is built from the link's route, falls back to the dashboard for a route nobody knows,
      * is missing where there is no link, and carries the station for a reader of several stations.

@@ -23,6 +23,7 @@ Dokumentvorlagen können beim Erstellen nach Angaben fragen, die nicht in den Da
 ### Fehlerbehebungen
 
 - **Eine Einladung ließ sich mit einem Tastendruck senden.** Der Einladungsdialog öffnete mit ausgewähltem Senden-Knopf, so dass die Eingabetaste die E-Mail sofort verschickte, auch ohne Termin. Der Dialog öffnet jetzt auf dem Termin, und gesendet wird erst, wenn einer gewählt ist.
+- **Benachrichtigungsmails zeigen lesbare Beschreibungen.** Die Beschreibung eines Termins kam in Benachrichtigungsmails mit ihren Formatierungszeichen wie Sternchen und Rauten an, und zwar in voller Länge. Sie erscheint jetzt als reiner Text, und eine lange Beschreibung wird gekürzt und bekommt einen Knopf "Weiterlesen".
 
 ## v26.22.6
 
