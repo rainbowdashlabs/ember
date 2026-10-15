@@ -93,6 +93,13 @@ async function onFeaturedEventPick(eventUid: string) {
             :model-value="(config.descriptionOverride as string) ?? ''"
             @update:model-value="patch({descriptionOverride: $event ?? ''})"
         />
+        <div class="flex items-center gap-2">
+            <ToggleInput
+                :model-value="config.fullDescription !== true"
+                @update:model-value="patch({fullDescription: $event ? null : true})"
+            />
+            <FieldLabel hint class="mb-0">{{ TS('shortenEventDescription') }}</FieldLabel>
+        </div>
     </template>
 
     <template v-else-if="kind === 'UPCOMING_EVENTS'">

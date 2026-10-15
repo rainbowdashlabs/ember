@@ -11762,6 +11762,7 @@ export default {
             eventTitle: 'Titel',
             eventDate: 'Datum',
             featuredEventDate: 'Welcher Tag (bei wiederkehrenden Terminen)',
+            shortenEventDescription: 'Beschreibung kürzen',
             eventLocation: 'Ort',
             eventDescription: 'Beschreibung',
             ctaText: 'Button-Text',

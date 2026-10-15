@@ -6,6 +6,7 @@
 <script lang="ts" setup>
 import {useI18n} from 'vue-i18n'
 import type {BlogSignupConfig} from '@/api/generated/schema'
+import {renderMarkdown} from '@/util/markdown'
 
 defineProps<{
     config: BlogSignupConfig
@@ -19,7 +20,7 @@ const {t} = useI18n()
     <div class="rounded-theme border border-(--border) bg-primary/5 p-4 space-y-2 text-center">
         <font-awesome-icon :icon="['fas', 'rss']" class="text-3xl text-primary"/>
         <p class="font-semibold">{{ config.title || t('stationPages.cellHints.subscribeBlog') }}</p>
-        <p v-if="config.description" class="text-sm text-(--text-muted)">{{ config.description }}</p>
+        <div v-if="config.description" class="markdown-content text-sm text-(--text-muted)" v-html="renderMarkdown(config.description)"/>
         <div v-if="stationUid" class="flex justify-center gap-2 pt-1">
             <a :href="`/api/v1/public/station/${stationUid}/blog.atom`" target="_blank" rel="alternate noopener"
                class="inline-block px-3 py-1.5 rounded-theme bg-primary text-primary-text! text-sm font-medium hover:bg-primary-accent">

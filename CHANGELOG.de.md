@@ -1,5 +1,17 @@
 # Änderungsprotokoll
 
+## v26.22.5
+
+Formatierter Text in Blöcken von Seiten und News erscheint wieder formatiert statt als Rohtext. Termin-Highlights zeigen, wann der Termin endet, und halten lange Beschreibungen kurz.
+
+### Verbesserungen
+
+- **Termin-Highlights zeigen das Ende und eine kurze Beschreibung.** Der Block „Termin (Highlight)“ zeigt neben dem Beginn auch, wann der Termin endet. Die Beschreibung ist standardmäßig auf wenige Zeilen gekürzt, eine Einstellung des Blocks zeigt sie vollständig.
+
+### Fehlerbehebungen
+
+- **Manche Blöcke zeigten Formatierungszeichen als Text.** Beschreibungen in den Blöcken für Termin-Highlight, Terminrückblick, Zitat, Tabs, Blog-Abo, Formular, Quiz und Mitglied im Porträt sowie auf der Terminseite einer Partnerwache zeigten Sternchen und Rauten statt Formatierung. Sie erscheinen jetzt formatiert.
+
 ## v26.22.4
 
 Der Tag, an dem ein Mitglied beigetreten ist, steht in der Mitgliederliste und auf der Seite des Mitglieds und lässt sich beim Import übernehmen. Mitglieder öffnen sich aus der Liste in einem neuen Tab. Das Menü bleibt auf älteren Tablets nicht mehr über der Seite stehen.

@@ -4,11 +4,19 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import {computed} from 'vue'
 import type {ExternalLinkCardConfig} from '@/api/generated/schema'
+import {markdownSnippet} from '@/util/markdown'
 
-defineProps<{
+/**
+ * A card that is one link as a whole. The description is shown as plain text, since links written
+ * into it would sit inside the card's own link.
+ */
+const props = defineProps<{
     config: ExternalLinkCardConfig
 }>()
+
+const description = computed(() => markdownSnippet(props.config.description, 300))
 </script>
 
 <template>
@@ -18,7 +26,7 @@ defineProps<{
         <img :src="config.imageUrl" :alt="config.title ?? ''" class="w-20 h-20 object-cover shrink-0"/>
         <div class="p-3 space-y-1 min-w-0 flex-1">
             <p class="font-semibold truncate">{{ config.title || config.url }}</p>
-            <p v-if="config.description" class="text-sm text-(--text-muted) line-clamp-2">{{ config.description }}</p>
+            <p v-if="description" class="text-sm text-(--text-muted) line-clamp-2">{{ description }}</p>
             <p v-if="config.url" class="text-xs text-primary truncate">{{ config.url }} ↗</p>
         </div>
     </a>
@@ -27,7 +35,7 @@ defineProps<{
         <img v-if="config.imageUrl" :src="config.imageUrl" :alt="config.title ?? ''" class="w-full h-32 object-cover"/>
         <div class="p-3 space-y-1">
             <p class="font-semibold">{{ config.title || config.url }}</p>
-            <p v-if="config.description" class="text-sm text-(--text-muted)">{{ config.description }}</p>
+            <p v-if="description" class="text-sm text-(--text-muted)">{{ description }}</p>
             <p v-if="config.url" class="text-xs text-primary truncate">{{ config.url }} ↗</p>
         </div>
     </a>

@@ -280,6 +280,9 @@ public sealed interface CellConfig {
      * the block is shown, and may narrow it to one occurrence by {@code date} ({@code YYYY-MM-DD}).
      * The remaining text fields are the older hand-written card, still read where no event is named.
      *
+     * <p>The description is shortened to a few lines unless {@code fullDescription} is set, so a long
+     * event text does not take over the page it is embedded in.
+     *
      * <p>An author writes this record as they like, so what names an event is kept only when it is
      * well formed: an id that is not a UUID names nothing, and next to a named event a date that is
      * not a calendar day is dropped rather than carried to every reader.
@@ -293,7 +296,8 @@ public sealed interface CellConfig {
             @Nullable String ctaText,
             @Nullable String ctaUrl,
             @Nullable String eventUid,
-            @Nullable String descriptionOverride)
+            @Nullable String descriptionOverride,
+            @Nullable Boolean fullDescription)
             implements CellConfig {
 
         public FeaturedEventConfig {
