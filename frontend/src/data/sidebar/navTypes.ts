@@ -3,7 +3,6 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-
 /** A value written once, or worked out from what the reader holds. */
 export type NavValue<C, T> = T | ((context: C) => T)
 
