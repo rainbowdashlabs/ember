@@ -118,6 +118,10 @@ function highlightSnippet(result: (typeof searchResults.value)[number]): string 
                    to="/helpcenter/station/basics/account-links" @navigate="close">
         {{ t('helpCenter.basics.sidebarAccountLinks') }}
       </SidebarLink>
+      <SidebarLink :icon="['fas', 'comments']" name="help-basics-messages"
+                   to="/helpcenter/station/basics/messages" @navigate="close">
+        {{ t('helpCenter.basics.sidebarMessages') }}
+      </SidebarLink>
     </SidebarGroup>
 
     <SidebarGroup :icon="['fas', 'rocket']" :label="t('setup.headerTitle')" prefix="/helpcenter/station/setup"
@@ -171,6 +175,10 @@ function highlightSnippet(result: (typeof searchResults.value)[number]): string 
       <SidebarLink :icon="['fas', 'users']" name="help-profile-managed"
                    to="/helpcenter/station/profile/managed" @navigate="close">
         {{ t('sidebar.managedProfiles') }}
+      </SidebarLink>
+      <SidebarLink :icon="['fas', 'comments']" name="help-messages"
+                   to="/helpcenter/station/messages" @navigate="close">
+        {{ t('helpCenter.messages.title') }}
       </SidebarLink>
       <SidebarLink :icon="['fas', 'boxes-stacked']" name="help-profile-inventory"
                    to="/helpcenter/station/profile/inventory" @navigate="close">

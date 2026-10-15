@@ -262,6 +262,12 @@ import dev.chojo.ember.feature.members.service.MemberFeedDetails;
 import dev.chojo.ember.feature.members.service.ProfileFieldOwner;
 import dev.chojo.ember.feature.members.service.StationMemberEligibility;
 import dev.chojo.ember.feature.members.service.StationProfileFields;
+import dev.chojo.ember.feature.messages.route.ConversationRoutes;
+import dev.chojo.ember.feature.messages.route.MessageEventRoutes;
+import dev.chojo.ember.feature.messages.route.MessagePeopleRoutes;
+import dev.chojo.ember.feature.messages.route.MessageRoutes;
+import dev.chojo.ember.feature.messages.service.MessageSignals;
+import dev.chojo.ember.feature.messages.service.UnreadMessageMail;
 import dev.chojo.ember.feature.news.handler.NewsCreatedHandler;
 import dev.chojo.ember.feature.news.handler.NewsDeletedHandler;
 import dev.chojo.ember.feature.news.route.AdminNewsRoutes;
@@ -671,6 +677,10 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(PasskeyAdminRoutes.class);
         routesBinder.addBinding().to(TwoFactorAdminRoutes.class);
         routesBinder.addBinding().to(AccountAdminRoutes.class);
+        routesBinder.addBinding().to(ConversationRoutes.class);
+        routesBinder.addBinding().to(MessageRoutes.class);
+        routesBinder.addBinding().to(MessagePeopleRoutes.class);
+        routesBinder.addBinding().to(MessageEventRoutes.class);
 
         Multibinder<TableImporter> tableImporterBinder = Multibinder.newSetBinder(binder(), TableImporter.class);
         tableImporterBinder.addBinding().to(StationTableImporter.class);
@@ -855,6 +865,8 @@ public class EmberModule extends AbstractModule {
         taskSources.addBinding().to(PartnerRequirementNotices.class);
         taskSources.addBinding().to(CredentialKeyStamps.class);
         taskSources.addBinding().to(AccountLinkSweeper.class);
+        taskSources.addBinding().to(MessageSignals.class);
+        taskSources.addBinding().to(UnreadMessageMail.class);
 
         Multibinder<ShutdownFlush> flushes = Multibinder.newSetBinder(binder(), ShutdownFlush.class);
         flushes.addBinding().to(PageHitRecorder.class);

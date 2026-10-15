@@ -2,7 +2,15 @@
 
 ## v26.23.0
 
-Die Seitenleiste zeigt einen Bereich auf einmal und bleibt kurz, egal wie viele Module eine Wache nutzt. Jeder Bereich öffnet auf seiner Hauptseite und listet alle seine Seiten, nichts ist mehr nur über den Namen eines Bereichs erreichbar. Der Name oben in der Seitenleiste wechselt zwischen Wachen, Verbänden und der Administration der Instanz, jeweils mit der Zahl dessen, was dort wartet. In der Kopfzeile bleiben die Suche und das Kontomenü, das Hilfe-Center wandert zu den runden Knöpfen unten rechts.
+Die Seitenleiste zeigt einen Bereich auf einmal und bleibt kurz, egal wie viele Module eine Wache nutzt. Jeder Bereich öffnet auf seiner Hauptseite und listet alle seine Seiten, nichts ist mehr nur über den Namen eines Bereichs erreichbar. Der Name oben in der Seitenleiste wechselt zwischen Wachen, Verbänden und der Administration der Instanz, jeweils mit der Zahl dessen, was dort wartet. In der Kopfzeile bleiben die Suche, die Nachrichten und das Kontomenü, das Hilfe-Center wandert zu den runden Knöpfen unten rechts. Wer eine Wache teilt, kann sich direkt oder in Gruppen schreiben, egal welche Wache gerade gewählt ist. Neue Nachrichten, Änderungen und Reaktionen erscheinen, ohne dass die Seite neu geladen wird, und was ungelesen bleibt, kommt per Mail. Mitglieder mit Erziehungsberechtigten bekommen Nachrichten erst, wenn eine erziehungsberechtigte Person sie freischaltet.
+
+### Neue Funktionen
+
+- **Nachrichten zwischen den Leuten einer Wache.** Alle können den Leuten schreiben, mit denen sie eine Wache teilen, direkt oder in Gruppen bis 25 Personen, über den Nachrichten-Knopf in der Kopfzeile. Eine Unterhaltung gehört den Leuten darin und sieht gleich aus, egal welche Wache gewählt ist.
+- **Neue Nachrichten kommen ohne Neuladen.** Nachrichten, Änderungen und Reaktionen erscheinen, sobald sie geschrieben werden, und die Kopfzeile zeigt, wie viele ungelesen warten. Eine Nachricht lässt sich beantworten, ändern, löschen und mit jedem üblichen Emoji kommentieren, in Gruppen lassen sich Leute erwähnen.
+- **Eine Mail für ungelesene Nachrichten.** Bleibt eine Nachricht 15 Minuten ungelesen, geht pro Unterhaltung eine Mail mit den ersten Zeilen raus, und bis zum Lesen keine weitere. Die Mail lässt sich in den Einstellungen für Nachrichten abschalten, stumm geschaltete Unterhaltungen schicken keine.
+- **Leute lassen sich für Nachrichten blockieren.** Eine blockierte Person kann keine direkte Unterhaltung mehr mit der blockierenden Person starten und sie in keine Gruppe holen, ihre Nachrichten in gemeinsamen Gruppen sind eingeklappt. Sie erfährt davon nichts.
+- **Erziehungsberechtigte entscheiden über Nachrichten.** Ein Mitglied mit Erziehungsberechtigten in irgendeiner Wache hat keine Nachrichten, bis eine erziehungsberechtigte Person sie unter Profil → Verwaltete Profile freischaltet. Wird das wieder abgeschaltet, verschwinden die Unterhaltungen, gelöscht wird nichts.
 
 ### Verbesserungen
 
@@ -13,7 +21,7 @@ Die Seitenleiste zeigt einen Bereich auf einmal und bleibt kurz, egal wie viele 
 - **Die Seitenleiste zeigt einen Bereich auf einmal.** Ein geöffneter Bereich ersetzt die Liste und öffnet seine erste Seite, „Alle Bereiche“ oben führt zurück. Eine Seite, die über einen Link, ein Lesezeichen oder die Schnellsuche geöffnet wird, zeigt den Bereich, zu dem sie gehört.
 - **Jeder Bereich listet seine Hauptseite.** Die Mitgliederliste, die kommenden Termine, die eigenen Dokumente und die anderen Seiten, die früher der Name eines Bereichs öffnete, sind der erste Eintrag ihres Bereichs. Ein Bereich, in dem nur eine Seite übrig bleibt, erscheint als diese Seite.
 - **Orte wechseln über die Seitenleiste.** Bei mehr als einer Wache, einem Verband oder der Administration der Instanz öffnet der Name oben in der Seitenleiste eine Liste aller Orte, jeweils mit der Zahl dessen, was dort wartet. Der Wachenwechsel und die Knöpfe für Administration, Verband und Wache in der Kopfzeile entfallen.
-- **Das Hilfe-Center sitzt unten rechts.** Das Hilfe-Center öffnet sich über einen runden Knopf neben der Fehlermeldung, die Kopfzeile behält nur die Suche und das Kontomenü.
+- **Das Hilfe-Center sitzt unten rechts.** Das Hilfe-Center öffnet sich über einen runden Knopf neben der Fehlermeldung, die Kopfzeile behält nur die Suche, die Nachrichten und das Kontomenü.
 
 ### Fehlerbehebungen
 

@@ -116,6 +116,20 @@ class SessionGateTest {
     }
 
     @Test
+    void aPassiveRequestNeitherTouchesNorRenewsTheSession() {
+        UserSession session = mock(UserSession.class);
+        when(accessManager.resolveUserSession("live", null, null)).thenReturn(Optional.of(session));
+        when(accessManager.resolveUserSession("dead", null, null)).thenReturn(Optional.empty());
+
+        assertSame(session, gate.admitPassively(ctx, "live", null, null).orElseThrow());
+        assertTrue(gate.admitPassively(ctx, "dead", null, null).isEmpty());
+
+        verify(accounts, never()).touchSession(anyString(), any(), any());
+        verify(accounts, never()).renewSession(anyString(), anyInt(), anyInt());
+        verify(cookies).clear(ctx);
+    }
+
+    @Test
     void aRenewedSessionGetsItsCookieWrittenAgain() {
         UserSession session = mock(UserSession.class);
         Instant renewed = Instant.now().plus(1, ChronoUnit.HOURS);

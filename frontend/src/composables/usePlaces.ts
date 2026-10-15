@@ -48,7 +48,7 @@ export function usePlaces() {
     const area = computed<Place['kind'] | 'account'>(() => {
         if (route.path.startsWith('/admin')) return 'admin'
         if (route.path.startsWith('/cluster')) return 'cluster'
-        if (route.path.startsWith('/account')) return 'account'
+        if (route.path.startsWith('/account') || route.path.startsWith('/messages')) return 'account'
         return 'station'
     })
 

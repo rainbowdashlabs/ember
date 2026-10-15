@@ -29,6 +29,7 @@ import org.slf4j.LoggerFactory;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * The before-matched handler that enforces authentication and role-based authorization.
@@ -45,6 +46,9 @@ import java.util.UUID;
  * and every client reads a 401 as the sign-in being over: answering a stale header that way threw
  * away a perfectly good session and put the reader back on the login screen, which is the one
  * thing a wrong header must not be able to do.
+ *
+ * <p>A route that names {@link SessionUse#PASSIVE} is admitted on the session without keeping it
+ * alive; the marker is no permission and asks for none.
  *
  * <p>A route with no roles is public. It still takes the federation session of a signed partner
  * request and the session cookie when there is one, but refuses nobody.
@@ -104,7 +108,10 @@ public class AccessGate implements Handler {
         Station station = requestedStation(ctx);
         Cluster cluster = requestedCluster(ctx);
 
-        Optional<UserSession> sessionOpt = sessionGate.admit(ctx, token, station, cluster);
+        boolean passive = routeRoles.contains(SessionUse.PASSIVE);
+        Optional<UserSession> sessionOpt = passive
+                ? sessionGate.admitPassively(ctx, token, station, cluster)
+                : sessionGate.admit(ctx, token, station, cluster);
         if (sessionOpt.isEmpty()) {
             throw GeneralRefusal.SIGN_IN_SESSION_NOT_VALID.raise();
         }
@@ -112,15 +119,18 @@ public class AccessGate implements Handler {
         UserSession session = sessionOpt.get();
         ctx.attribute(ApiServer.ATTR_SESSION, session);
 
-        if (demoConfig.enabled()) {
+        if (demoConfig.enabled() && !passive) {
             demoService.recordActivity();
         }
 
-        if (routeRoles.size() == 1 && routeRoles.contains(StationPermission.LOGIN)) {
+        Set<RouteRole> required = routeRoles.stream()
+                .filter(role -> !(role instanceof SessionUse))
+                .collect(Collectors.toSet());
+        if (required.size() == 1 && required.contains(StationPermission.LOGIN)) {
             return;
         }
 
-        checkRoles(ctx, routeRoles, session);
+        checkRoles(ctx, required, session);
     }
 
     /**

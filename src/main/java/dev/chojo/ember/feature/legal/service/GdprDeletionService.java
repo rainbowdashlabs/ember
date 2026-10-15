@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.account.service.AvatarService;
 import dev.chojo.ember.feature.documents.service.DocumentService;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.service.MemberLookupService;
+import dev.chojo.ember.feature.messages.service.MessageErasure;
 import dev.chojo.ember.feature.signing.service.SignatureImageService;
 import dev.chojo.ember.tracking.DataTracking;
 import dev.chojo.ember.tracking.DataTrackingLoader;
@@ -49,6 +50,7 @@ public class GdprDeletionService {
     private final DocumentService documentService;
     private final SignatureImageService signatureImages;
     private final AccountReach accountReach;
+    private final MessageErasure messageErasure;
     private final GenericGdprDeleter engine;
 
     @Inject
@@ -59,7 +61,8 @@ public class GdprDeletionService {
             AvatarService avatarService,
             DocumentService documentService,
             SignatureImageService signatureImages,
-            AccountReach accountReach) {
+            AccountReach accountReach,
+            MessageErasure messageErasure) {
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.memberLookupService = memberLookupService;
@@ -67,6 +70,7 @@ public class GdprDeletionService {
         this.documentService = documentService;
         this.signatureImages = signatureImages;
         this.accountReach = accountReach;
+        this.messageErasure = messageErasure;
         DataTracking t;
         try {
             t = DataTrackingLoader.loadFromClasspath();
@@ -150,10 +154,11 @@ public class GdprDeletionService {
     /**
      * Runs the engine for the account and removes its avatar and signature picture. The engine deletes the
      * account row itself; the explicit delete afterwards is a safeguard against a missing strategy entry
-     * leaving it behind.
+     * leaving it behind. The account leaves its conversations first, so one nobody is left in goes too.
      */
     private void deleteAccountData(int accountId) {
         UUID accountUid = accountRepository.resolveUid(accountId);
+        messageErasure.forget(accountId);
         var report = engine.deleteByIdentity(IdentityType.ACCOUNT_ID, accountId);
         report.log(log);
         if (accountUid != null) {

@@ -2,7 +2,15 @@
 
 ## v26.23.0
 
-The sidebar shows one section at a time and stays short however many modules a station uses. Every section opens on its main page and lists all its pages, so nothing is reached only by clicking a section's name. The name at the top of the sidebar switches between stations, associations and the instance administration, each with the number of things waiting there. The header keeps the search and the account menu, and the help center joins the round buttons at the bottom right.
+The sidebar shows one section at a time and stays short however many modules a station uses. Every section opens on its main page and lists all its pages, so nothing is reached only by clicking a section's name. The name at the top of the sidebar switches between stations, associations and the instance administration, each with the number of things waiting there. The header keeps the search, messages and the account menu, and the help center joins the round buttons at the bottom right. People who share a station can write to each other directly or in groups, whichever station is chosen. New messages, changes and reactions appear without reloading the page, and a mail follows for what stays unread. Members with a guardian get messages only once a guardian turns them on.
+
+### New Features
+
+- **Messages between people of a station.** Everybody can write to the people they share a station with, directly or in groups of up to 25, from the messages button in the header. A conversation belongs to the people in it and looks the same whichever station is chosen.
+- **New messages arrive without reloading.** Messages, changes and reactions appear as they are written, and the header shows how many wait unread. A message can be answered, changed, deleted and reacted to with any standard emoji, and people in a group can be mentioned.
+- **A mail for messages left unread.** A message unread for 15 minutes sends one mail per conversation with its first lines, and no further one until it is read. The mail can be turned off in the message settings, and muted conversations send none.
+- **People can be blocked for messages.** A blocked person can no longer start a direct conversation with the blocker or add them to a group, and their messages in shared groups are folded away. They are not told.
+- **Guardians decide about messages.** A member with a guardian at any station has no messages until a guardian turns them on under Profile → Managed profiles. Turning them off again hides the conversations without deleting anything.
 
 ### Improvements
 
@@ -13,7 +21,7 @@ The sidebar shows one section at a time and stays short however many modules a s
 - **The sidebar shows one section at a time.** Opening a section replaces the list with that section and opens its first page, and "All sections" at the top leads back. A page opened by a link, a bookmark or the quick search shows the section it belongs to.
 - **Every section lists its main page.** The member list, the upcoming appointments, the own documents and the other pages a section's name used to open are the first entry of their section. A section left with a single page for a reader shows as that page.
 - **Places are switched from the sidebar.** With more than one station, an association or the instance administration, the name at the top of the sidebar opens a list of all of them with the number of things waiting in each. The station switcher and the administration, association and station buttons in the header are gone.
-- **The help center moved to the bottom right.** The help center opens from a round button next to the bug report, so the header keeps only the search and the account menu.
+- **The help center moved to the bottom right.** The help center opens from a round button next to the bug report, so the header keeps only the search, messages and the account menu.
 
 ### Fixes
 
