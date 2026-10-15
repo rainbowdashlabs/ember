@@ -90,17 +90,27 @@ public class WitnessedSigningService {
     }
 
     /**
-     * What a witness may collect from a person: the open fields of the person's documents that the
-     * person's side signs, and the templates a document can be generated from on the spot.
+     * A person of the witness's station the witness reaches, refused otherwise.
      *
      * @param session  the witness
      * @param memberId the person
+     * @return the person
+     */
+    public StationMember requireOwnedPerson(StationSession session, int memberId) {
+        reach.requireWitness(session);
+        return reach.requireReachable(session, memberId);
+    }
+
+    /**
+     * What a witness may collect from a person: the open fields of the person's documents that the
+     * person's side signs, and the templates a document can be generated from on the spot.
+     *
+     * @param session the witness
+     * @param person  the person, as {@link #requireOwnedPerson} answered it
      * @return the open fields and the templates
      */
-    public Offers offers(StationSession session, int memberId) {
-        reach.requireWitness(session);
-        reach.requireReachable(session, memberId);
-        var fields = requests.openAbout(session.stationId(), memberId).stream()
+    public Offers offers(StationSession session, StationMember person) {
+        var fields = requests.openAbout(session.stationId(), person.id()).stream()
                 .filter(pending -> reach.offers(session, pending.field()))
                 .map(pending -> witnessed(session, pending))
                 .toList();
@@ -120,14 +130,12 @@ public class WitnessedSigningService {
      * anybody, so they can be signed in front of the witness right away.
      *
      * @param session    the witness
-     * @param memberId   the person
+     * @param person     the person, as {@link #requireOwnedPerson} answered it
      * @param templateId the template
      * @return the fields the witness may collect on the new document
      */
-    public List<WitnessedField> generate(StationSession session, int memberId, int templateId) {
-        reach.requireWitness(session);
-        reach.requireReachable(session, memberId);
-        var generated = generation.generateForWitness(session, templateId, memberId);
+    public List<WitnessedField> generate(StationSession session, StationMember person, int templateId) {
+        var generated = generation.generateForWitness(session, templateId, person.id());
         var asked = requestService.requestForWitness(session.member().id(), generated.generationId());
         var request = asked.request();
         if (request == null) throw DocumentRefusal.SIGNING_NO_FIELDS.raise();
@@ -148,7 +156,7 @@ public class WitnessedSigningService {
      * @param fieldId the field
      * @return the field
      */
-    public WitnessedField field(StationSession session, int fieldId) {
+    public WitnessedField requireOwnedField(StationSession session, int fieldId) {
         reach.requireWitness(session);
         var pending = requests.findField(session.stationId(), fieldId)
                 .orElseThrow(DocumentRefusal.SIGNING_FIELD_NOT_FOUND::raise);
@@ -175,38 +183,38 @@ public class WitnessedSigningService {
      * The document of a field the witness may collect, exactly as its request froze it.
      *
      * @param session the witness
-     * @param fieldId the field
+     * @param field   the field, as {@link #requireOwnedField} answered it
      * @return the document's file name and bytes
      */
-    public DocumentToSign document(StationSession session, int fieldId) {
-        return acts.frozenDocument(session, field(session, fieldId).pending());
+    public DocumentToSign document(StationSession session, WitnessedField field) {
+        return acts.frozenDocument(session, field.pending());
     }
 
     /**
      * The fields the signer of a field the witness may collect fills in when they sign it.
      *
      * @param session the witness
-     * @param fieldId the field
+     * @param field   the field, as {@link #requireOwnedField} answered it
      * @return the fields to fill in, in the order the document lists them
      */
-    public List<FillInField> fillIns(StationSession session, int fieldId) {
-        return acts.fillInsOf(session, field(session, fieldId).pending());
+    public List<FillInField> fillIns(StationSession session, WitnessedField field) {
+        return acts.fillInsOf(session, field.pending());
     }
 
     /**
      * Starts the act of a person signing a field in front of the witness.
      *
      * @param session  the witness
-     * @param fieldId  the field
+     * @param field    the field, as {@link #requireOwnedField} answered it
      * @param signerId the person in front of them, one of those the field names
      * @param entries  what the person typed into fields of their own, or null for none
      * @return the started act
      */
     public BatchAttempt start(
-            StationSession session, int fieldId, int signerId, @Nullable List<SignerEntryDraft> entries) {
-        var field = field(session, fieldId);
+            StationSession session, WitnessedField field, int signerId, @Nullable List<SignerEntryDraft> entries) {
         reach.requireSigner(session, field.pending().field(), signerId);
         var open = new OpenSignature(field.pending(), Signer.witnessed(session.accountId(), signerId));
+        int fieldId = field.pending().field().id();
         return acts.start(session, List.of(open), List.of(new BatchChoice(fieldId, entries)));
     }
 

@@ -10,12 +10,16 @@ import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import {usePermissionTree, type PermissionGrant, type PermissionScope} from '@/composables/usePermissionTree'
 import {GROUP_ICONS} from '@/components/input/permissionpicker/groupIcons'
+import WitnessReachSetting from '@/components/input/permissionpicker/WitnessReachSetting.vue'
+import {StationPermission} from '@/api/generated/schema'
 
 /**
  * The permission tree, a group per top-level permission. A group's header opens and closes it
  * wherever it is pressed, which is a pointer's convenience; its name is the control a keyboard and a
- * screen reader reach, beside the switch that grants it.
+ * screen reader reach, beside the switch that grants it. The permission to collect signatures in person
+ * carries the station's audience for its witnesses right under it.
  */
+const WITNESS_PERMISSION = StationPermission.DOCUMENT_SIGN_OTHERS
 const props = defineProps<{
   allRoles: PermissionGrant[]
   modelValue: Set<number>
@@ -133,6 +137,7 @@ const {
               <div v-else-if="isImplicit(item.name)" class="text-[10px] text-primary italic mt-0.5">
                 {{ t('permissions.grantedBy', { name: grantedByLabel(item.name) }) }}
               </div>
+              <WitnessReachSetting v-if="item.name === WITNESS_PERMISSION && (scope ?? 'station') === 'station'"/>
             </div>
           </div>
         </div>

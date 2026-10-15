@@ -7,6 +7,7 @@ Unterschriften lassen sich vor Ort sammeln. Wer mit einem Tablet beim Übungsabe
 ### Neue Funktionen
 
 - **Unterschriften vor Ort sammeln.** Wer die neue Berechtigung „Unterschriften vor Ort sammeln“ hat, wählt ein Mitglied oder Probemitglied, öffnet eines seiner Dokumente oder erstellt eines aus einer Vorlage und gibt das Gerät zum Lesen, Zustimmen und Unterschreiben weiter. Bestätigt wird mit dem eigenen Konto, und Signaturnachweis und Prüfseite nennen die Zeugin oder den Zeugen neben der Person, die unterschrieben hat.
+- **Eingrenzen, von wem gesammelt wird.** Direkt unter der Berechtigung lässt sich festlegen, von welchen Mitgliedern und Probemitgliedern vor Ort gesammelt werden darf, etwa nur von Probemitgliedern oder von einer Gruppe. Ohne Auswahl gilt das für alle.
 
 ## v26.22.4
 

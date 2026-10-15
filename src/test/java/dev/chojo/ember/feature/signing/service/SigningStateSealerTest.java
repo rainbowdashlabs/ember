@@ -177,7 +177,7 @@ class SigningStateSealerTest extends RepositoryTestBase {
                 memberNameResolver,
                 mock(SignatureNotices.class),
                 completed -> {},
-                new WitnessReach(stationMemberRepo));
+                new WitnessReach(stationMemberRepo, restrictionService));
         copies = TestNotices.copies(emailQueueRepo, stationRepo, stationMemberRepo, accountRepo);
         stationKeys = new StationSigningKeys(keyRepo, new SigningCertificates(), wrap, stationRepo, BASE_URL);
         loginPermission = stationMemberRepo

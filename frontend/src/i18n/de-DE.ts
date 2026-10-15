@@ -4040,6 +4040,11 @@ export default {
             label: 'Unterschriften vor Ort sammeln',
             desc: 'Kann als Zeugin oder Zeuge Unterschriften von Mitgliedern und Probemitgliedern auf dem eigenen Gerät sammeln und mit dem eigenen Konto bestätigen. Liest dabei nur das Dokument, das gerade unterschrieben wird.',
         },
+        witnessReach: {
+            toggle: 'Von wem gesammelt werden darf',
+            everybody: 'Ohne Auswahl sammeln Zeuginnen und Zeugen von allen Mitgliedern und Probemitgliedern der Wache.',
+            narrowed: 'Zeuginnen und Zeugen sammeln nur von den Mitgliedern und Probemitgliedern, die zu dieser Auswahl passen.',
+        },
         MEMBER_READ: {
             label: 'Mitglieder einsehen',
             desc: 'Kann die Daten aller Mitglieder einsehen.',

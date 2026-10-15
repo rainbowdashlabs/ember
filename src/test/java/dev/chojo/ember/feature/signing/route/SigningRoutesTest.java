@@ -47,6 +47,7 @@ import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.passkey.service.PasskeyService;
 import dev.chojo.ember.feature.passkey.service.TestAuthenticator;
+import dev.chojo.ember.feature.restriction.RestrictionAudience;
 import dev.chojo.ember.feature.restriction.RestrictionMode;
 import dev.chojo.ember.feature.signing.entity.ActPictureSource;
 import dev.chojo.ember.feature.signing.entity.FieldState;
@@ -83,6 +84,7 @@ import dev.chojo.ember.feature.signing.service.TestKeyStamps;
 import dev.chojo.ember.feature.signing.service.TestSealing;
 import dev.chojo.ember.feature.signing.service.TestSignatures;
 import dev.chojo.ember.feature.signing.service.WitnessReach;
+import dev.chojo.ember.feature.signing.service.WitnessReachSettings;
 import dev.chojo.ember.feature.signing.service.WitnessedSigningService;
 import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
@@ -249,7 +251,7 @@ class SigningRoutesTest extends RepositoryTestBase {
                 memberNameResolver,
                 mock(SignatureNotices.class),
                 completed -> {},
-                new WitnessReach(stationMemberRepo));
+                new WitnessReach(stationMemberRepo, restrictionService));
 
         var settings = new WebAuthnSettings();
         RelyingParties parties = relyingParties(settings);
@@ -322,7 +324,7 @@ class SigningRoutesTest extends RepositoryTestBase {
     private static RouteHarness serving(SigningActService signingActs) {
         var limiter = new AuthRateLimiter(Clock.systemUTC());
         var witnessed = new WitnessedSigningService(
-                new WitnessReach(stationMemberRepo),
+                new WitnessReach(stationMemberRepo, restrictionService),
                 requestRepo,
                 requests,
                 signingActs,
@@ -331,7 +333,8 @@ class SigningRoutesTest extends RepositoryTestBase {
         return RouteHarness.serving(
                         new SigningRoutes(signingActs, requests, limiter),
                         new SigningBatchRoutes(signingActs, limiter),
-                        new WitnessedSigningRoutes(witnessed, limiter))
+                        new WitnessedSigningRoutes(witnessed, limiter),
+                        new WitnessReachRoutes(new WitnessReachSettings(restrictionService)))
                 .withStations(stationRepo);
     }
 
@@ -725,6 +728,59 @@ class SigningRoutesTest extends RepositoryTestBase {
 
         var request = requestRepo.findLiveFor(generation.id()).orElseThrow();
         assertEquals(witness.id(), request.createdBy());
+    }
+
+    /**
+     * Without an audience a witness reaches every member and trial user; once the station sets one next to
+     * the permission, only those it names, and somebody outside it is refused as out of reach. The audience
+     * is read by whoever reads members and set only by whoever manages them.
+     */
+    @Test
+    void theStationsAudienceNarrowsWhomAWitnessReaches() throws IOException {
+        var witness = witness("Wibke", "Reichweite");
+        var trial = member("Tara", "Reichweite", false);
+        stationMemberRepo.setUserType(trial.id(), StationUserType.TRIAL);
+        var plain = member("Paul", "Reichweite", false);
+        var plainRequest = ask(plain, SignatureRole.PARTICIPANT);
+        var settings = new WitnessReachSettings(restrictionService);
+        var trialsOnly = new RestrictionAudience(
+                List.of(StationUserType.TRIAL), List.of(), List.of(), List.of(), RestrictionMode.AND);
+        try {
+            harness.run((server, client) -> {
+                var everybody = memberIds(accepted(client.get(PREFIX + "/signing/witness/people", asWitness(witness))));
+                assertTrue(everybody.containsAll(List.of(trial.id(), plain.id())), "no audience narrows nothing");
+            });
+
+            settings.setAudience(stationSession(manager, StationPermission.MEMBER_MANAGER), trialsOnly);
+
+            harness.run((server, client) -> {
+                var reached = memberIds(accepted(client.get(PREFIX + "/signing/witness/people", asWitness(witness))));
+                assertTrue(reached.contains(trial.id()), "a trial user is in the audience");
+                assertFalse(reached.contains(plain.id()), "a member is outside it");
+                accepted(client.get(offersPath(trial), asWitness(witness)));
+                assertRefused(
+                        DocumentRefusal.SIGNING_WITNESS_OUT_OF_REACH,
+                        client.get(offersPath(plain), asWitness(witness)));
+                assertRefused(
+                        DocumentRefusal.SIGNING_WITNESS_OUT_OF_REACH,
+                        client.get(witnessPath(fieldOf(plainRequest)), asWitness(witness)));
+                JsonNode audience = accepted(client.get(
+                        PREFIX + "/signing/witness/reach",
+                        harness.as(signedIn(manager, StationPermission.MEMBER_READ))));
+                assertEquals(List.of("TRIAL"), texts(audience.path("userTypes")));
+                assertEquals(
+                        403,
+                        client.put(
+                                        PREFIX + "/signing/witness/reach",
+                                        body("{\"userTypes\":[],\"mode\":\"AND\"}"),
+                                        harness.as(signedIn(witness, StationPermission.MEMBER_READ)))
+                                .code());
+            });
+        } finally {
+            settings.setAudience(
+                    stationSession(manager, StationPermission.MEMBER_MANAGER), RestrictionAudience.empty());
+        }
+        assertTrue(settings.audience(stationSession(manager)).namesNobody());
     }
 
     private static StationMember witness(String first, String last) {

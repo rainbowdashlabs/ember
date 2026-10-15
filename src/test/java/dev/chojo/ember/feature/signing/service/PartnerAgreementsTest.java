@@ -327,7 +327,7 @@ class PartnerAgreementsTest extends GeneratorTestBase {
                 memberNameResolver,
                 notices,
                 completed -> {},
-                new WitnessReach(stationMemberRepo));
+                new WitnessReach(stationMemberRepo, restrictionService));
         deliveries = new PartnerDeliveries(
                 linkRepo,
                 requestRepo,

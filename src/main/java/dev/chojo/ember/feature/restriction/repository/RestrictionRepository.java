@@ -75,6 +75,19 @@ public class RestrictionRepository {
     }
 
     /**
+     * Stores how the restrictions of an entity combine, on the owning entity.
+     *
+     * @param type     the restricted entity type
+     * @param entityId the entity
+     * @param mode     how its restrictions combine
+     */
+    public void setMode(RestrictionType type, int entityId, RestrictionMode mode) {
+        query("UPDATE %s SET %s = :mode WHERE %s = :id;", type.entityTable(), type.modeColumn(), type.entityIdColumn())
+                .single(call().bind("mode", mode.name()).bind("id", entityId))
+                .update();
+    }
+
+    /**
      * The current members of a station who pass the restrictions of an entity, decided per member by
      * the same {@code check_restriction} database function as {@link #matches}, with no manager
      * bypass.

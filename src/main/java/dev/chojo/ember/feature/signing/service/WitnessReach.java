@@ -11,6 +11,9 @@ import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.api.refusal.DocumentRefusal;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.restriction.RestrictionAudience;
+import dev.chojo.ember.feature.restriction.RestrictionType;
+import dev.chojo.ember.feature.restriction.service.RestrictionService;
 import dev.chojo.ember.feature.signing.entity.FieldRole;
 import dev.chojo.ember.feature.signing.entity.RequestedSignature;
 import jakarta.inject.Inject;
@@ -24,8 +27,10 @@ import java.util.Set;
  * Whom a witness may collect signatures from, and on which fields.
  *
  * <p>A witness holds {@link StationPermission#DOCUMENT_SIGN_OTHERS}. They reach the members and trial
- * users of their own station who are still there, never themselves. A document is collected for the
- * person it is about, so that person decides the reach, also where a guardian of theirs signs.
+ * users of their own station who are still there, never themselves. A station may narrow that by one
+ * audience of its own, set next to the permission ({@link RestrictionType#WITNESS_REACH}); without one the
+ * witnesses reach all of them. A document is collected for the person it is about, so that person decides
+ * the reach, also where a guardian of theirs signs.
  *
  * <p>The fields a witness collects are the member's own and their guardians', never the issuer's, which
  * keeps its own consent rule. Nobody witnesses a field they would sign themselves: their own, the guardian
@@ -40,10 +45,12 @@ public class WitnessReach {
     private static final Set<StationUserType> REACHED = Set.of(StationUserType.MEMBER, StationUserType.TRIAL);
 
     private final StationMemberRepository members;
+    private final RestrictionService restrictions;
 
     @Inject
-    public WitnessReach(StationMemberRepository members) {
+    public WitnessReach(StationMemberRepository members, RestrictionService restrictions) {
         this.members = members;
+        this.restrictions = restrictions;
     }
 
     /**
@@ -65,11 +72,10 @@ public class WitnessReach {
      * @return whether they may collect signatures for them
      */
     public boolean reaches(StationSession session, StationMember member) {
-        // TODO: narrow by the optional audience on the permission grant
-        return member.stationId() == session.stationId()
-                && !member.former()
-                && REACHED.contains(member.userType())
-                && member.id() != session.member().id();
+        if (!withinStation(session, member)) return false;
+        var audience = audienceOf(session);
+        if (audience.namesNobody()) return true;
+        return restrictions.memberOf(member.id()).map(audience::includes).orElse(false);
     }
 
     /**
@@ -79,9 +85,38 @@ public class WitnessReach {
      * @return the members, current ones only
      */
     public List<StationMember> reachable(StationSession session) {
-        return members.findByStation(session.stationId()).stream()
-                .filter(member -> reaches(session, member))
+        var candidates = members.findByStation(session.stationId()).stream()
+                .filter(member -> withinStation(session, member))
                 .toList();
+        var audience = audienceOf(session);
+        if (audience.namesNobody()) return candidates;
+        var identities = restrictions.membersOf(
+                candidates.stream().map(StationMember::id).toList());
+        return candidates.stream()
+                .filter(member -> {
+                    var identity = identities.get(member.id());
+                    return identity != null && audience.includes(identity);
+                })
+                .toList();
+    }
+
+    /**
+     * Whom the station's witnesses reach beyond the rule that holds for all of them, as the station set
+     * it next to the permission; an audience naming nobody narrows nothing.
+     *
+     * @param session the witness
+     * @return the audience of the witness's station
+     */
+    private RestrictionAudience audienceOf(StationSession session) {
+        return restrictions.audienceOf(RestrictionType.WITNESS_REACH, session.stationId());
+    }
+
+    /** The rule for every witness: a current member or trial user of their station, never themselves. */
+    private static boolean withinStation(StationSession session, StationMember member) {
+        return member.stationId() == session.stationId()
+                && !member.former()
+                && REACHED.contains(member.userType())
+                && member.id() != session.member().id();
     }
 
     /**

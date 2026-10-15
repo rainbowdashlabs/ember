@@ -8,12 +8,31 @@ import type {
     BatchCompleteResponse,
     BatchStartResponse,
     FillInResponse,
+    RestrictionAudience,
     SignerEntryDraft,
     WitnessFieldResponse,
     WitnessOffersResponse,
     WitnessPersonResponse,
 } from '@/api/generated/schema'
+import type {RestrictionSelection} from '@/api/types'
 import client from './client'
+
+/** Whom the station's witnesses are narrowed to, naming nobody where every member and trial user is reached. */
+export async function getWitnessReach(): Promise<RestrictionAudience> {
+    const res = await client.get<RestrictionAudience>('/signing/witness/reach')
+    return res.data
+}
+
+/**
+ * Narrows whom the station's witnesses may collect signatures from. An audience naming nobody lets them
+ * reach every member and trial user again.
+ *
+ * @param audience the audience
+ */
+export async function setWitnessReach(audience: RestrictionSelection): Promise<RestrictionAudience> {
+    const res = await client.put<RestrictionAudience>('/signing/witness/reach', audience)
+    return res.data
+}
 
 /** The people the reader may collect signatures from in person, by name. */
 export async function getWitnessPeople(): Promise<WitnessPersonResponse[]> {

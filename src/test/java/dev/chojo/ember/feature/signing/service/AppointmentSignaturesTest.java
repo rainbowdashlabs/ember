@@ -169,7 +169,7 @@ class AppointmentSignaturesTest extends GeneratorTestBase {
                 memberNameResolver,
                 notices,
                 completed -> attendance.completed(completed),
-                new WitnessReach(stationMemberRepo));
+                new WitnessReach(stationMemberRepo, restrictionService));
 
         var requirementRepo = new EventRequirementRepository();
         var submissions = new PaperSubmissionRepository();

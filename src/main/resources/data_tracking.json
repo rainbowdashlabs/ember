@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:6e0aeee49b8124d62f03baae57742c5c4cc7e1fa55044900a1df4f8c41222f93",
-  "generatedAt": "2026-10-15T20:04:46Z",
+  "schemaHash": "sha256:420f8e00835a3d3c9ee2b147e3527a575326d786b65f138c186fd676061a35ab",
+  "generatedAt": "2026-10-15T21:13:03Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -25465,7 +25465,7 @@
     "station": {
       "feature": "station",
       "scope": "STATION",
-      "tableHash": "sha256:88f8679a2388db8526e32c3d812d66b2c19a79cbecf82e519e901f656e9fd94e",
+      "tableHash": "sha256:b9d25b16ef3619615ad19471081af5b3038edbe8b395c59195b41221c8f2095b",
       "columns": [
         {
           "name": "id",
@@ -25850,6 +25850,13 @@
           "nullable": true,
           "verified": true,
           "description": "The address of the installation the station moved to, as the destination named itself. Null while the station runs here, and where the destination named no address."
+        },
+        {
+          "name": "witness_reach_mode",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "AND or OR, how the parts of witness_reach_restriction combine."
         }
       ],
       "foreignKeys": [
@@ -30056,6 +30063,94 @@
         "reason": "Time-limited token, cascade-deleted via account(id) foreign key"
       },
       "description": "Pending WebAuthn challenges, single use, short lived. Replaces the account_token rows the two-factor ceremonies used, and additionally carries ceremonies that do not know the account yet."
+    },
+    "witness_reach_restriction": {
+      "feature": "signing",
+      "scope": "STATION",
+      "tableHash": "sha256:74b5113e9ac1647b12177525332cec449b58d6fa9a3de4c346b5ad3ba44ce045",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Auto-generated primary key."
+        },
+        {
+          "name": "station_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The station whose witnesses the audience narrows."
+        },
+        {
+          "name": "user_type",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "Required user type. Exactly one of user_type/group_id/tag_id/member_id must be set."
+        },
+        {
+          "name": "group_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "Required group membership."
+        },
+        {
+          "name": "tag_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "Required tag."
+        },
+        {
+          "name": "member_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "Specific member (always OR-connected, bypasses AND/OR mode)."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "group_id",
+          "refTable": "member_group",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "member_id",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "station_id",
+          "refTable": "station",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "tag_id",
+          "refTable": "user_tag",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "A setting of the station's own witnesses, which the station sets again after a move; without it they reach every member and trial user"
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Station configuration, not per-member data"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Station configuration, not per-member data; a member named in it goes with the member by cascade"
+      },
+      "description": "Whom the holders of DOCUMENT_SIGN_OTHERS at a station may collect signatures from in person, among its current members and trial users. Empty means all of them. Shaped like event_restriction."
     }
   },
   "fileStores": {

@@ -181,7 +181,7 @@ class SignatureRequestServiceTest extends RepositoryTestBase {
                 memberNameResolver,
                 notices,
                 completed -> {},
-                new WitnessReach(stationMemberRepo));
+                new WitnessReach(stationMemberRepo, restrictionService));
         management =
                 new SignatureManagementService(requests, fields, requestRepo, evidenceRepo, memberDocumentRepo, guards);
         summaries = new SignatureSummaries(requestRepo);

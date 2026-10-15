@@ -1231,6 +1231,8 @@ volumes:
             who: 'Wer darf das?',
             whoText: 'Du brauchst die Berechtigung „Unterschriften vor Ort sammeln“. Du sammelst Unterschriften von Mitgliedern und Probemitgliedern deiner Wache. '
                 + 'Deine eigene Unterschrift und Felder, die du selbst unterschreiben würdest, kannst du nicht bezeugen.',
+            reachText: 'Die Wache kann eingrenzen, von wem gesammelt werden darf, zum Beispiel nur von Probemitgliedern oder von einer Gruppe. '
+                + 'Das stellt ein, wer Mitglieder verwaltet: in den Berechtigungen direkt unter „Unterschriften vor Ort sammeln“. Die Auswahl gilt für alle, die die Berechtigung haben. Ohne Auswahl geht es bei allen Mitgliedern und Probemitgliedern.',
             steps: 'Die Schritte',
             stepPerson: '1. Person wählen - Such die Person, die unterschreiben soll.',
             stepDocument: '2. Dokument wählen - Du siehst die offenen Unterschriften dieser Person. Oder du erstellst ein neues Dokument aus einer Vorlage, das gleich unterschrieben wird. Darf jede erziehungsberechtigte Person unterschreiben, wählst du, wer gerade da ist.',

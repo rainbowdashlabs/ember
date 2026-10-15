@@ -62,7 +62,18 @@ public enum RestrictionType {
             "document_template_station_use",
             "id",
             "restriction_mode",
-            StationPermission.DOCUMENT_TEMPLATE_EDIT);
+            StationPermission.DOCUMENT_TEMPLATE_EDIT),
+    /**
+     * Whom the witnesses of a station reach, one audience per station. Its manager permission is the one
+     * that sets it; it never lets a person through, since the audience is about whom a witness picks.
+     */
+    WITNESS_REACH(
+            "witness_reach_restriction",
+            "station_id",
+            "station",
+            "id",
+            "witness_reach_mode",
+            StationPermission.MEMBER_MANAGER);
 
     private final String table;
     private final String fkColumn;

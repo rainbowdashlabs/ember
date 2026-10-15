@@ -7,6 +7,7 @@ Signatures can be collected in person. A trainer with a tablet takes the signatu
 ### New Features
 
 - **Signatures collected in person.** A member with the new permission "Collect signatures in person" picks a member or trial user, opens one of their documents or makes one from a template on the spot, and hands the device over to read, agree and draw. The witness confirms with their own account, and the signature record and the verification page name the witness beside the person who signed.
+- **Whom witnesses reach can be narrowed.** Right under the permission, a station can limit its witnesses to some of its members and trial users, for example to trial users or one group. Without a choice they reach all of them.
 
 ## v26.22.4
 

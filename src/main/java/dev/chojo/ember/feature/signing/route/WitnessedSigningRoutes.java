@@ -105,7 +105,8 @@ public class WitnessedSigningRoutes implements Routes {
             })
     private void offers(Context ctx) {
         var session = StationSession.from(ctx);
-        var offers = witnessed.offers(session, pathInt(ctx, "memberId"));
+        var person = witnessed.requireOwnedPerson(session, pathInt(ctx, "memberId"));
+        var offers = witnessed.offers(session, person);
         ctx.json(new WitnessOffersResponse(
                 offers.fields().stream().map(WitnessFieldResponse::of).toList(),
                 offers.templates().stream().map(WitnessTemplateResponse::of).toList()));
@@ -128,7 +129,8 @@ public class WitnessedSigningRoutes implements Routes {
             })
     private void generate(Context ctx) {
         var session = StationSession.from(ctx);
-        ctx.json(witnessed.generate(session, pathInt(ctx, "memberId"), pathInt(ctx, "templateId")).stream()
+        var person = witnessed.requireOwnedPerson(session, pathInt(ctx, "memberId"));
+        ctx.json(witnessed.generate(session, person, pathInt(ctx, "templateId")).stream()
                 .map(WitnessFieldResponse::of)
                 .toList());
     }
@@ -147,7 +149,7 @@ public class WitnessedSigningRoutes implements Routes {
             })
     private void field(Context ctx) {
         var session = StationSession.from(ctx);
-        ctx.json(WitnessFieldResponse.of(witnessed.field(session, pathInt(ctx, "fieldId"))));
+        ctx.json(WitnessFieldResponse.of(witnessed.requireOwnedField(session, pathInt(ctx, "fieldId"))));
     }
 
     @OpenApi(
@@ -164,7 +166,7 @@ public class WitnessedSigningRoutes implements Routes {
             })
     private void document(Context ctx) {
         var session = StationSession.from(ctx);
-        var document = witnessed.document(session, pathInt(ctx, "fieldId"));
+        var document = witnessed.document(session, witnessed.requireOwnedField(session, pathInt(ctx, "fieldId")));
         FileResponse.send(ctx, PDF, document.fileName(), document.pdf());
     }
 
@@ -182,7 +184,8 @@ public class WitnessedSigningRoutes implements Routes {
             })
     private void fillIns(Context ctx) {
         var session = StationSession.from(ctx);
-        ctx.json(witnessed.fillIns(session, pathInt(ctx, "fieldId")).stream()
+        var field = witnessed.requireOwnedField(session, pathInt(ctx, "fieldId"));
+        ctx.json(witnessed.fillIns(session, field).stream()
                 .map(FillInResponse::of)
                 .toList());
     }
@@ -203,10 +206,11 @@ public class WitnessedSigningRoutes implements Routes {
             })
     private void start(Context ctx) {
         var session = StationSession.from(ctx);
+        var field = witnessed.requireOwnedField(session, pathInt(ctx, "fieldId"));
         var body = ctx.bodyAsClass(WitnessStartRequest.class);
         Integer signerId = body.signerId();
         if (signerId == null) throw DocumentRefusal.SIGNING_WITNESS_SIGNER_NOT_NAMED.raise();
-        ctx.json(BatchStartResponse.of(witnessed.start(session, pathInt(ctx, "fieldId"), signerId, body.entries())));
+        ctx.json(BatchStartResponse.of(witnessed.start(session, field, signerId, body.entries())));
     }
 
     @OpenApi(

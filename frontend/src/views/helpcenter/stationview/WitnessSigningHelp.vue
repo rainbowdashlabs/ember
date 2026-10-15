@@ -26,6 +26,7 @@ const {t} = useI18n()
 
     <HelpSection :title="t('helpCenter.witnessSigning.who')">
       <p>{{ t('helpCenter.witnessSigning.whoText') }}</p>
+      <p>{{ t('helpCenter.witnessSigning.reachText') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.witnessSigning.steps')">
