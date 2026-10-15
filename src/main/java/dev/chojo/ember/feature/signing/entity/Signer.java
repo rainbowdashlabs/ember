@@ -11,13 +11,14 @@ import org.jspecify.annotations.Nullable;
  * Who signs, and through whose account.
  *
  * <p>The account is always the one whose step-up confirms the act. A member is named when the signature
- * concerns somebody else than the account holder: the member a guardian signs for, or the member who
- * signs their own field through the account.
+ * concerns somebody else than the account holder: the member a guardian signs for, the member who
+ * signs their own field through the account, or the person who signs in front of the witness whose
+ * account it is.
  *
  * @param capacity  in what capacity the signature is given
  * @param accountId the account whose step-up confirms the act
- * @param memberId  the member the guardian signs for or who signs through the account, null exactly
- *                  when the account holder signs for themselves
+ * @param memberId  the member the guardian signs for, who signs through the account or who signs in
+ *                  front of the witness, null exactly when the account holder signs for themselves
  */
 public record Signer(
         SignerCapacity capacity, int accountId, @Nullable Integer memberId) {
@@ -55,8 +56,25 @@ public record Signer(
         return new Signer(SignerCapacity.MEMBER_THROUGH_ACCOUNT, accountId, memberId);
     }
 
-    /** @return whether the person signing used an account that is not their own */
+    /**
+     * @param witnessAccountId the witness's account, whose step-up confirms
+     * @param memberId         the person who signs in front of them
+     * @return a person signing in front of a witness
+     */
+    public static Signer witnessed(int witnessAccountId, int memberId) {
+        return new Signer(SignerCapacity.WITNESSED, witnessAccountId, memberId);
+    }
+
+    /**
+     * @return whether the person signing used an account that is not their own: a member through a
+     *         guardian's, or anybody in front of a witness
+     */
     public boolean throughAnotherAccount() {
-        return capacity == SignerCapacity.MEMBER_THROUGH_ACCOUNT;
+        return capacity == SignerCapacity.MEMBER_THROUGH_ACCOUNT || capacity == SignerCapacity.WITNESSED;
+    }
+
+    /** @return whether the account is a witness's, before whom the member signed */
+    public boolean witnessed() {
+        return capacity == SignerCapacity.WITNESSED;
     }
 }

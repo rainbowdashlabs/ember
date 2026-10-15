@@ -1222,6 +1222,31 @@ volumes:
                 + 'Die Vorschau eines Dokuments ist ein Bild, deshalb gibt es daneben Speichern und Öffnen im PDF-Betrachter, wo ein Screenreader den Text vorlesen kann.',
             tip: 'Die Bestätigung bleibt fünf Minuten gültig. Dauert es länger oder war ein Code falsch, gibst du sie einfach noch einmal ein.',
         },
+        witnessSigning: {
+            title: 'Unterschriften vor Ort',
+            subtitle: 'Andere unterschreiben auf deinem Gerät, du bestätigst als Zeugin oder Zeuge.',
+            whatIs: 'Wofür ist das?',
+            whatIsText: 'Viele Probemitglieder und Kinder haben kein eigenes Konto. Mit dieser Seite sammelst du ihre Unterschriften direkt vor Ort, etwa die Fotoerlaubnis am Übungsabend. '
+                + 'Die Person unterschreibt auf deinem Tablet oder Handy. Danach bestätigst du mit deinem eigenen Konto, dass sie vor dir unterschrieben hat.',
+            who: 'Wer darf das?',
+            whoText: 'Du brauchst die Berechtigung „Unterschriften vor Ort sammeln“. Du sammelst Unterschriften von Mitgliedern und Probemitgliedern deiner Wache. '
+                + 'Deine eigene Unterschrift und Felder, die du selbst unterschreiben würdest, kannst du nicht bezeugen.',
+            reachText: 'Die Wache kann eingrenzen, von wem gesammelt werden darf, zum Beispiel nur von Probemitgliedern oder von einer Gruppe. '
+                + 'Das stellt ein, wer Mitglieder verwaltet: in den Berechtigungen direkt unter „Unterschriften vor Ort sammeln“. Die Auswahl gilt für alle, die die Berechtigung haben. Ohne Auswahl geht es bei allen Mitgliedern und Probemitgliedern.',
+            steps: 'Die Schritte',
+            stepPerson: '1. Person wählen - Such die Person, die unterschreiben soll.',
+            stepDocument: '2. Dokument wählen - Du siehst die offenen Unterschriften dieser Person. Oder du erstellst ein neues Dokument aus einer Vorlage, das gleich unterschrieben wird. Darf jede erziehungsberechtigte Person unterschreiben, wählst du, wer gerade da ist.',
+            stepHandOver: '3. Gerät übergeben - Gib das Gerät der Person. Sie liest das Dokument, setzt den Haken, trägt ein, was das Dokument fragt, und zeichnet ihre Unterschrift. Ihr Name steht unter dem Feld.',
+            stepTakeBack: '4. Zurücknehmen und bestätigen - Die Person gibt dir das Gerät zurück. Du bestätigst mit deinem Passkey, deinem Code oder deinem Passwort, dass sie vor dir unterschrieben hat.',
+            handedOver: 'Solange die Person das Gerät hat, sieht sie nur das Dokument. Menü, Suche und deine eigenen Daten sind gesperrt, bis du das Gerät zurück hast. Möchte die Person nicht unterschreiben, gibt sie das Gerät einfach zurück.',
+            where: 'Wo landet das Dokument?',
+            whereText: 'Das unterschriebene Dokument liegt nur bei der Person, die unterschrieben hat, und bei ihren Erziehungsberechtigten. Die Kopie per E-Mail geht an sie, nicht an dich. In deinen eigenen Dokumenten taucht es nicht auf.',
+            evidence: 'Was steht im Nachweis?',
+            evidenceText: 'Der Signaturnachweis nennt die Person als die, die unterschrieben hat, und dich als Zeugin oder Zeuge mit deiner Bestätigung. Auch die Prüfseite für Dokumente zeigt das so an.',
+            fromTile: 'Vom Dokument aus',
+            fromTileText: 'Bei einem Dokument mit offener Unterschrift steht unter dem Feld „Vor Ort unterschreiben lassen“. Damit kommst du direkt zum Übergeben.',
+            tip: 'Halte das Gerät erst zurück, wenn die Person fertig ist. Deine Bestätigung bleibt fünf Minuten gültig.',
+        },
         newsList: {
             federatedTitle: 'Neuigkeiten von Partnerwachen',
         },

@@ -646,6 +646,34 @@ public class SignatureRequestRepository {
     }
 
     /**
+     * The open fields of the documents about a member that somebody of the member's side signs: the
+     * member's own and those of their guardians, never the issuer's. A field of a copy whose signed scan
+     * waits for a manager is left out, as it is asked of nobody meanwhile.
+     *
+     * @param stationId the station
+     * @param memberId  the member the documents are about
+     * @return the fields, oldest request first
+     */
+    public List<PendingSignature> openAbout(int stationId, int memberId) {
+        return query("""
+                        SELECT %s, r.uid AS request_uid, r.document_id, r.member_name AS request_member_name,
+                               d.title AS document_title
+                        FROM signing_request_field f
+                                 JOIN signing_request r ON r.id = f.request_id
+                                 LEFT JOIN member_document d ON d.id = r.document_id
+                        WHERE r.station_id = :station_id
+                          AND r.member_id = :member_id
+                          AND r.state = 'OPEN'
+                          AND f.state = 'OPEN'
+                          AND f.role <> 'ISSUER'
+                          AND NOT %s
+                        ORDER BY r.created_at, r.id, f.id;""", SqlSupport.alias("f", RequestedSignature.COLUMNS), SCAN_WAITS)
+                .single(call().bind("station_id", stationId).bind("member_id", memberId))
+                .map(PendingSignature.map())
+                .all();
+    }
+
+    /**
      * Whether a request is on a participant's copy whose signed scan waits for a manager, so its open
      * fields are asked of nobody meanwhile.
      *

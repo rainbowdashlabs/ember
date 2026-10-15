@@ -22,6 +22,7 @@ import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.restriction.RestrictionSet;
 import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.restriction.repository.RestrictionRepository;
+import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -33,6 +34,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -92,6 +94,35 @@ public class RestrictionService {
      */
     public RestrictionSet findRestrictionSet(RestrictionType type, int entityId, RestrictionMode mode) {
         return new RestrictionSet(restrictionRepository.findRestrictions(type, entityId), mode);
+    }
+
+    /**
+     * The audience the restrictions of an entity form, combined as the owning entity stores it.
+     *
+     * @param type     the restricted entity type
+     * @param entityId the entity
+     * @return the audience; one naming nobody where the entity carries no restriction
+     */
+    public RestrictionAudience audienceOf(RestrictionType type, int entityId) {
+        return RestrictionAudience.of(
+                findRestrictionSet(type, entityId, restrictionRepository.findMode(type, entityId)));
+    }
+
+    /**
+     * Replaces the restrictions of an entity and how they combine, both or neither. A private tag is
+     * refused as {@link #setRestrictions} refuses it.
+     *
+     * @param type     the restricted entity type
+     * @param entityId the entity
+     * @param audience the audience; one naming nobody clears it
+     */
+    public void setAudience(RestrictionType type, int entityId, RestrictionAudience audience) {
+        var selection = audience.toSelection();
+        var mode = Objects.requireNonNullElse(selection.mode(), RestrictionMode.AND);
+        Transactions.run(() -> {
+            setRestrictions(type, entityId, selection);
+            restrictionRepository.setMode(type, entityId, mode);
+        });
     }
 
     /**

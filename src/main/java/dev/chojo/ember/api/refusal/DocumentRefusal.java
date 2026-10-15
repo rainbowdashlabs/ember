@@ -710,7 +710,21 @@ public enum DocumentRefusal implements Refusal {
     SIGNING_PICTURE_TWICE(304, HttpStatus.BAD_REQUEST, "Two signature pictures were sent for one person"),
 
     /** The signature record asked for a sealed version that carries no evidence of signatures. */
-    SIGNATURE_RECORD_NONE(305, HttpStatus.NOT_FOUND, "This version carries no record of signatures");
+    SIGNATURE_RECORD_NONE(305, HttpStatus.NOT_FOUND, "This version carries no record of signatures"),
+
+    /** A witness collecting their own signature, or a field they would sign themselves. */
+    SIGNING_WITNESS_SELF(
+            306, HttpStatus.FORBIDDEN, "Nobody witnesses their own signature or a field they would sign themselves"),
+
+    /** A signature collected in person from somebody the witness does not reach. */
+    SIGNING_WITNESS_OUT_OF_REACH(
+            307, HttpStatus.FORBIDDEN, "Signatures of this person are not collected in person by you"),
+
+    /** A field collected in person that is never signed in front of a witness, such as the issuer's. */
+    SIGNING_WITNESS_FIELD_NOT_OFFERED(308, HttpStatus.FORBIDDEN, "This field is not signed in front of a witness"),
+
+    /** A person picked to sign in front of a witness whom the field does not name. */
+    SIGNING_WITNESS_SIGNER_NOT_NAMED(309, HttpStatus.BAD_REQUEST, "This field does not ask this person to sign");
 
     private final Definition definition;
 

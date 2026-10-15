@@ -45,6 +45,7 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -120,6 +121,22 @@ public class DocumentTemplateService {
                         template.selfService() && offeredAt(used.get(template.id())),
                         lastUsed.get(template.id())));
         return Stream.concat(own, association).toList();
+    }
+
+    /**
+     * The templates a station generates from: its own in use and those of its association in use, as
+     * {@link #list} names them, by name.
+     *
+     * @param station the station
+     * @return the templates
+     */
+    public List<DocumentTemplate> inUse(Owner.Station station) {
+        return Stream.concat(
+                        templates.findByOwner(station, false).stream(),
+                        templates.findOfAssociationOf(station.stationId()).stream())
+                .filter(template -> !template.archived())
+                .sorted(Comparator.comparing(DocumentTemplate::name, String.CASE_INSENSITIVE_ORDER))
+                .toList();
     }
 
     private static boolean offeredAt(@Nullable TemplateStationUse use) {

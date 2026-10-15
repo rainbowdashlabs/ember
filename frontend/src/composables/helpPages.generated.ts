@@ -316,4 +316,5 @@ export const HELP_PAGES: HelpPage[] = [
     {route: 'help-station-setup-welcome', path: '/helpcenter/station/setup/welcome', i18nPrefix: 'helpCenter.setupWelcome'},
     {route: 'help-station-signing-all', path: '/helpcenter/station/signing', i18nPrefix: 'helpCenter.signing'},
     {route: 'help-station-signing', path: '/helpcenter/station/signing/0', i18nPrefix: 'helpCenter.signing'},
+    {route: 'help-station-signing-witness', path: '/helpcenter/station/signing/witness', i18nPrefix: ['helpCenter.signing', 'helpCenter.witnessSigning']},
 ]

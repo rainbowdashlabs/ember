@@ -168,7 +168,8 @@ class AppointmentSignaturesTest extends GeneratorTestBase {
                 guardianPolicy,
                 memberNameResolver,
                 notices,
-                completed -> attendance.completed(completed));
+                completed -> attendance.completed(completed),
+                new WitnessReach(stationMemberRepo, restrictionService));
 
         var requirementRepo = new EventRequirementRepository();
         var submissions = new PaperSubmissionRepository();

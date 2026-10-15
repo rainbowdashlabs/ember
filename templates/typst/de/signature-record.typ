@@ -59,6 +59,11 @@
     ([Handelt], [als erziehungsberechtigte Person für #a.memberName])
   } else if a.capacity == "MEMBER_THROUGH_ACCOUNT" {
     ([Handelt], [selbst, über das Konto von #a.accountHolderName])
+  } else if a.capacity == "WITNESSED" {
+    (
+      [Handelt], [selbst, unterschrieben vor Zeugin oder Zeuge #a.accountHolderName],
+      [Bezeugt von], [#a.accountHolderName, bestätigt über das eigene Konto, dass #a.signerName vor ihr oder ihm unterschrieben hat],
+    )
   } else {
     ([Handelt], [selbst, über das eigene Konto])
   }

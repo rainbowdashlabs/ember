@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:6e0aeee49b8124d62f03baae57742c5c4cc7e1fa55044900a1df4f8c41222f93",
-  "generatedAt": "2026-10-09T16:05:24Z",
+  "schemaHash": "sha256:420f8e00835a3d3c9ee2b147e3527a575326d786b65f138c186fd676061a35ab",
+  "generatedAt": "2026-10-15T21:13:03Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -24515,7 +24515,7 @@
           "type": "text",
           "nullable": false,
           "verified": true,
-          "description": "In what capacity the act was given: ACCOUNT_HOLDER for themselves, GUARDIAN on behalf of the member, MEMBER_THROUGH_ACCOUNT by the member through the account of somebody else."
+          "description": "In what capacity the act was given: ACCOUNT_HOLDER for themselves, GUARDIAN on behalf of the member, MEMBER_THROUGH_ACCOUNT by the member through the account of somebody else, WITNESSED by a person who signed in front of a witness, whose account confirmed it."
         },
         {
           "name": "challenge_account_id",
@@ -24536,35 +24536,35 @@
           "type": "int4",
           "nullable": true,
           "verified": true,
-          "description": "The member at the station whose account confirmed the act. NULL once that member was deleted."
+          "description": "The member at the station whose account confirmed the act, the witness for a WITNESSED act. NULL once that member was deleted."
         },
         {
           "name": "member_id",
           "type": "int4",
           "nullable": true,
           "verified": true,
-          "description": "The member a guardian signed for, or who signed through the account. NULL where the account holder signed for themselves, and once that member was deleted."
+          "description": "The member a guardian signed for, who signed through the account, or who signed in front of the witness. NULL where the account holder signed for themselves, and once that member was deleted."
         },
         {
           "name": "account_holder_name",
           "type": "text",
           "nullable": false,
           "verified": true,
-          "description": "The official name of the account holder whose step-up confirmed the act, as it was at signing."
+          "description": "The official name of the account holder whose step-up confirmed the act, the witness for a WITNESSED act, as it was at signing."
         },
         {
           "name": "member_name",
           "type": "text",
           "nullable": true,
           "verified": true,
-          "description": "The official name of the member signed for or signing through the account, as it was at signing. NULL where the account holder signed for themselves."
+          "description": "The official name of the member signed for, signing through the account, or signing in front of the witness, as it was at signing. NULL where the account holder signed for themselves."
         },
         {
           "name": "guardian_position",
           "type": "int4",
           "nullable": true,
           "verified": true,
-          "description": "Where the account holder stood in the member's order of guardians at signing, counted from 0, when they acted as guardian or lent their account. NULL where the account holder signed for themselves."
+          "description": "Where the guardian stood in the member's order of guardians at signing, counted from 0: the account holder when they acted as guardian or lent their account, the guardian who signed in front of a witness for a WITNESSED act. NULL where no guardian was involved."
         },
         {
           "name": "guardian_linked_at",
@@ -25465,7 +25465,7 @@
     "station": {
       "feature": "station",
       "scope": "STATION",
-      "tableHash": "sha256:88f8679a2388db8526e32c3d812d66b2c19a79cbecf82e519e901f656e9fd94e",
+      "tableHash": "sha256:b9d25b16ef3619615ad19471081af5b3038edbe8b395c59195b41221c8f2095b",
       "columns": [
         {
           "name": "id",
@@ -25850,6 +25850,13 @@
           "nullable": true,
           "verified": true,
           "description": "The address of the installation the station moved to, as the destination named itself. Null while the station runs here, and where the destination named no address."
+        },
+        {
+          "name": "witness_reach_mode",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "AND or OR, how the parts of witness_reach_restriction combine."
         }
       ],
       "foreignKeys": [
@@ -30056,6 +30063,96 @@
         "reason": "Time-limited token, cascade-deleted via account(id) foreign key"
       },
       "description": "Pending WebAuthn challenges, single use, short lived. Replaces the account_token rows the two-factor ceremonies used, and additionally carries ceremonies that do not know the account yet."
+    },
+    "witness_reach_restriction": {
+      "feature": "signing",
+      "scope": "STATION",
+      "tableHash": "sha256:74b5113e9ac1647b12177525332cec449b58d6fa9a3de4c346b5ad3ba44ce045",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Auto-generated primary key."
+        },
+        {
+          "name": "station_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The station whose witnesses the audience narrows."
+        },
+        {
+          "name": "user_type",
+          "type": "text",
+          "nullable": true,
+          "verified": true,
+          "description": "Required user type. Exactly one of user_type/group_id/tag_id/member_id must be set."
+        },
+        {
+          "name": "group_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "Required group membership."
+        },
+        {
+          "name": "tag_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "Required tag."
+        },
+        {
+          "name": "member_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "Specific member (always OR-connected, bypasses AND/OR mode)."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "group_id",
+          "refTable": "member_group",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "member_id",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "station_id",
+          "refTable": "station",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "tag_id",
+          "refTable": "user_tag",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED",
+        "ignoredColumns": [
+          "station_id"
+        ]
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Station configuration, not per-member data"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Station configuration, not per-member data; a member named in it goes with the member by cascade"
+      },
+      "description": "Whom the holders of DOCUMENT_SIGN_OTHERS at a station may collect signatures from in person, among its current members and trial users. Empty means all of them. Shaped like event_restriction."
     }
   },
   "fileStores": {

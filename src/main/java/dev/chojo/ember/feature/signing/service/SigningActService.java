@@ -27,6 +27,7 @@ import dev.chojo.ember.feature.signing.entity.SignaturePicture;
 import dev.chojo.ember.feature.signing.entity.SignatureRequest;
 import dev.chojo.ember.feature.signing.entity.SignedAct;
 import dev.chojo.ember.feature.signing.entity.Signer;
+import dev.chojo.ember.feature.signing.entity.SignerCapacity;
 import dev.chojo.ember.feature.signing.entity.SignerConfirmation;
 import dev.chojo.ember.feature.signing.entity.SignerConfirmation.StepUpPassed;
 import dev.chojo.ember.feature.signing.entity.SignerEntry;
@@ -88,6 +89,11 @@ import java.util.UUID;
  * as it would be on its own, the provider binds them all into one challenge ({@link SigningBatchChallenge}),
  * and one proof confirms them. Each field still gets evidence of its own, which names the batch. A single
  * field is a batch of one and is bound exactly as a field signed on its own always was.
+ *
+ * <p><b>In front of a witness.</b> {@link WitnessedSigningService} checks a field for a witness and starts
+ * the act here with the person who signs in front of them; the witness's step-up confirms it
+ * ({@link #completeWitnessed}). A witnessed start is completed only that way, and a start of the caller's own
+ * signatures never that way, so neither can pass for the other.
  *
  * <p><b>Signature picture.</b> Every act leaves the signer's picture in its field: one made for the act, or
  * the one the account keeps. It is stored with the evidence together with how it came to the act (drawn,
@@ -184,7 +190,18 @@ public class SigningActService {
      * @return the document's file name and bytes
      */
     public DocumentToSign requireOwnedFieldDocument(StationSession session, int fieldId) {
-        PendingSignature pending = requireOwnedField(session, fieldId).pending();
+        return frozenDocument(session, requireOwnedField(session, fieldId).pending());
+    }
+
+    /**
+     * The document a field is on, exactly as its request froze it, for a field already checked for the
+     * caller.
+     *
+     * @param session the caller
+     * @param pending the field
+     * @return the document's file name and bytes
+     */
+    DocumentToSign frozenDocument(StationSession session, PendingSignature pending) {
         Document document = filedDocument(pending);
         byte[] content = documentService
                 .openUploaded(document, DocumentDoor.STATION)
@@ -241,7 +258,15 @@ public class SigningActService {
         return start(session, requireOwnedFields(session, choices), choices);
     }
 
-    private BatchAttempt start(StationSession session, List<OpenSignature> opens, List<BatchChoice> choices) {
+    /**
+     * Starts an act on fields already checked for the caller, each with the signer it was checked for.
+     *
+     * @param session the caller, whose step-up confirms the act
+     * @param opens   the fields, each with who signs it
+     * @param choices what was typed for each field, in the same order
+     * @return the started act
+     */
+    BatchAttempt start(StationSession session, List<OpenSignature> opens, List<BatchChoice> choices) {
         var contents = new FrozenContents(session);
         var toSign = new ArrayList<SigningRequest>(opens.size());
         for (int position = 0; position < opens.size(); position++) {
@@ -302,7 +327,7 @@ public class SigningActService {
             SigningAnswer answer,
             SigningPicture picture,
             SigningCircumstances circumstances) {
-        ParkedSigningStart parked = spend(session, startToken);
+        ParkedSigningStart parked = spendOwn(session, startToken);
         if (parked.items().size() != 1 || parked.items().getFirst().fieldId() != fieldId) {
             throw DocumentRefusal.SIGNING_START_UNKNOWN.raise();
         }
@@ -339,7 +364,43 @@ public class SigningActService {
             SigningAnswer answer,
             SigningPictures pictures,
             SigningCircumstances circumstances) {
-        return complete(session, spend(session, startToken), answer, pictures, circumstances);
+        return complete(session, spendOwn(session, startToken), answer, pictures, circumstances);
+    }
+
+    /**
+     * Completes a started act signed in front of a witness, as {@link #completeBatch} completes the caller's
+     * own. A start of the caller's own signatures is refused here, as a witnessed start is refused there.
+     *
+     * @param session       the witness, who has to be the one who started it
+     * @param startToken    the token the start was handed out under
+     * @param answer        the witness's confirmation
+     * @param pictures      the picture of the person who signed in front of them
+     * @param circumstances where the confirmation came from
+     * @return where each field and its request now stand
+     */
+    List<SigningOutcome> completeWitnessed(
+            StationSession session,
+            String startToken,
+            SigningAnswer answer,
+            SigningPictures pictures,
+            SigningCircumstances circumstances) {
+        var parked = spend(session, startToken);
+        if (!witnessed(parked)) throw DocumentRefusal.SIGNING_START_UNKNOWN.raise();
+        return complete(session, parked, answer, pictures, circumstances);
+    }
+
+    /** Spends a start of the caller's own signatures, refusing one signed in front of them as a witness. */
+    private ParkedSigningStart spendOwn(StationSession session, String startToken) {
+        var parked = spend(session, startToken);
+        if (parked.items().stream().anyMatch(item -> item.capacity() == SignerCapacity.WITNESSED)) {
+            throw DocumentRefusal.SIGNING_START_UNKNOWN.raise();
+        }
+        return parked;
+    }
+
+    private static boolean witnessed(ParkedSigningStart parked) {
+        return !parked.items().isEmpty()
+                && parked.items().stream().allMatch(item -> item.capacity() == SignerCapacity.WITNESSED);
     }
 
     private ParkedSigningStart spend(StationSession session, String startToken) {
@@ -523,7 +584,17 @@ public class SigningActService {
      * @return the fields to fill in, in the order the document lists them, none where it asks for none
      */
     public List<FillInField> requireOwnedFillIns(StationSession session, int fieldId) {
-        PendingSignature pending = requireOwnedField(session, fieldId).pending();
+        return fillInsOf(session, requireOwnedField(session, fieldId).pending());
+    }
+
+    /**
+     * The fields a field's signer fills in, for a field already checked for the caller.
+     *
+     * @param session the caller
+     * @param pending the field
+     * @return the fields to fill in, in the order the document lists them
+     */
+    List<FillInField> fillInsOf(StationSession session, PendingSignature pending) {
         return FillInFields.forSigner(
                 frozenContent(session, pending), pending.field().fieldName());
     }

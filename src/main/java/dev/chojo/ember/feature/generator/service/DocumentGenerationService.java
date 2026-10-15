@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.generator.entity.DocumentGeneration;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplate;
 import dev.chojo.ember.feature.generator.entity.GenerationContext;
 import dev.chojo.ember.feature.generator.entity.GenerationOrigin;
+import dev.chojo.ember.feature.generator.entity.MemberView;
 import dev.chojo.ember.feature.generator.entity.MissingValue;
 import dev.chojo.ember.feature.generator.repository.DocumentGenerationRepository;
 import dev.chojo.ember.feature.generator.service.DocumentGeneratorService.PreviewResponse;
@@ -253,6 +254,40 @@ public class DocumentGenerationService {
         var template = templates.requireInUse(session.stationId(), templateId);
         var prepared = generator.prepare(template, memberId, managerContext(session, template, issuer));
         return file(template, memberId, session.member().id(), GenerationOrigin.MANAGER, prepared);
+    }
+
+    /**
+     * The templates in use a witness can generate a document from for the person in front of them: those
+     * whose documents ask the member or a guardian to sign.
+     *
+     * @param station the station
+     * @return the templates by name
+     */
+    public List<DocumentTemplate> askingMemberSignatures(Owner.Station station) {
+        return templates.inUse(station).stream()
+                .filter(template -> generator.sourceOf(template).asksMemberSideToSign(MemberView.EVERYBODY))
+                .toList();
+    }
+
+    /**
+     * Generates a document for the person in front of a witness and files it with that person alone, never
+     * hidden from them, issued by the template's issuer. Data the document needs and the profile lacks
+     * refuses it, as self service does, since nobody fills in a line by hand on the spot.
+     *
+     * @param session    the witness
+     * @param templateId the template, which has to ask the member or a guardian to sign
+     * @param memberId   the person, already checked to be one the witness reaches
+     * @return the filed document
+     */
+    public GeneratedDocumentResponse generateForWitness(StationSession session, int templateId, int memberId) {
+        var template = templates.requireInUse(session.stationId(), templateId);
+        if (!generator.sourceOf(template).asksMemberSideToSign(MemberView.EVERYBODY)) {
+            throw DocumentRefusal.SIGNING_NO_FIELDS.raise();
+        }
+        var context = GenerationContext.by(session.member().id(), issuers.ofTemplate(template, session.stationId()));
+        var prepared = generator.prepare(template, memberId, context);
+        generator.requireComplete(prepared, DocumentRefusal.DOCUMENT_SELF_SERVICE_VALUES_MISSING);
+        return file(template, memberId, session.member().id(), GenerationOrigin.WITNESS, prepared);
     }
 
     /**

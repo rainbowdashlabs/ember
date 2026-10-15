@@ -18,5 +18,11 @@ public enum SignerCapacity {
      * A member signs their own field through somebody else's account: a child without a login signs on
      * the guardian's device, confirmed by the guardian's step-up. The signature is the member's.
      */
-    MEMBER_THROUGH_ACCOUNT
+    MEMBER_THROUGH_ACCOUNT,
+    /**
+     * A person signs in front of a witness, on the witness's device: the member themselves in their own
+     * field, or a guardian who is present in theirs. The witness confirms with their own step-up that this
+     * person signed in front of them. The signature is the person's; the account is the witness's.
+     */
+    WITNESSED
 }

@@ -12,8 +12,8 @@ import {useSession} from '@/composables/useSession'
 
 /**
  * The documents of the station. The group itself opens the reader's own documents, which every member
- * has, and so does creating documents for oneself; the store, the templates, the list of generated
- * documents and the fonts each need their right.
+ * has, and so does creating documents for oneself; collecting signatures in person, the store, the
+ * templates, the list of generated documents and the fonts each need their right.
  */
 defineProps<{
   openGroup: string | null
@@ -39,6 +39,10 @@ function close() {
     <SidebarLink :icon="['fas', 'file-circle-plus']" name="documents-self-service"
                  to="/station/documents/self-service" @navigate="close">
       {{ t('sidebar.documentSelfService') }}
+    </SidebarLink>
+    <SidebarLink v-if="hasPermission(StationPermission.DOCUMENT_SIGN_OTHERS)" :icon="['fas', 'signature']" name="station-signing-witness"
+                 to="/station/signing/witness" @navigate="close">
+      {{ t('sidebar.witnessSigning') }}
     </SidebarLink>
     <SidebarLink v-if="hasPermission(StationPermission.DOCUMENT_READ)" :icon="['fas', 'box-archive']" name="documents-store"
                  to="/station/documents/store" @navigate="close">

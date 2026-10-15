@@ -65,6 +65,7 @@ final class ChallengeInput {
                     case ACCOUNT_HOLDER -> "account-holder";
                     case GUARDIAN -> "guardian";
                     case MEMBER_THROUGH_ACCOUNT -> "member-through-account";
+                    case WITNESSED -> "witnessed";
                 });
         Integer memberId = signer.memberId();
         return part(memberId == null ? new byte[0] : integer(memberId));

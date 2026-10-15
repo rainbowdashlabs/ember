@@ -74,7 +74,8 @@
     "station-monitoring",
     "station-permissions",
     "station-transfer",
-    "waitinglist"
+    "waitinglist",
+    "witness-signing"
   ],
   "instance": [
     "admin",

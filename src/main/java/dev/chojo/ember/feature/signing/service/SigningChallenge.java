@@ -30,7 +30,9 @@ import java.util.List;
  *   <li>the raw SHA-256 of the frozen content, thirty-two bytes</li>
  *   <li>the account id whose step-up confirms the act</li>
  *   <li>the statement shown to the signer</li>
- *   <li>the capacity: {@code account-holder}, {@code guardian} or {@code member-through-account}, as text</li>
+ *   <li>the capacity: {@code account-holder}, {@code guardian}, {@code member-through-account} or
+ *       {@code witnessed}, the last naming the witness's account above and the member who signed in
+ *       front of them below, as text</li>
  *   <li>the member id, or a part of length zero when the account holder signs for themselves</li>
  *   <li>the name of the signature field</li>
  *   <li>the number of entries the signer typed, as a bare four-byte big-endian integer, then for each

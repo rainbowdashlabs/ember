@@ -39,6 +39,7 @@ const summaries: SignatureSummary[] = [
 
 const fields: ManagedFieldResponse[] = [
     {
+        fieldId: 1,
         fieldName: 'guardian1',
         role: FieldRole.GUARDIAN,
         signerName: 'Sabine Hoffmann',
@@ -60,6 +61,7 @@ const fields: ManagedFieldResponse[] = [
         },
     },
     {
+        fieldId: 2,
         fieldName: 'guardian2',
         role: FieldRole.GUARDIAN,
         signerName: null,

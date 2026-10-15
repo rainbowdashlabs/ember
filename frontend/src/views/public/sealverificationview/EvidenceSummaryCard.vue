@@ -15,7 +15,7 @@ import {proofWords} from '@/components/documents/signatures/proofWords'
 
 /**
  * The signatures a signed document records in the details it carries: who signed which field, when and
- * with what, and whether several fields were confirmed together; and where the station's issuer signed
+ * with what, whether in front of a witness, and whether several fields were confirmed together; and where the station's issuer signed
  * when the document was made. They come from the file itself, so whether they can be trusted is what the
  * seal check above says.
  */
@@ -28,12 +28,9 @@ function line(field: EvidenceSummary['fields'][number]): string {
   if (field.state !== FieldState.SIGNED || !field.signerName || !field.signedAt || !field.proof) {
     return t('sealVerification.evidence.notSigned', {role, state: t(`signing.ask.state.${field.state}`)})
   }
-  return t('sealVerification.evidence.signed', {
-    role,
-    name: field.signerName,
-    time: formatDateTime(field.signedAt),
-    proof: proofWords(field.proof, t),
-  })
+  const said = {role, name: field.signerName, time: formatDateTime(field.signedAt), proof: proofWords(field.proof, t)}
+  if (field.witnessName) return t('sealVerification.evidence.witnessed', {...said, witness: field.witnessName})
+  return t('sealVerification.evidence.signed', said)
 }
 </script>
 

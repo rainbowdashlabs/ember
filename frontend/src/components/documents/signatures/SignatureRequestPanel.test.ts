@@ -31,11 +31,18 @@ vi.mock('@/api', () => ({
     },
 }))
 
+const held = vi.hoisted(() => new Set<string>())
+
+vi.mock('@/composables/useSession', () => ({
+    useSession: () => ({hasPermission: (permission: string) => held.has(permission)}),
+}))
+
 const UID = '7b0d3e0c-9f4e-4f0e-8a51-0c9d6c8f2a11'
 const NEW_UID = '9c1e4f1d-0a5f-4a1f-9b62-1d0e7d903b22'
 
 function field(overrides: Partial<ManagedFieldResponse> = {}): ManagedFieldResponse {
     return {
+        fieldId: 41,
         fieldName: 'guardian1',
         role: FieldRole.GUARDIAN,
         signerName: 'Gerda Erste',
@@ -98,7 +105,22 @@ function fieldRow(view: ReturnType<typeof open>, index: number) {
 describe('SignatureRequestPanel', () => {
     beforeEach(() => {
         vi.clearAllMocks()
+        held.clear()
         getSignatureRequest.mockResolvedValue(managed())
+    })
+
+    it('offers a witness to have an open field signed in person, and nobody else', async () => {
+        const plain = open()
+        await flushPromises()
+        expect(plain.find('[data-testid="signature-field-witness"]').exists()).toBe(false)
+
+        held.add('DOCUMENT_SIGN_OTHERS')
+        const view = open()
+        await flushPromises()
+
+        expect(fieldRow(view, 0).find('[data-testid="signature-field-witness"]').exists()).toBe(false)
+        expect(fieldRow(view, 1).get('[data-testid="signature-field-witness"]').attributes('href'))
+            .toBe('/station/signing/witness?field=41')
     })
 
     it('shows each field with its act and names the one nobody can sign', async () => {

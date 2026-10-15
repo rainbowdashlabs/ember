@@ -677,6 +677,50 @@ class DocumentGenerationServiceTest extends RepositoryTestBase {
     }
 
     /**
+     * A witness generates a document only from a template that asks the member's side to sign, files it
+     * with the person alone and never hidden from them, and is refused one whose data is not all there.
+     */
+    @Test
+    void aWitnessGeneratesADocumentForThePersonInFrontOfThem() throws IOException {
+        int hiddenSigned = templates
+                .create(
+                        owner,
+                        letterOf(
+                                        "Fotoerlaubnis",
+                                        false,
+                                        true,
+                                        0,
+                                        List.of(row(signature(SignatureRole.PARTICIPANT, ""))))
+                                .issuer(manager.id(), "Jugendwartin")
+                                .build(),
+                        author)
+                .id();
+        int issuerOnly = templateOf("Nur Ausstellung", row(signature(SignatureRole.ISSUER, "Unterschrift")));
+        int needsGuardian = templateOf(
+                "Mit Elternteil",
+                row(text("Vertreten durch {{guardian1.fullName}}.")),
+                row(signature(SignatureRole.ANY_GUARDIAN, "")));
+        var witness = as(guardian, StationPermission.DOCUMENT_SIGN_OTHERS);
+
+        var offered = generation.askingMemberSignatures(owner).stream()
+                .map(template -> template.id())
+                .toList();
+        assertTrue(offered.contains(hiddenSigned));
+        assertFalse(offered.contains(issuerOnly), "a template only the issuer signs is not offered");
+
+        var generated = generation.generateForWitness(witness, hiddenSigned, lena.id());
+        var document = memberDocumentRepo.findById(generated.documentId()).orElseThrow();
+        assertFalse(document.hidden(), "the person always sees what they signed in front of a witness");
+        assertTrue(memberDocumentRepo.isBoundTo(document.id(), lena.id()));
+        assertFalse(memberDocumentRepo.isBoundTo(document.id(), guardian.id()), "never filed with the witness");
+        assertEquals(List.of("participant"), signatureFields(document.id()));
+        refused(DocumentRefusal.SIGNING_NO_FIELDS, () -> generation.generateForWitness(witness, issuerOnly, lena.id()));
+        refused(
+                DocumentRefusal.DOCUMENT_SELF_SERVICE_VALUES_MISSING,
+                () -> generation.generateForWitness(witness, needsGuardian, max.id()));
+    }
+
+    /**
      * A member with one guardian is complete: the second guardian's values print empty, their line is
      * left out, and a block on the second guardian follows suit. A member without any guardian misses
      * the first one.
