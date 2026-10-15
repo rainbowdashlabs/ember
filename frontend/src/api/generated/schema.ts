@@ -64635,6 +64635,7 @@ export interface components {
             description?: string;
             descriptionOverride?: string;
             eventUid?: string;
+            fullDescription?: boolean;
             location?: string;
             title?: string;
         };

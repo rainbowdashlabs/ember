@@ -56702,6 +56702,9 @@
           },
           "descriptionOverride" : {
             "type" : "string"
+          },
+          "fullDescription" : {
+            "type" : "boolean"
           }
         }
       },

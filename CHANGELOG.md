@@ -1,5 +1,17 @@
 # Changelog
 
+## v26.22.5
+
+Formatted text in page and news blocks is shown formatted again instead of as raw text. Event highlights show when the event ends and keep long descriptions short.
+
+### Improvements
+
+- **Event highlights show the end time and a short description.** The event highlight block shows when the event ends next to when it starts. Its description is cut to a few lines by default, and a setting of the block shows it in full.
+
+### Fixes
+
+- **Some blocks showed formatting marks as text.** Descriptions in the event highlight, event recap, quote, tabs, blog subscription, form, quiz and member spotlight blocks, and on an appointment page of a partner station, showed asterisks and hashes instead of formatting. They are now displayed formatted.
+
 ## v26.22.4
 
 The day a member joined is visible in the member list and on the member's page, and can be taken over when importing members. Members open from the list in a new tab. The menu no longer stays stuck over the page on older tablets.
