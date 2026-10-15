@@ -14,7 +14,11 @@ import dev.chojo.ember.feature.inventory.entity.InventoryType;
 import dev.chojo.ember.feature.inventory.entity.ItemCustody;
 import dev.chojo.ember.feature.members.entity.FilterTableType;
 import dev.chojo.ember.feature.members.entity.SavedFilter;
+import dev.chojo.ember.feature.restriction.RestrictionAudience;
+import dev.chojo.ember.feature.restriction.RestrictionMode;
+import dev.chojo.ember.feature.restriction.RestrictionType;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.transfer.StationTableImporter;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import dev.chojo.ember.tracking.DataTrackingLoader;
 import dev.chojo.ember.tracking.engine.GenericTableImporter.IdRemapper;
@@ -55,6 +59,44 @@ class GenericTableImporterTest extends RepositoryTestBase {
         var tracking = DataTrackingLoader.loadFromClasspath();
         exporter = new GenericTableExporter(tracking);
         importer = new GenericTableImporter(tracking);
+    }
+
+    /**
+     * The audience a station narrows its witnesses by travels with it: its parts are exported without the
+     * station and arrive on the station they are imported into, the group they name by its new id, and how
+     * they combine travels with the station's own row.
+     */
+    @Test
+    void theWitnessesAudienceTravelsWithTheStation() {
+        Station source = stationRepo.create("Witness Reach Source");
+        Station destination = stationRepo.create("Witness Reach Destination");
+        int group = memberGroupRepo.create(source.id(), "Probetraining").id();
+        int arrived = memberGroupRepo.create(destination.id(), "Probetraining").id();
+        restrictionService.setAudience(
+                RestrictionType.WITNESS_REACH,
+                source.id(),
+                new RestrictionAudience(
+                        List.of(StationUserType.TRIAL), List.of(group), List.of(), List.of(), RestrictionMode.OR));
+        var idMap = new IdRemapper();
+        idMap.put("member_group", group, arrived);
+
+        var rows = exporter.export("witness_reach_restriction", source.id(), 0, 10);
+        assertEquals(2, rows.size());
+        assertTrue(rows.stream().noneMatch(row -> row.containsKey("station_id")), "the destination is the station");
+        var stationRow = exporter.export("station", source.id(), 0, 1).getFirst();
+        assertEquals("OR", stationRow.get("witness_reach_mode"));
+        assertEquals(2, importer.importRows(destination.id(), "witness_reach_restriction", rows, idMap));
+        new StationTableImporter(stationRepo)
+                .applyFields(destination.id(), Map.of("witness_reach_mode", stationRow.get("witness_reach_mode")));
+
+        var audience = restrictionService.audienceOf(RestrictionType.WITNESS_REACH, destination.id());
+        assertEquals(RestrictionMode.OR, audience.mode());
+        assertEquals(List.of(StationUserType.TRIAL), audience.userTypes());
+        assertEquals(List.of(arrived), audience.groupIds(), "the group that arrived is named by its new id");
+        assertTrue(restrictionService
+                .audienceOf(RestrictionType.WITNESS_REACH, source.id())
+                .groupIds()
+                .contains(group));
     }
 
     @Test

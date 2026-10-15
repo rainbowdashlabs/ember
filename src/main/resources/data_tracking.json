@@ -30139,8 +30139,10 @@
         }
       ],
       "stationTransfer": {
-        "status": "IGNORED",
-        "reason": "A setting of the station's own witnesses, which the station sets again after a move; without it they reach every member and trial user"
+        "status": "TRACKED",
+        "ignoredColumns": [
+          "station_id"
+        ]
       },
       "gdprExport": {
         "status": "IGNORED",
