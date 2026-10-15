@@ -1,5 +1,17 @@
 # Änderungsprotokoll
 
+## v26.25.0
+
+Wer eine Wache teilt, kann sich direkt oder in Gruppen schreiben, egal welche Wache gerade gewählt ist. Neue Nachrichten, Änderungen und Reaktionen erscheinen, ohne dass die Seite neu geladen wird, und was ungelesen bleibt, kommt per Mail. Mitglieder mit Erziehungsberechtigten bekommen Nachrichten erst, wenn eine erziehungsberechtigte Person sie freischaltet.
+
+### Neue Funktionen
+
+- **Nachrichten zwischen den Leuten einer Wache.** Alle können den Leuten schreiben, mit denen sie eine Wache teilen, direkt oder in Gruppen bis 25 Personen, über den Nachrichten-Knopf in der Kopfzeile. Eine Unterhaltung gehört den Leuten darin und sieht gleich aus, egal welche Wache gewählt ist.
+- **Neue Nachrichten kommen ohne Neuladen.** Nachrichten, Änderungen und Reaktionen erscheinen, sobald sie geschrieben werden, und die Kopfzeile zeigt, wie viele ungelesen warten. Eine Nachricht lässt sich beantworten, ändern, löschen und mit jedem üblichen Emoji kommentieren, in Gruppen lassen sich Leute erwähnen.
+- **Eine Mail für ungelesene Nachrichten.** Bleibt eine Nachricht 15 Minuten ungelesen, geht pro Unterhaltung eine Mail mit den ersten Zeilen raus, und bis zum Lesen keine weitere. Die Mail lässt sich in den Einstellungen für Nachrichten abschalten, stumm geschaltete Unterhaltungen schicken keine.
+- **Leute lassen sich für Nachrichten blockieren.** Eine blockierte Person kann keine direkte Unterhaltung mehr mit der blockierenden Person starten und sie in keine Gruppe holen, ihre Nachrichten in gemeinsamen Gruppen sind eingeklappt. Sie erfährt davon nichts.
+- **Erziehungsberechtigte entscheiden über Nachrichten.** Ein Mitglied mit Erziehungsberechtigten in irgendeiner Wache hat keine Nachrichten, bis eine erziehungsberechtigte Person sie unter Profil → Verwaltete Profile freischaltet. Wird das wieder abgeschaltet, verschwinden die Unterhaltungen, gelöscht wird nichts.
+
 ## v26.24.0
 
 Die Anwesenheit kann Zeit vor und nach einem Termin gutschreiben, und der Bericht zählt diese Minuten zu den Stunden jeder Person. Die Ausrüstung eines Mitglieds wird auf seiner eigenen Seite aus- und zurückgegeben, und die Seite öffnet mit den Tabs, die jemand sehen darf. Tabs auf den Hauptseiten lassen sich über die Adresse verlinken. Fehlende Ausstattung steht bei der vorhandenen und wird über ein Fenster mit Suche ausgegeben. Bewegungen heißen überall Vorgänge. Auch bei Terminen mit Anmeldung gibt es „Abmelden“, und danach enden die Erinnerungen an die Anmeldefrist. Wer Termine verwaltet, erfährt von jeder neuen Unterhaltung unter einem Termin. Unterschriften lassen sich vor Ort sammeln, von Probemitgliedern und Mitgliedern ohne eigenes Konto, bestätigt mit dem Konto der Person, die sammelt. Vorlagen sagen, für wen sie gedacht sind, überall, wo ein Dokument aus ihnen entsteht. In jedem Ablauf geht es um ein Mitglied, er wird von Gruppen, Mitgliedstypen oder Tags betreut und kann das Mitglied und seine Erziehungsberechtigten ein Dokument unterschreiben lassen.

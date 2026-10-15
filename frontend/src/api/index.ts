@@ -92,6 +92,7 @@ export * as adminAccounts from './adminAccounts'
 export * as adminTasks from './adminTasks'
 export * as signing from './signing'
 export * as accountLinks from './accountLinks'
+export * as messages from './messages'
 
 export {default as client} from './client'
 export type * from './types'

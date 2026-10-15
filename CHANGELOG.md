@@ -1,5 +1,17 @@
 # Changelog
 
+## v26.25.0
+
+People who share a station can write to each other directly or in groups, whichever station is chosen. New messages, changes and reactions appear without reloading the page, and a mail follows for what stays unread. Members with a guardian get messages only once a guardian turns them on.
+
+### New Features
+
+- **Messages between people of a station.** Everybody can write to the people they share a station with, directly or in groups of up to 25, from the messages button in the header. A conversation belongs to the people in it and looks the same whichever station is chosen.
+- **New messages arrive without reloading.** Messages, changes and reactions appear as they are written, and the header shows how many wait unread. A message can be answered, changed, deleted and reacted to with any standard emoji, and people in a group can be mentioned.
+- **A mail for messages left unread.** A message unread for 15 minutes sends one mail per conversation with its first lines, and no further one until it is read. The mail can be turned off in the message settings, and muted conversations send none.
+- **People can be blocked for messages.** A blocked person can no longer start a direct conversation with the blocker or add them to a group, and their messages in shared groups are folded away. They are not told.
+- **Guardians decide about messages.** A member with a guardian at any station has no messages until a guardian turns them on under Profile → Managed profiles. Turning them off again hides the conversations without deleting anything.
+
 ## v26.24.0
 
 Attendance can credit time spent before and after an appointment, and the report counts those minutes in each person's hours. A member's equipment is handed out and taken back on the member's own page, which opens with the tabs each reader may see. Tabs on the main pages can be linked by their address. Missing equipment stands among the pieces a member holds and is handed out from a searchable window. The German interface uses one name for equipment movements throughout. Appointments that need a sign-up can be declined, which ends the reminders that registration is closing. Appointment managers are notified about every new conversation on an appointment. Signatures can be collected in person from trial users and members without a login, confirmed by the account of whoever collects them. Templates say for whom they are meant, wherever a document is made from them. Procedures are about one member, run by groups, member types or tags, and can ask that member and their guardians to sign a document as one of their steps.

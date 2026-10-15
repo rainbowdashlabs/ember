@@ -40,6 +40,7 @@ import {
     faGlasses, faRadio, faWalkieTalkie, faHeadphones, faStapler, faToolbox, faScrewdriverWrench, faWrench, faHammer,
     faFireExtinguisher, faWaterLadder, faBatteryFull, faTrowel, faKitMedical, faSuitcaseMedical,
     faTruckMedical, faDice, faDiceD20, faTent, faRuler, faBagShopping, faBriefcase,
+    faComments, faFaceSmile, faBellSlash, faCrown,
 } from '@fortawesome/free-solid-svg-icons'
 import {
     faGithub, faWindows, faApple, faLinux, faAndroid, faChrome, faFirefoxBrowser, faSafari,
@@ -49,6 +50,7 @@ import {
 config.autoAddCss = false
 
 library.add(
+    faComments, faFaceSmile, faBellSlash, faCrown,
     faDiagramProject, faSun, faMoon, faCheck, faAngleDown, faAngleUp, faAnglesDown, faAnglesUp, faEllipsis,
     faEquals, faXmark, faXmarkCircle, faSpinner, faCircleInfo, faCircleCheck, faCircle,
     faCircleDot, faCircleUp, faTriangleExclamation, faDownload, faUpload, faTrash, faPen, faLock, faLockOpen,

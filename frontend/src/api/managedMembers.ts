@@ -79,6 +79,12 @@ export async function revokePasskeyCode(memberId: number): Promise<void> {
     await client.delete(`/managed-members/${memberId}/passkey-code`)
 }
 
+/** Turns messages between people on or off for a member in the guardian's care. */
+export async function setMessages(memberId: number, allowed: boolean): Promise<ManagedAccess> {
+    const res = await client.put<ManagedAccess>(`/managed-members/${memberId}/messages`, {allowed})
+    return res.data
+}
+
 export async function setLogin(memberId: number, enabled: boolean): Promise<ManagedAccess> {
     const res = await client.put<ManagedAccess>(`/managed-members/${memberId}/login`, {enabled})
     return res.data

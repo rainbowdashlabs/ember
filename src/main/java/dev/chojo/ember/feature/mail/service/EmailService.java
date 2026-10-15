@@ -607,6 +607,39 @@ public class EmailService implements TaskSource {
     }
 
     /**
+     * Tells somebody that messages wait unread in one of their conversations, quoting the first
+     * lines. It goes to the account's own address only: a private message is never forwarded to the
+     * people who look after somebody.
+     *
+     * @param email        the account's own address
+     * @param name         how to greet them
+     * @param sender       who wrote the first unread message
+     * @param conversation what the conversation is called
+     * @param lines        the first unread messages, shortened
+     * @param path         where the conversation opens, below the instance address
+     * @param locale       the language to write in
+     */
+    public void sendUnreadMessages(
+            String email,
+            String name,
+            String sender,
+            String conversation,
+            List<String> lines,
+            String path,
+            String locale) {
+        var vars = baseVars(name, null);
+        vars.put("sender", sender);
+        vars.put("conversation", conversation);
+        vars.put("lines", String.join("\n\n", lines));
+        vars.put("url", api.baseUrl() + path);
+        vars.put("settingsUrl", api.baseUrl() + "/messages");
+        enqueueGlobal(
+                email,
+                subject("unread-messages", locale, Map.of("sender", sender)),
+                loadTemplate("unread-messages.html", locale, vars));
+    }
+
+    /**
      * Tells a member that the guardian who looks after them took signing in away again. There is
      * nothing to act on, so the mail carries no link.
      */

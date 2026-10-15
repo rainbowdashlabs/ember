@@ -65,16 +65,34 @@ public class SessionGate {
      */
     public Optional<UserSession> admit(
             Context ctx, String token, @Nullable Station station, @Nullable Cluster cluster) {
+        Optional<UserSession> session = admitPassively(ctx, token, station, cluster);
+        if (session.isEmpty()) return session;
+        accountRepository.touchSession(token, ctx.userAgent(), ctx.header("CF-IPCountry"));
+        accountRepository
+                .renewSession(token, authConfig.sessionMinutes(false), authConfig.sessionMinutes(true))
+                .ifPresent(expiresAt -> sessionCookies.issue(ctx, token, expiresAt));
+        return session;
+    }
+
+    /**
+     * Admits a request to a route that needs a session but must not keep it alive, such as a stream a
+     * page holds open on its own. The use is neither recorded nor renewed, so the session ends when
+     * it would have without the stream.
+     *
+     * @param ctx     the request
+     * @param token   the session token its cookie carries
+     * @param station the station the request named, or {@code null}
+     * @param cluster the cluster the request named, or {@code null}
+     * @return the session, or empty when the token names no live one
+     */
+    public Optional<UserSession> admitPassively(
+            Context ctx, String token, @Nullable Station station, @Nullable Cluster cluster) {
         Optional<UserSession> session = accessManager.resolveUserSession(token, station, cluster);
         if (session.isEmpty()) {
             sessionCookies.clear(ctx);
             return session;
         }
         csrfGuard.require(ctx, token);
-        accountRepository.touchSession(token, ctx.userAgent(), ctx.header("CF-IPCountry"));
-        accountRepository
-                .renewSession(token, authConfig.sessionMinutes(false), authConfig.sessionMinutes(true))
-                .ifPresent(expiresAt -> sessionCookies.issue(ctx, token, expiresAt));
         return session;
     }
 

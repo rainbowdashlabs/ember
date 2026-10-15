@@ -188,6 +188,8 @@ import dev.chojo.ember.feature.members.service.StationMemberEligibility;
 import dev.chojo.ember.feature.members.service.StationMemberService;
 import dev.chojo.ember.feature.members.service.StationProfileFields;
 import dev.chojo.ember.feature.members.service.UserTagService;
+import dev.chojo.ember.feature.messages.repository.ConversationRepository;
+import dev.chojo.ember.feature.messages.service.MessageErasure;
 import dev.chojo.ember.feature.news.repository.NewsRepository;
 import dev.chojo.ember.feature.news.service.NewsBlockReferences;
 import dev.chojo.ember.feature.news.service.NewsCommentTarget;
@@ -556,7 +558,8 @@ public abstract class RepositoryTestBase {
                 new AvatarService(new ImageVariants(storage)),
                 newDocumentService(storage),
                 new SignatureImageService(new AccountSignatureRepository(), accountRepo, storage),
-                new AccountReach(accountRepo));
+                new AccountReach(accountRepo),
+                new MessageErasure(new ConversationRepository()));
     }
 
     /**
