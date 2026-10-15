@@ -4,7 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import type {Page} from '@playwright/test'
-import {test, expect, apiHeaders, DEMO_PASSWORD} from './fixtures/auth'
+import {test, expect, apiHeaders, DEMO_PASSWORD, demoTotpCode, freshStepUpProof} from './fixtures/auth'
 import {ownMember, type OwnMember} from './fixtures/ownMember'
 import {hydrated} from './fixtures/hydrated'
 import {unique} from './fixtures/unique'
@@ -13,7 +13,7 @@ import {unique} from './fixtures/unique'
  * A signature collected in person: the manager, who holds the right to collect signatures as part of
  * the document store, makes a photo consent on the spot for a trial user without a login, hands the
  * device over, the trial user reads, agrees and draws, hands it back, and the manager confirms with
- * their own password. Afterwards nothing of it waits for the trial user any more.
+ * their own account. Afterwards nothing of it waits for the trial user any more.
  */
 async function consentTemplate(manager: Page): Promise<number> {
     const headers = await apiHeaders(manager)
@@ -40,6 +40,7 @@ async function consentTemplate(manager: Page): Promise<number> {
 
 async function trialUser(manager: Page): Promise<OwnMember> {
     const trial = await ownMember(manager, 'Probe')
+    await freshStepUpProof(manager)
     const changed = await manager.request.put(`/api/v1/station-members/${trial.memberId}/user-type`, {
         headers: await apiHeaders(manager),
         data: {userType: 'TRIAL'},
@@ -57,6 +58,30 @@ async function drawSignature(page: Page) {
         await page.mouse.move(box.x + box.width * (0.2 + step * 0.06), box.y + box.height * (step % 2 ? 0.35 : 0.65))
     }
     await page.mouse.up()
+}
+
+/**
+ * The witness confirms with whatever their account takes: the seeded password where it has no second
+ * factor, else a code from the seeded authenticator secret. A code given at a period boundary, or one a
+ * step-up of another story already spent, is refused, so a refused code is followed by the next
+ * period's; the refused confirmation spent its start, and the next press starts anew.
+ */
+async function confirmAsWitness(page: Page) {
+    const proof = page.getByTestId('signing-proof')
+    const done = page.getByTestId('witness-done')
+    await expect(proof, 'the witness is asked to confirm').toBeVisible({timeout: 15_000})
+    const password = proof.locator('input[type="password"]')
+    for (let attempt = 0; attempt < 3; attempt++) {
+        const secret = await password.count() > 0
+            ? DEMO_PASSWORD
+            : demoTotpCode(Date.now() + (attempt % 2) * 30_000)
+        const input = await password.count() > 0 ? password : proof.locator('input').first()
+        await input.fill(secret)
+        await input.press('Enter')
+        const signed = await done.waitFor({state: 'visible', timeout: 10_000}).then(() => true, () => false)
+        if (signed) return
+    }
+    await expect(done, 'the witness confirmed the signature').toBeVisible()
 }
 
 test.describe('Signatures collected in person', () => {
@@ -80,11 +105,7 @@ test.describe('Signatures collected in person', () => {
         await handedOver.getByTestId('witness-taken-back').click()
 
         await expect(managerPage.getByTestId('witness-statement')).toContainText(trial.surname)
-        const proof = managerPage.getByTestId('signing-proof')
-        await proof.locator('input[type="password"]').fill(DEMO_PASSWORD)
-        await proof.locator('form').filter({has: managerPage.locator('input[type="password"]')})
-            .locator('button[type="submit"]').click()
-        await expect(managerPage.getByTestId('witness-done')).toBeVisible({timeout: 30_000})
+        await confirmAsWitness(managerPage)
 
         const offers = await managerPage.request.get(`/api/v1/signing/witness/people/${trial.memberId}/offers`, {
             headers: await apiHeaders(managerPage),
