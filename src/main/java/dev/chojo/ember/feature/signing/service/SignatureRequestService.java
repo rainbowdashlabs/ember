@@ -246,6 +246,26 @@ public class SignatureRequestService {
     }
 
     /**
+     * Asks for the signatures of a document a witness generated on the spot for the person in front of
+     * them, who signs it right away. Nobody is told: the person is there, and a field they leave open waits
+     * among their open signatures as any other. The witness asked, so the request names them; the caller has
+     * made sure they may collect signatures from the person.
+     *
+     * @param witnessId    the witness
+     * @param generationId the generation log entry of the document
+     * @return the request with its fields
+     */
+    public SignatureAsk requestForWitness(int witnessId, int generationId) {
+        var generation =
+                generations.findById(generationId).orElseThrow(DocumentRefusal.SIGNING_GENERATION_NOT_FOUND::raise);
+        var created = onceForTheDocument(() -> {
+            var plan = planOf(generation, memberOf(generation), filedDocument(generation));
+            return create(generation, plan, witnessId, null);
+        });
+        return SignatureAsk.asked(created, requests.fieldsOf(created.id()));
+    }
+
+    /**
      * Withdraws every signature still open on a participant's copies for one date of an appointment, once
      * they no longer take part. What was already signed stays, and their reminders stop with the fields.
      *

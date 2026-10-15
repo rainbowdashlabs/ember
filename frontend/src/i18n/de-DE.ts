@@ -652,6 +652,7 @@ export default {
         documentTemplates: 'Vorlagen',
         generatedDocuments: 'Erstellte Dokumente',
         documentFonts: 'Schriftarten',
+        witnessSigning: 'Vor Ort unterschreiben',
         typePermissions: 'Typberechtigungen',
         formerMembers: 'Ehemalige',
         waitingLists: 'Wartelisten',
@@ -1628,6 +1629,10 @@ export default {
         'station-signing-all': {
             title: 'Alles auf einmal unterschreiben',
             subtitle: 'Lesen, zustimmen, einmal bestätigen',
+        },
+        'station-signing-witness': {
+            title: 'Unterschriften vor Ort',
+            subtitle: 'Gerät übergeben, unterschreiben lassen, selbst bestätigen',
         },
         'attendance-report': {
             title: 'Anwesenheitsbericht',
@@ -4030,6 +4035,10 @@ export default {
         DOCUMENT_TEMPLATE_EDIT: {
             label: 'Dokumentvorlagen',
             desc: 'Kann Vorlagen anlegen, ändern und archivieren, aus denen Dokumente für Mitglieder erstellt werden.',
+        },
+        DOCUMENT_SIGN_OTHERS: {
+            label: 'Unterschriften vor Ort sammeln',
+            desc: 'Kann als Zeugin oder Zeuge Unterschriften von Mitgliedern und Probemitgliedern auf dem eigenen Gerät sammeln und mit dem eigenen Konto bestätigen. Liest dabei nur das Dokument, das gerade unterschrieben wird.',
         },
         MEMBER_READ: {
             label: 'Mitglieder einsehen',
@@ -10928,6 +10937,7 @@ export default {
             signed: '{role}: {name}, am {time}, bestätigt mit {proof}.',
             notSigned: '{role}: {state}.',
             together: 'Zusammen mit anderen Feldern in einem Schritt bestätigt.',
+            witnessed: '{role}: {name}, am {time} vor Zeugin oder Zeuge {witness} unterschrieben, von {witness} bestätigt mit {proof}.',
             issued: 'Ausstellende Person: {name}, beim Erstellen am {time} mit der hinterlegten Unterschrift unterschrieben.',
             unknown: 'nicht mehr bekannt',
         },
@@ -11029,6 +11039,71 @@ export default {
         },
     },
     signing: {
+        witness: {
+            fromTile: 'Vor Ort unterschreiben lassen',
+            stepName: {
+                person: 'Person wählen',
+                document: 'Dokument wählen',
+                signer: 'Wer ist da',
+                handOver: 'Gerät übergeben',
+                read: 'Lesen und zustimmen',
+                draw: 'Unterschreiben',
+                takeBack: 'Gerät zurückgeben',
+                confirm: 'Bestätigen',
+            },
+            person: {
+                heading: 'Wer unterschreibt?',
+                hint: 'Wähle die Person, deren Unterschrift du vor Ort sammelst.',
+                search: 'Name suchen',
+                none: 'Niemand passt zur Suche.',
+                trial: 'Probe',
+            },
+            document: {
+                heading: 'Was unterschreibt {name}?',
+                open: 'Offene Unterschriften',
+                noOpen: 'Für {name} wartet gerade keine Unterschrift.',
+                field: '{document}: {role}',
+                nobody: 'Gerade kann niemand dieses Feld unterschreiben.',
+                templates: 'Neu aus einer Vorlage',
+                noTemplates: 'Keine Vorlage fragt nach einer Unterschrift.',
+                otherPerson: 'Andere Person wählen',
+            },
+            signer: {
+                heading: 'Wer steht vor dir?',
+                hint: 'Dieses Feld darf jede erziehungsberechtigte Person von {name} unterschreiben. Wähle, wer gerade da ist.',
+            },
+            handOver: {
+                heading: 'Gib das Gerät an {name}',
+                hint: 'Ab jetzt sieht {name} nur noch dieses Dokument. Deine eigenen Daten und andere Dokumente sind nicht erreichbar, bis du das Gerät zurück hast.',
+                ready: 'Ich bin {name}',
+            },
+            read: {
+                heading: 'Bitte lies das Dokument, {name}',
+                agree: 'Ich, {name}, habe es gelesen und stimme zu.',
+                giveBack: 'Nicht unterschreiben und zurückgeben',
+            },
+            draw: {
+                heading: 'Unterschreibe hier, {name}',
+                hint: 'Deine Unterschrift kommt in das Feld des Dokuments. Sie wird nicht gespeichert.',
+            },
+            takeBack: {
+                heading: 'Gib das Gerät zurück an {witness}',
+                hint: '{witness} bestätigt jetzt, dass du vor ihr oder ihm unterschrieben hast.',
+                abandoned: 'Es wurde nichts unterschrieben.',
+                taken: 'Ich habe das Gerät zurück',
+            },
+            confirm: {
+                heading: 'Unterschrift bestätigen',
+                statement: 'Ich bestätige, dass {name} vor mir unterschrieben hat.',
+                hint: 'Bestätige mit deinem eigenen Konto. Die Unterschrift ist die von {name}, du stehst im Nachweis als Zeugin oder Zeuge.',
+            },
+            done: {
+                heading: '{name} hat unterschrieben',
+                hint: 'Das Dokument liegt bei {name}. Eine Kopie geht an {name} oder an die erziehungsberechtigten Personen, nicht an dich.',
+                samePerson: 'Weiter mit {name}',
+                nextPerson: 'Nächste Person',
+            },
+        },
         flow: {
             progress: 'Schritt {position} von {total}',
             announce: 'Schritt {position} von {total}: {step}',
@@ -11191,6 +11266,7 @@ export default {
             nobodyHint: 'Für dieses Feld gibt es niemanden, der unterschreiben kann. Bestätige eine Unterschrift auf Papier, erlasse das Feld oder ziehe es zurück.',
             act: 'Unterschrieben von {signer} am {time}, bestätigt mit {proof}.',
             actThrough: 'Unterschrieben von {signer} über das Konto von {holder} am {time}, bestätigt mit {proof}.',
+            actWitnessed: 'Unterschrieben von {signer} vor Zeugin oder Zeuge {holder} am {time}, von {holder} bestätigt mit {proof}.',
             bound: 'Die Bestätigung ist an genau dieses Dokument gebunden.',
             unbound: 'Die Bestätigung ist festgehalten, aber nicht an das Dokument gebunden.',
             notSealed: 'Noch in keiner versiegelten Fassung.',

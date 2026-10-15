@@ -75,10 +75,33 @@ public class MailRecipientService {
         return !forAccount(accountId).isEmpty();
     }
 
+    /**
+     * Everybody a mail about a member goes to: as for their account where they have one, else their
+     * guardians, which is how a member without a login of their own is reached.
+     *
+     * @param memberId the member
+     * @param greeting the member's name, for a greeting where they have no account to take it from
+     * @return the recipients, empty when nobody can be reached
+     */
+    public List<Recipient> forMember(int memberId, String greeting) {
+        var member = memberRepository.findById(memberId).orElse(null);
+        if (member == null) return List.of();
+        Integer accountId = member.accountId();
+        if (accountId != null) return forAccount(accountId);
+        return guardiansOf(List.of(memberId), greeting);
+    }
+
     private List<Recipient> guardiansOf(Account account) {
+        var memberships = memberRepository.findByAccount(account.id()).stream()
+                .map(membership -> membership.id())
+                .toList();
+        return guardiansOf(memberships, NameParts.of(account).greeting());
+    }
+
+    private List<Recipient> guardiansOf(List<Integer> memberIds, String greeting) {
         var byAddress = new LinkedHashMap<String, Recipient>();
-        for (var membership : memberRepository.findByAccount(account.id())) {
-            for (var manager : memberRepository.findManagers(membership.id())) {
+        for (int memberId : memberIds) {
+            for (var manager : memberRepository.findManagers(memberId)) {
                 Integer managerAccountId = manager.accountId();
                 if (managerAccountId == null) continue;
                 accountRepository
@@ -86,8 +109,7 @@ public class MailRecipientService {
                         .filter(Account::hasRealEmail)
                         .ifPresent(guardian -> byAddress.putIfAbsent(
                                 guardian.email().toLowerCase(Locale.ROOT),
-                                new Recipient(
-                                        guardian.email(), NameParts.of(account).greeting(), true)));
+                                new Recipient(guardian.email(), greeting, true)));
             }
         }
         return new ArrayList<>(byAddress.values());

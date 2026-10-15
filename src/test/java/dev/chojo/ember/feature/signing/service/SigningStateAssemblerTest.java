@@ -11,6 +11,7 @@ import dev.chojo.ember.feature.generator.service.pdf.SignatureFields;
 import dev.chojo.ember.feature.signing.entity.ActPicture;
 import dev.chojo.ember.feature.signing.entity.ActPictureSource;
 import dev.chojo.ember.feature.signing.entity.BatchMembership;
+import dev.chojo.ember.feature.signing.entity.EvidenceSummary;
 import dev.chojo.ember.feature.signing.entity.FieldRole;
 import dev.chojo.ember.feature.signing.entity.FieldState;
 import dev.chojo.ember.feature.signing.entity.GuardianLink;
@@ -305,7 +306,8 @@ class SigningStateAssemblerTest extends RepositoryTestBase {
                 guardian.guardianLink(),
                 guardian.webAuthn(),
                 guardian.picture(),
-                guardian.batch());
+                guardian.batch(),
+                guardian.witnessName());
         assertFalse(
                 Arrays.equals(challenge, SigningChallenge.of(SigningEvidenceFiles.actOf(file, tampered))),
                 "a changed statement no longer yields the batch challenge");
@@ -377,7 +379,8 @@ class SigningStateAssemblerTest extends RepositoryTestBase {
                 act.guardianLink(),
                 act.webAuthn(),
                 act.picture(),
-                batch);
+                batch,
+                act.witnessName());
     }
 
     @Test
@@ -775,6 +778,52 @@ class SigningStateAssemblerTest extends RepositoryTestBase {
                 new GuardianLink(0, Instant.parse("2025-03-01T09:00:00Z"), "Max Wart"),
                 null,
                 SIGNED_AT);
+    }
+
+    /**
+     * An act signed in front of a witness names the witness in the evidence, in its summary for the
+     * verification page, and in the record in both languages, beside the person who signed.
+     */
+    @Test
+    void anActSignedInFrontOfAWitnessNamesTheWitness() throws IOException {
+        var german = station("de-DE", "Europe/Berlin");
+        var english = station("en-GB", "UTC");
+
+        var assembled = assembler().assemble(witnessedView(german), content);
+
+        var file = SigningEvidenceFiles.read(
+                SigningStateAssembler.evidenceOf(assembled).orElseThrow());
+        var act = Objects.requireNonNull(file.fields().get(2).act());
+        assertEquals(SignerCapacity.WITNESSED, act.capacity());
+        assertEquals("Wanda Zeugin", act.witnessName());
+        assertEquals("Lena Beispiel", act.signerName());
+        assertNull(Objects.requireNonNull(file.fields().getFirst().act()).witnessName());
+        assertEquals("Wanda Zeugin", EvidenceSummary.of(file).fields().get(2).witnessName());
+        String record = recordOf(assembled, german, RecordTimeBasis.TIMESTAMPS_OFF);
+        assertTrue(record.contains("unterschrieben vor Zeugin oder Zeuge Wanda Zeugin"), record);
+        String englishRecord = recordOf(
+                assembler().assemble(witnessedView(english), content), english, RecordTimeBasis.TIMESTAMPS_OFF);
+        assertTrue(englishRecord.contains("signed in front of the witness Wanda Zeugin"), englishRecord);
+    }
+
+    private static SignatureRequestView witnessedView(Station station) {
+        var view = view(station);
+        var act = new SigningAct(
+                REQUEST,
+                Signer.witnessed(41, 7),
+                "Wanda Zeugin",
+                "Lena Beispiel",
+                "participant",
+                PARTICIPANT_STATEMENT,
+                contentSha256,
+                List.of(),
+                new byte[32],
+                SIGNED_AT,
+                null,
+                null);
+        var witnessed = new StoredEvidence(
+                2, 13, SignatureLevel.SIMPLE, new SigningEvidence.PasswordUnbound(act), 9, 7, null, null, SIGNED_AT);
+        return new SignatureRequestView(view.request(), view.fields(), List.of(guardianEvidence(), witnessed));
     }
 
     private static StoredEvidence participantEvidence() {

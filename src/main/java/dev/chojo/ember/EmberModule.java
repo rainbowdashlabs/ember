@@ -315,6 +315,7 @@ import dev.chojo.ember.feature.signing.route.SignatureRequestRoutes;
 import dev.chojo.ember.feature.signing.route.SigningBatchRoutes;
 import dev.chojo.ember.feature.signing.route.SigningKeyAdminRoutes;
 import dev.chojo.ember.feature.signing.route.SigningRoutes;
+import dev.chojo.ember.feature.signing.route.WitnessedSigningRoutes;
 import dev.chojo.ember.feature.signing.service.AgreementAttendance;
 import dev.chojo.ember.feature.signing.service.AgreementOutcomes;
 import dev.chojo.ember.feature.signing.service.CredentialKeyStamps;
@@ -611,6 +612,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(RemoteSigningRoutes.class);
         routesBinder.addBinding().to(SigningRoutes.class);
         routesBinder.addBinding().to(SigningBatchRoutes.class);
+        routesBinder.addBinding().to(WitnessedSigningRoutes.class);
         routesBinder.addBinding().to(SignatureRecordRoutes.class);
         routesBinder.addBinding().to(SignatureRequestRoutes.class);
         routesBinder.addBinding().to(PartnerAgreementRoutes.class);

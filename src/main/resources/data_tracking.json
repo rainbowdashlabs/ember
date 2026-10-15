@@ -1,7 +1,7 @@
 {
   "version": 1,
   "schemaHash": "sha256:6e0aeee49b8124d62f03baae57742c5c4cc7e1fa55044900a1df4f8c41222f93",
-  "generatedAt": "2026-10-09T16:05:24Z",
+  "generatedAt": "2026-10-15T20:04:46Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -24515,7 +24515,7 @@
           "type": "text",
           "nullable": false,
           "verified": true,
-          "description": "In what capacity the act was given: ACCOUNT_HOLDER for themselves, GUARDIAN on behalf of the member, MEMBER_THROUGH_ACCOUNT by the member through the account of somebody else."
+          "description": "In what capacity the act was given: ACCOUNT_HOLDER for themselves, GUARDIAN on behalf of the member, MEMBER_THROUGH_ACCOUNT by the member through the account of somebody else, WITNESSED by a person who signed in front of a witness, whose account confirmed it."
         },
         {
           "name": "challenge_account_id",
@@ -24536,35 +24536,35 @@
           "type": "int4",
           "nullable": true,
           "verified": true,
-          "description": "The member at the station whose account confirmed the act. NULL once that member was deleted."
+          "description": "The member at the station whose account confirmed the act, the witness for a WITNESSED act. NULL once that member was deleted."
         },
         {
           "name": "member_id",
           "type": "int4",
           "nullable": true,
           "verified": true,
-          "description": "The member a guardian signed for, or who signed through the account. NULL where the account holder signed for themselves, and once that member was deleted."
+          "description": "The member a guardian signed for, who signed through the account, or who signed in front of the witness. NULL where the account holder signed for themselves, and once that member was deleted."
         },
         {
           "name": "account_holder_name",
           "type": "text",
           "nullable": false,
           "verified": true,
-          "description": "The official name of the account holder whose step-up confirmed the act, as it was at signing."
+          "description": "The official name of the account holder whose step-up confirmed the act, the witness for a WITNESSED act, as it was at signing."
         },
         {
           "name": "member_name",
           "type": "text",
           "nullable": true,
           "verified": true,
-          "description": "The official name of the member signed for or signing through the account, as it was at signing. NULL where the account holder signed for themselves."
+          "description": "The official name of the member signed for, signing through the account, or signing in front of the witness, as it was at signing. NULL where the account holder signed for themselves."
         },
         {
           "name": "guardian_position",
           "type": "int4",
           "nullable": true,
           "verified": true,
-          "description": "Where the account holder stood in the member's order of guardians at signing, counted from 0, when they acted as guardian or lent their account. NULL where the account holder signed for themselves."
+          "description": "Where the guardian stood in the member's order of guardians at signing, counted from 0: the account holder when they acted as guardian or lent their account, the guardian who signed in front of a witness for a WITNESSED act. NULL where no guardian was involved."
         },
         {
           "name": "guardian_linked_at",

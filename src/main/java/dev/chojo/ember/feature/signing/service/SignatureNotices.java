@@ -216,11 +216,15 @@ public class SignatureNotices {
         }
     }
 
-    /** Whether the member the document is about signed it, with their own account or through a guardian's. */
+    /**
+     * Whether the member the document is about signed it, with their own account, through a guardian's or
+     * in front of a witness.
+     */
     private static boolean signedByTheMember(SignatureRequest request, StoredEvidence evidence) {
         var signer = evidence.evidence().act().signer();
         if (signer.capacity() == SignerCapacity.MEMBER_THROUGH_ACCOUNT) return true;
         Integer memberId = request.memberId();
+        if (signer.witnessed()) return memberId != null && memberId.equals(signer.memberId());
         return signer.capacity() == SignerCapacity.ACCOUNT_HOLDER
                 && memberId != null
                 && memberId.equals(evidence.accountMemberId());

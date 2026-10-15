@@ -1,5 +1,13 @@
 # Änderungsprotokoll
 
+## v26.23.0
+
+Unterschriften lassen sich vor Ort sammeln. Wer mit einem Tablet beim Übungsabend steht, holt die Unterschriften von Probemitgliedern und Mitgliedern ohne eigenes Konto direkt ein. Mit dem eigenen Konto wird dann bestätigt, dass jede Person vor Ort unterschrieben hat.
+
+### Neue Funktionen
+
+- **Unterschriften vor Ort sammeln.** Wer die neue Berechtigung „Unterschriften vor Ort sammeln“ hat, wählt ein Mitglied oder Probemitglied, öffnet eines seiner Dokumente oder erstellt eines aus einer Vorlage und gibt das Gerät zum Lesen, Zustimmen und Unterschreiben weiter. Bestätigt wird mit dem eigenen Konto, und Signaturnachweis und Prüfseite nennen die Zeugin oder den Zeugen neben der Person, die unterschrieben hat.
+
 ## v26.22.4
 
 Der Tag, an dem ein Mitglied beigetreten ist, steht in der Mitgliederliste und auf der Seite des Mitglieds und lässt sich beim Import übernehmen. Mitglieder öffnen sich aus der Liste in einem neuen Tab.

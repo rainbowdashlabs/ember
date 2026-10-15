@@ -59,6 +59,7 @@ export const PALETTE_ROUTES: PaletteRouteEntry[] = [
 
     {scope: 'station', to: '/station/documents', labelKey: 'sidebar.ownDocuments', icon: 'file', module: StationModule.DOCUMENTS},
     {scope: 'station', to: '/station/documents/self-service', labelKey: 'sidebar.documentSelfService', icon: 'file-circle-plus', module: StationModule.DOCUMENTS},
+    {scope: 'station', to: '/station/signing/witness', labelKey: 'sidebar.witnessSigning', icon: 'signature', module: StationModule.DOCUMENTS, permission: StationPermission.DOCUMENT_SIGN_OTHERS},
     {scope: 'station', to: '/station/documents/store', labelKey: 'sidebar.documentStore', icon: 'box-archive', module: StationModule.DOCUMENTS, permission: StationPermission.DOCUMENT_READ},
     {scope: 'station', to: '/station/documents/templates', labelKey: 'sidebar.documentTemplates', icon: 'file-signature', module: StationModule.DOCUMENTS, permission: StationPermission.DOCUMENT_TEMPLATE_EDIT},
     {scope: 'station', to: '/station/documents/generated', labelKey: 'sidebar.generatedDocuments', icon: 'clock-rotate-left', module: StationModule.DOCUMENTS, permission: StationPermission.DOCUMENT_READ_MEMBER},

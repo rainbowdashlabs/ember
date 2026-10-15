@@ -14,5 +14,7 @@ public enum GenerationWay {
     /** The member or their guardian, from the templates offered for self service. */
     SELF_SERVICE,
     /** A participant of an appointment or their guardian, as a document the appointment asks to bring. */
-    APPOINTMENT
+    APPOINTMENT,
+    /** A witness, for the person in front of them, who signs it on the spot. */
+    WITNESS
 }

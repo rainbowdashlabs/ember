@@ -352,6 +352,7 @@ public class SignatureRequestRoutes implements Routes {
     /**
      * One field of a request as its document's manager sees it.
      *
+     * @param fieldId       the field, by which a witness collects it in person
      * @param fieldName     the field's name in the document
      * @param role          who the field asks for
      * @param signerName    the official name of the person it names, or null where any guardian may sign or
@@ -366,6 +367,7 @@ public class SignatureRequestRoutes implements Routes {
      * @param act           the act that signed it, or null where no act did
      */
     public record ManagedFieldResponse(
+            int fieldId,
             String fieldName,
             FieldRole role,
             @Nullable String signerName,
@@ -380,6 +382,7 @@ public class SignatureRequestRoutes implements Routes {
             var field = managed.field();
             var evidence = managed.evidence();
             return new ManagedFieldResponse(
+                    field.id(),
                     field.fieldName(),
                     field.role(),
                     field.signerName(),

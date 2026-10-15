@@ -69,6 +69,33 @@ class MailRecipientServiceTest extends RepositoryTestBase {
         assertFalse(recipients.getFirst().guardian());
     }
 
+    /**
+     * A member is written to as their account is where they have one, and through their guardians, named
+     * as given, where they have none; a member who is gone is written to by nobody.
+     */
+    @Test
+    void aMemberIsWrittenToThroughTheirAccountOrTheirGuardians() {
+        assertEquals(
+                List.of("petra@recipient.test", "paul@recipient.test"),
+                service.forMember(child.id(), "Lena").stream()
+                        .map(MailRecipientService.Recipient::email)
+                        .toList());
+        var withoutAccount = stationMemberRepo.createWithoutAccount(station.id(), "Tom Probe");
+        var guardian = stationMemberRepo
+                .findByStationAndAccount(station.id(), firstGuardianAccount.id())
+                .orElseThrow();
+        stationMemberRepo.addManager(guardian.id(), withoutAccount.id());
+
+        var recipients = service.forMember(withoutAccount.id(), "Tom");
+
+        assertEquals(
+                List.of("petra@recipient.test"),
+                recipients.stream().map(MailRecipientService.Recipient::email).toList());
+        assertEquals("Tom", recipients.getFirst().name());
+        assertTrue(recipients.getFirst().guardian());
+        assertTrue(service.forMember(-1, "Niemand").isEmpty());
+    }
+
     @Test
     void somebodyWithoutOneIsWrittenAboutToEveryoneWhoLooksAfterThem() {
         var recipients = service.forAccount(childAccount.id());

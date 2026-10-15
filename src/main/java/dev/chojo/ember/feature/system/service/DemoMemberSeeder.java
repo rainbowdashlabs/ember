@@ -115,7 +115,8 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
      *
      * <p>Max Mustermann is the station administrator. Michael Wagner may read the members but not
      * manage them, because reading and notes are separate rights and a team where everyone holds the
-     * whole bundle never shows the difference. The date of birth is one question put to four audiences:
+     * whole bundle never shows the difference. He also collects signatures in person, as the trainer
+     * with a tablet at a training evening does. The date of birth is one question put to four audiences:
      * only member management writes it by default, and the two audiences that may are told so on their
      * own row. The first guardian and the first beginner are left with incomplete profiles.
      */
@@ -140,6 +141,9 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
                 .orElseThrow();
         var memberRead = stationMemberRepository
                 .findPermissionByName(StationPermission.MEMBER_READ)
+                .orElseThrow();
+        var signOthers = stationMemberRepository
+                .findPermissionByName(StationPermission.DOCUMENT_SIGN_OTHERS)
                 .orElseThrow();
 
         var groupBetreuer = memberGroupRepository.create(stationId, "Betreuer");
@@ -311,6 +315,7 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
                 stationMemberRepository.grantPermission(m.id(), attendanceMgmt.id());
                 stationMemberRepository.grantPermission(m.id(), eventMgmt.id());
                 stationMemberRepository.grantPermission(m.id(), memberRead.id());
+                stationMemberRepository.grantPermission(m.id(), signOthers.id());
             } else {
                 stationMemberRepository.grantPermission(m.id(), attendanceMgmt.id());
                 stationMemberRepository.grantPermission(m.id(), eventMgmt.id());

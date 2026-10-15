@@ -78,6 +78,7 @@ import dev.chojo.ember.feature.signing.service.SigningStarts;
 import dev.chojo.ember.feature.signing.service.TemplateDocumentStatements;
 import dev.chojo.ember.feature.signing.service.TestKeyStamps;
 import dev.chojo.ember.feature.signing.service.TestSealing;
+import dev.chojo.ember.feature.signing.service.WitnessReach;
 import dev.chojo.ember.feature.storage.backend.StorageBackendResolver;
 import dev.chojo.ember.feature.storage.service.StorageService;
 import dev.chojo.ember.feature.system.repository.ApplicationSettingRepository;
@@ -196,7 +197,8 @@ class DemoPhotoConsentSeederTest extends RepositoryTestBase {
                 guardianPolicy,
                 memberNameResolver,
                 mock(SignatureNotices.class),
-                completed -> {});
+                completed -> {},
+                new WitnessReach(stationMemberRepo));
         var audit = new TwoFactorAuditService(twoFactorRepo);
         var twoFactor = new TwoFactorService(
                 twoFactorRepo,

@@ -198,4 +198,8 @@ export default {
     'D-303': 'Ein Unterschriftsbild kam für jemanden, der hier nichts unterschreibt',
     'D-304': 'Für eine Person kamen zwei Unterschriftsbilder',
     'D-305': 'Diese Fassung enthält keinen Signaturnachweis',
+    'D-306': 'Niemand bezeugt die eigene Unterschrift oder ein Feld, das er selbst unterschreiben würde',
+    'D-307': 'Von dieser Person sammelst du keine Unterschriften vor Ort',
+    'D-308': 'Dieses Feld wird nicht vor einer Zeugin oder einem Zeugen unterschrieben',
+    'D-309': 'Dieses Feld fragt diese Person nicht nach einer Unterschrift',
 }
