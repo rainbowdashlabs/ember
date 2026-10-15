@@ -569,14 +569,19 @@ export default {
                 toggleText: 'Als Verwalter findest du die Modul-Einstellungen unter Wache verwalten. Dort kannst du einzelne Module per Schalter aktivieren oder deaktivieren:',
                 toggleText2: 'Deaktivierte Module sind komplett ausgeblendet. Keine Daten gehen verloren - wenn du ein Modul wieder aktivierst, sind alle Daten noch da.',
                 navigation: 'Navigation in Ember',
-                navigationText: 'Ember hat eine Seitenleiste links mit allen verfügbaren Bereichen. So findest du dich zurecht:',
-                nav1: 'Übersicht - Deine persönliche Startseite mit Benachrichtigungen und allem, was gerade wichtig ist.',
-                nav2: 'Die einzelnen Module (Mitglieder, Inventar, Anwesenheit etc.) - je nach aktivierten Modulen.',
-                nav3: 'Profil - Dein persönliches Profil, Einstellungen und Abwesenheiten.',
-                nav4: 'Wache verwalten - Einstellungen der Wache (nur für Verwalter).',
+                navigationText: 'Ember hat links eine Seitenleiste mit Seiten und Bereichen. Ein Bereich hat einen Pfeil: Ein Klick zeigt nur noch diesen Bereich mit allen seinen Seiten und öffnet seine erste Seite. „Alle Bereiche“ oben führt zur ganzen Liste zurück, ebenso die Escape-Taste. Öffnest du eine Seite über einen Link oder die Schnellsuche, zeigt die Seitenleiste gleich den Bereich, zu dem sie gehört. So findest du dich zurecht:',
+                nav1: 'Übersicht - Deine Startseite mit Benachrichtigungen und allem, was gerade wichtig ist, dazu die Statistiken.',
+                nav2: 'Die einzelnen Module (Mitglieder, Inventar, Anwesenheit etc.) - je nach aktivierten Modulen. Die Hauptseite eines Bereichs, etwa die Mitgliederliste, ist immer sein erster Eintrag.',
+                nav3: 'Profil - Dein Profil, Abwesenheiten und Benachrichtigungen.',
+                nav4: 'Verwalten - Einstellungen der Wache (nur für Verwalter).',
                 nav5: 'Das Ember-Logo oben links führt zur Startseite von Ember. Rufst du die Startseite '
                     + 'stattdessen über die Adresszeile auf, während du angemeldet bist, landest du wieder '
                     + 'in dem Bereich, in dem du zuletzt gearbeitet hast: Wache, Verband oder Verwaltung.',
+                nav6: 'Gehörst du zu mehreren Wachen, zu einem Verband oder verwaltest du die Instanz, hat der Name '
+                    + 'oben in der Seitenleiste einen kleinen Pfeil. Ein Klick listet alle diese Orte mit der Zahl '
+                    + 'dessen, was dort auf dich wartet, und wechselt dorthin.',
+                nav7: 'Unten rechts sitzen runde Knöpfe: der Fehlerbericht, das Hilfe-Center zur gerade offenen Seite '
+                    + 'und, solange eine Einführung offen ist, der Knopf zum Weitermachen.',
                 notifications: 'Benachrichtigungen',
                 notificationsText: 'Ember informiert dich über wichtige Änderungen per Benachrichtigung auf der Übersicht. Die Zahl neben dem Glockensymbol zeigt, wie viele ungelesene Benachrichtigungen du hast.',
                 notificationsText2: 'Du kannst in deinen Einstellungen festlegen, welche Benachrichtigungen du auch per E-Mail erhalten möchtest.',

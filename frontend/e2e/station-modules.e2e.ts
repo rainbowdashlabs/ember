@@ -5,7 +5,7 @@
  */
 import type {Page} from '@playwright/test'
 import {test, expect, apiHeaders} from './fixtures/auth'
-import {sidebar, sidebarEntry} from './fixtures/sidebar'
+import {allSections, sidebar, sidebarEntry} from './fixtures/sidebar'
 
 /**
  * What switching a module off actually does to the person using the station: the part of the
@@ -29,10 +29,16 @@ interface ModuleEntry {
     /** The sidebar entries the module owns, as they read to whoever looks at the sidebar. */
     entries: string[]
     /**
-     * Where the sidebar shows those entries. Top-level entries show anywhere; a subpoint only
-     * renders while its group is open, and a group opens on the routes it holds.
+     * Where the sidebar shows those entries. Top-level entries show in the full list, read from the
+     * overview; a subpoint shows while its section is open, and a section opens on the routes it holds.
      */
     at: string
+}
+
+/** Goes to where a module's entries show, leaving the overview's section for the full list. */
+async function visit(page: Page, mod: ModuleEntry): Promise<void> {
+    await page.goto(mod.at)
+    if (mod.at === OVERVIEW) await allSections(page)
 }
 
 const OVERVIEW = '/station/dashboard/overview'
@@ -82,18 +88,18 @@ test.describe('Station modules', () => {
         test(`switching the ${mod.name} module off removes it from the sidebar`, async ({partnerManagerPage: page}) => {
             const entries = mod.entries.map(entry => sidebarEntry(page, entry))
 
-            await page.goto(mod.at)
+            await visit(page, mod)
             for (const entry of entries) await expect(entry).toBeVisible()
 
             await setModule(page, mod.key, false)
 
-            await page.goto(mod.at)
+            await visit(page, mod)
             await expect(sidebar(page)).toBeVisible()
             for (const entry of entries) await expect(entry).toHaveCount(0)
 
             await setModule(page, mod.key, true)
 
-            await page.goto(mod.at)
+            await visit(page, mod)
             for (const entry of entries) await expect(entry).toBeVisible()
         })
     }
@@ -105,20 +111,24 @@ test.describe('Station modules', () => {
      */
     test('the shared quiz group is named after the modules the station keeps', async ({partnerManagerPage: page}) => {
         await page.goto('/station/quiz/tests')
+        await allSections(page)
         await expect(sidebarEntry(page, 'Quiz & Prüfungen')).toBeVisible()
 
         await setModule(page, 'TEST_PROTOCOL', false)
         await page.goto('/station/quiz/tests')
+        await allSections(page)
         await expect(sidebarEntry(page, 'Quiz')).toBeVisible()
         await expect(sidebarEntry(page, 'Quiz & Prüfungen')).toHaveCount(0)
 
         await setModule(page, 'TEST_PROTOCOL', true)
         await setModule(page, 'QUIZ', false)
         await page.goto('/station/protocols')
+        await allSections(page)
         await expect(sidebarEntry(page, 'Prüfungen')).toBeVisible()
 
         await setModule(page, 'QUIZ', true)
         await page.goto('/station/quiz/tests')
+        await allSections(page)
         await expect(sidebarEntry(page, 'Quiz & Prüfungen')).toBeVisible()
     })
 

@@ -4,141 +4,44 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script setup lang="ts">
-import {computed} from 'vue'
-import {useI18n} from 'vue-i18n'
-import SidebarGroup from '@/components/navigation/SidebarGroup.vue'
-import {StationModule, StationPermission} from '@/api/generated/schema'
+import {computed, onMounted, watch} from 'vue'
+import NavSidebar from '@/components/navigation/NavSidebar.vue'
+import {StationPermission} from '@/api/generated/schema'
 import {useSession} from '@/composables/useSession'
-import {useSidebarCounts} from '@/composables/useSidebarCounts'
-import {useStationTransferStatus} from '@/composables/useStationTransferStatus'
-import SetupSidebarGroup from '@/views/dashboardview/SetupSidebarGroup.vue'
-import DashboardSidebarGroup from '@/views/dashboardview/DashboardSidebarGroup.vue'
-import ProfileSidebarGroup from '@/views/dashboardview/ProfileSidebarGroup.vue'
-import MembersSidebarGroup from '@/views/dashboardview/MembersSidebarGroup.vue'
-import DocumentsSidebarGroup from '@/views/dashboardview/DocumentsSidebarGroup.vue'
-import InventorySidebarGroup from '@/views/dashboardview/InventorySidebarGroup.vue'
-import AttendanceSidebarGroup from '@/views/dashboardview/AttendanceSidebarGroup.vue'
-import EventsSidebarGroup from '@/views/dashboardview/EventsSidebarGroup.vue'
-import FormsSidebarGroup from '@/views/dashboardview/FormsSidebarGroup.vue'
-import QuizSidebarGroup from '@/views/dashboardview/QuizSidebarGroup.vue'
-import BoardsSidebarGroup from '@/views/dashboardview/BoardsSidebarGroup.vue'
-import ProceduresSidebarGroup from '@/views/dashboardview/ProceduresSidebarGroup.vue'
-import PagesSidebarGroup from '@/views/dashboardview/PagesSidebarGroup.vue'
-import ManageSidebarGroup from '@/views/dashboardview/ManageSidebarGroup.vue'
-import MonitoringSidebarGroup from '@/views/dashboardview/MonitoringSidebarGroup.vue'
-import FederationSidebarGroup from '@/views/dashboardview/FederationSidebarGroup.vue'
-
-const props = defineProps<{
-  openGroup: string | null
-  isDesktop: boolean
-}>()
+import {useSetupStatus} from '@/composables/useSetupStatus'
+import {useStationNav} from '@/composables/useStationNav'
+import type {SetupNavStep} from '@/data/sidebar/stationNav'
+import {STEP_ORDER, stepBackendId, stepRouteName} from '@/views/stationview/setup/steps'
 
 const emit = defineEmits<{
-  (e: 'update:openGroup', value: string | null): void
   (e: 'navigate'): void
 }>()
 
-const {t} = useI18n()
-const {counts} = useSidebarCounts()
-const {hasMoved: stationMoved} = useStationTransferStatus()
-const {
-  sessionInfo,
-  isManager,
-  hasPermission,
-  hasAnyMemberPermission,
-  hasAnyAttendancePermission,
-  hasAnyWaitlistPermission,
-  canManageFederation,
-  isModuleEnabled,
-} = useSession()
+const {hasPermission, sessionInfo} = useSession()
+const {load: loadSetup, requiredSteps, optionalSteps} = useSetupStatus()
 
-const groupBindings = computed(() => ({
-  openGroup: props.openGroup,
-  isDesktop: props.isDesktop,
-  'onUpdate:openGroup': (value: string | null) => emit('update:openGroup', value),
-  onNavigate: () => emit('navigate'),
+/** The first setup's steps in wizard order, each with how far the station has come with it. */
+const setupSteps = computed<SetupNavStep[]>(() => STEP_ORDER.map(stepId => {
+  const state = [...requiredSteps.value, ...optionalSteps.value].find(step => step.id === stepBackendId(stepId))
+  return {
+    key: stepRouteName(stepId),
+    to: `/station/setup/${stepId}`,
+    label: `setup.steps.${stepId}.label`,
+    complete: state?.complete ?? false,
+    applicable: state?.applicable ?? true,
+  }
 }))
 
-function close() {
-  emit('navigate')
-}
+const {nodes} = useStationNav(setupSteps)
 
-/**
- * The media library is shared by everything that authors content, so any one of the three
- * content permissions opens it. Members without one still reach it through an editor, where
- * they see what they uploaded themselves.
- */
-function canBrowseMedia() {
-  return hasPermission(StationPermission.PAGE_EDIT)
-      || hasPermission(StationPermission.NEWS_EDIT)
-      || hasPermission(StationPermission.KNOWLEDGE_EDIT)
-}
+onMounted(() => watch(
+    () => hasPermission(StationPermission.STATION_ADMINISTRATOR) && sessionInfo.value?.setupCompletedAt == null,
+    setupPending => {
+      if (setupPending) loadSetup()
+    },
+    {immediate: true}))
 </script>
 
 <template>
-  <SidebarGroup v-if="stationMoved"
-                :open-group="isDesktop ? undefined : openGroup"
-                :icon="['fas', 'map-location-dot']"
-                :label="t('sidebar.stationMoved')"
-                to="/station/moved"
-                name="station-moved"
-                @update:open-group="v => emit('update:openGroup', v)"
-                @navigate="close"/>
-
-  <SidebarGroup v-if="stationMoved && hasPermission(StationPermission.STATION_ADMINISTRATOR)"
-                :open-group="isDesktop ? undefined : openGroup"
-                :icon="['fas', 'trash']"
-                :label="t('pages.station-moved.tabDelete')"
-                to="/station/moved/delete"
-                name="station-moved-delete"
-                @update:open-group="v => emit('update:openGroup', v)"
-                @navigate="close"/>
-
-  <template v-else>
-    <SetupSidebarGroup
-        v-if="hasPermission(StationPermission.STATION_ADMINISTRATOR) && sessionInfo?.setupCompletedAt == null"
-        v-bind="groupBindings"/>
-
-    <DashboardSidebarGroup v-bind="groupBindings"/>
-
-    <SidebarGroup v-if="counts.requirements > 0" :open-group="isDesktop ? undefined : openGroup" :badge="counts.requirements" :icon="['fas', 'clipboard-check']" :label="t('sidebar.requirements')" to="/station/requirements" name="station-requirements" @update:open-group="v => emit('update:openGroup', v)" @navigate="close"/>
-
-    <SidebarGroup v-if="isModuleEnabled(StationModule.NEWS)" :open-group="isDesktop ? undefined : openGroup" :icon="['fas', 'newspaper']" :label="t('sidebar.news')" to="/station/news" name="news-list" @update:open-group="v => emit('update:openGroup', v)" @navigate="close"/>
-
-    <ProfileSidebarGroup v-bind="groupBindings"/>
-
-    <MembersSidebarGroup v-if="hasAnyMemberPermission() || hasAnyWaitlistPermission()" v-bind="groupBindings"/>
-
-    <DocumentsSidebarGroup v-if="isModuleEnabled(StationModule.DOCUMENTS)" v-bind="groupBindings"/>
-
-    <InventorySidebarGroup v-if="isModuleEnabled(StationModule.INVENTORY)" v-bind="groupBindings"/>
-
-    <AttendanceSidebarGroup v-if="hasAnyAttendancePermission() && isModuleEnabled(StationModule.ATTENDANCE)" v-bind="groupBindings"/>
-
-    <EventsSidebarGroup v-if="isModuleEnabled(StationModule.EVENTS)" v-bind="groupBindings"/>
-
-    <FormsSidebarGroup v-if="isModuleEnabled(StationModule.FORMS)" v-bind="groupBindings"/>
-
-    <SidebarGroup v-if="isModuleEnabled(StationModule.LOST_AND_FOUND)" :open-group="isDesktop ? undefined : openGroup" :badge="counts.lostAndFoundPending" :icon="['fas', 'box-open']" :label="t('sidebar.lostAndFound')" to="/station/lost-and-found" name="lost-and-found" @update:open-group="v => emit('update:openGroup', v)" @navigate="close"/>
-
-    <QuizSidebarGroup v-if="isModuleEnabled(StationModule.QUIZ) || isModuleEnabled(StationModule.TEST_PROTOCOL)" v-bind="groupBindings"/>
-
-    <BoardsSidebarGroup v-if="isModuleEnabled(StationModule.BOARDS) && hasPermission(StationPermission.BOARD_USE)" v-bind="groupBindings"/>
-
-    <ProceduresSidebarGroup v-if="isModuleEnabled(StationModule.PROCEDURES) && (hasPermission(StationPermission.PROCEDURE_READ) || counts.procedureCount > 0)" v-bind="groupBindings"/>
-
-    <SidebarGroup v-if="hasPermission(StationPermission.CHECKLIST_READ)" :open-group="isDesktop ? undefined : openGroup" :icon="['fas', 'list-check']" :label="t('sidebar.checklists')" to="/station/checklist" name="checklist-list" @update:open-group="v => emit('update:openGroup', v)" @navigate="close"/>
-
-    <SidebarGroup v-if="isModuleEnabled(StationModule.KNOWLEDGE_BASE)" data-onboarding="nav.knowledge" :open-group="isDesktop ? undefined : openGroup" :icon="['fas', 'book-open']" :label="t('sidebar.knowledgeBase')" to="/station/knowledge" name="kb-browse" @update:open-group="v => emit('update:openGroup', v)" @navigate="close"/>
-
-    <SidebarGroup v-if="canBrowseMedia()" :open-group="isDesktop ? undefined : openGroup" :icon="['fas', 'folder-open']" :label="t('sidebar.media')" to="/station/media" name="station-media" @update:open-group="v => emit('update:openGroup', v)" @navigate="close"/>
-
-    <PagesSidebarGroup v-if="hasPermission(StationPermission.PAGE_EDIT)" v-bind="groupBindings"/>
-
-    <ManageSidebarGroup v-if="isManager()" v-bind="groupBindings"/>
-
-    <MonitoringSidebarGroup v-if="hasPermission(StationPermission.STATION_ADMINISTRATOR)" v-bind="groupBindings"/>
-
-    <FederationSidebarGroup v-if="canManageFederation()" v-bind="groupBindings"/>
-  </template>
+  <NavSidebar :nodes="nodes" @navigate="emit('navigate')"/>
 </template>

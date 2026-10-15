@@ -6,14 +6,11 @@
 <script lang="ts" setup>
 import {onMounted} from 'vue'
 import {useMonitoringCounts} from '@/composables/useMonitoringCounts'
-import {useI18n} from 'vue-i18n'
 import SidebarLayout from '@/components/layout/SidebarLayout.vue'
-import SidebarGroup from '@/components/navigation/SidebarGroup.vue'
-import SidebarLink from '@/components/navigation/SidebarLink.vue'
+import NavSidebar from '@/components/navigation/NavSidebar.vue'
 import AccountMenuButton from '@/components/layout/AccountMenuButton.vue'
-import SmartStationButton from '@/components/layout/SmartStationButton.vue'
-import ClusterPanelButton from '@/components/layout/ClusterPanelButton.vue'
 import {useSession} from '@/composables/useSession'
+import {useAdminNav} from '@/composables/useAdminNav'
 import HelpCenterLink from '@/components/navigation/HelpCenterLink.vue'
 import QuickSearchPalette from '@/components/quicksearch/QuickSearchPalette.vue'
 import OnboardingGuide from '@/components/onboarding/OnboardingGuide.vue'
@@ -27,17 +24,15 @@ import {usePageHeader} from '@/composables/usePageHeader'
  *
  * <p>The beacon settings entry always shows, since setting a beacon up is how an instance becomes
  * one; what a beacon gathers shows only once it is active, rather than as empty pages everywhere else.
+ * The inspector tools show in development builds only.
  */
-const {t} = useI18n()
 const {loaded, load} = useSession()
 const {title: pageTitle, subtitle: pageSubtitle} = usePageHeader()
-
-/** Shows the inspector tools, which production builds drop entirely. */
-const isDev = import.meta.env.DEV
+const {nodes} = useAdminNav()
 
 const {open: openQuickSearch} = useQuickSearchShortcut('admin')
 
-const {counts, refresh: refreshCounts} = useMonitoringCounts()
+const {refresh: refreshCounts} = useMonitoringCounts()
 
 onMounted(() => {
   if (!loaded.value) {
@@ -49,185 +44,23 @@ onMounted(() => {
 </script>
 
 <template>
-  <SidebarLayout :subtitle="pageSubtitle" :title="pageTitle">
+  <SidebarLayout :subtitle="pageSubtitle" :title="pageTitle" switcher>
     <template #sidebar="{ close }">
-      <SidebarGroup :icon="['fas', 'gauge']" :label="t('sidebar.dashboard')">
-        <SidebarLink :icon="['fas', 'house']" name="admin-overview" to="/admin/dashboard/overview" @navigate="close">
-          {{ t('sidebar.overview') }}
-        </SidebarLink>
-        <SidebarLink :icon="['fas', 'chart-line']" name="admin-statistics" to="/admin/dashboard/statistics"
-                     @navigate="close">
-          {{ t('sidebar.statistics') }}
-        </SidebarLink>
-      </SidebarGroup>
-
-      <SidebarGroup :icon="['fas', 'building']" :label="t('sidebar.stations')">
-        <SidebarLink data-onboarding="nav.admin.stations" :icon="['fas', 'building']" name="admin-stations" to="/admin/stations" @navigate="close">
-          {{ t('sidebar.manageStations') }}
-        </SidebarLink>
-        <SidebarLink :icon="['fas', 'clipboard-list']" name="admin-station-applications"
-                     to="/admin/stations/applications" @navigate="close">
-          {{ t('sidebar.applications') }}
-        </SidebarLink>
-        <SidebarLink :icon="['fas', 'bullhorn']" name="admin-news" to="/admin/news" @navigate="close">
-          {{ t('sidebar.systemNews') }}
-        </SidebarLink>
-      </SidebarGroup>
-
-      <SidebarGroup :icon="['fas', 'sitemap']" :label="t('sidebar.clusters')">
-        <SidebarLink :icon="['fas', 'sitemap']" name="admin-clusters" to="/admin/clusters" @navigate="close">
-          {{ t('sidebar.manageClusters') }}
-        </SidebarLink>
-      </SidebarGroup>
-
-      <SidebarGroup :icon="['fas', 'gear']" :label="t('sidebar.settings')">
-        <SidebarLink data-onboarding="nav.admin.settings" :icon="['fas', 'sliders']" name="admin-settings" to="/admin/settings" @navigate="close">
-          {{ t('sidebar.general') }}
-        </SidebarLink>
-        <SidebarLink data-onboarding="nav.admin.mailing" :icon="['fas', 'envelope']" name="admin-mailing" to="/admin/settings/mailing" @navigate="close">
-          {{ t('sidebar.mailing') }}
-        </SidebarLink>
-        <SidebarGroup data-onboarding="nav.admin.security" :icon="['fas', 'shield']" :label="t('sidebar.security')" to="/admin/settings/security" name="admin-security"
-                      @navigate="close">
-          <SidebarLink :icon="['fas', 'key']" name="admin-security-tokens"
-                       to="/admin/settings/security/tokens" @navigate="close">
-            {{ t('sidebar.securityTokens') }}
-          </SidebarLink>
-          <SidebarLink :icon="['fas', 'user-shield']" name="admin-security-hibp"
-                       to="/admin/settings/security/hibp" @navigate="close">
-            {{ t('sidebar.securityHibp') }}
-          </SidebarLink>
-          <SidebarLink :icon="['fas', 'mobile-screen']" name="admin-security-two-factor"
-                       to="/admin/settings/security/two-factor" @navigate="close">
-            {{ t('sidebar.securityTwoFactor') }}
-          </SidebarLink>
-          <SidebarLink :icon="['fas', 'file-signature']" name="admin-security-signing-keys"
-                       to="/admin/settings/security/signing-keys" @navigate="close">
-            {{ t('sidebar.securitySigningKeys') }}
-          </SidebarLink>
-        </SidebarGroup>
-        <SidebarLink data-onboarding="nav.admin.legal" :icon="['fas', 'scale-balanced']" name="admin-legal" to="/admin/settings/legal" @navigate="close">
-          {{ t('sidebar.legal') }}
-        </SidebarLink>
-        <SidebarLink :icon="['fas', 'font']" name="admin-document-fonts" to="/admin/settings/fonts" @navigate="close">
-          {{ t('sidebar.documentFonts') }}
-        </SidebarLink>
-      </SidebarGroup>
-
-      <SidebarGroup :icon="['fas', 'users']" :label="t('sidebar.accounts')"
-                    to="/admin/accounts" name="admin-accounts"
-                    @navigate="close"/>
-
-      <SidebarGroup :icon="['fas', 'mobile-screen']" :label="t('sidebar.twoFactor')"
-                    to="/admin/2fa" name="admin-two-factor"
-                    @navigate="close"/>
-
-      <SidebarGroup :icon="['fas', 'triangle-exclamation']" :label="t('sidebar.monitoring')" group-key="monitoring">
-        <SidebarLink data-onboarding="nav.admin.storage" :icon="['fas', 'hard-drive']" name="admin-storage" to="/admin/monitoring/storage" @navigate="close">
-          {{ t('sidebar.storageDashboard') }}
-        </SidebarLink>
-        <SidebarLink :icon="['fas', 'envelope']" name="admin-mail-log" to="/admin/monitoring/mail-log" @navigate="close">
-          {{ t('sidebar.mailLog') }}
-        </SidebarLink>
-        <SidebarLink :icon="['fas', 'file-lines']" name="admin-log" to="/admin/monitoring/log" @navigate="close">
-          {{ t('sidebar.applicationLog') }}
-        </SidebarLink>
-        <SidebarLink :badge="counts.problemLog" :icon="['fas', 'bug']" name="admin-problems" to="/admin/monitoring/problems" @navigate="close">
-          {{ t('sidebar.problemLog') }}
-        </SidebarLink>
-        <SidebarLink :badge="counts.problemReports" :icon="['fas', 'flag']" name="admin-problem-reports" to="/admin/monitoring/problem-reports" @navigate="close">
-          {{ t('sidebar.problemReports') }}
-        </SidebarLink>
-        <SidebarLink :icon="['fas', 'chart-line']" name="admin-api-status" to="/admin/monitoring/api-status" @navigate="close">
-          {{ t('sidebar.apiStatus') }}
-        </SidebarLink>
-        <SidebarLink :icon="['fas', 'rss']" name="admin-feed-metrics" to="/admin/monitoring/feed-metrics" @navigate="close">
-          {{ t('sidebar.feedMetrics') }}
-        </SidebarLink>
-        <SidebarLink :icon="['fas', 'list-check']" name="admin-tasks" to="/admin/monitoring/tasks" @navigate="close">
-          {{ t('sidebar.backgroundTasks') }}
-        </SidebarLink>
-        <SidebarLink :icon="['fas', 'tower-broadcast']" name="admin-traffic" to="/admin/monitoring/traffic" @navigate="close">
-          {{ t('sidebar.adminTraffic') }}
-        </SidebarLink>
-        <SidebarLink :icon="['fas', 'compass']" name="admin-discovery" to="/admin/monitoring/discovery" @navigate="close">
-          {{ t('sidebar.adminDiscovery') }}
-        </SidebarLink>
-        <SidebarLink data-onboarding="nav.admin.maps" :icon="['fas', 'map-location-dot']" name="admin-maps" to="/admin/monitoring/maps" @navigate="close">
-          {{ t('sidebar.maps') }}
-        </SidebarLink>
-      </SidebarGroup>
-
-      <SidebarGroup
-          :badge="counts.beaconFaults + counts.beaconReports"
-          :icon="['fas', 'tower-broadcast']"
-          :label="t('sidebar.beacon')"
-          group-key="beacon"
-          name="admin-beacon"
-          to="/admin/beacon"
-      >
-        <SidebarLink :icon="['fas', 'sliders']" name="admin-beacon" to="/admin/beacon" @navigate="close">
-          {{ t('sidebar.beaconSettings') }}
-        </SidebarLink>
-        <SidebarLink
-            v-if="counts.beaconActive"
-            :badge="counts.beaconFaults"
-            :icon="['fas', 'bug']"
-            name="admin-beacon-faults"
-            to="/admin/beacon/faults"
-            @navigate="close"
-        >
-          {{ t('sidebar.beaconFaults') }}
-        </SidebarLink>
-        <SidebarLink
-            v-if="counts.beaconActive"
-            :badge="counts.beaconReports"
-            :icon="['fas', 'flag']"
-            name="admin-beacon-reports"
-            to="/admin/beacon/reports"
-            @navigate="close"
-        >
-          {{ t('sidebar.beaconReports') }}
-        </SidebarLink>
-        <SidebarLink
-            v-if="counts.beaconActive"
-            :icon="['fas', 'chart-line']"
-            name="admin-beacon-figures"
-            to="/admin/beacon/figures"
-            @navigate="close"
-        >
-          {{ t('sidebar.beaconMetrics') }}
-        </SidebarLink>
-      </SidebarGroup>
-
-      <SidebarGroup
-          v-if="isDev"
-          :icon="['fas', 'code']"
-          :label="t('sidebar.devTools')"
-          group-key="dev"
-      >
-        <SidebarLink
-            :icon="['fas', 'database']"
-            name="admin-data-tracking"
-            to="/admin/dev/data-tracking"
-            @navigate="close"
-        >
-          {{ t('sidebar.dataTracking') }}
-        </SidebarLink>
-      </SidebarGroup>
+      <NavSidebar :nodes="nodes" @navigate="close"/>
     </template>
 
     <template #header>
       <QuickSearchTrigger scope="admin" @open="openQuickSearch"/>
-      <HelpCenterLink/>
-      <ClusterPanelButton/>
-      <SmartStationButton/>
       <AccountMenuButton/>
+    </template>
+
+    <template #dock>
+      <HelpCenterLink/>
+      <OnboardingResumeButton level="INSTANCE"/>
     </template>
 
     <slot><RouterView/></slot>
     <OnboardingGuide/>
-    <OnboardingResumeButton level="INSTANCE"/>
     <QuickSearchPalette/>
   </SidebarLayout>
 </template>

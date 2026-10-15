@@ -1,5 +1,25 @@
 # Changelog
 
+## v26.23.0
+
+The sidebar shows one section at a time and stays short however many modules a station uses. Every section opens on its main page and lists all its pages, so nothing is reached only by clicking a section's name. The name at the top of the sidebar switches between stations, associations and the instance administration, each with the number of things waiting there. The header keeps the search and the account menu, and the help center joins the round buttons at the bottom right.
+
+### Improvements
+
+- **The quick search offers what the sidebar shows.** The quick search finds every sidebar page the reader can open, including the station's boards and the steps of the first setup.
+
+### Changes
+
+- **The sidebar shows one section at a time.** Opening a section replaces the list with that section and opens its first page, and "All sections" at the top leads back. A page opened by a link, a bookmark or the quick search shows the section it belongs to.
+- **Every section lists its main page.** The member list, the upcoming appointments, the own documents and the other pages a section's name used to open are the first entry of their section. A section left with a single page for a reader shows as that page.
+- **Places are switched from the sidebar.** With more than one station, an association or the instance administration, the name at the top of the sidebar opens a list of all of them with the number of things waiting in each. The station switcher and the administration, association and station buttons in the header are gone.
+- **The help center moved to the bottom right.** The help center opens from a round button next to the bug report, so the header keeps only the search and the account menu.
+
+### Fixes
+
+- **A moved station showed its whole sidebar to some members.** In some cases a member who does not administer a station that moved to another installation saw the full sidebar next to the notice about the move. They now see only the notice.
+- **The quick search offered pages that no longer exist.** A few quick search entries, such as security and sessions under the station profile, led to a missing page. They are gone.
+
 ## v26.22.4
 
 The day a member joined is visible in the member list and on the member's page, and can be taken over when importing members. Members open from the list in a new tab.

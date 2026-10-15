@@ -1,5 +1,25 @@
 # Änderungsprotokoll
 
+## v26.23.0
+
+Die Seitenleiste zeigt einen Bereich auf einmal und bleibt kurz, egal wie viele Module eine Wache nutzt. Jeder Bereich öffnet auf seiner Hauptseite und listet alle seine Seiten, nichts ist mehr nur über den Namen eines Bereichs erreichbar. Der Name oben in der Seitenleiste wechselt zwischen Wachen, Verbänden und der Administration der Instanz, jeweils mit der Zahl dessen, was dort wartet. In der Kopfzeile bleiben die Suche und das Kontomenü, das Hilfe-Center wandert zu den runden Knöpfen unten rechts.
+
+### Verbesserungen
+
+- **Die Schnellsuche bietet, was die Seitenleiste zeigt.** Die Schnellsuche findet jede Seite der Seitenleiste, die geöffnet werden darf, auch die Boards der Wache und die Schritte der ersten Einrichtung.
+
+### Änderungen
+
+- **Die Seitenleiste zeigt einen Bereich auf einmal.** Ein geöffneter Bereich ersetzt die Liste und öffnet seine erste Seite, „Alle Bereiche“ oben führt zurück. Eine Seite, die über einen Link, ein Lesezeichen oder die Schnellsuche geöffnet wird, zeigt den Bereich, zu dem sie gehört.
+- **Jeder Bereich listet seine Hauptseite.** Die Mitgliederliste, die kommenden Termine, die eigenen Dokumente und die anderen Seiten, die früher der Name eines Bereichs öffnete, sind der erste Eintrag ihres Bereichs. Ein Bereich, in dem nur eine Seite übrig bleibt, erscheint als diese Seite.
+- **Orte wechseln über die Seitenleiste.** Bei mehr als einer Wache, einem Verband oder der Administration der Instanz öffnet der Name oben in der Seitenleiste eine Liste aller Orte, jeweils mit der Zahl dessen, was dort wartet. Der Wachenwechsel und die Knöpfe für Administration, Verband und Wache in der Kopfzeile entfallen.
+- **Das Hilfe-Center sitzt unten rechts.** Das Hilfe-Center öffnet sich über einen runden Knopf neben der Fehlermeldung, die Kopfzeile behält nur die Suche und das Kontomenü.
+
+### Fehlerbehebungen
+
+- **Eine umgezogene Wache zeigte manchen Mitgliedern die ganze Seitenleiste.** In manchen Fällen sahen Mitglieder, die eine in eine andere Installation umgezogene Wache nicht verwalten, neben dem Hinweis auf den Umzug die volle Seitenleiste. Sie sehen jetzt nur den Hinweis.
+- **Die Schnellsuche bot Seiten an, die es nicht mehr gibt.** Einige Einträge der Schnellsuche, etwa Sicherheit und Sitzungen im Profil der Wache, führten auf eine fehlende Seite. Sie sind entfernt.
+
 ## v26.22.4
 
 Der Tag, an dem ein Mitglied beigetreten ist, steht in der Mitgliederliste und auf der Seite des Mitglieds und lässt sich beim Import übernehmen. Mitglieder öffnen sich aus der Liste in einem neuen Tab.
