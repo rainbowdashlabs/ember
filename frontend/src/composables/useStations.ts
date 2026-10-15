@@ -145,6 +145,7 @@ export function useStations() {
         clearActiveStation,
         soleStationId,
         loadActiveLogo,
+        loadAllLogos,
         getStationLogoUrl,
         hasMultipleStations,
         activeStation,

@@ -776,6 +776,22 @@ export default {
         pagesPolls: 'Umfragen',
         storageBackend: 'Speicher-Backend',
         storageAudit: 'Speicher-Audit',
+        home: 'Startseite',
+        myProfile: 'Mein Profil',
+        memberList: 'Mitgliederliste',
+        inventoryOverview: 'Inventarübersicht',
+        nextEvents: 'Kommende Termine',
+        formsList: 'Alle Umfragen',
+        boardList: 'Alle Boards',
+        procedureList: 'Alle Abläufe',
+        pageList: 'Alle Seiten',
+        federationPartners: 'Partnerwachen',
+        allSections: 'Alle Bereiche',
+    },
+    placeSwitcher: {
+        administration: 'Administration',
+        choose: 'Ort wählen',
+        allStations: 'Alle Wachen',
     },
     pages: {
         'station-moved-delete': {
@@ -5504,11 +5520,6 @@ export default {
         subtitle: 'Bitte wähle eine Wache aus, um fortzufahren.',
         clusterHint: 'Oder weiter zu einem Verband:',
     },
-    stationSwitcher: {
-        title: 'Wache wechseln',
-        noStation: 'Keine Wache',
-        allStations: 'Alle Wachen',
-    },
     firstStation: {
         intro: 'Diese Instanz ist frisch eingerichtet und hat noch keine Wache. Gib ihr einen Namen, und du gründest hier die erste Wache. Du wirst ihr Verwalter und kannst danach Mitglieder einladen.',
         afterwards: 'Gleich danach führt dich die Einrichtung der Wache durch Adresse, Module, Rechte und die Frage, wie sie im Verzeichnis gelistet wird. Weitere Wachen legst du später unter „Wachen verwalten" an.',
@@ -8999,10 +9010,6 @@ export default {
         clusterPlaceholder: 'Verband auswählen',
         apply: 'Beitritt beantragen',
         historyTitle: 'Frühere Anfragen',
-    },
-    clusterSwitcher: {
-        title: 'Verband wechseln',
-        noCluster: 'Kein Verband gewählt',
     },
     clusterOverview: {
         title: 'Verband',

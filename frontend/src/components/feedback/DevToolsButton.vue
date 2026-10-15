@@ -33,7 +33,7 @@ function copyJson() {
 <template>
   <template v-if="isDev">
     <BareButton
-        class="fixed bottom-4 right-16 z-40 h-10 w-10 rounded-full bg-secondary text-secondary-text shadow-lg hover:bg-secondary/80 transition-colors flex items-center justify-center"
+        class="h-10 w-10 rounded-full bg-secondary text-secondary-text shadow-lg hover:bg-secondary/80 transition-colors flex items-center justify-center"
         :title="t('devTools.button')"
         @click="open = !open"
     >

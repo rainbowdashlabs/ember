@@ -77,6 +77,8 @@ const modules = [
         <li>{{ t('helpCenter.basics.modules.nav3') }}</li>
         <li>{{ t('helpCenter.basics.modules.nav4') }}</li>
         <li>{{ t('helpCenter.basics.modules.nav5') }}</li>
+        <li>{{ t('helpCenter.basics.modules.nav6') }}</li>
+        <li>{{ t('helpCenter.basics.modules.nav7') }}</li>
       </BulletList>
     </HelpSection>
 

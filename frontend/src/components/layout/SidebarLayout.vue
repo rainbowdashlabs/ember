@@ -8,6 +8,7 @@ import {onMounted, ref} from 'vue'
 import AppSidebar from './AppSidebar.vue'
 import AppHeader from './AppHeader.vue'
 import AppFooter from './AppFooter.vue'
+import FloatingDock from './FloatingDock.vue'
 
 /**
  * The frame of every page inside the application: sidebar, header, the page, the footer.
@@ -23,12 +24,15 @@ withDefaults(defineProps<{
   stationName?: string
   stationLogoUrl?: string | null
   collapsible?: boolean
+  /** Turns the name at the top of the sidebar into the switcher between the reader's places. */
+  switcher?: boolean
 }>(), {
   title: undefined,
   subtitle: undefined,
   stationName: undefined,
   stationLogoUrl: undefined,
   collapsible: true,
+  switcher: false,
 })
 
 const sidebarOpen = ref(false)
@@ -40,7 +44,7 @@ onMounted(() => { interactive.value = true })
 <template>
   <div :data-testid="interactive ? 'app-shell' : undefined" class="flex min-h-screen">
     <AppSidebar :open="sidebarOpen" :station-logo-url="stationLogoUrl" :station-name="stationName"
-                :collapsible="collapsible"
+                :collapsible="collapsible" :switcher="switcher"
                 @close="sidebarOpen = false">
       <slot :close="() => sidebarOpen = false" name="sidebar"/>
     </AppSidebar>
@@ -58,5 +62,9 @@ onMounted(() => { interactive.value = true })
         <slot name="footer"/>
       </AppFooter>
     </div>
+
+    <FloatingDock v-if="$slots.dock">
+      <slot name="dock"/>
+    </FloatingDock>
   </div>
 </template>

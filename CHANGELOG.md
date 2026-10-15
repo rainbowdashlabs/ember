@@ -4,6 +4,8 @@
 
 Document templates can ask the person generating a document for details that the member's data does not hold, such as the date of a change or which of several boxes applies. Word forms with fields to fill in become PDF templates that keep their look, so a paper form such as a change notification is filled out in Ember. Check marks of existing PDF templates keep following the member's data and can now also be ticked by hand. Families on a waiting list take part in the trial from its first day. Guardians get their account when the trial begins, follow it on their start page and can end it themselves. An invitation always names an appointment, shows where the mail goes before it is sent and can carry a personal note.
 
+The sidebar shows one section at a time and stays short however many modules a station uses. Every section opens on its main page and lists all its pages, so nothing is reached only by clicking a section's name. The name at the top of the sidebar switches between stations, associations and the instance administration, each with the number of things waiting there. The header keeps the search and the account menu, and the help center joins the round buttons at the bottom right.
+
 ### New Features
 
 - **Templates ask when a document is generated.** A template can ask for a text, a date, a number, an entry from a list or a tick, each within limits such as a latest day or a longest text, and prints each answer wherever it names it. Each question can suggest its answer from the member's data, which is then the answer in self service and in runs for many members.
@@ -16,15 +18,22 @@ Document templates can ask the person generating a document for details that the
 - **More fonts come with every installation.** Carlito and Caladea set text exactly as wide as Calibri and Cambria, and Open Sans stands in for fonts such as Frutiger. All three can be chosen for letters and fields, and importing a Word form set in Calibri, Cambria, Arial or Times New Roman offers the matching one first.
 - **Invitations name their appointment and recipients.** An invitation can only be sent once an appointment is picked, and the dialog lists the addresses the mail goes to, or says that nobody is written to. The appointment picker shows the start time next to the date.
 - **Invitations carry a personal note.** A note written when inviting stands in the mail and on the page where the invitation is answered. The note given with an answer is shown in the notification the station receives.
+- **The quick search offers what the sidebar shows.** The quick search finds every sidebar page the reader can open, including the station's boards and the steps of the first setup.
 
 ### Changes
 
 - **Check marks can be ticked by hand.** The check marks of existing PDF templates became questions that follow the member's data as before, so self service and runs for many members tick what they ticked before. A manager generating a single document can now tick or clear each of them.
+- **The sidebar shows one section at a time.** Opening a section replaces the list with that section and opens its first page, and "All sections" at the top leads back. A page opened by a link, a bookmark or the quick search shows the section it belongs to.
+- **Every section lists its main page.** The member list, the upcoming appointments, the own documents and the other pages a section's name used to open are the first entry of their section. A section left with a single page for a reader shows as that page.
+- **Places are switched from the sidebar.** With more than one station, an association or the instance administration, the name at the top of the sidebar opens a list of all of them with the number of things waiting in each. The station switcher and the administration, association and station buttons in the header are gone.
+- **The help center moved to the bottom right.** The help center opens from a round button next to the bug report, so the header keeps only the search and the account menu.
 
 ### Fixes
 
 - **An invitation could be sent with a single key press.** The invitation dialog opened with the send button selected, so pressing enter sent the mail at once, even without an appointment. The dialog now opens on the appointment, and sending waits until one is picked.
 - **Notification mails show readable descriptions.** The description of an appointment arrived in notification mails with its formatting marks, such as asterisks and hash signs, and at full length. It now reads as plain text, and a long one is cut short with a "Read more" button.
+- **A moved station showed its whole sidebar to some members.** In some cases a member who does not administer a station that moved to another installation saw the full sidebar next to the notice about the move. They now see only the notice.
+- **The quick search offered pages that no longer exist.** A few quick search entries, such as security and sessions under the station profile, led to a missing page. They are gone.
 
 ## v26.22.6
 
