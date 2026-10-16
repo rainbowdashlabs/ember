@@ -202,7 +202,7 @@ public class NotificationText {
                     case MOVEMENT_RAISED -> params instanceof NotificationParams.MovementRaised p ? p.reason() : null;
                     case EVENT_REGISTRATION_STATUS ->
                         params instanceof NotificationParams.EventRegistrationStatus p
-                                ? Markdown.toPlainText(p.eventDescription())
+                                ? plainText(p.eventDescription())
                                 : null;
                     case NEW_EVENT ->
                         params instanceof NotificationParams.NewEvent p
@@ -213,6 +213,10 @@ public class NotificationText {
                     default -> null;
                 };
         return detail == null || detail.isBlank() ? null : detail;
+    }
+
+    private static @Nullable String plainText(@Nullable String markdown) {
+        return markdown == null ? null : Markdown.toPlainText(markdown);
     }
 
     /**

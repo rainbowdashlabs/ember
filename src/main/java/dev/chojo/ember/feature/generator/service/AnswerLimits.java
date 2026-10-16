@@ -101,25 +101,31 @@ final class AnswerLimits {
     }
 
     private static Optional<DocumentRefusal> brokenText(QuestionLimits limits, String answer) {
-        if (limits.maxLength() != null && answer.length() > limits.maxLength()) {
+        var maxLength = limits.maxLength();
+        if (maxLength != null && answer.length() > maxLength) {
             return Optional.of(DocumentRefusal.DOCUMENT_ANSWER_TOO_LONG);
         }
-        if (limits.format() != null && !limits.format().matches(answer)) {
+        var format = limits.format();
+        if (format != null && !format.matches(answer)) {
             return Optional.of(DocumentRefusal.DOCUMENT_ANSWER_WRONG_FORMAT);
         }
         return Optional.empty();
     }
 
     private static Optional<DocumentRefusal> brokenDay(QuestionLimits limits, LocalDate day, LocalDate today) {
-        var earliest = limits.earliest() == null ? null : limits.earliest().on(today);
-        var latest = limits.latest() == null ? null : limits.latest().on(today);
+        var earliestBound = limits.earliest();
+        var latestBound = limits.latest();
+        var earliest = earliestBound == null ? null : earliestBound.on(today);
+        var latest = latestBound == null ? null : latestBound.on(today);
         boolean outside = (earliest != null && day.isBefore(earliest)) || (latest != null && day.isAfter(latest));
         return outside ? Optional.of(DocumentRefusal.DOCUMENT_ANSWER_DAY_OUT_OF_RANGE) : Optional.empty();
     }
 
     private static Optional<DocumentRefusal> brokenNumber(QuestionLimits limits, BigDecimal number) {
-        boolean outside = (limits.min() != null && number.compareTo(limits.min()) < 0)
-                || (limits.max() != null && number.compareTo(limits.max()) > 0)
+        var min = limits.min();
+        var max = limits.max();
+        boolean outside = (min != null && number.compareTo(min) < 0)
+                || (max != null && number.compareTo(max) > 0)
                 || (limits.whole() && number.stripTrailingZeros().scale() > 0);
         return outside ? Optional.of(DocumentRefusal.DOCUMENT_ANSWER_NUMBER_OUT_OF_RANGE) : Optional.empty();
     }
@@ -138,25 +144,31 @@ final class AnswerLimits {
     }
 
     private static @Nullable DayBound checkedBound(@Nullable DayBound bound, String named) {
-        if (bound == null || (bound.day() == null && bound.fromToday() == null)) return null;
-        if (bound.day() != null && bound.fromToday() != null) throw invalid(named);
-        if (bound.fromToday() != null && Math.abs(bound.fromToday()) > MAX_DAYS_FROM_TODAY) throw invalid(named);
+        if (bound == null) return null;
+        var day = bound.day();
+        var fromToday = bound.fromToday();
+        if (day == null && fromToday == null) return null;
+        if (day != null && fromToday != null) throw invalid(named);
+        if (fromToday != null && Math.abs(fromToday) > MAX_DAYS_FROM_TODAY) throw invalid(named);
         return bound;
     }
 
     /** Whether one bound lies after the other on every day, which only bounds of the same sort can say. */
     private static boolean after(DayBound earliest, DayBound latest) {
-        if (earliest.day() != null && latest.day() != null)
-            return earliest.day().isAfter(latest.day());
-        if (earliest.fromToday() != null && latest.fromToday() != null) {
-            return earliest.fromToday() > latest.fromToday();
-        }
+        var earliestDay = earliest.day();
+        var latestDay = latest.day();
+        if (earliestDay != null && latestDay != null) return earliestDay.isAfter(latestDay);
+        var earliestFromToday = earliest.fromToday();
+        var latestFromToday = latest.fromToday();
+        if (earliestFromToday != null && latestFromToday != null) return earliestFromToday > latestFromToday;
         return false;
     }
 
     private static QuestionLimits checkedNumber(QuestionLimits raw, String named) {
-        if (raw.min() != null && raw.max() != null && raw.min().compareTo(raw.max()) > 0) throw invalid(named);
-        return QuestionLimits.number(raw.min(), raw.max(), raw.whole());
+        var min = raw.min();
+        var max = raw.max();
+        if (min != null && max != null && min.compareTo(max) > 0) throw invalid(named);
+        return QuestionLimits.number(min, max, raw.whole());
     }
 
     private static List<String> checkedChoices(List<String> raw, String named) {
