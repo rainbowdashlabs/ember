@@ -35,7 +35,7 @@ function resume() {
 <template>
   <BareButton
       v-if="visible"
-      class="fixed bottom-4 right-16 z-40 flex h-10 w-10 items-center justify-center rounded-full
+      class="flex h-10 w-10 items-center justify-center rounded-full
              border border-(--border) bg-(--bg) shadow-lg transition-colors hover:border-primary"
       :title="t('onboarding.resume')"
       @click="resume"

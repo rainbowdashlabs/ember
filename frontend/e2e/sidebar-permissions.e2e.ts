@@ -5,7 +5,7 @@
  */
 import {test, expect, pageAsThrowaway} from './fixtures/auth'
 import {cast} from './fixtures/cast'
-import {sidebarEntry} from './fixtures/sidebar'
+import {allSections, sidebarEntry} from './fixtures/sidebar'
 
 /**
  * What a right does to the sidebar. A page the reader may not open must not be offered to them in
@@ -27,9 +27,11 @@ test.describe('Sidebar permissions', () => {
     for (const point of MANAGER_ONLY) {
         test(`${point.name} stays out of a member's sidebar`, async ({managerPage, memberPage}) => {
             await managerPage.goto('/station/dashboard/overview')
+            await allSections(managerPage)
             await expect(sidebarEntry(managerPage, point.entry)).toBeVisible()
 
             await memberPage.goto('/station/dashboard/overview')
+            await allSections(memberPage)
             await expect(sidebarEntry(memberPage, 'Übersicht').first()).toBeVisible()
             await expect(sidebarEntry(memberPage, point.entry)).toHaveCount(0)
         })
@@ -57,13 +59,15 @@ test.describe('Sidebar permissions', () => {
     })
 
     /**
-     * The manager's own side of the same rule: the member group opens on every subpoint the station
-     * has, and each of them is a right somebody could be without.
+     * The manager's own side of the same rule: the member section opens on every subpoint the station
+     * has, and each of them is a right somebody could be without. The type permissions sit in the
+     * section's settings subgroup.
      */
     test('a manager is offered every subpoint of the member group', async ({managerPage: page}) => {
         await page.goto('/station/members/list')
+        await sidebarEntry(page, 'Einstellungen').click()
 
-        for (const subpoint of ['Anlegen', 'Gruppen', 'Tags', 'Typberechtigungen', 'Ehemalige']) {
+        for (const subpoint of ['Mitgliederliste', 'Anlegen', 'Gruppen', 'Tags', 'Typberechtigungen', 'Ehemalige']) {
             await expect(sidebarEntry(page, subpoint)).toBeVisible()
         }
     })
