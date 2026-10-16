@@ -1,0 +1,8 @@
+{% extends '_layout.html' %}
+{% block body %}
+      <h2>Hi {{ name }},</h2>
+      <p><strong>{{ sender }}</strong> wrote to you{% if conversation %} in <strong>{{ conversation }}</strong>{% endif %}. These messages are still unread:</p>
+      <p style="white-space:pre-line;border-left:3px solid #FF6421;padding-left:12px">{{ lines }}</p>
+      <div class="btn-wrap"><a class="btn" href="{{ url }}">Open messages</a></div>
+      <p>Until the conversation is read, no further mail is sent about it. These mails can be turned off under <a href="{{ settingsUrl }}">Messages</a>.</p>
+{% endblock %}

@@ -6,7 +6,7 @@
 import type {Page} from '@playwright/test'
 import {test, expect, apiHeaders} from './fixtures/auth'
 import {ownCluster, type OwnCluster} from './fixtures/cluster'
-import {sidebar} from './fixtures/sidebar'
+import {openSection, sidebar} from './fixtures/sidebar'
 
 /**
  * What an association is told, under the bell in its own menu.
@@ -74,6 +74,7 @@ test.describe('Cluster notifications', () => {
             await expect(page.getByText(own.stationName, {exact: true}), 'the request waits on the page it opened')
                 .toBeVisible()
 
+            await openSection(page, 'Verband')
             await expect(bell(page), 'and opening it read it').toHaveAccessibleName('Benachrichtigungen')
             await page.reload()
             await expect(bell(page), 'which the server remembers').toHaveAccessibleName('Benachrichtigungen')

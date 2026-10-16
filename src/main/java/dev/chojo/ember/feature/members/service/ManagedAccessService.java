@@ -18,6 +18,7 @@ import dev.chojo.ember.feature.account.service.LoginNameService;
 import dev.chojo.ember.feature.members.entity.NameParts;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
+import dev.chojo.ember.feature.messages.service.MessageSettingsService;
 import dev.chojo.ember.feature.passkey.service.PasskeyEnrollmentService;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -31,7 +32,8 @@ import java.util.stream.Stream;
 
 /**
  * The access a guardian manages for the members in their care: the address the account is reached
- * at, the name and password it signs in with, and whether it may sign in at all.
+ * at, the name and password it signs in with, whether it may sign in at all, and whether it has
+ * messages between people.
  *
  * <p>Everything here is deliberately narrow. A guardian speaks for a child, so they may give the
  * child an address, a name and switch its access on and off - but only for the members they manage,
@@ -58,6 +60,7 @@ public class ManagedAccessService {
     private final AccountEmailService accountEmailService;
     private final PasskeyEnrollmentService enrollmentService;
     private final AccountReach accountReach;
+    private final MessageSettingsService messageSettings;
 
     @Inject
     public ManagedAccessService(
@@ -69,7 +72,8 @@ public class ManagedAccessService {
             AuthService authService,
             AccountEmailService accountEmailService,
             PasskeyEnrollmentService enrollmentService,
-            AccountReach accountReach) {
+            AccountReach accountReach,
+            MessageSettingsService messageSettings) {
         this.memberRepository = memberRepository;
         this.accountRepository = accountRepository;
         this.loginNameService = loginNameService;
@@ -79,6 +83,7 @@ public class ManagedAccessService {
         this.accountEmailService = accountEmailService;
         this.enrollmentService = enrollmentService;
         this.accountReach = accountReach;
+        this.messageSettings = messageSettings;
     }
 
     /**
@@ -89,9 +94,14 @@ public class ManagedAccessService {
      * @param loginEnabled whether the member may sign in
      * @param canSignIn    whether granting access is possible at all, which needs either an address
      *                     or a name to sign in with
+     * @param messagesAllowed whether a guardian turned messages between people on for the member
      */
     public record ManagedAccess(
-            @Nullable String email, @Nullable String username, boolean loginEnabled, boolean canSignIn) {}
+            @Nullable String email,
+            @Nullable String username,
+            boolean loginEnabled,
+            boolean canSignIn,
+            boolean messagesAllowed) {}
 
     /**
      * Reads the access state of a managed member.
@@ -105,7 +115,32 @@ public class ManagedAccessService {
         var account = account(member);
         boolean real = account.hasRealEmail();
         return new ManagedAccess(
-                real ? account.email() : null, account.username(), hasLogin(memberId), canSignIn(account));
+                real ? account.email() : null,
+                account.username(),
+                hasLogin(memberId),
+                canSignIn(account),
+                messageSettings.guardianAllowed(account.id()));
+    }
+
+    /**
+     * Turns messages between people on or off for a managed member.
+     *
+     * <p>A member with a guardian at any station has no messages until a guardian turns them on,
+     * because private messages between adults and children are the one case there with real risk.
+     * The switch belongs to the account, so any of the member's guardians sets it for all of their
+     * stations. Turning it off hides the conversations and stops new messages; nothing is deleted.
+     *
+     * @param guardianMemberId the member acting as guardian
+     * @param memberId         the member in their care
+     * @param allowed          whether the member may use messages
+     * @return the access state after the change
+     */
+    public ManagedAccess setMessages(int guardianMemberId, int memberId, boolean allowed) {
+        StationMember member = requireManaged(guardianMemberId, memberId);
+        var account = account(member);
+        messageSettings.setGuardianAllowed(account.id(), allowed);
+        log.info("Guardian {} set messages of managed member {} to {}", guardianMemberId, memberId, allowed);
+        return get(guardianMemberId, memberId);
     }
 
     /**

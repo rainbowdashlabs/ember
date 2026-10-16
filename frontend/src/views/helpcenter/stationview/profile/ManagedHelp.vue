@@ -37,6 +37,7 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.managed.accessUsernameText') }}</p>
       <p>{{ t('helpCenter.managed.accessLoginText') }}</p>
       <p>{{ t('helpCenter.managed.accessPasswordText') }}</p>
+      <p>{{ t('helpCenter.managed.accessMessagesText') }}</p>
     </HelpSection>
 
     <NeutralContainer class="space-y-4">
@@ -70,6 +71,13 @@ const {t} = useI18n()
           <MutedText tag="p" size="sm">{{ t('profileManaged.access.loginHint') }}</MutedText>
         </div>
         <ToggleInput :model-value="true" :aria-label="t('profileManaged.access.login')"/>
+      </div>
+      <div class="flex items-start justify-between gap-4 border-t border-(--border) pt-4">
+        <div>
+          <FieldLabel>{{ t('profileManaged.access.messages') }}</FieldLabel>
+          <MutedText tag="p" size="sm">{{ t('profileManaged.access.messagesHint') }}</MutedText>
+        </div>
+        <ToggleInput :model-value="false" :aria-label="t('profileManaged.access.messages')"/>
       </div>
       <div class="space-y-1 border-t border-(--border) pt-4">
         <FieldLabel>{{ t('profileManaged.access.password') }}</FieldLabel>

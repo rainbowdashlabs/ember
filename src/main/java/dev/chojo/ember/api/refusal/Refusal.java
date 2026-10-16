@@ -68,6 +68,7 @@ public sealed interface Refusal
                 MapRefusal,
                 MediaLibraryRefusal,
                 MemberRefusal,
+                MessageRefusal,
                 NewsRefusal,
                 PageRefusal,
                 PasskeyRefusal,
@@ -279,6 +280,8 @@ public sealed interface Refusal
         MAIL("ML", "mail"),
         /** Maps and what is drawn on one. */
         MAPS("MP", "maps"),
+        /** Messages between people, their conversations and who they block. */
+        MESSAGES("MS", "messages between people"),
         /** Setting an instance up, before it has any station. */
         INSTALLATION("N", "installation"),
         /** News, whether a station's own or the instance's. */

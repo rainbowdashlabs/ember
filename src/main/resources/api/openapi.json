@@ -30734,6 +30734,42 @@
         }
       }
     },
+    "/api/v1/managed-members/{memberId}/messages" : {
+      "put" : {
+        "summary" : "Turn messages between people on or off for a managed member",
+        "tags" : [ "Managed Members" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ManagedAccess"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "memberId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SetMessagesRequest"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/managed-members/{memberId}/passkey-code" : {
       "post" : {
         "summary" : "Issue a passkey code for a managed member",
@@ -32018,6 +32054,1015 @@
           },
           "204" : {
             "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/v1/messages/blocks" : {
+      "post" : {
+        "summary" : "Block somebody for messages; they are not told",
+        "tags" : [ "Messages" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/BlockPersonRequest"
+              }
+            }
+          }
+        }
+      },
+      "get" : {
+        "summary" : "The people the reader blocked",
+        "tags" : [ "Messages" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/MessagePersonResponse"
+                  }
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/messages/blocks/{personUid}" : {
+      "delete" : {
+        "summary" : "Take a block back",
+        "tags" : [ "Messages" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "parameters" : [ {
+          "name" : "personUid",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ]
+      }
+    },
+    "/api/v1/messages/conversations" : {
+      "post" : {
+        "summary" : "Open the direct conversation with somebody, or start a group",
+        "tags" : [ "Messages" ],
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ConversationResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/StartConversationRequest"
+              }
+            }
+          }
+        }
+      },
+      "get" : {
+        "summary" : "List the reader's conversations, the most recently active first",
+        "tags" : [ "Messages" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/ConversationSummaryResponse"
+                  }
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/messages/conversations/{conversationUid}" : {
+      "get" : {
+        "summary" : "One conversation of the reader's, with everybody in it",
+        "tags" : [ "Messages" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ConversationResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "conversationUid",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ]
+      }
+    },
+    "/api/v1/messages/conversations/{conversationUid}/leave" : {
+      "post" : {
+        "summary" : "Leave a group, or put a direct conversation away until its next message",
+        "tags" : [ "Messages" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "conversationUid",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ]
+      }
+    },
+    "/api/v1/messages/conversations/{conversationUid}/messages" : {
+      "post" : {
+        "summary" : "Write a message",
+        "tags" : [ "Messages" ],
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ConversationMessageResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "conversationUid",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/WriteMessageRequest"
+              }
+            }
+          }
+        }
+      },
+      "get" : {
+        "summary" : "A page of a conversation, oldest first",
+        "tags" : [ "Messages" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ConversationMessagePage"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "conversationUid",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "before",
+          "in" : "query",
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "after",
+          "in" : "query",
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/messages/conversations/{conversationUid}/messages/{messageId}" : {
+      "get" : {
+        "summary" : "One message of a conversation",
+        "tags" : [ "Messages" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ConversationMessageResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "conversationUid",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "messageId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      },
+      "put" : {
+        "summary" : "Change the text of one's own message",
+        "tags" : [ "Messages" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ConversationMessageResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "conversationUid",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "messageId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/EditMessageRequest"
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "summary" : "Delete one's own message; its place stays",
+        "tags" : [ "Messages" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "conversationUid",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "messageId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/messages/conversations/{conversationUid}/messages/{messageId}/reactions" : {
+      "post" : {
+        "summary" : "React to a message with a standard emoji",
+        "tags" : [ "Messages" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ConversationMessageResponse"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "conversationUid",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "messageId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ReactionRequest"
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "summary" : "Take one's own reaction to a message back",
+        "tags" : [ "Messages" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ConversationMessageResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "conversationUid",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "messageId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "emoji",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ]
+      }
+    },
+    "/api/v1/messages/conversations/{conversationUid}/mute" : {
+      "put" : {
+        "summary" : "Mute or unmute a conversation for the reader",
+        "tags" : [ "Messages" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "conversationUid",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ConversationMuteRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/messages/conversations/{conversationUid}/name" : {
+      "put" : {
+        "summary" : "Rename a group, which only its owner does",
+        "tags" : [ "Messages" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "conversationUid",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ConversationNameRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/messages/conversations/{conversationUid}/people" : {
+      "post" : {
+        "summary" : "Add people to a group",
+        "tags" : [ "Messages" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "conversationUid",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ConversationPeopleRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/messages/conversations/{conversationUid}/people/{personUid}" : {
+      "delete" : {
+        "summary" : "Remove somebody from a group, which only its owner does",
+        "tags" : [ "Messages" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "conversationUid",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "personUid",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ]
+      }
+    },
+    "/api/v1/messages/conversations/{conversationUid}/read" : {
+      "put" : {
+        "summary" : "Note that the reader has read a conversation up to a message",
+        "tags" : [ "Messages" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "conversationUid",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ConversationReadRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/messages/events" : {
+      "get" : {
+        "summary" : "Stream the reader's message signals as server-sent events",
+        "tags" : [ "Messages" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MessageEvent"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/messages/people" : {
+      "get" : {
+        "summary" : "Find people the reader may write to: everybody sharing a station with them",
+        "tags" : [ "Messages" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/ReachablePersonResponse"
+                  }
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "search",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
+        } ]
+      }
+    },
+    "/api/v1/messages/settings" : {
+      "put" : {
+        "summary" : "Turn the mail about unread messages on or off",
+        "tags" : [ "Messages" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MessagesStatus"
+                }
+              }
+            }
+          },
+          "403" : {
+            "description" : "Forbidden",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/MessageMailRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/messages/status" : {
+      "get" : {
+        "summary" : "Whether the reader can use messages and how many wait unread",
+        "tags" : [ "Messages" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MessagesStatus"
+                }
+              }
+            }
           }
         }
       }
@@ -49450,6 +50495,15 @@
           }
         }
       },
+      "BlockPersonRequest" : {
+        "type" : "object",
+        "properties" : {
+          "person" : {
+            "type" : [ "string", "null" ],
+            "format" : "uuid"
+          }
+        }
+      },
       "BlockRowRequest" : {
         "type" : "object",
         "properties" : {
@@ -52507,6 +53561,253 @@
           }
         }
       },
+      "ConversationKind" : {
+        "type" : "string",
+        "enum" : [ "DIRECT", "GROUP" ]
+      },
+      "ConversationMemberResponse" : {
+        "type" : "object",
+        "properties" : {
+          "uid" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "firstName" : {
+            "type" : "string"
+          },
+          "lastName" : {
+            "type" : "string"
+          },
+          "joinedAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          }
+        },
+        "required" : [ "uid", "firstName", "lastName", "joinedAt" ]
+      },
+      "ConversationMessagePage" : {
+        "type" : "object",
+        "properties" : {
+          "messages" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ConversationMessageResponse"
+            }
+          },
+          "hasMore" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "messages", "hasMore" ]
+      },
+      "ConversationMessageResponse" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "author" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/MessagePersonResponse"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "content" : {
+            "type" : "string"
+          },
+          "replyTo" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/ReplyPreviewResponse"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "systemKind" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/SystemKind"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "subject" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/MessagePersonResponse"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "createdAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "editedAt" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/Instant"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "deleted" : {
+            "type" : "boolean"
+          },
+          "reactions" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ReactionGroupResponse"
+            }
+          }
+        },
+        "required" : [ "id", "author", "content", "replyTo", "systemKind", "subject", "createdAt", "editedAt", "deleted", "reactions" ]
+      },
+      "ConversationMuteRequest" : {
+        "type" : "object",
+        "properties" : {
+          "muted" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "ConversationNameRequest" : {
+        "type" : "object",
+        "properties" : {
+          "name" : {
+            "type" : [ "string", "null" ]
+          }
+        }
+      },
+      "ConversationPeopleRequest" : {
+        "type" : "object",
+        "properties" : {
+          "people" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "type" : "string",
+              "format" : "uuid"
+            }
+          }
+        }
+      },
+      "ConversationPreview" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "author" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/MessagePersonResponse"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "text" : {
+            "type" : "string"
+          },
+          "systemKind" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/SystemKind"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "subject" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/MessagePersonResponse"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "deleted" : {
+            "type" : "boolean"
+          },
+          "createdAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          }
+        },
+        "required" : [ "id", "author", "text", "systemKind", "subject", "deleted", "createdAt" ]
+      },
+      "ConversationReadRequest" : {
+        "type" : "object",
+        "properties" : {
+          "messageId" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "ConversationResponse" : {
+        "type" : "object",
+        "properties" : {
+          "uid" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "kind" : {
+            "$ref" : "#/components/schemas/ConversationKind"
+          },
+          "name" : {
+            "type" : [ "string", "null" ]
+          },
+          "ownerUid" : {
+            "type" : [ "string", "null" ],
+            "format" : "uuid"
+          },
+          "members" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ConversationMemberResponse"
+            }
+          },
+          "muted" : {
+            "type" : "boolean"
+          },
+          "lastReadMessageId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          }
+        },
+        "required" : [ "uid", "kind", "name", "ownerUid", "members", "muted", "lastReadMessageId" ]
+      },
+      "ConversationSummaryResponse" : {
+        "type" : "object",
+        "properties" : {
+          "uid" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "kind" : {
+            "$ref" : "#/components/schemas/ConversationKind"
+          },
+          "name" : {
+            "type" : [ "string", "null" ]
+          },
+          "others" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/MessagePersonResponse"
+            }
+          },
+          "newest" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/ConversationPreview"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "lastActivityAt" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "unread" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "muted" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "uid", "kind", "name", "others", "newest", "lastActivityAt", "unread", "muted" ]
+      },
       "ConversionStatus" : {
         "type" : "string",
         "enum" : [ "PENDING", "SUCCESS", "FAILED" ]
@@ -55020,6 +56321,14 @@
           "memberId" : {
             "type" : [ "integer", "null" ],
             "format" : "int32"
+          }
+        }
+      },
+      "EditMessageRequest" : {
+        "type" : "object",
+        "properties" : {
+          "text" : {
+            "type" : [ "string", "null" ]
           }
         }
       },
@@ -63693,9 +65002,12 @@
           },
           "canSignIn" : {
             "type" : "boolean"
+          },
+          "messagesAllowed" : {
+            "type" : "boolean"
           }
         },
-        "required" : [ "email", "username", "loginEnabled", "canSignIn" ]
+        "required" : [ "email", "username", "loginEnabled", "canSignIn", "messagesAllowed" ]
       },
       "ManagedFieldResponse" : {
         "type" : "object",
@@ -65266,6 +66578,51 @@
           }
         }
       },
+      "MessageEvent" : {
+        "type" : "object",
+        "properties" : {
+          "kind" : {
+            "$ref" : "#/components/schemas/MessageEventKind"
+          },
+          "conversationUid" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "messageId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          }
+        },
+        "required" : [ "kind", "conversationUid", "messageId" ]
+      },
+      "MessageEventKind" : {
+        "type" : "string",
+        "enum" : [ "MESSAGE", "CONVERSATION", "READ" ]
+      },
+      "MessageMailRequest" : {
+        "type" : "object",
+        "properties" : {
+          "mail" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "MessagePersonResponse" : {
+        "type" : "object",
+        "properties" : {
+          "uid" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "firstName" : {
+            "type" : "string"
+          },
+          "lastName" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "uid", "firstName", "lastName" ]
+      },
       "MessageResponse" : {
         "type" : "object",
         "properties" : {
@@ -65274,6 +66631,22 @@
           }
         },
         "required" : [ "message" ]
+      },
+      "MessagesStatus" : {
+        "type" : "object",
+        "properties" : {
+          "available" : {
+            "type" : "boolean"
+          },
+          "unread" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "mail" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "available", "unread", "mail" ]
       },
       "MetricsBatch" : {
         "type" : "object",
@@ -71542,6 +72915,55 @@
         },
         "required" : [ "publicly", "federated", "narrowly" ]
       },
+      "ReachablePersonResponse" : {
+        "type" : "object",
+        "properties" : {
+          "uid" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "firstName" : {
+            "type" : "string"
+          },
+          "lastName" : {
+            "type" : "string"
+          },
+          "stationName" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "uid", "firstName", "lastName", "stationName" ]
+      },
+      "ReactionGroupResponse" : {
+        "type" : "object",
+        "properties" : {
+          "emoji" : {
+            "type" : "string"
+          },
+          "count" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "mine" : {
+            "type" : "boolean"
+          },
+          "people" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/MessagePersonResponse"
+            }
+          }
+        },
+        "required" : [ "emoji", "count", "mine", "people" ]
+      },
+      "ReactionRequest" : {
+        "type" : "object",
+        "properties" : {
+          "emoji" : {
+            "type" : [ "string", "null" ]
+          }
+        }
+      },
       "RecentApplication" : {
         "type" : "object",
         "properties" : {
@@ -72476,6 +73898,29 @@
             "format" : "int32"
           }
         }
+      },
+      "ReplyPreviewResponse" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "author" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/MessagePersonResponse"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "text" : {
+            "type" : "string"
+          },
+          "deleted" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "id", "author", "text", "deleted" ]
       },
       "ReportData" : {
         "type" : "object",
@@ -75150,6 +76595,14 @@
           }
         }
       },
+      "SetMessagesRequest" : {
+        "type" : "object",
+        "properties" : {
+          "allowed" : {
+            "type" : "boolean"
+          }
+        }
+      },
       "SetNewsFederationShareRequest" : {
         "type" : "object",
         "properties" : {
@@ -76415,6 +77868,24 @@
           "heightPx" : {
             "type" : "integer",
             "format" : "int32"
+          }
+        }
+      },
+      "StartConversationRequest" : {
+        "type" : "object",
+        "properties" : {
+          "kind" : {
+            "$ref" : "#/components/schemas/ConversationKind"
+          },
+          "people" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "type" : "string",
+              "format" : "uuid"
+            }
+          },
+          "name" : {
+            "type" : [ "string", "null" ]
           }
         }
       },
@@ -77771,6 +79242,10 @@
           }
         },
         "required" : [ "id", "newsId", "parentId", "author", "authorName", "content", "deleted", "createdAt" ]
+      },
+      "SystemKind" : {
+        "type" : "string",
+        "enum" : [ "ADDED", "LEFT", "REMOVED", "RENAMED", "OWNER_PASSED" ]
       },
       "SystemNewsRequest" : {
         "type" : "object",
@@ -81047,6 +82522,18 @@
           }
         },
         "required" : [ "undoUntil" ]
+      },
+      "WriteMessageRequest" : {
+        "type" : "object",
+        "properties" : {
+          "text" : {
+            "type" : [ "string", "null" ]
+          },
+          "replyToId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          }
+        }
       },
       "YoutubeFileRequest" : {
         "type" : "object",

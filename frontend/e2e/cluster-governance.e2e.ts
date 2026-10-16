@@ -5,7 +5,7 @@
  */
 import {test, expect, apiHeaders, clustersOf} from './fixtures/auth'
 import {ownCluster} from './fixtures/cluster'
-import {sidebar, sidebarEntry} from './fixtures/sidebar'
+import {allSections, sidebar, sidebarEntry} from './fixtures/sidebar'
 
 /**
  * What a cluster decides on behalf of its stations, and what it deliberately leaves alone.
@@ -39,6 +39,7 @@ test.describe('Cluster governance', () => {
 
         await own.stationPage.goto('/station/dashboard/overview')
         await expect(sidebar(own.stationPage)).toBeVisible()
+        await allSections(own.stationPage)
         await expect(sidebarEntry(own.stationPage, 'Boards')).toHaveCount(0)
     })
 

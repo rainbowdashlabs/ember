@@ -5,20 +5,18 @@
  */
 <script lang="ts" setup>
 import {onMounted} from 'vue'
-import {useI18n} from 'vue-i18n'
 import SidebarLayout from '@/components/layout/SidebarLayout.vue'
-import SidebarLink from '@/components/navigation/SidebarLink.vue'
+import NavSidebar from '@/components/navigation/NavSidebar.vue'
 import AccountMenuButton from '@/components/layout/AccountMenuButton.vue'
-import SmartStationButton from '@/components/layout/SmartStationButton.vue'
-import AdminPanelButton from '@/components/layout/AdminPanelButton.vue'
-import ClusterPanelButton from '@/components/layout/ClusterPanelButton.vue'
+import MessagesButton from '@/components/layout/MessagesButton.vue'
 import HelpCenterLink from '@/components/navigation/HelpCenterLink.vue'
 import {useSession} from '@/composables/useSession'
+import {useAccountNav} from '@/composables/useAccountNav'
 import {usePageHeader} from '@/composables/usePageHeader'
 
-const {t} = useI18n()
 const {loaded, load} = useSession()
 const {title: pageTitle, subtitle: pageSubtitle} = usePageHeader()
+const {nodes} = useAccountNav()
 
 onMounted(() => {
   if (!loaded.value) {
@@ -28,37 +26,18 @@ onMounted(() => {
 </script>
 
 <template>
-  <SidebarLayout :subtitle="pageSubtitle" :title="pageTitle">
+  <SidebarLayout :subtitle="pageSubtitle" :title="pageTitle" switcher>
     <template #sidebar="{ close }">
-      <SidebarLink :icon="['fas', 'image']" name="account-avatar" to="/account/avatar" @navigate="close">
-        {{ t('sidebar.accountAvatar') }}
-      </SidebarLink>
-      <SidebarLink :icon="['fas', 'signature']" name="account-signature" to="/account/signature" @navigate="close">
-        {{ t('sidebar.accountSignature') }}
-      </SidebarLink>
-      <SidebarLink :icon="['fas', 'palette']" name="account-theming" to="/account/theming" @navigate="close">
-        {{ t('sidebar.accountTheming') }}
-      </SidebarLink>
-      <SidebarLink :icon="['fas', 'list']" name="account-sessions" to="/account/sessions" @navigate="close">
-        {{ t('sidebar.accountSessions') }}
-      </SidebarLink>
-      <SidebarLink :icon="['fas', 'shield']" name="account-security" to="/account/security" @navigate="close">
-        {{ t('sidebar.accountSecurity') }}
-      </SidebarLink>
-      <SidebarLink :icon="['fas', 'link']" name="account-links" to="/account/links" @navigate="close">
-        {{ t('sidebar.accountLinks') }}
-      </SidebarLink>
-      <SidebarLink :icon="['fas', 'shield-halved']" name="account-gdpr" to="/account/gdpr" @navigate="close">
-        {{ t('sidebar.accountGdpr') }}
-      </SidebarLink>
+      <NavSidebar :nodes="nodes" @navigate="close"/>
     </template>
 
     <template #header>
-      <HelpCenterLink/>
-      <AdminPanelButton/>
-      <ClusterPanelButton/>
-      <SmartStationButton/>
+      <MessagesButton/>
       <AccountMenuButton/>
+    </template>
+
+    <template #dock>
+      <HelpCenterLink/>
     </template>
 
     <slot><RouterView/></slot>

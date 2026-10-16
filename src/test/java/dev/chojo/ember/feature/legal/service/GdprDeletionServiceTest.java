@@ -16,6 +16,10 @@ import dev.chojo.ember.feature.documents.entity.Uploader;
 import dev.chojo.ember.feature.media.service.ImageVariants;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.StationMember;
+import dev.chojo.ember.feature.messages.repository.ConversationRepository;
+import dev.chojo.ember.feature.messages.repository.MessageRepository;
+import dev.chojo.ember.feature.messages.service.MessageErasure;
+import dev.chojo.ember.feature.messages.service.MessageFixtures;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.signing.entity.SignatureImageSource;
 import dev.chojo.ember.feature.signing.repository.AccountSignatureRepository;
@@ -60,7 +64,8 @@ class GdprDeletionServiceTest extends RepositoryTestBase {
                 avatars,
                 newDocumentService(storage),
                 signatureImages,
-                new AccountReach(accountRepo));
+                new AccountReach(accountRepo),
+                new MessageErasure(new ConversationRepository()));
         station = stationRepo.create("GdprStation");
         Account account = accountRepo.create("gdpr-del@test.com", "Delete", "Me");
         accountRepo.createCredential(account.id(), "hash");
@@ -192,6 +197,36 @@ class GdprDeletionServiceTest extends RepositoryTestBase {
         assertTrue(storage.readAllBytes(scope, StorageCategory.IMAGE_SIGNATURE, "signature.png")
                 .isEmpty());
         assertTrue(new AccountSignatureRepository().find(signer.id()).isEmpty());
+    }
+
+    /**
+     * A deleted account's messages stay for the others with nobody named as their author, and a
+     * conversation nobody is left in goes with them.
+     */
+    @Test
+    @Order(33)
+    void aDeletedAccountsMessagesStayUntilNobodyIsLeft() {
+        var writer = accountRepo.create("gdpr-writer@test.com", "Schreib", "Er");
+        var reader = accountRepo.create("gdpr-reader@test.com", "Les", "Er");
+        stationMemberRepo.create(station.id(), writer.id());
+        stationMemberRepo.create(station.id(), reader.id());
+        var messages = MessageFixtures.build();
+        var direct = messages.conversations().openDirect(writer.id(), reader.uid());
+        int written = messages.messages()
+                .send(writer.id(), direct.uid(), "Hallo", null)
+                .message()
+                .id();
+
+        service.deleteAccount(writer.id());
+
+        var kept = new MessageRepository().find(written).orElseThrow();
+        assertNull(kept.author(), "the message stays without its author");
+        assertEquals(1, messages.conversations().list(reader.id()).size(), "the reader keeps the conversation");
+
+        service.deleteAccount(reader.id());
+
+        assertTrue(new ConversationRepository().findByUid(direct.uid()).isEmpty(), "nobody is left, so it goes");
+        assertTrue(new MessageRepository().find(written).isEmpty());
     }
 
     private static StationMember memberWithDocuments(String address, boolean keptForTheRecord) {

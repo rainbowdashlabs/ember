@@ -24,6 +24,7 @@ import StyleContainers from '@/views/styleview/StyleContainers.vue'
 import StyleTable from '@/views/styleview/StyleTable.vue'
 import StyleFeedback from '@/views/styleview/StyleFeedback.vue'
 import StyleScanner from '@/views/styleview/StyleScanner.vue'
+import StyleEmoji from '@/views/styleview/StyleEmoji.vue'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -64,6 +65,7 @@ watchEffect(() => {
       <StyleTable/>
       <StyleFeedback/>
       <StyleScanner/>
+      <StyleEmoji/>
     </div>
   </ViewContent>
 </template>
