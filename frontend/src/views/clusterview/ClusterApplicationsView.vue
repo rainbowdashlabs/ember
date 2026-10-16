@@ -71,6 +71,7 @@ async function submitDeny() {
           <NeutralContainer
               v-for="application in pending"
               :key="application.id"
+              data-testid="pending-application"
               class="flex flex-wrap items-center justify-between gap-3"
           >
             <div>
