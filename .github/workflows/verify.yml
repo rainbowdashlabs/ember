@@ -91,7 +91,7 @@ jobs:
         id: tools
         run: |
           sudo apt-get update
-          versions=$(apt-cache policy libreoffice-core libreoffice-impress pandoc webp qpdf \
+          versions=$(apt-cache policy libreoffice-core libreoffice-impress libreoffice-writer pandoc webp qpdf \
             | sed -n 's/^  Candidate: //p' | tr ':~+' '---' | paste -sd-)
           echo "key=$versions" >> "$GITHUB_OUTPUT"
       - name: Restore the external tools
@@ -103,7 +103,7 @@ jobs:
       - name: Install external tools
         if: matrix.tools
         env:
-          PACKAGES: libreoffice-core libreoffice-impress pandoc webp qpdf
+          PACKAGES: libreoffice-core libreoffice-impress libreoffice-writer pandoc webp qpdf
         run: |
           mkdir -p ~/tool-cache/apt
 

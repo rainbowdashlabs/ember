@@ -1,5 +1,26 @@
 # Changelog
 
+## v26.23.0
+
+Document templates can ask the person generating a document for details that the member's data does not hold, such as the date of a change or which of several boxes applies. Word forms with fields to fill in become PDF templates that keep their look, so a paper form such as a change notification is filled out in Ember. Check marks of existing PDF templates keep following the member's data and can now also be ticked by hand.
+
+### New Features
+
+- **Templates ask when a document is generated.** A template can ask for a text, a date, a number, an entry from a list or a tick, each within limits such as a latest day or a longest text, and prints each answer wherever it names it. Each question can suggest its answer from the member's data, which is then the answer in self service and in runs for many members.
+- **Word forms become PDF templates.** A Word form with fields to fill in becomes a PDF template that looks like the original, with member data where a field's label is recognised and a question for every other field, list and check box that keeps the entries of a list. A font the form uses that is not uploaded is replaced by one chosen before the form is converted, and a list afterwards names what was recognised.
+
+### Improvements
+
+- **More fonts come with every installation.** Carlito and Caladea set text exactly as wide as Calibri and Cambria, and Open Sans stands in for fonts such as Frutiger. All three can be chosen for letters and fields, and importing a Word form set in Calibri, Cambria, Arial or Times New Roman offers the matching one first.
+
+### Changes
+
+- **Check marks can be ticked by hand.** The check marks of existing PDF templates became questions that follow the member's data as before, so self service and runs for many members tick what they ticked before. A manager generating a single document can now tick or clear each of them.
+
+### Fixes
+
+- **Notification mails show readable descriptions.** The description of an appointment arrived in notification mails with its formatting marks, such as asterisks and hash signs, and at full length. It now reads as plain text, and a long one is cut short with a "Read more" button.
+
 ## v26.22.4
 
 The day a member joined is visible in the member list and on the member's page, and can be taken over when importing members. Members open from the list in a new tab.

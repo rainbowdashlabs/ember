@@ -1,5 +1,26 @@
 # Änderungsprotokoll
 
+## v26.23.0
+
+Dokumentvorlagen können beim Erstellen nach Angaben fragen, die nicht in den Daten des Mitglieds stehen, etwa nach dem Datum einer Änderung oder welches von mehreren Kästchen zutrifft. Word-Formulare mit Feldern zum Ausfüllen werden zu PDF-Vorlagen in ihrem gewohnten Aussehen. So lässt sich ein Papierformular wie eine Änderungsmeldung direkt in Ember ausfüllen. Ankreuzfelder bestehender PDF-Vorlagen folgen weiter den Daten des Mitglieds und lassen sich jetzt auch von Hand setzen.
+
+### Neue Funktionen
+
+- **Vorlagen fragen beim Erstellen nach.** Eine Vorlage kann nach einem Text, einem Datum, einer Zahl, einem Eintrag aus einer Liste oder einem Kreuz fragen, jeweils in Grenzen wie einem spätesten Tag oder einer Höchstlänge, und druckt jede Antwort dort, wo sie sie nennt. Jede Abfrage kann ihre Antwort aus den Daten des Mitglieds vorschlagen, und beim Selbst-Erstellen und beim Erstellen für viele Mitglieder gilt dann dieser Vorschlag.
+- **Word-Formulare werden zu PDF-Vorlagen.** Ein Word-Formular mit Feldern zum Ausfüllen wird zu einer PDF-Vorlage im Aussehen des Originals: Daten des Mitglieds dort, wo die Bezeichnung eines Felds erkannt wird, und eine Abfrage für jedes andere Feld, jede Auswahlliste mit ihren Einträgen und jedes Kontrollkästchen. Eine Schrift des Formulars, die nicht hochgeladen ist, wird vor dem Umwandeln durch eine gewählte ersetzt, und danach steht in einer Liste, was erkannt wurde.
+
+### Verbesserungen
+
+- **Mehr Schriften in jeder Installation.** Carlito und Caladea setzen Text genau so breit wie Calibri und Cambria, und Open Sans steht für Schriften wie Frutiger ein. Alle drei lassen sich für Briefe und Felder wählen, und beim Import eines Word-Formulars in Calibri, Cambria, Arial oder Times New Roman ist die passende vorgewählt.
+
+### Änderungen
+
+- **Ankreuzfelder lassen sich von Hand setzen.** Die Ankreuzfelder bestehender PDF-Vorlagen sind zu Abfragen geworden, die wie bisher den Daten des Mitglieds folgen, beim Selbst-Erstellen und beim Erstellen für viele Mitglieder also unverändert ankreuzen. Wer ein einzelnes Dokument erstellt, kann jedes Kreuz jetzt setzen oder entfernen.
+
+### Fehlerbehebungen
+
+- **Benachrichtigungsmails zeigen lesbare Beschreibungen.** Die Beschreibung eines Termins kam in Benachrichtigungsmails mit ihren Formatierungszeichen wie Sternchen und Rauten an, und zwar in voller Länge. Sie erscheint jetzt als reiner Text, und eine lange Beschreibung wird gekürzt und bekommt einen Knopf "Weiterlesen".
+
 ## v26.22.4
 
 Der Tag, an dem ein Mitglied beigetreten ist, steht in der Mitgliederliste und auf der Seite des Mitglieds und lässt sich beim Import übernehmen. Mitglieder öffnen sich aus der Liste in einem neuen Tab.

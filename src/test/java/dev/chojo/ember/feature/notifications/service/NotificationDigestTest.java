@@ -529,6 +529,35 @@ class NotificationDigestTest extends RepositoryTestBase {
         assertEquals(1, mail.split("read=", -1).length - 1, "the child's item carries no marker");
     }
 
+    /** A long detail is escaped and cut, and the item offers the whole text; a short one is shown whole. */
+    @Test
+    void aLongDetailIsCutAndOffersTheWholeText() {
+        var station = station("Wache Lang", "de-DE", "Europe/Berlin");
+        var lena = memberWithMail(station, "lena@long.test", "Lena", "Lang");
+        notificationSettingsRepo.upsert(lena.id(), NotificationType.NEW_EVENT, true, true, true);
+        String description = "1 < 2 & 3 " + "Wort ".repeat(100);
+        notify(
+                lena,
+                NotificationType.NEW_EVENT,
+                NotificationData.of(
+                        new NotificationParams.NewEvent("Probe", description),
+                        new NotificationData.NotificationLink("event-detail", Map.of("id", 9))));
+        notify(
+                lena,
+                NotificationType.NEW_EVENT,
+                NotificationData.of(
+                        new NotificationParams.NewEvent("Kurz", "Kurz und **knapp**"),
+                        new NotificationData.NotificationLink("event-detail", Map.of("id", 10))));
+
+        digest.sweep(Instant.now());
+
+        var mail = mails.getFirst();
+        assertTrue(mail.contains("1 &lt; 2 &amp; 3"), "the detail is escaped");
+        assertFalse(mail.contains(description.strip()), "the long detail is cut");
+        assertTrue(mail.contains("Kurz und knapp</p>"), "the short detail is whole and plain");
+        assertEquals(1, mail.split("Weiterlesen", -1).length - 1, "only the cut detail offers more");
+    }
+
     private static Notification onlyUnread(StationMember member) {
         return notificationRepo
                 .findUnacknowledged(Recipient.stationMember(member.id()))

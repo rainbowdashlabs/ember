@@ -49,6 +49,7 @@ import dev.chojo.ember.owner.Owner;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import dev.chojo.ember.util.PdfText;
 import dev.chojo.ember.util.Sha256;
+import io.javalin.http.UploadedFile;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.jspecify.annotations.Nullable;
@@ -56,13 +57,19 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
+import java.util.zip.ZipOutputStream;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -71,6 +78,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static org.mockito.Mockito.mock;
 
 /**
@@ -84,6 +92,7 @@ class PdfTemplateServiceTest extends RepositoryTestBase {
 
     private static DocumentTemplateService templates;
     private static PdfTemplateService pdfs;
+    private static WordFormImportService forms;
     private static DocumentGenerationService generation;
     private static DocumentGeneratorService generator;
     private static SelfServiceDocumentService selfService;
@@ -130,6 +139,7 @@ class PdfTemplateServiceTest extends RepositoryTestBase {
                 templateRepository, pdfTemplates, uses, checks, restrictionService, catalogue, newOwnerStores());
         pdfs = new PdfTemplateService(
                 templates, templateRepository, pdfTemplates, newDocumentIntake(), storage, newOwnerStores());
+        forms = new WordFormImportService(templates, pdfs, checks, catalogue, fonts);
         generator = new DocumentGeneratorService(
                 templates,
                 newPlaceholderResolver(clock),
@@ -280,6 +290,155 @@ class PdfTemplateServiceTest extends RepositoryTestBase {
         refused(
                 DocumentRefusal.DOCUMENT_TEMPLATE_PDF_MISSING,
                 () -> generation.generate(as(manager), empty.id(), lena.id(), null));
+    }
+
+    @Test
+    void aWordFormBecomesATemplateFilledFromDataAndAnswers() throws IOException {
+        byte[] docx;
+        try (var in =
+                Objects.requireNonNull(getClass().getClassLoader().getResourceAsStream("generator/change-form.docx"))) {
+            docx = in.readAllBytes();
+        }
+        var upload = TestUploads.of(
+                "Änderungsmeldung.docx",
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                docx);
+        WordFormImportService.WordFormImport imported;
+        try {
+            imported = forms.importForm(owner, upload, Map.of(), author);
+        } catch (RefusalResponse refused) {
+            assumeTrue(
+                    refused.refusal() != DocumentRefusal.DOCUMENT_FORM_IMPORT_FAILED, "LibreOffice is not available");
+            throw refused;
+        }
+
+        var template = imported.template();
+        assertEquals("Änderungsmeldung", template.name());
+        assertEquals(DocumentTemplateKind.PDF, template.kind());
+        assertEquals(17, template.fields().size());
+        assertEquals(10, template.questions().size(), "the station keeps no id number, so it is asked");
+        assertEquals(List.of(), imported.unplaced());
+        assertEquals(List.of(), imported.fonts(), "the form is drawn in a font every server has");
+
+        var generated = generation.generate(
+                as(manager),
+                template.id(),
+                lena.id(),
+                null,
+                Map.of("ist_am", "2026-09-30", "aus_dem_verein_ausgetreten", "true", "sonstiges", "Umzug"));
+        var document = documents
+                .read(memberDocumentRepo.findById(generated.documentId()).orElseThrow())
+                .orElseThrow();
+        String text = PdfText.extract(document);
+        for (String printed : List.of("PDF Vorlagen Wache", "Nora Fülling", "Schmidt", "Lena", "30.09.2026", "Umzug")) {
+            assertTrue(text.contains(printed), printed + " in " + text);
+        }
+        assertTrue(!text.contains("keine"), "an answer replaces the suggestion");
+        refused(
+                DocumentRefusal.DOCUMENT_FORM_IMPORT_NO_FIELDS,
+                () -> forms.importForm(
+                        owner,
+                        TestUploads.of(
+                                "brief.docx",
+                                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                                certificateDocx()),
+                        Map.of(),
+                        author));
+    }
+
+    @Test
+    void aFontTheStationLacksIsReplacedOnlyByOneChosenForIt() throws IOException {
+        byte[] docx = withFont("Frutiger 45 Light");
+        var missing = forms.fontsOf(owner, wordUpload(docx));
+        assertEquals(List.of("Frutiger 45 Light"), missing.missing());
+        assertEquals(
+                Map.of("Frutiger 45 Light", new WordFormImportService.Suggestion("Open Sans", false)),
+                missing.suggested(),
+                "a look-alike is offered first");
+
+        refused(
+                DocumentRefusal.DOCUMENT_FORM_IMPORT_FONT_UNCHOSEN,
+                () -> forms.importForm(owner, wordUpload(docx), Map.of(), author));
+        refused(
+                DocumentRefusal.DOCUMENT_TEMPLATE_FONT_UNKNOWN,
+                () -> forms.importForm(owner, wordUpload(docx), Map.of("Frutiger 45 Light", "Nirgendwo Sans"), author));
+
+        WordFormImportService.WordFormImport imported;
+        try {
+            imported = forms.importForm(owner, wordUpload(docx), Map.of("Frutiger 45 Light", ""), author);
+        } catch (RefusalResponse refused) {
+            assumeTrue(
+                    refused.refusal() != DocumentRefusal.DOCUMENT_FORM_IMPORT_FAILED, "LibreOffice is not available");
+            throw refused;
+        }
+        assertEquals(
+                List.of(new WordFormImportService.FontReplacement("Frutiger 45 Light", missing.defaultFamily())),
+                imported.fonts());
+
+        var lookalike = forms.importForm(owner, wordUpload(docx), Map.of("Frutiger 45 Light", "Open Sans"), author);
+        assertEquals(
+                List.of(new WordFormImportService.FontReplacement("Frutiger 45 Light", "Open Sans Light")),
+                lookalike.fonts(),
+                "a light weight is drawn in the light cut");
+    }
+
+    @Test
+    void aFontWithAStandInOfTheSameMeasureIsStillAsked() throws IOException {
+        byte[] docx = withFont("Calibri");
+        var missing = forms.fontsOf(owner, wordUpload(docx));
+        assertEquals(List.of("Calibri"), missing.missing());
+        assertEquals(Map.of("Calibri", new WordFormImportService.Suggestion("Carlito", true)), missing.suggested());
+        refused(
+                DocumentRefusal.DOCUMENT_FORM_IMPORT_FONT_UNCHOSEN,
+                () -> forms.importForm(owner, wordUpload(docx), Map.of(), author));
+
+        WordFormImportService.WordFormImport imported;
+        try {
+            imported = forms.importForm(owner, wordUpload(docx), Map.of("Calibri", "Carlito"), author);
+        } catch (RefusalResponse refused) {
+            assumeTrue(
+                    refused.refusal() != DocumentRefusal.DOCUMENT_FORM_IMPORT_FAILED, "LibreOffice is not available");
+            throw refused;
+        }
+        assertEquals(List.of(new WordFormImportService.FontReplacement("Calibri", "Carlito")), imported.fonts());
+    }
+
+    private static UploadedFile wordUpload(byte[] docx) {
+        return TestUploads.of(
+                "Schriftprobe.docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", docx);
+    }
+
+    /** The stand-in form with its text set in another family than the one every server has. */
+    private byte[] withFont(String family) throws IOException {
+        byte[] docx;
+        try (var in =
+                Objects.requireNonNull(getClass().getClassLoader().getResourceAsStream("generator/change-form.docx"))) {
+            docx = in.readAllBytes();
+        }
+        var out = new ByteArrayOutputStream();
+        try (var zip = new ZipInputStream(new ByteArrayInputStream(docx));
+                var copy = new ZipOutputStream(out)) {
+            ZipEntry entry;
+            while ((entry = zip.getNextEntry()) != null) {
+                byte[] part = zip.readAllBytes();
+                if (entry.getName().equals("word/document.xml")) {
+                    part = new String(part, StandardCharsets.UTF_8)
+                            .replace("Liberation Sans", family)
+                            .getBytes(StandardCharsets.UTF_8);
+                }
+                copy.putNextEntry(new ZipEntry(entry.getName()));
+                copy.write(part);
+                copy.closeEntry();
+            }
+        }
+        return out.toByteArray();
+    }
+
+    private byte[] certificateDocx() throws IOException {
+        try (var in =
+                Objects.requireNonNull(getClass().getClassLoader().getResourceAsStream("generator/certificate.docx"))) {
+            return in.readAllBytes();
+        }
     }
 
     @Test

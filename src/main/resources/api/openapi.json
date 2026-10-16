@@ -11381,6 +11381,62 @@
         }
       }
     },
+    "/api/v1/cluster/document-template-form-import" : {
+      "post" : {
+        "summary" : "Make a PDF template of the association from a Word form",
+        "tags" : [ "Cluster" ],
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WordFormImport"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cluster/document-template-form-import/fonts" : {
+      "post" : {
+        "summary" : "The fonts of a Word form the association cannot draw it in, to choose a replacement for each",
+        "tags" : [ "Cluster" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MissingFonts"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/cluster/document-template-import" : {
       "post" : {
         "summary" : "Read the body of a Word or OpenDocument text into a letter template of the association",
@@ -15278,6 +15334,63 @@
         }
       }
     },
+    "/api/v1/document-generation/templates/{templateId}/members/{memberId}/suggestions" : {
+      "post" : {
+        "summary" : "The questions of a template, each with the answer it suggests for a member",
+        "tags" : [ "Documents" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/SuggestedAnswer"
+                  }
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "templateId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "memberId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ManagerGenerationRequest"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/document-placeholders" : {
       "get" : {
         "summary" : "The placeholders a document template of the station can name",
@@ -15372,6 +15485,62 @@
             "format" : "int32"
           }
         } ]
+      }
+    },
+    "/api/v1/document-template-form-import" : {
+      "post" : {
+        "summary" : "Make a PDF template from a Word form, its fields filled from member data or asked when generating",
+        "tags" : [ "Documents" ],
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WordFormImport"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/document-template-form-import/fonts" : {
+      "post" : {
+        "summary" : "The fonts of a Word form the station cannot draw it in, to choose a replacement for each",
+        "tags" : [ "Documents" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MissingFonts"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/document-template-import" : {
@@ -53551,6 +53720,23 @@
         },
         "required" : [ "event", "nextDate", "previousDate", "cancellation" ]
       },
+      "DayBound" : {
+        "type" : "object",
+        "properties" : {
+          "day" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/LocalDate"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "fromToday" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          }
+        },
+        "required" : [ "day", "fromToday" ]
+      },
       "DayCount" : {
         "type" : "object",
         "properties" : {
@@ -54819,6 +55005,12 @@
             }, {
               "type" : "null"
             } ]
+          },
+          "questions" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "$ref" : "#/components/schemas/TemplateQuestion"
+            }
           }
         }
       },
@@ -54935,9 +55127,15 @@
           },
           "signing" : {
             "$ref" : "#/components/schemas/TemplateSigning"
+          },
+          "questions" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/TemplateQuestion"
+            }
           }
         },
-        "required" : [ "id", "name", "kind", "titlePattern", "fileNamePattern", "tags", "hidden", "keepOnArchive", "legal", "forAppointments", "selfService", "cooldownDays", "audience", "language", "issuerId", "issuerFunction", "header", "footer", "body", "page", "pdf", "fields", "formBindings", "version", "updatedAt", "archivedAt", "signing" ]
+        "required" : [ "id", "name", "kind", "titlePattern", "fileNamePattern", "tags", "hidden", "keepOnArchive", "legal", "forAppointments", "selfService", "cooldownDays", "audience", "language", "issuerId", "issuerFunction", "header", "footer", "body", "page", "pdf", "fields", "formBindings", "version", "updatedAt", "archivedAt", "signing", "questions" ]
       },
       "DocumentTemplateSummary" : {
         "type" : "object",
@@ -57891,6 +58089,18 @@
       "FontOutline" : {
         "type" : "string",
         "enum" : [ "TRUETYPE", "CFF" ]
+      },
+      "FontReplacement" : {
+        "type" : "object",
+        "properties" : {
+          "family" : {
+            "type" : "string"
+          },
+          "replacement" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "family", "replacement" ]
       },
       "FontStyle" : {
         "type" : "string",
@@ -63945,6 +64155,12 @@
             }, {
               "type" : "null"
             } ]
+          },
+          "answers" : {
+            "type" : [ "object", "null" ],
+            "additionalProperties" : {
+              "type" : "string"
+            }
           }
         }
       },
@@ -65346,6 +65562,27 @@
           }
         },
         "required" : [ "totalKeys", "copied", "skipped", "deleted", "copiedBytes" ]
+      },
+      "MissingFonts" : {
+        "type" : "object",
+        "properties" : {
+          "missing" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "suggested" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "$ref" : "#/components/schemas/Suggestion"
+            }
+          },
+          "defaultFamily" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "missing", "suggested", "defaultFamily" ]
       },
       "MissingStepsResponse" : {
         "type" : "object",
@@ -68325,7 +68562,7 @@
       },
       "PlaceholderCategory" : {
         "type" : "string",
-        "enum" : [ "MEMBER", "PRONOUNS", "GUARDIAN1", "GUARDIAN2", "STATION", "ASSOCIATION", "APPOINTMENT", "ISSUER", "DOCUMENT" ]
+        "enum" : [ "MEMBER", "PRONOUNS", "GUARDIAN1", "GUARDIAN2", "STATION", "ASSOCIATION", "APPOINTMENT", "ISSUER", "DOCUMENT", "QUESTION" ]
       },
       "PlaceholderValues" : {
         "type" : "object",
@@ -70520,6 +70757,52 @@
           }
         },
         "required" : [ "MULTIPLE_CHOICE", "FILL_IN_THE_BLANK", "FREE_ANSWER", "CONNECT", "IMAGE_TEXT", "TRUE_FALSE", "ORDERING", "ENUMERATION" ]
+      },
+      "QuestionLimits" : {
+        "type" : "object",
+        "properties" : {
+          "earliest" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/DayBound"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "latest" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/DayBound"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "maxLength" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "format" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/TextFormat"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "min" : {
+            "type" : [ "number", "null" ]
+          },
+          "max" : {
+            "type" : [ "number", "null" ]
+          },
+          "whole" : {
+            "type" : "boolean"
+          },
+          "choices" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        },
+        "required" : [ "earliest", "latest", "maxLength", "format", "min", "max", "whole", "choices" ]
       },
       "QuizAccessRequest" : {
         "type" : "object",
@@ -77619,6 +77902,30 @@
         },
         "required" : [ "value" ]
       },
+      "SuggestedAnswer" : {
+        "type" : "object",
+        "properties" : {
+          "question" : {
+            "$ref" : "#/components/schemas/TemplateQuestion"
+          },
+          "suggestion" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "question", "suggestion" ]
+      },
+      "Suggestion" : {
+        "type" : "object",
+        "properties" : {
+          "family" : {
+            "type" : "string"
+          },
+          "sameMeasure" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "family", "sameMeasure" ]
+      },
       "Summary" : {
         "type" : "object",
         "properties" : {
@@ -78350,6 +78657,34 @@
         },
         "required" : [ "items", "total", "page", "size" ]
       },
+      "TemplateQuestion" : {
+        "type" : "object",
+        "properties" : {
+          "key" : {
+            "type" : "string"
+          },
+          "label" : {
+            "type" : "string"
+          },
+          "kind" : {
+            "$ref" : "#/components/schemas/TemplateQuestionKind"
+          },
+          "suggestion" : {
+            "type" : "string"
+          },
+          "required" : {
+            "type" : "boolean"
+          },
+          "limits" : {
+            "$ref" : "#/components/schemas/QuestionLimits"
+          }
+        },
+        "required" : [ "key", "label", "kind", "suggestion", "required", "limits" ]
+      },
+      "TemplateQuestionKind" : {
+        "type" : "string",
+        "enum" : [ "TEXT", "DATE", "NUMBER", "CHOICE", "CHECK" ]
+      },
       "TemplateRequest" : {
         "type" : "object",
         "properties" : {
@@ -78759,6 +79094,10 @@
           }
         },
         "required" : [ "kind", "text" ]
+      },
+      "TextFormat" : {
+        "type" : "string",
+        "enum" : [ "DIGITS", "LETTERS", "POSTAL_CODE", "EMAIL", "PHONE" ]
       },
       "ThemeFeel" : {
         "type" : "string",
@@ -81047,6 +81386,39 @@
           }
         },
         "required" : [ "undoUntil" ]
+      },
+      "WordFormImport" : {
+        "type" : "object",
+        "properties" : {
+          "template" : {
+            "$ref" : "#/components/schemas/DocumentTemplateResponse"
+          },
+          "recognised" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "asked" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "unplaced" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "fonts" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/FontReplacement"
+            }
+          }
+        },
+        "required" : [ "template", "recognised", "asked", "unplaced", "fonts" ]
       },
       "YoutubeFileRequest" : {
         "type" : "object",

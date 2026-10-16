@@ -62,6 +62,19 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.documentTemplateEditor.pdfVersionText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.documentTemplateEditor.questionsTitle')">
+      <p>{{ t('helpCenter.documentTemplateEditor.questionsText') }}</p>
+      <p>{{ t('helpCenter.documentTemplateEditor.questionsSuggestionText') }}</p>
+      <p>{{ t('helpCenter.documentTemplateEditor.questionsCheckText') }}</p>
+      <p>{{ t('helpCenter.documentTemplateEditor.questionsLimitsText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.documentTemplateEditor.wordFormTitle')">
+      <p>{{ t('helpCenter.documentTemplateEditor.wordFormText') }}</p>
+      <p>{{ t('helpCenter.documentTemplateEditor.wordFormFieldsText') }}</p>
+      <p>{{ t('helpCenter.documentTemplateEditor.wordFormFontsText') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.documentTemplateEditor.pronounsTitle')">
       <p>{{ t('helpCenter.documentTemplateEditor.pronounsText') }}</p>
       <p>{{ t('helpCenter.documentTemplateEditor.pronounsNameText') }}</p>

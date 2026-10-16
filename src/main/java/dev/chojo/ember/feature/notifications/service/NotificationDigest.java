@@ -70,6 +70,10 @@ public class NotificationDigest implements TaskSource {
     private static final Duration PRUNE_INTERVAL = Duration.ofDays(1);
 
     private static final String TEMPLATE = "notification-digest.html";
+
+    /** How much of a detail an item shows before it is cut and points to the whole text. */
+    private static final int DETAIL_MAX = 300;
+
     private final NotificationRepository notificationRepository;
     private final NotificationScheduleRepository scheduleRepository;
     private final AccountRepository accountRepository;
@@ -339,7 +343,7 @@ public class NotificationDigest implements TaskSource {
                 .append("</p>");
         String detail = text.resolveDetail(notification);
         if (detail != null) {
-            item.append("<p class=\"detail\">").append(detail).append("</p>");
+            item.append(detailHtml(detail, locale, itemUrl != null));
         }
         if (!entry.forMembers().isEmpty()) {
             String names = entry.forMembers().stream()
@@ -353,6 +357,24 @@ public class NotificationDigest implements TaskSource {
             item.append("</a>");
         }
         return item.append("</li>").toString();
+    }
+
+    /**
+     * The detail of an item, escaped, its line breaks kept and cut at {@link #DETAIL_MAX}. A cut detail
+     * carries a "read more" marker where the item links to the whole text; the marker is no link of its
+     * own, because the whole item already is one.
+     */
+    private String detailHtml(String detail, String locale, boolean linked) {
+        String shown = NotificationText.truncateSnippet(detail, DETAIL_MAX);
+        var html = new StringBuilder("<p class=\"detail\">")
+                .append(escapeHtml(shown).replaceAll("\\R+", "<br>"))
+                .append("</p>");
+        if (linked && !shown.equals(detail)) {
+            html.append("<p class=\"read-more\">")
+                    .append(escapeHtml(text.resolveLocalized(locale, "digest", "readMore", null)))
+                    .append("</p>");
+        }
+        return html.toString();
     }
 
     private @Nullable String itemUrl(DigestMail.Entry entry, String baseUrl, LinkHome home) {

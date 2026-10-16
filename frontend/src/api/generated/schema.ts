@@ -14603,6 +14603,96 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/cluster/document-template-form-import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Make a PDF template of the association from a Word form */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WordFormImport"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cluster/document-template-form-import/fonts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The fonts of a Word form the association cannot draw it in, to choose a replacement for each */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MissingFonts"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/cluster/document-template-import": {
         parameters: {
             query?: never;
@@ -19797,6 +19887,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/document-generation/templates/{templateId}/members/{memberId}/suggestions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The questions of a template, each with the answer it suggests for a member */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    memberId: number;
+                    templateId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ManagerGenerationRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SuggestedAnswer"][];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/document-placeholders": {
         parameters: {
             query?: never;
@@ -19909,6 +20051,96 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/document-template-form-import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Make a PDF template from a Word form, its fields filled from member data or asked when generating */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WordFormImport"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/document-template-form-import/fonts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The fonts of a Word form the station cannot draw it in, to choose a replacement for each */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MissingFonts"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -63562,6 +63794,11 @@ export interface components {
         DateValue: {
             value: string;
         };
+        DayBound: {
+            day: components["schemas"]["LocalDate"] | null;
+            /** Format: int32 */
+            fromToday: number | null;
+        };
         DayCount: {
             /** Format: int32 */
             count: number;
@@ -63981,6 +64218,7 @@ export interface components {
             legal?: boolean;
             name?: string | null;
             page?: components["schemas"]["LetterPage"] | null;
+            questions?: components["schemas"]["TemplateQuestion"][] | null;
             selfService?: boolean;
             signing?: components["schemas"]["TemplateSigning"] | null;
             tags?: string[] | null;
@@ -64011,6 +64249,7 @@ export interface components {
             name: string;
             page: components["schemas"]["LetterPage"];
             pdf: components["schemas"]["PdfOriginal"] | null;
+            questions: components["schemas"]["TemplateQuestion"][];
             selfService: boolean;
             signing: components["schemas"]["TemplateSigning"];
             tags: string[];
@@ -65038,6 +65277,10 @@ export interface components {
         FontOrigin: "STATION" | "ASSOCIATION" | "INSTANCE" | "BUILT_IN";
         /** @enum {string} */
         FontOutline: "TRUETYPE" | "CFF";
+        FontReplacement: {
+            family: string;
+            replacement: string;
+        };
         /** @enum {string} */
         FontStyle: "REGULAR" | "BOLD" | "ITALIC" | "BOLD_ITALIC";
         ForeignKey: {
@@ -67182,6 +67425,9 @@ export interface components {
             lastName: string;
         };
         ManagerGenerationRequest: {
+            answers?: {
+                [key: string]: string;
+            } | null;
             issuer?: components["schemas"]["IssuerChoice"] | null;
         };
         MapConfig: {
@@ -67657,6 +67903,13 @@ export interface components {
             skipped: number;
             /** Format: int32 */
             totalKeys: number;
+        };
+        MissingFonts: {
+            defaultFamily: string;
+            missing: string[];
+            suggested: {
+                [key: string]: components["schemas"]["Suggestion"];
+            };
         };
         MissingStepsResponse: {
             missingSteps: string[];
@@ -68660,7 +68913,7 @@ export interface components {
             placeholders: components["schemas"]["Placeholder"][];
         };
         /** @enum {string} */
-        PlaceholderCategory: "MEMBER" | "PRONOUNS" | "GUARDIAN1" | "GUARDIAN2" | "STATION" | "ASSOCIATION" | "APPOINTMENT" | "ISSUER" | "DOCUMENT";
+        PlaceholderCategory: "MEMBER" | "PRONOUNS" | "GUARDIAN1" | "GUARDIAN2" | "STATION" | "ASSOCIATION" | "APPOINTMENT" | "ISSUER" | "DOCUMENT" | "QUESTION";
         PlaceholderValues: {
             values?: {
                 [key: string]: string;
@@ -69402,6 +69655,17 @@ export interface components {
             MULTIPLE_CHOICE: components["schemas"]["MultipleChoice"];
             ORDERING: components["schemas"]["Ordering"];
             TRUE_FALSE: components["schemas"]["TrueFalse"];
+        };
+        QuestionLimits: {
+            choices: string[];
+            earliest: components["schemas"]["DayBound"] | null;
+            format: components["schemas"]["TextFormat"] | null;
+            latest: components["schemas"]["DayBound"] | null;
+            max: number | null;
+            /** Format: int32 */
+            maxLength: number | null;
+            min: number | null;
+            whole: boolean;
         };
         QuizAccessRequest: {
             closesAt?: components["schemas"]["Instant"] | null;
@@ -71825,6 +72089,14 @@ export interface components {
         StringValue: {
             value: string;
         };
+        SuggestedAnswer: {
+            question: components["schemas"]["TemplateQuestion"];
+            suggestion: string;
+        };
+        Suggestion: {
+            family: string;
+            sameMeasure: boolean;
+        };
         Summary: {
             gdprDeletion: components["schemas"]["StatusCounts"];
             gdprExport: components["schemas"]["StatusCounts"];
@@ -72062,6 +72334,16 @@ export interface components {
             /** Format: int32 */
             total: number;
         };
+        TemplateQuestion: {
+            key: string;
+            kind: components["schemas"]["TemplateQuestionKind"];
+            label: string;
+            limits: components["schemas"]["QuestionLimits"];
+            required: boolean;
+            suggestion: string;
+        };
+        /** @enum {string} */
+        TemplateQuestionKind: "TEXT" | "DATE" | "NUMBER" | "CHOICE" | "CHECK";
         TemplateRequest: {
             name?: string;
         };
@@ -72231,6 +72513,8 @@ export interface components {
             kind: "TEXT";
             text: string;
         };
+        /** @enum {string} */
+        TextFormat: "DIGITS" | "LETTERS" | "POSTAL_CODE" | "EMAIL" | "PHONE";
         /** @enum {string} */
         ThemeFeel: "ROUNDED" | "CORNERS";
         ThemeInfo: {
@@ -73037,6 +73321,13 @@ export interface components {
         WithdrawalResponse: {
             undoUntil: components["schemas"]["Instant"];
         };
+        WordFormImport: {
+            asked: string[];
+            fonts: components["schemas"]["FontReplacement"][];
+            recognised: string[];
+            template: components["schemas"]["DocumentTemplateResponse"];
+            unplaced: string[];
+        };
         YoutubeFileRequest: {
             description?: string;
             /** Format: int32 */
@@ -73387,6 +73678,7 @@ export type DateFormatProblem = components['schemas']['DateFormatProblem'];
 export type DateKind = components['schemas']['DateKind'];
 export type DateTokenOption = components['schemas']['DateTokenOption'];
 export type DateValue = components['schemas']['DateValue'];
+export type DayBound = components['schemas']['DayBound'];
 export type DayCount = components['schemas']['DayCount'];
 export type DeclineBody = components['schemas']['DeclineBody'];
 export type Deleted = components['schemas']['Deleted'];
@@ -73589,6 +73881,7 @@ export type FolderTreeEntry = components['schemas']['FolderTreeEntry'];
 export type FontFamilyOption = components['schemas']['FontFamilyOption'];
 export type FontOrigin = components['schemas']['FontOrigin'];
 export type FontOutline = components['schemas']['FontOutline'];
+export type FontReplacement = components['schemas']['FontReplacement'];
 export type FontStyle = components['schemas']['FontStyle'];
 export type ForeignKey = components['schemas']['ForeignKey'];
 export type Form = components['schemas']['Form'];
@@ -73942,6 +74235,7 @@ export type MessageResponse = components['schemas']['MessageResponse'];
 export type MetricsBatch = components['schemas']['MetricsBatch'];
 export type MetricsSubject = components['schemas']['MetricsSubject'];
 export type MigrationResponse = components['schemas']['MigrationResponse'];
+export type MissingFonts = components['schemas']['MissingFonts'];
 export type MissingStepsResponse = components['schemas']['MissingStepsResponse'];
 export type MissingValue = components['schemas']['MissingValue'];
 export type Mode = components['schemas']['Mode'];
@@ -74187,6 +74481,7 @@ export type QuestionBranch = components['schemas']['QuestionBranch'];
 export type QuestionColumn = components['schemas']['QuestionColumn'];
 export type QuestionConfig = components['schemas']['QuestionConfig'];
 export type QuestionConfigByType = components['schemas']['QuestionConfigByType'];
+export type QuestionLimits = components['schemas']['QuestionLimits'];
 export type QuizAccessRequest = components['schemas']['QuizAccessRequest'];
 export type QuizAnswerRequest = components['schemas']['QuizAnswerRequest'];
 export type QuizAttemptDetail = components['schemas']['QuizAttemptDetail'];
@@ -74516,6 +74811,8 @@ export type StorageCategory = components['schemas']['StorageCategory'];
 export type StorageQuotaPreset = components['schemas']['StorageQuotaPreset'];
 export type Strategy = components['schemas']['Strategy'];
 export type StringValue = components['schemas']['StringValue'];
+export type SuggestedAnswer = components['schemas']['SuggestedAnswer'];
+export type Suggestion = components['schemas']['Suggestion'];
 export type Summary = components['schemas']['Summary'];
 export type SwapNote = components['schemas']['SwapNote'];
 export type SwitchBlocker = components['schemas']['SwitchBlocker'];
@@ -74548,6 +74845,8 @@ export type TemplateDetailResponse = components['schemas']['TemplateDetailRespon
 export type TemplateFieldRequest = components['schemas']['TemplateFieldRequest'];
 export type TemplateGroupEntry = components['schemas']['TemplateGroupEntry'];
 export type TemplatePage = components['schemas']['TemplatePage'];
+export type TemplateQuestion = components['schemas']['TemplateQuestion'];
+export type TemplateQuestionKind = components['schemas']['TemplateQuestionKind'];
 export type TemplateRequest = components['schemas']['TemplateRequest'];
 export type TemplateRestrictions = components['schemas']['TemplateRestrictions'];
 export type TemplateSection = components['schemas']['TemplateSection'];
@@ -74569,6 +74868,7 @@ export type TextAlign = components['schemas']['TextAlign'];
 export type TextAnswer = components['schemas']['TextAnswer'];
 export type TextConfig = components['schemas']['TextConfig'];
 export type TextDetail = components['schemas']['TextDetail'];
+export type TextFormat = components['schemas']['TextFormat'];
 export type ThemeFeel = components['schemas']['ThemeFeel'];
 export type ThemeInfo = components['schemas']['ThemeInfo'];
 export type TicketLabelMapping = components['schemas']['TicketLabelMapping'];
@@ -74688,6 +74988,7 @@ export type WebhookUrlResponse = components['schemas']['WebhookUrlResponse'];
 export type WeblinkRequest = components['schemas']['WeblinkRequest'];
 export type WikiAudienceRequest = components['schemas']['WikiAudienceRequest'];
 export type WithdrawalResponse = components['schemas']['WithdrawalResponse'];
+export type WordFormImport = components['schemas']['WordFormImport'];
 export type YoutubeFileRequest = components['schemas']['YoutubeFileRequest'];
 export type $defs = Record<string, never>;
 export type operations = Record<string, never>;
@@ -75617,6 +75918,7 @@ export const PlaceholderCategory = {
     ISSUER: "ISSUER",
     MEMBER: "MEMBER",
     PRONOUNS: "PRONOUNS",
+    QUESTION: "QUESTION",
     STATION: "STATION",
 } as const;
 
@@ -76136,6 +76438,14 @@ export const TaskOutcome = {
     SUCCEEDED: "SUCCEEDED",
 } as const;
 
+export const TemplateQuestionKind = {
+    CHECK: "CHECK",
+    CHOICE: "CHOICE",
+    DATE: "DATE",
+    NUMBER: "NUMBER",
+    TEXT: "TEXT",
+} as const;
+
 export const TemplateSort = {
     CREATED: "CREATED",
     LAST_USED: "LAST_USED",
@@ -76153,6 +76463,14 @@ export const TextAlign = {
     CENTER: "CENTER",
     LEFT: "LEFT",
     RIGHT: "RIGHT",
+} as const;
+
+export const TextFormat = {
+    DIGITS: "DIGITS",
+    EMAIL: "EMAIL",
+    LETTERS: "LETTERS",
+    PHONE: "PHONE",
+    POSTAL_CODE: "POSTAL_CODE",
 } as const;
 
 export const ThemeFeel = {
