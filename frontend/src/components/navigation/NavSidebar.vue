@@ -45,6 +45,8 @@ const rail = computed(() => collapsed.value && isDesktop.value)
 
 const root = ref<HTMLElement | null>(null)
 const openKey = ref<string | null>(null)
+/** The page on which the reader went back to all sections, which keeps them there until they move on. */
+const leftAt = ref<string | null>(null)
 
 /** The top-level entry holding the page shown, which is lit in the full list. */
 const holding = computed(() => entryHolding(props.nodes, route.path))
@@ -52,17 +54,20 @@ const holding = computed(() => entryHolding(props.nodes, route.path))
 const openSection = computed(() => props.nodes.find((node): node is NavGroup => node.kind === 'group' && node.key === openKey.value))
 
 watch([() => route.path, () => holding.value?.key, () => holding.value?.kind], () => {
-  if (!holding.value) return
+  if (!holding.value || route.path === leftAt.value) return
+  leftAt.value = null
   openKey.value = holding.value.kind === 'group' ? holding.value.key : null
 }, {immediate: true})
 
 function open(section: NavGroup) {
+  leftAt.value = null
   openKey.value = section.key
   void router.push(section.to)
 }
 
 async function back() {
   const left = openKey.value
+  leftAt.value = route.path
   openKey.value = null
   await nextTick()
   root.value?.querySelector<HTMLElement>(`[data-section="${left}"]`)?.focus()

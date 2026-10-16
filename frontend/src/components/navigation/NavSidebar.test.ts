@@ -147,6 +147,25 @@ describe('NavSidebar', () => {
         expect(sidebar.text()).toContain('Mitgliederliste')
     })
 
+    it('stays on the full list after going back, even when the section grows meanwhile', async () => {
+        route.path = '/station/members/list'
+        const members = NODES[1] as Extract<NavNode, {kind: 'group'}>
+        const sidebar = mount(NavSidebar, {
+            props: {nodes: [members]},
+            attachTo: document.body,
+            global: {stubs: {'router-link': RouterLink, RouterLink, transition: true}},
+        })
+        await sidebar.find('[data-back]').trigger('click')
+        await flushPromises()
+
+        await sidebar.setProps({nodes: [page('members', '/station/members/list', 'Mitglieder')]})
+        await sidebar.setProps({nodes: [members]})
+        await flushPromises()
+
+        expect(sidebar.find('[data-section="members"]').exists()).toBe(true)
+        expect(sidebar.text()).not.toContain('Alle Bereiche')
+    })
+
     it('lights the section holding the page in the full list', async () => {
         route.path = '/station/members/create'
         const sidebar = mountSidebar()
