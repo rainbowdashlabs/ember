@@ -13,8 +13,8 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
-import EditButton from '@/components/button/EditButton.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import PrimaryBadge from '@/components/badge/PrimaryBadge.vue'
@@ -22,11 +22,24 @@ import InfoBadge from '@/components/badge/InfoBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
 import TextAreaInput from '@/components/input/text/TextAreaInput.vue'
+import SelectInput from '@/components/input/select/SelectInput.vue'
+import ToggleInput from '@/components/input/toggle/ToggleInput.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import CodeSnippet from '@/components/display/CodeSnippet.vue'
 
 const { t } = useI18n()
+
+/** Two fields of a list as their cards show them: a required number, and a choice with its answers. */
+const sampleFields = [
+  {name: t('helpCenter.sample.members.age'), type: 'NUMBER', required: true, options: ''},
+  {
+    name: t('helpCenter.sample.members.experience'),
+    type: 'CHOICE',
+    required: false,
+    options: t('helpCenter.sample.members.experienceOptions'),
+  },
+]
 </script>
 
 <template>
@@ -144,32 +157,33 @@ const { t } = useI18n()
       <NeutralContainer class="space-y-3 mt-2">
         <div class="flex items-center justify-between">
           <SubHeader>{{ t('waitingList.fields') }}</SubHeader>
-          <PrimaryButton :icon="['fas', 'plus']">{{ t('waitingList.addField') }}</PrimaryButton>
+          <SecondaryButton :icon="['fas', 'plus']" disabled>{{ t('waitingList.addField') }}</SecondaryButton>
         </div>
         <div class="space-y-2">
-          <div class="flex items-center gap-2 rounded-lg px-4 py-3 bg-bg-light-accent/30 dark:bg-bg-dark-accent/30">
-            <div class="flex-1">
-              <div class="flex items-center gap-2">
-                <span class="font-medium">{{ t('helpCenter.sample.members.age') }}</span>
-                <SecondaryBadge>{{ t('fieldTypes.label.NUMBER') }}</SecondaryBadge>
-                <PrimaryBadge>{{ t('waitingList.required') }}</PrimaryBadge>
+          <div v-for="sample in sampleFields" :key="sample.name" class="rounded border border-(--border) p-3 space-y-3">
+            <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-2 items-end">
+              <div class="space-y-1">
+                <FieldLabel>{{ t('waitingList.fieldName') }}</FieldLabel>
+                <TextInput :model-value="sample.name" disabled/>
               </div>
-            </div>
-            <EditButton/>
-            <DeleteButton/>
-          </div>
-          <div class="flex items-center gap-2 rounded-lg px-4 py-3 bg-bg-light-accent/30 dark:bg-bg-dark-accent/30">
-            <div class="flex-1">
-              <div class="flex items-center gap-2">
-                <span class="font-medium">{{ t('helpCenter.sample.members.experience') }}</span>
-                <SecondaryBadge>{{ t('fieldTypes.label.CHOICE') }}</SecondaryBadge>
+              <div class="space-y-1 sm:w-56">
+                <FieldLabel>{{ t('fieldTypes.type') }}</FieldLabel>
+                <SelectInput :model-value="sample.type" disabled>
+                  <option :value="sample.type">{{ t(`fieldTypes.label.${sample.type}`) }}</option>
+                </SelectInput>
               </div>
-              <MutedText class="mt-1">{{ t('waitingList.options') }}: {{ t('helpCenter.sample.members.experienceOptions') }}</MutedText>
+              <DeleteButton class="justify-self-end" disabled/>
             </div>
-            <EditButton/>
-            <DeleteButton/>
+            <MutedText v-if="sample.options" tag="p" size="sm">
+              {{ t('questionSettings.options') }}: {{ sample.options }}
+            </MutedText>
+            <div class="flex items-center gap-2 text-sm">
+              <ToggleInput :model-value="sample.required" disabled/>
+              <span>{{ t('questionSettings.required') }}</span>
+            </div>
           </div>
         </div>
+        <PrimaryButton disabled>{{ t('waitingList.saveFields') }}</PrimaryButton>
       </NeutralContainer>
     </HelpSection>
 

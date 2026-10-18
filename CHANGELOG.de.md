@@ -1,5 +1,21 @@
 # Änderungsprotokoll
 
+## v26.22.6
+
+Die Felder einer Anwesenheitsvorlage und einer Warteliste werden direkt in der Liste bearbeitet, so wie die Felder eines Termins. In der Mehrfach-Erstellung behalten Termine die eingegebene Uhrzeit und bieten nur die Felder der gewählten Anwesenheitsvorlage an.
+
+### Verbesserungen
+
+- **Felder einer Anwesenheitsvorlage werden direkt bearbeitet.** Die Felder einer Anwesenheitsvorlage werden in der Liste selbst geschrieben, wie die Felder eines Termins: Name, Typ, Einstellungen und Breite stehen in der Karte jedes Feldes, ein Feld wird in der Liste oder in der Vorschau an eine andere Stelle gezogen, und alle Felder werden mit einem Knopf gespeichert.
+- **Felder einer Warteliste werden direkt bearbeitet.** Die Felder einer Warteliste werden auf dieselbe Weise in der Liste geschrieben und zusammen gespeichert, statt über einen Dialog je Feld.
+- **Das Laden einer Termin-Vorlage steht zuerst.** In der Mehrfach-Erstellung steht die Wahl einer Termin-Vorlage ganz oben im ersten Schritt, über den Angaben, die sie ausfüllt.
+- **Termine der Mehrfach-Erstellung zeigen ihre Uhrzeit.** Die Tabelle der zu erstellenden Termine zeigt neben jedem Datum die Start- und Endzeit.
+
+### Fehlerbehebungen
+
+- **Termine der Mehrfach-Erstellung standen zur falschen Uhrzeit.** Termine, die in der Mehrfach-Erstellung aus einem Zeitplan oder einer importierten Datei angelegt wurden, lagen um den Unterschied zwischen der Uhr des Lesers und UTC neben der eingegebenen Uhrzeit. Sie behalten jetzt die eingegebene Uhrzeit in der Zeitzone des Lesers, auch über eine Zeitumstellung hinweg.
+- **Die Mehrfach-Erstellung bot die Felder jeder Anwesenheitsvorlage an.** „Aus der Anwesenheitsvorlage übernehmen“ listete in der Mehrfach-Erstellung die Felder aller Anwesenheitsvorlagen der Wache auf. Jetzt werden nur die der für die Termine gewählten Vorlage angeboten.
+
 ## v26.22.5
 
 Formatierter Text in Blöcken von Seiten und News erscheint wieder formatiert statt als Rohtext. Termin-Highlights zeigen, wann der Termin endet, und halten lange Beschreibungen kurz.

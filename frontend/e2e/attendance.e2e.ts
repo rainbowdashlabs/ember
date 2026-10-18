@@ -801,23 +801,28 @@ test.describe('Attendance', () => {
             await expect(page.getByTestId('field-layout-preview')).toBeVisible()
         })
 
+        /**
+         * The questions are written in the list itself and saved together, so the width is set in
+         * the question's own card and read back there after a reload.
+         */
         test('a question set to half a row keeps that width', async ({managerPage: page}) => {
             await openConfig(page)
 
             const row = page.getByTestId('attendance-field-row').first()
-            const name = (await row.locator('span.font-medium').innerText()).trim()
+            const name = await row.getByTestId('question-name').inputValue()
 
-            await row.getByLabel('Bearbeiten').click()
-            const modal = page.getByTestId('modal')
-            await modal.getByTestId('field-width').selectOption('half')
-            await modal.getByRole('button', {name: 'Speichern'}).click()
+            await row.getByTestId('field-width').selectOption('half')
+            const readBack = page.waitForResponse(response =>
+                response.url().includes('/fields') && response.request().method() === 'GET')
+            await page.getByRole('button', {name: 'Felder speichern'}).click()
+            await readBack
 
             await page.reload()
-            await page.getByTestId('attendance-field-row').first().waitFor()
-            await page.getByTestId('attendance-field-row').filter({hasText: name}).first()
-                .getByLabel('Bearbeiten').click()
+            const first = page.getByTestId('attendance-field-row').first()
+            await first.waitFor()
 
-            await expect(page.getByTestId('modal').getByTestId('field-width')).toHaveValue('half')
+            await expect(first.getByTestId('question-name')).toHaveValue(name)
+            await expect(first.getByTestId('field-width')).toHaveValue('half')
         })
 
         /**
@@ -854,12 +859,14 @@ test.describe('Attendance', () => {
             await page.request.post(`/api/v1/attendance/sessions/${sessionId}/lock`, {headers})
 
             await page.goto(`/station/attendance/config/edit/${template.id}`)
-            const row = page.getByTestId('attendance-field-row').filter({hasText: topic})
+            const row = page.getByTestId('attendance-field-row').first()
+            await expect(row.getByTestId('question-name'), 'the sheet asks the one question').toHaveValue(topic)
             await row.getByLabel('Löschen').click()
             const confirm = page.getByTestId('modal')
             await expect(confirm, 'the question says it is archived').toContainText('archiviert')
             await confirm.locator('[data-confirm]').click()
-            await expect(row, 'the question is gone from the configuration').toHaveCount(0)
+            await expect(page.getByTestId('attendance-field-row'), 'the question is gone from the configuration')
+                .toHaveCount(0)
 
             await page.goto(`/station/attendance/session/${sessionId}`)
             await expect(page.getByText(topic), 'the sheet still names the question').toBeVisible()

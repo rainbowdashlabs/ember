@@ -19,6 +19,7 @@ import type {BatchRow, EventFieldEntry} from '@/api/generated/schema'
 import {events} from '@/api'
 import {readCsvText} from '@/util/csvText'
 import {describeFailure, type Failure} from '@/util/failure'
+import {localInputToInstant} from '@/util/format'
 
 const props = defineProps<{
   fieldDefs: EventFieldEntry[]
@@ -74,6 +75,22 @@ function pickedInterval() {
   return intervalOptions.find(option => option.value === intervalType.value)?.value ?? 'RECURRING'
 }
 
+/**
+ * The zone the times of day are typed in, which is the reader's own, as every other time of an
+ * appointment is read.
+ *
+ * <p>The server used to read a start of seven in the evening as seven in the evening UTC, and every
+ * appointment of the batch then stood two hours early in Berlin in summer. The browser names its
+ * zone and the server places each date in it.
+ */
+function readerZone(): string | undefined {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || undefined
+  } catch {
+    return undefined
+  }
+}
+
 async function generateScheduleDates() {
   try {
     const generated = await events.generateDates({
@@ -84,6 +101,7 @@ async function generateScheduleDates() {
       startTime: startTime.value || undefined,
       endTime: endTime.value || undefined,
       ignoreBreaks: ignoreBreaks.value,
+      timeZone: readerZone(),
     })
     emit('done', generated.map(r => ({...r, fieldValues: {}})))
   } catch (e) {
@@ -148,6 +166,17 @@ function parseDateStr(raw: string): string {
   return s
 }
 
+/**
+ * A day and a time of day from the file, as the moment they name on the reader's clock.
+ *
+ * <p>The time used to be written down as UTC, so an imported drill at seven in the evening stood
+ * two hours early in Berlin in summer. A row without a readable day, or with a time no clock can
+ * read, is placed at the moment of the import and left for the table to correct.
+ */
+function momentOf(isoDate: string, time: string): string {
+  return (isoDate && localInputToInstant(`${isoDate}T${time}`)) || new Date().toISOString()
+}
+
 function applyCsvToRows() {
   const find = (target: string) => Object.entries(columnMapping.value).find(([, v]) => v === target)?.[0]
   const dateCol = find('__date__')
@@ -170,8 +199,8 @@ function applyCsvToRows() {
     const n = idx(nameCol) >= 0 ? csvRow[idx(nameCol)] ?? null : null
     return {
       name: n,
-      startTime: isoDate ? `${isoDate}T${st || '00:00'}:00Z` : new Date().toISOString(),
-      endTime: isoDate ? `${isoDate}T${et || '23:59'}:00Z` : new Date().toISOString(),
+      startTime: momentOf(isoDate, st || '00:00'),
+      endTime: momentOf(isoDate, et || '23:59'),
       fieldValues,
     }
   })

@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.events.entity.IntervalType;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.restriction.RestrictionSelection;
 import dev.chojo.ember.feature.station.entity.Station;
+import dev.chojo.ember.feature.station.entity.StationFormat;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -27,6 +28,7 @@ import org.junit.jupiter.api.TestMethodOrder;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -53,7 +55,12 @@ class BatchEventServiceTest extends RepositoryTestBase {
                 attendanceRepo,
                 eventFieldRegistrationService);
         batchService = new BatchEventService(
-                eventServices.crud(), eventServices.restriction(), fieldService, eventBreakRepo, domainEventBus);
+                eventServices.crud(),
+                eventServices.restriction(),
+                fieldService,
+                eventBreakRepo,
+                stationRepo,
+                domainEventBus);
 
         station = stationRepo.create("BatchEventServiceStation");
     }
@@ -138,7 +145,7 @@ class BatchEventServiceTest extends RepositoryTestBase {
         LocalDate end = LocalDate.of(2026, 6, 22);
         var config = new IntervalConfig(IntervalType.RECURRING, 1, start, end, null, null);
 
-        var rows = batchService.generateDates(station.id(), config, true);
+        var rows = batchService.generateDates(station.id(), config, true, "UTC");
         assertEquals(4, rows.size());
         assertTrue(rows.stream()
                 .allMatch(
@@ -152,7 +159,7 @@ class BatchEventServiceTest extends RepositoryTestBase {
         LocalDate end = LocalDate.of(2026, 8, 31);
         var config = new IntervalConfig(IntervalType.MONTHLY_FIRST, 2, start, end, null, null);
 
-        var rows = batchService.generateDates(station.id(), config, true);
+        var rows = batchService.generateDates(station.id(), config, true, null);
         assertEquals(3, rows.size());
     }
 
@@ -163,7 +170,7 @@ class BatchEventServiceTest extends RepositoryTestBase {
         LocalDate end = LocalDate.of(2026, 12, 31);
         var config = new IntervalConfig(IntervalType.QUARTERLY, 3, start, end, null, null);
 
-        var rows = batchService.generateDates(station.id(), config, true);
+        var rows = batchService.generateDates(station.id(), config, true, null);
         assertEquals(4, rows.size());
     }
 
@@ -174,7 +181,7 @@ class BatchEventServiceTest extends RepositoryTestBase {
         LocalDate end = LocalDate.of(2030, 3, 15);
         var config = new IntervalConfig(IntervalType.YEARLY, 1, start, end, null, null);
 
-        var rows = batchService.generateDates(station.id(), config, true);
+        var rows = batchService.generateDates(station.id(), config, true, null);
         assertEquals(5, rows.size());
     }
 
@@ -187,7 +194,7 @@ class BatchEventServiceTest extends RepositoryTestBase {
         LocalTime endTime = LocalTime.of(17, 30);
         var config = new IntervalConfig(IntervalType.RECURRING, 1, start, end, startTime, endTime);
 
-        var rows = batchService.generateDates(station.id(), config, true);
+        var rows = batchService.generateDates(station.id(), config, true, "UTC");
         assertFalse(rows.isEmpty());
         var row = rows.getFirst();
         assertEquals(9, row.startTime().atZone(ZoneOffset.UTC).getHour());
@@ -196,12 +203,43 @@ class BatchEventServiceTest extends RepositoryTestBase {
     }
 
     @Test
+    @Order(14)
+    void generateDatesReadsTheTimesInTheZoneAsked() {
+        LocalDate summer = LocalDate.of(2026, 6, 1);
+        LocalDate winter = LocalDate.of(2026, 12, 7);
+        var config =
+                new IntervalConfig(IntervalType.RECURRING, 1, summer, winter, LocalTime.of(19, 0), LocalTime.of(21, 0));
+
+        var rows = batchService.generateDates(station.id(), config, true, "Europe/Berlin");
+        assertFalse(rows.isEmpty());
+        var berlin = ZoneId.of("Europe/Berlin");
+        assertEquals(17, rows.getFirst().startTime().atZone(ZoneOffset.UTC).getHour());
+        assertEquals(18, rows.getLast().startTime().atZone(ZoneOffset.UTC).getHour());
+        assertTrue(rows.stream().allMatch(row -> row.startTime().atZone(berlin).getHour() == 19));
+        assertTrue(rows.stream().allMatch(row -> row.endTime().atZone(berlin).getHour() == 21));
+    }
+
+    @Test
+    @Order(14)
+    void generateDatesFallsBackToTheStationForAZoneNobodyKnows() {
+        LocalDate date = LocalDate.of(2026, 6, 1);
+        var config = new IntervalConfig(IntervalType.RECURRING, 1, date, date, LocalTime.of(9, 0), null);
+
+        var rows = batchService.generateDates(station.id(), config, true, "Mars/Olympus");
+        var stationZone =
+                StationFormat.timezoneOf(stationRepo.findById(station.id()).orElseThrow());
+        assertEquals(
+                date.atTime(9, 0).atZone(stationZone).toInstant(),
+                rows.getFirst().startTime());
+    }
+
+    @Test
     @Order(15)
     void generateDatesDefaultTimesWhenNull() {
         LocalDate date = LocalDate.of(2026, 6, 1);
         var config = new IntervalConfig(IntervalType.RECURRING, 1, date, date, null, null);
 
-        var rows = batchService.generateDates(station.id(), config, true);
+        var rows = batchService.generateDates(station.id(), config, true, "UTC");
         assertFalse(rows.isEmpty());
         var row = rows.getFirst();
         assertEquals(0, row.startTime().atZone(ZoneOffset.UTC).getHour());
@@ -216,7 +254,7 @@ class BatchEventServiceTest extends RepositoryTestBase {
         LocalDate end = LocalDate.of(2026, 6, 30);
         var config = new IntervalConfig(null, 1, start, end, null, null);
 
-        var rows = batchService.generateDates(station.id(), config, true);
+        var rows = batchService.generateDates(station.id(), config, true, null);
         assertTrue(rows.isEmpty());
     }
 }

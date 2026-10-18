@@ -1,5 +1,21 @@
 # Changelog
 
+## v26.22.6
+
+The fields of an attendance template and of a waiting list are edited in place, the way the fields of an appointment are. Appointments created in a batch keep the time of day that was typed and offer only the fields of the chosen attendance template.
+
+### Improvements
+
+- **Attendance template fields are edited in place.** The fields of an attendance template are written in the list itself, like the fields of an appointment: name, type, settings and width stand in each field's card, a field is dragged to another place in the list or in the preview, and all fields are saved with one button.
+- **Waiting list fields are edited in place.** The fields of a waiting list are written in the list the same way and saved together, instead of through one dialog per field.
+- **Loading an appointment template comes first.** When creating appointments in a batch, the choice of an appointment template stands at the top of the first step, above the details it fills in.
+- **Batch appointments show their time.** The table of appointments about to be created shows the start and end time next to each date.
+
+### Fixes
+
+- **Batch appointments stood at the wrong time.** Appointments created in a batch, from a schedule or from an imported file, were placed hours away from the time that was typed, by the difference between the reader's clock and UTC. They now keep the typed time of day in the reader's own time zone, across a clock change too.
+- **A batch offered the fields of every attendance template.** When creating appointments in a batch, "Take over from the attendance template" listed the fields of all the station's attendance templates. It now lists only those of the template chosen for the batch.
+
 ## v26.22.5
 
 Formatted text in page and news blocks is shown formatted again instead of as raw text. Event highlights show when the event ends and keep long descriptions short.

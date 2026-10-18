@@ -3462,7 +3462,10 @@ volumes:
             entryDetailTitle: 'Eintrag bearbeiten',
             entryDetailText: 'Auf der Detailseite bearbeitest du die Daten und siehst den Status. Wer die Warteliste bearbeiten darf, kann den Eintrag dort auch löschen, egal in welchem Status er steht.',
             fieldEditorTitle: 'Eigene Felder anlegen',
-            fieldEditorText: 'Du kannst eigene Felder erstellen mit verschiedenen Typen.',
+            fieldEditorText: 'Du kannst eigene Felder mit verschiedenen Typen erstellen. Jedes Feld wird direkt in der '
+                + 'Liste bearbeitet, so wie die Felder eines Termins: Name, Typ, Pflichtfeld, die Optionen einer Auswahl '
+                + 'und ob das öffentliche Formular es abfragt stehen in seiner Karte. Die Reihenfolge änderst du mit den '
+                + 'Pfeilen oder durch Ziehen, und alle Felder werden zusammen mit „Felder speichern“ gespeichert.',
             invites: 'Einladungslinks',
             invitesText: 'Jeder Einladungslink kann einmal (oder mehrfach) benutzt werden. Teile den Link per E-Mail oder Nachricht. Nach der Anmeldung erhält der Nutzer einen persönlichen Link, um seinen Status einzusehen.',
             scoring: 'Bewertungsformel',
@@ -5442,12 +5445,19 @@ volumes:
             groupsText: 'Wähle die Mitgliedergruppen aus, deren Mitglieder bei einer Anwesenheit mit dieser Vorlage erwartet werden. '
                 + 'Wer eine Anwesenheit startet, sieht Mitgliedstypen und Gruppen der Vorlage vorausgewählt und kann sie für diese eine Liste ändern.',
             fieldsTitle: 'Felder',
-            fieldsText: 'Füge Felder hinzu, die pro Mitglied in einer Anwesenheitssitzung erfasst werden. Jedes Feld hat einen Typ (Text, Zahl, Ja/Nein, Auswahl, Datum/Uhrzeit), kann ein Pflichtfeld sein und einen Standardwert haben.',
+            fieldsText: 'Füge Felder hinzu, die pro Mitglied in einer Anwesenheitssitzung erfasst werden. Jedes Feld wird '
+                + 'direkt in der Liste bearbeitet, so wie die Felder eines Termins: Name, Typ (Text, Zahl, Ja/Nein, '
+                + 'Auswahl, Datum/Uhrzeit, Mitglied), Pflichtfeld und Standardwert stehen in seiner Karte. Alle Felder '
+                + 'werden zusammen mit „Felder speichern“ gespeichert; das Löschen eines Feldes fragt vorher nach.',
             autoAttendTitle: 'Automatische Anwesenheit',
             autoAttendText: 'Felder mit der Option „Automatisch zur Anwesenheit hinzufügen" markieren Mitglieder automatisch als anwesend, wenn sie in der Sitzung erscheinen.',
             widthTitle: 'Breite und Vorschau',
-            widthText: 'Im Feld-Dialog legst du mit „Breite" fest, ob ein Feld eine ganze, eine halbe oder eine drittel Zeile einnimmt. Schmale Felder stehen nebeneinander, solange eine Zeile sie fasst. Die Vorschau über der Liste zeigt, wie die Sitzung dadurch aussieht.',
-            tip: 'Die Reihenfolge der Felder änderst du mit den Pfeilen an jeder Zeile, am Rechner zusätzlich durch Ziehen am Griff daneben.',
+            widthText: 'Mit „Breite“ in der Karte eines Feldes legst du fest, ob es eine ganze, eine halbe oder eine drittel '
+                + 'Zeile einnimmt. Schmale Felder stehen nebeneinander, solange eine Zeile sie fasst. Die Vorschau unter der '
+                + 'Liste zeigt, wie die Sitzung dadurch aussieht; dort lässt sich ein Feld auch an der rechten Kante breiter '
+                + 'oder schmaler ziehen.',
+            tip: 'Die Reihenfolge der Felder änderst du mit den Pfeilen an jeder Karte, am Rechner zusätzlich durch Ziehen am '
+                + 'Griff daneben oder in der Vorschau. Die neue Reihenfolge gilt, sobald du die Felder speicherst.',
         },
         inventoryDetail: {
             title: 'Inventar - Details',

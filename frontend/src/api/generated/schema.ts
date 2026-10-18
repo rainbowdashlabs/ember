@@ -65418,6 +65418,7 @@ export interface components {
             intervalType?: components["schemas"]["IntervalType"];
             startDate?: string;
             startTime?: string | null;
+            timeZone?: string | null;
         };
         GeneratedDocumentEntry: {
             /** Format: int32 */

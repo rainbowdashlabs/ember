@@ -29,7 +29,7 @@ describe('EventFieldList', () => {
         await list.findAll('[data-testid="move-down"]')[0]!.trigger('click')
         await list.vm.$nextTick()
 
-        const shown = list.findAll('[data-testid="event-field-name"]').map(input => (input.element as HTMLInputElement).value)
+        const shown = list.findAll('[data-testid="question-name"]').map(input => (input.element as HTMLInputElement).value)
         expect(shown).toEqual(['Treffpunkt', 'Ort'])
 
         const handedBack = list.emitted('update:fields')?.at(-1)?.[0] as EventFieldEntry[]

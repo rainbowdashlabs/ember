@@ -22,12 +22,12 @@ async function openTemplate(page: Page, name: string) {
     await row.waitFor()
     await row.getByRole('button').first().click()
     await page.waitForURL(/\/station\/events\/templates\/\d+/)
-    await page.getByTestId('event-field-name').first().waitFor()
+    await page.getByTestId('question-name').first().waitFor()
 }
 
 /** The questions in the order the editor lists them, which is the order they will be asked in. */
 async function fieldNames(page: Page): Promise<string[]> {
-    return page.getByTestId('event-field-list').getByTestId('event-field-name').evaluateAll(
+    return page.getByTestId('event-field-list').getByTestId('question-name').evaluateAll(
         inputs => inputs.map(input => (input as HTMLInputElement).value),
     )
 }
@@ -64,7 +64,7 @@ test.describe('Event templates', () => {
             page.getByRole('button', {name: 'Speichern'}).click(),
         ])
         await page.reload()
-        await page.getByTestId('event-field-name').first().waitFor()
+        await page.getByTestId('question-name').first().waitFor()
 
         expect(await fieldNames(page)).toEqual([before[1], before[0], ...before.slice(2)])
     })
@@ -80,10 +80,10 @@ test.describe('Event templates', () => {
 
         await page.getByRole('button', {name: 'Feld hinzufügen'}).click()
         const questions = page.getByTestId('event-field-list')
-        const added = questions.getByTestId('event-field-name').last()
+        const added = questions.getByTestId('question-name').last()
         await added.fill('Ausbilder')
 
-        await questions.getByTestId('event-field-type').last().selectOption({label: 'Mitglied aus Gruppe'})
+        await questions.getByTestId('question-type').last().selectOption({label: 'Mitglied aus Gruppe'})
 
         const groups = questions.getByTestId('question-group').last()
         await expect(groups).toBeVisible()
@@ -135,7 +135,7 @@ test.describe('Event templates', () => {
 
         await original.getByLabel('Duplizieren').click()
         await page.waitForURL(/\/station\/events\/templates\/\d+/)
-        await page.getByTestId('event-field-name').first().waitFor()
+        await page.getByTestId('question-name').first().waitFor()
 
         expect(await fieldNames(page), 'the copy asks the same things').toEqual(questions)
 
@@ -195,7 +195,7 @@ test.describe('Event templates', () => {
         const taken = await take.getAttribute('data-testid')
         await take.click()
 
-        await expect(page.getByTestId('event-field-list').getByTestId('event-field-name').last()).toHaveValue(offered)
+        await expect(page.getByTestId('event-field-list').getByTestId('question-name').last()).toHaveValue(offered)
         await expect(page.locator(`[data-testid="${taken}"]`),
             'a field already taken is not offered again').toHaveCount(0)
     })
