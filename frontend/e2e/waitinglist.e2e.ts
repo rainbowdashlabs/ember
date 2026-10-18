@@ -109,12 +109,14 @@ test.describe('Waiting lists', () => {
 
         await page.goto(`/station/members/waiting-lists/${id}/fields`)
         await page.getByRole('button', {name: 'Feld hinzufügen'}).click()
-        await page.getByPlaceholder('Name des Feldes').fill(fieldName)
-        await page.getByRole('combobox').first().selectOption('BIRTH_DATE')
-        await page.getByRole('button', {name: 'Speichern'}).click()
+        const added = page.getByTestId('waiting-list-field-row').last()
+        await added.getByPlaceholder('Name des Feldes').fill(fieldName)
+        await added.getByTestId('question-type').selectOption('BIRTH_DATE')
+        await page.getByRole('button', {name: 'Felder speichern'}).click()
 
         await page.reload()
-        await expect(page.getByText('Geburtsdatum').first()).toBeVisible()
+        await expect(page.getByTestId('waiting-list-field-row').last().getByTestId('question-type'))
+            .toHaveValue('BIRTH_DATE')
 
         const entered = await page.request.post(`/api/v1/waiting-lists/${id}/entries`, {
             headers: await apiHeaders(page),
@@ -144,9 +146,10 @@ test.describe('Waiting lists', () => {
 
         await page.goto(`/station/members/waiting-lists/${id}/fields`)
         await page.getByRole('button', {name: 'Feld hinzufügen'}).click()
-        await page.getByPlaceholder('Name des Feldes').fill(`Zweites-${Date.now()}`)
-        await page.getByRole('combobox').first().selectOption('BIRTH_DATE')
-        await page.getByRole('button', {name: 'Speichern'}).click()
+        const added = page.getByTestId('waiting-list-field-row').last()
+        await added.getByPlaceholder('Name des Feldes').fill(`Zweites-${Date.now()}`)
+        await added.getByTestId('question-type').selectOption('BIRTH_DATE')
+        await page.getByRole('button', {name: 'Felder speichern'}).click()
 
         await expect(page.getByText(/schon ein Feld für das Geburtsdatum|Fehler/)).toBeVisible()
     })
@@ -279,23 +282,25 @@ test.describe('Waiting lists', () => {
 
         await page.goto(`/station/members/waiting-lists/${id}/fields`)
         await page.getByRole('button', {name: 'Feld hinzufügen'}).click()
-        await page.getByPlaceholder('Name des Feldes').fill(fieldName)
-        await page.getByRole('combobox').first().selectOption('CHOICE')
+        const added = page.getByTestId('waiting-list-field-row').last()
+        await added.getByPlaceholder('Name des Feldes').fill(fieldName)
+        await added.getByTestId('question-type').selectOption('CHOICE')
 
-        await page.getByTestId('question-option-add').click()
-        await page.getByTestId('question-option-0').fill('rot')
-        await page.getByTestId('question-option-add').click()
-        await page.getByTestId('question-option-1').fill('blau, dunkel')
-        await page.getByRole('button', {name: 'Speichern'}).click()
+        await added.getByTestId('question-option-add').click()
+        await added.getByTestId('question-option-0').fill('rot')
+        await added.getByTestId('question-option-add').click()
+        await added.getByTestId('question-option-1').fill('blau, dunkel')
+        await page.getByRole('button', {name: 'Felder speichern'}).click()
 
         await page.reload()
-        await page.getByRole('button', {name: 'Bearbeiten'}).last().click()
+        const saved = page.getByTestId('waiting-list-field-row').last()
+        await expect(saved.getByTestId('question-name')).toHaveValue(fieldName)
 
-        await expect(page.getByTestId('question-option-0')).toHaveValue('rot')
+        await expect(saved.getByTestId('question-option-0')).toHaveValue('rot')
         await expect(
-            page.getByTestId('question-option-1'),
+            saved.getByTestId('question-option-1'),
             'a choice with a comma in it is one choice and not two',
         ).toHaveValue('blau, dunkel')
-        await expect(page.getByTestId('question-option-2')).toHaveCount(0)
+        await expect(saved.getByTestId('question-option-2')).toHaveCount(0)
     })
 })

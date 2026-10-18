@@ -24,7 +24,7 @@ async function openTemplateQuestions(page: Page) {
     await page.locator('[data-testid="template-row"][data-name="Standard-Übung"]').first()
         .getByRole('button').first().click()
     await page.waitForURL(/\/station\/events\/templates\/\d+/)
-    await page.getByTestId('event-field-name').first().waitFor()
+    await page.getByTestId('question-name').first().waitFor()
 }
 
 /** The questions of the first attendance sheet, which is a list every station has. */
@@ -68,12 +68,12 @@ test.describe('Sorting', () => {
      * the eye looks for it and makes it a larger thing to press.
      */
     test('tall rows stand their controls up and short rows lay them out beside', async ({managerPage: page}) => {
+        await page.goto('/station/events/categories')
+        await expect(page.getByTestId('drag-controls').first()).toHaveAttribute('data-layout', 'inline')
+
         await openAttendanceFields(page)
         await expect(page.getByTestId('attendance-fields').getByTestId('drag-controls').first())
-            .toHaveAttribute('data-layout', 'inline')
-
-        await openTemplateQuestions(page)
-        await expect(page.getByTestId('drag-controls').first()).toHaveAttribute('data-layout', 'stacked')
+            .toHaveAttribute('data-layout', 'stacked')
     })
 
     /**
@@ -83,7 +83,7 @@ test.describe('Sorting', () => {
     test('the questions of an event template sort the same way', async ({managerPage: page}) => {
         await openTemplateQuestions(page)
 
-        const questions = await page.getByTestId('event-field-name').count()
+        const questions = await page.getByTestId('question-name').count()
         await expect(page.getByTestId('move-up')).toHaveCount(questions)
         await expect(page.getByTestId('drag-handle')).toHaveCount(await hasMouse(page) ? questions : 0)
     })

@@ -59116,6 +59116,9 @@
           },
           "ignoreBreaks" : {
             "type" : [ "boolean", "null" ]
+          },
+          "timeZone" : {
+            "type" : [ "string", "null" ]
           }
         }
       },

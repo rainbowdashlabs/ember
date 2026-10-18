@@ -12,14 +12,21 @@ import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import FieldLabel from '@/components/typography/FieldLabel.vue'
 import TextInput from '@/components/input/text/TextInput.vue'
+import SelectInput from '@/components/input/select/SelectInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
-import EditButton from '@/components/button/EditButton.vue'
-import MutedText from '@/components/typography/MutedText.vue'
 import MutedIcon from '@/components/display/MutedIcon.vue'
 import UserTypesEditor from '@/views/stationview/manage/attendanceconfigedit/UserTypesEditor.vue'
 
 const {t} = useI18n()
+
+/** Three fields of a sheet as their cards show them, each with its type and the width it is drawn at. */
+const sampleFields = [
+  {name: t('helpCenter.exampleFields.remark'), type: 'TEXT', width: 'Full'},
+  {name: t('helpCenter.exampleFields.rank'), type: 'CHOICE', width: 'Half'},
+  {name: t('helpCenter.exampleFields.arrival'), type: 'TIME', width: 'Half'},
+]
 </script>
 
 <template>
@@ -92,42 +99,34 @@ const {t} = useI18n()
     <NeutralContainer class="space-y-4">
       <div class="flex items-center justify-between">
         <SectionHeader>{{ t('attendanceConfig.fields') }}</SectionHeader>
-        <PrimaryButton :icon="['fas', 'plus']" disabled>
+        <SecondaryButton :icon="['fas', 'plus']" disabled>
           {{ t('attendanceConfig.addField') }}
-        </PrimaryButton>
+        </SecondaryButton>
       </div>
       <div class="space-y-2">
-        <NeutralContainer class="flex items-center justify-between py-2 px-3">
-          <div>
-            <span class="text-sm font-medium">{{ t('helpCenter.exampleFields.remark') }}</span>
-            <MutedText class="ml-2">{{ t('fieldTypes.label.TEXT') }}</MutedText>
+        <div v-for="sample in sampleFields" :key="sample.name" class="rounded border border-(--border) p-3 space-y-3">
+          <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-2 items-end">
+            <div class="space-y-1">
+              <FieldLabel>{{ t('attendanceConfig.fieldName') }}</FieldLabel>
+              <TextInput :model-value="sample.name" disabled/>
+            </div>
+            <div class="space-y-1 sm:w-56">
+              <FieldLabel>{{ t('fieldTypes.type') }}</FieldLabel>
+              <SelectInput :model-value="sample.type" disabled>
+                <option :value="sample.type">{{ t(`fieldTypes.label.${sample.type}`) }}</option>
+              </SelectInput>
+            </div>
+            <DeleteButton class="justify-self-end" disabled/>
           </div>
-          <div class="flex items-center gap-2">
-            <EditButton disabled/>
-            <DeleteButton disabled/>
+          <div class="w-40 space-y-1">
+            <FieldLabel>{{ t('membersConfig.fieldWidth') }}</FieldLabel>
+            <SelectInput :model-value="sample.width" disabled>
+              <option :value="sample.width">{{ t(`membersConfig.width${sample.width}`) }}</option>
+            </SelectInput>
           </div>
-        </NeutralContainer>
-        <NeutralContainer class="flex items-center justify-between py-2 px-3">
-          <div>
-            <span class="text-sm font-medium">{{ t('helpCenter.exampleFields.rank') }}</span>
-            <MutedText class="ml-2">{{ t('fieldTypes.label.CHOICE') }}</MutedText>
-          </div>
-          <div class="flex items-center gap-2">
-            <EditButton disabled/>
-            <DeleteButton disabled/>
-          </div>
-        </NeutralContainer>
-        <NeutralContainer class="flex items-center justify-between py-2 px-3">
-          <div>
-            <span class="text-sm font-medium">{{ t('helpCenter.exampleFields.arrival') }}</span>
-            <MutedText class="ml-2">{{ t('fieldTypes.label.TIME') }}</MutedText>
-          </div>
-          <div class="flex items-center gap-2">
-            <EditButton disabled/>
-            <DeleteButton disabled/>
-          </div>
-        </NeutralContainer>
+        </div>
       </div>
+      <PrimaryButton disabled>{{ t('attendanceConfig.saveFields') }}</PrimaryButton>
     </NeutralContainer>
 
     <HelpSection :title="t('helpCenter.attendanceConfigEdit.autoAttendTitle')">

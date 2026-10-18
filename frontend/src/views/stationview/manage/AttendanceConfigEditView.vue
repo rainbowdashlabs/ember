@@ -12,17 +12,14 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
-import AttendanceFieldModal from './attendanceconfigedit/FieldModal.vue'
 import EditContent from './attendanceconfigedit/EditContent.vue'
-import type {
-    AttendanceTemplateField, MemberGroup, StationUserType, TemplateFieldRequest, TemplateGroupEntry,
-} from '@/api/generated/schema'
+import type {MemberGroup, StationUserType, TemplateGroupEntry} from '@/api/generated/schema'
 import {attendance, memberGroups} from '@/api'
 import {useAsyncLoader} from '@/composables/useAsyncLoader'
-import {useAsyncAction} from '@/composables/useAsyncAction'
 import {describeFailure} from '@/util/failure'
 import {useConfirmDelete} from '@/composables/useConfirmDelete'
 import {moveWithin} from '@/util/reorder'
+import {draftOf, requestOf, type AttendanceFieldDraft} from './attendanceconfigedit/attendanceFieldDraft'
 
 const {t} = useI18n()
 const route = useRoute()
@@ -35,13 +32,10 @@ const templateId = computed(() => {
 const isEdit = computed(() => templateId.value !== null)
 
 const name = ref('')
-const fields = ref<AttendanceTemplateField[]>([])
+const fields = ref<AttendanceFieldDraft[]>([])
 const templateGroups = ref<TemplateGroupEntry[]>([])
 const templateUserTypes = ref<StationUserType[]>([])
 const availableGroups = ref<MemberGroup[]>([])
-
-const showFieldModal = ref(false)
-const editingField = ref<AttendanceTemplateField | null>(null)
 
 /**
  * The template by its own name at the head of the page, because "Anwesenheits Vorlage" stands above
@@ -60,7 +54,7 @@ const {loading, failure} = useAsyncLoader(async () => {
     memberGroups.listGroups(),
   ])
   name.value = detail.name ?? ''
-  fields.value = detail.fields ?? []
+  fields.value = (detail.fields ?? []).map(draftOf)
   templateGroups.value = detail.groups ?? []
   templateUserTypes.value = detail.userTypes ?? []
   availableGroups.value = groups
@@ -119,44 +113,29 @@ async function saveUserTypes(userTypes: StationUserType[]) {
   }
 }
 
-function openAddField() {
-  editingField.value = null
-  showFieldModal.value = true
-}
-
-function openEditField(field: AttendanceTemplateField) {
-  editingField.value = field
-  showFieldModal.value = true
-}
-
-const {running: fieldSaving, failure: fieldSaveFailure, run: saveField} = useAsyncAction(
-    async (data: TemplateFieldRequest) => {
-      if (!templateId.value) return
-      if (editingField.value) {
-        fields.value = await attendance.updateTemplateField(templateId.value, editingField.value.id, data)
-      } else {
-        fields.value = await attendance.createTemplateField(templateId.value, data)
-      }
-      showFieldModal.value = false
-    },
-)
-
-async function reorderFields(fromIndex: number, toIndex: number) {
+/**
+ * Writes every field as it stands in the list, new ones included, each at the place it is drawn at.
+ *
+ * <p>Every field is written, because the order is a position on each of them and moving one moves
+ * the others along. The list is then read back, so a field written for the first time carries its id
+ * and is updated rather than created again on the next save.
+ */
+async function saveFields() {
   if (!templateId.value) return
-  fields.value = moveWithin(fields.value, fromIndex, toIndex).map((f, i) => ({...f, position: i}))
-
+  failure.value = null
   try {
-    for (const f of fields.value) {
-      await attendance.updateTemplateField(templateId.value!, f.id, {
-        name: f.name,
-        fieldType: f.fieldType,
-        config: f.config,
-        position: f.position,
-      })
+    for (const [position, draft] of fields.value.entries()) {
+      const request = requestOf(draft, position)
+      if (draft.id != null) {
+        await attendance.updateTemplateField(templateId.value, draft.id, request)
+      } else {
+        await attendance.createTemplateField(templateId.value, request)
+      }
     }
-    fields.value = await attendance.listTemplateFields(templateId.value!)
+    fields.value = (await attendance.listTemplateFields(templateId.value)).map(draftOf)
   } catch (e) {
     failure.value = describeFailure(e, t)
+    throw e
   }
 }
 
@@ -165,13 +144,28 @@ const {
   target: deleteFieldTarget,
   requestDelete: requestDeleteField,
   confirm: confirmDeleteField,
-} = useConfirmDelete<AttendanceTemplateField>({
+} = useConfirmDelete<AttendanceFieldDraft>({
   onDelete: async (field) => {
-    if (!templateId.value) return
-    fields.value = await attendance.deleteTemplateField(templateId.value, field.id)
+    if (!templateId.value || field.id == null) return
+    await attendance.deleteTemplateField(templateId.value, field.id)
+    fields.value = fields.value.filter(existing => existing !== field)
   },
   failure,
 })
+
+/**
+ * Takes a field out of the list. One that was never saved just goes; one the sheets already ask is
+ * archived, which is asked about first.
+ */
+function deleteField(index: number) {
+  const field = fields.value[index]
+  if (!field) return
+  if (field.id == null) {
+    fields.value = fields.value.filter((_, i) => i !== index)
+    return
+  }
+  requestDeleteField(field)
+}
 
 function goBack() {
   router.push({name: 'station-attendance-config'})
@@ -192,34 +186,22 @@ function goBack() {
       <Spinner v-if="loading" size="lg"/>
 
       <FailureAlert :failure="failure"/>
-      <FailureAlert :failure="fieldSaveFailure"/>
 
       <EditContent
           v-if="!loading"
           v-model:name="name"
+          v-model:fields="fields"
           :is-edit="isEdit"
-          :fields="fields"
           :template-groups="templateGroups"
           :template-user-types="templateUserTypes"
           :available-groups="availableGroups"
           :save-template="saveTemplate"
+          :save-fields="saveFields"
           @update-user-types="saveUserTypes"
           @add-group="addGroup"
           @remove-group="removeGroup"
           @reorder-groups="reorderGroups"
-          @add-field="openAddField"
-          @edit-field="openEditField"
-          @delete-field="requestDeleteField"
-          @reorder-fields="reorderFields"
-      />
-
-      <AttendanceFieldModal
-          v-model="showFieldModal"
-          :available-groups="availableGroups"
-          :field="editingField"
-          :field-count="fields.length"
-          :saving="fieldSaving"
-          @save="saveField"
+          @delete-field="deleteField"
       />
 
       <ConfirmDeleteModal
