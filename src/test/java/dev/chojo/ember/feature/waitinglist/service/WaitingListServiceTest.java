@@ -538,7 +538,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
         var testing = service.moveToTesting(entry.id());
         var guardian = stationMemberRepo.findManagers(testing.memberId()).getFirst();
 
-        service.endTrial(entry.id(), List.of(guardian.id(), testing.memberId()));
+        service.endTrial(station.id(), entry.id(), List.of(guardian.id(), testing.memberId()));
 
         assertTrue(service.findEntryById(entry.id()).isEmpty(), "the entry is gone");
         assertTrue(stationMemberRepo.findById(testing.memberId()).isEmpty(), "the trial member is gone");
@@ -558,7 +558,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
                 accountRepo.create(null, "Bruder", "Geschwister", station.id()).id());
         stationMemberRepo.addManager(guardian.id(), sibling.id());
 
-        service.endTrial(entry.id(), List.of(guardian.id(), testing.memberId(), sibling.id()));
+        service.endTrial(station.id(), entry.id(), List.of(guardian.id(), testing.memberId(), sibling.id()));
 
         assertTrue(stationMemberRepo.findById(guardian.id()).isPresent(), "the sibling still has their guardian");
     }
@@ -571,10 +571,20 @@ class WaitingListServiceTest extends RepositoryTestBase {
         invite(entry.id());
         service.moveToTesting(entry.id());
 
-        var refused = assertThrows(RefusalResponse.class, () -> service.endTrial(entry.id(), List.of(-1)));
+        var refused =
+                assertThrows(RefusalResponse.class, () -> service.endTrial(station.id(), entry.id(), List.of(-1)));
 
         assertEquals(WaitingListRefusal.TRIAL_NOT_YOURS_TO_END, refused.refusal());
         assertTrue(service.findEntryById(entry.id()).isPresent(), "nothing was changed");
+
+        var guardian = stationMemberRepo
+                .findManagers(service.findEntryById(entry.id()).orElseThrow().memberId())
+                .getFirst();
+        var elsewhere = assertThrows(
+                RefusalResponse.class,
+                () -> service.endTrial(-1, entry.id(), List.of(guardian.id())),
+                "not from another station, even by somebody who looks after the child");
+        assertEquals(WaitingListRefusal.TRIAL_NOT_YOURS_TO_END, elsewhere.refusal());
     }
 
     /** The family sees the trial with its visits and the threshold the station looks for. */

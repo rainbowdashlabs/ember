@@ -867,7 +867,7 @@ public class WaitingListService implements TaskSource {
                             entry.id(),
                             entry.fullName(),
                             list.name(),
-                            entry.testingAt(),
+                            Objects.requireNonNull(entry.testingAt(), "an entry in testing has begun its trial"),
                             entry.attendanceCount(),
                             list.attendanceThreshold());
                 })
@@ -891,17 +891,18 @@ public class WaitingListService implements TaskSource {
      * Ends a trial from the family's side: the entry is withdrawn as the station would withdraw it,
      * and the station is told, since nothing is left on the list for it to find.
      *
+     * @param stationId the station the request is made in, which the entry's list must belong to
      * @param household the member ids the person asking acts for, which must include the trial member
      */
-    public void endTrial(int entryId, List<Integer> household) {
+    public void endTrial(int stationId, int entryId, List<Integer> household) {
         var entry = repository.findEntryById(entryId).orElseThrow(WaitingListRefusal.TRIAL_NOT_YOURS_TO_END::raise);
-        if (entry.memberId() == null || !household.contains(entry.memberId())) {
+        var list = repository.findById(entry.listId()).orElseThrow();
+        if (list.stationId() != stationId || entry.memberId() == null || !household.contains(entry.memberId())) {
             throw WaitingListRefusal.TRIAL_NOT_YOURS_TO_END.raise();
         }
         if (entry.status() != WaitingListEntryStatus.TESTING) {
             throw WaitingListRefusal.TRIAL_NO_LONGER_RUNNING.raise();
         }
-        var list = repository.findById(entry.listId()).orElseThrow();
         Transactions.run(() -> withdrawEntry(entryId));
         log.info("Trial of waiting-list entry {} ended by its family", entryId);
         eventBus.publish(new WaitlistTrialEnded(list.stationId(), entry.fullName(), list.name()));

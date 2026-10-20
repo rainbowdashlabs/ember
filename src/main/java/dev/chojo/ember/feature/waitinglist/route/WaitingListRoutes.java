@@ -823,8 +823,8 @@ public class WaitingListRoutes implements Routes {
             responses = @OpenApiResponse(status = "204"))
     private void endOwnTrial(Context ctx) {
         int entryId = pathInt(ctx, "entryId");
-        service.endTrial(
-                entryId, guardianPolicy.household(StationSession.from(ctx).user()));
+        var session = StationSession.from(ctx);
+        service.endTrial(session.stationId(), entryId, guardianPolicy.household(session.user()));
         ctx.status(HttpStatus.NO_CONTENT);
     }
 
@@ -904,7 +904,8 @@ public class WaitingListRoutes implements Routes {
         if (eventId == null) {
             throw WaitingListRefusal.INVITATION_NEEDS_AN_APPOINTMENT.raise();
         }
-        String message = request.message() == null ? "" : request.message().trim();
+        String requested = request.message();
+        String message = requested == null ? "" : requested.trim();
         if (message.length() > WaitingListInvitation.MESSAGE_MAX_LENGTH) {
             throw WaitingListRefusal.INVITATION_MESSAGE_TOO_LONG.raise();
         }
