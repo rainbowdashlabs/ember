@@ -17,8 +17,8 @@ import dev.chojo.ember.event.events.WaitlistTrialEnded;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AccountInviteService;
 import dev.chojo.ember.feature.account.service.SetupMail;
-import dev.chojo.ember.feature.documents.service.DocumentService;
 import dev.chojo.ember.feature.legal.entity.ConsentProof;
+import dev.chojo.ember.feature.legal.service.GdprDeletionService;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
@@ -91,7 +91,7 @@ public class WaitingListService implements TaskSource {
     private final StationMemberInviteService inviteService;
     private final WaitlistInvitationMessage invitationMessage;
     private final DomainEventBus eventBus;
-    private final DocumentService documentService;
+    private final GdprDeletionService deletion;
 
     @Inject
     public WaitingListService(
@@ -106,7 +106,7 @@ public class WaitingListService implements TaskSource {
             StationMemberInviteService inviteService,
             WaitlistInvitationMessage invitationMessage,
             DomainEventBus eventBus,
-            DocumentService documentService) {
+            GdprDeletionService deletion) {
         this.repository = repository;
         this.stationRepository = stationRepository;
         this.stationMemberRepository = stationMemberRepository;
@@ -118,7 +118,7 @@ public class WaitingListService implements TaskSource {
         this.inviteService = inviteService;
         this.invitationMessage = invitationMessage;
         this.eventBus = eventBus;
-        this.documentService = documentService;
+        this.deletion = deletion;
     }
 
     public List<WaitingList> findByStation(int stationId) {
@@ -802,12 +802,15 @@ public class WaitingListService implements TaskSource {
 
     /**
      * Withdraw an entry (from WAITING, INVITED, or TESTING).
-     * Deletes the linked member, orphaned account, and the entry itself. The member's documents are
-     * released first, as for any member who is deleted: what was kept for the record keeps their name.
      *
-     * <p>Guardians the trial took on go too, when they are at the station as guardians only and
-     * look after nobody else once the child is gone. A guardian who is a member in their own right,
-     * or who answers for another child, keeps everything.
+     * <p>The trial member is deleted the way any deleted member is: their documents are released,
+     * what the data tracking says to delete or anonymise goes, and the account goes with them once it
+     * has no other membership and no role in an association.
+     *
+     * <p>Guardians the trial took on go the same way, when they are at the station as guardians only
+     * and look after nobody else once the child is gone. Their account follows by the same rule, so
+     * an account that is a member elsewhere keeps everything there. A guardian who is a member in
+     * their own right, or who answers for another child, keeps everything.
      */
     public void withdrawEntry(int entryId) {
         var entry =
@@ -821,22 +824,8 @@ public class WaitingListService implements TaskSource {
                 .toList();
 
         Integer memberId = entry.memberId();
-        if (memberId != null) {
-            var member = stationMemberRepository.findById(memberId).orElse(null);
-            if (member != null) {
-                documentService.memberLeaves(member.id(), DocumentService.Leaving.DELETED);
-                stationMemberRepository.delete(member.id());
-                Integer accountId = member.accountId();
-                if (accountId != null) {
-                    var otherMembers = stationMemberRepository.findAllByAccountId(accountId);
-                    if (otherMembers.isEmpty()) {
-                        var account = accountRepository.findById(accountId).orElse(null);
-                        if (account != null && account.email() == null) {
-                            accountRepository.delete(account.id());
-                        }
-                    }
-                }
-            }
+        if (memberId != null && stationMemberRepository.findById(memberId).isPresent()) {
+            deletion.anonymizeMember(memberId);
         }
 
         guardianMembers.forEach(this::releaseGuardianWithoutWards);
@@ -849,8 +838,7 @@ public class WaitingListService implements TaskSource {
         var guardian = stationMemberRepository.findById(guardianMemberId).orElse(null);
         if (guardian == null || guardian.userType() != StationUserType.GUARDIAN) return;
         if (!stationMemberRepository.findManaged(guardianMemberId).isEmpty()) return;
-        documentService.memberLeaves(guardianMemberId, DocumentService.Leaving.DELETED);
-        stationMemberRepository.delete(guardianMemberId);
+        deletion.anonymizeMember(guardianMemberId);
         log.info("Released guardian {} who answered for nobody else", guardianMemberId);
     }
 

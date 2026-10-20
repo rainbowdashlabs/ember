@@ -6,7 +6,7 @@ Families on a waiting list take part in the trial from its first day. Guardians 
 
 ### New Features
 
-- **Guardians take part in the trial.** When a trial begins, the guardians of the waiting list entry get their account and can sign in, take the child off appointments and see the trial on their start page with the visits so far. They can end the trial there themselves, and the station is notified.
+- **Guardians take part in the trial.** When a trial begins, the guardians of the waiting list entry get their account and can sign in, take the child off appointments and see the trial on their start page with the visits so far. They can end the trial there themselves, which deletes the accounts made for it unless they are still needed, and the station is notified.
 
 ### Improvements
 

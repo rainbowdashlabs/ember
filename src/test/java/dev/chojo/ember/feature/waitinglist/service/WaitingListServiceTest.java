@@ -107,7 +107,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
                         accountRepo, stationRepo, stationMemberRepo, newGroupMemberships(), authService),
                 new WaitlistInvitationMessage(eventRepo, eventFieldRepo, emailService),
                 new DomainEventBus(Set.of()),
-                newDocumentService());
+                newGdprDeletionService());
         station = stationRepo.create("WaitlistStation");
     }
 
@@ -533,16 +533,52 @@ class WaitingListServiceTest extends RepositoryTestBase {
     @Test
     void endingATrialLetsGoOfAGuardianWhoAnsweredForThisChildAlone() {
         var list = service.create(station.id(), "Trial End", "", null, 180, null, null, 5, false, true, null, null);
-        var entry = service.createEntry(list.id(), "Kind", "Ende", guardians("Mutter", ""), Map.of(), "");
+        var entry = service.createEntry(
+                list.id(),
+                "Kind",
+                "Ende",
+                guardians("Mutter", "ende-" + UUID.randomUUID() + "@test.com"),
+                Map.of(),
+                "");
         invite(entry.id());
         var testing = service.moveToTesting(entry.id());
+        var child = stationMemberRepo.findById(testing.memberId()).orElseThrow();
         var guardian = stationMemberRepo.findManagers(testing.memberId()).getFirst();
 
         service.endTrial(station.id(), entry.id(), List.of(guardian.id(), testing.memberId()));
 
         assertTrue(service.findEntryById(entry.id()).isEmpty(), "the entry is gone");
         assertTrue(stationMemberRepo.findById(testing.memberId()).isEmpty(), "the trial member is gone");
+        assertTrue(accountRepo.findById(child.accountId()).isEmpty(), "and so is the child's account");
         assertTrue(stationMemberRepo.findById(guardian.id()).isEmpty(), "the guardian answered for nobody else");
+        assertTrue(
+                accountRepo.findById(guardian.accountId()).isEmpty(),
+                "the guardian's account had no other membership, so it goes too");
+    }
+
+    /** A guardian whose account is a member at another station keeps it, and only leaves this one. */
+    @Test
+    void endingATrialKeepsAGuardianAccountThatBelongsElsewhere() {
+        var list = service.create(station.id(), "Trial Away", "", null, 180, null, null, 5, false, true, null, null);
+        var entry = service.createEntry(
+                list.id(),
+                "Kind",
+                "Woanders",
+                guardians("Mutter", "woanders-" + UUID.randomUUID() + "@test.com"),
+                Map.of(),
+                "");
+        invite(entry.id());
+        var testing = service.moveToTesting(entry.id());
+        var guardian = stationMemberRepo.findManagers(testing.memberId()).getFirst();
+        var elsewhere = stationRepo.create("Elsewhere " + UUID.randomUUID());
+        stationMemberRepo.create(elsewhere.id(), guardian.accountId());
+
+        service.endTrial(station.id(), entry.id(), List.of(guardian.id(), testing.memberId()));
+
+        assertTrue(stationMemberRepo.findById(guardian.id()).isEmpty(), "the membership here goes");
+        assertTrue(accountRepo.findById(guardian.accountId()).isPresent(), "the account is still a member elsewhere");
+        assertEquals(
+                1, stationMemberRepo.findAllByAccountId(guardian.accountId()).size());
     }
 
     /** A guardian who looks after another child as well stays at the station. */
@@ -561,6 +597,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
         service.endTrial(station.id(), entry.id(), List.of(guardian.id(), testing.memberId(), sibling.id()));
 
         assertTrue(stationMemberRepo.findById(guardian.id()).isPresent(), "the sibling still has their guardian");
+        assertTrue(accountRepo.findById(guardian.accountId()).isPresent(), "and the guardian their account");
     }
 
     /** Somebody who does not look after the trial member cannot end the trial. */

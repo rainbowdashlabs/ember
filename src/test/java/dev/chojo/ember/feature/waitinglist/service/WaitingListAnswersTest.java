@@ -70,7 +70,7 @@ class WaitingListAnswersTest extends RepositoryTestBase {
                         accountRepo, stationRepo, stationMemberRepo, newGroupMemberships(), mock(AuthService.class)),
                 new WaitlistInvitationMessage(eventRepo, eventFieldRepo, emailService),
                 new DomainEventBus(Set.of()),
-                newDocumentService());
+                newGdprDeletionService());
         station = stationRepo.create("WaitlistAnswersStation");
     }
 

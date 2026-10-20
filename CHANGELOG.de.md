@@ -6,7 +6,7 @@ Familien auf einer Warteliste sind ab dem ersten Tag der Probezeit dabei. Erzieh
 
 ### Neue Funktionen
 
-- **Erziehungsberechtigte sind in der Probezeit dabei.** Beginnt die Probezeit, bekommen die Erziehungsberechtigten des Wartelisteneintrags ein Konto, mit dem sie das Kind von Terminen abmelden und die Probezeit mit den bisherigen Besuchen auf ihrer Übersicht sehen. Dort können sie die Probezeit auch selbst beenden, und die Wache wird benachrichtigt.
+- **Erziehungsberechtigte sind in der Probezeit dabei.** Beginnt die Probezeit, bekommen die Erziehungsberechtigten des Wartelisteneintrags ein Konto, mit dem sie das Kind von Terminen abmelden und die Probezeit mit den bisherigen Besuchen auf ihrer Übersicht sehen. Dort können sie die Probezeit auch selbst beenden, wobei die dafür angelegten Konten gelöscht werden, sofern sie nicht noch gebraucht werden, und die Wache wird benachrichtigt.
 
 ### Verbesserungen
 

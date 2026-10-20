@@ -7265,7 +7265,7 @@ export default {
             visits: '{visits} Besuche bisher',
             end: 'Probezeit beenden',
             endTitle: 'Probezeit beenden?',
-            endText: 'Die Probezeit von {name} endet damit, und der Eintrag wird von der Warteliste genommen. Die Station wird benachrichtigt.',
+            endText: 'Die Probezeit von {name} endet damit, und der Eintrag wird von der Warteliste genommen. Das Konto von {name} wird gelöscht, deines ebenfalls, wenn du hier sonst niemanden betreust. Die Wache wird benachrichtigt.',
         },
         noAwaitingAnswer: 'Alles beantwortet.',
         noRegistrations: 'Keine aktuellen Anmeldungen.',
