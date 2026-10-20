@@ -13,6 +13,7 @@ import dev.chojo.ember.api.refusal.WaitingListRefusal;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.WaitlistInvitationAnswered;
 import dev.chojo.ember.event.events.WaitlistPublicRegistration;
+import dev.chojo.ember.event.events.WaitlistTrialEnded;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AccountInviteService;
 import dev.chojo.ember.feature.account.service.SetupMail;
@@ -68,6 +69,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -572,10 +574,9 @@ public class WaitingListService implements TaskSource {
      * <p>A list that writes to nobody records the invitation and sends nothing. The entry still
      * moves to invited, because the station has invited them, by whatever means it uses instead.
      *
-     * @param invitation the appointment they are asked to come to, or {@code null} to invite without
-     *                   naming one
+     * @param invitation the appointment they are asked to come to, with the station's personal note
      */
-    public WaitingListEntry inviteEntry(int entryId, @Nullable WaitingListInvitation invitation) {
+    public WaitingListEntry inviteEntry(int entryId, WaitingListInvitation invitation) {
         var entry =
                 repository.findEntryById(entryId).orElseThrow(() -> new IllegalArgumentException("Entry not found"));
         if (entry.status() != WaitingListEntryStatus.WAITING) {
@@ -596,6 +597,29 @@ public class WaitingListService implements TaskSource {
 
         return repository.findEntryById(entryId).orElseThrow();
     }
+
+    /**
+     * Who an invitation for the entry would be written to, read before it is sent so nobody sends
+     * one without knowing where it goes.
+     *
+     * @return the addresses, empty when the list writes to nobody or nobody left an address
+     */
+    public InvitationRecipients invitationRecipients(int entryId) {
+        var entry =
+                repository.findEntryById(entryId).orElseThrow(() -> new IllegalArgumentException("Entry not found"));
+        var list = repository.findById(entry.listId()).orElseThrow();
+        if (!list.sendsMail()) return new InvitationRecipients(false, List.of());
+        return new InvitationRecipients(
+                true, WaitlistInvitationMessage.recipientAddresses(entry, repository.findGuardiansByEntry(entryId)));
+    }
+
+    /**
+     * Who an invitation goes to.
+     *
+     * @param sendsMail whether the list writes mail at all
+     * @param addresses the addresses it is written to
+     */
+    public record InvitationRecipients(boolean sendsMail, List<String> addresses) {}
 
     /**
      * Takes an invited entry back to waiting, which is what a station does when the answer was that
@@ -647,13 +671,14 @@ public class WaitingListService implements TaskSource {
         }
         requireAnswersTheCurrentInvitation(entry, eventId, date);
 
-        repository.updateInvitationAnswer(entry.id(), answer, note == null ? "" : note.trim());
+        String written = note == null ? "" : note.trim();
+        repository.updateInvitationAnswer(entry.id(), answer, written);
         log.info("Waiting-list entry {} answered its invitation with {}", entry.id(), answer);
 
         repository
                 .findById(entry.listId())
-                .ifPresent(list -> eventBus.publish(
-                        new WaitlistInvitationAnswered(list.stationId(), entry.fullName(), list.name(), answer)));
+                .ifPresent(list -> eventBus.publish(new WaitlistInvitationAnswered(
+                        list.stationId(), entry.fullName(), list.name(), answer, written)));
 
         return repository.findEntryById(entry.id()).orElseThrow();
     }
@@ -679,7 +704,8 @@ public class WaitingListService implements TaskSource {
     /**
      * Move an INVITED entry to TESTING, which is where the member comes into being: the account, the
      * membership, the trial user type, the testing group and the permission that lets the station
-     * see them.
+     * see them. The guardians come into being here too, so the family can sign in during the trial,
+     * take the child off an appointment and end the trial themselves.
      *
      * <p>Every effect carries its own guard rather than one guard around the block. An entry invited
      * before this moved here already has a member, and skipping everything for it would leave it out
@@ -707,6 +733,7 @@ public class WaitingListService implements TaskSource {
             if (testingGroupId != null) {
                 groupMemberships.joinAutomatically(testingGroupId, member);
             }
+            createGuardianAccounts(entry, member, list);
             repository.updateEntryStatusWithTimestamp(entryId, WaitingListEntryStatus.TESTING, "testing_at");
             return member;
         });
@@ -736,7 +763,8 @@ public class WaitingListService implements TaskSource {
 
     /**
      * Move a TESTING entry to JOINED: remove testing group, set MEMBER type, assign join group,
-     * and create guardian accounts for each guardian on the entry.
+     * and create guardian accounts for any guardian the trial did not already take on, which is the
+     * case for an entry that went into testing before guardians arrived with the trial.
      *
      * <p>The type is set before the join group is added, because a group bound to members takes
      * nobody who is still on trial.
@@ -776,6 +804,10 @@ public class WaitingListService implements TaskSource {
      * Withdraw an entry (from WAITING, INVITED, or TESTING).
      * Deletes the linked member, orphaned account, and the entry itself. The member's documents are
      * released first, as for any member who is deleted: what was kept for the record keeps their name.
+     *
+     * <p>Guardians the trial took on go too, when they are at the station as guardians only and
+     * look after nobody else once the child is gone. A guardian who is a member in their own right,
+     * or who answers for another child, keeps everything.
      */
     public void withdrawEntry(int entryId) {
         var entry =
@@ -783,6 +815,10 @@ public class WaitingListService implements TaskSource {
         if (entry.status() == WaitingListEntryStatus.JOINED || entry.status() == WaitingListEntryStatus.WITHDRAWN) {
             throw new IllegalStateException("Cannot withdraw an entry that is already JOINED or WITHDRAWN");
         }
+        var guardianMembers = repository.findGuardiansByEntry(entryId).stream()
+                .map(WaitingListEntryGuardian::memberId)
+                .filter(Objects::nonNull)
+                .toList();
 
         Integer memberId = entry.memberId();
         if (memberId != null) {
@@ -803,8 +839,72 @@ public class WaitingListService implements TaskSource {
             }
         }
 
+        guardianMembers.forEach(this::releaseGuardianWithoutWards);
+
         repository.deleteEntry(entryId);
         log.info("Withdrew waiting-list entry {} (was {})", entryId, entry.status());
+    }
+
+    private void releaseGuardianWithoutWards(int guardianMemberId) {
+        var guardian = stationMemberRepository.findById(guardianMemberId).orElse(null);
+        if (guardian == null || guardian.userType() != StationUserType.GUARDIAN) return;
+        if (!stationMemberRepository.findManaged(guardianMemberId).isEmpty()) return;
+        documentService.memberLeaves(guardianMemberId, DocumentService.Leaving.DELETED);
+        stationMemberRepository.delete(guardianMemberId);
+        log.info("Released guardian {} who answered for nobody else", guardianMemberId);
+    }
+
+    /**
+     * The trials running for the reader or anybody they look after, as the dashboard shows them.
+     *
+     * @param household the reader's member id and those of their wards
+     */
+    public List<TrialOverview> trialsOf(List<Integer> household) {
+        return repository.findTrialsOfMembers(household).stream()
+                .map(entry -> {
+                    var list = repository.findById(entry.listId()).orElseThrow();
+                    return new TrialOverview(
+                            entry.id(),
+                            entry.fullName(),
+                            list.name(),
+                            entry.testingAt(),
+                            entry.attendanceCount(),
+                            list.attendanceThreshold());
+                })
+                .toList();
+    }
+
+    /**
+     * One trial as the family sees it.
+     *
+     * @param entryId             the waiting list entry the trial belongs to
+     * @param name                whose trial it is
+     * @param listName            the waiting list it came from
+     * @param since               when it began
+     * @param visits              the dates attended so far
+     * @param attendanceThreshold the visits the station looks for before deciding, 0 when it set none
+     */
+    public record TrialOverview(
+            int entryId, String name, String listName, Instant since, int visits, int attendanceThreshold) {}
+
+    /**
+     * Ends a trial from the family's side: the entry is withdrawn as the station would withdraw it,
+     * and the station is told, since nothing is left on the list for it to find.
+     *
+     * @param household the member ids the person asking acts for, which must include the trial member
+     */
+    public void endTrial(int entryId, List<Integer> household) {
+        var entry = repository.findEntryById(entryId).orElseThrow(WaitingListRefusal.TRIAL_NOT_YOURS_TO_END::raise);
+        if (entry.memberId() == null || !household.contains(entry.memberId())) {
+            throw WaitingListRefusal.TRIAL_NOT_YOURS_TO_END.raise();
+        }
+        if (entry.status() != WaitingListEntryStatus.TESTING) {
+            throw WaitingListRefusal.TRIAL_NO_LONGER_RUNNING.raise();
+        }
+        var list = repository.findById(entry.listId()).orElseThrow();
+        Transactions.run(() -> withdrawEntry(entryId));
+        log.info("Trial of waiting-list entry {} ended by its family", entryId);
+        eventBus.publish(new WaitlistTrialEnded(list.stationId(), entry.fullName(), list.name()));
     }
 
     /**
@@ -1249,7 +1349,9 @@ public class WaitingListService implements TaskSource {
     }
 
     /**
-     * Gives every guardian on the entry an account at the station and puts them over the member.
+     * Gives every guardian on the entry who has none yet an account at the station and puts them
+     * over the member. Each guardian remembers the member they became, so running this again takes
+     * nobody on twice.
      *
      * <p>On a list that writes to nobody the account is made without its setup mail. The account
      * stands either way, and the link that claims it is minted by hand from the member list, at a
@@ -1259,7 +1361,9 @@ public class WaitingListService implements TaskSource {
     private void createGuardianAccounts(WaitingListEntry entry, int memberId, WaitingList list) {
         int stationId = list.stationId();
         var setupMail = list.sendsMail() ? SetupMail.SEND_NOW : SetupMail.LATER;
-        var guardians = repository.findGuardiansByEntry(entry.id());
+        var guardians = repository.findGuardiansByEntry(entry.id()).stream()
+                .filter(guardian -> guardian.memberId() == null)
+                .toList();
         if (guardians.isEmpty()) return;
 
         var loginRole = stationMemberRepository.findPermissionByName(StationPermission.LOGIN);
@@ -1276,6 +1380,7 @@ public class WaitingListService implements TaskSource {
                                     stationMemberRepository.findByStationAndAccount(stationId, account.id()));
             if (known.isPresent()) {
                 stationMemberRepository.addManager(known.get().id(), memberId);
+                repository.linkGuardianMember(guardian.id(), known.get().id());
                 log.info(
                         "Guardian {} already at station {}, linked to member {}",
                         known.get().id(),
@@ -1298,6 +1403,7 @@ public class WaitingListService implements TaskSource {
             guardianRole.ifPresent(role -> stationMemberRepository.grantPermission(member.id(), role.id()));
 
             stationMemberRepository.addManager(member.id(), memberId);
+            repository.linkGuardianMember(guardian.id(), member.id());
             log.info("Guardian {} joined station {} and answers for member {}", member.id(), stationId, memberId);
         }
     }

@@ -17,9 +17,15 @@ package dev.chojo.ember.feature.mail.entity;
  * @param time            when the appointment itself runs
  * @param arrivalTime     when they were asked to be there, usually earlier than everybody else
  * @param location        where it is, when the appointment or the station says so
+ * @param message         the personal note the station wrote into the invitation
  */
 public record WaitlistInvitationDetails(
-        String appointmentName, String date, String time, String arrivalTime, String location) {
+        String appointmentName, String date, String time, String arrivalTime, String location, String message) {
 
-    public static final WaitlistInvitationDetails NONE = new WaitlistInvitationDetails("", "", "", "", "");
+    public static final WaitlistInvitationDetails NONE = new WaitlistInvitationDetails("", "", "", "", "", "");
+
+    /** Only the personal note, for an invitation whose appointment is gone. */
+    public static WaitlistInvitationDetails messageOnly(String message) {
+        return new WaitlistInvitationDetails("", "", "", "", "", message);
+    }
 }

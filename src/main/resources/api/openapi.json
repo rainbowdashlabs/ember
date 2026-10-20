@@ -46004,6 +46004,38 @@
         }
       }
     },
+    "/api/v1/trials" : {
+      "get" : {
+        "summary" : "The trials running for the reader or anybody they look after",
+        "tags" : [ "Waiting Lists" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/TrialOverview"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/trials/{entryId}/end" : {
+      "post" : {
+        "summary" : "End a trial the reader or one of their wards is in",
+        "tags" : [ "Waiting Lists" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
     "/api/v1/user-type-permissions/{userType}" : {
       "get" : {
         "summary" : "Get station-level permissions for a user type",
@@ -46410,6 +46442,23 @@
             "application/json" : {
               "schema" : {
                 "$ref" : "#/components/schemas/WaitingListInvitationRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/waiting-lists/{id}/entries/{entryId}/invite/recipients" : {
+      "get" : {
+        "summary" : "Who an invitation for the entry would be written to",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/InvitationRecipients"
+                }
               }
             }
           }
@@ -60975,6 +61024,21 @@
         "type" : "string",
         "enum" : [ "INTERNAL", "EXTERNAL", "MIXED" ]
       },
+      "InvitationRecipients" : {
+        "type" : "object",
+        "properties" : {
+          "sendsMail" : {
+            "type" : "boolean"
+          },
+          "addresses" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        },
+        "required" : [ "sendsMail", "addresses" ]
+      },
       "InviteCodeResponse" : {
         "type" : "object",
         "properties" : {
@@ -66782,7 +66846,7 @@
       },
       "NotificationType" : {
         "type" : "string",
-        "enum" : [ "NEW_NEWS", "NEWS_COMMENT", "COMMENT_MENTION", "EVENT_REGISTRATION_STATUS", "MOVEMENT_ADVANCED", "MOVEMENT_RAISED", "MOVEMENT_DECLINED", "MOVEMENT_CANCELLED", "NEW_EVENT", "NEW_EVENTS_BATCH", "MEMBER_ADDED_TO_GROUP", "PROFILE_FIELD_CHANGED", "PROCUREMENT_REQUESTED", "PROCUREMENT_FULFILLED", "NEW_FORM", "LOST_AND_FOUND_NEW", "LOST_AND_FOUND_CLAIMED", "WAITLIST_NEW_ENTRY", "LENDING_NEW_REQUEST", "LENDING_STATUS_CHANGE", "LENDING_NEW_MESSAGE", "BOARD_TICKET_UPDATE", "REGISTRATION_DEADLINE_EXPIRED", "EVENT_CANCELLED", "EVENT_REMINDER", "REGISTRATION_CLOSING", "REGISTRATION_ANSWER_MISSING", "EVENT_DATE_DROPPED", "EVENT_MOVED", "EVENT_DATE_RESTORED", "PROCEDURE_ASSIGNED", "PROCEDURE_RESOLVED", "PROCEDURE_REOPENED", "PROCEDURE_ITEM_CHECKED", "SELF_CHECK_ASSIGNED", "SELF_CHECK_SUBMITTED", "SELF_CHECK_ROW_REFUSED", "WAITLIST_PUBLIC_REGISTRATION", "WAITLIST_INVITATION_ANSWERED", "STORAGE_WARNING", "MAILBOX_SUSPENDED", "MAIL_IMPORT_UNBOUND", "CLUSTER_APPLICATION_SUBMITTED", "CLUSTER_APPLICATION_APPROVED", "CLUSTER_APPLICATION_DENIED", "CLUSTER_APPLICATION_WITHDRAWN", "CLUSTER_STATION_RELEASED", "CLUSTER_MODULE_DENIED", "CLUSTER_ITEM_ISSUED", "CLUSTER_ITEM_LOST", "CLUSTER_QUOTA_CHANGED", "CLUSTER_MEMBER_ROLE_CHANGED", "CLUSTER_FIELD_VALUE_CHANGED", "EXPIRY_REMINDER", "FEDERATION_REQUEST_RECEIVED", "FEDERATION_REQUEST_ACCEPTED", "FEDERATION_REQUEST_DECLINED", "NAME_CHANGE_REQUESTED", "NAME_CHANGE_APPROVED", "NAME_CHANGE_DENIED", "SIGNATURE_REQUESTED", "SIGNATURE_REMINDER", "DOCUMENT_SIGNED", "DOCUMENT_SCAN_REJECTED", "ACCOUNT_LINK_ACCEPTED", "ASSOCIATION_LINK_ACCEPTED", "SIGNATURE_WITHDRAWN", "PARTNER_SIGNATURE_WITHDRAWN" ]
+        "enum" : [ "NEW_NEWS", "NEWS_COMMENT", "COMMENT_MENTION", "EVENT_REGISTRATION_STATUS", "MOVEMENT_ADVANCED", "MOVEMENT_RAISED", "MOVEMENT_DECLINED", "MOVEMENT_CANCELLED", "NEW_EVENT", "NEW_EVENTS_BATCH", "MEMBER_ADDED_TO_GROUP", "PROFILE_FIELD_CHANGED", "PROCUREMENT_REQUESTED", "PROCUREMENT_FULFILLED", "NEW_FORM", "LOST_AND_FOUND_NEW", "LOST_AND_FOUND_CLAIMED", "WAITLIST_NEW_ENTRY", "LENDING_NEW_REQUEST", "LENDING_STATUS_CHANGE", "LENDING_NEW_MESSAGE", "BOARD_TICKET_UPDATE", "REGISTRATION_DEADLINE_EXPIRED", "EVENT_CANCELLED", "EVENT_REMINDER", "REGISTRATION_CLOSING", "REGISTRATION_ANSWER_MISSING", "EVENT_DATE_DROPPED", "EVENT_MOVED", "EVENT_DATE_RESTORED", "PROCEDURE_ASSIGNED", "PROCEDURE_RESOLVED", "PROCEDURE_REOPENED", "PROCEDURE_ITEM_CHECKED", "SELF_CHECK_ASSIGNED", "SELF_CHECK_SUBMITTED", "SELF_CHECK_ROW_REFUSED", "WAITLIST_PUBLIC_REGISTRATION", "WAITLIST_INVITATION_ANSWERED", "WAITLIST_TRIAL_ENDED", "STORAGE_WARNING", "MAILBOX_SUSPENDED", "MAIL_IMPORT_UNBOUND", "CLUSTER_APPLICATION_SUBMITTED", "CLUSTER_APPLICATION_APPROVED", "CLUSTER_APPLICATION_DENIED", "CLUSTER_APPLICATION_WITHDRAWN", "CLUSTER_STATION_RELEASED", "CLUSTER_MODULE_DENIED", "CLUSTER_ITEM_ISSUED", "CLUSTER_ITEM_LOST", "CLUSTER_QUOTA_CHANGED", "CLUSTER_MEMBER_ROLE_CHANGED", "CLUSTER_FIELD_VALUE_CHANGED", "EXPIRY_REMINDER", "FEDERATION_REQUEST_RECEIVED", "FEDERATION_REQUEST_ACCEPTED", "FEDERATION_REQUEST_DECLINED", "NAME_CHANGE_REQUESTED", "NAME_CHANGE_APPROVED", "NAME_CHANGE_DENIED", "SIGNATURE_REQUESTED", "SIGNATURE_REMINDER", "DOCUMENT_SIGNED", "DOCUMENT_SCAN_REJECTED", "ACCOUNT_LINK_ACCEPTED", "ASSOCIATION_LINK_ACCEPTED", "SIGNATURE_WITHDRAWN", "PARTNER_SIGNATURE_WITHDRAWN" ]
       },
       "NumberConfig" : {
         "type" : "object",
@@ -79378,6 +79442,33 @@
         "type" : "string",
         "enum" : [ "OK", "FOREIGN_CREDENTIAL", "FAILED" ]
       },
+      "TrialOverview" : {
+        "type" : "object",
+        "properties" : {
+          "entryId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "listName" : {
+            "type" : "string"
+          },
+          "since" : {
+            "$ref" : "#/components/schemas/Instant"
+          },
+          "visits" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "attendanceThreshold" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "entryId", "name", "listName", "since", "visits", "attendanceThreshold" ]
+      },
       "TrialResponse" : {
         "type" : "object",
         "properties" : {
@@ -80313,9 +80404,13 @@
           "position" : {
             "type" : "integer",
             "format" : "int32"
+          },
+          "memberId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
           }
         },
-        "required" : [ "id", "entryId", "firstname", "lastname", "email", "phone", "position" ]
+        "required" : [ "id", "entryId", "firstname", "lastname", "email", "phone", "position", "memberId" ]
       },
       "WaitingListEntryRequest" : {
         "type" : "object",
@@ -80505,9 +80600,12 @@
             }, {
               "type" : "null"
             } ]
+          },
+          "message" : {
+            "type" : "string"
           }
         },
-        "required" : [ "eventId", "date", "arrivalTime" ]
+        "required" : [ "eventId", "date", "arrivalTime", "message" ]
       },
       "WaitingListInvitationAnswer" : {
         "type" : "object",
@@ -80553,6 +80651,9 @@
             "type" : [ "string", "null" ]
           },
           "arrivalTime" : {
+            "type" : [ "string", "null" ]
+          },
+          "message" : {
             "type" : [ "string", "null" ]
           }
         }
@@ -80664,9 +80765,12 @@
           },
           "location" : {
             "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
           }
         },
-        "required" : [ "eventId", "date", "appointmentName", "appointmentDate", "appointmentTime", "arrivalTime", "location" ]
+        "required" : [ "eventId", "date", "appointmentName", "appointmentDate", "appointmentTime", "arrivalTime", "location", "message" ]
       },
       "WaitingListPublicStatus" : {
         "type" : "object",

@@ -26,6 +26,11 @@ const {t} = useI18n()
   <NeutralContainer class="space-y-3" data-testid="waitlist-invitation">
     <SectionHeader class="text-lg font-semibold">{{ t('waitingList.publicStatus.invitationTitle') }}</SectionHeader>
     <p class="text-sm">{{ t('waitingList.publicStatus.invitationIntro') }}</p>
+    <blockquote
+        v-if="props.invitation.message"
+        class="border-l-4 border-primary pl-3 text-sm whitespace-pre-line"
+        data-testid="waitlist-invitation-message"
+    >{{ props.invitation.message }}</blockquote>
     <div class="grid gap-2 sm:grid-cols-2">
       <StatusFieldRow
           v-if="props.invitation.appointmentName"

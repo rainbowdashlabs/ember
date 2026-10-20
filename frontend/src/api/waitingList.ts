@@ -6,6 +6,7 @@
 import client from './client'
 import {createCrudResource, createScopedCrudResource} from './crud'
 import type {
+    InvitationRecipients,
     PublicWaitlistFormResponse,
     PublicWaitlistRegistrationRequest,
     PublicWaitlistSummary,
@@ -28,6 +29,7 @@ import type {
     WaitingListRequest,
     WaitingListVisibleFieldsRequest,
     WaitingListWithCount,
+    TrialOverview,
 } from './generated/schema'
 
 /**
@@ -105,11 +107,29 @@ export async function updateCreatedAt(listId: number, entryId: number, createdAt
 export async function inviteEntry(
     listId: number,
     entryId: number,
-    invitation?: WaitingListInvitationRequest | null,
+    invitation: WaitingListInvitationRequest,
 ): Promise<WaitingListEntry> {
     const res = await client.post<WaitingListEntry>(
-        `/waiting-lists/${listId}/entries/${entryId}/invite`, invitation ?? {})
+        `/waiting-lists/${listId}/entries/${entryId}/invite`, invitation)
     return res.data
+}
+
+/** Who an invitation for the entry would be written to, read before it is sent. */
+export async function invitationRecipients(listId: number, entryId: number): Promise<InvitationRecipients> {
+    const res = await client.get<InvitationRecipients>(
+        `/waiting-lists/${listId}/entries/${entryId}/invite/recipients`)
+    return res.data
+}
+
+/** The trials running for the reader or anybody they look after. */
+export async function listOwnTrials(): Promise<TrialOverview[]> {
+    const res = await client.get<TrialOverview[]>('/trials')
+    return res.data
+}
+
+/** Ends a trial the reader or one of their wards is in. */
+export async function endOwnTrial(entryId: number): Promise<void> {
+    await client.post(`/trials/${entryId}/end`)
 }
 
 export async function returnToWaiting(listId: number, entryId: number): Promise<WaitingListEntry> {

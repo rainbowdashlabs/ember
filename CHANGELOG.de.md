@@ -1,5 +1,22 @@
 # Änderungsprotokoll
 
+## v26.23.0
+
+Familien auf einer Warteliste sind ab dem ersten Tag der Probezeit dabei. Erziehungsberechtigte bekommen ihr Konto mit dem Start der Probezeit, verfolgen sie auf ihrer Übersicht und können sie selbst beenden. Eine Einladung nennt immer einen Termin, zeigt vor dem Senden, wohin die E-Mail geht, und kann eine persönliche Nachricht enthalten.
+
+### Neue Funktionen
+
+- **Erziehungsberechtigte sind in der Probezeit dabei.** Beginnt die Probezeit, bekommen die Erziehungsberechtigten des Wartelisteneintrags ein Konto, mit dem sie das Kind von Terminen abmelden und die Probezeit mit den bisherigen Besuchen auf ihrer Übersicht sehen. Dort können sie die Probezeit auch selbst beenden, und die Wache wird benachrichtigt.
+
+### Verbesserungen
+
+- **Einladungen nennen Termin und Empfänger.** Eine Einladung lässt sich erst senden, wenn ein Termin gewählt ist, und der Dialog listet die Adressen, an die die E-Mail geht, oder sagt, dass niemand angeschrieben wird. Die Terminauswahl zeigt neben dem Datum die Uhrzeit.
+- **Einladungen enthalten eine persönliche Nachricht.** Eine Nachricht, die beim Einladen geschrieben wird, steht in der E-Mail und auf der Seite, auf der die Einladung beantwortet wird. Die Nachricht zu einer Antwort steht in der Benachrichtigung an die Wache.
+
+### Fehlerbehebungen
+
+- **Eine Einladung ließ sich mit einem Tastendruck senden.** Der Einladungsdialog öffnete mit ausgewähltem Senden-Knopf, so dass die Eingabetaste die E-Mail sofort verschickte, auch ohne Termin. Der Dialog öffnet jetzt auf dem Termin, und gesendet wird erst, wenn einer gewählt ist.
+
 ## v26.22.4
 
 Der Tag, an dem ein Mitglied beigetreten ist, steht in der Mitgliederliste und auf der Seite des Mitglieds und lässt sich beim Import übernehmen. Mitglieder öffnen sich aus der Liste in einem neuen Tab.

@@ -14,6 +14,7 @@ import dev.chojo.ember.api.refusal.WaitingListRefusal;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
 import dev.chojo.ember.feature.legal.service.ConsentService;
+import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.feature.waitinglist.entity.GuardianInput;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingList;
@@ -71,6 +72,7 @@ public class WaitingListRoutes implements Routes {
     private final PublicWaitingListRateLimiter rateLimiter;
     private final EventCrudService eventCrudService;
     private final EventRestrictionService eventRestrictionService;
+    private final GuardianPolicy guardianPolicy;
 
     @Inject
     public WaitingListRoutes(
@@ -79,13 +81,15 @@ public class WaitingListRoutes implements Routes {
             ConsentService consentService,
             PublicWaitingListRateLimiter rateLimiter,
             EventCrudService eventCrudService,
-            EventRestrictionService eventRestrictionService) {
+            EventRestrictionService eventRestrictionService,
+            GuardianPolicy guardianPolicy) {
         this.service = service;
         this.publicLists = publicLists;
         this.consentService = consentService;
         this.rateLimiter = rateLimiter;
         this.eventCrudService = eventCrudService;
         this.eventRestrictionService = eventRestrictionService;
+        this.guardianPolicy = guardianPolicy;
     }
 
     private static String toJson(@Nullable List<Integer> fieldIds) {
@@ -123,6 +127,9 @@ public class WaitingListRoutes implements Routes {
         routes.post(prefix + "/public/station/{stationUid}/waitlists/{wid}/register", this::submitPublicRegistration);
         routes.get(prefix + "/public/waitlist/verify/{token}", this::verifyPublicEmail);
 
+        routes.get(prefix + "/trials", this::listOwnTrials, StationPermission.LOGIN);
+        routes.post(prefix + "/trials/{entryId}/end", this::endOwnTrial, StationPermission.LOGIN);
+
         routes.get(prefix + "/waiting-lists", this::listAll, StationPermission.WAITLIST_READ);
         routes.get(prefix + "/waiting-lists/{id}", this::getById, StationPermission.WAITLIST_READ);
         routes.get(prefix + "/waiting-lists/{id}/fields", this::listFields, StationPermission.WAITLIST_READ);
@@ -154,6 +161,10 @@ public class WaitingListRoutes implements Routes {
                 this::updateCreatedAt,
                 StationPermission.WAITLIST_EDIT);
 
+        routes.get(
+                prefix + "/waiting-lists/{id}/entries/{entryId}/invite/recipients",
+                this::invitationRecipients,
+                StationPermission.WAITLIST_EDIT);
         routes.post(
                 prefix + "/waiting-lists/{id}/entries/{entryId}/invite",
                 this::inviteEntry,
@@ -337,7 +348,8 @@ public class WaitingListRoutes implements Routes {
                 details.date(),
                 details.time(),
                 details.arrivalTime(),
-                details.location());
+                details.location(),
+                details.message());
     }
 
     private static @Nullable WaitingListPublicAnswer describeAnswer(WaitingListEntry entry) {
@@ -790,6 +802,49 @@ public class WaitingListRoutes implements Routes {
     }
 
     @OpenApi(
+            path = "/api/v1/trials",
+            methods = HttpMethod.GET,
+            summary = "The trials running for the reader or anybody they look after",
+            tags = {"Waiting Lists"},
+            responses =
+                    @OpenApiResponse(
+                            status = "200",
+                            content = @OpenApiContent(from = WaitingListService.TrialOverview[].class)))
+    private void listOwnTrials(Context ctx) {
+        ctx.json(service.trialsOf(
+                guardianPolicy.household(StationSession.from(ctx).user())));
+    }
+
+    @OpenApi(
+            path = "/api/v1/trials/{entryId}/end",
+            methods = HttpMethod.POST,
+            summary = "End a trial the reader or one of their wards is in",
+            tags = {"Waiting Lists"},
+            responses = @OpenApiResponse(status = "204"))
+    private void endOwnTrial(Context ctx) {
+        int entryId = pathInt(ctx, "entryId");
+        service.endTrial(
+                entryId, guardianPolicy.household(StationSession.from(ctx).user()));
+        ctx.status(HttpStatus.NO_CONTENT);
+    }
+
+    @OpenApi(
+            path = "/api/v1/waiting-lists/{id}/entries/{entryId}/invite/recipients",
+            methods = HttpMethod.GET,
+            summary = "Who an invitation for the entry would be written to",
+            responses =
+                    @OpenApiResponse(
+                            status = "200",
+                            content = @OpenApiContent(from = WaitingListService.InvitationRecipients.class)))
+    private void invitationRecipients(Context ctx) {
+        int listId = pathInt(ctx, "id");
+        verifyListOwnership(ctx, listId);
+        int entryId = pathInt(ctx, "entryId");
+        verifyEntryInList(listId, entryId);
+        ctx.json(service.invitationRecipients(entryId));
+    }
+
+    @OpenApi(
             path = "/api/v1/waiting-lists/{id}/entries/{entryId}/invite",
             methods = HttpMethod.POST,
             requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = WaitingListInvitationRequest.class)),
@@ -799,9 +854,10 @@ public class WaitingListRoutes implements Routes {
         verifyListOwnership(ctx, listId);
         int entryId = pathInt(ctx, "entryId");
         verifyEntryInList(listId, entryId);
-        var invitation = ctx.body().isBlank()
-                ? null
-                : resolveInvitation(ctx, ctx.bodyAsClass(WaitingListInvitationRequest.class));
+        if (ctx.body().isBlank()) {
+            throw WaitingListRefusal.INVITATION_NEEDS_AN_APPOINTMENT.raise();
+        }
+        var invitation = resolveInvitation(ctx, ctx.bodyAsClass(WaitingListInvitationRequest.class));
         try {
             var entry = service.inviteEntry(entryId, invitation);
             ctx.json(entry);
@@ -839,12 +895,19 @@ public class WaitingListRoutes implements Routes {
      *
      * <p>An appointment repeats, so the date travels with it and an invitation naming an appointment
      * without one is refused rather than silently meaning every occurrence there has ever been.
+     *
+     * <p>An invitation without an appointment is refused too. It is what the person answers, and
+     * "the date does not suit" means nothing when no date was named.
      */
-    private @Nullable WaitingListInvitation resolveInvitation(
-            Context ctx, @Nullable WaitingListInvitationRequest request) {
-        if (request == null) return null;
+    private WaitingListInvitation resolveInvitation(Context ctx, WaitingListInvitationRequest request) {
         Integer eventId = request.eventId();
-        if (eventId == null) return null;
+        if (eventId == null) {
+            throw WaitingListRefusal.INVITATION_NEEDS_AN_APPOINTMENT.raise();
+        }
+        String message = request.message() == null ? "" : request.message().trim();
+        if (message.length() > WaitingListInvitation.MESSAGE_MAX_LENGTH) {
+            throw WaitingListRefusal.INVITATION_MESSAGE_TOO_LONG.raise();
+        }
         var session = StationSession.from(ctx);
         var event = eventCrudService
                 .findById(eventId)
@@ -854,7 +917,8 @@ public class WaitingListRoutes implements Routes {
                 event.id(), session.member().id(), session.user().permissions())) {
             throw WaitingListRefusal.APPOINTMENT_NOT_YOURS_TO_INVITE_TO.raise();
         }
-        return new WaitingListInvitation(event.id(), parseDate(request.date()), parseTime(request.arrivalTime()));
+        return new WaitingListInvitation(
+                event.id(), parseDate(request.date()), parseTime(request.arrivalTime()), message);
     }
 
     private static @Nullable LocalDate parseOptionalDate(@Nullable String raw) {
@@ -1132,6 +1196,7 @@ public class WaitingListRoutes implements Routes {
      * @param appointmentTime when the appointment itself runs
      * @param arrivalTime     when they were asked to be there, empty when the invitation named no time
      * @param location        where it is, empty when neither the appointment nor the station says
+     * @param message         the personal note the station wrote into the invitation, empty for none
      */
     public record WaitingListPublicInvitation(
             int eventId,
@@ -1140,7 +1205,8 @@ public class WaitingListRoutes implements Routes {
             String appointmentDate,
             String appointmentTime,
             String arrivalTime,
-            String location) {}
+            String location,
+            String message) {}
 
     public record WaitingListPublicAnswer(WaitingListAnswer answer, String answeredAt, String note) {}
 
@@ -1231,14 +1297,16 @@ public class WaitingListRoutes implements Routes {
     /**
      * The appointment an invitation is about.
      *
-     * @param eventId     the appointment, or null to invite without naming one
-     * @param date        the one date of it, as {@code YYYY-MM-DD}, required whenever an appointment is named
+     * @param eventId     the appointment, required
+     * @param date        the one date of it, as {@code YYYY-MM-DD}, required
      * @param arrivalTime when they should be there, as {@code HH:MM}, or null to say nothing about it
+     * @param message     a personal note for the mail and the entry page, or null for none
      */
     public record WaitingListInvitationRequest(
             @Nullable Integer eventId,
             @Nullable String date,
-            @Nullable String arrivalTime) {}
+            @Nullable String arrivalTime,
+            @Nullable String message) {}
 
     /**
      * Where a public registration or its confirmation stands.

@@ -6,9 +6,23 @@
 package dev.chojo.ember.feature.waitinglist.entity;
 
 import de.chojo.sadu.mapper.rowmapper.RowMapping;
+import org.jspecify.annotations.Nullable;
 
+/**
+ * Somebody who answers for an entry on the list.
+ *
+ * @param memberId the station member this guardian became when the trial began, {@code null} until
+ *                 then
+ */
 public record WaitingListEntryGuardian(
-        int id, int entryId, String firstname, String lastname, String email, String phone, int position) {
+        int id,
+        int entryId,
+        String firstname,
+        String lastname,
+        String email,
+        String phone,
+        int position,
+        @Nullable Integer memberId) {
 
     public static RowMapping<WaitingListEntryGuardian> map() {
         return row -> new WaitingListEntryGuardian(
@@ -18,7 +32,8 @@ public record WaitingListEntryGuardian(
                 row.getString("lastname"),
                 row.getString("email"),
                 row.getString("phone"),
-                row.getInt("position"));
+                row.getInt("position"),
+                row.getObject("member_id", Integer.class));
     }
 
     public String fullName() {

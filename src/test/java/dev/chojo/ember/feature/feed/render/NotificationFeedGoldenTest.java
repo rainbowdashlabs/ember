@@ -461,7 +461,7 @@ class NotificationFeedGoldenTest {
         add(
                 list,
                 NotificationType.WAITLIST_INVITATION_ANSWERED,
-                new NotificationParams.WaitlistInvitationAnswered("Emil", "Jugend", "YES"),
+                new NotificationParams.WaitlistInvitationAnswered("Emil", "Jugend", "YES", ""),
                 "waitlist",
                 null);
         add(

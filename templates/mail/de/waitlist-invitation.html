@@ -2,6 +2,11 @@
 {% block body %}
       <h2>Hallo {{ name }},</h2>
       <p><strong>{{ stationName }}</strong> lädt dich ein, einmal vorbeizukommen und uns kennenzulernen.</p>
+      {% if message %}
+      <ul class="notification-list">
+        <li class="notification-item"><p class="message" style="white-space:pre-line">{{ message }}</p></li>
+      </ul>
+      {% endif %}
       {% if appointmentName %}
       <p>Wir würden uns freuen, dich hier zu sehen:</p>
       <ul class="notification-list">

@@ -55,7 +55,7 @@ public class WaitingListRepository {
             id, list_id, firstname, lastname, parent_name, email, access_token, status, confirmed_at, \
             reminder_sent_at, created_at, notes, member_id, invited_at, testing_at, joined_at, \
             withdrawn_at, attendance_count, invited_event_id, invited_event_date, invited_arrival_time, \
-            invitation_answer, invitation_answered_at, invitation_answer_note""";
+            invited_message, invitation_answer, invitation_answered_at, invitation_answer_note""";
 
     /**
      * The dates of the trial period, counted off the attendance sheets themselves.
@@ -88,7 +88,7 @@ public class WaitingListRepository {
 
     private static final String WAITING_LIST_ENTRY_VALUE_COLUMNS = "entry_id, field_id, value";
     private static final String WAITING_LIST_ENTRY_GUARDIAN_COLUMNS =
-            "id, entry_id, firstname, lastname, email, phone, position";
+            "id, entry_id, firstname, lastname, email, phone, position, member_id";
     private static final String WAITLIST_VERIFICATION_TOKEN_COLUMNS = """
             id, token, list_id, firstname, lastname, email, guardians, field_values, notes, \
             created_at, expires_at, consent_proof""";
@@ -350,6 +350,22 @@ public class WaitingListRepository {
         return SqlSupport.findById("waiting_list_entry", WAITING_LIST_ENTRY_READ_COLUMNS, id, WaitingListEntry.map());
     }
 
+    /**
+     * The entries in their trial period whose member is one of the given ones, oldest trial first.
+     */
+    public List<WaitingListEntry> findTrialsOfMembers(List<Integer> memberIds) {
+        if (memberIds.isEmpty()) return List.of();
+        return query("""
+                SELECT %s
+                FROM waiting_list_entry
+                WHERE member_id = ANY(:ids)
+                  AND status = 'TESTING'
+                ORDER BY testing_at;""", WAITING_LIST_ENTRY_READ_COLUMNS)
+                .single(call().bind("ids", memberIds, PostgreSqlTypes.INTEGER))
+                .map(WaitingListEntry.map())
+                .all();
+    }
+
     public Optional<WaitingListEntry> findEntryByToken(String token) {
         return query("SELECT %s FROM waiting_list_entry WHERE access_token = :token;", WAITING_LIST_ENTRY_READ_COLUMNS)
                 .single(call().bind("token", token))
@@ -460,6 +476,7 @@ public class WaitingListRepository {
                     invited_event_id       = :event_id,
                     invited_event_date     = :event_date,
                     invited_arrival_time   = :arrival_time,
+                    invited_message        = :message,
                     invitation_answer      = NULL,
                     invitation_answered_at = NULL,
                     invitation_answer_note = ''
@@ -467,7 +484,8 @@ public class WaitingListRepository {
                 .single(call().bind("id", entryId)
                         .bind("event_id", invitation != null ? invitation.eventId() : null)
                         .bind("event_date", invitation != null ? invitation.date() : null)
-                        .bind("arrival_time", invitation != null ? invitation.arrivalTime() : null))
+                        .bind("arrival_time", invitation != null ? invitation.arrivalTime() : null)
+                        .bind("message", invitation != null ? invitation.message() : ""))
                 .update();
     }
 
@@ -596,6 +614,13 @@ public class WaitingListRepository {
                 .single(call().bind("entry_id", entryId))
                 .map(WaitingListEntryGuardian.map())
                 .all();
+    }
+
+    /** Records which station member a guardian became when the trial began. */
+    public void linkGuardianMember(int guardianId, int memberId) {
+        query("UPDATE waiting_list_entry_guardian SET member_id = :member_id WHERE id = :id;")
+                .single(call().bind("id", guardianId).bind("member_id", memberId))
+                .update();
     }
 
     public List<WaitingListEntryGuardian> findGuardiansByList(int listId) {

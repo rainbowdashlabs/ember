@@ -60242,6 +60242,76 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/trials": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The trials running for the reader or anybody they look after */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TrialOverview"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/trials/{entryId}/end": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** End a trial the reader or one of their wards is in */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/user-type-permissions/{userType}": {
         parameters: {
             query?: never;
@@ -60793,6 +60863,42 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/waiting-lists/{id}/entries/{entryId}/invite/recipients": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Who an invitation for the entry would be written to */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["InvitationRecipients"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -66108,6 +66214,10 @@ export interface components {
         };
         /** @enum {string} */
         InventoryType: "INTERNAL" | "EXTERNAL" | "MIXED";
+        InvitationRecipients: {
+            addresses: string[];
+            sendsMail: boolean;
+        };
         InviteCodeResponse: {
             inviteCode: string;
         };
@@ -68137,7 +68247,7 @@ export interface components {
             feed: boolean;
         };
         /** @enum {string} */
-        NotificationType: "NEW_NEWS" | "NEWS_COMMENT" | "COMMENT_MENTION" | "EVENT_REGISTRATION_STATUS" | "MOVEMENT_ADVANCED" | "MOVEMENT_RAISED" | "MOVEMENT_DECLINED" | "MOVEMENT_CANCELLED" | "NEW_EVENT" | "NEW_EVENTS_BATCH" | "MEMBER_ADDED_TO_GROUP" | "PROFILE_FIELD_CHANGED" | "PROCUREMENT_REQUESTED" | "PROCUREMENT_FULFILLED" | "NEW_FORM" | "LOST_AND_FOUND_NEW" | "LOST_AND_FOUND_CLAIMED" | "WAITLIST_NEW_ENTRY" | "LENDING_NEW_REQUEST" | "LENDING_STATUS_CHANGE" | "LENDING_NEW_MESSAGE" | "BOARD_TICKET_UPDATE" | "REGISTRATION_DEADLINE_EXPIRED" | "EVENT_CANCELLED" | "EVENT_REMINDER" | "REGISTRATION_CLOSING" | "REGISTRATION_ANSWER_MISSING" | "EVENT_DATE_DROPPED" | "EVENT_MOVED" | "EVENT_DATE_RESTORED" | "PROCEDURE_ASSIGNED" | "PROCEDURE_RESOLVED" | "PROCEDURE_REOPENED" | "PROCEDURE_ITEM_CHECKED" | "SELF_CHECK_ASSIGNED" | "SELF_CHECK_SUBMITTED" | "SELF_CHECK_ROW_REFUSED" | "WAITLIST_PUBLIC_REGISTRATION" | "WAITLIST_INVITATION_ANSWERED" | "STORAGE_WARNING" | "MAILBOX_SUSPENDED" | "MAIL_IMPORT_UNBOUND" | "CLUSTER_APPLICATION_SUBMITTED" | "CLUSTER_APPLICATION_APPROVED" | "CLUSTER_APPLICATION_DENIED" | "CLUSTER_APPLICATION_WITHDRAWN" | "CLUSTER_STATION_RELEASED" | "CLUSTER_MODULE_DENIED" | "CLUSTER_ITEM_ISSUED" | "CLUSTER_ITEM_LOST" | "CLUSTER_QUOTA_CHANGED" | "CLUSTER_MEMBER_ROLE_CHANGED" | "CLUSTER_FIELD_VALUE_CHANGED" | "EXPIRY_REMINDER" | "FEDERATION_REQUEST_RECEIVED" | "FEDERATION_REQUEST_ACCEPTED" | "FEDERATION_REQUEST_DECLINED" | "NAME_CHANGE_REQUESTED" | "NAME_CHANGE_APPROVED" | "NAME_CHANGE_DENIED" | "SIGNATURE_REQUESTED" | "SIGNATURE_REMINDER" | "DOCUMENT_SIGNED" | "DOCUMENT_SCAN_REJECTED" | "ACCOUNT_LINK_ACCEPTED" | "ASSOCIATION_LINK_ACCEPTED" | "SIGNATURE_WITHDRAWN" | "PARTNER_SIGNATURE_WITHDRAWN";
+        NotificationType: "NEW_NEWS" | "NEWS_COMMENT" | "COMMENT_MENTION" | "EVENT_REGISTRATION_STATUS" | "MOVEMENT_ADVANCED" | "MOVEMENT_RAISED" | "MOVEMENT_DECLINED" | "MOVEMENT_CANCELLED" | "NEW_EVENT" | "NEW_EVENTS_BATCH" | "MEMBER_ADDED_TO_GROUP" | "PROFILE_FIELD_CHANGED" | "PROCUREMENT_REQUESTED" | "PROCUREMENT_FULFILLED" | "NEW_FORM" | "LOST_AND_FOUND_NEW" | "LOST_AND_FOUND_CLAIMED" | "WAITLIST_NEW_ENTRY" | "LENDING_NEW_REQUEST" | "LENDING_STATUS_CHANGE" | "LENDING_NEW_MESSAGE" | "BOARD_TICKET_UPDATE" | "REGISTRATION_DEADLINE_EXPIRED" | "EVENT_CANCELLED" | "EVENT_REMINDER" | "REGISTRATION_CLOSING" | "REGISTRATION_ANSWER_MISSING" | "EVENT_DATE_DROPPED" | "EVENT_MOVED" | "EVENT_DATE_RESTORED" | "PROCEDURE_ASSIGNED" | "PROCEDURE_RESOLVED" | "PROCEDURE_REOPENED" | "PROCEDURE_ITEM_CHECKED" | "SELF_CHECK_ASSIGNED" | "SELF_CHECK_SUBMITTED" | "SELF_CHECK_ROW_REFUSED" | "WAITLIST_PUBLIC_REGISTRATION" | "WAITLIST_INVITATION_ANSWERED" | "WAITLIST_TRIAL_ENDED" | "STORAGE_WARNING" | "MAILBOX_SUSPENDED" | "MAIL_IMPORT_UNBOUND" | "CLUSTER_APPLICATION_SUBMITTED" | "CLUSTER_APPLICATION_APPROVED" | "CLUSTER_APPLICATION_DENIED" | "CLUSTER_APPLICATION_WITHDRAWN" | "CLUSTER_STATION_RELEASED" | "CLUSTER_MODULE_DENIED" | "CLUSTER_ITEM_ISSUED" | "CLUSTER_ITEM_LOST" | "CLUSTER_QUOTA_CHANGED" | "CLUSTER_MEMBER_ROLE_CHANGED" | "CLUSTER_FIELD_VALUE_CHANGED" | "EXPIRY_REMINDER" | "FEDERATION_REQUEST_RECEIVED" | "FEDERATION_REQUEST_ACCEPTED" | "FEDERATION_REQUEST_DECLINED" | "NAME_CHANGE_REQUESTED" | "NAME_CHANGE_APPROVED" | "NAME_CHANGE_DENIED" | "SIGNATURE_REQUESTED" | "SIGNATURE_REMINDER" | "DOCUMENT_SIGNED" | "DOCUMENT_SCAN_REJECTED" | "ACCOUNT_LINK_ACCEPTED" | "ASSOCIATION_LINK_ACCEPTED" | "SIGNATURE_WITHDRAWN" | "PARTNER_SIGNATURE_WITHDRAWN";
         NumberConfig: {
             /**
              * @description discriminator enum property added by openapi-typescript
@@ -72457,6 +72567,17 @@ export interface components {
         };
         /** @enum {string} */
         TrialOutcome: "OK" | "FOREIGN_CREDENTIAL" | "FAILED";
+        TrialOverview: {
+            /** Format: int32 */
+            attendanceThreshold: number;
+            /** Format: int32 */
+            entryId: number;
+            listName: string;
+            name: string;
+            since: components["schemas"]["Instant"];
+            /** Format: int32 */
+            visits: number;
+        };
         TrialResponse: {
             outcome: components["schemas"]["TrialOutcome"];
         };
@@ -72778,6 +72899,8 @@ export interface components {
             /** Format: int32 */
             id: number;
             lastname: string;
+            /** Format: int32 */
+            memberId: number | null;
             phone: string;
             /** Format: int32 */
             position: number;
@@ -72848,6 +72971,7 @@ export interface components {
             date: components["schemas"]["LocalDate"];
             /** Format: int32 */
             eventId: number;
+            message: string;
         };
         WaitingListInvitationAnswer: {
             answer: components["schemas"]["WaitingListAnswer"];
@@ -72866,6 +72990,7 @@ export interface components {
             date?: string | null;
             /** Format: int32 */
             eventId?: number | null;
+            message?: string | null;
         };
         WaitingListInvite: {
             code: string;
@@ -72905,6 +73030,7 @@ export interface components {
             /** Format: int32 */
             eventId: number;
             location: string;
+            message: string;
         };
         WaitingListPublicStatus: {
             answer: components["schemas"]["WaitingListPublicAnswer"] | null;
@@ -73728,6 +73854,7 @@ export type InventorySummary = components['schemas']['InventorySummary'];
 export type InventoryTag = components['schemas']['InventoryTag'];
 export type InventoryTagRequest = components['schemas']['InventoryTagRequest'];
 export type InventoryType = components['schemas']['InventoryType'];
+export type InvitationRecipients = components['schemas']['InvitationRecipients'];
 export type InviteCodeResponse = components['schemas']['InviteCodeResponse'];
 export type InviteEntry = components['schemas']['InviteEntry'];
 export type InviteRequest = components['schemas']['InviteRequest'];
@@ -74603,6 +74730,7 @@ export type TransientKeyRequest = components['schemas']['TransientKeyRequest'];
 export type TrashEntry = components['schemas']['TrashEntry'];
 export type TrashView = components['schemas']['TrashView'];
 export type TrialOutcome = components['schemas']['TrialOutcome'];
+export type TrialOverview = components['schemas']['TrialOverview'];
 export type TrialResponse = components['schemas']['TrialResponse'];
 export type TrueFalse = components['schemas']['TrueFalse'];
 export type TrustedDeviceEntry = components['schemas']['TrustedDeviceEntry'];
@@ -75513,6 +75641,7 @@ export const NotificationType = {
     WAITLIST_INVITATION_ANSWERED: "WAITLIST_INVITATION_ANSWERED",
     WAITLIST_NEW_ENTRY: "WAITLIST_NEW_ENTRY",
     WAITLIST_PUBLIC_REGISTRATION: "WAITLIST_PUBLIC_REGISTRATION",
+    WAITLIST_TRIAL_ENDED: "WAITLIST_TRIAL_ENDED",
 } as const;
 
 export const OfferAnswer = {

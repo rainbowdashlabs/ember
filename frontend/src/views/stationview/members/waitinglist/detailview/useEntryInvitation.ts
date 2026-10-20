@@ -3,11 +3,11 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {ref, type Ref} from 'vue'
+import {computed, ref, type Ref} from 'vue'
 import {useI18n} from 'vue-i18n'
 import {waitingList} from '@/api'
 import {describeFailure, type Failure} from '@/util/failure'
-import type {WaitingListEntryWithScore} from '@/api/generated/schema'
+import type {InvitationRecipients, WaitingListEntryWithScore} from '@/api/generated/schema'
 import type {EventOccurrenceRef} from '@/api/events'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 
@@ -18,6 +18,9 @@ import {useAsyncAction} from '@/composables/useAsyncAction'
  * appointment, the one date of it, and the time the person is asked to be there. Nobody is signed
  * up from any of that. They have not joined anything, so putting them on the attendee list would
  * make them part of an appointment they never agreed to.
+ *
+ * <p>Nothing goes out by accident. The appointment is required before it can be sent, and the
+ * addresses it goes to are read first so the dialog can name them.
  *
  * @param listId  the list being worked on
  * @param entries the entry list, reloaded once the invitation has gone out
@@ -33,13 +36,22 @@ export function useEntryInvitation(
   const target = ref<WaitingListEntryWithScore | null>(null)
   const occurrence = ref<EventOccurrenceRef | null>(null)
   const arrivalTime = ref('')
+  const message = ref('')
+  const recipients = ref<InvitationRecipients | null>(null)
 
-  function request(entryId: number) {
+  async function request(entryId: number) {
     const entry = entries.value.find(e => e.entry.id === entryId)
     if (!entry) return
     occurrence.value = null
     arrivalTime.value = ''
+    message.value = ''
+    recipients.value = null
     target.value = entry
+    try {
+      recipients.value = await waitingList.invitationRecipients(listId.value, entryId)
+    } catch (e) {
+      failure.value = describeFailure(e, t)
+    }
   }
 
   function cancel() {
@@ -54,12 +66,15 @@ export function useEntryInvitation(
    * before gets two messages about the same evening.
    */
   const {running, failure: inviteFailure, run: confirm} = useAsyncAction(async () => {
-    if (!target.value) return
-    failure.value = null
     const picked = occurrence.value
-    await waitingList.inviteEntry(listId.value, target.value.entry.id, picked
-      ? {eventId: picked.eventId, date: picked.date, arrivalTime: arrivalTime.value || null}
-      : null)
+    if (!target.value || !picked) return
+    failure.value = null
+    await waitingList.inviteEntry(listId.value, target.value.entry.id, {
+      eventId: picked.eventId,
+      date: picked.date,
+      arrivalTime: arrivalTime.value || null,
+      message: message.value.trim() || null,
+    })
     target.value = null
 
     try {
@@ -69,5 +84,19 @@ export function useEntryInvitation(
     }
   })
 
-  return {target, occurrence, arrivalTime, running, failure: inviteFailure, request, cancel, confirm}
+  const canSend = computed(() => occurrence.value !== null && recipients.value !== null && !running.value)
+
+  return {
+    target,
+    occurrence,
+    arrivalTime,
+    message,
+    recipients,
+    canSend,
+    running,
+    failure: inviteFailure,
+    request,
+    cancel,
+    confirm,
+  }
 }

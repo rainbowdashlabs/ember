@@ -81,4 +81,8 @@ export default {
     'W-058': 'Diese Einladung lässt sich nicht mehr beantworten, es wurde nichts gespeichert',
     'W-059': 'Diese Antwort betrifft einen anderen Termin als die Einladung, es wurde nichts gespeichert',
     'W-060': 'Diese Warteliste nimmt in diesem Alter noch keine Anmeldungen an, es wurde nichts gespeichert',
+    'W-061': 'Eine Einladung braucht einen Termin, es wurde nichts gesendet',
+    'W-062': 'Die persönliche Nachricht ist länger als 2000 Zeichen, es wurde nichts gesendet',
+    'W-063': 'Diese Probezeit kann nicht von hier beendet werden, es wurde nichts geändert',
+    'W-064': 'Diese Probezeit läuft nicht mehr, es wurde nichts geändert',
 }
