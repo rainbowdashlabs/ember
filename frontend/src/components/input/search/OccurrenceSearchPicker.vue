@@ -8,7 +8,7 @@ import {computed, ref} from 'vue'
 import EntitySearchPicker from './EntitySearchPicker.vue'
 import {listUpcomingOccurrences, type EventOccurrenceRef} from '@/api/events'
 import type {UpcomingEventOccurrence} from '@/api/generated/schema'
-import {formatDate} from '@/util/format'
+import {formatDate, formatTime} from '@/util/format'
 
 /**
  * Picks one occurrence out of what is coming up.
@@ -60,8 +60,10 @@ function label(occurrence: UpcomingEventOccurrence): string {
   return occurrence.event.name ?? ''
 }
 
+/** The date and the hour, since two occurrences on one day are told apart only by the time. */
 function subtitle(occurrence: UpcomingEventOccurrence): string {
-  return formatDate(occurrence.date)
+  const time = formatTime(occurrence.event.startTime)
+  return time ? `${formatDate(occurrence.date)} · ${time}` : formatDate(occurrence.date)
 }
 
 function pick(occurrence: UpcomingEventOccurrence) {

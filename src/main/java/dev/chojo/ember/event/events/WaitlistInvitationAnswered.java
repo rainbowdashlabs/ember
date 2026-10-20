@@ -13,6 +13,9 @@ import dev.chojo.ember.feature.waitinglist.entity.WaitingListAnswer;
  *
  * <p>An answer that only appears on a screen somebody has to visit is not an answer the station
  * receives, which is why it travels rather than sitting on the entry alone.
+ *
+ * @param note what they wrote alongside the answer, empty when they wrote nothing
  */
-public record WaitlistInvitationAnswered(int stationId, String applicantName, String listName, WaitingListAnswer answer)
+public record WaitlistInvitationAnswered(
+        int stationId, String applicantName, String listName, WaitingListAnswer answer, String note)
         implements DomainEvent {}

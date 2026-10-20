@@ -198,8 +198,14 @@ public class NotificationText {
             case EVENT_REGISTRATION_STATUS ->
                 params instanceof NotificationParams.EventRegistrationStatus p ? p.eventDescription() : null;
             case NEW_EVENT -> params instanceof NotificationParams.NewEvent p ? p.eventDescription() : null;
+            case WAITLIST_INVITATION_ANSWERED ->
+                params instanceof NotificationParams.WaitlistInvitationAnswered p ? nonBlank(p.note()) : null;
             default -> null;
         };
+    }
+
+    private static @Nullable String nonBlank(@Nullable String text) {
+        return text == null || text.isBlank() ? null : text;
     }
 
     /**

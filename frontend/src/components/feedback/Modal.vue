@@ -76,14 +76,25 @@ function confirmButton(): HTMLElement | null {
   return answers.at(-1) ?? null
 }
 
+const FOCUSABLE = 'input:not([disabled]), textarea:not([disabled]), select:not([disabled]), button:not([disabled]), [tabindex]'
+
+/**
+ * The element itself when it takes focus, otherwise the first thing inside it that does. A mark on a
+ * component whose root is a wrapper still lands in the field the wrapper holds.
+ */
+function firstFocusable(element: HTMLElement): HTMLElement | null {
+  return element.matches(FOCUSABLE) ? element : element.querySelector<HTMLElement>(FOCUSABLE)
+}
+
 /**
  * The dialog opens with the focus on the field it marks with {@code data-autofocus}, so typing starts
  * there, and otherwise on the button it is answered with, so enter alone answers it.
  */
 function focusAnswer(event: Event) {
   const root: HTMLElement | undefined = dialog.value?.$el
+  const marked = root?.querySelector<HTMLElement>('[data-autofocus]')
   const target: HTMLElement | null | undefined =
-      root?.querySelector<HTMLElement>('[data-autofocus]') ?? confirmButton() ?? root
+      (marked && firstFocusable(marked)) ?? confirmButton() ?? root
   if (!target) return
   event.preventDefault()
   target.focus()
@@ -96,7 +107,7 @@ function focusAnswer(event: Event) {
 function onKeydown(e: KeyboardEvent) {
   if (e.key !== 'Enter' || !e.shiftKey) return
   const target = confirmButton()
-  if (!target) return
+  if (!target || target.matches(':disabled')) return
   e.preventDefault()
   target.click()
 }

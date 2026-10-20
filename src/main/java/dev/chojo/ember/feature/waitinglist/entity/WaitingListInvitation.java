@@ -27,9 +27,18 @@ import java.time.LocalTime;
  * @param date        the one date of it
  * @param arrivalTime when they were asked to be there, usually earlier than everybody else, or
  *                    {@code null} when the invitation named no time of its own
+ * @param message     a personal note the station wrote into the invitation, empty when it wrote none
  */
 public record WaitingListInvitation(
-        int eventId, LocalDate date, @Nullable LocalTime arrivalTime) {
+        int eventId, LocalDate date, @Nullable LocalTime arrivalTime, String message) {
+
+    /** The longest personal note an invitation carries. */
+    public static final int MESSAGE_MAX_LENGTH = 2000;
+
+    /** An invitation without a personal note. */
+    public WaitingListInvitation(int eventId, LocalDate date, @Nullable LocalTime arrivalTime) {
+        this(eventId, date, arrivalTime, "");
+    }
 
     /** Reads the invitation off an entry row, or {@code null} when the row carries none. */
     public static @Nullable WaitingListInvitation from(Row row) throws SQLException {
@@ -38,6 +47,7 @@ public record WaitingListInvitation(
         return new WaitingListInvitation(
                 eventId,
                 row.getObject("invited_event_date", LocalDate.class),
-                row.getObject("invited_arrival_time", LocalTime.class));
+                row.getObject("invited_arrival_time", LocalTime.class),
+                row.getString("invited_message"));
     }
 }

@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryGuardian;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListInvitation;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.jspecify.annotations.Nullable;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -89,13 +90,13 @@ public class WaitlistInvitationMessage {
     /**
      * What the invitation can say about the appointment, all of it already written out for a reader.
      *
-     * <p>An invitation whose appointment has since been deleted describes nothing rather than
-     * failing: the person still has to be told they are invited.
+     * <p>An invitation whose appointment has since been deleted describes only its personal note
+     * rather than failing: the person still has to be told they are invited.
      */
-    public WaitlistInvitationDetails describe(Station station, WaitingListInvitation invitation) {
+    public WaitlistInvitationDetails describe(Station station, @Nullable WaitingListInvitation invitation) {
         if (invitation == null) return WaitlistInvitationDetails.NONE;
         var event = eventRepository.findById(invitation.eventId()).orElse(null);
-        if (event == null) return WaitlistInvitationDetails.NONE;
+        if (event == null) return WaitlistInvitationDetails.messageOnly(invitation.message());
 
         Locale locale = StationFormat.localeOf(station);
         ZoneId zone = StationFormat.timezoneOf(station);
@@ -107,7 +108,8 @@ public class WaitlistInvitationMessage {
                 dateFormat.format(invitation.date()),
                 span(event, zone, timeFormat),
                 invitation.arrivalTime() == null ? "" : timeFormat.format(invitation.arrivalTime()),
-                location(event, station, invitation.date()));
+                location(event, station, invitation.date()),
+                invitation.message());
     }
 
     /** When the appointment itself runs, in the zone the station keeps its times in. */
@@ -140,6 +142,13 @@ public class WaitlistInvitationMessage {
 
     private static String joinBlankSafe(String first, String second) {
         return ((first == null ? "" : first.trim()) + " " + (second == null ? "" : second.trim())).trim();
+    }
+
+    /**
+     * The addresses the invitation would be written to, so the person sending it can see them first.
+     */
+    public static List<String> recipientAddresses(WaitingListEntry entry, List<WaitingListEntryGuardian> guardians) {
+        return recipients(entry, guardians).stream().map(Recipient::email).toList();
     }
 
     /**

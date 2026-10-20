@@ -94,6 +94,7 @@ const sampleFields = [
         </div>
         <p class="text-sm text-(--text-muted)">{{ t('helpCenter.waitingList.statusFlowText') }}</p>
         <p class="text-sm text-(--text-muted)">{{ t('helpCenter.waitingList.statusAccountText') }}</p>
+        <p class="text-sm text-(--text-muted)">{{ t('helpCenter.waitingList.trialGuardiansText') }}</p>
       </NeutralContainer>
     </HelpSection>
 

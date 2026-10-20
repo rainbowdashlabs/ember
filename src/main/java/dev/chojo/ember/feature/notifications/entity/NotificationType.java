@@ -54,6 +54,7 @@ public enum NotificationType {
             NotificationParams.WaitlistPublicRegistration.class, "notification.waitlistPublicRegistration"),
     WAITLIST_INVITATION_ANSWERED(
             NotificationParams.WaitlistInvitationAnswered.class, "notification.waitlistInvitationAnswered"),
+    WAITLIST_TRIAL_ENDED(NotificationParams.WaitlistTrialEnded.class, "notification.waitlistTrialEnded"),
     STORAGE_WARNING(NotificationParams.StorageWarning.class, "notification.storageWarning"),
     MAILBOX_SUSPENDED(NotificationParams.MailboxSuspended.class, "notification.mailboxSuspended"),
     MAIL_IMPORT_UNBOUND(NotificationParams.MailImportUnbound.class, "notification.mailImportUnbound"),

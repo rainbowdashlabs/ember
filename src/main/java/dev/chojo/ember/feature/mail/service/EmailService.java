@@ -769,6 +769,7 @@ public class EmailService implements TaskSource {
         vars.put("appointmentTime", details.time());
         vars.put("arrivalTime", details.arrivalTime());
         vars.put("location", details.location());
+        vars.put("message", details.message());
         putStationLogo(vars, stationId);
         enqueueGlobal(
                 email,

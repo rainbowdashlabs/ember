@@ -64,7 +64,7 @@ function withScore(base: WaitingListEntry,
         entry: base, score, age: null, belowJoinAge: false,
         values: values.map(value => ({entryId: base.id, ...value})),
         guardians: guardians.map((guardian, index) => ({
-            id: index + 1, entryId: base.id, position: index, ...guardian,
+            id: index + 1, entryId: base.id, position: index, memberId: null, ...guardian,
         })),
     }
 }

@@ -228,7 +228,21 @@ public enum WaitingListRefusal implements Refusal {
 
     /** A sign-up from somebody younger than the list takes registrations from. */
     WAITING_LIST_REGISTRANT_TOO_YOUNG(
-            60, HttpStatus.BAD_REQUEST, "This list does not take registrations at this age yet, so nothing was saved");
+            60, HttpStatus.BAD_REQUEST, "This list does not take registrations at this age yet, so nothing was saved"),
+
+    /** An invitation that names no appointment. */
+    INVITATION_NEEDS_AN_APPOINTMENT(
+            61, HttpStatus.BAD_REQUEST, "An invitation needs an appointment, so nothing was sent"),
+
+    /** A personal note on an invitation that is longer than an invitation carries. */
+    INVITATION_MESSAGE_TOO_LONG(
+            62, HttpStatus.BAD_REQUEST, "The personal note is longer than 2000 characters, so nothing was sent"),
+
+    /** Ending a trial for an entry the person asking does not answer for. */
+    TRIAL_NOT_YOURS_TO_END(63, HttpStatus.FORBIDDEN, "This trial is not yours to end, so nothing was changed"),
+
+    /** Ending a trial that is no longer running. */
+    TRIAL_NO_LONGER_RUNNING(64, HttpStatus.CONFLICT, "This trial is no longer running, so nothing was changed");
 
     private final Definition definition;
 

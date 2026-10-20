@@ -1,5 +1,22 @@
 # Changelog
 
+## v26.23.0
+
+Families on a waiting list take part in the trial from its first day. Guardians get their account when the trial begins, follow it on their start page and can end it themselves. An invitation always names an appointment, shows where the mail goes before it is sent and can carry a personal note.
+
+### New Features
+
+- **Guardians take part in the trial.** When a trial begins, the guardians of the waiting list entry get their account and can sign in, take the child off appointments and see the trial on their start page with the visits so far. They can end the trial there themselves, which deletes the accounts made for it unless they are still needed, and the station is notified.
+
+### Improvements
+
+- **Invitations name their appointment and recipients.** An invitation can only be sent once an appointment is picked, and the dialog lists the addresses the mail goes to, or says that nobody is written to. The appointment picker shows the start time next to the date.
+- **Invitations carry a personal note.** A note written when inviting stands in the mail and on the page where the invitation is answered. The note given with an answer is shown in the notification the station receives.
+
+### Fixes
+
+- **An invitation could be sent with a single key press.** The invitation dialog opened with the send button selected, so pressing enter sent the mail at once, even without an appointment. The dialog now opens on the appointment, and sending waits until one is picked.
+
 ## v26.22.6
 
 The fields of an attendance template and of a waiting list are edited in place, the way the fields of an appointment are. Appointments created in a batch keep the time of day that was typed and offer only the fields of the chosen attendance template.

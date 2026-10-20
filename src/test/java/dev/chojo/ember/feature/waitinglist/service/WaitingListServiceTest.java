@@ -107,7 +107,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
                         accountRepo, stationRepo, stationMemberRepo, newGroupMemberships(), authService),
                 new WaitlistInvitationMessage(eventRepo, eventFieldRepo, emailService),
                 new DomainEventBus(Set.of()),
-                newDocumentService());
+                newGdprDeletionService());
         station = stationRepo.create("WaitlistStation");
     }
 
@@ -460,6 +460,234 @@ class WaitingListServiceTest extends RepositoryTestBase {
         var managers = stationMemberRepo.findManagers(joined.memberId());
         assertEquals(1, managers.size(), "the child still has a guardian");
         assertEquals(StationUserType.GUARDIAN, managers.getFirst().userType());
+    }
+
+    /**
+     * The family is there for the trial, not only once the child has joined, so they can sign in
+     * and look around while the station is still deciding. Nobody is created by the invitation.
+     */
+    @Test
+    void guardiansArriveWithTheTrialAndNotWithTheInvitation() {
+        var list = service.create(station.id(), "Trial Family", "", null, 180, null, null, 5, false, true, null, null);
+        var entry = service.createEntry(
+                list.id(),
+                "Kind",
+                "Probe",
+                guardians("Mutter", "probe-" + UUID.randomUUID() + "@test.com"),
+                Map.of(),
+                "");
+
+        invite(entry.id());
+        assertTrue(
+                waitingListRepo.findGuardiansByEntry(entry.id()).stream().allMatch(g -> g.memberId() == null),
+                "an invitation takes nobody on");
+
+        var testing = service.moveToTesting(entry.id());
+        var managers = stationMemberRepo.findManagers(testing.memberId());
+        assertEquals(1, managers.size(), "the guardian is there for the trial");
+        assertEquals(StationUserType.GUARDIAN, managers.getFirst().userType());
+        assertEquals(
+                managers.getFirst().id(),
+                waitingListRepo.findGuardiansByEntry(entry.id()).getFirst().memberId(),
+                "the guardian row remembers whom it became");
+    }
+
+    /** Joining after a trial that already took the guardians on takes nobody on a second time. */
+    @Test
+    void joiningAfterTheTrialTakesNoGuardianOnTwice() {
+        var list = service.create(station.id(), "Trial Twice", "", null, 180, null, null, 5, false, true, null, null);
+        var entry = service.createEntry(list.id(), "Kind", "Zweimal", guardians("Vater", ""), Map.of(), "");
+        invite(entry.id());
+        var testing = service.moveToTesting(entry.id());
+        var guardian = stationMemberRepo.findManagers(testing.memberId()).getFirst();
+
+        var joined = service.moveToJoined(testing.id());
+
+        var managers = stationMemberRepo.findManagers(joined.memberId());
+        assertEquals(1, managers.size(), "still exactly one guardian, even without an address to tell them apart");
+        assertEquals(guardian.id(), managers.getFirst().id());
+    }
+
+    /**
+     * An entry that went into testing before guardians arrived with the trial still gets them when
+     * it joins.
+     */
+    @Test
+    void anOlderTrialGetsItsGuardiansWhenItJoins() {
+        var list = service.create(station.id(), "Trial Older", "", null, 180, null, null, 5, false, true, null, null);
+        var entry = service.createEntry(list.id(), "Kind", "Aelter", guardians("Oma", ""), Map.of(), "");
+        invite(entry.id());
+        var testing = service.moveToTesting(entry.id());
+        var guardian = stationMemberRepo.findManagers(testing.memberId()).getFirst();
+        stationMemberRepo.delete(guardian.id());
+
+        var joined = service.moveToJoined(testing.id());
+
+        assertEquals(1, stationMemberRepo.findManagers(joined.memberId()).size(), "the guardian is taken on at join");
+    }
+
+    /**
+     * Ending a trial from the family's side withdraws the entry and lets go of the guardian the
+     * trial took on, but only one who is at the station for this child alone.
+     */
+    @Test
+    void endingATrialLetsGoOfAGuardianWhoAnsweredForThisChildAlone() {
+        var list = service.create(station.id(), "Trial End", "", null, 180, null, null, 5, false, true, null, null);
+        var entry = service.createEntry(
+                list.id(),
+                "Kind",
+                "Ende",
+                guardians("Mutter", "ende-" + UUID.randomUUID() + "@test.com"),
+                Map.of(),
+                "");
+        invite(entry.id());
+        var testing = service.moveToTesting(entry.id());
+        var child = stationMemberRepo.findById(testing.memberId()).orElseThrow();
+        var guardian = stationMemberRepo.findManagers(testing.memberId()).getFirst();
+
+        service.endTrial(station.id(), entry.id(), List.of(guardian.id(), testing.memberId()));
+
+        assertTrue(service.findEntryById(entry.id()).isEmpty(), "the entry is gone");
+        assertTrue(stationMemberRepo.findById(testing.memberId()).isEmpty(), "the trial member is gone");
+        assertTrue(accountRepo.findById(child.accountId()).isEmpty(), "and so is the child's account");
+        assertTrue(stationMemberRepo.findById(guardian.id()).isEmpty(), "the guardian answered for nobody else");
+        assertTrue(
+                accountRepo.findById(guardian.accountId()).isEmpty(),
+                "the guardian's account had no other membership, so it goes too");
+    }
+
+    /** A guardian whose account is a member at another station keeps it, and only leaves this one. */
+    @Test
+    void endingATrialKeepsAGuardianAccountThatBelongsElsewhere() {
+        var list = service.create(station.id(), "Trial Away", "", null, 180, null, null, 5, false, true, null, null);
+        var entry = service.createEntry(
+                list.id(),
+                "Kind",
+                "Woanders",
+                guardians("Mutter", "woanders-" + UUID.randomUUID() + "@test.com"),
+                Map.of(),
+                "");
+        invite(entry.id());
+        var testing = service.moveToTesting(entry.id());
+        var guardian = stationMemberRepo.findManagers(testing.memberId()).getFirst();
+        var elsewhere = stationRepo.create("Elsewhere " + UUID.randomUUID());
+        stationMemberRepo.create(elsewhere.id(), guardian.accountId());
+
+        service.endTrial(station.id(), entry.id(), List.of(guardian.id(), testing.memberId()));
+
+        assertTrue(stationMemberRepo.findById(guardian.id()).isEmpty(), "the membership here goes");
+        assertTrue(accountRepo.findById(guardian.accountId()).isPresent(), "the account is still a member elsewhere");
+        assertEquals(
+                1, stationMemberRepo.findAllByAccountId(guardian.accountId()).size());
+    }
+
+    /** A guardian who looks after another child as well stays at the station. */
+    @Test
+    void endingATrialKeepsAGuardianWhoLooksAfterAnotherChild() {
+        var list = service.create(station.id(), "Trial Sibling", "", null, 180, null, null, 5, false, true, null, null);
+        var entry = service.createEntry(list.id(), "Kind", "Geschwister", guardians("Vater", ""), Map.of(), "");
+        invite(entry.id());
+        var testing = service.moveToTesting(entry.id());
+        var guardian = stationMemberRepo.findManagers(testing.memberId()).getFirst();
+        var sibling = stationMemberRepo.create(
+                station.id(),
+                accountRepo.create(null, "Bruder", "Geschwister", station.id()).id());
+        stationMemberRepo.addManager(guardian.id(), sibling.id());
+
+        service.endTrial(station.id(), entry.id(), List.of(guardian.id(), testing.memberId(), sibling.id()));
+
+        assertTrue(stationMemberRepo.findById(guardian.id()).isPresent(), "the sibling still has their guardian");
+        assertTrue(accountRepo.findById(guardian.accountId()).isPresent(), "and the guardian their account");
+    }
+
+    /** Somebody who does not look after the trial member cannot end the trial. */
+    @Test
+    void aTrialIsNotEndedBySomebodyElse() {
+        var list = service.create(station.id(), "Trial Other", "", null, 180, null, null, 5, false, true, null, null);
+        var entry = service.createEntry(list.id(), "Kind", "Fremd", guardians("Mutter", ""), Map.of(), "");
+        invite(entry.id());
+        service.moveToTesting(entry.id());
+
+        var refused =
+                assertThrows(RefusalResponse.class, () -> service.endTrial(station.id(), entry.id(), List.of(-1)));
+
+        assertEquals(WaitingListRefusal.TRIAL_NOT_YOURS_TO_END, refused.refusal());
+        assertTrue(service.findEntryById(entry.id()).isPresent(), "nothing was changed");
+
+        var guardian = stationMemberRepo
+                .findManagers(service.findEntryById(entry.id()).orElseThrow().memberId())
+                .getFirst();
+        var elsewhere = assertThrows(
+                RefusalResponse.class,
+                () -> service.endTrial(-1, entry.id(), List.of(guardian.id())),
+                "not from another station, even by somebody who looks after the child");
+        assertEquals(WaitingListRefusal.TRIAL_NOT_YOURS_TO_END, elsewhere.refusal());
+    }
+
+    /** A trial that has already ended cannot be ended again. */
+    @Test
+    void aTrialThatIsNotRunningIsNotEnded() {
+        var list = service.create(station.id(), "Trial Over", "", null, 180, null, null, 5, false, true, null, null);
+        var entry = service.createEntry(list.id(), "Kind", "Vorbei", guardians("Mutter", ""), Map.of(), "");
+        invite(entry.id());
+        var joined = service.moveToJoined(service.moveToTesting(entry.id()).id());
+
+        var refused = assertThrows(
+                RefusalResponse.class, () -> service.endTrial(station.id(), entry.id(), List.of(joined.memberId())));
+
+        assertEquals(WaitingListRefusal.TRIAL_NO_LONGER_RUNNING, refused.refusal());
+    }
+
+    /** The station sees the guardians' addresses before an invitation goes out, and nobody on a quiet list. */
+    @Test
+    void theRecipientsOfAnInvitationAreNamedBeforeItIsSent() {
+        var writing = service.create(station.id(), "Writes", "", null, 180, null, null, 5, false, true, null, null);
+        var entry = service.createEntry(
+                writing.id(), "Kind", "Empfang", guardians("Mutter", "empfang@test.com"), Map.of(), "");
+
+        var recipients = service.invitationRecipients(entry.id());
+        assertTrue(recipients.sendsMail());
+        assertEquals(List.of("empfang@test.com"), recipients.addresses());
+
+        var quiet = service.create(station.id(), "Quiet", "", null, 180, null, null, 5, false, false, null, null);
+        var silent =
+                service.createEntry(quiet.id(), "Kind", "Still", guardians("Mutter", "still@test.com"), Map.of(), "");
+        var none = service.invitationRecipients(silent.id());
+        assertFalse(none.sendsMail(), "a list that sends no mail writes to nobody");
+        assertTrue(none.addresses().isEmpty());
+    }
+
+    /** The family sees the trial with its visits and the threshold the station looks for. */
+    @Test
+    void theFamilySeesTheTrialTheyAreIn() {
+        var list = service.create(station.id(), "Trial Seen", "", null, 180, null, null, 4, false, true, null, null);
+        var entry = service.createEntry(list.id(), "Kind", "Gesehen", guardians("Mutter", ""), Map.of(), "");
+        invite(entry.id());
+        var testing = service.moveToTesting(entry.id());
+        var guardian = stationMemberRepo.findManagers(testing.memberId()).getFirst();
+
+        var trials = service.trialsOf(List.of(guardian.id(), testing.memberId()));
+
+        assertEquals(1, trials.size());
+        assertEquals("Kind Gesehen", trials.getFirst().name());
+        assertEquals("Trial Seen", trials.getFirst().listName());
+        assertEquals(0, trials.getFirst().visits());
+        assertEquals(4, trials.getFirst().attendanceThreshold());
+    }
+
+    /** A personal note travels with the invitation and goes when the invitation is taken back. */
+    @Test
+    void thePersonalNoteGoesWithItsInvitation() {
+        var event = appointment("Probedienst Notiz");
+        var entry = service.createEntry(listId, "Kind", "Notiz", guardians("Mutter", "notiz@test.com"), Map.of(), "");
+
+        var invited = service.inviteEntry(
+                entry.id(),
+                new WaitingListInvitation(event.id(), LocalDate.of(2026, 5, 12), null, "Bring Sportschuhe mit"));
+        assertEquals("Bring Sportschuhe mit", invited.invitation().message());
+
+        var back = service.returnToWaiting(entry.id());
+        assertNull(back.invitation(), "the note goes with the invitation it was written into");
     }
 
     /**
@@ -1091,7 +1319,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
 
     /**
      * The trial period is where everything is written, and it is written exactly once: one account,
-     * one membership, the trial type, the permission and the testing group.
+     * one membership, the trial type, the permission and the testing group, plus the guardian.
      */
     @Test
     void startingTheTrialPeriodCreatesTheMemberOnce() {
@@ -1118,7 +1346,9 @@ class WaitingListServiceTest extends RepositoryTestBase {
         assertEquals(WaitingListEntryStatus.TESTING, testing.status());
         assertNotNull(testing.memberId());
         assertEquals(
-                membersBefore + 1, stationMemberRepo.findByStation(station.id()).size());
+                membersBefore + 2,
+                stationMemberRepo.findByStation(station.id()).size(),
+                "the child and the one guardian");
         var member = stationMemberRepo.findById(testing.memberId()).orElseThrow();
         assertEquals(StationUserType.TRIAL, member.userType());
         assertTrue(stationMemberRepo.hasPermission(member.id(), StationPermission.USER));

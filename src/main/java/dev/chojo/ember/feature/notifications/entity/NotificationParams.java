@@ -310,7 +310,22 @@ public sealed interface NotificationParams {
 
     record WaitlistPublicRegistration(String childName, String listName) implements NotificationParams {}
 
-    record WaitlistInvitationAnswered(String childName, String listName, String answer) implements NotificationParams {}
+    /**
+     * @param note what they wrote alongside the answer, empty or {@code null} when they wrote nothing
+     */
+    record WaitlistInvitationAnswered(
+            String childName,
+            String listName,
+            String answer,
+            @Nullable String note) implements NotificationParams {}
+
+    /**
+     * A trial ended by the family rather than by the station.
+     *
+     * @param childName whose trial it was
+     * @param listName  the waiting list the trial came from
+     */
+    record WaitlistTrialEnded(String childName, String listName) implements NotificationParams {}
 
     record StorageWarning(int usedPercent, String usedFormatted, String quotaFormatted) implements NotificationParams {}
 

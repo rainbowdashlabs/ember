@@ -10,6 +10,7 @@ import dev.chojo.ember.api.refusal.WaitingListRefusal;
 import dev.chojo.ember.feature.events.service.EventCrudService;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
 import dev.chojo.ember.feature.legal.service.ConsentService;
+import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingList;
 import dev.chojo.ember.feature.waitinglist.service.PublicWaitingListRateLimiter;
 import dev.chojo.ember.feature.waitinglist.service.PublicWaitingListService;
@@ -62,7 +63,8 @@ class PublicWaitingListRoutesTest {
                 mock(ConsentService.class),
                 mock(PublicWaitingListRateLimiter.class),
                 mock(EventCrudService.class),
-                mock(EventRestrictionService.class)));
+                mock(EventRestrictionService.class),
+                mock(GuardianPolicy.class)));
     }
 
     @Test

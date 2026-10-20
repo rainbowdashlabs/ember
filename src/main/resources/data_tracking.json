@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:6e0aeee49b8124d62f03baae57742c5c4cc7e1fa55044900a1df4f8c41222f93",
-  "generatedAt": "2026-10-09T16:05:24Z",
+  "schemaHash": "sha256:767a07564614d537a893f02fc5334f860b8f5dcc559b68695f5f514cbfc557d9",
+  "generatedAt": "2026-10-20T14:55:13Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -29359,7 +29359,7 @@
     "waiting_list_entry": {
       "feature": "waitinglist",
       "scope": "STATION",
-      "tableHash": "sha256:5ec0091f40a5475aa76c61d45ba0e88e18efe08894851ae9678d3ee575bb6725",
+      "tableHash": "sha256:767bed5422c043dffb5fb9da2e9797eb9bf29b6b343ee532832d0cd484fc2f1a",
       "columns": [
         {
           "name": "id",
@@ -29535,6 +29535,13 @@
           "nullable": false,
           "verified": true,
           "description": "What they wrote alongside the answer, empty when they wrote nothing. Given by whoever holds the entry link rather than by a member, which is why it is kept apart from the station's own notes on the entry."
+        },
+        {
+          "name": "invited_message",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "A personal note the station wrote into the current invitation, empty when it wrote none. Shown in the invitation mail and on the page behind the entry link. Cleared together with the invitation it belongs to."
         }
       ],
       "foreignKeys": [
@@ -29584,7 +29591,7 @@
     "waiting_list_entry_guardian": {
       "feature": "waitinglist",
       "scope": "STATION",
-      "tableHash": "sha256:aa4838fd7118ff01d864b49565348c39c7b51fb961dcaa90d7fba6f930f74071",
+      "tableHash": "sha256:e0bd1bd890f2351c3bb44633617a0de85ea21045e20b12ac9f28228df50a9ea4",
       "columns": [
         {
           "name": "id",
@@ -29627,6 +29634,13 @@
           "type": "text",
           "nullable": false,
           "verified": true
+        },
+        {
+          "name": "member_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The station member this guardian became when the trial began, either a new one or one already at the station they were linked to. NULL until then. Keeps a guardian from being taken on twice when the entry joins, and names which memberships ending the trial may take back."
         }
       ],
       "foreignKeys": [
@@ -29635,6 +29649,12 @@
           "refTable": "waiting_list_entry",
           "refColumn": "id",
           "onDelete": "CASCADE"
+        },
+        {
+          "column": "member_id",
+          "refTable": "station_member",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
         }
       ],
       "stationTransfer": {

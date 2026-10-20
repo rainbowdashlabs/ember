@@ -26,6 +26,7 @@ import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.account.service.AccountInviteService;
 import dev.chojo.ember.feature.account.service.AccountReach;
 import dev.chojo.ember.feature.account.service.AuthService;
+import dev.chojo.ember.feature.account.service.AvatarService;
 import dev.chojo.ember.feature.accountlink.service.TestAccountLinks;
 import dev.chojo.ember.feature.attendance.repository.AttendanceRepository;
 import dev.chojo.ember.feature.attendance.service.AttendanceTemplateGuards;
@@ -151,6 +152,7 @@ import dev.chojo.ember.feature.inventory.service.SelfCheckService;
 import dev.chojo.ember.feature.knowledgebase.repository.KnowledgeBaseRepository;
 import dev.chojo.ember.feature.knowledgebase.service.KbAccessService;
 import dev.chojo.ember.feature.knowledgebase.service.KbCommentTarget;
+import dev.chojo.ember.feature.legal.service.GdprDeletionService;
 import dev.chojo.ember.feature.lostandfound.repository.LostAndFoundRepository;
 import dev.chojo.ember.feature.mail.repository.EmailQueueRepository;
 import dev.chojo.ember.feature.mail.repository.StationMailProviderRepository;
@@ -201,6 +203,8 @@ import dev.chojo.ember.feature.quiz.repository.QuizQuestionReportRepository;
 import dev.chojo.ember.feature.quiz.repository.QuizTestRepository;
 import dev.chojo.ember.feature.restriction.repository.RestrictionRepository;
 import dev.chojo.ember.feature.restriction.service.RestrictionService;
+import dev.chojo.ember.feature.signing.repository.AccountSignatureRepository;
+import dev.chojo.ember.feature.signing.service.SignatureImageService;
 import dev.chojo.ember.feature.station.repository.StationApplicationRepository;
 import dev.chojo.ember.feature.station.repository.StationRepository;
 import dev.chojo.ember.feature.station.service.StationLogoService;
@@ -532,6 +536,25 @@ public abstract class RepositoryTestBase {
     protected static DocumentService newDocumentService() {
         var backend = localStorage();
         return newDocumentService(new StorageService(new StorageBackendResolver(backend), backend));
+    }
+
+    /**
+     * The deletion that takes a member and, once nothing else holds it, their account, over this class's
+     * local storage.
+     *
+     * @return the deletion service
+     */
+    protected static GdprDeletionService newGdprDeletionService() {
+        var backend = localStorage();
+        var storage = new StorageService(new StorageBackendResolver(backend), backend);
+        return new GdprDeletionService(
+                accountRepo,
+                stationMemberRepo,
+                memberLookupService,
+                new AvatarService(new ImageVariants(storage)),
+                newDocumentService(storage),
+                new SignatureImageService(new AccountSignatureRepository(), accountRepo, storage),
+                new AccountReach(accountRepo));
     }
 
     /**

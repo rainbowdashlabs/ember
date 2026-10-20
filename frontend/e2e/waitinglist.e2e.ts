@@ -3,7 +3,7 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {test, expect, apiHeaders, type Page} from './fixtures/auth'
+import {test, expect, apiHeaders, pageAsThrowaway, type Page} from './fixtures/auth'
 
 /**
  * A list of this story's own, for a story that changes the fields of one.
@@ -184,9 +184,14 @@ test.describe('Waiting lists', () => {
         const row = page.getByRole('row').filter({hasText: surname})
         await row.getByRole('button', {name: 'Einladen'}).click()
 
+        await expect(page.getByTestId('waitlist-invite-recipients'), 'the dialog names where the mail goes')
+            .toContainText(`${surname.toLowerCase()}@example.test`)
+        await expect(page.getByTestId('waitlist-invite-send'), 'nothing goes out before an appointment is picked')
+            .toBeDisabled()
         const occurrence = page.getByTestId('waitlist-invite-occurrence')
         await occurrence.locator('input[type="search"]').click()
         await occurrence.getByRole('button').first().click()
+        await page.getByTestId('waitlist-invite-message').fill('Bring bitte Sportschuhe mit.')
         await page.getByTestId('waitlist-invite-send').click()
         await expect(page.getByTestId('waitlist-invite-modal')).toHaveCount(0)
 
@@ -199,6 +204,8 @@ test.describe('Waiting lists', () => {
 
         await visitor.goto(`/waiting-list/status?token=${invited.entry.accessToken}`)
         await expect(visitor.getByTestId('waitlist-invitation'), 'the page says what it is about').toBeVisible()
+        await expect(visitor.getByTestId('waitlist-invitation-message'), 'with the note the station wrote')
+            .toHaveText('Bring bitte Sportschuhe mit.')
         await visitor.getByTestId('waitlist-answer-coming').click()
         await expect(visitor.getByTestId('waitlist-answer-given')).toBeVisible()
 
@@ -215,6 +222,57 @@ test.describe('Waiting lists', () => {
      * a stranger who leaves no address at all: the registration is on the list the moment it is
      * sent, rather than waiting for a confirmation that could never arrive.
      */
+    /**
+     * The family is there for the trial, not only once the child has joined. Starting the trial
+     * gives the guardian an account, their dashboard shows the trial, and they can end it themselves.
+     * The way to the trial is the station's and is walked through the API; the guardian's side is
+     * walked on the page.
+     */
+    test('a guardian ends the trial from the dashboard', async ({managerPage: page, browser, request}) => {
+        const surname = `Probezeit-${Date.now()}`
+        const guardianAddress = `${surname.toLowerCase()}@example.test`
+        const headers = await apiHeaders(page)
+        const list = await ownList(page)
+
+        const created = await page.request.post(`/api/v1/waiting-lists/${list}/entries`, {
+            headers,
+            data: {firstname: 'Neu', lastname: surname, guardians: [{firstname: 'Erika', lastname: surname, email: guardianAddress}]},
+        })
+        expect(created.ok(), `the entry was written down (${await created.text()})`).toBeTruthy()
+        const entryId = (await created.json()).id
+
+        const coming = await page.request.get('/api/v1/events/upcoming?limit=1', {headers})
+        const [occurrence] = await coming.json()
+        expect(occurrence, 'the seed has something coming up to invite to').toBeTruthy()
+        const invited = await page.request.post(`/api/v1/waiting-lists/${list}/entries/${entryId}/invite`, {
+            headers,
+            data: {eventId: occurrence.event.id, date: occurrence.date},
+        })
+        expect(invited.ok(), `the invitation went out (${await invited.text()})`).toBeTruthy()
+        const testing = await page.request.post(`/api/v1/waiting-lists/${list}/entries/${entryId}/testing`, {headers})
+        expect(testing.ok(), `the trial began (${await testing.text()})`).toBeTruthy()
+
+        const guardian = await pageAsThrowaway(browser, request, [], {
+            email: guardianAddress,
+            stationId: headers['X-Station-Id'],
+        })
+        await guardian.goto('/station/dashboard/overview')
+        const panel = guardian.getByTestId('trial-panel')
+        await expect(panel, 'the guardian sees the trial on their dashboard').toContainText(`Neu ${surname}`)
+        await expect(panel.getByTestId('trial-visits')).toContainText('0')
+
+        await panel.getByTestId('trial-end').click()
+        await guardian.getByTestId('trial-end-confirm').click()
+        await expect(guardian.getByTestId('trial-panel'), 'the trial is over').toHaveCount(0)
+
+        const entries = await page.request.get(`/api/v1/waiting-lists/${list}/entries`, {headers})
+        const body = await entries.json()
+        expect(
+            body.some((item: {entry: {id: number}}) => item.entry.id === entryId),
+            'the entry has left the list',
+        ).toBeFalsy()
+    })
+
     test('a list that sends no mail takes a registration without confirming it', async ({managerPage: page, page: visitor}) => {
         const listName = `Ohne Mail ${Date.now()}`
         const surname = `Ohnemail-${Date.now()}`

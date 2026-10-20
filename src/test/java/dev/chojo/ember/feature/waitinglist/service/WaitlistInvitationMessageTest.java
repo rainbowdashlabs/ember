@@ -133,6 +133,21 @@ class WaitlistInvitationMessageTest extends RepositoryTestBase {
         assertEquals("17:45", details.arrivalTime(), "and the time they were asked to be there");
     }
 
+    @Test
+    void thePersonalNoteIsInTheMailEvenWhenTheAppointmentIsGone() {
+        var invited = entry("Kind", "kind@test.com");
+
+        message.send(
+                invited,
+                List.of(),
+                station,
+                new WaitingListInvitation(-1, LocalDate.of(2026, 5, 12), null, "Bis bald"));
+
+        var details = captureDetails();
+        assertEquals("Bis bald", details.message());
+        assertEquals("", details.appointmentName(), "the gone appointment is not guessed at");
+    }
+
     /** The hours are printed in the zone the station keeps its times in, not in the stored one. */
     @Test
     void theHoursAreWrittenInTheStationsOwnZone() {

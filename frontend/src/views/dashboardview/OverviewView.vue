@@ -18,6 +18,7 @@ import SelfChecksPanel from './overviewview/SelfChecksPanel.vue'
 import AwaitingAnswerPanel from './overviewview/AwaitingAnswerPanel.vue'
 import RegistrationsPanel from './overviewview/RegistrationsPanel.vue'
 import UpcomingEventsPanel from './overviewview/UpcomingEventsPanel.vue'
+import TrialPanel from './overviewview/TrialPanel.vue'
 import SetupChecklist from './overviewview/SetupChecklist.vue'
 import OnboardingTaskCard from '@/components/onboarding/OnboardingTaskCard.vue'
 
@@ -45,6 +46,7 @@ const profileIncomplete = computed(() => sessionInfo.value?.profileComplete === 
       </ErrorContainer>
 
       <div class="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6">
+        <TrialPanel v-if="isModuleEnabled(StationModule.WAITING_LIST)"/>
         <NotificationsPanel/>
         <OpenMovementsPanel v-if="isModuleEnabled(StationModule.INVENTORY)"/>
         <SelfChecksPanel v-if="isModuleEnabled(StationModule.INVENTORY)"/>
