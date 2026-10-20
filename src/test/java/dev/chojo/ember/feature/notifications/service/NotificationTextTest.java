@@ -273,6 +273,22 @@ class NotificationTextTest {
         assertFalse(url.contains("{"), "no part of the route was left unfilled");
     }
 
+    /** What a family wrote with their answer is the detail, and a blank note is none. */
+    @Test
+    void anAnsweredInvitationCarriesItsNoteAsDetail() {
+        assertEquals(
+                "Wir kommen zu zweit",
+                text.resolveDetail(notificationWith(
+                        NotificationType.WAITLIST_INVITATION_ANSWERED,
+                        new NotificationParams.WaitlistInvitationAnswered(
+                                "Emil", "Jugend", "COMING", "Wir kommen zu zweit"),
+                        30)));
+        assertNull(text.resolveDetail(notificationWith(
+                NotificationType.WAITLIST_INVITATION_ANSWERED,
+                new NotificationParams.WaitlistInvitationAnswered("Emil", "Jugend", "COMING", " "),
+                31)));
+    }
+
     @Test
     void resolveDetailCoversAllNonNullTypeBranches() {
         assertEquals(

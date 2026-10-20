@@ -587,6 +587,39 @@ class WaitingListServiceTest extends RepositoryTestBase {
         assertEquals(WaitingListRefusal.TRIAL_NOT_YOURS_TO_END, elsewhere.refusal());
     }
 
+    /** A trial that has already ended cannot be ended again. */
+    @Test
+    void aTrialThatIsNotRunningIsNotEnded() {
+        var list = service.create(station.id(), "Trial Over", "", null, 180, null, null, 5, false, true, null, null);
+        var entry = service.createEntry(list.id(), "Kind", "Vorbei", guardians("Mutter", ""), Map.of(), "");
+        invite(entry.id());
+        var joined = service.moveToJoined(service.moveToTesting(entry.id()).id());
+
+        var refused = assertThrows(
+                RefusalResponse.class, () -> service.endTrial(station.id(), entry.id(), List.of(joined.memberId())));
+
+        assertEquals(WaitingListRefusal.TRIAL_NO_LONGER_RUNNING, refused.refusal());
+    }
+
+    /** The station sees the guardians' addresses before an invitation goes out, and nobody on a quiet list. */
+    @Test
+    void theRecipientsOfAnInvitationAreNamedBeforeItIsSent() {
+        var writing = service.create(station.id(), "Writes", "", null, 180, null, null, 5, false, true, null, null);
+        var entry = service.createEntry(
+                writing.id(), "Kind", "Empfang", guardians("Mutter", "empfang@test.com"), Map.of(), "");
+
+        var recipients = service.invitationRecipients(entry.id());
+        assertTrue(recipients.sendsMail());
+        assertEquals(List.of("empfang@test.com"), recipients.addresses());
+
+        var quiet = service.create(station.id(), "Quiet", "", null, 180, null, null, 5, false, false, null, null);
+        var silent =
+                service.createEntry(quiet.id(), "Kind", "Still", guardians("Mutter", "still@test.com"), Map.of(), "");
+        var none = service.invitationRecipients(silent.id());
+        assertFalse(none.sendsMail(), "a list that sends no mail writes to nobody");
+        assertTrue(none.addresses().isEmpty());
+    }
+
     /** The family sees the trial with its visits and the threshold the station looks for. */
     @Test
     void theFamilySeesTheTrialTheyAreIn() {
