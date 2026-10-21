@@ -1,13 +1,13 @@
 ALTER TABLE ember_schema.waiting_list_entry
-    ADD COLUMN invited_message TEXT NOT NULL DEFAULT '';
+    ADD COLUMN IF NOT EXISTS invited_message TEXT NOT NULL DEFAULT '';
 
 COMMENT ON COLUMN ember_schema.waiting_list_entry.invited_message IS
     'A personal note the station wrote into the current invitation, empty when it wrote none. Shown in the invitation mail and on the page behind the entry link. Cleared together with the invitation it belongs to.';
 
 ALTER TABLE ember_schema.waiting_list_entry_guardian
-    ADD COLUMN member_id INTEGER NULL REFERENCES ember_schema.station_member (id) ON DELETE SET NULL;
+    ADD COLUMN IF NOT EXISTS member_id INTEGER NULL REFERENCES ember_schema.station_member (id) ON DELETE SET NULL;
 
-CREATE INDEX idx_wle_guardian_member
+CREATE INDEX IF NOT EXISTS idx_wle_guardian_member
     ON ember_schema.waiting_list_entry_guardian (member_id)
     WHERE member_id IS NOT NULL;
 
@@ -106,7 +106,7 @@ WHERE b.template_id = bx.template_id
   AND b.field_name = bx.field_name;
 
 ALTER TABLE ember_schema.document_template_field
-    ADD COLUMN keep_size BOOLEAN NOT NULL DEFAULT FALSE;
+    ADD COLUMN IF NOT EXISTS keep_size BOOLEAN NOT NULL DEFAULT FALSE;
 
 COMMENT ON COLUMN ember_schema.document_template_field.keep_size IS
     'Whether a text field prints at its size however long the value is, running past its box, instead of shrinking the value to fit. Set on the fields of a template made from a Word form, whose gaps are only as wide as their blank.';
