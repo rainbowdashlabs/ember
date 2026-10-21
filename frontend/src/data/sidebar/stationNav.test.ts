@@ -41,6 +41,14 @@ describe('STATION_NAV', () => {
         return resolveNav(STATION_NAV, readerWith(permissions, modules), key => key)
     }
 
+    describe('onboarding marks', () => {
+        it('names the marks of the pages under a section, for the guide to point at it while it is shut', () => {
+            const members = section(nav([StationPermission.MEMBER_EDIT, StationPermission.MEMBER_MANAGE_GROUP]), 'members')
+
+            expect(members?.kind === 'group' && members.holds).toEqual(['nav.members.create', 'nav.members.groups'])
+        })
+    })
+
     describe('documents', () => {
         function documentPages(permissions: string[]) {
             return navPages([section(nav(permissions), 'documents')!]).map(page => page.to)

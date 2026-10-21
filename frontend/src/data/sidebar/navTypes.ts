@@ -77,6 +77,11 @@ export interface NavGroup {
     prefix: string[]
     badge: number
     onboarding?: string
+    /**
+     * The onboarding marks of everything under the group, at any depth. While its pages are not on the
+     * page, the guide points at the group that holds the one it is after.
+     */
+    holds: string[]
     inline: boolean
     children: NavNode[]
 }

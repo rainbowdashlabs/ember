@@ -23,7 +23,8 @@ defineEmits<{
 </script>
 
 <template>
-  <BareButton :data-section="section.key" :data-onboarding="section.onboarding" :data-active="active ? 'true' : undefined"
+  <BareButton :data-section="section.key" :data-onboarding="section.onboarding"
+              :data-onboarding-holds="section.holds.join(' ') || undefined" :data-active="active ? 'true' : undefined"
               :class="active ? '!text-primary' : '!text-[var(--text)] hover:bg-primary/5'"
               class="flex w-full items-center gap-3 rounded-theme px-3 py-2 text-sm font-medium transition-colors duration-150"
               @click="$emit('open')">

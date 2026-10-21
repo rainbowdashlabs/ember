@@ -81,9 +81,19 @@ function resolveGroup<C>(def: NavGroupDef<C>, context: C, t: Translate): NavNode
         prefix: [...(def.prefix === undefined ? [] : read(def.prefix, context)), ...allPages(children).map(page => page.to)],
         badge,
         onboarding: def.onboarding,
+        holds: marksUnder(children),
         inline,
         children,
     }
+}
+
+/** The onboarding marks of the entries and everything under them, each once. */
+function marksUnder(nodes: NavNode[]): string[] {
+    const marks = nodes.flatMap(node => [
+        ...(node.onboarding ? [node.onboarding] : []),
+        ...(node.kind === 'group' ? node.holds : []),
+    ])
+    return [...new Set(marks)]
 }
 
 function resolveEntry<C>(def: NavEntryDef<C>, context: C, t: Translate): NavNode | null {

@@ -17,6 +17,9 @@ export interface TargetBox {
 
 const ATTRIBUTE = 'data-onboarding'
 
+/** Where a group lists the marks of everything under it, separated by spaces. */
+const HOLDS = 'data-onboarding-holds'
+
 /** The control that pulls the navigation in, on the widths where it is not standing open. */
 const MENU_MARK = 'nav.open'
 
@@ -61,10 +64,15 @@ function isBlocked(element: HTMLElement): boolean {
  *
  * An entry of a menu that is folded away is nowhere in the page, and saying "this is under
  * Notifications, shall I take you there" is a poorer answer than pointing at the menu it hides in.
- * The marks are written as a path, so the holder is the mark one segment shorter.
+ * A sidebar group names everything under it ({@code data-onboarding-holds}), and of the groups on the
+ * page that hold the mark the innermost is the one to open: a section's subgroup rather than the section.
+ * Elsewhere the marks are written as a path, so the holder is the mark one segment shorter.
  */
 function findHolder(mark: string | undefined): HTMLElement | null {
     if (!mark) return null
+    const holding = Array.from(document.querySelectorAll<HTMLElement>(`[${HOLDS}~="${CSS.escape(mark)}"]`))
+    const innermost = holding.find(group => !holding.some(other => other !== group && group.contains(other)))
+    if (innermost) return innermost
     let path = mark
     while (path.includes('.')) {
         path = path.slice(0, path.lastIndexOf('.'))

@@ -41,12 +41,12 @@ const NODES: NavNode[] = [
     page('news', '/station/news', 'Neuigkeiten'),
     {
         kind: 'group', key: 'members', label: 'Mitglieder', icon: 'users', to: '/station/members/list',
-        prefix: ['/station/members', '/station/members/list', '/station/members/create'], badge: 0, inline: false,
+        prefix: ['/station/members', '/station/members/list', '/station/members/create'], badge: 0, inline: false, holds: [],
         children: [page('members-list', '/station/members/list', 'Mitgliederliste'), page('members-create', '/station/members/create', 'Anlegen')],
     },
     {
         kind: 'group', key: 'events', label: 'Termine', icon: 'calendar', to: '/station/events/upcoming',
-        prefix: ['/station/events/upcoming'], badge: 0, inline: false,
+        prefix: ['/station/events/upcoming'], badge: 0, inline: false, holds: [],
         children: [page('events-upcoming', '/station/events/upcoming', 'Kommende Termine'), page('events-manage', '/station/events', 'Verwalten')],
     },
 ]

@@ -30,6 +30,11 @@ const emit = defineEmits<{
 }>()
 
 const children = computed(() => props.node.kind === 'group' ? listed(props.node.children) : [])
+
+/** The marks of everything under a group, for the guide to point at the group while they are folded away. */
+const holds = computed(() => props.node.kind === 'group' && props.node.holds.length > 0
+  ? props.node.holds.join(' ')
+  : undefined)
 </script>
 
 <template>
@@ -46,13 +51,15 @@ const children = computed(() => props.node.kind === 'group' ? listed(props.node.
   <template v-else-if="node.inline">
     <NavEntry v-for="child in children" :key="child.key" :node="child" nested @navigate="emit('navigate')"/>
   </template>
-  <SidebarSubGroup v-else-if="nested" :data-onboarding="node.onboarding" :icon="['fas', node.icon]" :label="node.label"
+  <SidebarSubGroup v-else-if="nested" :data-onboarding="node.onboarding" :data-onboarding-holds="holds"
+                   :icon="['fas', node.icon]" :label="node.label"
                    :prefix="node.prefix" :badge="node.badge" :remember-as="node.key">
     <template v-for="child in children" :key="child.key">
       <NavEntry :node="child" nested @navigate="emit('navigate')"/>
     </template>
   </SidebarSubGroup>
-  <SidebarGroup v-else :data-onboarding="node.onboarding" :icon="['fas', node.icon]" :label="node.label"
+  <SidebarGroup v-else :data-onboarding="node.onboarding" :data-onboarding-holds="holds" :icon="['fas', node.icon]"
+                :label="node.label"
                 :prefix="node.prefix" :to="node.to" :name="node.key" :badge="node.badge" :group-key="node.key"
                 @navigate="emit('navigate')">
     <template v-for="child in children" :key="child.key">
