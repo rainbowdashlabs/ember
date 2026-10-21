@@ -11,9 +11,11 @@ import ErrorBadge from '@/components/badge/ErrorBadge.vue'
 import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import MutedText from '@/components/typography/MutedText.vue'
 import type {EventSummary, RegistrationStatus} from '@/api/generated/schema'
+import {formatWeekdayDate} from '@/util/format'
 
 defineProps<{
   event: EventSummary
+  date: string
   counts: Record<RegistrationStatus, number>
   deadlineExpired: boolean
   formatDeadline: (iso?: string | null) => string
@@ -26,6 +28,7 @@ const {t} = useI18n()
   <div class="flex items-center justify-between flex-wrap gap-2">
     <div>
       <span class="font-medium text-primary">{{ event.name }}</span>
+      <MutedText class="ml-2">{{ formatWeekdayDate(date, 'short') }}</MutedText>
       <MutedText v-if="event.registrationDeadline" class="ml-2">
         {{ t('eventsRegistrations.deadline') }}: {{ formatDeadline(event.registrationDeadline) }}
       </MutedText>

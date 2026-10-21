@@ -3300,7 +3300,7 @@ export default {
         score: 'Fairness',
         acceptedCol: 'Bestätigt',
         deniedCol: 'Abgelehnt',
-        date: 'Datum',
+        registeredAt: 'Angemeldet am',
         groupPending: 'Ausstehend',
         groupAccepted: 'Bestätigt',
         groupDenied: 'Abgelehnt',

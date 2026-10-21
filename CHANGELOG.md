@@ -18,6 +18,7 @@ The sidebar shows one section at a time and stays short however many modules a s
 - **More fonts come with every installation.** Carlito and Caladea set text exactly as wide as Calibri and Cambria, and Open Sans stands in for fonts such as Frutiger. All three can be chosen for letters and fields, and importing a Word form set in Calibri, Cambria, Arial or Times New Roman offers the matching one first.
 - **Invitations name their appointment and recipients.** An invitation can only be sent once an appointment is picked, and the dialog lists the addresses the mail goes to, or says that nobody is written to. The appointment picker shows the start time next to the date.
 - **Invitations carry a personal note.** A note written when inviting stands in the mail and on the page where the invitation is answered. The note given with an answer is shown in the notification the station receives.
+- **Open sign-ups are listed per date.** Under Events → Registrations, each date of a recurring appointment has a block of its own with its date in the heading. The list shows when each person signed up instead of the appointment's date.
 - **The quick search offers what the sidebar shows.** The quick search finds every sidebar page the reader can open, including the station's boards and the steps of the first setup.
 
 ### Changes

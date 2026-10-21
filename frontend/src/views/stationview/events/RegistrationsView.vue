@@ -28,7 +28,7 @@ const {t} = useI18n()
 const {registrationCounts, reload: reloadDeps} = useEventEditDeps({withMembers: true, withCounts: true, autoLoad: false})
 const pendingRegistrations = ref<RegistrationResponse[]>([])
 const allEvents = ref<EventSummary[]>([])
-const expandedEventId = ref<number | null>(null)
+const expandedKey = ref<string | null>(null)
 const registrationStats = ref<RegistrationStatsResponse[]>([])
 const expandedRegistrations = ref<RegistrationResponse[]>([])
 const expandedLoading = ref(false)
@@ -36,7 +36,9 @@ const expandedLoading = ref(false)
 type StatusCounts = Record<RegistrationStatus, number>
 
 interface EventGroup {
+  key: string
   event: EventSummary
+  date: string
   pending: RegistrationResponse[]
   counts: StatusCounts
   deadlineExpired: boolean
@@ -46,41 +48,49 @@ function emptyCounts(): StatusCounts {
   return {PENDING: 0, ACCEPTED: 0, DENIED: 0, DECLINED: 0, WITHDRAWN: 0}
 }
 
+/** One block per date of an appointment, so each date of a recurring one is answered on its own. */
+function groupKey(eventId: number, date: string): string {
+  return `${eventId}:${date}`
+}
+
 /**
- * The appointments with pending registrations, soonest deadline first. The pending count never
- * falls below the pending list, in case the counts lagged behind it.
+ * The dates of appointments with pending registrations, soonest deadline first and then by date. The
+ * pending count never falls below the pending list, in case the counts lagged behind it.
  */
 const eventGroups = computed((): EventGroup[] => {
-  const pendingByEvent = new Map<number, RegistrationResponse[]>()
+  const pendingByDate = new Map<string, RegistrationResponse[]>()
   for (const reg of pendingRegistrations.value) {
-    const list = pendingByEvent.get(reg.eventId) ?? []
+    const key = groupKey(reg.eventId, reg.eventDate)
+    const list = pendingByDate.get(key) ?? []
     list.push(reg)
-    pendingByEvent.set(reg.eventId, list)
+    pendingByDate.set(key, list)
   }
 
-  const countsByEvent = new Map<number, StatusCounts>()
+  const countsByDate = new Map<string, StatusCounts>()
   for (const rc of registrationCounts.value) {
-    const cur = countsByEvent.get(rc.eventId) ?? emptyCounts()
+    const key = groupKey(rc.eventId, rc.eventDate)
+    const cur = countsByDate.get(key) ?? emptyCounts()
     cur[rc.status] += rc.count
-    countsByEvent.set(rc.eventId, cur)
+    countsByDate.set(key, cur)
   }
 
   const result: EventGroup[] = []
-  for (const [eventId, regs] of pendingByEvent) {
-    const event = allEvents.value.find(e => e.id === eventId)
-    if (!event) continue
-    const counts = countsByEvent.get(eventId) ?? emptyCounts()
+  for (const [key, regs] of pendingByDate) {
+    const first = regs[0]
+    const event = first && allEvents.value.find(e => e.id === first.eventId)
+    if (!first || !event) continue
+    const counts = countsByDate.get(key) ?? emptyCounts()
     if (counts.PENDING < regs.length) counts.PENDING = regs.length
     const deadlineExpired = event.registrationDeadline
         ? new Date(event.registrationDeadline) < new Date()
         : false
-    result.push({event, pending: regs, counts, deadlineExpired})
+    result.push({key, event, date: first.eventDate, pending: regs, counts, deadlineExpired})
   }
 
   result.sort((a, b) => {
     const da = a.event.registrationDeadline ?? '9999'
     const db = b.event.registrationDeadline ?? '9999'
-    return da.localeCompare(db)
+    return da.localeCompare(db) || a.date.localeCompare(b.date)
   })
   return result
 })
@@ -99,18 +109,20 @@ const expandedByStatus = computed(() => {
   return groups
 })
 
-async function toggleExpand(eventId: number) {
-  if (expandedEventId.value === eventId) {
-    expandedEventId.value = null
+const expandedGroup = computed(() => eventGroups.value.find(g => g.key === expandedKey.value) ?? null)
+
+async function toggleExpand(group: EventGroup) {
+  if (expandedKey.value === group.key) {
+    expandedKey.value = null
     expandedRegistrations.value = []
     return
   }
-  expandedEventId.value = eventId
+  expandedKey.value = group.key
   expandedLoading.value = true
   try {
     const [stats, regs] = await Promise.all([
-      events.getRegistrationStats(eventId),
-      events.listEventRegistrations(eventId),
+      events.getRegistrationStats(group.event.id),
+      events.listEventRegistrations(group.event.id, group.date),
     ])
     registrationStats.value = stats
     expandedRegistrations.value = regs
@@ -120,12 +132,11 @@ async function toggleExpand(eventId: number) {
   finally { expandedLoading.value = false }
 }
 
-async function refreshExpanded() {
-  const id = expandedEventId.value
-  if (id == null) return
+async function refreshExpanded(group: EventGroup | null) {
+  if (!group) return
   try {
     const [regs, counts] = await Promise.all([
-      events.listEventRegistrations(id),
+      events.listEventRegistrations(group.event.id, group.date),
       events.listRegistrationCounts(),
     ])
     expandedRegistrations.value = regs
@@ -144,6 +155,7 @@ async function refreshExpanded() {
  */
 async function decide(regId: number, status: RegistrationStatus) {
   failure.value = null
+  const group = expandedGroup.value
   try {
     await events.updateRegistrationStatus(regId, status)
     pendingRegistrations.value = pendingRegistrations.value.filter(r => r.id !== regId)
@@ -151,7 +163,7 @@ async function decide(regId: number, status: RegistrationStatus) {
     failure.value = describeFailure(e, t)
     return
   }
-  await refreshExpanded()
+  await refreshExpanded(group)
 }
 
 const {loading, failure} = useAsyncLoader(async () => {
@@ -179,16 +191,17 @@ const {loading, failure} = useAsyncLoader(async () => {
         <div class="space-y-3">
           <EventGroupCard
               v-for="group in eventGroups"
-              :key="group.event.id"
+              :key="group.key"
               :event="group.event"
+              :date="group.date"
               :counts="group.counts"
               :deadline-expired="group.deadlineExpired"
-              :expanded="expandedEventId === group.event.id"
+              :expanded="expandedKey === group.key"
               :expanded-loading="expandedLoading"
               :expanded-by-status="expandedByStatus"
               :registration-stats="registrationStats"
               :format-deadline="formatDateTime"
-              @toggle="toggleExpand(group.event.id)"
+              @toggle="toggleExpand(group)"
               @accept="id => decide(id, RegistrationStatus.ACCEPTED)"
               @deny="id => decide(id, RegistrationStatus.DENIED)"
           />
