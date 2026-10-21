@@ -23,8 +23,10 @@ import java.util.stream.Collectors;
  * Turns office documents into PDFs with LibreOffice in headless mode. The binary is the one
  * {@code LIBREOFFICE_BIN} names, {@code libreoffice} where it names none.
  *
- * <p>LibreOffice cannot run two headless instances on one profile, so conversions run one after the
- * other, each in a directory of its own that is removed afterwards.
+ * <p>Each conversion runs in a directory of its own that is removed afterwards, with a LibreOffice profile
+ * of its own inside it. LibreOffice cannot run two headless instances on one profile and fails without a
+ * word when another process, such as a second server or test run on the machine, holds the shared one.
+ * Conversions of one process still run one after the other.
  *
  * <p>Fonts a document names that the machine does not have can be handed in as directories: LibreOffice
  * finds them through a fontconfig file that adds the directories to the machine's own configuration, so
@@ -61,6 +63,7 @@ public final class LibreOffice {
             Path transcript = dir.resolve("conversion.log");
             var process = new ProcessBuilder(
                     BIN,
+                    "-env:UserInstallation=" + dir.resolve("profile").toUri(),
                     "--headless",
                     "--convert-to",
                     filter == null ? "pdf" : filter,
