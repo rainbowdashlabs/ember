@@ -11,7 +11,9 @@ import PlaceSwitcher from './PlaceSwitcher.vue'
 
 const stationList = ref([{memberId: 1, stationId: 'nord', stationName: 'Nord'}])
 const clusterList = ref<{uid: string, name: string}[]>([])
+const currentClusterId = ref<string | null>(null)
 const admin = ref(false)
+const refreshClusterUnread = vi.fn(async () => {})
 
 vi.mock('vue-router', () => ({useRoute: () => ({path: '/station/news'})}))
 
@@ -35,7 +37,7 @@ vi.mock('@/composables/useStations', () => ({
 }))
 
 vi.mock('@/composables/useCluster', () => ({
-    useCluster: () => ({clusterList, loaded: ref(true), load: vi.fn(), currentClusterId: ref(null), setActiveCluster: vi.fn()}),
+    useCluster: () => ({clusterList, loaded: ref(true), load: vi.fn(), currentClusterId, setActiveCluster: vi.fn()}),
 }))
 
 vi.mock('@/composables/useSession', () => ({useSession: () => ({isAdmin: () => admin.value})}))
@@ -45,7 +47,7 @@ vi.mock('@/composables/useMonitoringCounts', () => ({
 }))
 
 vi.mock('@/composables/useClusterNotificationCount', () => ({
-    useClusterNotificationCount: () => ({count: ref(0), refresh: vi.fn(async () => {})}),
+    useClusterNotificationCount: () => ({count: ref(0), refresh: refreshClusterUnread}),
 }))
 
 /**
@@ -55,7 +57,9 @@ describe('PlaceSwitcher', () => {
     beforeEach(() => {
         stationList.value = [{memberId: 1, stationId: 'nord', stationName: 'Nord'}]
         clusterList.value = []
+        currentClusterId.value = null
         admin.value = false
+        refreshClusterUnread.mockClear()
     })
 
     it('stays plain text for somebody with one station and nothing else', () => {
@@ -84,5 +88,21 @@ describe('PlaceSwitcher', () => {
         await switcher.find('[data-testid="place-switcher"]').trigger('click')
 
         expect(switcher.text()).toContain('Alle Wachen')
+    })
+
+    /** The association's count is refused outside an association, which showed as a refusal on opening the menu. */
+    it('counts the notices of an association only where one is chosen that the reader belongs to', async () => {
+        admin.value = true
+        const switcher = mount(PlaceSwitcher, {props: {name: 'Nord'}})
+        await switcher.find('[data-testid="place-switcher"]').trigger('click')
+        await flushPromises()
+        expect(refreshClusterUnread).not.toHaveBeenCalled()
+
+        clusterList.value = [{uid: 'verband', name: 'Verband'}]
+        currentClusterId.value = 'verband'
+        await switcher.find('[data-testid="place-switcher"]').trigger('click')
+        await switcher.find('[data-testid="place-switcher"]').trigger('click')
+        await flushPromises()
+        expect(refreshClusterUnread).toHaveBeenCalledOnce()
     })
 })

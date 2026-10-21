@@ -87,9 +87,20 @@ export function usePlaces() {
 
     const current = computed(() => places.value.find(place => place.current))
 
-    /** Reads the numbers each place shows in the menu, keeping what is there when one cannot be read. */
+    /** The association the count of unread notices is for: the one chosen, while the reader belongs to it. */
+    const countedCluster = computed(() => clusters.clusterList.value
+        .some(cluster => cluster.uid === clusters.currentClusterId.value))
+
+    /**
+     * Reads the numbers each place shows in the menu, keeping what is there when one cannot be read.
+     *
+     * <p>The association's notices are counted only where an association is chosen and the reader belongs
+     * to it. That count is read in the association, and anywhere else the server refuses it, which the
+     * reader would see as a refusal for a menu they only opened.
+     */
     async function refreshCounts() {
-        const reads: Promise<unknown>[] = [refreshClusterUnread(), stations.loadAllLogos()]
+        const reads: Promise<unknown>[] = [stations.loadAllLogos()]
+        if (countedCluster.value) reads.push(refreshClusterUnread())
         if (isAdmin()) reads.push(refreshMonitoring())
         reads.push(getCrossStationDashboard().then(dashboard => {
             stationCounts.value = Object.fromEntries(dashboard.stations
