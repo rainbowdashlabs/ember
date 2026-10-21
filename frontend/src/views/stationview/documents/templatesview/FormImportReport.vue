@@ -32,7 +32,7 @@ const emit = defineEmits<{
 const {t} = useI18n()
 
 const replacements = computed(() => props.report.fonts
-    .map(font => t('documentTemplates.formImport.fontReplaced', {family: font.family, replacement: font.replacement}))
+    .map(font => t('documentTemplates.formImport.fontReplaced', {family: font.family, replacement: font.replacement, size: font.size}))
     .join(', '))
 </script>
 

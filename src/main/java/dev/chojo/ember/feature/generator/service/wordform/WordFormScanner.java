@@ -13,6 +13,7 @@ import org.w3c.dom.Node;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -39,6 +40,10 @@ import static dev.chojo.ember.feature.generator.service.wordform.WordXml.first;
  * box the text after it, for a place on a line of places alone the words on the line below in the same
  * order, and for a place alone in a table cell the heading of its column. A text box is read once,
  * though Word keeps a second copy of it for older programs.
+ *
+ * <p>Each place is also read for the font it is set in, after the sizes of scaled families are written
+ * ({@link FormFontSizes}) and before any family is replaced ({@link FormFonts}), so a field laid over it
+ * can print as large as the form sets it, under the name the form gives its family.
  */
 final class WordFormScanner {
     private static final String MC = "http://schemas.openxmlformats.org/markup-compatibility/2006";
@@ -63,13 +68,16 @@ final class WordFormScanner {
             Set.of("docPartObj", "citation", "bibliography", "equation", "picture", "group");
 
     private final Document body;
+    private final RunFonts runFonts;
     private final List<Element> paragraphs;
     private final List<FormSpot> spots = new ArrayList<>();
+    private final Map<String, TextFont> placeFonts = new HashMap<>();
     private final List<Runnable> rewrites = new ArrayList<>();
     private int counted;
 
-    private WordFormScanner(Document body) {
+    private WordFormScanner(Document body, RunFonts runFonts) {
         this.body = body;
+        this.runFonts = runFonts;
         this.paragraphs = paragraphs(body);
     }
 
@@ -78,10 +86,16 @@ final class WordFormScanner {
      *
      * @param docx        the document with every place rewritten into a named content control
      * @param spots       the places in the order the document holds them
+     * @param placeFonts  the font each place is set in, by {@link FormSpot#tag()}, its family as the form names it
      * @param fonts       the font families the document names as written, each once, before any was replaced
      * @param rightMargin the right margin of the page in points, or 0 where the document names none
      */
-    record ScannedForm(byte[] docx, List<FormSpot> spots, List<String> fonts, double rightMargin) {}
+    record ScannedForm(
+            byte[] docx,
+            List<FormSpot> spots,
+            Map<String, TextFont> placeFonts,
+            List<String> fonts,
+            double rightMargin) {}
 
     /**
      * @param data the bytes of a Word document
@@ -93,22 +107,32 @@ final class WordFormScanner {
     }
 
     /**
-     * @param data         the bytes of a Word document
-     * @param replacements the family put in place of each family the document names that is replaced
+     * @param data    the bytes of a Word document
+     * @param choices how each family the document names that is replaced is drawn instead
      * @return the places it has, and the document rewritten so that each is exported as a form field and
-     *         drawn in the families put in place of those replaced
+     *         drawn in the families and sizes chosen for those replaced
      * @throws IOException where the document cannot be read
      */
-    static ScannedForm scan(byte[] data, Map<String, String> replacements) throws IOException {
+    static ScannedForm scan(byte[] data, Map<String, FontChoice> choices) throws IOException {
         var docx = DocxPackage.read(data);
         var fonts = FormFonts.named(docx);
-        FormFonts.replace(docx, replacements);
+        var runFonts = RunFonts.read(docx);
+        FormFontSizes.scale(docx, runFonts, choices);
+        FormBoldFaces.split(docx, runFonts, choices);
         var body = docx.xml(DocxPackage.BODY).orElseThrow();
-        var scanner = new WordFormScanner(body);
+        var scanner = new WordFormScanner(body, runFonts);
         scanner.read();
         scanner.rewrites.forEach(Runnable::run);
         docx.replace(DocxPackage.BODY, body);
-        return new ScannedForm(docx.bytes(), List.copyOf(scanner.spots), fonts, rightMargin(body));
+        FormFonts.replace(docx, familiesOf(choices));
+        return new ScannedForm(
+                docx.bytes(), List.copyOf(scanner.spots), Map.copyOf(scanner.placeFonts), fonts, rightMargin(body));
+    }
+
+    private static Map<String, String> familiesOf(Map<String, FontChoice> choices) {
+        var families = new HashMap<String, String>();
+        choices.forEach((family, choice) -> families.put(family, choice.family()));
+        return families;
     }
 
     /**
@@ -303,7 +327,7 @@ final class WordFormScanner {
             if (begin.getParentNode() != end.getParentNode()) return;
             String preset = legacyPreset(data);
             String hint = attribute(first(data, W, "statusText"), "val");
-            var place = place(FieldShape.ofLegacy(data), preset, hint);
+            var place = place(FieldShape.ofLegacy(data), preset, hint, begin);
             var properties = first(begin, W, "rPr");
             rewrites.add(() -> {
                 var control = namedControl(place, properties);
@@ -347,9 +371,13 @@ final class WordFormScanner {
             String preset = box != null
                     ? String.valueOf("1".equals(attribute(first(box, W14, "checked"), W14, "val")))
                     : first(properties, W, "showingPlcHdr") != null ? null : blankToNull(content.getTextContent());
-            var place =
-                    place(FieldShape.ofControl(properties), preset, attribute(first(properties, W, "alias"), "val"));
-            var runProperties = first(first(content, W, "r"), W, "rPr");
+            var firstRun = first(content, W, "r");
+            var place = place(
+                    FieldShape.ofControl(properties),
+                    preset,
+                    attribute(first(properties, W, "alias"), "val"),
+                    firstRun == null ? control : firstRun);
+            var runProperties = first(firstRun, W, "rPr");
             rewrites.add(() -> control.getParentNode().replaceChild(namedControl(place, runProperties), control));
         }
 
@@ -360,9 +388,11 @@ final class WordFormScanner {
             return false;
         }
 
-        private Place place(FieldShape shape, @Nullable String preset, String hint) {
+        /** A place, read for the font of the run that shows it, or of its paragraph where it holds no run. */
+        private Place place(FieldShape shape, @Nullable String preset, String hint, Element shown) {
             flush();
             var place = new Place(++counted, shape, preset, hint);
+            placeFonts.put(FormSpot.tagOf(place.number()), runFonts.of(shown));
             pieces.add(place);
             return place;
         }
@@ -465,7 +495,7 @@ final class WordFormScanner {
 
     /** A content control for a place, holding nothing but what an empty place shows. */
     private Element namedControl(Place place, @Nullable Element runProperties) {
-        String tag = "ember-f" + place.number();
+        String tag = FormSpot.tagOf(place.number());
         var control = body.createElementNS(W, "w:sdt");
         var properties = body.createElementNS(W, "w:sdtPr");
         control.appendChild(properties);

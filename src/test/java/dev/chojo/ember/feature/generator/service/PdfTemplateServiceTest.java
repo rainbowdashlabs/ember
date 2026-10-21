@@ -139,13 +139,14 @@ class PdfTemplateServiceTest extends RepositoryTestBase {
                 templateRepository, pdfTemplates, uses, checks, restrictionService, catalogue, newOwnerStores());
         pdfs = new PdfTemplateService(
                 templates, templateRepository, pdfTemplates, newDocumentIntake(), storage, newOwnerStores());
-        forms = new WordFormImportService(templates, pdfs, checks, catalogue, fonts);
+        var renderer = new PdfTemplateRenderer(pdfs, new PdfStamper(new StampFonts(DefaultFont.absent())), fonts);
+        forms = new WordFormImportService(templates, pdfs, checks, catalogue, fonts, renderer);
         generator = new DocumentGeneratorService(
                 templates,
                 newPlaceholderResolver(clock),
                 catalogue,
                 new LetterRenderer(mock(KbPdfPictures.class), media, newStationLogoService(), fonts, newOwnerStores()),
-                new PdfTemplateRenderer(pdfs, new PdfStamper(new StampFonts(DefaultFont.absent())), fonts),
+                renderer,
                 stationRepo,
                 restrictionService,
                 clock);
@@ -361,25 +362,134 @@ class PdfTemplateServiceTest extends RepositoryTestBase {
                 () -> forms.importForm(owner, wordUpload(docx), Map.of(), author));
         refused(
                 DocumentRefusal.DOCUMENT_TEMPLATE_FONT_UNKNOWN,
-                () -> forms.importForm(owner, wordUpload(docx), Map.of("Frutiger 45 Light", "Nirgendwo Sans"), author));
+                () -> forms.importForm(
+                        owner, wordUpload(docx), drawnIn("Frutiger 45 Light", "Nirgendwo Sans", null), author));
+        refused(
+                DocumentRefusal.DOCUMENT_FORM_IMPORT_FONT_SIZE_INVALID,
+                () -> forms.importForm(
+                        owner, wordUpload(docx), drawnIn("Frutiger 45 Light", "Open Sans", 151), author));
 
         WordFormImportService.WordFormImport imported;
         try {
-            imported = forms.importForm(owner, wordUpload(docx), Map.of("Frutiger 45 Light", ""), author);
+            imported = forms.importForm(owner, wordUpload(docx), drawnIn("Frutiger 45 Light", "", null), author);
         } catch (RefusalResponse refused) {
             assumeTrue(
                     refused.refusal() != DocumentRefusal.DOCUMENT_FORM_IMPORT_FAILED, "LibreOffice is not available");
             throw refused;
         }
         assertEquals(
-                List.of(new WordFormImportService.FontReplacement("Frutiger 45 Light", missing.defaultFamily())),
+                List.of(new WordFormImportService.FontReplacement("Frutiger 45 Light", missing.defaultFamily(), 100)),
                 imported.fonts());
 
-        var lookalike = forms.importForm(owner, wordUpload(docx), Map.of("Frutiger 45 Light", "Open Sans"), author);
+        var lookalike =
+                forms.importForm(owner, wordUpload(docx), drawnIn("Frutiger 45 Light", "Open Sans", 90), author);
         assertEquals(
-                List.of(new WordFormImportService.FontReplacement("Frutiger 45 Light", "Open Sans Light")),
+                List.of(new WordFormImportService.FontReplacement("Frutiger 45 Light", "Open Sans Light", 90)),
                 lookalike.fonts(),
                 "a light weight is drawn in the light cut");
+
+        var regular = forms.importForm(
+                owner,
+                wordUpload(docx),
+                Map.of(
+                        "Frutiger 45 Light",
+                        new WordFormImportService.ChosenFont(
+                                "Open Sans", null, WordFormImportService.FontWeight.REGULAR)),
+                author);
+        assertEquals(
+                List.of(new WordFormImportService.FontReplacement("Frutiger 45 Light", "Open Sans", 100)),
+                regular.fonts(),
+                "a weight asked for wins over the one the name says");
+        refused(
+                DocumentRefusal.DOCUMENT_FORM_IMPORT_FONT_WEIGHT_UNAVAILABLE,
+                () -> forms.importForm(
+                        owner,
+                        wordUpload(docx),
+                        Map.of(
+                                "Frutiger 45 Light",
+                                new WordFormImportService.ChosenFont(
+                                        "Carlito", null, WordFormImportService.FontWeight.LIGHT)),
+                        author));
+        var missing2 = forms.fontsOf(owner, wordUpload(docx));
+        assertEquals(List.of("Frutiger 45 Light"), missing2.light());
+        assertTrue(missing2.lightCuts().contains("Open Sans"));
+    }
+
+    @Test
+    void aFormIsDrawnInItsOwnFontsAndWithTheReplacementsToCompare() throws IOException {
+        byte[] docx = withFont("Frutiger 45 Light");
+        byte[] replaced;
+        try {
+            replaced = forms.preview(
+                    owner,
+                    wordUpload(docx),
+                    drawnIn("Frutiger 45 Light", "Open Sans", 95),
+                    WordFormImportService.PreviewVersion.REPLACED,
+                    List.of());
+        } catch (RefusalResponse refused) {
+            assumeTrue(
+                    refused.refusal() != DocumentRefusal.DOCUMENT_FORM_IMPORT_FAILED, "LibreOffice is not available");
+            throw refused;
+        }
+        assertTrue(
+                fontsIn(replaced).stream().anyMatch(font -> font.contains("OpenSans-Light")),
+                fontsIn(replaced).toString());
+
+        byte[] guessed = forms.preview(
+                owner, wordUpload(docx), Map.of(), WordFormImportService.PreviewVersion.ORIGINAL, List.of());
+        for (byte[] pdf : List.of(replaced, guessed)) {
+            String text = PdfText.extract(pdf);
+            for (String sample : List.of("Mustermann", "Max", "30.09.2026", "keine")) {
+                assertTrue(text.contains(sample), "both sides show the example values: " + sample + " in " + text);
+            }
+        }
+        var guessedFonts = fontsIn(guessed);
+        assertTrue(
+                guessedFonts.stream().anyMatch(font -> font.contains("OpenSans-Light")),
+                "without its file the original is drawn in the look-alike, not in a serif fallback: " + guessedFonts);
+
+        var ownFile = new WordFormImportService.OriginalFont(
+                "Frutiger 45 Light",
+                TestUploads.of("Frutiger.ttf", "font/ttf", resourceBytes("fonts/LiberationSerif-Regular.ttf")));
+        var withFile = fontsIn(forms.preview(
+                owner, wordUpload(docx), Map.of(), WordFormImportService.PreviewVersion.ORIGINAL, List.of(ownFile)));
+        assertTrue(
+                withFile.stream().anyMatch(font -> font.contains("LiberationSerif")),
+                "a file handed in draws its family whatever the file calls itself: " + withFile);
+        assertEquals(List.of(), forms.fontsOf(owner, wordUpload(docx)).embedded());
+
+        var nineFonts = new ArrayList<WordFormImportService.OriginalFont>();
+        for (int index = 0; index < 9; index++) {
+            nineFonts.add(new WordFormImportService.OriginalFont(
+                    "Frutiger 45 Light", TestUploads.of("font" + index + ".ttf", "font/ttf", new byte[] {0, 1, 0, 0})));
+        }
+        refused(
+                DocumentRefusal.DOCUMENT_FORM_PREVIEW_TOO_MANY_FONTS,
+                () -> forms.preview(
+                        owner, wordUpload(docx), Map.of(), WordFormImportService.PreviewVersion.ORIGINAL, nineFonts));
+    }
+
+    private static List<String> fontsIn(byte[] pdf) throws IOException {
+        var names = new ArrayList<String>();
+        try (var document = Loader.loadPDF(pdf)) {
+            for (var page : document.getPages()) {
+                var resources = page.getResources();
+                for (var name : resources.getFontNames())
+                    names.add(resources.getFont(name).getName());
+            }
+        }
+        return names;
+    }
+
+    private byte[] resourceBytes(String name) throws IOException {
+        try (var in = Objects.requireNonNull(getClass().getClassLoader().getResourceAsStream(name))) {
+            return in.readAllBytes();
+        }
+    }
+
+    private static Map<String, WordFormImportService.ChosenFont> drawnIn(
+            String family, String replacement, @Nullable Integer size) {
+        return Map.of(family, new WordFormImportService.ChosenFont(replacement, size, null));
     }
 
     @Test
@@ -394,13 +504,13 @@ class PdfTemplateServiceTest extends RepositoryTestBase {
 
         WordFormImportService.WordFormImport imported;
         try {
-            imported = forms.importForm(owner, wordUpload(docx), Map.of("Calibri", "Carlito"), author);
+            imported = forms.importForm(owner, wordUpload(docx), drawnIn("Calibri", "Carlito", null), author);
         } catch (RefusalResponse refused) {
             assumeTrue(
                     refused.refusal() != DocumentRefusal.DOCUMENT_FORM_IMPORT_FAILED, "LibreOffice is not available");
             throw refused;
         }
-        assertEquals(List.of(new WordFormImportService.FontReplacement("Calibri", "Carlito")), imported.fonts());
+        assertEquals(List.of(new WordFormImportService.FontReplacement("Calibri", "Carlito", 100)), imported.fonts());
     }
 
     private static UploadedFile wordUpload(byte[] docx) {

@@ -39,6 +39,11 @@ public record FormSpot(
 
     /** What the place is called in the converted PDF, where its form field carries this as its name. */
     public String tag() {
+        return tagOf(number);
+    }
+
+    /** What the place of that number is called in the converted PDF. */
+    static String tagOf(int number) {
         return "ember-f" + number;
     }
 

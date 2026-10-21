@@ -768,7 +768,18 @@ public enum DocumentRefusal implements Refusal {
             321, HttpStatus.BAD_REQUEST, "An answer is a number the question does not take"),
 
     /** An answer to a choice question that is none of its entries. */
-    DOCUMENT_ANSWER_NOT_A_CHOICE(322, HttpStatus.BAD_REQUEST, "An answer is none of the entries its question offers");
+    DOCUMENT_ANSWER_NOT_A_CHOICE(322, HttpStatus.BAD_REQUEST, "An answer is none of the entries its question offers"),
+
+    /** A replaced font of a Word form drawn smaller or larger than a form may be scaled. */
+    DOCUMENT_FORM_IMPORT_FONT_SIZE_INVALID(
+            323, HttpStatus.BAD_REQUEST, "A replaced font is drawn at 50 to 150 percent of its size"),
+
+    /** More font files handed in for the preview of a Word form in its own fonts than a preview takes. */
+    DOCUMENT_FORM_PREVIEW_TOO_MANY_FONTS(
+            324, HttpStatus.BAD_REQUEST, "The preview of a form takes at most 8 font files"),
+
+    /** A replacement for a font of a Word form asked for in a light weight its family does not ship. */
+    DOCUMENT_FORM_IMPORT_FONT_WEIGHT_UNAVAILABLE(325, HttpStatus.BAD_REQUEST, "The font chosen has no light weight");
 
     private final Definition definition;
 

@@ -104,3 +104,9 @@ SET text = '{{ask.feld_' || bx.number || '}}'
 FROM boxes bx
 WHERE b.template_id = bx.template_id
   AND b.field_name = bx.field_name;
+
+ALTER TABLE ember_schema.document_template_field
+    ADD COLUMN keep_size BOOLEAN NOT NULL DEFAULT FALSE;
+
+COMMENT ON COLUMN ember_schema.document_template_field.keep_size IS
+    'Whether a text field prints at its size however long the value is, running past its box, instead of shrinking the value to fit. Set on the fields of a template made from a Word form, whose gaps are only as wide as their blank.';

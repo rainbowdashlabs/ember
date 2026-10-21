@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:5bb8699bbdcda8f53947b1474fd7d478287344d8399c2daa0b7d72a03733d9c7",
-  "generatedAt": "2026-10-20T21:58:47Z",
+  "schemaHash": "sha256:04f4a4e7739ac82ee98af593c1655d9cef65e8cb807af7e779bd1e288c9ea46b",
+  "generatedAt": "2026-10-21T11:32:18Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -7447,7 +7447,7 @@
       "description": "A template turned into a PDF for one member at a time, kept by a station (station_id) or by an association for all its stations (cluster_id). Never deleted, only archived, so every generated document keeps pointing at the template it came from."
     },
     "document_template_field": {
-      "tableHash": "sha256:496cfd9482ac9c733194d67bf138704bc6508e1f2c0d116678a180bbd352e217",
+      "tableHash": "sha256:bfd1f9c944426d5f119c9170b8a2bd199088cf5cec53f1af7f7fc39b134e7fda",
       "columns": [
         {
           "name": "id",
@@ -7595,6 +7595,13 @@
           "nullable": true,
           "verified": true,
           "description": "For FILL_IN: the most characters the typed value may have, 1 to 500. NULL for 500, and for every other kind."
+        },
+        {
+          "name": "keep_size",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether a text field prints at its size however long the value is, running past its box, instead of shrinking the value to fit. Set on the fields of a template made from a Word form, whose gaps are only as wide as their blank."
         }
       ],
       "foreignKeys": [

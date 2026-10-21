@@ -43,6 +43,9 @@ final class FormFonts {
     /** The elements of a theme that name a family in their typeface. */
     private static final Set<String> THEME_FONTS = Set.of("latin", "ea", "cs");
 
+    /** The elements of the list of fonts that point at a file the form carries, one for each face. */
+    private static final List<String> EMBEDDED = List.of("embedRegular", "embedBold", "embedItalic", "embedBoldItalic");
+
     private FormFonts() {}
 
     /**
@@ -60,6 +63,28 @@ final class FormFonts {
             }
         }
         return List.copyOf(families);
+    }
+
+    /**
+     * @param docx a Word form
+     * @return the families its list of fonts carries a file for, saved with "embed fonts"
+     * @throws IOException where the list cannot be read
+     */
+    static List<String> embedded(DocxPackage docx) throws IOException {
+        var list = docx.xml(FONT_LIST);
+        if (list.isEmpty()) return List.of();
+        var families = new LinkedHashSet<String>();
+        var listed = list.get().getElementsByTagNameNS(WordXml.W, "font");
+        for (int index = 0; index < listed.getLength(); index++) {
+            var font = (Element) listed.item(index);
+            String family = font.getAttributeNS(WordXml.W, "name").strip();
+            if (!family.isEmpty() && carriesFile(font)) families.add(family);
+        }
+        return List.copyOf(families);
+    }
+
+    private static boolean carriesFile(Element font) {
+        return EMBEDDED.stream().anyMatch(face -> WordXml.first(font, WordXml.W, face) != null);
     }
 
     /**

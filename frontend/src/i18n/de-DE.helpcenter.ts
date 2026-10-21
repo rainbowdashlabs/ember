@@ -2125,7 +2125,8 @@ volumes:
                 + 'ein Kreuz, wenn sein Wert Ja ist, und ein Unterschriftsfeld bleibt leer zum Unterschreiben.',
             pdfFieldsText: 'Ziehe ein Feld an seine Stelle und an der Ecke auf die richtige Größe. Mit den '
                 + 'Pfeiltasten verschiebst du es genauer. Ein Text, der nicht passt, wird kleiner oder bricht in weitere '
-                + 'Zeilen um. Ein Unterschriftsfeld für alle Erziehungsberechtigten teilt sich beim Erstellen in je ein '
+                + 'Zeilen um. Mit „Größe beibehalten" bleibt er so groß und läuft über das Feld hinaus weiter. '
+                + 'Ein Unterschriftsfeld für alle Erziehungsberechtigten teilt sich beim Erstellen in je ein '
                 + 'Feld nebeneinander, eines für die zweite erziehungsberechtigte Person fällt bei nur einer weg.',
             pdfFormText: 'Hat das PDF eigene Formularfelder, stehen sie darunter. Du füllst sie mit Platzhaltern oder '
                 + 'lässt sie, wie sie sind. Beim Erstellen werden alle Felder fest in die Seite übernommen.',
@@ -2167,6 +2168,16 @@ volumes:
                 + 'Myriad und ähnliche Schriften Open Sans, bei einem leichten Schnitt wie Frutiger 45 Light in '
                 + 'ihrem leichten Schnitt. Soll das Formular im Original erscheinen, lade die Schrift unter '
                 + 'Dokumente → Schriftarten hoch und importiere es erneut.',
+            wordFormPreviewText: 'Unter der Auswahl zeigt eine Vorschau das Formular zweimal: als Original und '
+                + 'mit den gewählten Schriften. Beide Seiten tragen dieselben Beispielwerte in die Felder ein, so '
+                + 'lässt sich der Text in den Feldern direkt vergleichen. Das Original erscheint in den Schriften, die das Formular '
+                + 'enthält. Für jede andere lässt sich die Schriftdatei hinzufügen, auch wenn sie sich anders nennt, '
+                + 'etwa Frutiger LT Std für Frutiger 45 Light. Sie gilt nur für die Vorschau und wird nicht '
+                + 'gespeichert. Ohne Datei zeigt das Original eine ähnliche Schrift und weist darauf hin. Neben der '
+                + 'Schrift wählst du die Stärke, leicht oder normal, wo die Schrift einen leichten Schnitt hat. Fetter '
+                + 'Text bleibt fett. Setzt die Ersatzschrift ihre Buchstaben breiter und brechen Zeilen anders um, '
+                + 'verkleinere sie in Prozent und aktualisiere die Vorschau. Die Felder der Vorlage drucken in '
+                + 'derselben Schrift und Größe wie der Text an ihrer Stelle.',
             pronounsTitle: 'Pronomen und Sprache',
             pronounsText: 'Pronomen folgen dem Geschlechtsfeld der Wache: Jede Antwort dort sagt, welche Pronomen in '
                 + 'Dokumenten stehen, je Sprache, oder dass der Vorname steht. Ohne Antwort steht ebenfalls der '

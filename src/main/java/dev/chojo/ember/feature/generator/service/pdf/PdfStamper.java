@@ -47,6 +47,9 @@ import java.util.function.UnaryOperator;
  * upright on a turned page. Nothing else in the file
  * changes, so a PDF/A comes out as a PDF/A; a PDF that was none is not made one.
  *
+ * <p>A text field shrinks its value to fit its box, except one that keeps its size: that one prints the
+ * value at its size on one line and lets it run past the box, as into the line of a form filled in by hand.
+ *
  * <p>A field on a page the PDF does not have, as after a new upload with fewer pages, is left out.
  */
 @Singleton
@@ -128,7 +131,8 @@ public class PdfStamper {
                 place(
                         byPage,
                         text.rect(),
-                        new Mark.Text(text.text(), text.size(), text.align(), text.wrap(), null, FontStyle.REGULAR));
+                        new Mark.Text(
+                                text.text(), text.size(), text.align(), text.wrap(), null, FontStyle.REGULAR, false));
             }
             var fillIns = new ArrayList<FillInBox>();
             var fields = layout.fields();
@@ -213,10 +217,12 @@ public class PdfStamper {
                     field.align(),
                     false,
                     field.fontFamily(),
-                    FontStyle.REGULAR));
+                    FontStyle.REGULAR,
+                    false));
         }
         if (text != null) {
-            captions.add(new Mark.Text(text, (float) field.fontSize(), field.align(), false, null, FontStyle.REGULAR));
+            captions.add(new Mark.Text(
+                    text, (float) field.fontSize(), field.align(), false, null, FontStyle.REGULAR, false));
         }
         double wanted = captions.stream()
                 .mapToDouble(caption -> caption.size() * SIGNATURE_TEXT_LEADING)
@@ -251,14 +257,19 @@ public class PdfStamper {
 
     /** What is drawn into one box. */
     private sealed interface Mark {
-        /** A text, laid out to fit, in a family of uploaded fonts or, where it names none, the default font. */
+        /**
+         * A text, laid out to fit or, where it keeps its size, on one line running past the box, in a family of
+         * uploaded fonts or, where it names none, the default font.
+         */
         record Text(
                 String text,
                 float size,
                 TextAlign align,
                 boolean wrap,
                 @Nullable String family,
-                FontStyle style) implements Mark {}
+                FontStyle style,
+                boolean keepSize)
+                implements Mark {}
 
         /** A cross through the box. */
         record Cross() implements Mark {}
@@ -283,7 +294,8 @@ public class PdfStamper {
                         field.align(),
                         field.wrap(),
                         field.fontFamily(),
-                        Objects.requireNonNullElse(field.fontStyle(), FontStyle.REGULAR));
+                        Objects.requireNonNullElse(field.fontStyle(), FontStyle.REGULAR),
+                        field.keepSize() && !field.wrap());
             case CHECK -> YesWords.saysYes(text) ? new Mark.Cross() : new Mark.Nothing();
             case SIGNATURE -> new Mark.Line();
             case FILL_IN -> new Mark.Nothing();
@@ -319,10 +331,14 @@ public class PdfStamper {
             PDPageContentStream content, FieldFrame frame, Mark.Text text, FontChain chain, Set<String> unprintable)
             throws IOException {
         if (text.text().isBlank()) return;
-        var fitted = FittedText.fit(chain, text.text(), frame.width(), frame.height(), text.size(), text.wrap());
+        var fitted = text.keepSize()
+                ? FittedText.atSize(chain, text.text(), text.size())
+                : FittedText.fit(chain, text.text(), frame.width(), frame.height(), text.size(), text.wrap());
         unprintable.addAll(fitted.unprintable());
-        content.addRect(0, 0, frame.width(), frame.height());
-        content.clip();
+        if (!text.keepSize()) {
+            content.addRect(0, 0, frame.width(), frame.height());
+            content.clip();
+        }
         content.setNonStrokingColor(0f);
         float size = fitted.size();
         float step = size * FittedText.LEADING;

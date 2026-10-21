@@ -168,7 +168,29 @@ test.describe('Document templates', () => {
         await dialog.getByTestId('generate-file').click()
         await expect(managerPage.getByText('Dokument erstellt und abgelegt.')).toBeVisible()
     })
+
+    test('a form in a font the station lacks is compared with its replacement before it is converted', async ({managerPage}) => {
+        const name = unique('Schriftprobe')
+        await managerPage.goto('/station/documents/templates')
+        await managerPage.getByTestId('template-import-form-file').setInputFiles({
+            name: `${name}.docx`,
+            mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            buffer: readFileSync(CHANGE_FORM_FRUTIGER),
+        })
+        const choice = managerPage.getByTestId('form-font-choice')
+        await expect(choice.getByTestId('form-preview-original').locator('canvas')).toBeVisible()
+        await expect(choice.getByTestId('form-preview-replaced').locator('canvas')).toBeVisible()
+        await choice.getByTestId('form-font-Frutiger 45 Light-size').fill('95')
+        await choice.getByTestId('form-preview-refresh').click()
+        await expect(choice.getByTestId('form-preview-refresh')).toBeEnabled()
+        await choice.getByTestId('form-font-confirm').click()
+        await expect(managerPage.getByTestId('form-import-report')).toContainText('Frutiger 45 Light durch Open Sans Light (95 %)')
+    })
 })
 
 /** The neutral stand-in of a change notification the backend tests read too. */
 const CHANGE_FORM = fileURLToPath(new URL('../../src/test/resources/generator/change-form.docx', import.meta.url))
+
+/** The same form with its text set in a font no station has. */
+const CHANGE_FORM_FRUTIGER =
+    fileURLToPath(new URL('../../src/test/resources/generator/change-form-frutiger.docx', import.meta.url))

@@ -14693,6 +14693,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/cluster/document-template-form-import/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Draw a Word form of the association in its own fonts or with the replacements chosen */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/cluster/document-template-import": {
         parameters: {
             query?: never;
@@ -20129,6 +20172,49 @@ export interface paths {
                     content: {
                         "application/json": components["schemas"]["MissingFonts"];
                     };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/document-template-form-import/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Draw a Word form in its own fonts or with the replacements chosen, to compare them */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
                 };
                 /** @description Bad Request */
                 400: {
@@ -65376,6 +65462,7 @@ export interface components {
             editorVersion: string | null;
             family: string;
             origin: components["schemas"]["FontOrigin"];
+            printsInLetters: boolean;
             printsOnPdf: boolean;
             sample: string;
             styles: components["schemas"]["FontStyle"][];
@@ -65387,6 +65474,8 @@ export interface components {
         FontReplacement: {
             family: string;
             replacement: string;
+            /** Format: int32 */
+            size: number;
         };
         /** @enum {string} */
         FontStyle: "REGULAR" | "BOLD" | "ITALIC" | "BOLD_ITALIC";
@@ -68018,6 +68107,9 @@ export interface components {
         };
         MissingFonts: {
             defaultFamily: string;
+            embedded: string[];
+            light: string[];
+            lightCuts: string[];
             missing: string[];
             suggested: {
                 [key: string]: components["schemas"]["Suggestion"];
@@ -68920,6 +69012,7 @@ export interface components {
             fontFamily: string | null;
             fontSize: number;
             fontStyle: components["schemas"]["FontStyle"] | null;
+            keepSize: boolean;
             kind: components["schemas"]["PdfFieldKind"];
             /** Format: int32 */
             maxLength: number | null;

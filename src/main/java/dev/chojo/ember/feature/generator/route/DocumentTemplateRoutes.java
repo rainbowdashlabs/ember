@@ -97,6 +97,10 @@ public class DocumentTemplateRoutes implements Routes {
                 prefix + "/document-template-form-import/fonts",
                 this::formFonts,
                 StationPermission.DOCUMENT_TEMPLATE_EDIT);
+        routes.post(
+                prefix + "/document-template-form-import/preview",
+                this::formPreview,
+                StationPermission.DOCUMENT_TEMPLATE_EDIT);
         routes.get(prefix + "/document-templates", this::list, StationPermission.DOCUMENT_TEMPLATE_EDIT);
         routes.post(prefix + "/document-templates", this::create, StationPermission.DOCUMENT_TEMPLATE_EDIT);
         routes.get(prefix + "/document-templates/{id}", this::detail, StationPermission.DOCUMENT_TEMPLATE_EDIT);
@@ -242,6 +246,19 @@ public class DocumentTemplateRoutes implements Routes {
             })
     private void formFonts(Context ctx) {
         ctx.json(forms.fontsOf(StationSession.from(ctx).owner(), ctx.uploadedFile("file")));
+    }
+
+    @OpenApi(
+            path = "/api/v1/document-template-form-import/preview",
+            methods = HttpMethod.POST,
+            summary = "Draw a Word form in its own fonts or with the replacements chosen, to compare them",
+            tags = {"Documents"},
+            responses = {
+                @OpenApiResponse(status = "200"),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void formPreview(Context ctx) {
+        FormFontChoices.preview(ctx, forms, StationSession.from(ctx).owner());
     }
 
     @OpenApi(

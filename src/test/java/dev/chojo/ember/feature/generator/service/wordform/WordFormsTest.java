@@ -39,7 +39,7 @@ class WordFormsTest {
         }
         try {
             converted = WordForms.convert(
-                    new WordForms.Form(docx, Map.of(), List.of(), Map.of("personalnummer", "profile.9")));
+                    new WordForms.Form(docx, Map.of(), List.of(), Map.of(), Map.of("personalnummer", "profile.9")));
         } catch (IOException e) {
             assumeTrue(false, "LibreOffice is not available: " + e.getMessage());
         }

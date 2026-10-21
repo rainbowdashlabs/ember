@@ -150,11 +150,28 @@ class WordFormScannerTest {
 
     @Test
     void aReplacedFontIsNamedNowhereInTheForm() throws IOException {
-        var scanned = WordFormScanner.scan(form(), Map.of("Liberation Sans", "DejaVu Sans"));
+        var scanned = WordFormScanner.scan(form(), Map.of("Liberation Sans", new FontChoice("DejaVu Sans", 100)));
 
         assertEquals(List.of("Liberation Sans"), scanned.fonts(), "the form's own fonts are reported as written");
         assertEquals(List.of("DejaVu Sans"), WordFormScanner.fontsOf(scanned.docx()));
         assertEquals(17, scanned.spots().size());
+    }
+
+    @Test
+    void everyPlaceIsReadForTheFontItIsSetInScaledAsChosen() throws IOException {
+        byte[] docx = docxOf("<w:p><w:r><w:t>Name</w:t></w:r><w:r><w:rPr><w:rFonts w:ascii=\"Frutiger\"/>"
+                + "<w:sz w:val=\"22\"/></w:rPr><w:fldChar w:fldCharType=\"begin\"><w:ffData><w:textInput/></w:ffData>"
+                + "</w:fldChar></w:r><w:r><w:fldChar w:fldCharType=\"separate\"/></w:r><w:r><w:t>  </w:t></w:r>"
+                + "<w:r><w:fldChar w:fldCharType=\"end\"/></w:r></w:p>");
+
+        assertEquals(
+                Map.of("ember-f1", new TextFont("Frutiger", 11)),
+                WordFormScanner.scan(docx).placeFonts());
+        assertEquals(
+                Map.of("ember-f1", new TextFont("Frutiger", 10)),
+                WordFormScanner.scan(docx, Map.of("Frutiger", new FontChoice("Open Sans", 90)))
+                        .placeFonts(),
+                "the place keeps the name the form gives its family and the size it is drawn in");
     }
 
     @Test

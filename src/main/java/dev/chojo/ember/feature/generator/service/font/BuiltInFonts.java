@@ -48,35 +48,26 @@ public final class BuiltInFonts {
             carriedByTypst("New Computer Modern", FontOutline.CFF),
             carriedByTypst("DejaVu Sans Mono", FontOutline.TRUETYPE));
 
-    /** The light cuts of built-in families, which no template names but a Word form in a light weight is drawn in. */
-    private static final Map<String, FontFamily> LIGHT_CUTS = Map.of(
-            "Open Sans",
-            new FontFamily(
-                    "Open Sans Light",
-                    FontOrigin.BUILT_IN,
-                    Map.of(
-                            FontStyle.REGULAR,
-                            new BuiltInFace(
-                                    "Open Sans Light", FontStyle.REGULAR, FontOutline.TRUETYPE, "OpenSans-Light.ttf"),
-                            FontStyle.ITALIC,
-                            new BuiltInFace(
-                                    "Open Sans Light",
-                                    FontStyle.ITALIC,
-                                    FontOutline.TRUETYPE,
-                                    "OpenSans-LightItalic.ttf"))));
+    /**
+     * The light cuts of built-in families, which a Word form in a light weight is drawn in and its fields print
+     * in. Letters are not offered them: Typst knows the light file only by the name of its family. Bold text of
+     * a light cut is the bold face of the family itself, since light cuts ship none of their own.
+     */
+    private static final Map<String, FontFamily> LIGHT_CUTS = Map.of("Open Sans", lightCut("Open Sans", "OpenSans"));
 
     private static final Map<String, byte[]> FILES = Stream.concat(FAMILIES.stream(), LIGHT_CUTS.values().stream())
             .flatMap(family -> family.files().values().stream())
             .map(BuiltInFace.class::cast)
             .filter(BuiltInFace::bundled)
             .map(BuiltInFace::bundledFile)
+            .distinct()
             .collect(Collectors.toUnmodifiableMap(Function.identity(), BundledFont::resource));
 
     private BuiltInFonts() {}
 
-    /** @return the built-in families, by name */
+    /** @return the built-in families, by name, the light cuts that only PDF fields print in included */
     public static List<FontFamily> families() {
-        return FAMILIES;
+        return Stream.concat(FAMILIES.stream(), LIGHT_CUTS.values().stream()).toList();
     }
 
     /**
@@ -85,6 +76,11 @@ public final class BuiltInFonts {
      */
     public static Optional<FontFamily> lightCut(String family) {
         return Optional.ofNullable(LIGHT_CUTS.get(family));
+    }
+
+    /** @return the names of the built-in families that ship a light cut */
+    public static List<String> withLightCut() {
+        return LIGHT_CUTS.keySet().stream().sorted().toList();
     }
 
     /** @return Liberation Sans, which a text naming no family prints in where there is no default font */
@@ -119,6 +115,25 @@ public final class BuiltInFonts {
                 family,
                 style -> new BuiltInFace(
                         family, style, FontOutline.TRUETYPE, filePrefix + "-" + style.fileSuffix() + ".ttf"));
+    }
+
+    /**
+     * The light cut of a family, named after it with "Light". Its faces carry the family's own name, which
+     * is the one Typst finds the light file by.
+     */
+    private static FontFamily lightCut(String family, String filePrefix) {
+        return family(
+                family + " Light",
+                style -> new BuiltInFace(
+                        family, style, FontOutline.TRUETYPE, filePrefix + "-" + lightFileSuffix(style) + ".ttf", true));
+    }
+
+    private static String lightFileSuffix(FontStyle style) {
+        return switch (style) {
+            case REGULAR -> "Light";
+            case ITALIC -> "LightItalic";
+            case BOLD, BOLD_ITALIC -> style.fileSuffix();
+        };
     }
 
     private static FontFamily carriedByTypst(String family, FontOutline outline) {

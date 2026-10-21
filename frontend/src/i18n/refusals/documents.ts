@@ -215,4 +215,7 @@ export default {
     'D-320': 'Die Antwort auf eine Zahlenabfrage ist keine Zahl',
     'D-321': 'Diese Zahl ist für die Abfrage nicht möglich',
     'D-322': 'Die Antwort ist keiner der Einträge der Abfrage',
+    'D-323': 'Eine ersetzte Schrift wird mit 50 bis 150 Prozent ihrer Größe gezeichnet',
+    'D-324': 'Die Vorschau eines Formulars nimmt höchstens 8 Schriftdateien',
+    'D-325': 'Die gewählte Schrift hat keinen leichten Schnitt',
 }

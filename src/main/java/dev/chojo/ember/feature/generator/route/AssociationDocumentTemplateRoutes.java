@@ -97,6 +97,7 @@ public class AssociationDocumentTemplateRoutes implements Routes {
         routes.post(prefix + "/cluster/document-template-import", this::importLetter, edit);
         routes.post(prefix + "/cluster/document-template-form-import", this::importForm, edit);
         routes.post(prefix + "/cluster/document-template-form-import/fonts", this::formFonts, edit);
+        routes.post(prefix + "/cluster/document-template-form-import/preview", this::formPreview, edit);
         routes.post(prefix + "/cluster/document-template-preview", this::preview, edit);
         routes.get(base, this::list, edit);
         routes.post(base, this::create, edit);
@@ -172,6 +173,19 @@ public class AssociationDocumentTemplateRoutes implements Routes {
             })
     private void formFonts(Context ctx) {
         ctx.json(forms.fontsOf(association(ctx), ctx.uploadedFile("file")));
+    }
+
+    @OpenApi(
+            path = "/api/v1/cluster/document-template-form-import/preview",
+            methods = HttpMethod.POST,
+            summary = "Draw a Word form of the association in its own fonts or with the replacements chosen",
+            tags = {"Cluster"},
+            responses = {
+                @OpenApiResponse(status = "200"),
+                @OpenApiResponse(status = "400", content = @OpenApiContent(from = ErrorResponseWrapper.class))
+            })
+    private void formPreview(Context ctx) {
+        FormFontChoices.preview(ctx, forms, association(ctx));
     }
 
     @OpenApi(

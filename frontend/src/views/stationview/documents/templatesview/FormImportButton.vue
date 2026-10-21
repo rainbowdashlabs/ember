@@ -10,6 +10,7 @@ import {useRouter} from 'vue-router'
 import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import type {FontFamilyOption, MissingFonts, WordFormImport} from '@/api/generated/schema'
+import type {FormFontChoices} from '@/api/documentTemplates'
 import {useAsyncAction} from '@/composables/useAsyncAction'
 import type {TemplateScreens} from '../templateScreens'
 import FormFontChoice from './FormFontChoice.vue'
@@ -18,8 +19,8 @@ import FormImportReport from './FormImportReport.vue'
 /**
  * Makes a PDF template from a Word form. The form's fields become the fields of the template: filled
  * from the member's data where their label is recognised, asked of the person generating everywhere
- * else. Where the form names fonts the owner has not got, a replacement is chosen for each before the
- * form is converted. Converting takes a few seconds, so the button says so while it runs; afterwards a
+ * else. Where the form names fonts the owner has not got, a replacement and its size are chosen for each
+ * before the form is converted, compared against the original on a preview. Converting takes a few seconds, so the button says so while it runs; afterwards a
  * report says what was recognised and leads into the editor.
  */
 const props = defineProps<{
@@ -45,7 +46,7 @@ const checking = useAsyncAction(async (file: File) => {
   missing.value = found
 })
 
-const importing = useAsyncAction(async (file: File, replacements: Record<string, string>) => {
+const importing = useAsyncAction(async (file: File, replacements: FormFontChoices) => {
   report.value = await props.screens.source.importForm(file, replacements)
 })
 
@@ -56,7 +57,7 @@ function chosen(event: Event) {
   if (file) void checking.run(file)
 }
 
-function convert(replacements: Record<string, string>) {
+function convert(replacements: FormFontChoices) {
   const file = pending.value
   missing.value = null
   pending.value = null
@@ -83,8 +84,8 @@ function open() {
     <input ref="picker" type="file" accept=".docx" class="hidden" aria-hidden="true" data-testid="template-import-form-file"
            @change="chosen"/>
     <FailureAlert :failure="checking.failure.value ?? importing.failure.value"/>
-    <FormFontChoice v-if="missing" :missing="missing" :fonts="fonts" :sample="screens.fonts.sample"
-                    @cancel="cancel" @choose="convert"/>
+    <FormFontChoice v-if="missing && pending" :missing="missing" :fonts="fonts" :sample="screens.fonts.sample"
+                    :file="pending" :source="screens.source" @cancel="cancel" @choose="convert"/>
     <FormImportReport v-if="report" :report="report" @close="report = null" @open="open"/>
   </div>
 </template>

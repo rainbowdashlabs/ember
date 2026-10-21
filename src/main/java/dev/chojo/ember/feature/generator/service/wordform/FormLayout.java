@@ -7,6 +7,7 @@ package dev.chojo.ember.feature.generator.service.wordform;
 
 import dev.chojo.ember.feature.generator.entity.BuiltInPlaceholder;
 import dev.chojo.ember.feature.generator.entity.FieldRect;
+import dev.chojo.ember.feature.generator.entity.FontStyle;
 import dev.chojo.ember.feature.generator.entity.PdfField;
 import dev.chojo.ember.feature.generator.entity.PdfFieldKind;
 import dev.chojo.ember.feature.generator.entity.QuestionLimits;
@@ -20,6 +21,7 @@ import org.jspecify.annotations.Nullable;
 import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -36,10 +38,15 @@ import java.util.Set;
  *
  * <p>LibreOffice makes a text field only as wide as the blank it held, so a text field is widened up to
  * whatever follows it on its line, the next field or the next printed letter, or to the right margin where
- * nothing does. A field never runs over words of the form, such as "übernommen worden" after a blank.
+ * nothing does. The box never reaches over words of the form, such as "übernommen worden" after a blank.
+ *
+ * <p>A text field prints in the size the form sets its place in, bold where the place is, and in the family
+ * chosen for the place's family, so a filled in value looks like the text around it. Where no family is
+ * chosen the field prints in the template's default font. It keeps that size for a value longer than its
+ * box and runs on past it, over whatever follows, the way a value written in by hand would.
  */
 final class FormLayout {
-    /** The size text is printed in, the largest a field shrinks a long value from. */
+    /** The size text is printed in where the form sets none that could be read, and the size of a check box. */
     static final double FONT_SIZE = 10;
 
     /** The room left between a widened field and the next one on its line. */
@@ -52,14 +59,20 @@ final class FormLayout {
     private static final String YES = "Ja";
 
     private final Map<String, String> fields;
+    private final Map<String, TextFont> placeFonts;
+    private final Map<String, String> fieldFamilies;
     private final Set<String> keys = new HashSet<>();
     private final List<PdfField> laid = new ArrayList<>();
     private final List<TemplateQuestion> questions = new ArrayList<>();
     private final List<String> recognised = new ArrayList<>();
     private final List<String> unplaced = new ArrayList<>();
+    private final Map<String, String> samples = new LinkedHashMap<>();
 
-    private FormLayout(Map<String, String> fields) {
+    private FormLayout(
+            Map<String, String> fields, Map<String, TextFont> placeFonts, Map<String, String> fieldFamilies) {
         this.fields = fields;
+        this.placeFonts = placeFonts;
+        this.fieldFamilies = fieldFamilies;
     }
 
     /**
@@ -69,21 +82,47 @@ final class FormLayout {
      * @param questions  the questions, in the same order
      * @param recognised the labels of the places that print a value of the member
      * @param unplaced   the labels of the places LibreOffice made no form field for, which got no field
+     * @param samples    the example value of each field for a preview, by the placeholder key it prints
      */
     record Laid(
-            List<PdfField> fields, List<TemplateQuestion> questions, List<String> recognised, List<String> unplaced) {}
+            List<PdfField> fields,
+            List<TemplateQuestion> questions,
+            List<String> recognised,
+            List<String> unplaced,
+            Map<String, String> samples) {}
 
     /**
-     * @param spots       the places of the form, in order
-     * @param taken       where the form fields of the places are on the converted PDF
-     * @param rightMargin the right margin of the page in points, or 0 where the form names none
-     * @param fields      the keys of the owner's profile questions by their names in lower case
+     * @param spots  the places of the form, in order
+     * @param fields the keys of the owner's profile questions by their names in lower case
+     * @return the example value of each place by {@link FormSpot#tag()}, the same {@link #lay} gives the
+     *     field laid over it
+     */
+    static Map<String, String> samples(List<FormSpot> spots, Map<String, String> fields) {
+        var layout = new FormLayout(fields, Map.of(), Map.of());
+        boolean firstNameApart = layout.firstNameApart(spots);
+        var samples = new LinkedHashMap<String, String>();
+        for (var spot : spots) samples.put(spot.tag(), layout.sampleOf(spot, firstNameApart));
+        return samples;
+    }
+
+    /**
+     * @param spots         the places of the form, in order
+     * @param taken         where the form fields of the places are on the converted PDF
+     * @param rightMargin   the right margin of the page in points, or 0 where the form names none
+     * @param placeFonts   the font each place is set in, by {@link FormSpot#tag()}
+     * @param fieldFamilies the family a field prints in, by the family the form names for its place
+     * @param fields        the keys of the owner's profile questions by their names in lower case
      * @return the fields and questions
      */
-    static Laid lay(List<FormSpot> spots, FormWidgets.Taken taken, double rightMargin, Map<String, String> fields) {
-        var layout = new FormLayout(fields);
-        boolean firstNameApart = spots.stream()
-                .anyMatch(spot -> BuiltInPlaceholder.MEMBER_FIRST_NAME.key().equals(layout.memberKey(spot, false)));
+    static Laid lay(
+            List<FormSpot> spots,
+            FormWidgets.Taken taken,
+            double rightMargin,
+            Map<String, TextFont> placeFonts,
+            Map<String, String> fieldFamilies,
+            Map<String, String> fields) {
+        var layout = new FormLayout(fields, placeFonts, fieldFamilies);
+        boolean firstNameApart = layout.firstNameApart(spots);
         for (var spot : spots) {
             var rect = taken.places().get(spot.tag());
             if (rect == null) {
@@ -96,27 +135,83 @@ final class FormLayout {
                 .map(field -> widened(field, layout.laid, taken, rightMargin))
                 .toList();
         return new Laid(
-                widened, List.copyOf(layout.questions), List.copyOf(layout.recognised), List.copyOf(layout.unplaced));
+                widened,
+                List.copyOf(layout.questions),
+                List.copyOf(layout.recognised),
+                List.copyOf(layout.unplaced),
+                Map.copyOf(layout.samples));
+    }
+
+    private boolean firstNameApart(List<FormSpot> spots) {
+        return spots.stream()
+                .anyMatch(spot -> BuiltInPlaceholder.MEMBER_FIRST_NAME.key().equals(memberKey(spot, false)));
+    }
+
+    private String sampleOf(FormSpot spot, boolean firstNameApart) {
+        String key = memberKey(spot, firstNameApart);
+        return FormSamples.of(spot, key, questionKind(spot, labelOf(spot)));
     }
 
     private void place(FormSpot spot, FieldRect rect, boolean firstNameApart) {
+        String key = keyOf(spot, rect, firstNameApart);
+        samples.put(key, sampleOf(spot, firstNameApart));
+    }
+
+    /** Lays the field of a place and asks its question where it has one; returns the placeholder key it prints. */
+    private String keyOf(FormSpot spot, FieldRect rect, boolean firstNameApart) {
         String label = labelOf(spot);
         if (spot.kind() == FormSpotKind.CHECK) {
             var question = ask(
                     label, TemplateQuestionKind.CHECK, "true".equals(spot.preset()) ? YES : "", QuestionLimits.NONE);
-            laid.add(field(PdfFieldKind.CHECK, rect, question.placeholderKey(), TextAlign.CENTER));
-            return;
+            laid.add(new PdfField(
+                    PdfFieldKind.CHECK,
+                    rect,
+                    placeholder(question.placeholderKey()),
+                    FONT_SIZE,
+                    TextAlign.CENTER,
+                    false,
+                    null));
+            return question.placeholderKey();
         }
         String key = memberKey(spot, firstNameApart);
         if (key != null) {
             recognised.add(label);
-            laid.add(field(PdfFieldKind.TEXT, rect, key, TextAlign.LEFT));
-            return;
+        } else {
+            String preset = spot.preset();
+            key = ask(label, questionKind(spot, label), preset == null ? "" : preset, spot.limits())
+                    .placeholderKey();
         }
-        var kind = questionKind(spot, label);
-        String preset = spot.preset();
-        var question = ask(label, kind, preset == null ? "" : preset, spot.limits());
-        laid.add(field(PdfFieldKind.TEXT, rect, question.placeholderKey(), TextAlign.LEFT));
+        laid.add(textField(rect, key, placeFonts.get(spot.tag())));
+        return key;
+    }
+
+    /**
+     * A text field printing in the font of its place: its size, the family chosen for its family, bold where
+     * it is. It keeps its size, since a place of a form is only as wide as its blank, and a value written
+     * into it by hand runs on along the line rather than getting smaller.
+     */
+    private PdfField textField(FieldRect rect, String key, @Nullable TextFont font) {
+        String family = font == null || font.family() == null ? null : fieldFamilies.get(font.family());
+        return new PdfField(
+                PdfFieldKind.TEXT,
+                rect,
+                placeholder(key),
+                font == null ? FONT_SIZE : font.size(),
+                TextAlign.LEFT,
+                false,
+                null,
+                family,
+                font != null && font.bold() ? FontStyle.BOLD : FontStyle.REGULAR,
+                false,
+                false,
+                null,
+                false,
+                null,
+                true);
+    }
+
+    private static String placeholder(String key) {
+        return "{{" + key + "}}";
     }
 
     private @Nullable String memberKey(FormSpot spot, boolean firstNameApart) {
@@ -145,10 +240,6 @@ final class FormLayout {
         var question = new TemplateQuestion(freeKey(label), label, kind, suggestion, false, limits);
         questions.add(question);
         return question;
-    }
-
-    private static PdfField field(PdfFieldKind kind, FieldRect rect, String key, TextAlign align) {
-        return new PdfField(kind, rect, "{{" + key + "}}", FONT_SIZE, align, false, null);
     }
 
     private static String labelOf(FormSpot spot) {
@@ -196,13 +287,6 @@ final class FormLayout {
             if (overlap > Math.min(rect.height(), next.height()) / 2) bound = Math.min(bound, next.x() - GAP);
         }
         double width = Math.max(rect.width(), bound - rect.x());
-        return new PdfField(
-                field.kind(),
-                new FieldRect(rect.page(), rect.x(), rect.y(), width, rect.height()),
-                field.text(),
-                field.fontSize(),
-                field.align(),
-                field.wrap(),
-                field.role());
+        return field.withRect(new FieldRect(rect.page(), rect.x(), rect.y(), width, rect.height()));
     }
 }

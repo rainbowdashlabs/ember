@@ -73,6 +73,7 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.documentTemplateEditor.wordFormText') }}</p>
       <p>{{ t('helpCenter.documentTemplateEditor.wordFormFieldsText') }}</p>
       <p>{{ t('helpCenter.documentTemplateEditor.wordFormFontsText') }}</p>
+      <p>{{ t('helpCenter.documentTemplateEditor.wordFormPreviewText') }}</p>
     </HelpSection>
 
     <HelpSection :title="t('helpCenter.documentTemplateEditor.pronounsTitle')">

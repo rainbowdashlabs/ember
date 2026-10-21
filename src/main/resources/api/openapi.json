@@ -11437,6 +11437,27 @@
         }
       }
     },
+    "/api/v1/cluster/document-template-form-import/preview" : {
+      "post" : {
+        "summary" : "Draw a Word form of the association in its own fonts or with the replacements chosen",
+        "tags" : [ "Cluster" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/cluster/document-template-import" : {
       "post" : {
         "summary" : "Read the body of a Word or OpenDocument text into a letter template of the association",
@@ -15529,6 +15550,27 @@
                 }
               }
             }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/document-template-form-import/preview" : {
+      "post" : {
+        "summary" : "Draw a Word form in its own fonts or with the replacements chosen, to compare them",
+        "tags" : [ "Documents" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
           },
           "400" : {
             "description" : "Bad Request",
@@ -58125,6 +58167,9 @@
           "printsOnPdf" : {
             "type" : "boolean"
           },
+          "printsInLetters" : {
+            "type" : "boolean"
+          },
           "sample" : {
             "type" : "string"
           },
@@ -58132,7 +58177,7 @@
             "type" : [ "string", "null" ]
           }
         },
-        "required" : [ "family", "origin", "styles", "printsOnPdf", "sample", "editorVersion" ]
+        "required" : [ "family", "origin", "styles", "printsOnPdf", "printsInLetters", "sample", "editorVersion" ]
       },
       "FontOrigin" : {
         "type" : "string",
@@ -58150,9 +58195,13 @@
           },
           "replacement" : {
             "type" : "string"
+          },
+          "size" : {
+            "type" : "integer",
+            "format" : "int32"
           }
         },
-        "required" : [ "family", "replacement" ]
+        "required" : [ "family", "replacement", "size" ]
       },
       "FontStyle" : {
         "type" : "string",
@@ -65650,9 +65699,27 @@
           },
           "defaultFamily" : {
             "type" : "string"
+          },
+          "embedded" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "light" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "lightCuts" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
           }
         },
-        "required" : [ "missing", "suggested", "defaultFamily" ]
+        "required" : [ "missing", "suggested", "defaultFamily", "embedded", "light", "lightCuts" ]
       },
       "MissingStepsResponse" : {
         "type" : "object",
@@ -68335,9 +68402,12 @@
           "maxLength" : {
             "type" : [ "integer", "null" ],
             "format" : "int32"
+          },
+          "keepSize" : {
+            "type" : "boolean"
           }
         },
-        "required" : [ "kind", "rect", "text", "fontSize", "align", "wrap", "role", "fontFamily", "fontStyle", "withoutLine", "printText", "statement", "required", "maxLength" ]
+        "required" : [ "kind", "rect", "text", "fontSize", "align", "wrap", "role", "fontFamily", "fontStyle", "withoutLine", "printText", "statement", "required", "maxLength", "keepSize" ]
       },
       "PdfFieldKind" : {
         "type" : "string",
