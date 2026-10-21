@@ -55,9 +55,18 @@ public final class BuiltInFonts {
      */
     private static final Map<String, FontFamily> LIGHT_CUTS = Map.of("Open Sans", lightCut("Open Sans", "OpenSans"));
 
-    private static final Map<String, byte[]> FILES = Stream.concat(FAMILIES.stream(), LIGHT_CUTS.values().stream())
-            .flatMap(family -> family.files().values().stream())
-            .map(BuiltInFace.class::cast)
+    /**
+     * DejaVu Sans, which no template names but every letter falls back to for the symbols Liberation Sans
+     * lacks ({@link BundledFont}).
+     */
+    private static final BuiltInFace SYMBOLS = new BuiltInFace(
+            BundledFont.SYMBOL_FAMILY, FontStyle.REGULAR, FontOutline.TRUETYPE, BundledFont.SYMBOL_FILE_NAME);
+
+    private static final Map<String, byte[]> FILES = Stream.concat(
+                    Stream.concat(FAMILIES.stream(), LIGHT_CUTS.values().stream())
+                            .flatMap(family -> family.files().values().stream())
+                            .map(BuiltInFace.class::cast),
+                    Stream.of(SYMBOLS))
             .filter(BuiltInFace::bundled)
             .map(BuiltInFace::bundledFile)
             .distinct()
@@ -89,6 +98,11 @@ public final class BuiltInFonts {
                 .filter(family -> family.name().equals(BundledFont.FAMILY))
                 .findFirst()
                 .orElseThrow();
+    }
+
+    /** @return the face of DejaVu Sans, which a letter falls back to for the symbols Liberation Sans lacks */
+    public static BuiltInFace symbolFallback() {
+        return SYMBOLS;
     }
 
     /**
