@@ -18,6 +18,7 @@ import GeneralPanel from './templateeditview/GeneralPanel.vue'
 import IssuerPanel from './templateeditview/IssuerPanel.vue'
 import LetterPanel from './templateeditview/LetterPanel.vue'
 import PdfPanel from './templateeditview/PdfPanel.vue'
+import QuestionsPanel from './templateeditview/QuestionsPanel.vue'
 import SelfServicePanel from './templateeditview/SelfServicePanel.vue'
 import SigningPanel from './templateeditview/SigningPanel.vue'
 import PreviewPanel from './templateeditview/PreviewPanel.vue'
@@ -28,7 +29,8 @@ import {useTemplateDuplication} from './useTemplateDuplication'
 /**
  * Writes one template of a station or an association. A letter has its header, body and footer,
  * written as blocks; a PDF template has its uploaded PDF with the fields placed on it. Both have what
- * they are called, their language and how their documents are filed, how signed documents are kept
+ * they are called, what they ask the person generating, their language and how their documents are
+ * filed, how signed documents are kept
  * and sent, self service, and a look at the
  * result: for any member of a station, and with its placeholders shown by name for an association,
  * which has no members of its own.
@@ -62,6 +64,7 @@ const tabs = computed(() => [
   ...(isPdf.value
     ? [{key: 'pdf', label: t('documentTemplates.tabPdf')}]
     : [{key: 'letter', label: t('documentTemplates.tabLetter')}]),
+  {key: 'questions', label: t('documentTemplates.tabQuestions')},
   {key: 'selfService', label: t('documentTemplates.tabSelfService')},
   {key: 'preview', label: t('common.preview')},
 ])
@@ -120,6 +123,7 @@ async function upload(file: File) {
       <PdfPanel v-if="tab === 'pdf'" v-model="draft" :saved="saved" :source="editor.pdf.value"
                 :placeholders="editor.placeholders.value" :labels="editor.labels.value" :fonts="editor.fonts.value"
                 :default-family="editor.defaultFamily.value" @upload="upload"/>
+      <QuestionsPanel v-if="tab === 'questions'" v-model="draft" :placeholders="editor.dataPlaceholders.value"/>
       <SelfServicePanel
           v-if="tab === 'selfService'"
           v-model="draft"

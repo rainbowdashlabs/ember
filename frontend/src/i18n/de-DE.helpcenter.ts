@@ -2125,12 +2125,59 @@ volumes:
                 + 'ein Kreuz, wenn sein Wert Ja ist, und ein Unterschriftsfeld bleibt leer zum Unterschreiben.',
             pdfFieldsText: 'Ziehe ein Feld an seine Stelle und an der Ecke auf die richtige Größe. Mit den '
                 + 'Pfeiltasten verschiebst du es genauer. Ein Text, der nicht passt, wird kleiner oder bricht in weitere '
-                + 'Zeilen um. Ein Unterschriftsfeld für alle Erziehungsberechtigten teilt sich beim Erstellen in je ein '
+                + 'Zeilen um. Mit „Größe beibehalten" bleibt er so groß und läuft über das Feld hinaus weiter. '
+                + 'Ein Unterschriftsfeld für alle Erziehungsberechtigten teilt sich beim Erstellen in je ein '
                 + 'Feld nebeneinander, eines für die zweite erziehungsberechtigte Person fällt bei nur einer weg.',
             pdfFormText: 'Hat das PDF eigene Formularfelder, stehen sie darunter. Du füllst sie mit Platzhaltern oder '
                 + 'lässt sie, wie sie sind. Beim Erstellen werden alle Felder fest in die Seite übernommen.',
             pdfVersionText: 'Kommt eine neue Fassung des Formulars, lade sie einfach hoch. Die Felder bleiben, wo sie '
                 + 'waren, und du prüfst sie über den neuen Seiten. Schon erstellte Dokumente bleiben, wie sie sind.',
+            questionsTitle: 'Abfragen beim Erstellen',
+            questionsText: 'Unter „Abfragen" legst du fest, was beim Erstellen eingetragen wird: ein Text, ein Datum, '
+                + 'eine Zahl, ein Eintrag aus einer Auswahl oder ein Kreuz, etwa „Ausgetreten am" oder „In eine andere Gruppe gewechselt". Jede Abfrage steht '
+                + 'danach in der Platzhalter-Auswahl unter „Abfragen" und lässt sich im Text, auf PDF-Feldern und in '
+                + 'Formularfeldern einsetzen. Ein Datum nimmt dieselben Formate wie jedes andere Datum.',
+            questionsSuggestionText: 'Ein Vorschlag füllt die Antwort für das gewählte Mitglied vor, mit festem Text '
+                + 'oder Platzhaltern. Beim Erstellen für ein Mitglied stehen die Abfragen unter „Angaben" über der '
+                + 'Vorschau und lassen sich ändern. Beim Selbst-Erstellen und beim Erstellen für viele Mitglieder '
+                + 'fragt Ember nichts, dann gilt der Vorschlag. Eine Pflichtangabe ohne Antwort gilt als fehlender Wert.',
+            questionsCheckText: 'Ein Kreuz erscheint im Brief als angekreuztes oder leeres Kästchen und setzt auf '
+                + 'einem PDF das Kreuz eines Ankreuzfelds. Nennt sein Vorschlag ein Ja-Nein-Feld des Profils, ist es '
+                + 'bei Ja schon angekreuzt, und beim Erstellen lässt es sich trotzdem setzen oder entfernen. '
+                + 'Ankreuzfelder aus der Zeit vor den Abfragen sind dafür schon zu Abfragen geworden.',
+            questionsLimitsText: 'Jede Abfrage kann eingrenzen, was als Antwort gilt: ein Datum frühestens oder '
+                + 'spätestens an einem festen Tag oder einige Tage ab dem Erstellen, ein Text höchstens so lang oder in '
+                + 'einem Format wie Postleitzahl, eine Zahl zwischen zwei Grenzen oder nur ganz. Eine Auswahl bietet '
+                + 'genau ihre Einträge an. Eine Antwort außerhalb der Grenzen nimmt Ember nicht an. Liegt ein '
+                + 'Vorschlag außerhalb, gilt er als nicht beantwortet.',
+            wordFormTitle: 'Word-Formular importieren',
+            wordFormText: 'Hast du ein Formular als Word-Datei mit Feldern zum Ausfüllen, wähle in der Liste der '
+                + 'Vorlagen „Aus Word-Formular erstellen". Ember macht daraus eine PDF-Vorlage mit demselben Aussehen '
+                + 'und setzt ein Feld an jede Stelle, die im Formular ausgefüllt wird. Das gilt für Textfelder, '
+                + 'Zahlenfelder, Kontrollkästchen, Datumsfelder und Auswahllisten, alte wie neue. Die Einträge einer '
+                + 'Auswahlliste und die Höchstlänge eines Textfelds übernimmt Ember als Grenzen der Abfrage.',
+            wordFormFieldsText: 'Steht vor einem Feld eine bekannte Bezeichnung wie Name, Vorname, Geb.-Datum, '
+                + 'Eintritt, Datum, Bearbeiter oder der Name eines Profilfelds, füllt Ember es mit den Daten des '
+                + 'Mitglieds. Eine Ausweis-, Personal- oder Mitgliedsnummer findet ihr Profilfeld unter jedem dieser '
+                + 'Namen. Alle übrigen Felder werden zu Abfragen, jedes Kontrollkästchen zu einem Kreuz. Danach zeigt '
+                + 'Ember, was erkannt wurde, und öffnet die Vorlage im Editor, wo du alles anpassen kannst.',
+            wordFormFontsText: 'Nutzt das Formular Schriften, die nicht hochgeladen sind, fragt Ember vor dem '
+                + 'Umwandeln für jede, in welcher Schrift es stattdessen erscheinen soll. Ersetzt wird nichts ohne '
+                + 'deine Wahl. Für Arial, Times New Roman, Courier New, Calibri und Cambria ist eine mitgelieferte '
+                + 'Schrift mit denselben Buchstabenbreiten vorgewählt (Liberation, Carlito, Caladea), für Frutiger, '
+                + 'Myriad und ähnliche Schriften Open Sans, bei einem leichten Schnitt wie Frutiger 45 Light in '
+                + 'ihrem leichten Schnitt. Soll das Formular im Original erscheinen, lade die Schrift unter '
+                + 'Dokumente → Schriftarten hoch und importiere es erneut.',
+            wordFormPreviewText: 'Unter der Auswahl zeigt eine Vorschau das Formular zweimal: als Original und '
+                + 'mit den gewählten Schriften. Beide Seiten tragen dieselben Beispielwerte in die Felder ein, so '
+                + 'lässt sich der Text in den Feldern direkt vergleichen. Das Original erscheint in den Schriften, die das Formular '
+                + 'enthält. Für jede andere lässt sich die Schriftdatei hinzufügen, auch wenn sie sich anders nennt, '
+                + 'etwa Frutiger LT Std für Frutiger 45 Light. Sie gilt nur für die Vorschau und wird nicht '
+                + 'gespeichert. Ohne Datei zeigt das Original eine ähnliche Schrift und weist darauf hin. Neben der '
+                + 'Schrift wählst du die Stärke, leicht oder normal, wo die Schrift einen leichten Schnitt hat. Fetter '
+                + 'Text bleibt fett. Setzt die Ersatzschrift ihre Buchstaben breiter und brechen Zeilen anders um, '
+                + 'verkleinere sie in Prozent und aktualisiere die Vorschau. Die Felder der Vorlage drucken in '
+                + 'derselben Schrift und Größe wie der Text an ihrer Stelle.',
             pronounsTitle: 'Pronomen und Sprache',
             pronounsText: 'Pronomen folgen dem Geschlechtsfeld der Wache: Jede Antwort dort sagt, welche Pronomen in '
                 + 'Dokumenten stehen, je Sprache, oder dass der Vorname steht. Ohne Antwort steht ebenfalls der '

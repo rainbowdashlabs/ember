@@ -2,20 +2,29 @@
 
 ## v26.23.0
 
-Families on a waiting list take part in the trial from its first day. Guardians get their account when the trial begins, follow it on their start page and can end it themselves. An invitation always names an appointment, shows where the mail goes before it is sent and can carry a personal note.
+Document templates can ask the person generating a document for details that the member's data does not hold, such as the date of a change or which of several boxes applies. Word forms with fields to fill in become PDF templates that keep their look, so a paper form such as a change notification is filled out in Ember. Check marks of existing PDF templates keep following the member's data and can now also be ticked by hand. Families on a waiting list take part in the trial from its first day. Guardians get their account when the trial begins, follow it on their start page and can end it themselves. An invitation always names an appointment, shows where the mail goes before it is sent and can carry a personal note.
 
 ### New Features
 
+- **Templates ask when a document is generated.** A template can ask for a text, a date, a number, an entry from a list or a tick, each within limits such as a latest day or a longest text, and prints each answer wherever it names it. Each question can suggest its answer from the member's data, which is then the answer in self service and in runs for many members.
+- **Word forms become PDF templates.** A Word form with fields to fill in becomes a PDF template that looks like the original, with member data where a field's label is recognised and a question for every other field, list and check box, each printing in the font and size of the form. A font that is not uploaded is replaced by one chosen before converting, in a weight and size that keep its look and its lines, and a preview shows the original beside the result, both filled with example values.
 - **Guardians take part in the trial.** When a trial begins, the guardians of the waiting list entry get their account and can sign in, take the child off appointments and see the trial on their start page with the visits so far. They can end the trial there themselves, which deletes the accounts made for it unless they are still needed, and the station is notified.
 
 ### Improvements
 
+- **Text fields can keep their size.** A text field of a PDF template can print a long value at its full size and let it run on past the field, instead of making it smaller. Fields of templates made from a Word form start this way.
+- **More fonts come with every installation.** Carlito and Caladea set text exactly as wide as Calibri and Cambria, and Open Sans stands in for fonts such as Frutiger. All three can be chosen for letters and fields, and importing a Word form set in Calibri, Cambria, Arial or Times New Roman offers the matching one first.
 - **Invitations name their appointment and recipients.** An invitation can only be sent once an appointment is picked, and the dialog lists the addresses the mail goes to, or says that nobody is written to. The appointment picker shows the start time next to the date.
 - **Invitations carry a personal note.** A note written when inviting stands in the mail and on the page where the invitation is answered. The note given with an answer is shown in the notification the station receives.
+
+### Changes
+
+- **Check marks can be ticked by hand.** The check marks of existing PDF templates became questions that follow the member's data as before, so self service and runs for many members tick what they ticked before. A manager generating a single document can now tick or clear each of them.
 
 ### Fixes
 
 - **An invitation could be sent with a single key press.** The invitation dialog opened with the send button selected, so pressing enter sent the mail at once, even without an appointment. The dialog now opens on the appointment, and sending waits until one is picked.
+- **Notification mails show readable descriptions.** The description of an appointment arrived in notification mails with its formatting marks, such as asterisks and hash signs, and at full length. It now reads as plain text, and a long one is cut short with a "Read more" button.
 
 ## v26.22.6
 

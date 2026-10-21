@@ -28,8 +28,9 @@ import java.util.function.Function;
  * it searches besides, and for the body, the header, the footer and every family its texts set words in
  * the family names to ask for, in order.
  *
- * <p>Every list ends in Liberation Sans, whose file always goes along, so a letter looks the same on every
- * installation and a character a font lacks is still printed. A part that names no family, or one the
+ * <p>Every list ends in Liberation Sans and then DejaVu Sans, whose files always go along, so a letter looks
+ * the same on every installation and a character a font lacks is still printed, a symbol such as the box of
+ * a check answer included. A part that names no family, or one the
  * station no longer reaches or whose file is gone, prints in the {@link DefaultFont} before that, where
  * the instance has one; its directory is searched for it. Typst finds the uploaded files by the family
  * names they carry themselves, which is why those, and not the names the uploader gave, are what the
@@ -75,6 +76,7 @@ public record LetterFonts(
             DefaultFont defaultFont) {
         var files = new ArrayList<Path>();
         TypstFaces.supplyKept(BundledFont.face(), keptFile, files);
+        TypstFaces.supplyKept(BundledFont.symbolFace(), keptFile, files);
         var page = letter.page();
         var families = new LinkedHashMap<String, List<String>>();
         families.put("body", namesOf(reachable, page.bodyFont(), keptFile, files, defaultFont));

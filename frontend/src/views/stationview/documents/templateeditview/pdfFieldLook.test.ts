@@ -24,6 +24,7 @@ function field(overrides: Partial<PdfField> = {}): PdfField {
         statement: null,
         required: false,
         maxLength: null,
+        keepSize: false,
         ...overrides,
     }
 }

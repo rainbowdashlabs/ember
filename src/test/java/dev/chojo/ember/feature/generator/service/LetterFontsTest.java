@@ -38,12 +38,12 @@ class LetterFontsTest {
         return face.equals(BundledFont.face()) ? Optional.of(Path.of(BundledFont.FILE_NAME)) : Optional.empty();
     }
 
-    /** Without a default font every part prints in Liberation Sans, exactly as before. */
+    /** Without a default font every part prints in Liberation Sans, with DejaVu Sans behind it for symbols. */
     @Test
     void withoutADefaultFontEveryPartPrintsInLiberationSans() {
         var fonts = fontsOf(LetterPage.defaults(), DefaultFont.absent());
 
-        var liberation = List.of(BundledFont.FAMILY);
+        var liberation = List.of(BundledFont.FAMILY, BundledFont.SYMBOL_FAMILY);
         assertEquals(Map.of("body", liberation, "header", liberation, "footer", liberation), fonts.families());
         assertEquals(List.of(), fonts.directories());
         assertEquals(List.of(), fonts.uprightFamilies());
@@ -58,7 +58,7 @@ class LetterFontsTest {
     void aPartNamingNoFamilyPrintsInTheDefaultFont(@TempDir Path directory) {
         var fonts = fontsOf(LetterPage.defaults(), TestFonts.defaultFontIn(directory));
 
-        var chain = List.of(TestFonts.LISU_FAMILY, BundledFont.FAMILY);
+        var chain = List.of(TestFonts.LISU_FAMILY, BundledFont.FAMILY, BundledFont.SYMBOL_FAMILY);
         assertEquals(Map.of("body", chain, "header", chain, "footer", chain), fonts.families());
         assertEquals(List.of(directory.toAbsolutePath()), fonts.directories());
         assertEquals(List.of(TestFonts.LISU_FAMILY), fonts.uprightFamilies());
@@ -71,7 +71,7 @@ class LetterFontsTest {
         var fonts = fontsOf(page, TestFonts.defaultFontIn(directory));
 
         assertEquals(
-                List.of(TestFonts.LISU_FAMILY, BundledFont.FAMILY),
+                List.of(TestFonts.LISU_FAMILY, BundledFont.FAMILY, BundledFont.SYMBOL_FAMILY),
                 fonts.families().get("body"));
     }
 }

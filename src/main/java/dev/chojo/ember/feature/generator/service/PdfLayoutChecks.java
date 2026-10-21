@@ -107,7 +107,13 @@ final class PdfLayoutChecks {
                 field.wrap(),
                 null,
                 familyOf(field.fontFamily()),
-                Objects.requireNonNullElse(field.fontStyle(), FontStyle.REGULAR));
+                Objects.requireNonNullElse(field.fontStyle(), FontStyle.REGULAR),
+                false,
+                false,
+                null,
+                false,
+                null,
+                field.keepSize() && !field.wrap());
     }
 
     /**

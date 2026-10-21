@@ -29,6 +29,7 @@ import java.util.List;
  * @param issuerFunction  what the issuer does at the station, or null where nothing is said
  * @param content         the letter, or the fields laid over the PDF
  * @param signing         how its documents are kept and sent once they are signed
+ * @param questions       what it asks the person generating a document, in the order it asks
  */
 public record DocumentTemplateDraft(
         String name,
@@ -46,7 +47,46 @@ public record DocumentTemplateDraft(
         @Nullable Integer issuerId,
         @Nullable String issuerFunction,
         TemplateContent content,
-        TemplateSigning signing) {
+        TemplateSigning signing,
+        List<TemplateQuestion> questions) {
+
+    /** A draft that asks nothing. */
+    public DocumentTemplateDraft(
+            String name,
+            String titlePattern,
+            String fileNamePattern,
+            List<String> tags,
+            boolean hidden,
+            boolean keepOnArchive,
+            boolean legal,
+            boolean forAppointments,
+            boolean selfService,
+            int cooldownDays,
+            RestrictionMode restrictionMode,
+            DocumentLanguage language,
+            @Nullable Integer issuerId,
+            @Nullable String issuerFunction,
+            TemplateContent content,
+            TemplateSigning signing) {
+        this(
+                name,
+                titlePattern,
+                fileNamePattern,
+                tags,
+                hidden,
+                keepOnArchive,
+                legal,
+                forAppointments,
+                selfService,
+                cooldownDays,
+                restrictionMode,
+                language,
+                issuerId,
+                issuerFunction,
+                content,
+                signing,
+                List.of());
+    }
 
     /** A draft whose signed documents are kept and sent as a new template's are ({@link TemplateSigning#startingWith}). */
     public DocumentTemplateDraft(

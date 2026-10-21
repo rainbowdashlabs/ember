@@ -67,14 +67,20 @@ public class PdfTemplateRenderer {
         var original = content.original();
         if (original == null) throw DocumentRefusal.DOCUMENT_TEMPLATE_PDF_MISSING.raise();
         byte[] data = pdfs.read(owner, original).orElseThrow(DocumentRefusal.DOCUMENT_RENDER_FAILED::raise);
+        return new Original(owner, content, data, fieldFontsOf(owner));
+    }
+
+    /**
+     * @param owner the station or the association whose fonts the fields reach
+     * @return the files of the families fields name, each read the first time it is drawn in
+     */
+    public StampFonts.FieldFonts fieldFontsOf(Owner owner) {
         var reachable = fonts.reachable(owner);
         var read = new ConcurrentHashMap<String, Optional<byte[]>>();
-        StampFonts.FieldFonts fieldFonts =
-                (family, style) -> read.computeIfAbsent(family + "\n" + style, ignored -> reachable
-                        .find(family)
-                        .flatMap(found -> found.pdfFile(style))
-                        .flatMap(fonts::read));
-        return new Original(owner, content, data, fieldFonts);
+        return (family, style) -> read.computeIfAbsent(family + "\n" + style, ignored -> reachable
+                .find(family)
+                .flatMap(found -> found.pdfFile(style))
+                .flatMap(fonts::read));
     }
 
     /**

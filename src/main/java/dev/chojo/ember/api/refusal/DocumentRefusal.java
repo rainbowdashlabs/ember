@@ -710,7 +710,76 @@ public enum DocumentRefusal implements Refusal {
     SIGNING_PICTURE_TWICE(304, HttpStatus.BAD_REQUEST, "Two signature pictures were sent for one person"),
 
     /** The signature record asked for a sealed version that carries no evidence of signatures. */
-    SIGNATURE_RECORD_NONE(305, HttpStatus.NOT_FOUND, "This version carries no record of signatures");
+    SIGNATURE_RECORD_NONE(305, HttpStatus.NOT_FOUND, "This version carries no record of signatures"),
+
+    /** A question of a template named by a key other than letters, digits and underscores, or a longer one. */
+    DOCUMENT_TEMPLATE_QUESTION_KEY_INVALID(
+            306, HttpStatus.BAD_REQUEST, "A question is named by letters, digits and underscores, at most 40"),
+
+    /** Two questions of one template named by the same key. */
+    DOCUMENT_TEMPLATE_QUESTION_KEY_TWICE(307, HttpStatus.BAD_REQUEST, "Two questions have the same name"),
+
+    /** A question of a template without the words it is asked by. */
+    DOCUMENT_TEMPLATE_QUESTION_LABEL_MISSING(308, HttpStatus.BAD_REQUEST, "A question needs a label"),
+
+    /** A template asking more questions than it may. */
+    DOCUMENT_TEMPLATE_QUESTIONS_TOO_MANY(309, HttpStatus.BAD_REQUEST, "A template asks at most 100 questions"),
+
+    /** An answer to a date question that names no day. */
+    DOCUMENT_ANSWER_NOT_A_DAY(310, HttpStatus.BAD_REQUEST, "An answer to a date question is no date"),
+
+    /** A Word form without a single field to fill in. */
+    DOCUMENT_FORM_IMPORT_NO_FIELDS(
+            311, HttpStatus.BAD_REQUEST, "The Word document has no fields to fill in; import it as a letter instead"),
+
+    /** A Word form that could not be read or turned into a PDF. */
+    DOCUMENT_FORM_IMPORT_FAILED(312, HttpStatus.BAD_REQUEST, "The Word document could not be turned into a form"),
+
+    /** The suggestion of a question naming the answer to a question. */
+    DOCUMENT_TEMPLATE_QUESTION_IN_SUGGESTION(
+            313, HttpStatus.BAD_REQUEST, "A suggestion cannot name the answer to a question"),
+
+    /** A Word form naming a font the owner cannot draw, imported without a replacement chosen for it. */
+    DOCUMENT_FORM_IMPORT_FONT_UNCHOSEN(
+            314, HttpStatus.BAD_REQUEST, "Choose a replacement for a font of the form that is not available"),
+
+    /** Limits of a question that contradict each other or reach past what a question can take. */
+    DOCUMENT_TEMPLATE_QUESTION_LIMITS_INVALID(
+            315, HttpStatus.BAD_REQUEST, "The limits of a question contradict each other"),
+
+    /** A choice question without entries, with too many, with one twice or with one too long. */
+    DOCUMENT_TEMPLATE_QUESTION_CHOICES_INVALID(
+            316, HttpStatus.BAD_REQUEST, "A choice offers 1 to 50 different entries of at most 120 characters"),
+
+    /** An answer to a date question before its earliest or after its latest day. */
+    DOCUMENT_ANSWER_DAY_OUT_OF_RANGE(317, HttpStatus.BAD_REQUEST, "An answer is a day the question does not take"),
+
+    /** An answer to a text question longer than the question takes. */
+    DOCUMENT_ANSWER_TOO_LONG(318, HttpStatus.BAD_REQUEST, "An answer is longer than the question takes"),
+
+    /** An answer to a text question without the format the question asks for. */
+    DOCUMENT_ANSWER_WRONG_FORMAT(319, HttpStatus.BAD_REQUEST, "An answer does not have the format its question asks"),
+
+    /** An answer to a number question that is no number. */
+    DOCUMENT_ANSWER_NOT_A_NUMBER(320, HttpStatus.BAD_REQUEST, "An answer to a number question is no number"),
+
+    /** An answer to a number question below its lowest or above its highest number, or a fraction for a whole one. */
+    DOCUMENT_ANSWER_NUMBER_OUT_OF_RANGE(
+            321, HttpStatus.BAD_REQUEST, "An answer is a number the question does not take"),
+
+    /** An answer to a choice question that is none of its entries. */
+    DOCUMENT_ANSWER_NOT_A_CHOICE(322, HttpStatus.BAD_REQUEST, "An answer is none of the entries its question offers"),
+
+    /** A replaced font of a Word form drawn smaller or larger than a form may be scaled. */
+    DOCUMENT_FORM_IMPORT_FONT_SIZE_INVALID(
+            323, HttpStatus.BAD_REQUEST, "A replaced font is drawn at 50 to 150 percent of its size"),
+
+    /** More font files handed in for the preview of a Word form in its own fonts than a preview takes. */
+    DOCUMENT_FORM_PREVIEW_TOO_MANY_FONTS(
+            324, HttpStatus.BAD_REQUEST, "The preview of a form takes at most 8 font files"),
+
+    /** A replacement for a font of a Word form asked for in a light weight its family does not ship. */
+    DOCUMENT_FORM_IMPORT_FONT_WEIGHT_UNAVAILABLE(325, HttpStatus.BAD_REQUEST, "The font chosen has no light weight");
 
     private final Definition definition;
 

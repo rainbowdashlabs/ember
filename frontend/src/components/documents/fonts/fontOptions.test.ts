@@ -9,7 +9,7 @@ import {FontOrigin, FontOutline, FontStyle, type DocumentFontView, type FontFami
 import {choiceValue, familyChoices, familyOf, fontEntries, groupByFamily, printedStyle, reachedFamily} from './fontOptions'
 
 function family(name: string, styles: FontStyle[] = [FontStyle.REGULAR], printsOnPdf = true): FontFamilyOption {
-    return {family: name, origin: FontOrigin.STATION, styles, printsOnPdf, sample: 'v1', editorVersion: 'e1'}
+    return {family: name, origin: FontOrigin.STATION, styles, printsOnPdf, printsInLetters: true, sample: 'v1', editorVersion: 'e1'}
 }
 
 function font(id: number, name: string, style: FontStyle): DocumentFontView {
@@ -25,6 +25,13 @@ describe('familyChoices', () => {
 
     it('leaves out what a field on a PDF cannot print', () => {
         expect(familyChoices(reachable, null, true).map(choice => choice.value)).toEqual(['', 'Hausschrift'])
+    })
+
+    it('offers a light cut only PDF fields print in to PDF fields alone', () => {
+        const withLightCut = [...reachable, {...family('Open Sans Light'), printsInLetters: false}]
+        expect(familyChoices(withLightCut, null).map(choice => choice.value)).toEqual(['', 'Hausschrift', 'Nur Brief'])
+        expect(familyChoices(withLightCut, null, true).map(choice => choice.value))
+            .toEqual(['', 'Hausschrift', 'Open Sans Light'])
     })
 
     it('keeps a family the template names but no longer reaches, marked missing', () => {

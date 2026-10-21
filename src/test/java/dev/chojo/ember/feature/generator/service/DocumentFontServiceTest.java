@@ -90,12 +90,16 @@ import static org.mockito.Mockito.when;
 class DocumentFontServiceTest extends RepositoryTestBase {
     /** The built-in families by name, sorted. */
     private static final List<String> BUILT_IN = List.of(
+            "Caladea",
+            "Carlito",
             "DejaVu Sans Mono",
             "Liberation Mono",
             "Liberation Sans",
             "Liberation Serif",
             "Libertinus Serif",
-            "New Computer Modern");
+            "New Computer Modern",
+            "Open Sans",
+            "Open Sans Light");
 
     private static DocumentFontService fonts;
     private static FontLibrary library;
@@ -457,6 +461,14 @@ class DocumentFontServiceTest extends RepositoryTestBase {
         refused(
                 DocumentRefusal.DOCUMENT_TEMPLATE_FONT_UNKNOWN,
                 () -> library.requireReachable(outsider, pdfWith(fieldIn("New Computer Modern", FontStyle.REGULAR))));
+
+        var light = reached(outsider, "Open Sans Light");
+        assertTrue(light.printsOnPdf());
+        assertFalse(light.printsInLetters(), "a light cut is offered to PDF fields alone");
+        library.requireReachable(outsider, pdfWith(fieldIn("Open Sans Light", FontStyle.BOLD)));
+        refused(
+                DocumentRefusal.DOCUMENT_TEMPLATE_FONT_UNKNOWN,
+                () -> letterIn(outsider, "Brief leicht", "Open Sans Light"));
     }
 
     /** A letter prints in each built-in family: the bundled ones from their files, the rest from Typst itself. */

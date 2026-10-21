@@ -24,13 +24,16 @@ import type {
     JobStartRequest,
     LetterImport,
     ManagerGenerationRequest,
+    MissingFonts,
     PlaceholderCatalogueResponse,
     PreviewResponse,
     SelfServiceOffer,
+    SuggestedAnswer,
     TemplatePage,
     TemplateSort,
     TemplateUseRequest,
     TemplateUseResponse,
+    WordFormImport,
 } from '@/api/generated/schema'
 
 /**
@@ -51,6 +54,36 @@ export interface TemplateListQuery {
 
 /** Reads one page of templates from wherever a screen takes them. */
 export type TemplatePages = (query: TemplateListQuery) => Promise<TemplatePage>
+
+/** The weight a replacement for a font of a Word form is drawn in. */
+export type FormFontWeight = 'LIGHT' | 'REGULAR'
+
+/**
+ * How a font a Word form names is drawn instead.
+ *
+ * @property family the family, empty for the default font
+ * @property size   the size in percent of the form's
+ * @property weight the weight, light only for a family that ships a light cut
+ */
+export interface FormFontChoice {
+    family: string
+    size: number
+    weight: FormFontWeight
+}
+
+/** The choices for the fonts of a Word form, by the family the form names. */
+export type FormFontChoices = Record<string, FormFontChoice>
+
+/** Which drawing of a Word form a preview shows: in its own fonts, or with the replacements chosen. */
+export type FormPreviewVersion = 'original' | 'replaced'
+
+/** The sizes a replaced font may be drawn in, in percent of the form's. */
+export const FORM_FONT_SIZE = {min: 50, max: 150, same: 100} as const
+
+/** Whether a replaced font may be drawn at that size: a whole percentage the server takes. */
+export function formFontSizeTaken(size: number): boolean {
+    return Number.isInteger(size) && size >= FORM_FONT_SIZE.min && size <= FORM_FONT_SIZE.max
+}
 
 /**
  * The templates of one owner: a station or an association. Each lists, writes and archives its own
@@ -79,6 +112,23 @@ export interface TemplateSource {
     checkDateFormat(request: DateFormatCheckRequest): Promise<DateFormatCheck>
     /** Reads a Word or OpenDocument text into a template body, its gaps in brackets as placeholders. */
     importLetter(file: File): Promise<LetterImport>
+    /** The fonts a Word form names that the owner cannot draw it in, to choose a replacement for each. */
+    formFonts(file: File): Promise<MissingFonts>
+    /**
+     * Makes a PDF template from a Word form: member data where a label is recognised, a question to the
+     * person generating everywhere else.
+     *
+     * @param fonts how each missing font is drawn, by the family the form names
+     */
+    importForm(file: File, fonts: FormFontChoices): Promise<WordFormImport>
+    /**
+     * Draws a Word form to compare its fonts: in its own fonts, with the font files handed in for this
+     * drawing only, or with the replacements chosen. Nothing is kept.
+     *
+     * @param originalFonts a font file for each missing family the original is drawn in, by the family the
+     *                      form names
+     */
+    formPreview(file: File, version: FormPreviewVersion, fonts: FormFontChoices, originalFonts: Readonly<Record<string, File>>): Promise<Blob>
     /**
      * Draws a template as the editor holds it, for a member or with its placeholders shown by name. A PDF
      * template is filled from the PDF of the saved template it changes.
@@ -138,6 +188,24 @@ function sourceAt(prefix: string): TemplateSource {
         importLetter(file) {
             return uploadFile<LetterImport>(`${prefix}/document-template-import`, {file})
         },
+        formFonts(file) {
+            return uploadFile<MissingFonts>(`${prefix}/document-template-form-import/fonts`, {file})
+        },
+        importForm(file, fonts) {
+            return uploadFile<WordFormImport>(`${prefix}/document-template-form-import`, {file, fonts: JSON.stringify({fonts})})
+        },
+        async formPreview(file, version, fonts, originalFonts) {
+            const form = new FormData()
+            form.append('file', file)
+            form.append('version', version)
+            form.append('fonts', JSON.stringify({fonts}))
+            const handedIn = Object.entries(originalFonts)
+            handedIn.forEach(([, font]) => form.append('originalFonts', font))
+            form.append('originalFamilies', JSON.stringify(handedIn.map(([family]) => family)))
+            const res = await client.post<Blob>(`${prefix}/document-template-form-import/preview`, form,
+                {headers: {'Content-Type': null}, responseType: 'blob'})
+            return res.data
+        },
         async previewDraft(template, templateId, memberId) {
             const res = await client.post<PreviewResponse>(`${prefix}/document-template-preview`, {template, templateId, memberId})
             return res.data
@@ -177,23 +245,44 @@ export const usableTemplates: TemplatePages = async query => {
 }
 
 /**
+ * What a manager answers when generating one document: the template's questions by their keys, a text,
+ * an ISO date, or `true` or `false`. A question left out takes its suggestion.
+ */
+export type GenerationAnswers = Record<string, string>
+
+/**
  * Draws a document for a member without filing it.
+ *
+ * @param issuer  the member to issue it instead of the template's issuer, or null to keep the template's
+ * @param answers the answers to the template's questions
+ */
+export async function previewForMember(
+    templateId: number, memberId: number, issuer: IssuerChoice | null, answers: GenerationAnswers = {}): Promise<PreviewResponse> {
+    const request: ManagerGenerationRequest = {issuer, answers}
+    const res = await client.post<PreviewResponse>(`/document-generation/templates/${templateId}/members/${memberId}/preview`, request)
+    return res.data
+}
+
+/**
+ * The questions of a template, each with the answer it suggests for a member.
  *
  * @param issuer the member to issue it instead of the template's issuer, or null to keep the template's
  */
-export async function previewForMember(templateId: number, memberId: number, issuer: IssuerChoice | null): Promise<PreviewResponse> {
+export async function suggestedAnswers(templateId: number, memberId: number, issuer: IssuerChoice | null): Promise<SuggestedAnswer[]> {
     const request: ManagerGenerationRequest = {issuer}
-    const res = await client.post<PreviewResponse>(`/document-generation/templates/${templateId}/members/${memberId}/preview`, request)
+    const res = await client.post<SuggestedAnswer[]>(`/document-generation/templates/${templateId}/members/${memberId}/suggestions`, request)
     return res.data
 }
 
 /**
  * Generates a document for a member and files it with them.
  *
- * @param issuer the member to issue it instead of the template's issuer, or null to keep the template's
+ * @param issuer  the member to issue it instead of the template's issuer, or null to keep the template's
+ * @param answers the answers to the template's questions
  */
-export async function generateForMember(templateId: number, memberId: number, issuer: IssuerChoice | null): Promise<GeneratedDocumentResponse> {
-    const request: ManagerGenerationRequest = {issuer}
+export async function generateForMember(
+    templateId: number, memberId: number, issuer: IssuerChoice | null, answers: GenerationAnswers = {}): Promise<GeneratedDocumentResponse> {
+    const request: ManagerGenerationRequest = {issuer, answers}
     const res = await client.post<GeneratedDocumentResponse>(`/document-generation/templates/${templateId}/members/${memberId}`, request)
     return res.data
 }

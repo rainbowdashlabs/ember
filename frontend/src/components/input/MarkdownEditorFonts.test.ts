@@ -20,8 +20,8 @@ enableAutoUnmount(afterEach)
 const LIST: DocumentFontsResponse = {
     own: [],
     reachable: [
-        {family: 'Hausschrift', origin: FontOrigin.STATION, styles: [FontStyle.REGULAR], printsOnPdf: true, sample: 's', editorVersion: 'h1'},
-        {family: 'Libertinus Serif', origin: FontOrigin.BUILT_IN, styles: [FontStyle.REGULAR], printsOnPdf: false, sample: 't', editorVersion: null},
+        {family: 'Hausschrift', origin: FontOrigin.STATION, styles: [FontStyle.REGULAR], printsOnPdf: true, printsInLetters: true, sample: 's', editorVersion: 'h1'},
+        {family: 'Libertinus Serif', origin: FontOrigin.BUILT_IN, styles: [FontStyle.REGULAR], printsOnPdf: false, printsInLetters: true, sample: 't', editorVersion: null},
     ],
     defaultFamily: 'Liberation Sans',
     defaultStyles: [],

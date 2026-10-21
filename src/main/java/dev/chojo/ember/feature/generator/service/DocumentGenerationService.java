@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.generator.entity.DocumentTemplate;
 import dev.chojo.ember.feature.generator.entity.GenerationContext;
 import dev.chojo.ember.feature.generator.entity.GenerationOrigin;
 import dev.chojo.ember.feature.generator.entity.MissingValue;
+import dev.chojo.ember.feature.generator.entity.TemplateQuestion;
 import dev.chojo.ember.feature.generator.repository.DocumentGenerationRepository;
 import dev.chojo.ember.feature.generator.service.DocumentGeneratorService.PreviewResponse;
 import dev.chojo.ember.feature.generator.service.DocumentIssuerService.IssuerChoice;
@@ -31,6 +32,7 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Clock;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Generates a document from a template and files it in the documents of the member it is about.
@@ -172,13 +174,68 @@ public class DocumentGenerationService {
      */
     public PreviewResponse preview(
             StationSession session, int templateId, int memberId, @Nullable IssuerChoice issuer) {
-        var template = templates.requireInUse(session.stationId(), templateId);
-        return generator.preview(generator.sourceOf(template), memberId, managerContext(session, template, issuer));
+        return preview(session, templateId, memberId, issuer, Map.of());
     }
 
+    /**
+     * Draws a saved template for a member of the station with the manager's answers to its questions, for
+     * a look before it is generated.
+     *
+     * @param session    the manager
+     * @param templateId the template, the station's own or one of its association
+     * @param memberId   the member, already checked to be of the station
+     * @param issuer     the member the manager picked to issue it, or null for the template's issuer
+     * @param answers    the answers by the key of the question; a question left out takes its suggestion
+     * @return the document and what is missing
+     */
+    public PreviewResponse preview(
+            StationSession session,
+            int templateId,
+            int memberId,
+            @Nullable IssuerChoice issuer,
+            Map<String, String> answers) {
+        var template = templates.requireInUse(session.stationId(), templateId);
+        return generator.preview(
+                generator.sourceOf(template), memberId, managerContext(session, template, issuer, answers));
+    }
+
+    /**
+     * The questions a saved template asks, each with what it suggests for a member of the station, as the
+     * manager is shown them before generating.
+     *
+     * @param session    the manager
+     * @param templateId the template, the station's own or one of its association
+     * @param memberId   the member, already checked to be of the station
+     * @param issuer     the member the manager picked to issue it, or null for the template's issuer
+     * @return the questions in the order they are asked
+     */
+    public List<SuggestedAnswer> suggestions(
+            StationSession session, int templateId, int memberId, @Nullable IssuerChoice issuer) {
+        var template = templates.requireInUse(session.stationId(), templateId);
+        var source = generator.sourceOf(template);
+        var suggested = generator
+                .batch(List.of(memberId))
+                .suggestions(source, memberId, managerContext(session, template, issuer, Map.of()));
+        return source.questions().stream()
+                .map(question -> new SuggestedAnswer(question, suggested.getOrDefault(question.key(), "")))
+                .toList();
+    }
+
+    /**
+     * A question of a template with the answer it suggests for one member.
+     *
+     * @param question   the question
+     * @param suggestion the answer it suggests, as an answer is sent: a text, an ISO date, or true or false
+     */
+    public record SuggestedAnswer(TemplateQuestion question, String suggestion) {}
+
     private GenerationContext managerContext(
-            StationSession session, DocumentTemplate template, @Nullable IssuerChoice issuer) {
-        return GenerationContext.by(session.member().id(), issuers.forManager(template, session.stationId(), issuer));
+            StationSession session,
+            DocumentTemplate template,
+            @Nullable IssuerChoice issuer,
+            Map<String, String> answers) {
+        return GenerationContext.by(session.member().id(), issuers.forManager(template, session.stationId(), issuer))
+                .answering(answers);
     }
 
     /**
@@ -250,8 +307,28 @@ public class DocumentGenerationService {
      */
     public GeneratedDocumentResponse generate(
             StationSession session, int templateId, int memberId, @Nullable IssuerChoice issuer) {
+        return generate(session, templateId, memberId, issuer, Map.of());
+    }
+
+    /**
+     * Generates a document for a member of the station with the manager's answers to its questions, and
+     * files it.
+     *
+     * @param session    the manager
+     * @param templateId the template, the station's own or one of its association
+     * @param memberId   the member, already checked to be of the station
+     * @param issuer     the member the manager picked to issue it, or null for the template's issuer
+     * @param answers    the answers by the key of the question; a question left out takes its suggestion
+     * @return the filed document and what was missing
+     */
+    public GeneratedDocumentResponse generate(
+            StationSession session,
+            int templateId,
+            int memberId,
+            @Nullable IssuerChoice issuer,
+            Map<String, String> answers) {
         var template = templates.requireInUse(session.stationId(), templateId);
-        var prepared = generator.prepare(template, memberId, managerContext(session, template, issuer));
+        var prepared = generator.prepare(template, memberId, managerContext(session, template, issuer, answers));
         return file(template, memberId, session.member().id(), GenerationOrigin.MANAGER, prepared);
     }
 
@@ -356,6 +433,7 @@ public class DocumentGenerationService {
                         issuer.issuer().fixed(),
                         issuer.signs()),
                 rendered.resolved().subjects());
+        if (!prepared.answers().isEmpty()) generations.recordAnswers(entry.id(), prepared.answers());
         signed.record().accept(entry.id());
         log.info(
                 "Document {} generated from template {} (version {}) for member {}",

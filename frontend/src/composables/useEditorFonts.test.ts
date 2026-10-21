@@ -21,7 +21,7 @@ class FakeFontFace {
 }
 
 function option(family: string, styles: FontStyle[], editorVersion: string | null): FontFamilyOption {
-    return {family, origin: FontOrigin.STATION, styles, printsOnPdf: true, sample: 's', editorVersion}
+    return {family, origin: FontOrigin.STATION, styles, printsOnPdf: true, printsInLetters: true, sample: 's', editorVersion}
 }
 
 const LIST: DocumentFontsResponse = {

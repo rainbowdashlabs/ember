@@ -20,12 +20,32 @@ import org.jspecify.annotations.Nullable;
  * @param outline        how its glyphs are drawn
  * @param bundledFile    the name of the file under {@code fonts/} in the application's resources, or
  *                       null for a face Typst carries itself
+ * @param pdfOnly        whether only PDF fields print in it, as for a light cut, which Typst knows by the name
+ *                       of its family and not by its own, so a letter naming it would not find it
  */
 public record BuiltInFace(
         String internalFamily,
         FontStyle style,
         FontOutline outline,
-        @Nullable String bundledFile) implements FontFace {
+        @Nullable String bundledFile,
+        boolean pdfOnly) implements FontFace {
+
+    /**
+     * A face letters and PDF fields alike print in, where it can.
+     *
+     * @param internalFamily the family name the face carries, which Typst finds it by
+     * @param style          which style of its family it is
+     * @param outline        how its glyphs are drawn
+     * @param bundledFile    the name of the file under {@code fonts/}, or null for a face Typst carries itself
+     */
+    public BuiltInFace(String internalFamily, FontStyle style, FontOutline outline, @Nullable String bundledFile) {
+        this(internalFamily, style, outline, bundledFile, false);
+    }
+
+    @Override
+    public boolean printsInLetters() {
+        return !pdfOnly;
+    }
 
     /** @return whether the face ships with the application as a file */
     public boolean bundled() {
@@ -42,8 +62,14 @@ public record BuiltInFace(
         return bundled() && outline == FontOutline.TRUETYPE;
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>A face only PDF fields print in carries the name of its family, the same as a face of the family
+     * itself, so it is told apart by its file.
+     */
     @Override
     public String identity() {
-        return "built-in:" + internalFamily + ":" + style;
+        return pdfOnly ? "built-in:" + bundledFile : "built-in:" + internalFamily + ":" + style;
     }
 }

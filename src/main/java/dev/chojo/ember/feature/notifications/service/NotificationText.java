@@ -12,6 +12,7 @@ import dev.chojo.ember.feature.notifications.entity.NotificationData;
 import dev.chojo.ember.feature.notifications.entity.NotificationParams;
 import dev.chojo.ember.feature.notifications.entity.NotificationType;
 import dev.chojo.ember.i18n.Localizer;
+import dev.chojo.ember.util.Markdown;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 
@@ -185,27 +186,37 @@ public class NotificationText {
     }
 
     /**
-     * Returns a short detail string (e.g. news preview, denial reason) when the notification type carries one.
+     * Returns a short detail string (e.g. news preview, denial reason) when the notification type carries one,
+     * as plain text: an appointment's description is written in markdown and loses its markup here. A blank
+     * detail gives {@code null}.
      */
     public @Nullable String resolveDetail(Notification n) {
         var params = n.data().params();
         if (params == null) return null;
-        return switch (n.type()) {
-            case NEW_NEWS -> params instanceof NotificationParams.NewNews p ? p.preview() : null;
-            case NEWS_COMMENT -> params instanceof NotificationParams.NewsComment p ? p.preview() : null;
-            case MOVEMENT_ADVANCED -> params instanceof NotificationParams.MovementMoved p ? p.stepLabel() : null;
-            case MOVEMENT_RAISED -> params instanceof NotificationParams.MovementRaised p ? p.reason() : null;
-            case EVENT_REGISTRATION_STATUS ->
-                params instanceof NotificationParams.EventRegistrationStatus p ? p.eventDescription() : null;
-            case NEW_EVENT -> params instanceof NotificationParams.NewEvent p ? p.eventDescription() : null;
-            case WAITLIST_INVITATION_ANSWERED ->
-                params instanceof NotificationParams.WaitlistInvitationAnswered p ? nonBlank(p.note()) : null;
-            default -> null;
-        };
+        String detail =
+                switch (n.type()) {
+                    case NEW_NEWS -> params instanceof NotificationParams.NewNews p ? p.preview() : null;
+                    case NEWS_COMMENT -> params instanceof NotificationParams.NewsComment p ? p.preview() : null;
+                    case MOVEMENT_ADVANCED ->
+                        params instanceof NotificationParams.MovementMoved p ? p.stepLabel() : null;
+                    case MOVEMENT_RAISED -> params instanceof NotificationParams.MovementRaised p ? p.reason() : null;
+                    case EVENT_REGISTRATION_STATUS ->
+                        params instanceof NotificationParams.EventRegistrationStatus p
+                                ? plainText(p.eventDescription())
+                                : null;
+                    case NEW_EVENT ->
+                        params instanceof NotificationParams.NewEvent p
+                                ? Markdown.toPlainText(p.eventDescription())
+                                : null;
+                    case WAITLIST_INVITATION_ANSWERED ->
+                        params instanceof NotificationParams.WaitlistInvitationAnswered p ? p.note() : null;
+                    default -> null;
+                };
+        return detail == null || detail.isBlank() ? null : detail;
     }
 
-    private static @Nullable String nonBlank(@Nullable String text) {
-        return text == null || text.isBlank() ? null : text;
+    private static @Nullable String plainText(@Nullable String markdown) {
+        return markdown == null ? null : Markdown.toPlainText(markdown);
     }
 
     /**

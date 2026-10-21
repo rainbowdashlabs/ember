@@ -20,6 +20,7 @@ import TemplateTile from '@/components/documents/templatepicker/TemplateTile.vue
 import {useTemplatePages} from '@/components/documents/templatepicker/useTemplatePages'
 import {DocumentTemplateKind} from '@/api/generated/schema'
 import {templateTarget} from './templatesview/templateTarget'
+import FormImportButton from './templatesview/FormImportButton.vue'
 import type {TemplateScreens} from './templateScreens'
 import {useTemplateDuplication} from './useTemplateDuplication'
 
@@ -29,7 +30,8 @@ import {useTemplateDuplication} from './useTemplateDuplication'
  * stays for the documents it made; the switch lists those instead of the ones in use. A station's list
  * also holds the templates of its association, marked as such, which it uses but does not change. The
  * list opens on the templates used last; search, kind and order are answered by the server over every
- * template. Any of them can be duplicated, and the editor opens on the copy. Documents are generated
+ * template. Any of them can be duplicated, and the editor opens on the copy. A Word form can be turned
+ * into a PDF template whose fields are filled from member data or asked when generating. Documents are generated
  * from them in the document store and on a member's page, not here.
  */
 const props = defineProps<{
@@ -64,6 +66,7 @@ function create(kind?: DocumentTemplateKind) {
           <SecondaryButton :icon="['fas', 'file-pdf']" data-testid="template-new-pdf" @click="create(DocumentTemplateKind.PDF)">
             {{ t('documentTemplates.createPdf') }}
           </SecondaryButton>
+          <FormImportButton :screens="screens"/>
         </ButtonRow>
         <ToggleSetting v-model="showArchived" :label="t('documentTemplates.showArchived')"/>
       </div>

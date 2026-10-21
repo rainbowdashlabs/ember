@@ -9,6 +9,7 @@ import de.chojo.sadu.postgresql.types.PostgreSqlTypes;
 import dev.chojo.ember.feature.generator.entity.DataSubject;
 import dev.chojo.ember.feature.generator.entity.DocumentGeneration;
 import dev.chojo.ember.feature.generator.entity.GenerationLogEntry;
+import dev.chojo.ember.feature.question.QuestionConfigs;
 import dev.chojo.ember.util.sql.SqlSupport;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
@@ -34,6 +35,18 @@ public class DocumentGenerationRepository {
             id, station_id, template_id, template_version, member_id, generated_by, generated_at, self_service,
             document_id, file_sha256, pdf_original_id, event_id, event_date, issuer_id, issuer_function, issuer_fixed,
             issuer_signs""";
+
+    /**
+     * Keeps what the questions of the template were answered with beside an entry of the log.
+     *
+     * @param generationId the entry
+     * @param answers      the answers by the key of the question, as they were sent
+     */
+    public void recordAnswers(int generationId, Map<String, String> answers) {
+        query("UPDATE document_generation SET answers = :answers::jsonb WHERE id = :id;")
+                .single(call().bind("id", generationId).bind("answers", QuestionConfigs.toJson(answers)))
+                .update();
+    }
 
     /**
      * Writes one entry of the log with the people whose data went into the document.

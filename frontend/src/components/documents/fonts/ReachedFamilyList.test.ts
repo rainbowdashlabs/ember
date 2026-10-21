@@ -16,6 +16,7 @@ const BUILT_IN: FontFamilyOption = {
     sample: 's1',
     editorVersion: null,
     printsOnPdf: true,
+    printsInLetters: true,
 }
 
 /** The fonts page lists the default font every text prints in, beside the families reached from further up. */

@@ -91,7 +91,7 @@ jobs:
         id: tools
         run: |
           sudo apt-get update
-          versions=$(apt-cache policy libreoffice-core libreoffice-impress pandoc webp qpdf \
+          versions=$(apt-cache policy libreoffice-core libreoffice-impress libreoffice-writer pandoc webp qpdf \
             | sed -n 's/^  Candidate: //p' | tr ':~+' '---' | paste -sd-)
           echo "key=$versions" >> "$GITHUB_OUTPUT"
       - name: Restore the external tools
@@ -103,7 +103,7 @@ jobs:
       - name: Install external tools
         if: matrix.tools
         env:
-          PACKAGES: libreoffice-core libreoffice-impress pandoc webp qpdf
+          PACKAGES: libreoffice-core libreoffice-impress libreoffice-writer pandoc webp qpdf
         run: |
           mkdir -p ~/tool-cache/apt
 
@@ -138,6 +138,12 @@ jobs:
         with:
           name: jacoco-${{ matrix.suite }}
           path: build/jacoco/${{ matrix.suite }}.exec
+      - name: Upload the test results
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results-${{ matrix.suite }}
+          path: build/test-results/${{ matrix.suite }}/
 
   # One name for however many suites there are, so adding or splitting one leaves branch protection
   # alone. `always()`, or a skipped job would never report and the check could never pass.

@@ -61,6 +61,19 @@ public record FittedText(List<FontChain.Shaped> lines, float size, Set<String> u
         return new FittedText(lines, size, unprintable);
     }
 
+    /**
+     * A text kept at its size on one line, however wide it runs.
+     *
+     * @param fonts the fonts to draw in
+     * @param text  the text, line breaks read as spaces
+     * @param size  the size the field asks for
+     * @return the text laid out
+     */
+    public static FittedText atSize(FontChain fonts, String text, float size) {
+        var line = fonts.shape(oneLine(text));
+        return new FittedText(List.of(line), size, new LinkedHashSet<>(line.unprintable()));
+    }
+
     private static boolean fits(List<FontChain.Shaped> lines, float room, float height, float size) {
         float needed = size + (lines.size() - 1) * size * LEADING;
         if (needed > height) return false;
