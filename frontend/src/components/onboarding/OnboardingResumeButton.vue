@@ -6,15 +6,16 @@
 <script setup lang="ts">
 import {computed} from 'vue'
 import {useI18n} from 'vue-i18n'
-import LayeredEmberLogo from '@/components/display/LayeredEmberLogo.vue'
-import BareButton from '@/components/button/BareButton.vue'
-import {emberGuide} from '@/composables/useEmberLogo'
+import DockButton from '@/components/button/DockButton.vue'
 import {useOnboardingTasks} from '@/composables/useOnboardingTasks'
 import type {OnboardingLevel} from '@/api/generated/schema'
 
 /**
- * Ember waiting in the corner while somebody wanders off mid-task. Tapping it picks the guide back
+ * A round button in the corner while somebody wanders off mid-task. Tapping it picks the guide back
  * up, and it is gone the moment nothing is open.
+ *
+ * <p>It carries the rocket the setup has in the sidebar, not the Ember logo: the help center's button
+ * beside it shows that logo, and two buttons that look alike were taken for one another.
  */
 const props = defineProps<{
   level: OnboardingLevel
@@ -22,7 +23,6 @@ const props = defineProps<{
 
 const {t} = useI18n()
 const {openOf, startNext, activeTaskId, guideDismissed, reopenGuide} = useOnboardingTasks()
-const logo = emberGuide('faq')
 
 const visible = computed(() => openOf(props.level).length > 0 && (activeTaskId.value === null || guideDismissed.value))
 
@@ -33,19 +33,6 @@ function resume() {
 </script>
 
 <template>
-  <BareButton
-      v-if="visible"
-      class="flex h-10 w-10 items-center justify-center rounded-full
-             border border-(--border) bg-(--bg) shadow-lg transition-colors hover:border-primary"
-      :title="t('onboarding.resume')"
-      @click="resume"
-  >
-    <LayeredEmberLogo
-        :layers="logo.layers"
-        :active-layers="logo.activeLayers"
-        size="w-7 h-7"
-        :pixel-size="128"
-        :auto-blink="true"
-    />
-  </BareButton>
+  <DockButton v-if="visible" :label="t('onboarding.resume')" :icon="['fas', 'rocket']" data-testid="onboarding-resume"
+              @click="resume"/>
 </template>

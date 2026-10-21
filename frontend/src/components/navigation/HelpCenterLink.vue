@@ -8,6 +8,7 @@ import {useRoute, useRouter} from 'vue-router'
 import {useI18n} from 'vue-i18n'
 import {computed} from 'vue'
 import LayeredEmberLogo from '@/components/display/LayeredEmberLogo.vue'
+import DockButton from '@/components/button/DockButton.vue'
 import { emberLogoFaq } from '@/composables/useEmberLogo'
 
 const route = useRoute()
@@ -73,14 +74,8 @@ const helpRoute = computed(() => {
 </script>
 
 <template>
-  <router-link
-      :to="helpRoute"
-      :title="t('helpCenter.link')"
-      :aria-label="t('helpCenter.link')"
-      data-testid="help-center"
-      class="flex h-10 w-10 items-center justify-center rounded-full border border-(--border) bg-(--bg) shadow-lg transition-colors hover:border-primary"
-      target="_blank"
-  >
-    <LayeredEmberLogo :layers="faqLogo.layers" :active-layers="faqLogo.activeLayers" :auto-blink="true" :display-shake="true" size="w-6 h-6 shrink-0" :pixel-size="64" />
-  </router-link>
+  <DockButton :to="helpRoute" target="_blank" :label="t('helpCenter.link')" data-testid="help-center">
+    <LayeredEmberLogo :layers="faqLogo.layers" :active-layers="faqLogo.activeLayers" :auto-blink="true" :display-shake="true"
+                      size="w-5 h-5 shrink-0" :pixel-size="64"/>
+  </DockButton>
 </template>
