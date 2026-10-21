@@ -138,6 +138,12 @@ jobs:
         with:
           name: jacoco-${{ matrix.suite }}
           path: build/jacoco/${{ matrix.suite }}.exec
+      - name: Upload the test results
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results-${{ matrix.suite }}
+          path: build/test-results/${{ matrix.suite }}/
 
   # One name for however many suites there are, so adding or splitting one leaves branch protection
   # alone. `always()`, or a skipped job would never report and the check could never pass.
