@@ -110,3 +110,15 @@ ALTER TABLE ember_schema.document_template_field
 
 COMMENT ON COLUMN ember_schema.document_template_field.keep_size IS
     'Whether a text field prints at its size however long the value is, running past its box, instead of shrinking the value to fit. Set on the fields of a template made from a Word form, whose gaps are only as wide as their blank.';
+
+CREATE TABLE IF NOT EXISTS ember_schema.account_preference
+(
+    account_id INTEGER PRIMARY KEY REFERENCES ember_schema.account (id) ON DELETE CASCADE,
+    sidebar    TEXT    NOT NULL DEFAULT 'SECTIONS' CHECK (sidebar IN ('SECTIONS', 'TREE'))
+);
+
+COMMENT ON TABLE ember_schema.account_preference IS
+    'How an account likes the app laid out, on every device it signs in on. A row exists once the account changed something; an account without one sees the defaults.';
+COMMENT ON COLUMN ember_schema.account_preference.account_id IS 'The account the preferences belong to.';
+COMMENT ON COLUMN ember_schema.account_preference.sidebar IS
+    'How the sidebar lists its sections: SECTIONS shows one section at a time, TREE shows every section at once and opens them in place.';

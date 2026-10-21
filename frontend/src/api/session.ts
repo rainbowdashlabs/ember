@@ -16,6 +16,8 @@ import type {
     MessageResponse,
     RecordConsentRequest,
     SessionInfo,
+    SidebarMode,
+    SidebarPreference,
     StationMembership,
 } from './generated/schema'
 import {prepareImageUpload} from '@/util/imageUpload'
@@ -23,6 +25,12 @@ import {prepareImageUpload} from '@/util/imageUpload'
 export async function getSessionInfo(): Promise<SessionInfo> {
     const res = await client.get<SessionInfo>('/session')
     return res.data
+}
+
+/** Chooses how the sidebar of the own account lists its sections, on every device it signs in on. */
+export async function setSidebarMode(sidebar: SidebarMode): Promise<void> {
+    const request: SidebarPreference = {sidebar}
+    await client.put('/session/preferences/sidebar', request)
 }
 
 export async function getStations(): Promise<StationMembership[]> {

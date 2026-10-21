@@ -15,6 +15,11 @@ const push = vi.fn(async (to: string) => {
     route.path = to
 })
 const collapsed = ref(false)
+const tree = ref(false)
+
+vi.mock('@/composables/useSidebarMode', () => ({
+    useSidebarMode: () => ({tree}),
+}))
 
 vi.mock('vue-router', () => ({
     useRoute: () => route,
@@ -65,6 +70,7 @@ describe('NavSidebar', () => {
     beforeEach(() => {
         route.path = '/station/news'
         collapsed.value = false
+        tree.value = false
         push.mockClear()
     })
 
@@ -183,5 +189,19 @@ describe('NavSidebar', () => {
         expect(sidebar.find('[data-section]').exists()).toBe(false)
         expect(sidebar.find('[data-back]').exists()).toBe(false)
         expect(sidebar.find('a[href="/station/members/list"]').exists()).toBe(true)
+    })
+
+    it('shows every section at once, the one holding the page opened in place, for an account that chose the tree', async () => {
+        tree.value = true
+        route.path = '/station/events/upcoming'
+        const sidebar = mountSidebar()
+        await flushPromises()
+
+        expect(sidebar.find('[data-section]').exists()).toBe(false)
+        expect(sidebar.find('[data-back]').exists()).toBe(false)
+        expect(sidebar.text()).toContain('Mitglieder')
+        expect(sidebar.text()).toContain('Termine')
+        expect(sidebar.find('a[href="/station/events"]').exists()).toBe(true)
+        expect(sidebar.find('a[href="/station/members/create"]').exists()).toBe(false)
     })
 })

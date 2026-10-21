@@ -1307,6 +1307,12 @@ volumes:
                 + 'abgelehnt, bringt „Entscheidung ändern" auf der Anmeldeseite die Auswahl zurück.',
             themeTitle: 'Erscheinungsbild',
             themeText: 'Hier kannst du dein Farbschema und den Modus (Hell/Dunkel) anpassen. Wenn die Wache es erlaubt, kannst du ein eigenes Farbschema wählen. Andernfalls siehst du eine Hinweismeldung.',
+            sidebarTitle: 'Seitenleiste',
+            sidebarText: 'Unter „Konto → Erscheinungsbild" legst du fest, wie die Seitenleiste ihre Bereiche zeigt. '
+                + 'Normalerweise öffnet ein Bereich an Stelle der Liste, „Alle Bereiche" führt zurück. Mit „Alle '
+                + 'Bereiche auf einmal zeigen" stehen alle Bereiche untereinander und klappen an Ort und Stelle auf, '
+                + 'der Bereich der geöffneten Seite von selbst. Die Einstellung gehört zu deinem Konto und gilt auf '
+                + 'allen Geräten.',
             emailTitle: 'E-Mail-Benachrichtigungen',
             emailText: 'Hier kannst du festlegen, ob du E-Mails von der Plattform erhalten möchtest. Wenn du E-Mails aktivierst, musst du der Weitergabe deiner E-Mail-Adresse an den E-Mail-Dienst zustimmen.',
             typesTitle: 'Benachrichtigungstypen',

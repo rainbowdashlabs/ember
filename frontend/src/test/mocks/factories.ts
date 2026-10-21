@@ -4,6 +4,7 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 import {
+    SidebarMode,
     TagVisibility,
     type AccountInfo,
     type MemberGroup,
@@ -98,6 +99,7 @@ export function createSessionInfo(
             username: null,
             firstName: 'Account',
             lastName: String(id),
+            sidebar: SidebarMode.SECTIONS,
             ...account,
         },
         stationId: 'test-station',

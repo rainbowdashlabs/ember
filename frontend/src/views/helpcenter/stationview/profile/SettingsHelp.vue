@@ -27,6 +27,10 @@ const {t} = useI18n()
       <p>{{ t('helpCenter.settings.themeText') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.settings.sidebarTitle')">
+      <p>{{ t('helpCenter.settings.sidebarText') }}</p>
+    </HelpSection>
+
     <NeutralContainer class="space-y-4">
       <SubHeader>{{ t('theme.title') }}</SubHeader>
       <ThemeSelector :show-themes="true" :show-feel="true"/>

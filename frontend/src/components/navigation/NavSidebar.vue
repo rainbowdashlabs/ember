@@ -11,6 +11,7 @@ import NavSectionRow from '@/components/navigation/NavSectionRow.vue'
 import NavSectionView from '@/components/navigation/NavSectionView.vue'
 import {useBreakpoint} from '@/composables/useBreakpoint'
 import {useSidebarCollapse} from '@/composables/useSidebarCollapse'
+import {useSidebarMode} from '@/composables/useSidebarMode'
 import type {NavGroup, NavNode} from '@/data/sidebar/navTypes'
 import {entryHolding} from '@/util/navTree'
 
@@ -24,6 +25,9 @@ import {entryHolding} from '@/util/navTree'
  *
  * <p>The collapsed rail keeps its icons with hover flyouts, since there is no room there to open a
  * section in place.
+ *
+ * <p>An account that chose the tree ({@link useSidebarMode}) sees every section at once instead, each
+ * opened in place and the one holding the page shown opened by itself, the way the sidebar used to work.
  *
  * <p>Only the view coming in slides; the one going out leaves at once. A leave that waits for its own
  * animation keeps the old view, and its links, on the page whenever the browser skips the end of it.
@@ -40,6 +44,7 @@ const route = useRoute()
 const router = useRouter()
 const {collapsed} = useSidebarCollapse()
 const {isDesktop} = useBreakpoint()
+const {tree} = useSidebarMode()
 
 const rail = computed(() => collapsed.value && isDesktop.value)
 
@@ -76,7 +81,7 @@ async function back() {
 
 <template>
   <div ref="root" class="flex flex-col gap-1">
-    <template v-if="rail">
+    <template v-if="rail || tree">
       <NavEntry v-for="node in nodes" :key="node.key" :node="node" @navigate="emit('navigate')"/>
     </template>
     <Transition v-else

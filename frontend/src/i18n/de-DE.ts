@@ -5927,6 +5927,11 @@ export default {
         denyReasonLabel: 'Begründung',
         denyReasonPlaceholder: 'Grund für die Ablehnung...',
     },
+    sidebarMode: {
+        title: 'Seitenleiste',
+        tree: 'Alle Bereiche auf einmal zeigen',
+        treeHint: 'Die Seitenleiste listet alle Bereiche untereinander und klappt sie an Ort und Stelle auf. Ausgeschaltet zeigt sie einen Bereich auf einmal. Die Einstellung gilt auf allen Geräten.',
+    },
     theme: {
         toggle: 'Farbmodus wechseln',
         custom: 'Eigenes Design',

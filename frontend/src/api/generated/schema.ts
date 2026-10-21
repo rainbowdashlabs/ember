@@ -54435,6 +54435,44 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/session/preferences/sidebar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Choose how the sidebar of the own account lists its sections */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["SidebarPreference"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/session/signature": {
         parameters: {
             query?: never;
@@ -61666,6 +61704,7 @@ export interface components {
             /** Format: int32 */
             id: number;
             lastName: string;
+            sidebar: components["schemas"]["SidebarMode"];
             uid: string | null;
             username: string | null;
         };
@@ -71616,6 +71655,11 @@ export interface components {
             /** Format: int32 */
             waitingListEntries: number;
         };
+        /** @enum {string} */
+        SidebarMode: "SECTIONS" | "TREE";
+        SidebarPreference: {
+            sidebar?: components["schemas"]["SidebarMode"] | null;
+        };
         SignatureAskResponse: {
             fields: components["schemas"]["AskedFieldResponse"][];
             request: components["schemas"]["AskedRequestResponse"] | null;
@@ -74939,6 +74983,8 @@ export type SharePartner = components['schemas']['SharePartner'];
 export type ShareScope = components['schemas']['ShareScope'];
 export type ShareSetting = components['schemas']['ShareSetting'];
 export type SidebarCounts = components['schemas']['SidebarCounts'];
+export type SidebarMode = components['schemas']['SidebarMode'];
+export type SidebarPreference = components['schemas']['SidebarPreference'];
 export type SignatureAskResponse = components['schemas']['SignatureAskResponse'];
 export type SignatureConfig = components['schemas']['SignatureConfig'];
 export type SignatureConsentRequest = components['schemas']['SignatureConsentRequest'];
@@ -76376,6 +76422,11 @@ export const ShareGrant = {
 export const ShareScope = {
     ALL_PARTNERS: "ALL_PARTNERS",
     SPECIFIC: "SPECIFIC",
+} as const;
+
+export const SidebarMode = {
+    SECTIONS: "SECTIONS",
+    TREE: "TREE",
 } as const;
 
 export const SignatureImageSource = {

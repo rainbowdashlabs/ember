@@ -41472,6 +41472,26 @@
         }
       }
     },
+    "/api/v1/session/preferences/sidebar" : {
+      "put" : {
+        "summary" : "Choose how the sidebar of the own account lists its sections",
+        "tags" : [ "Session" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SidebarPreference"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/session/signature" : {
       "get" : {
         "summary" : "The caller's own signature picture and consent to automatic signing",
@@ -47075,9 +47095,12 @@
           },
           "lastName" : {
             "type" : "string"
+          },
+          "sidebar" : {
+            "$ref" : "#/components/schemas/SidebarMode"
           }
         },
-        "required" : [ "id", "uid", "email", "username", "firstName", "lastName" ]
+        "required" : [ "id", "uid", "email", "username", "firstName", "lastName", "sidebar" ]
       },
       "AccountOverview" : {
         "type" : "object",
@@ -76182,6 +76205,22 @@
           }
         },
         "required" : [ "notifications", "requirements", "pendingChanges", "pendingRegistrations", "lendingRequests", "federationRequests", "openEvents", "waitingListEntries", "lostAndFoundPending", "myInventoryCount", "openMovements", "procedureCount" ]
+      },
+      "SidebarMode" : {
+        "type" : "string",
+        "enum" : [ "SECTIONS", "TREE" ]
+      },
+      "SidebarPreference" : {
+        "type" : "object",
+        "properties" : {
+          "sidebar" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/SidebarMode"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        }
       },
       "SignInClaimRequest" : {
         "type" : "object",

@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:04f4a4e7739ac82ee98af593c1655d9cef65e8cb807af7e779bd1e288c9ea46b",
-  "generatedAt": "2026-10-21T11:32:18Z",
+  "schemaHash": "sha256:b4f056facae2cb623b0e6d6a47f42b817213917ec344d414a40b477369dd4848",
+  "generatedAt": "2026-10-21T15:23:33Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -1026,6 +1026,59 @@
         ]
       },
       "description": "A station or an association asking a person to take an existing account in. A station asks to link the account to one of its members: an import that found the account by its address and an invite naming that address both leave the member without an account and ask here instead. An association asks the account to take a role there: adding an address that already has an account asks here instead of making the membership. Only the person signed in to that account can accept. The answered rows stay as the record of what was asked and answered."
+    },
+    "account_preference": {
+      "feature": "account",
+      "scope": "USER",
+      "tableHash": "sha256:ee9b99a7a4ea99acd8f760db24b41f5c626b80a7118ba79e993bc8805f14423e",
+      "columns": [
+        {
+          "name": "account_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The account the preferences belong to."
+        },
+        {
+          "name": "sidebar",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "How the sidebar lists its sections: SECTIONS shows one section at a time, TREE shows every section at once and opens them in place."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "account_id",
+          "refTable": "account",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "Account-scoped data, not part of a station export"
+      },
+      "gdprExport": {
+        "status": "TRACKED",
+        "identityColumns": [
+          {
+            "type": "ACCOUNT_ID",
+            "column": "account_id"
+          }
+        ]
+      },
+      "gdprDeletion": {
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "account_id",
+            "strategy": "CASCADE",
+            "reason": "FK ON DELETE CASCADE on account delete"
+          }
+        ]
+      },
+      "description": "How an account likes the app laid out, on every device it signs in on. A row exists once the account changed something; an account without one sees the defaults."
     },
     "account_session": {
       "feature": "account",
