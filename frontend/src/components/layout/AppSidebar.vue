@@ -26,7 +26,7 @@ const props = withDefaults(defineProps<{
   stationName?: string
   stationLogoUrl?: string | null
   collapsible?: boolean
-  /** Turns the name into the switcher between the reader's places, for the signed-in areas. */
+  /** Puts the switcher between the reader's places at the foot of the sidebar, for the signed-in areas. */
   switcher?: boolean
 }>(), {
   stationName: undefined,
@@ -79,14 +79,17 @@ const logoSizeClass = computed(() => collapsed.value ? 'h-8 w-8 lg:h-10 lg:w-10 
                      class="text-lg font-bold text-primary leading-tight whitespace-nowrap">Ember
           </PrideText>
         </router-link>
-        <PlaceSwitcher v-if="switcher" :name="stationName"/>
-        <span v-else-if="stationName" class="text-xs text-(--text-muted) leading-tight line-clamp-2">{{ stationName }}</span>
+        <span v-if="stationName" class="text-xs text-(--text-muted) leading-tight line-clamp-2">{{ stationName }}</span>
       </div>
     </div>
 
     <nav class="flex flex-col gap-1 p-3 overflow-y-auto overflow-x-hidden flex-1">
       <slot/>
     </nav>
+
+    <div v-if="switcher" class="shrink-0 border-t border-bg-light dark:border-bg-dark p-3">
+      <PlaceSwitcher :name="stationName"/>
+    </div>
   </aside>
 
   <div v-if="collapsible" class="hidden lg:block">

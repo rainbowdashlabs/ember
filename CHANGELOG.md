@@ -4,7 +4,7 @@
 
 Document templates can ask the person generating a document for details that the member's data does not hold, such as the date of a change or which of several boxes applies. Word forms with fields to fill in become PDF templates that keep their look, so a paper form such as a change notification is filled out in Ember. Check marks of existing PDF templates keep following the member's data and can now also be ticked by hand. Families on a waiting list take part in the trial from its first day. Guardians get their account when the trial begins, follow it on their start page and can end it themselves. An invitation always names an appointment, shows where the mail goes before it is sent and can carry a personal note.
 
-The sidebar shows one section at a time and stays short however many modules a station uses. Every section opens on its main page and lists all its pages, so nothing is reached only by clicking a section's name. The name at the top of the sidebar switches between stations, associations and the instance administration, each with the number of things waiting there. The header keeps the search and the account menu, and the help center joins the round buttons at the bottom right.
+The sidebar shows one section at a time and stays short however many modules a station uses. Every section opens on its main page and lists all its pages, so nothing is reached only by clicking a section's name. The foot of the sidebar switches between stations, associations, the own account and the instance administration, each with the number of things waiting there. The header keeps the search and the account menu, and the help center joins the round buttons at the bottom right.
 
 ### New Features
 
@@ -26,7 +26,7 @@ The sidebar shows one section at a time and stays short however many modules a s
 - **The sidebar shows one section at a time.** Opening a section replaces the list with that section and opens its first page, and "All sections" at the top leads back. A page opened by a link, a bookmark or the quick search shows the section it belongs to.
 - **All sections at once remains a choice.** Under Account → Appearance, the sidebar can list every section at once and open them in place, as before. The choice belongs to the account and holds on every device.
 - **Every section lists its main page.** The member list, the upcoming appointments, the own documents and the other pages a section's name used to open are the first entry of their section. A section left with a single page for a reader shows as that page.
-- **Places are switched from the sidebar.** With more than one station, an association or the instance administration, the name at the top of the sidebar opens a list of all of them with the number of things waiting in each. The station switcher and the administration, association and station buttons in the header are gone.
+- **Places are switched from the sidebar.** The foot of the sidebar shows the current place and opens a list of every station, association, the own account and the instance administration, with the number of things waiting in each. The station switcher and the administration, association and station buttons in the header are gone.
 - **The help center moved to the bottom right.** The help center opens from a round button next to the bug report, so the header keeps only the search and the account menu.
 
 ### Fixes

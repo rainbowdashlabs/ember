@@ -5,6 +5,7 @@
  */
 <script lang="ts" setup>
 import {onMounted} from 'vue'
+import {useI18n} from 'vue-i18n'
 import {useMonitoringCounts} from '@/composables/useMonitoringCounts'
 import SidebarLayout from '@/components/layout/SidebarLayout.vue'
 import NavSidebar from '@/components/navigation/NavSidebar.vue'
@@ -26,6 +27,7 @@ import {usePageHeader} from '@/composables/usePageHeader'
  * one; what a beacon gathers shows only once it is active, rather than as empty pages everywhere else.
  * The inspector tools show in development builds only.
  */
+const {t} = useI18n()
 const {loaded, load} = useSession()
 const {title: pageTitle, subtitle: pageSubtitle} = usePageHeader()
 const {nodes} = useAdminNav()
@@ -44,7 +46,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <SidebarLayout :subtitle="pageSubtitle" :title="pageTitle" switcher>
+  <SidebarLayout :subtitle="pageSubtitle" :title="pageTitle" :station-name="t('placeSwitcher.administration')" switcher>
     <template #sidebar="{ close }">
       <NavSidebar :nodes="nodes" @navigate="close"/>
     </template>

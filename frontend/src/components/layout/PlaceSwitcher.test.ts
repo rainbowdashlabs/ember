@@ -14,6 +14,11 @@ const clusterList = ref<{uid: string, name: string}[]>([])
 const currentClusterId = ref<string | null>(null)
 const admin = ref(false)
 const refreshClusterUnread = vi.fn(async () => {})
+const collapsed = ref(false)
+
+vi.mock('@/composables/useSidebarCollapse', () => ({useSidebarCollapse: () => ({collapsed})}))
+
+vi.mock('@/composables/useBreakpoint', () => ({useBreakpoint: () => ({isDesktop: ref(true)})}))
 
 vi.mock('vue-router', () => ({useRoute: () => ({path: '/station/news'})}))
 
@@ -50,8 +55,14 @@ vi.mock('@/composables/useClusterNotificationCount', () => ({
     useClusterNotificationCount: () => ({count: ref(0), refresh: refreshClusterUnread}),
 }))
 
+/** The text of what the open menu holds, which stands in the page rather than in the sidebar. */
+function inMenu(selector: string): string {
+    return document.querySelector(selector)?.textContent ?? ''
+}
+
 /**
- * The name at the top of the sidebar switches places only when there is somewhere else to go.
+ * The foot of the sidebar shows the place the reader is in and switches between their places: stations,
+ * associations, their own account and the administration.
  */
 describe('PlaceSwitcher', () => {
     beforeEach(() => {
@@ -59,35 +70,61 @@ describe('PlaceSwitcher', () => {
         clusterList.value = []
         currentClusterId.value = null
         admin.value = false
+        collapsed.value = false
         refreshClusterUnread.mockClear()
     })
 
-    it('stays plain text for somebody with one station and nothing else', () => {
-        const switcher = mount(PlaceSwitcher, {props: {name: 'Nord'}})
+    it('shows nothing to somebody whose own account is the only place there is', () => {
+        stationList.value = []
+        const switcher = mount(PlaceSwitcher)
 
-        expect(switcher.text()).toBe('Nord')
         expect(switcher.find('[data-testid="place-switcher"]').exists()).toBe(false)
     })
 
-    it('lists the stations and the administration, each with what waits there', async () => {
+    it('shows the place the reader is in and opens a list of every place with what waits there', async () => {
         admin.value = true
-        const switcher = mount(PlaceSwitcher, {props: {name: 'Nord'}})
+        const switcher = mount(PlaceSwitcher, {props: {name: 'Nord'}, attachTo: document.body})
 
+        expect(switcher.find('[data-testid="place-switcher"]').text()).toContain('Nord')
         await switcher.find('[data-testid="place-switcher"]').trigger('click')
         await flushPromises()
 
-        expect(switcher.find('[data-place="station:nord"]').text()).toContain('3')
-        expect(switcher.find('[data-place="admin"]').text()).toContain('Administration')
-        expect(switcher.find('[data-place="admin"]').text()).toContain('4')
+        expect(inMenu('[data-place="station:nord"]')).toContain('3')
+        expect(inMenu('[data-place="account"]')).toContain('Mein Konto')
+        expect(inMenu('[data-place="admin"]')).toContain('Administration')
+        expect(inMenu('[data-place="admin"]')).toContain('4')
+        switcher.unmount()
+    })
+
+    it('stands the menu above the button, wide enough for long names, and beside the button in the rail', async () => {
+        const button = {left: 12, right: 52, top: 700, bottom: 740}
+        const switcher = mount(PlaceSwitcher, {props: {name: 'Nord'}, attachTo: document.body})
+        switcher.element.getBoundingClientRect = () => DOMRect.fromRect({x: button.left, y: button.top, width: 40, height: 40})
+
+        await switcher.find('[data-testid="place-switcher"]').trigger('click')
+        const menu = document.querySelector<HTMLElement>('[data-testid="place-menu"]')!
+        expect(menu.style.left).toBe('12px')
+        expect(menu.style.bottom).toBe(`${window.innerHeight - button.top + 8}px`)
+        expect(menu.className).toContain('w-max')
+        expect(menu.className).not.toContain('truncate')
+
+        await switcher.find('[data-testid="place-switcher"]').trigger('click')
+        collapsed.value = true
+        await flushPromises()
+        expect(switcher.find('[data-testid="place-switcher"]').text()).toBe('')
+        await switcher.find('[data-testid="place-switcher"]').trigger('click')
+        expect(document.querySelector<HTMLElement>('[data-testid="place-menu"]')!.style.left).toBe(`${button.right + 8}px`)
+        switcher.unmount()
     })
 
     it('offers all stations at once to somebody with several', async () => {
         stationList.value = [...stationList.value, {memberId: 2, stationId: 'sued', stationName: 'Süd'}]
-        const switcher = mount(PlaceSwitcher, {props: {name: 'Nord'}})
+        const switcher = mount(PlaceSwitcher, {props: {name: 'Nord'}, attachTo: document.body})
 
         await switcher.find('[data-testid="place-switcher"]').trigger('click')
 
-        expect(switcher.text()).toContain('Alle Wachen')
+        expect(inMenu('[data-testid="place-menu"]')).toContain('Alle Wachen')
+        switcher.unmount()
     })
 
     /** The association's count is refused outside an association, which showed as a refusal on opening the menu. */

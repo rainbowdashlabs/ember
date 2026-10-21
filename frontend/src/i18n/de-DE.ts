@@ -790,6 +790,7 @@ export default {
     },
     placeSwitcher: {
         administration: 'Administration',
+        account: 'Mein Konto',
         choose: 'Ort wählen',
         allStations: 'Alle Wachen',
     },

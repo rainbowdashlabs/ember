@@ -577,9 +577,9 @@ export default {
                 nav5: 'Das Ember-Logo oben links führt zur Startseite von Ember. Rufst du die Startseite '
                     + 'stattdessen über die Adresszeile auf, während du angemeldet bist, landest du wieder '
                     + 'in dem Bereich, in dem du zuletzt gearbeitet hast: Wache, Verband oder Verwaltung.',
-                nav6: 'Gehörst du zu mehreren Wachen, zu einem Verband oder verwaltest du die Instanz, hat der Name '
-                    + 'oben in der Seitenleiste einen kleinen Pfeil. Ein Klick listet alle diese Orte mit der Zahl '
-                    + 'dessen, was dort auf dich wartet, und wechselt dorthin.',
+                nav6: 'Unten in der Seitenleiste steht, wo du gerade bist. Ein Klick listet alle deine Orte: deine '
+                    + 'Wachen, deine Verbände, dein Konto und, wenn du die Instanz verwaltest, die Administration, '
+                    + 'jeweils mit der Zahl dessen, was dort auf dich wartet, und wechselt dorthin.',
                 nav7: 'Unten rechts sitzen runde Knöpfe: der Fehlerbericht, das Hilfe-Center zur gerade offenen Seite '
                     + 'und, solange eine Einführung offen ist, der Knopf zum Weitermachen.',
                 notifications: 'Benachrichtigungen',
@@ -4633,7 +4633,7 @@ volumes:
             membershipTitle: 'Verband und Wache sind getrennt',
             membershipText: 'Deine Rechte im Verband haben nichts mit deinen Rechten in einer Wache zu tun. Wer den Verband verwaltet, ist damit noch lange nicht in jeder Wache angemeldet, und umgekehrt.',
             switchTitle: 'Zwischen Verbänden wechseln',
-            switchText: 'Gehörst du zu mehreren Verbänden, wählst du oben in der Seitenleiste aus, für welchen du gerade arbeitest. Die Seite lädt danach neu, damit alles zum gewählten Verband passt.',
+            switchText: 'Gehörst du zu mehreren Verbänden, wählst du unten in der Seitenleiste aus, für welchen du gerade arbeitest. Die Seite lädt danach neu, damit alles zum gewählten Verband passt.',
             tip: 'Über die Schaltfläche unten in der Seitenleiste kommst du jederzeit zurück in deine Wache.',
         },
         clusterSettings: {

@@ -13,10 +13,10 @@ import {useSession} from '@/composables/useSession'
 import {useMonitoringCounts} from '@/composables/useMonitoringCounts'
 import {useClusterNotificationCount} from '@/composables/useClusterNotificationCount'
 
-/** One place the reader can work in: a station, an association, or the instance administration. */
+/** One place the reader can work in: a station, an association, their own account, or the instance administration. */
 export interface Place {
     key: string
-    kind: 'station' | 'cluster' | 'admin'
+    kind: 'station' | 'cluster' | 'account' | 'admin'
     label: string
     icon: string
     logoUrl: string | null
@@ -45,7 +45,7 @@ export function usePlaces() {
         if (!clusters.loaded.value) void clusters.load()
     })
 
-    const area = computed<Place['kind'] | 'account'>(() => {
+    const area = computed<Place['kind']>(() => {
         if (route.path.startsWith('/admin')) return 'admin'
         if (route.path.startsWith('/cluster')) return 'cluster'
         if (route.path.startsWith('/account')) return 'account'
@@ -71,6 +71,15 @@ export function usePlaces() {
             badge: cluster.uid === clusters.currentClusterId.value ? clusterUnread.value : 0,
             current: area.value === 'cluster' && cluster.uid === clusters.currentClusterId.value,
         })),
+        {
+            key: 'account',
+            kind: 'account',
+            label: t('placeSwitcher.account'),
+            icon: 'user',
+            logoUrl: null,
+            badge: 0,
+            current: area.value === 'account',
+        },
         ...(isAdmin() ? [{
             key: 'admin',
             kind: 'admin' as const,
@@ -82,7 +91,7 @@ export function usePlaces() {
         }] : []),
     ])
 
-    /** Whether there is anywhere else to go: one station and nothing more needs no switcher. */
+    /** Whether there is anywhere else to go: the own account and nothing more needs no switcher. */
     const switchable = computed(() => places.value.length > 1)
 
     const current = computed(() => places.value.find(place => place.current))
@@ -112,6 +121,10 @@ export function usePlaces() {
     function go(place: Place) {
         if (place.kind === 'admin') {
             window.location.href = '/admin/dashboard/overview'
+            return
+        }
+        if (place.kind === 'account') {
+            window.location.href = '/account'
             return
         }
         const id = place.key.slice(place.key.indexOf(':') + 1)
