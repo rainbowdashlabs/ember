@@ -424,9 +424,9 @@ public class WordFormImportService {
             drawn.addAll(replacement.families());
             choices.put(family, replacement.choice());
             printing(reachable, replacement.family().name()).ifPresent(name -> fieldFamilies.put(family, name));
-            if (replacement.bold() != null) {
-                String bold = replacement.bold().name();
-                printing(reachable, bold).ifPresent(name -> fieldFamilies.put(bold, name));
+            var bold = replacement.bold();
+            if (bold != null) {
+                printing(reachable, bold.name()).ifPresent(name -> fieldFamilies.put(bold.name(), name));
             }
         });
         for (String family : named) {
