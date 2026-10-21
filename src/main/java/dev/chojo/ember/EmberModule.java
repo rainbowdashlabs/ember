@@ -44,6 +44,7 @@ import dev.chojo.ember.db.ProfileFieldMergeBackup;
 import dev.chojo.ember.event.DomainEventHandler;
 import dev.chojo.ember.feature.account.route.AccountAdminRoutes;
 import dev.chojo.ember.feature.account.route.AccountDataRoutes;
+import dev.chojo.ember.feature.account.route.AccountPreferenceRoutes;
 import dev.chojo.ember.feature.account.route.AccountSessionRoutes;
 import dev.chojo.ember.feature.account.route.AuthRoutes;
 import dev.chojo.ember.feature.account.route.AvatarRoutes;
@@ -481,6 +482,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(AssociationLinkRoutes.class);
         routesBinder.addBinding().to(SessionRoutes.class);
         routesBinder.addBinding().to(AccountSessionRoutes.class);
+        routesBinder.addBinding().to(AccountPreferenceRoutes.class);
         routesBinder.addBinding().to(AvatarRoutes.class);
         routesBinder.addBinding().to(AccountDataRoutes.class);
         routesBinder.addBinding().to(StationRoutes.class);

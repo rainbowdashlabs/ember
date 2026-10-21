@@ -569,14 +569,19 @@ export default {
                 toggleText: 'Als Verwalter findest du die Modul-Einstellungen unter Wache verwalten. Dort kannst du einzelne Module per Schalter aktivieren oder deaktivieren:',
                 toggleText2: 'Deaktivierte Module sind komplett ausgeblendet. Keine Daten gehen verloren - wenn du ein Modul wieder aktivierst, sind alle Daten noch da.',
                 navigation: 'Navigation in Ember',
-                navigationText: 'Ember hat eine Seitenleiste links mit allen verfügbaren Bereichen. So findest du dich zurecht:',
-                nav1: 'Übersicht - Deine persönliche Startseite mit Benachrichtigungen und allem, was gerade wichtig ist.',
-                nav2: 'Die einzelnen Module (Mitglieder, Inventar, Anwesenheit etc.) - je nach aktivierten Modulen.',
-                nav3: 'Profil - Dein persönliches Profil, Einstellungen und Abwesenheiten.',
-                nav4: 'Wache verwalten - Einstellungen der Wache (nur für Verwalter).',
+                navigationText: 'Ember hat links eine Seitenleiste mit Seiten und Bereichen. Ein Bereich hat einen Pfeil: Ein Klick zeigt nur noch diesen Bereich mit allen seinen Seiten und öffnet seine erste Seite. „Alle Bereiche“ oben führt zur ganzen Liste zurück, ebenso die Escape-Taste. Öffnest du eine Seite über einen Link oder die Schnellsuche, zeigt die Seitenleiste gleich den Bereich, zu dem sie gehört. So findest du dich zurecht:',
+                nav1: 'Übersicht - Deine Startseite mit Benachrichtigungen und allem, was gerade wichtig ist, dazu die Statistiken.',
+                nav2: 'Die einzelnen Module (Mitglieder, Inventar, Anwesenheit etc.) - je nach aktivierten Modulen. Die Hauptseite eines Bereichs, etwa die Mitgliederliste, ist immer sein erster Eintrag.',
+                nav3: 'Profil - Dein Profil, Abwesenheiten und Benachrichtigungen.',
+                nav4: 'Verwalten - Einstellungen der Wache (nur für Verwalter).',
                 nav5: 'Das Ember-Logo oben links führt zur Startseite von Ember. Rufst du die Startseite '
                     + 'stattdessen über die Adresszeile auf, während du angemeldet bist, landest du wieder '
                     + 'in dem Bereich, in dem du zuletzt gearbeitet hast: Wache, Verband oder Verwaltung.',
+                nav6: 'Unten in der Seitenleiste steht, wo du gerade bist. Ein Klick listet alle deine Orte: deine '
+                    + 'Wachen, deine Verbände, dein Konto und, wenn du die Instanz verwaltest, die Administration, '
+                    + 'jeweils mit der Zahl dessen, was dort auf dich wartet, und wechselt dorthin.',
+                nav7: 'Unten rechts sitzen runde Knöpfe: der Fehlerbericht, das Hilfe-Center zur gerade offenen Seite '
+                    + 'und, solange eine Einführung offen ist, der Knopf zum Weitermachen.',
                 notifications: 'Benachrichtigungen',
                 notificationsText: 'Ember informiert dich über wichtige Änderungen per Benachrichtigung auf der Übersicht. Die Zahl neben dem Glockensymbol zeigt, wie viele ungelesene Benachrichtigungen du hast.',
                 notificationsText2: 'Du kannst in deinen Einstellungen festlegen, welche Benachrichtigungen du auch per E-Mail erhalten möchtest.',
@@ -1302,6 +1307,12 @@ volumes:
                 + 'abgelehnt, bringt „Entscheidung ändern" auf der Anmeldeseite die Auswahl zurück.',
             themeTitle: 'Erscheinungsbild',
             themeText: 'Hier kannst du dein Farbschema und den Modus (Hell/Dunkel) anpassen. Wenn die Wache es erlaubt, kannst du ein eigenes Farbschema wählen. Andernfalls siehst du eine Hinweismeldung.',
+            sidebarTitle: 'Seitenleiste',
+            sidebarText: 'Unter „Konto → Erscheinungsbild" legst du fest, wie die Seitenleiste ihre Bereiche zeigt. '
+                + 'Normalerweise öffnet ein Bereich an Stelle der Liste, „Alle Bereiche" führt zurück. Mit „Alle '
+                + 'Bereiche auf einmal zeigen" stehen alle Bereiche untereinander und klappen an Ort und Stelle auf, '
+                + 'der Bereich der geöffneten Seite von selbst. Die Einstellung gehört zu deinem Konto und gilt auf '
+                + 'allen Geräten.',
             emailTitle: 'E-Mail-Benachrichtigungen',
             emailText: 'Hier kannst du festlegen, ob du E-Mails von der Plattform erhalten möchtest. Wenn du E-Mails aktivierst, musst du der Weitergabe deiner E-Mail-Adresse an den E-Mail-Dienst zustimmen.',
             typesTitle: 'Benachrichtigungstypen',
@@ -4622,7 +4633,7 @@ volumes:
             membershipTitle: 'Verband und Wache sind getrennt',
             membershipText: 'Deine Rechte im Verband haben nichts mit deinen Rechten in einer Wache zu tun. Wer den Verband verwaltet, ist damit noch lange nicht in jeder Wache angemeldet, und umgekehrt.',
             switchTitle: 'Zwischen Verbänden wechseln',
-            switchText: 'Gehörst du zu mehreren Verbänden, wählst du oben in der Seitenleiste aus, für welchen du gerade arbeitest. Die Seite lädt danach neu, damit alles zum gewählten Verband passt.',
+            switchText: 'Gehörst du zu mehreren Verbänden, wählst du unten in der Seitenleiste aus, für welchen du gerade arbeitest. Die Seite lädt danach neu, damit alles zum gewählten Verband passt.',
             tip: 'Über die Schaltfläche unten in der Seitenleiste kommst du jederzeit zurück in deine Wache.',
         },
         clusterSettings: {

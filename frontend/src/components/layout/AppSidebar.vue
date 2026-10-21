@@ -11,6 +11,7 @@ import {usePride} from '@/composables/usePride'
 import {emberLogo} from '@/composables/useEmberLogo'
 import {SIDEBAR_COLLAPSIBLE, useSidebarCollapse} from '@/composables/useSidebarCollapse'
 import SidebarCollapseToggle from '@/components/layout/SidebarCollapseToggle.vue'
+import PlaceSwitcher from '@/components/layout/PlaceSwitcher.vue'
 
 /**
  * The sidebar of every signed-in area: beside the page from the `lg` width up, and below it a drawer
@@ -25,10 +26,13 @@ const props = withDefaults(defineProps<{
   stationName?: string
   stationLogoUrl?: string | null
   collapsible?: boolean
+  /** Puts the switcher between the reader's places at the foot of the sidebar, for the signed-in areas. */
+  switcher?: boolean
 }>(), {
   stationName: undefined,
   stationLogoUrl: undefined,
   collapsible: true,
+  switcher: false,
 })
 
 defineEmits<{
@@ -58,31 +62,34 @@ const logoSizeClass = computed(() => collapsed.value ? 'h-8 w-8 lg:h-10 lg:w-10 
       :class="[open ? 'app-sidebar-open' : '', desktopWidthClass]"
       class="app-sidebar fixed top-0 left-0 z-40 h-full w-64 shrink-0 flex flex-col bg-bg-light-accent dark:bg-bg-dark-accent border-r border-bg-light-accent dark:border-bg-dark transition-[transform,width] duration-300 ease-in-out lg:static lg:z-auto lg:sticky lg:top-0 lg:h-screen overflow-hidden"
   >
-    <div class="flex items-stretch min-h-14 border-b border-bg-light dark:border-bg-dark shrink-0">
-      <router-link
-          to="/?home"
-          :class="collapsed ? 'lg:justify-center lg:px-2' : ''"
-          class="flex items-center gap-3 flex-1 min-w-0 px-4 py-2 no-underline hover:bg-(--bg-accent) transition-colors"
-      >
+    <div :class="collapsed ? 'lg:justify-center lg:px-2' : ''"
+         class="flex items-center gap-3 min-h-14 px-4 py-2 border-b border-bg-light dark:border-bg-dark shrink-0">
+      <router-link to="/?home" class="shrink-0 no-underline">
         <LayeredEmberLogo v-if="!stationLogoUrl" :layers="sidebarLogo.layers"
                           :active-layers="sidebarLogo.activeLayers" :auto-blink="true" :size="logoSizeClass"
                           :pixel-size="64"/>
         <img v-else :src="stationLogoUrl" alt="" :class="logoSizeClass" class="rounded object-contain"/>
-        <div
-            :class="collapsed ? 'lg:hidden' : ''"
-            class="flex flex-col justify-center min-w-0"
-        >
+      </router-link>
+      <div
+          :class="collapsed ? 'lg:hidden' : ''"
+          class="flex flex-col justify-center min-w-0"
+      >
+        <router-link to="/?home" class="no-underline">
           <PrideText :active="prideActive" :variant="prideVariant"
                      class="text-lg font-bold text-primary leading-tight whitespace-nowrap">Ember
           </PrideText>
-          <span v-if="stationName" class="text-xs text-(--text-muted) leading-tight line-clamp-2">{{ stationName }}</span>
-        </div>
-      </router-link>
+        </router-link>
+        <span v-if="stationName" class="text-xs text-(--text-muted) leading-tight line-clamp-2">{{ stationName }}</span>
+      </div>
     </div>
 
     <nav class="flex flex-col gap-1 p-3 overflow-y-auto overflow-x-hidden flex-1">
       <slot/>
     </nav>
+
+    <div v-if="switcher" class="shrink-0 border-t border-bg-light dark:border-bg-dark p-3">
+      <PlaceSwitcher :name="stationName"/>
+    </div>
   </aside>
 
   <div v-if="collapsible" class="hidden lg:block">

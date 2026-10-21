@@ -4,6 +4,8 @@
 
 Dokumentvorlagen können beim Erstellen nach Angaben fragen, die nicht in den Daten des Mitglieds stehen, etwa nach dem Datum einer Änderung oder welches von mehreren Kästchen zutrifft. Word-Formulare mit Feldern zum Ausfüllen werden zu PDF-Vorlagen in ihrem gewohnten Aussehen. So lässt sich ein Papierformular wie eine Änderungsmeldung direkt in Ember ausfüllen. Ankreuzfelder bestehender PDF-Vorlagen folgen weiter den Daten des Mitglieds und lassen sich jetzt auch von Hand setzen. Familien auf einer Warteliste sind ab dem ersten Tag der Probezeit dabei. Erziehungsberechtigte bekommen ihr Konto mit dem Start der Probezeit, verfolgen sie auf ihrer Übersicht und können sie selbst beenden. Eine Einladung nennt immer einen Termin, zeigt vor dem Senden, wohin die E-Mail geht, und kann eine persönliche Nachricht enthalten.
 
+Die Seitenleiste zeigt einen Bereich auf einmal und bleibt kurz, egal wie viele Module eine Wache nutzt. Jeder Bereich öffnet auf seiner Hauptseite und listet alle seine Seiten, nichts ist mehr nur über den Namen eines Bereichs erreichbar. Der Fuß der Seitenleiste wechselt zwischen Wachen, Verbänden, dem eigenen Konto und der Administration der Instanz, jeweils mit der Zahl dessen, was dort wartet. In der Kopfzeile bleiben die Suche und das Kontomenü, das Hilfe-Center wandert zu den runden Knöpfen unten rechts.
+
 ### Neue Funktionen
 
 - **Erziehungsberechtigte sind in der Probezeit dabei.** Beginnt die Probezeit, bekommen die Erziehungsberechtigten des Wartelisteneintrags ein Konto, mit dem sie das Kind von Terminen abmelden und die Probezeit mit den bisherigen Besuchen auf ihrer Übersicht sehen. Dort können sie die Probezeit auch selbst beenden, wobei die dafür angelegten Konten gelöscht werden, sofern sie nicht noch gebraucht werden, und die Wache wird benachrichtigt.
@@ -16,15 +18,23 @@ Dokumentvorlagen können beim Erstellen nach Angaben fragen, die nicht in den Da
 - **Mehr Schriften in jeder Installation.** Carlito und Caladea setzen Text genau so breit wie Calibri und Cambria, und Open Sans steht für Schriften wie Frutiger ein. Alle drei lassen sich für Briefe und Felder wählen, und beim Import eines Word-Formulars in Calibri, Cambria, Arial oder Times New Roman ist die passende vorgewählt.
 - **Einladungen nennen Termin und Empfänger.** Eine Einladung lässt sich erst senden, wenn ein Termin gewählt ist, und der Dialog listet die Adressen, an die die E-Mail geht, oder sagt, dass niemand angeschrieben wird. Die Terminauswahl zeigt neben dem Datum die Uhrzeit.
 - **Einladungen enthalten eine persönliche Nachricht.** Eine Nachricht, die beim Einladen geschrieben wird, steht in der E-Mail und auf der Seite, auf der die Einladung beantwortet wird. Die Nachricht zu einer Antwort steht in der Benachrichtigung an die Wache.
+- **Die Schnellsuche bietet, was die Seitenleiste zeigt.** Die Schnellsuche findet jede Seite der Seitenleiste, die geöffnet werden darf, auch die Boards der Wache und die Schritte der ersten Einrichtung.
 
 ### Änderungen
 
 - **Ankreuzfelder lassen sich von Hand setzen.** Die Ankreuzfelder bestehender PDF-Vorlagen sind zu Abfragen geworden, die wie bisher den Daten des Mitglieds folgen, beim Selbst-Erstellen und beim Erstellen für viele Mitglieder also unverändert ankreuzen. Wer ein einzelnes Dokument erstellt, kann jedes Kreuz jetzt setzen oder entfernen.
+- **Die Seitenleiste zeigt einen Bereich auf einmal.** Ein geöffneter Bereich ersetzt die Liste und öffnet seine erste Seite, „Alle Bereiche“ oben führt zurück. Eine Seite, die über einen Link, ein Lesezeichen oder die Schnellsuche geöffnet wird, zeigt den Bereich, zu dem sie gehört.
+- **Alle Bereiche auf einmal bleiben wählbar.** Unter Konto → Erscheinungsbild lässt sich die Seitenleiste so einstellen, dass sie wie bisher alle Bereiche untereinander zeigt und an Ort und Stelle aufklappt. Die Wahl gehört zum Konto und gilt auf allen Geräten.
+- **Jeder Bereich listet seine Hauptseite.** Die Mitgliederliste, die kommenden Termine, die eigenen Dokumente und die anderen Seiten, die früher der Name eines Bereichs öffnete, sind der erste Eintrag ihres Bereichs. Ein Bereich, in dem nur eine Seite übrig bleibt, erscheint als diese Seite.
+- **Orte wechseln über die Seitenleiste.** Der Fuß der Seitenleiste zeigt den aktuellen Ort und öffnet eine Liste aller Wachen, Verbände, des eigenen Kontos und der Administration der Instanz, jeweils mit der Zahl dessen, was dort wartet. Der Wachenwechsel und die Knöpfe für Administration, Verband und Wache in der Kopfzeile entfallen.
+- **Das Hilfe-Center sitzt unten rechts.** Das Hilfe-Center öffnet sich über einen runden Knopf neben der Fehlermeldung, die Kopfzeile behält nur die Suche und das Kontomenü.
 
 ### Fehlerbehebungen
 
 - **Eine Einladung ließ sich mit einem Tastendruck senden.** Der Einladungsdialog öffnete mit ausgewähltem Senden-Knopf, so dass die Eingabetaste die E-Mail sofort verschickte, auch ohne Termin. Der Dialog öffnet jetzt auf dem Termin, und gesendet wird erst, wenn einer gewählt ist.
 - **Benachrichtigungsmails zeigen lesbare Beschreibungen.** Die Beschreibung eines Termins kam in Benachrichtigungsmails mit ihren Formatierungszeichen wie Sternchen und Rauten an, und zwar in voller Länge. Sie erscheint jetzt als reiner Text, und eine lange Beschreibung wird gekürzt und bekommt einen Knopf "Weiterlesen".
+- **Eine umgezogene Wache zeigte manchen Mitgliedern die ganze Seitenleiste.** In manchen Fällen sahen Mitglieder, die eine in eine andere Installation umgezogene Wache nicht verwalten, neben dem Hinweis auf den Umzug die volle Seitenleiste. Sie sehen jetzt nur den Hinweis.
+- **Die Schnellsuche bot Seiten an, die es nicht mehr gibt.** Einige Einträge der Schnellsuche, etwa Sicherheit und Sitzungen im Profil der Wache, führten auf eine fehlende Seite. Sie sind entfernt.
 
 ## v26.22.6
 

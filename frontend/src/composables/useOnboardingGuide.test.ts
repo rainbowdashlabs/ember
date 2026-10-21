@@ -112,6 +112,54 @@ describe('a step that is read rather than done', () => {
     })
 })
 
+/** A sidebar group as the navigation draws it, naming the marks of everything folded away under it. */
+function group(holds: string, top: number, parent: HTMLElement = document.body) {
+    const element = document.createElement('div')
+    element.setAttribute('data-onboarding-holds', holds)
+    element.getBoundingClientRect = () => new DOMRect(0, top, 256, 40)
+    parent.appendChild(element)
+    return element
+}
+
+describe('a target folded away in the sidebar', () => {
+    beforeEach(() => {
+        window.innerWidth = 1280
+        tour().activeTaskKey.value = 'station.federation'
+    })
+
+    it('rings the section that holds it, though its mark is no prefix of the target', async () => {
+        group('nav.members.create', 100)
+        group('nav.federation nav.federation.partners', 300)
+        const guide = guideOn()
+        await nextTick()
+
+        expect(guide.revealing.value).toBe(true)
+        expect(guide.box.value?.top).toBe(300)
+    })
+
+    it('rings the innermost group holding it rather than the section around it', async () => {
+        const section = group('nav.federation', 100)
+        group('nav.federation', 160, section)
+        const guide = guideOn()
+        await nextTick()
+
+        expect(guide.box.value?.top).toBe(160)
+    })
+
+    it('rings the target itself once it is on the page', async () => {
+        group('nav.federation', 100)
+        const link = document.createElement('a')
+        link.setAttribute('data-onboarding', 'nav.federation')
+        link.getBoundingClientRect = () => new DOMRect(0, 400, 256, 40)
+        document.body.appendChild(link)
+        const guide = guideOn()
+        await nextTick()
+
+        expect(guide.revealing.value).toBe(false)
+        expect(guide.box.value?.top).toBe(400)
+    })
+})
+
 describe('the walk on a width where the navigation slides away', () => {
     it('rings the menu instead of a place beyond the edge of the window', async () => {
         drawer(false)

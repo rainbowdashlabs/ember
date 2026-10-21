@@ -12,6 +12,8 @@ import dev.chojo.ember.api.auth.InstanceUserType;
 import dev.chojo.ember.api.auth.StationUserType;
 import dev.chojo.ember.conf.file.File;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.account.entity.SidebarMode;
+import dev.chojo.ember.feature.account.repository.AccountPreferenceRepository;
 import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.knowledgebase.entity.PublicKbMode;
 import dev.chojo.ember.feature.mail.service.MailChainService;
@@ -57,6 +59,7 @@ public class SessionInfoService {
     private final StationMemberRepository stationMemberRepository;
     private final UserSettingsRepository userSettingsRepository;
     private final UserTagRepository userTagRepository;
+    private final AccountPreferenceRepository preferences;
     private final MailChainService mailChainService;
     private final MemberNameResolver nameResolver;
     private final File config;
@@ -73,8 +76,10 @@ public class SessionInfoService {
             UserTagRepository userTagRepository,
             MailChainService mailChainService,
             MemberNameResolver nameResolver,
+            AccountPreferenceRepository preferences,
             File config) {
         this.nameResolver = nameResolver;
+        this.preferences = preferences;
         this.stationService = stationService;
         this.memberService = memberService;
         this.groupService = groupService;
@@ -145,7 +150,8 @@ public class SessionInfoService {
                         session.account().email(),
                         session.account().username(),
                         session.account().firstName(),
-                        session.account().lastName()),
+                        session.account().lastName(),
+                        preferences.sidebarOf(session.account().id())),
                 textOf(session.stationUid()),
                 memberInfo,
                 roleNames,
@@ -314,6 +320,7 @@ public class SessionInfoService {
      * @param username  the name this account signs in with, or {@code null} when its address is the only way in
      * @param firstName the first name
      * @param lastName  the last name
+     * @param sidebar   how the account likes its sidebar to list its sections
      */
     public record AccountInfo(
             int id,
@@ -321,7 +328,8 @@ public class SessionInfoService {
             @Nullable String email,
             @Nullable String username,
             String firstName,
-            String lastName) {}
+            String lastName,
+            SidebarMode sidebar) {}
 
     private static @Nullable String textOf(@Nullable UUID uid) {
         return uid != null ? uid.toString() : null;
