@@ -268,7 +268,10 @@ tasks.register("resolveDependencies") {
 tasks {
     withType<Test>().configureEach {
         useJUnitPlatform()
-        testLogging { events("passed", "skipped", "failed") }
+        testLogging {
+            events("passed", "skipped", "failed")
+            exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+        }
         maxParallelForks = testForks()
         maxHeapSize = "1g"
         environment("TESTCONTAINERS_RYUK_DISABLED", "true")
