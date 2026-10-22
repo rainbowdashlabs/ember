@@ -63,7 +63,7 @@ const {
   availableManagers,
   getManagerFields,
   getManagerFieldValue,
-  loadDetails: loadManagerDetails,
+  loadDetails: loadRelationDetails,
   linkManager,
   removeManager,
   reorderManagers,
@@ -71,7 +71,7 @@ const {
 } = useMemberManagers(memberId, allMembers, fieldsForUserType, failure)
 
 const {managedMembers, availableManaged, linkManaged, removeManaged} =
-    useManagedMembers(memberId, allMembers, failure)
+    useManagedMembers(memberId, allMembers, failure, loadRelationDetails)
 
 const {
   items: memberInventory,
@@ -168,7 +168,7 @@ async function loadDetail() {
   memberGroupList.value = mGroups
   memberTagList.value = mTags
   setValues(profileValues)
-  await loadManagerDetails(mgrs)
+  await loadRelationDetails([...mgrs, ...managed])
   if (showChangeHistory.value) {
     await loadChanges()
   }
