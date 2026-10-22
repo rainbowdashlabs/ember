@@ -10,6 +10,7 @@ import dev.chojo.ember.api.refusal.Refusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.auth.TokenHasher;
 import dev.chojo.ember.feature.account.entity.Account;
+import dev.chojo.ember.feature.account.service.SetupMail;
 import dev.chojo.ember.feature.accountlink.entity.AccountLinkRequest;
 import dev.chojo.ember.feature.accountlink.entity.LinkAnswer;
 import dev.chojo.ember.feature.accountlink.entity.LinkOrigin;
@@ -79,7 +80,7 @@ class AccountLinkServiceTest extends RepositoryTestBase {
         when(mail.isGlobalMailConfigured()).thenReturn(true);
         Instant before = Instant.now();
 
-        var request = service.ask(station.id(), waiting.id(), owner.id(), LinkOrigin.INVITE, null);
+        var request = service.ask(station.id(), waiting.id(), owner.id(), LinkOrigin.INVITE, null, SetupMail.SEND_NOW);
 
         var token = ArgumentCaptor.forClass(String.class);
         verify(mail)
@@ -100,18 +101,29 @@ class AccountLinkServiceTest extends RepositoryTestBase {
     void anInstallationWithoutMailAsksInTheAppOnly() {
         when(mail.isGlobalMailConfigured()).thenReturn(false);
 
-        var request = service.ask(station.id(), waiting.id(), owner.id(), LinkOrigin.IMPORT, null);
+        var request = service.ask(station.id(), waiting.id(), owner.id(), LinkOrigin.IMPORT, null, SetupMail.SEND_NOW);
 
         verify(mail, never()).sendAccountLinkRequest(any(), any(), any(), any(), any(), any());
         assertEquals(LinkOrigin.IMPORT, request.origin());
         assertTrue(request.waits(Instant.now()));
     }
 
+    /** A request asked to wait, as a waiting list that writes to nobody asks, is shown in the app only. */
+    @Test
+    void aRequestAskedWithoutItsMailIsNotMailed() {
+        when(mail.isGlobalMailConfigured()).thenReturn(true);
+
+        var request = service.ask(station.id(), waiting.id(), owner.id(), LinkOrigin.INVITE, null, SetupMail.LATER);
+
+        verify(mail, never()).sendAccountLinkRequest(any(), any(), any(), any(), any(), any());
+        assertTrue(request.waits(Instant.now()));
+    }
+
     @Test
     void aMemberThatWaitsAlreadyKeepsTheRequestItHas() {
-        var first = service.ask(station.id(), waiting.id(), owner.id(), LinkOrigin.IMPORT, null);
+        var first = service.ask(station.id(), waiting.id(), owner.id(), LinkOrigin.IMPORT, null, SetupMail.SEND_NOW);
 
-        var second = service.ask(station.id(), waiting.id(), owner.id(), LinkOrigin.INVITE, null);
+        var second = service.ask(station.id(), waiting.id(), owner.id(), LinkOrigin.INVITE, null, SetupMail.SEND_NOW);
 
         assertEquals(first.id(), second.id());
     }
@@ -134,7 +146,7 @@ class AccountLinkServiceTest extends RepositoryTestBase {
 
     @Test
     void theStationSeesItsRequestWaitAndMayNotSendItAgainWithinADay() {
-        service.ask(station.id(), waiting.id(), owner.id(), LinkOrigin.INVITE, null);
+        service.ask(station.id(), waiting.id(), owner.id(), LinkOrigin.INVITE, null, SetupMail.SEND_NOW);
 
         var state = service.stateOf(station.id(), waiting.id()).orElseThrow();
 
@@ -152,7 +164,7 @@ class AccountLinkServiceTest extends RepositoryTestBase {
     @Test
     void aWaitingRequestGoesOutAgainADayLaterWithAFreshDeadline() {
         when(mail.isGlobalMailConfigured()).thenReturn(true);
-        var first = service.ask(station.id(), waiting.id(), owner.id(), LinkOrigin.INVITE, null);
+        var first = service.ask(station.id(), waiting.id(), owner.id(), LinkOrigin.INVITE, null, SetupMail.SEND_NOW);
         var tomorrow = at(Instant.now().plus(Duration.ofHours(25)));
 
         var state = tomorrow.sendAgain(station.id(), waiting.id(), waiting.id());
@@ -187,7 +199,7 @@ class AccountLinkServiceTest extends RepositoryTestBase {
 
     @Test
     void aDeclinedRequestIsNotSentAgain() {
-        var request = service.ask(station.id(), waiting.id(), owner.id(), LinkOrigin.INVITE, null);
+        var request = service.ask(station.id(), waiting.id(), owner.id(), LinkOrigin.INVITE, null, SetupMail.SEND_NOW);
         links.answer(request.id(), LinkAnswer.DECLINED);
 
         assertEquals(
