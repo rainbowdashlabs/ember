@@ -19,15 +19,19 @@ import {ownMember} from './fixtures/ownMember'
  * <p>It gets an inventory of its own as well, so nothing that reads a whole inventory, counts it or
  * walks its chains meets a piece another story is in the middle of moving.
  */
-async function pieceOfItsOwn(page: Page, headers: Record<string, string>): Promise<{id: number, code: string}> {
+async function pieceOfItsOwn(
+    page: Page,
+    headers: Record<string, string>,
+): Promise<{id: number, code: string, inventoryId: number}> {
     const code = unique('ZU')
     const inventory = await page.request.post('/api/v1/inventories', {
         headers,
         data: {name: `Zuweisung ${code}`, inventoryType: 'INTERNAL', hasSizes: false},
     })
     expect(inventory.ok(), `the station keeps an inventory for this story (${inventory.status()})`).toBeTruthy()
+    const inventoryId: number = (await inventory.json()).id
 
-    const piece = await page.request.post(`/api/v1/inventories/${(await inventory.json()).id}/items`, {
+    const piece = await page.request.post(`/api/v1/inventories/${inventoryId}/items`, {
         headers,
         data: {
             internalId: code,
@@ -39,23 +43,41 @@ async function pieceOfItsOwn(page: Page, headers: Record<string, string>): Promi
         },
     })
     expect(piece.ok(), `a piece of its own is recorded (${await piece.text()})`).toBeTruthy()
-    return {id: (await piece.json()).id, code}
+    return {id: (await piece.json()).id, code, inventoryId}
 }
 
 /**
- * A member of the story's own who holds one piece of their own, answering the member's id.
+ * A member of the story's own who holds the one piece the check asks of them, answering the member's id.
  *
- * <p>A check walks every piece a member holds, required or not, so the piece needs no requirement behind
- * it, and a fresh installation configures none. The quick check then opens on that piece, whatever the
- * stories beside it have done to the seeded members.
+ * <p>A quick check walks only what is required of a member, and a fresh installation requires nothing of
+ * anybody. So the member is put in a group of the story's own that requires one piece of the story's own
+ * inventory, and is handed that piece. Nothing the stories beside it read changes, and the quick check
+ * opens on that piece whatever they have done to the seeded members.
  *
- * @param page  a page signed in as somebody who may enter members and hand out equipment
+ * @param page  a page signed in as somebody who may enter members, manage groups and hand out equipment
  * @param label what the person is for, which goes into their name
  */
 async function memberHoldingAPiece(page: Page, label: string): Promise<number> {
     const headers = await apiHeaders(page)
     const {memberId} = await ownMember(page, label)
     const piece = await pieceOfItsOwn(page, headers)
+
+    const group = await page.request.post('/api/v1/groups', {headers, data: {name: unique(`Ausrüstung ${label}`)}})
+    expect(group.ok(), `the story keeps a group of its own (${await group.text()})`).toBeTruthy()
+    const groupId: number = (await group.json()).id
+
+    const joined = await page.request.put(`/api/v1/groups/${groupId}/members`, {
+        headers,
+        data: {memberIds: [memberId], move: false},
+    })
+    expect(joined.ok(), `the story's member joins its group (${await joined.text()})`).toBeTruthy()
+
+    const required = await page.request.post('/api/v1/inventory-requirements', {
+        headers,
+        data: {inventoryId: piece.inventoryId, userType: null, groupId, stationGroupId: null, quantity: 1},
+    })
+    expect(required.ok(), `the group requires one piece of the story's inventory (${await required.text()})`)
+        .toBeTruthy()
 
     const handed = await page.request.put(`/api/v1/inventory-items/${piece.id}/assign`, {
         headers,
