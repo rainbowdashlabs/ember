@@ -11,6 +11,7 @@ import {unique} from './fixtures/unique'
 import type {Locator, Page} from '@playwright/test'
 import {must} from './fixtures/must'
 import {cast} from './fixtures/cast'
+import {ownMember} from './fixtures/ownMember'
 
 /**
  * A piece of the station's own gear that belongs to this story alone, and answers with its code.
@@ -39,6 +40,33 @@ async function pieceOfItsOwn(page: Page, headers: Record<string, string>): Promi
     })
     expect(piece.ok(), `a piece of its own is recorded (${await piece.text()})`).toBeTruthy()
     return code
+}
+
+/**
+ * A member of the story's own who holds one piece the check asks about, answering the member's id.
+ *
+ * <p>A check walks only the inventories the member's type requires, so the piece is made in the first of
+ * them through the check itself, in its first size where the inventory has sizes. The quick check then
+ * opens on that piece, whatever the stories beside it have done to the seeded members.
+ *
+ * @param page  a page signed in as somebody who may enter members and check equipment
+ * @param label what the person is for, which goes into their name
+ */
+async function memberHoldingAPiece(page: Page, label: string): Promise<number> {
+    const headers = await apiHeaders(page)
+    const {memberId} = await ownMember(page, label)
+
+    const started = await page.request.post(`/api/v1/inventory-checks/${memberId}/start`, {headers})
+    expect(started.ok(), `the check of the story's member starts (${await started.text()})`).toBeTruthy()
+    const {required} = await started.json() as {required: {inventoryId: number, hasSizes: boolean, sizes: {id: number}[]}[]}
+    const inventory = must(required[0], 'the member type of a new member requires some equipment')
+
+    const made = await page.request.post(`/api/v1/inventory-checks/${memberId}/create-assign`, {
+        headers,
+        data: {inventoryId: inventory.inventoryId, sizeId: inventory.hasSizes ? inventory.sizes[0]?.id ?? null : null},
+    })
+    expect(made.ok(), `a piece is made and handed to the member (${await made.text()})`).toBeTruthy()
+    return memberId
 }
 
 /** Which of the two modes the page is painted in right now. */
@@ -409,19 +437,15 @@ test.describe('Inventory', () => {
      * note where it is now asked for and reads it back off the finished check, because a note that is
      * typed and not kept is worse than no field at all.
      *
-     * <p>It checks the second member where there is one, since the story beside it closes the first
-     * one's, and walks to the end, because only a closed check writes anything down.
+     * <p>It checks a member of its own who holds a piece of their own ({@link memberHoldingAPiece}): the
+     * note field stands beside a piece in hand, and a seeded member holds whatever the stories beside
+     * it left them. It walks to the end, because only a closed check writes anything down.
      */
     test('a note written during the quick check is kept', async ({managerPage: page}) => {
         const note = `Saum offen ${test.info().workerIndex}-${Date.now()}`
+        const member = await memberHoldingAPiece(page, 'Notiz')
 
-        await page.goto('/station/inventory/checks/member')
-
-        const starts = page.getByRole('button', {name: 'Prüfung starten'})
-        await expect(starts.first()).toBeVisible({timeout: 15000})
-        await ((await starts.count()) > 1 ? starts.nth(1) : starts.first()).click()
-        await page.waitForURL(/\/station\/inventory\/checks\/(\d+)/)
-        const member = page.url().match(/checks\/(\d+)/)?.[1]
+        await page.goto(`/station/inventory/checks/${member}`)
 
         await page.getByRole('button', {name: 'Schnellprüfung'}).click()
 

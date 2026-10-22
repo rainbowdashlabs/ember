@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.SequenceInputStream;
 import java.io.UncheckedIOException;
+import java.net.URI;
 import java.net.http.HttpRequest;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -118,6 +119,30 @@ public final class TestUploads {
         return builder -> builder.header("Content-Type", "multipart/form-data; boundary=" + BOUNDARY)
                 .post(HttpRequest.BodyPublishers.fromPublisher(
                         HttpRequest.BodyPublishers.ofInputStream(() -> streamedBody(fileName, size)), length));
+    }
+
+    /**
+     * The same streamed upload, sent the way a careful client sends a large one: it announces its length and
+     * waits for the server to say go on ({@code Expect: 100-continue}) before sending the body.
+     *
+     * <p>That is what makes a refusal by the announced length readable every time. A server that refuses
+     * before reading answers at once and closes the connection; a client still busy sending the body may
+     * see the connection drop before it reads the answer, and fail without one. A client that waits sends
+     * nothing until told to, so it is reading when the answer comes.
+     *
+     * @param address  where the upload goes
+     * @param fileName the name it is uploaded under
+     * @param size     the file's size in bytes
+     * @return the request
+     */
+    public static HttpRequest announcedUpload(URI address, String fileName, long size) {
+        long length = formHead(fileName, Map.of()).length + size + FORM_TAIL.length;
+        return HttpRequest.newBuilder(address)
+                .expectContinue(true)
+                .header("Content-Type", "multipart/form-data; boundary=" + BOUNDARY)
+                .POST(HttpRequest.BodyPublishers.fromPublisher(
+                        HttpRequest.BodyPublishers.ofInputStream(() -> streamedBody(fileName, size)), length))
+                .build();
     }
 
     /**
