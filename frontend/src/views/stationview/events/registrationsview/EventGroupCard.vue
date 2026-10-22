@@ -12,6 +12,7 @@ import type {EventSummary, RegistrationResponse, RegistrationStatsResponse, Regi
 
 defineProps<{
   event: EventSummary
+  date: string
   counts: Record<RegistrationStatus, number>
   deadlineExpired: boolean
   expanded: boolean
@@ -36,6 +37,7 @@ const emit = defineEmits<{
   >
     <EventGroupHeader
         :event="event"
+        :date="date"
         :counts="counts"
         :deadline-expired="deadlineExpired"
         :format-deadline="formatDeadline"

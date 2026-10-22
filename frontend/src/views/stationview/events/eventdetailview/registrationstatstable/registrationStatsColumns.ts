@@ -21,7 +21,8 @@ function acceptPercent(row: RankedRegistration): number | null {
 
 /**
  * The columns of the ranking: the member, the score it is ranked by, how often they were let in and
- * turned away, the share of places they got, and the date they asked for.
+ * turned away, the share of places they got, and when they signed up. The date asked for is not a column:
+ * every list this table shows holds the sign-ups of one date.
  */
 export function registrationStatsColumns(t: (key: string) => string): TableColumn<RankedRegistration>[] {
     return [
@@ -43,6 +44,12 @@ export function registrationStatsColumns(t: (key: string) => string): TableColum
             display: row => row.stats ? `${acceptPercent(row)}%` : '',
             align: 'center',
         },
-        {key: 'date', label: t('eventsRegistrations.date'), type: ColumnTypes.DATE, value: row => row.registration.eventDate, align: 'center'},
+        {
+            key: 'registeredAt',
+            label: t('eventsRegistrations.registeredAt'),
+            type: ColumnTypes.DATE_TIME,
+            value: row => row.registration.createdAt,
+            align: 'center',
+        },
     ]
 }

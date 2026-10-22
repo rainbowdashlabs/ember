@@ -18,6 +18,7 @@ Die Seitenleiste zeigt einen Bereich auf einmal und bleibt kurz, egal wie viele 
 - **Mehr Schriften in jeder Installation.** Carlito und Caladea setzen Text genau so breit wie Calibri und Cambria, und Open Sans steht für Schriften wie Frutiger ein. Alle drei lassen sich für Briefe und Felder wählen, und beim Import eines Word-Formulars in Calibri, Cambria, Arial oder Times New Roman ist die passende vorgewählt.
 - **Einladungen nennen Termin und Empfänger.** Eine Einladung lässt sich erst senden, wenn ein Termin gewählt ist, und der Dialog listet die Adressen, an die die E-Mail geht, oder sagt, dass niemand angeschrieben wird. Die Terminauswahl zeigt neben dem Datum die Uhrzeit.
 - **Einladungen enthalten eine persönliche Nachricht.** Eine Nachricht, die beim Einladen geschrieben wird, steht in der E-Mail und auf der Seite, auf der die Einladung beantwortet wird. Die Nachricht zu einer Antwort steht in der Benachrichtigung an die Wache.
+- **Offene Anmeldungen stehen nach Datum getrennt.** Unter Termine → Anmeldungen hat jedes Datum eines wiederkehrenden Termins einen eigenen Block mit dem Datum in der Überschrift. Die Liste zeigt, wann sich jemand angemeldet hat, statt des Termindatums.
 - **Die Schnellsuche bietet, was die Seitenleiste zeigt.** Die Schnellsuche findet jede Seite der Seitenleiste, die geöffnet werden darf, auch die Boards der Wache und die Schritte der ersten Einrichtung.
 
 ### Änderungen
