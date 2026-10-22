@@ -14,12 +14,12 @@ import {cast} from './fixtures/cast'
 import {ownMember} from './fixtures/ownMember'
 
 /**
- * A piece of the station's own gear that belongs to this story alone, and answers with its code.
+ * A piece of the station's own gear that belongs to this story alone, and answers with its id and code.
  *
  * <p>It gets an inventory of its own as well, so nothing that reads a whole inventory, counts it or
  * walks its chains meets a piece another story is in the middle of moving.
  */
-async function pieceOfItsOwn(page: Page, headers: Record<string, string>): Promise<string> {
+async function pieceOfItsOwn(page: Page, headers: Record<string, string>): Promise<{id: number, code: string}> {
     const code = unique('ZU')
     const inventory = await page.request.post('/api/v1/inventories', {
         headers,
@@ -39,33 +39,29 @@ async function pieceOfItsOwn(page: Page, headers: Record<string, string>): Promi
         },
     })
     expect(piece.ok(), `a piece of its own is recorded (${await piece.text()})`).toBeTruthy()
-    return code
+    return {id: (await piece.json()).id, code}
 }
 
 /**
- * A member of the story's own who holds one piece the check asks about, answering the member's id.
+ * A member of the story's own who holds one piece of their own, answering the member's id.
  *
- * <p>A check walks only the inventories the member's type requires, so the piece is made in the first of
- * them through the check itself, in its first size where the inventory has sizes. The quick check then
- * opens on that piece, whatever the stories beside it have done to the seeded members.
+ * <p>A check walks every piece a member holds, required or not, so the piece needs no requirement behind
+ * it, and a fresh installation configures none. The quick check then opens on that piece, whatever the
+ * stories beside it have done to the seeded members.
  *
- * @param page  a page signed in as somebody who may enter members and check equipment
+ * @param page  a page signed in as somebody who may enter members and hand out equipment
  * @param label what the person is for, which goes into their name
  */
 async function memberHoldingAPiece(page: Page, label: string): Promise<number> {
     const headers = await apiHeaders(page)
     const {memberId} = await ownMember(page, label)
+    const piece = await pieceOfItsOwn(page, headers)
 
-    const started = await page.request.post(`/api/v1/inventory-checks/${memberId}/start`, {headers})
-    expect(started.ok(), `the check of the story's member starts (${await started.text()})`).toBeTruthy()
-    const {required} = await started.json() as {required: {inventoryId: number, hasSizes: boolean, sizes: {id: number}[]}[]}
-    const inventory = must(required[0], 'the member type of a new member requires some equipment')
-
-    const made = await page.request.post(`/api/v1/inventory-checks/${memberId}/create-assign`, {
+    const handed = await page.request.put(`/api/v1/inventory-items/${piece.id}/assign`, {
         headers,
-        data: {inventoryId: inventory.inventoryId, sizeId: inventory.hasSizes ? inventory.sizes[0]?.id ?? null : null},
+        data: {memberId, memberName: ''},
     })
-    expect(made.ok(), `a piece is made and handed to the member (${await made.text()})`).toBeTruthy()
+    expect(handed.ok(), `the piece is handed to the story's member (${await handed.text()})`).toBeTruthy()
     return memberId
 }
 
@@ -192,7 +188,7 @@ test.describe('Inventory', () => {
      */
     test('an item is assigned to a member and handed back', async ({managerPage: page}) => {
         const headers = await apiHeaders(page)
-        const code = await pieceOfItsOwn(page, headers)
+        const {code} = await pieceOfItsOwn(page, headers)
         const member = (await cast()).member
         const name = `${member.firstName} ${member.lastName}`
 
@@ -230,7 +226,7 @@ test.describe('Inventory', () => {
      */
     test('a member entered while the counter is open can be given gear at once', async ({managerPage: page}) => {
         const headers = await apiHeaders(page)
-        const code = await pieceOfItsOwn(page, headers)
+        const {code} = await pieceOfItsOwn(page, headers)
         const surname = unique('Spaet')
 
         await page.goto('/station/inventory/assign')
