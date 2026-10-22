@@ -36,6 +36,7 @@ The sidebar shows one section at a time and stays short however many modules a s
 - **Notification mails show readable descriptions.** The description of an appointment arrived in notification mails with its formatting marks, such as asterisks and hash signs, and at full length. It now reads as plain text, and a long one is cut short with a "Read more" button.
 - **A moved station showed its whole sidebar to some members.** In some cases a member who does not administer a station that moved to another installation saw the full sidebar next to the notice about the move. They now see only the notice.
 - **The quick search offered pages that no longer exist.** A few quick search entries, such as security and sessions under the station profile, led to a missing page. They are gone.
+- **The members a guardian looks after showed no profile data.** On a guardian's member page, the members they look after appeared with every profile field empty. Their answers now show as they do for guardians.
 
 ## v26.22.6
 

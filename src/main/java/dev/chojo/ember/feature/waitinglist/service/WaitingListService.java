@@ -1345,7 +1345,8 @@ public class WaitingListService implements TaskSource {
      * <p>On a list that writes to nobody the account is made without its setup mail. The account
      * stands either way, and the link that claims it is minted by hand from the member list, at a
      * moment somebody is there to pass it on. A guardian whose address already belongs to an account
-     * here is asked to link it instead, since anybody filling in the list may type any address.
+     * here is asked to link it instead, since anybody filling in the list may type any address. On a
+     * list that writes to nobody that request is not mailed either; its owner sees it at sign-in.
      */
     private void createGuardianAccounts(WaitingListEntry entry, int memberId, WaitingList list) {
         int stationId = list.stationId();

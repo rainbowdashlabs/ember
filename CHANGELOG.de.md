@@ -36,6 +36,7 @@ Die Seitenleiste zeigt einen Bereich auf einmal und bleibt kurz, egal wie viele 
 - **Benachrichtigungsmails zeigen lesbare Beschreibungen.** Die Beschreibung eines Termins kam in Benachrichtigungsmails mit ihren Formatierungszeichen wie Sternchen und Rauten an, und zwar in voller Länge. Sie erscheint jetzt als reiner Text, und eine lange Beschreibung wird gekürzt und bekommt einen Knopf "Weiterlesen".
 - **Eine umgezogene Wache zeigte manchen Mitgliedern die ganze Seitenleiste.** In manchen Fällen sahen Mitglieder, die eine in eine andere Installation umgezogene Wache nicht verwalten, neben dem Hinweis auf den Umzug die volle Seitenleiste. Sie sehen jetzt nur den Hinweis.
 - **Die Schnellsuche bot Seiten an, die es nicht mehr gibt.** Einige Einträge der Schnellsuche, etwa Sicherheit und Sitzungen im Profil der Wache, führten auf eine fehlende Seite. Sie sind entfernt.
+- **Betreute Mitglieder zeigten keine Profildaten.** Auf der Mitgliederseite eines Erziehungsberechtigten standen die betreuten Mitglieder mit leeren Profilfeldern da. Ihre Angaben erscheinen jetzt wie die der Erziehungsberechtigten.
 
 ## v26.22.6
 

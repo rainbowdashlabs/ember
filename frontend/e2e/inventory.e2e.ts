@@ -11,22 +11,27 @@ import {unique} from './fixtures/unique'
 import type {Locator, Page} from '@playwright/test'
 import {must} from './fixtures/must'
 import {cast} from './fixtures/cast'
+import {ownMember} from './fixtures/ownMember'
 
 /**
- * A piece of the station's own gear that belongs to this story alone, and answers with its code.
+ * A piece of the station's own gear that belongs to this story alone, and answers with its id and code.
  *
  * <p>It gets an inventory of its own as well, so nothing that reads a whole inventory, counts it or
  * walks its chains meets a piece another story is in the middle of moving.
  */
-async function pieceOfItsOwn(page: Page, headers: Record<string, string>): Promise<string> {
+async function pieceOfItsOwn(
+    page: Page,
+    headers: Record<string, string>,
+): Promise<{id: number, code: string, inventoryId: number}> {
     const code = unique('ZU')
     const inventory = await page.request.post('/api/v1/inventories', {
         headers,
         data: {name: `Zuweisung ${code}`, inventoryType: 'INTERNAL', hasSizes: false},
     })
     expect(inventory.ok(), `the station keeps an inventory for this story (${inventory.status()})`).toBeTruthy()
+    const inventoryId: number = (await inventory.json()).id
 
-    const piece = await page.request.post(`/api/v1/inventories/${(await inventory.json()).id}/items`, {
+    const piece = await page.request.post(`/api/v1/inventories/${inventoryId}/items`, {
         headers,
         data: {
             internalId: code,
@@ -38,7 +43,48 @@ async function pieceOfItsOwn(page: Page, headers: Record<string, string>): Promi
         },
     })
     expect(piece.ok(), `a piece of its own is recorded (${await piece.text()})`).toBeTruthy()
-    return code
+    return {id: (await piece.json()).id, code, inventoryId}
+}
+
+/**
+ * A member of the story's own who holds the one piece the check asks of them, answering the member's id.
+ *
+ * <p>A quick check walks only what is required of a member, and a fresh installation requires nothing of
+ * anybody. So the member is put in a group of the story's own that requires one piece of the story's own
+ * inventory, and is handed that piece. Nothing the stories beside it read changes, and the quick check
+ * opens on that piece whatever they have done to the seeded members.
+ *
+ * @param page  a page signed in as somebody who may enter members, manage groups and hand out equipment
+ * @param label what the person is for, which goes into their name
+ */
+async function memberHoldingAPiece(page: Page, label: string): Promise<number> {
+    const headers = await apiHeaders(page)
+    const {memberId} = await ownMember(page, label)
+    const piece = await pieceOfItsOwn(page, headers)
+
+    const group = await page.request.post('/api/v1/groups', {headers, data: {name: unique(`Ausrüstung ${label}`)}})
+    expect(group.ok(), `the story keeps a group of its own (${await group.text()})`).toBeTruthy()
+    const groupId: number = (await group.json()).id
+
+    const joined = await page.request.put(`/api/v1/groups/${groupId}/members`, {
+        headers,
+        data: {memberIds: [memberId], move: false},
+    })
+    expect(joined.ok(), `the story's member joins its group (${await joined.text()})`).toBeTruthy()
+
+    const required = await page.request.post('/api/v1/inventory-requirements', {
+        headers,
+        data: {inventoryId: piece.inventoryId, userType: null, groupId, stationGroupId: null, quantity: 1},
+    })
+    expect(required.ok(), `the group requires one piece of the story's inventory (${await required.text()})`)
+        .toBeTruthy()
+
+    const handed = await page.request.put(`/api/v1/inventory-items/${piece.id}/assign`, {
+        headers,
+        data: {memberId, memberName: ''},
+    })
+    expect(handed.ok(), `the piece is handed to the story's member (${await handed.text()})`).toBeTruthy()
+    return memberId
 }
 
 /** Which of the two modes the page is painted in right now. */
@@ -164,7 +210,7 @@ test.describe('Inventory', () => {
      */
     test('an item is assigned to a member and handed back', async ({managerPage: page}) => {
         const headers = await apiHeaders(page)
-        const code = await pieceOfItsOwn(page, headers)
+        const {code} = await pieceOfItsOwn(page, headers)
         const member = (await cast()).member
         const name = `${member.firstName} ${member.lastName}`
 
@@ -202,7 +248,7 @@ test.describe('Inventory', () => {
      */
     test('a member entered while the counter is open can be given gear at once', async ({managerPage: page}) => {
         const headers = await apiHeaders(page)
-        const code = await pieceOfItsOwn(page, headers)
+        const {code} = await pieceOfItsOwn(page, headers)
         const surname = unique('Spaet')
 
         await page.goto('/station/inventory/assign')
@@ -409,19 +455,15 @@ test.describe('Inventory', () => {
      * note where it is now asked for and reads it back off the finished check, because a note that is
      * typed and not kept is worse than no field at all.
      *
-     * <p>It checks the second member where there is one, since the story beside it closes the first
-     * one's, and walks to the end, because only a closed check writes anything down.
+     * <p>It checks a member of its own who holds a piece of their own ({@link memberHoldingAPiece}): the
+     * note field stands beside a piece in hand, and a seeded member holds whatever the stories beside
+     * it left them. It walks to the end, because only a closed check writes anything down.
      */
     test('a note written during the quick check is kept', async ({managerPage: page}) => {
         const note = `Saum offen ${test.info().workerIndex}-${Date.now()}`
+        const member = await memberHoldingAPiece(page, 'Notiz')
 
-        await page.goto('/station/inventory/checks/member')
-
-        const starts = page.getByRole('button', {name: 'Prüfung starten'})
-        await expect(starts.first()).toBeVisible({timeout: 15000})
-        await ((await starts.count()) > 1 ? starts.nth(1) : starts.first()).click()
-        await page.waitForURL(/\/station\/inventory\/checks\/(\d+)/)
-        const member = page.url().match(/checks\/(\d+)/)?.[1]
+        await page.goto(`/station/inventory/checks/${member}`)
 
         await page.getByRole('button', {name: 'Schnellprüfung'}).click()
 

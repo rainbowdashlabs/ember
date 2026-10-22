@@ -5,6 +5,7 @@
  */
 package dev.chojo.ember.feature.station.transfer;
 
+import dev.chojo.ember.feature.account.service.SetupMail;
 import dev.chojo.ember.feature.accountlink.entity.LinkOrigin;
 import dev.chojo.ember.feature.accountlink.service.AccountLinkService;
 import jakarta.inject.Inject;
@@ -65,7 +66,8 @@ public class ImportedAccountLinks {
         for (var entry : context.membersToLink().entrySet()) {
             Integer memberId = context.idMap().get(MEMBERS, entry.getKey());
             if (memberId == null) continue;
-            linkService.ask(context.stationId(), memberId, entry.getValue(), LinkOrigin.IMPORT, null);
+            linkService.ask(
+                    context.stationId(), memberId, entry.getValue(), LinkOrigin.IMPORT, null, SetupMail.SEND_NOW);
             asked++;
         }
         if (asked > 0) {
