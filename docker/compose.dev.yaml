@@ -20,7 +20,7 @@ networks:
 # per checkout and reaches them over the compose network alone. What the two copies share is written
 # once here, and each of them adds only what separates it.
 x-rustfs: &rustfs
-  image: rustfs/rustfs:1.0.0
+  image: rustfs/rustfs:1.0.1
   environment:
     RUSTFS_ACCESS_KEY: emberadmin
     RUSTFS_SECRET_KEY: emberadmin
@@ -28,7 +28,7 @@ x-rustfs: &rustfs
     RUSTFS_CONSOLE_ADDRESS: ":9001"
 
 x-rustfs-init: &rustfs-init
-  image: amazon/aws-cli:2.37.6
+  image: amazon/aws-cli:2.37.12
   entrypoint: ["/bin/sh", "-c"]
   # Credentials go in the command, not in `environment`: both services using this anchor bring an
   # `environment` of their own, and a YAML merge replaces that key whole rather than adding to it.

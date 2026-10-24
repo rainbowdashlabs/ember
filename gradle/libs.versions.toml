@@ -1,5 +1,5 @@
 [versions]
-logback = "1.6.4"
+logback = "1.6.5"
 sadu = "2.3.9"
 jackson = "3.2.3"
 junit = "6.1.3"
@@ -9,7 +9,7 @@ commonmark = "0.30.0"
 dss = "6.5"
 
 [plugins]
-spotless = { id = "com.diffplug.spotless", version = "8.10.3" }
+spotless = { id = "com.diffplug.spotless", version = "8.10.4" }
 idea = { id = "org.jetbrains.gradle.plugin.idea-ext", version = "1.4.1" }
 pitest = { id = "info.solidsoft.pitest", version = "1.19.0" }
 spotbugs = { id = "com.github.spotbugs", version = "6.5.12" }
@@ -17,7 +17,7 @@ spotbugs = { id = "com.github.spotbugs", version = "6.5.12" }
 [libraries]
 # Database
 hikari = { group = "com.zaxxer", name = "HikariCP", version = "7.1.0" }
-postgres = { group = "org.postgresql", name = "postgresql", version = "42.7.13" }
+postgres = { group = "org.postgresql", name = "postgresql", version = "42.7.14" }
 sadu-postgresql = { group = "de.chojo.sadu", name = "sadu-postgresql", version.ref = "sadu" }
 sadu-datasource = { group = "de.chojo.sadu", name = "sadu-datasource", version.ref = "sadu" }
 sadu-queries = { group = "de.chojo.sadu", name = "sadu-queries", version.ref = "sadu" }
@@ -64,10 +64,10 @@ guice = { group = "com.google.inject", name = "guice", version = "7.0.0" }
 # Security
 bcrypt = { group = "at.favre.lib", name = "bcrypt", version = "0.10.2" }
 java-otp = { group = "com.eatthepath", name = "java-otp", version = "1.0.0" }
-commons-codec = { group = "commons-codec", name = "commons-codec", version = "1.22.1" }
+commons-codec = { group = "commons-codec", name = "commons-codec", version = "1.23.0" }
 zxing-core = { group = "com.google.zxing", name = "core", version = "3.5.4" }
 zxing-javase = { group = "com.google.zxing", name = "javase", version = "3.5.4" }
-webauthn-server = { group = "com.yubico", name = "webauthn-server-core", version = "2.9.0" }
+webauthn-server = { group = "com.yubico", name = "webauthn-server-core", version = "2.10.1" }
 
 # Annotations
 jspecify = { group = "org.jspecify", name = "jspecify", version = "1.0.1" }
@@ -81,21 +81,21 @@ jdkim = { group = "org.apache.james.jdkim", name = "apache-jdkim-library", versi
 
 # Image processing
 thumbnailator = { group = "net.coobird", name = "thumbnailator", version = "0.4.21" }
-imageio-webp = { group = "com.twelvemonkeys.imageio", name = "imageio-webp", version = "3.15.2" }
+imageio-webp = { group = "com.twelvemonkeys.imageio", name = "imageio-webp", version = "3.15.3" }
 
 # Storage backends
 smbj = { group = "com.hierynomus", name = "smbj", version = "0.15.0" }
 sshd-core = { group = "org.apache.sshd", name = "sshd-core", version = "2.20.0" }
 sshd-sftp = { group = "org.apache.sshd", name = "sshd-sftp", version = "2.20.0" }
-aws-s3 = { group = "software.amazon.awssdk", name = "s3", version = "2.55.6" }
+aws-s3 = { group = "software.amazon.awssdk", name = "s3", version = "2.55.14" }
 
 # HTML sanitization
 jsoup = { group = "org.jsoup", name = "jsoup", version = "1.23.2" }
 
 # AI SDKs
-openai = { group = "com.openai", name = "openai-java", version = "4.69.3" }
-anthropic = { group = "com.anthropic", name = "anthropic-java", version = "2.65.0" }
-google-genai = { group = "com.google.genai", name = "google-genai", version = "1.73.0" }
+openai = { group = "com.openai", name = "openai-java", version = "4.80.0" }
+anthropic = { group = "com.anthropic", name = "anthropic-java", version = "2.71.0" }
+google-genai = { group = "com.google.genai", name = "google-genai", version = "1.76.0" }
 
 # CSV
 commons-csv = { group = "org.apache.commons", name = "commons-csv", version = "1.14.1" }
@@ -114,7 +114,7 @@ dss-crl-parser-x509crl = { group = "eu.europa.ec.joinup.sd-dss", name = "dss-crl
 dss-service = { group = "eu.europa.ec.joinup.sd-dss", name = "dss-service" }
 
 # iCal
-ical4j = { group = "org.mnode.ical4j", name = "ical4j", version = "4.3.0" }
+ical4j = { group = "org.mnode.ical4j", name = "ical4j", version = "4.4.0" }
 
 # RSS/Atom
 rome = { group = "com.rometools", name = "rome", version = "2.1.0" }
