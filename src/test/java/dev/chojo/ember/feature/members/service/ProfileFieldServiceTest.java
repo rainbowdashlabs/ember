@@ -241,6 +241,30 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
     }
 
     /**
+     * A required number turned into an age asks for something nobody can type, so it stops being
+     * required, on the definition and on the form, even where its audience still says it is.
+     */
+    @Test
+    @Order(23)
+    void requiredNumberTurnedIntoAnAgeIsNoLongerRequired() {
+        var number = ask("Jahre", FieldType.NUMBER, "{}", ProfileFieldScope.MEMBER, 11, true, false);
+        service.assignToRole(number.id(), ProfileFieldScope.MEMBER, 11, null, null, true);
+        try {
+            var age = service.update(
+                    number.id(), "Alter", FieldType.AGE, ProfileFieldConfig.parse("{}"), true, false, null, false);
+
+            assertFalse(age.orElseThrow().required(), "the definition no longer expects an answer");
+            var asked = service.findMergedFields(station.id(), ProfileFieldScope.MEMBER).stream()
+                    .filter(field -> field.id() == number.id())
+                    .findFirst()
+                    .orElseThrow();
+            assertFalse(asked.required(), "the audience's own override expects nothing either");
+        } finally {
+            service.delete(number.id());
+        }
+    }
+
+    /**
      * A required question behind a yes/no question counts against the profile only once that one is
      * answered yes, and as usual for a member who is not asked the yes/no question at all.
      */

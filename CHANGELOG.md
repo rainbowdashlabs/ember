@@ -1,5 +1,13 @@
 # Changelog
 
+## v26.23.3
+
+Profiles no longer ask members to fill in fields they cannot fill in.
+
+### Fixes
+
+- **Profiles listed an age as missing.** A required field that was turned into an age, a heading or a spacer stayed required, and members without a value saw it in the list of missing fields on their profile, with no way to fill it in. Such fields are never required now, and the profile no longer lists fields the member may only read either.
+
 ## v26.23.2
 
 The attendance check keeps its status buttons in the same place for every member.

@@ -117,6 +117,16 @@ public enum FieldType {
         return this == AGE;
     }
 
+    /**
+     * Whether somebody writes the value, which is the only kind of field that can be required.
+     *
+     * <p>A heading and a gap hold nothing, and an age counts itself, so expecting an answer to one
+     * expects something nobody can give.
+     */
+    public boolean isWritten() {
+        return holdsValue() && !isCalculated();
+    }
+
     /** Whether an answer to this names members. */
     public boolean namesMembers() {
         return kind().map(QuestionKind::namesMembers).orElse(false);

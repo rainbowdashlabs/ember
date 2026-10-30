@@ -1741,7 +1741,8 @@ volumes:
                 + 'kommen dazu. Jede Antwort steht für er, sie, eigene Pronomen je Sprache oder den Vornamen. '
                 + 'Pro Wache gibt es ein Geschlechtsfeld, das eigene oder das des Verbands. Ein bestehendes '
                 + 'Auswahlfeld lässt sich zum Geschlecht umstellen; die gegebenen Antworten bleiben erhalten.',
-            typeAge: 'Alter - Wird automatisch aus einem Datumsfeld berechnet.',
+            typeAge: 'Alter - Wird automatisch aus einem Datumsfeld berechnet. Weil niemand es einträgt, '
+                + 'ist es nie Pflicht und nie gesperrt; wird ein Pflichtfeld zum Alter, entfällt die Pflicht.',
             typeSection: 'Überschrift - Kein Feld, sondern eine Zwischenüberschrift. Sie wird nach '
                 + 'nichts gefragt und steht in keinem Export.',
             layoutTitle: 'Felder anordnen',

@@ -1,5 +1,13 @@
 # Änderungsprotokoll
 
+## v26.23.3
+
+Profile verlangen von Mitgliedern keine Felder mehr, die sie nicht ausfüllen können.
+
+### Fehlerbehebungen
+
+- **Profile führten ein Alter als fehlend auf.** Ein Pflichtfeld, das zu einem Alter, einer Überschrift oder einem Abstand umgestellt wurde, blieb Pflicht, und Mitglieder ohne Wert sahen es auf ihrem Profil unter den fehlenden Feldern, ohne es ausfüllen zu können. Solche Felder sind nun nie Pflicht, und das Profil führt auch keine Felder mehr auf, die das Mitglied nur lesen darf.
+
 ## v26.23.2
 
 Die Schnellprüfung der Anwesenheit hält ihre Statusknöpfe bei jedem Mitglied an derselben Stelle.

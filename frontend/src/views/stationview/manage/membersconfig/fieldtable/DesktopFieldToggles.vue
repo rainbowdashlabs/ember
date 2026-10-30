@@ -8,6 +8,7 @@ import CompactToggle from '@/components/input/toggle/CompactToggle.vue'
 import WritabilitySelect from './WritabilitySelect.vue'
 import {type EditableField, type FieldSwitchName, parseFieldConfig} from '@/api/profileFields'
 import {holdsAnswer} from '@/components/profilefields/fieldLayout'
+import {isWrittenType} from '@/util/questions'
 import {useFieldsCapabilities, type WritabilityName} from '@/composables/useFieldsConfig'
 
 /**
@@ -36,20 +37,25 @@ const capabilities = useFieldsCapabilities()
     <div v-for="column in 5" :key="column"/>
   </template>
   <template v-else>
-    <div class="flex justify-center">
-      <CompactToggle :model-value="!!field.required"
-                     @update:model-value="v => emit('toggleRequired', field, v)"/>
-    </div>
-    <div class="flex justify-center">
-      <WritabilitySelect v-if="capabilities.writability" :field="field"
-                         @set="(f, level) => emit('setWritability', f, level)"/>
-      <CompactToggle v-else :model-value="!!field.readonly"
-                     @update:model-value="v => emit('toggleReadonly', field, v)"/>
-    </div>
-    <div class="flex justify-center">
-      <CompactToggle :model-value="!!parseFieldConfig(field.config).notifyOnChange"
-                     @update:model-value="v => emit('toggleConfig', field, 'notifyOnChange', v)"/>
-    </div>
+    <template v-if="isWrittenType(field.fieldType)">
+      <div class="flex justify-center">
+        <CompactToggle :model-value="!!field.required"
+                       @update:model-value="v => emit('toggleRequired', field, v)"/>
+      </div>
+      <div class="flex justify-center">
+        <WritabilitySelect v-if="capabilities.writability" :field="field"
+                           @set="(f, level) => emit('setWritability', f, level)"/>
+        <CompactToggle v-else :model-value="!!field.readonly"
+                       @update:model-value="v => emit('toggleReadonly', field, v)"/>
+      </div>
+      <div class="flex justify-center">
+        <CompactToggle :model-value="!!parseFieldConfig(field.config).notifyOnChange"
+                       @update:model-value="v => emit('toggleConfig', field, 'notifyOnChange', v)"/>
+      </div>
+    </template>
+    <template v-else>
+      <div v-for="column in 3" :key="column"/>
+    </template>
     <div class="flex justify-center">
       <CompactToggle :model-value="!!parseFieldConfig(field.config).overview"
                      @update:model-value="v => emit('toggleConfig', field, 'overview', v)"/>
