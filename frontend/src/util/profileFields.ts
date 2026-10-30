@@ -102,11 +102,23 @@ export function keepSetsTogether(ordered: readonly number[], fields: readonly Gr
         }
         if (placed.has(setId)) continue
         placed.add(setId)
-        result.push(...ordered
-            .filter(other => setOf(other) === setId)
-            .sort((a, b) => (byId.get(a)?.setPosition ?? 0) - (byId.get(b)?.setPosition ?? 0)))
+        result.push(...membersOfSet(fields, setId)
+            .map(field => field.id)
+            .filter(id => ordered.includes(id)))
     }
     return result
+}
+
+/** The questions of one group, in the group's own order. */
+export function membersOfSet<T extends GroupedField>(fields: readonly T[], setId: number): T[] {
+    return fields
+        .filter(field => field.fieldSetId === setId)
+        .sort((a, b) => (a.setPosition ?? 0) - (b.setPosition ?? 0))
+}
+
+/** Who a question belongs to; one that does not say is the station's. */
+export function originOf(field: {origin?: FieldOrigin | null}): FieldOrigin {
+    return field.origin ?? 'STATION'
 }
 
 /** A question as far as depending on a yes/no question goes. */
@@ -133,8 +145,7 @@ export function hiddenByDependency<T extends DependentField>(
     valueOf: (field: T) => unknown,
 ): boolean {
     if (field.shownIfFieldId == null) return false
-    const origin = field.origin ?? 'STATION'
-    const controller = fields.find(other => other.id === field.shownIfFieldId && (other.origin ?? 'STATION') === origin)
+    const controller = fields.find(other => other.id === field.shownIfFieldId && originOf(other) === originOf(field))
     if (!controller) return false
     const answer = valueOf(controller)
     return answer !== true && answer !== 'true'

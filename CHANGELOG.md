@@ -7,7 +7,7 @@ Profile fields can be shown only when a yes/no question is answered yes, and fie
 ### New Features
 
 - **Profile fields can depend on a yes/no question.** A profile field can be set to show only when a chosen yes/no question of the same profile is answered yes, and it is only required then, so the JuLeiCa expiry date is asked only of people who have a JuLeiCa. A member who is not asked the yes/no question sees the field as usual, and the JuLeiCa template and the performance badge template set this up right away.
-- **Profile fields can be grouped.** Fields that belong together, such as an address, form a group: they are always asked of an audience together and stand together in its order on every form, optionally under the group's name as a heading. Templates with several fields create their group right away, and dissolving a group keeps its fields and answers.
+- **Profile fields can be grouped.** Fields that belong together, such as an address, form a group: they are always asked of an audience together and stand together in its order on every form, optionally under the group's name as a heading. Templates with several fields create their group right away with the fields side by side, such as street and house number on one line, and dissolving a group keeps its fields and answers.
 
 ### Improvements
 

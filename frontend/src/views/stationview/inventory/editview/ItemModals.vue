@@ -290,6 +290,7 @@ defineExpose({openAdd, openEdit, openAssign, openQuickAssign, openHistory, reque
       :has-sizes="detail.hasSizes"
       :sizes="detail.sizes ?? []"
       :heterogeneous="heterogeneous"
+      :mixed="isMixed"
       @saved="emit('itemsChanged')"
   />
 

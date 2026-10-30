@@ -83,8 +83,7 @@ public class ItemOwnershipService {
             throw InventoryRefusal.INVENTORY_ASSOCIATION_GEAR_NOT_YOURS_TO_DESCRIBE.raise();
         }
         if (!restsInTheStore(item)) throw InventoryRefusal.INVENTORY_OWNER_SWITCH_NOT_AT_REST.raise();
-        if (movementRepository.findOpenByOutgoingItem(itemId).isPresent()
-                || movementRepository.findOpenByIncomingItem(itemId).isPresent()) {
+        if (movementRepository.isOnAMovement(itemId)) {
             throw InventoryRefusal.INVENTORY_OWNER_SWITCH_ON_A_MOVEMENT.raise();
         }
         Integer association = owner == ItemOwner.CLUSTER

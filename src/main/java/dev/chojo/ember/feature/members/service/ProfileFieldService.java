@@ -24,7 +24,6 @@ import dev.chojo.ember.feature.members.entity.ProfileFieldChange;
 import dev.chojo.ember.feature.members.entity.ProfileFieldChangeAcknowledgement;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
-import dev.chojo.ember.feature.members.entity.ProfileFieldTarget;
 import dev.chojo.ember.feature.members.entity.ProfileWriter;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldChangeRepository;
@@ -41,7 +40,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -99,27 +97,27 @@ public class ProfileFieldService {
      * @throws RefusalResponse {@link MemberRefusal#PROFILE_FIELD_SET_NEEDS_A_NAME} for a blank name
      */
     public FieldSet createSet(int stationId, @Nullable String name, boolean nameAsSection) {
-        FieldSet set = sets.create(stationId, requireSetName(name), nameAsSection);
+        FieldSet set = sets.create(stationId, FieldSets.requireName(name), nameAsSection);
         log.info("Station {} bundled questions as set {} '{}'", stationId, set.id(), set.name());
         return set;
     }
 
     /** Renames a bundle, or changes whether its name stands above its questions. */
     public void updateSet(int stationId, int setId, @Nullable String name, boolean nameAsSection) {
-        requireSet(stationId, setId);
-        sets.update(setId, requireSetName(name), nameAsSection);
+        FieldSets.requireOwned(sets, stationId, setId);
+        sets.update(setId, FieldSets.requireName(name), nameAsSection);
     }
 
     /** Dissolves a bundle. Its questions stay, on their own, where they stand. */
     public void dissolveSet(int stationId, int setId) {
-        requireSet(stationId, setId);
+        FieldSets.requireOwned(sets, stationId, setId);
         sets.delete(setId);
         log.info("Station {} dissolved set {}", stationId, setId);
     }
 
     /** Puts a bundle's questions in a new order, which every form follows. */
     public void orderSet(int stationId, int setId, List<Integer> fieldIds) {
-        requireSet(stationId, setId);
+        FieldSets.requireOwned(sets, stationId, setId);
         sets.applyOrder(setId, fieldIds);
         keepSetsTogether(stationId);
     }
@@ -130,7 +128,7 @@ public class ProfileFieldService {
      * @param setId the bundle, or {@code null} for none, which is always allowed
      */
     public void requireSetAllowed(int stationId, @Nullable Integer setId) {
-        if (setId != null) requireSet(stationId, setId);
+        if (setId != null) FieldSets.requireOwned(sets, stationId, setId);
     }
 
     /**
@@ -146,49 +144,40 @@ public class ProfileFieldService {
         List<Integer> others = setId == null ? List.of() : sets.members(setId);
         sets.place(fieldId, setId);
         if (!others.isEmpty()) {
-            for (ProfileFieldAssignment asked : profileFieldRepository.findAssignments(others.getFirst())) {
-                askIfNotYet(fieldId, asked);
+            List<ProfileFieldAssignment> asked = profileFieldRepository.findAssignments(fieldId);
+            for (ProfileFieldAssignment like : profileFieldRepository.findAssignments(others.getFirst())) {
+                ProfileFieldScope role = like.role();
+                Integer groupId = like.groupId();
+                if (role != null) askRoleIfNotYet(fieldId, asked, role, like.position());
+                else if (groupId != null) askGroupIfNotYet(fieldId, asked, groupId, like.position());
             }
         }
         keepSetsTogether(field.stationId());
         log.info("Profile field {} now in set {}", fieldId, setId);
     }
 
-    private FieldSet requireSet(int stationId, int setId) {
-        return sets.findById(setId)
-                .filter(set -> set.ownerId() == stationId)
-                .orElseThrow(MemberRefusal.PROFILE_FIELD_SET_NOT_HERE::raise);
-    }
-
-    private static String requireSetName(@Nullable String name) {
-        if (name == null || name.isBlank()) throw MemberRefusal.PROFILE_FIELD_SET_NEEDS_A_NAME.raise();
-        return name.strip();
-    }
-
     /** The other questions of the bundle a question is in, or none. */
     private List<Integer> siblingsOf(int fieldId) {
-        Integer setId = profileFieldRepository
-                .findById(fieldId)
-                .map(ProfileField::fieldSetId)
-                .orElse(null);
-        if (setId == null) return List.of();
-        return sets.members(setId).stream().filter(id -> id != fieldId).toList();
+        return profileFieldRepository.findById(fieldId).map(this::siblingsOf).orElse(List.of());
     }
 
-    /** Puts a question to the audience of an assignment, unless that audience is asked it already. */
-    private void askIfNotYet(int fieldId, ProfileFieldAssignment like) {
-        boolean asked = profileFieldRepository.findAssignments(fieldId).stream()
-                .anyMatch(a -> a.targetKind() == like.targetKind()
-                        && Objects.equals(a.role(), like.role())
-                        && Objects.equals(a.groupId(), like.groupId()));
-        if (asked) return;
-        ProfileFieldScope role = like.role();
-        Integer groupId = like.groupId();
-        if (role != null) {
-            profileFieldRepository.assignToRole(fieldId, role, like.position(), null, null, null);
-        } else if (groupId != null) {
-            profileFieldRepository.assignToGroup(fieldId, groupId, like.position(), null, null, null);
-        }
+    private List<Integer> siblingsOf(ProfileField field) {
+        Integer setId = field.fieldSetId();
+        if (setId == null) return List.of();
+        return sets.members(setId).stream().filter(id -> id != field.id()).toList();
+    }
+
+    /** Puts a question to a kind of member, unless it is already put to them. */
+    private void askRoleIfNotYet(
+            int fieldId, List<ProfileFieldAssignment> asked, ProfileFieldScope role, int position) {
+        if (asked.stream().anyMatch(a -> a.role() == role)) return;
+        profileFieldRepository.assignToRole(fieldId, role, position, null, null, null);
+    }
+
+    /** Puts a question to a group, unless it is already put to them. */
+    private void askGroupIfNotYet(int fieldId, List<ProfileFieldAssignment> asked, int groupId, int position) {
+        if (asked.stream().anyMatch(a -> Objects.equals(a.groupId(), groupId))) return;
+        profileFieldRepository.assignToGroup(fieldId, groupId, position, null, null, null);
     }
 
     /**
@@ -196,20 +185,15 @@ public class ProfileFieldService {
      * kinds of member are kept in order; a group's form follows the order the questions were put to it.
      */
     private void keepSetsTogether(int stationId) {
-        var placements = sets.placements(stationId);
-        Map<ProfileFieldScope, List<ProfileFieldAssignment>> forms =
+        FieldSets.keepFormsTogether(
                 profileFieldRepository.findAssignmentsByStation(stationId).stream()
                         .filter(assignment -> assignment.role() != null)
-                        .collect(Collectors.groupingBy(ProfileFieldAssignment::role));
-        forms.forEach((role, form) -> profileFieldRepository.applyOrder(
-                stationId,
-                role,
-                FieldSets.keepTogether(
-                        form.stream()
-                                .sorted(Comparator.comparingInt(ProfileFieldAssignment::position))
-                                .map(ProfileFieldAssignment::fieldId)
-                                .toList(),
-                        placements)));
+                        .toList(),
+                ProfileFieldAssignment::role,
+                ProfileFieldAssignment::position,
+                ProfileFieldAssignment::fieldId,
+                sets.placements(stationId),
+                (role, order) -> profileFieldRepository.applyOrder(stationId, role, order));
     }
 
     public List<ProfileField> findByStation(int stationId) {
@@ -467,18 +451,15 @@ public class ProfileFieldService {
             @Nullable Boolean readonlyOverride,
             @Nullable Boolean requiredOverride) {
         profileFieldRepository.assignToRole(fieldId, role, position, widthOverride, readonlyOverride, requiredOverride);
-        List<Integer> siblings = siblingsOf(fieldId);
+        Optional<ProfileField> field = profileFieldRepository.findById(fieldId);
+        List<Integer> siblings = field.map(this::siblingsOf).orElse(List.of());
         if (!siblings.isEmpty()) {
             for (Integer sibling : siblings) {
-                askIfNotYet(sibling, roleAssignment(fieldId, role, position));
+                askRoleIfNotYet(sibling, profileFieldRepository.findAssignments(sibling), role, position);
             }
-            profileFieldRepository.findById(fieldId).ifPresent(field -> keepSetsTogether(field.stationId()));
+            keepSetsTogether(field.get().stationId());
         }
         log.info("Profile field {} is asked of {}", fieldId, role);
-    }
-
-    private static ProfileFieldAssignment roleAssignment(int fieldId, ProfileFieldScope role, int position) {
-        return new ProfileFieldAssignment(0, fieldId, ProfileFieldTarget.ROLE, role, null, position, null, null, null);
     }
 
     /**
@@ -504,10 +485,7 @@ public class ProfileFieldService {
         profileFieldRepository.assignToGroup(
                 fieldId, groupId, position, widthOverride, readonlyOverride, requiredOverride);
         for (Integer sibling : siblingsOf(fieldId)) {
-            askIfNotYet(
-                    sibling,
-                    new ProfileFieldAssignment(
-                            0, fieldId, ProfileFieldTarget.GROUP, null, groupId, position, null, null, null));
+            askGroupIfNotYet(sibling, profileFieldRepository.findAssignments(sibling), groupId, position);
         }
         log.info("Profile field {} is asked of group {}", fieldId, groupId);
     }

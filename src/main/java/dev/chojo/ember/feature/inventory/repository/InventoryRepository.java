@@ -953,6 +953,30 @@ public class InventoryRepository {
     }
 
     /**
+     * The free stock of one size in an inventory that no open movement names, ordered by name.
+     *
+     * @param inventoryId the inventory
+     * @param sizeId      the size, or {@code null} for the pieces without one
+     * @return the pieces that could be handed out right now
+     */
+    public List<InventoryItem> findFreeStock(int inventoryId, @Nullable Integer sizeId) {
+        return query(
+                        """
+                SELECT %s FROM inventory_item
+                WHERE inventory_id = :inventory_id
+                  AND size_id IS NOT DISTINCT FROM :size_id
+                  AND %s
+                  AND %s
+                ORDER BY name;""",
+                        INVENTORY_ITEM_COLUMNS,
+                        ItemCustodySql.freeStock("inventory_item"),
+                        ItemCustodySql.notOnAMovement("inventory_item"))
+                .single(call().bind("inventory_id", inventoryId).bind("size_id", sizeId))
+                .map(InventoryItem.map())
+                .all();
+    }
+
+    /**
      * Creates a new inventory item owned by the station running the inventory.
      *
      * @param inventoryId the inventory ID

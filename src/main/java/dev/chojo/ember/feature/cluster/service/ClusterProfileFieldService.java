@@ -32,13 +32,10 @@ import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * The questions a cluster asks of the people at its stations.
@@ -79,11 +76,6 @@ public class ClusterProfileFieldService {
         this.sets = sets;
     }
 
-    /** One of the association's questions, refused where it is not the association's. */
-    public ClusterProfileField field(int clusterId, int fieldId) {
-        return requireField(clusterId, fieldId);
-    }
-
     /** The association's bundles of questions, by name. */
     public List<FieldSet> findSets(int clusterId) {
         return sets.findByOwner(clusterId);
@@ -96,27 +88,27 @@ public class ClusterProfileFieldService {
      */
     public FieldSet createSet(int clusterId, @Nullable String name, boolean nameAsSection) {
         requireCluster(clusterId);
-        FieldSet set = sets.create(clusterId, requireSetName(name), nameAsSection);
+        FieldSet set = sets.create(clusterId, FieldSets.requireName(name), nameAsSection);
         log.info("Cluster {} bundled questions as set {} '{}'", clusterId, set.id(), set.name());
         return set;
     }
 
     /** Renames a bundle, or changes whether its name stands above its questions. */
     public void updateSet(int clusterId, int setId, @Nullable String name, boolean nameAsSection) {
-        requireSet(clusterId, setId);
-        sets.update(setId, requireSetName(name), nameAsSection);
+        FieldSets.requireOwned(sets, clusterId, setId);
+        sets.update(setId, FieldSets.requireName(name), nameAsSection);
     }
 
     /** Dissolves a bundle. Its questions stay, on their own, where they stand. */
     public void dissolveSet(int clusterId, int setId) {
-        requireSet(clusterId, setId);
+        FieldSets.requireOwned(sets, clusterId, setId);
         sets.delete(setId);
         log.info("Cluster {} dissolved set {}", clusterId, setId);
     }
 
     /** Puts a bundle's questions in a new order, which every form follows. */
     public void orderSet(int clusterId, int setId, List<Integer> fieldIds) {
-        requireSet(clusterId, setId);
+        FieldSets.requireOwned(sets, clusterId, setId);
         sets.applyOrder(setId, fieldIds);
         keepSetsTogether(clusterId);
     }
@@ -127,7 +119,7 @@ public class ClusterProfileFieldService {
      * @param setId the bundle, or {@code null} for none, which is always allowed
      */
     public void requireSetAllowed(int clusterId, @Nullable Integer setId) {
-        if (setId != null) requireSet(clusterId, setId);
+        if (setId != null) FieldSets.requireOwned(sets, clusterId, setId);
     }
 
     /**
@@ -143,23 +135,13 @@ public class ClusterProfileFieldService {
         List<Integer> others = setId == null ? List.of() : sets.members(setId);
         sets.place(fieldId, setId);
         if (!others.isEmpty()) {
-            for (ClusterProfileFieldAssignment asked : fieldRepository.findAssignments(others.getFirst())) {
-                askIfNotYet(fieldId, asked.role(), asked.position());
+            List<ClusterProfileFieldAssignment> asked = fieldRepository.findAssignments(fieldId);
+            for (ClusterProfileFieldAssignment like : fieldRepository.findAssignments(others.getFirst())) {
+                askIfNotYet(fieldId, asked, like.role(), like.position());
             }
         }
         keepSetsTogether(clusterId);
         log.info("Cluster {} field {} now in set {}", clusterId, fieldId, setId);
-    }
-
-    private FieldSet requireSet(int clusterId, int setId) {
-        return sets.findById(setId)
-                .filter(set -> set.ownerId() == clusterId)
-                .orElseThrow(MemberRefusal.PROFILE_FIELD_SET_NOT_HERE::raise);
-    }
-
-    private static String requireSetName(@Nullable String name) {
-        if (name == null || name.isBlank()) throw MemberRefusal.PROFILE_FIELD_SET_NEEDS_A_NAME.raise();
-        return name.strip();
     }
 
     /** The other questions of the bundle a question is in, or none. */
@@ -169,26 +151,22 @@ public class ClusterProfileFieldService {
         return sets.members(setId).stream().filter(id -> id != field.id()).toList();
     }
 
-    private void askIfNotYet(int fieldId, ProfileFieldScope role, int position) {
-        boolean asked = fieldRepository.findAssignments(fieldId).stream().anyMatch(a -> a.role() == role);
-        if (!asked) fieldRepository.assignToRole(fieldId, role, position, null, null, null);
+    /** Puts a question to a kind of member, unless it is already put to them. */
+    private void askIfNotYet(
+            int fieldId, List<ClusterProfileFieldAssignment> asked, ProfileFieldScope role, int position) {
+        if (asked.stream().anyMatch(a -> a.role() == role)) return;
+        fieldRepository.assignToRole(fieldId, role, position, null, null, null);
     }
 
     /** Puts every form of the association back into an order that keeps each bundle together. */
     private void keepSetsTogether(int clusterId) {
-        var placements = sets.placements(clusterId);
-        Map<ProfileFieldScope, List<ClusterProfileFieldAssignment>> forms =
-                fieldRepository.findAssignmentsByCluster(clusterId).stream()
-                        .collect(Collectors.groupingBy(ClusterProfileFieldAssignment::role));
-        forms.forEach((role, form) -> fieldRepository.applyOrder(
-                clusterId,
-                role,
-                FieldSets.keepTogether(
-                        form.stream()
-                                .sorted(Comparator.comparingInt(ClusterProfileFieldAssignment::position))
-                                .map(ClusterProfileFieldAssignment::fieldId)
-                                .toList(),
-                        placements)));
+        FieldSets.keepFormsTogether(
+                fieldRepository.findAssignmentsByCluster(clusterId),
+                ClusterProfileFieldAssignment::role,
+                ClusterProfileFieldAssignment::position,
+                ClusterProfileFieldAssignment::fieldId,
+                sets.placements(clusterId),
+                (role, order) -> fieldRepository.applyOrder(clusterId, role, order));
     }
 
     public List<ClusterProfileField> findByCluster(int clusterId) {
@@ -278,7 +256,9 @@ public class ClusterProfileFieldService {
         fieldRepository.assignToRole(fieldId, role, position, widthOverride, readonlyOverride, requiredOverride);
         List<Integer> siblings = siblingsOf(field);
         if (!siblings.isEmpty()) {
-            for (Integer sibling : siblings) askIfNotYet(sibling, role, position);
+            for (Integer sibling : siblings) {
+                askIfNotYet(sibling, fieldRepository.findAssignments(sibling), role, position);
+            }
             keepSetsTogether(clusterId);
         }
         log.info("Cluster {} asks {} field {}", clusterId, role, fieldId);
@@ -467,7 +447,8 @@ public class ClusterProfileFieldService {
                 .orElseThrow(ClusterRefusal.CLUSTER_PROFILE_FIELD_CLUSTER_GONE::raise);
     }
 
-    private ClusterProfileField requireField(int clusterId, int fieldId) {
+    /** One of the association's questions, refused where it is not the association's. */
+    public ClusterProfileField requireField(int clusterId, int fieldId) {
         ClusterProfileField field =
                 fieldRepository.findById(fieldId).orElseThrow(ClusterRefusal.CLUSTER_PROFILE_FIELD_NOT_HERE::raise);
         if (field.clusterId() != clusterId) throw ClusterRefusal.CLUSTER_PROFILE_FIELD_NOT_HERE.raise();

@@ -130,7 +130,7 @@ class ClusterFieldSetRoutesTest {
                         anyBoolean(),
                         any()))
                 .thenReturn(written);
-        when(fields.field(CLUSTER_ID, 9)).thenReturn(written);
+        when(fields.requireField(CLUSTER_ID, 9)).thenReturn(written);
         var harness = RouteHarness.serving(new ClusterFieldRoutes(clusters, fields));
         var editor = harness.as(TestSessions.clusterMember(CLUSTER_ID, ClusterPermission.CLUSTER_FIELD_EDIT));
         String request = """

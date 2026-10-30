@@ -35,8 +35,10 @@ const props = withDefaults(
       sizes: InventorySize[]
       /** Whether this inventory holds a drawer of different things, which is where kinds live. */
       heterogeneous?: boolean
+      /** Whether this inventory holds gear of both the station and the Träger, which is where the owner is chosen. */
+      mixed?: boolean
     }>(),
-    {heterogeneous: false},
+    {heterogeneous: false, mixed: false},
 )
 
 const show = defineModel<boolean>({default: false})
@@ -67,7 +69,7 @@ const tagNames = ref<string[]>([])
 const fieldDefs = ref<InventoryFieldDefinition[]>([])
 const fieldValues = ref<Record<string, unknown>>({})
 const containers = ref<InventoryContainer[]>([])
-const ownerChoice = useItemOwnerChoice(() => props.item)
+const ownerChoice = useItemOwnerChoice(() => props.item, () => props.mixed)
 const {owner, offered: ownerOffered, atRest: ownerAtRest} = ownerChoice
 
 const sortedContainers = computed(() => [...containers.value].sort((a, b) => a.name.localeCompare(b.name)))

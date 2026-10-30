@@ -118,7 +118,7 @@ public class ClusterFieldRoutes implements Routes {
                 request.stationGroupId());
         fieldService.dependOn(cluster.id(), field.id(), request.shownIfFieldId());
         fieldService.joinSet(cluster.id(), field.id(), request.fieldSetId());
-        ctx.status(HttpStatus.CREATED).json(toResponse(fieldService.field(cluster.id(), field.id())));
+        ctx.status(HttpStatus.CREATED).json(toResponse(fieldService.requireField(cluster.id(), field.id())));
     }
 
     @OpenApi(

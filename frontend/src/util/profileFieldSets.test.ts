@@ -6,7 +6,7 @@
 /** @vitest-environment happy-dom */
 import {describe, expect, it} from 'vitest'
 import {keepSetsTogether} from './profileFields'
-import {setHeadingBefore} from '@/components/profilefields/fieldLayout'
+import {setHeadingBefore, type SetField} from '@/components/profilefields/fieldLayout'
 
 const ADDRESS = {id: 1, name: 'Adresse', heading: true}
 
@@ -27,7 +27,7 @@ describe('profile field groups', () => {
     })
 
     it('puts the group name above the first field of the group only', () => {
-        const form = [
+        const form: SetField[] = [
             {origin: 'STATION', fieldSet: null},
             {origin: 'STATION', fieldSet: ADDRESS},
             {origin: 'STATION', fieldSet: ADDRESS},

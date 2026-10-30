@@ -1672,9 +1672,11 @@ volumes:
         },
         membersConfig: {
             setsTitle: 'Feldgruppen',
-            setsText: 'Eine Feldgruppe bündelt Felder, die zusammengehören, etwa Straße, Postleitzahl und Ort zu '
-                + 'einer Adresse. Welcher Gruppe ein Feld angehört, wählst du beim Bearbeiten des Felds. Vorlagen '
-                + 'mit mehreren Feldern legen ihre Gruppe gleich mit an.',
+            setsText: 'Eine Feldgruppe bündelt Felder, die zusammengehören, etwa Straße, Hausnummer, Postleitzahl '
+                + 'und Ort zu einer Adresse. Welcher Gruppe ein Feld angehört, wählst du beim Bearbeiten des Felds. '
+                + 'Vorlagen mit mehreren Feldern legen ihre Gruppe gleich mit an und stellen die Felder '
+                + 'nebeneinander: bis zu drei in eine Zeile, bei der Adresse Straße und Hausnummer in eine und '
+                + 'Postleitzahl und Ort in die nächste.',
             setsTogether: 'Die Felder einer Gruppe werden immer gemeinsam gestellt: Stellst du eines davon einer '
                 + 'Zielgruppe, bekommt sie alle, und nimmst du eines weg, gehen alle. Im Formular stehen sie '
                 + 'zusammen in der Reihenfolge der Gruppe; verschiebst du eines, wandert die ganze Gruppe mit. '

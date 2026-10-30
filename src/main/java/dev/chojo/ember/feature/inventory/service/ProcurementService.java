@@ -29,7 +29,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 
 @Singleton
@@ -218,10 +217,7 @@ public class ProcurementService {
      */
     public List<InventoryItem> stockFor(Procurement procurement) {
         if (procurement.memberId() == null || procurement.fulfilledAt() != null) return List.of();
-        return inventoryRepository.findUnassignedItems(procurement.inventoryId()).stream()
-                .filter(item -> Objects.equals(item.sizeId(), procurement.sizeId()))
-                .filter(item -> !movementService.isOnAMovement(item.id()))
-                .toList();
+        return inventoryRepository.findFreeStock(procurement.inventoryId(), procurement.sizeId());
     }
 
     /**

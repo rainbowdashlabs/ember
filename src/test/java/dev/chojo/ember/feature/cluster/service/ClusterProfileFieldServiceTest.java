@@ -674,7 +674,8 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
         clusterProfileFieldService.dissolveSet(clusterId, set.id());
         assertTrue(clusterProfileFieldService.findSets(clusterId).isEmpty());
         assertNull(
-                clusterProfileFieldService.field(clusterId, flag.id()).fieldSetId(), "dissolving keeps the questions");
+                clusterProfileFieldService.requireField(clusterId, flag.id()).fieldSetId(),
+                "dissolving keeps the questions");
         assertEquals(
                 MemberRefusal.PROFILE_FIELD_SET_NOT_HERE,
                 assertThrows(

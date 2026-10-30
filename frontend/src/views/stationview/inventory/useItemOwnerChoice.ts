@@ -20,30 +20,37 @@ import {useSession} from '@/composables/useSession'
  * <p>Offered only in a mixed inventory: an internal or external one says by its type whose gear it holds.
  * Changeable only while the piece rests in the station's store, because one that is with somebody, on its
  * way or missing has a chain or a record running for the owner it has. And only for whoever may write gear
- * down for both owners.
+ * down for both owners, and never for gear of an association that keeps its own in Ember.
+ *
+ * @param item  the piece being edited
+ * @param mixed whether its inventory is mixed, where the caller already knows; read from the inventory
+ *              otherwise
  */
-export function useItemOwnerChoice(item: () => InventoryItem | null) {
+export function useItemOwnerChoice(item: () => InventoryItem | null, mixed?: () => boolean) {
     const {hasPermission} = useSession()
-    const mixed = ref(false)
+    const fetchedMixed = ref(false)
     const owner = ref<ItemOwner | null>(item()?.ownerKind ?? null)
 
-    watch(() => item()?.inventoryId, async (inventoryId) => {
-        mixed.value = false
-        if (inventoryId == null) return
-        try {
-            mixed.value = (await inventory.getInventory(inventoryId)).inventoryType === InventoryType.MIXED
-        } catch {
-            mixed.value = false
-        }
-    }, {immediate: true})
+    if (!mixed) {
+        watch(() => item()?.inventoryId, async (inventoryId) => {
+            fetchedMixed.value = false
+            if (inventoryId == null) return
+            try {
+                fetchedMixed.value = (await inventory.getInventory(inventoryId)).inventoryType === InventoryType.MIXED
+            } catch {
+                fetchedMixed.value = false
+            }
+        }, {immediate: true})
+    }
 
     watch(() => item()?.ownerKind, reset)
 
     const offered = computed(() => {
         const current = item()
         return current != null
-            && mixed.value
+            && (mixed ? mixed() : fetchedMixed.value)
             && current.ownerKind !== ItemOwner.PARTNER_STATION
+            && !(current.ownerKind === ItemOwner.CLUSTER && current.ownerClusterId != null)
             && hasPermission(StationPermission.INVENTORY_CREATE_INTERNAL)
             && hasPermission(StationPermission.INVENTORY_CREATE_EXTERNAL)
     })

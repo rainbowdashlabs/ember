@@ -3,7 +3,8 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import {FieldType, type FieldSetLabel} from '@/api/generated/schema'
+import {FieldType, type FieldOrigin, type FieldSetLabel} from '@/api/generated/schema'
+import {originOf} from '@/util/profileFields'
 
 /**
  * The little a layout decision needs to know about a field.
@@ -117,7 +118,7 @@ export function holdsAnswer(field: LayoutField): boolean {
 
 /** A field as far as the group it belongs to goes. */
 export interface SetField {
-    origin?: string
+    origin?: FieldOrigin
     fieldSet?: FieldSetLabel | null
 }
 
@@ -135,7 +136,7 @@ export function setHeadingBefore(fields: readonly SetField[], index: number): st
     if (!field?.fieldSet?.heading) return null
     const previous = index > 0 ? fields[index - 1] : undefined
     const sameSet = previous?.fieldSet?.id === field.fieldSet.id
-        && (previous?.origin ?? 'STATION') === (field.origin ?? 'STATION')
+        && originOf(previous) === originOf(field)
     return sameSet ? null : field.fieldSet.name
 }
 

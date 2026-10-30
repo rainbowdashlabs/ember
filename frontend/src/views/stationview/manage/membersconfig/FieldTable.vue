@@ -9,6 +9,7 @@ import DesktopHeaderRow from './fieldtable/DesktopHeaderRow.vue'
 import DesktopFieldRow from './fieldtable/DesktopFieldRow.vue'
 import MobileFieldCard from './fieldtable/MobileFieldCard.vue'
 import type {EditableField, FieldSwitchName} from '@/api/profileFields'
+import {membersOfSet} from '@/util/profileFields'
 import type {FieldSet} from '@/api/generated/schema'
 import {useBreakpoint} from '@/composables/useBreakpoint'
 import {useElementWidth} from '@/composables/useElementWidth'
@@ -99,9 +100,7 @@ const blocks = computed<Block[]>(() => {
     result.push({
       key: `set-${set.id}`,
       set,
-      fields: props.fields
-          .filter(member => member.fieldSetId === set.id)
-          .sort((a, b) => (a.setPosition ?? 0) - (b.setPosition ?? 0)),
+      fields: membersOfSet(props.fields, set.id),
     })
   }
   return result

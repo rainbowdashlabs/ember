@@ -17,7 +17,7 @@ import {
     FieldType, type AssignmentRequest, type FieldSet, type FieldSetRequest, type MemberGroup,
     type ProfileFieldAssignment, type ProfileFieldScope, type StationGroupResponse,
 } from '@/api/generated/schema'
-import {asAsked, keepSetsTogether} from '@/util/profileFields'
+import {asAsked, keepSetsTogether, membersOfSet} from '@/util/profileFields'
 import {moveWithin} from '@/util/reorder'
 import {describeFailure, FailureKind} from '@/util/failure'
 
@@ -594,10 +594,7 @@ export function useFieldsConfig(port: FieldsPort) {
         if (setId == null) return null
         const set = sets.value.find(s => s.id === setId)
         if (!set) return null
-        const members = allFields.value
-            .filter(f => f.fieldSetId === setId)
-            .sort((a, b) => (a.setPosition ?? 0) - (b.setPosition ?? 0))
-        return {set, members}
+        return {set, members: membersOfSet(allFields.value, setId)}
     })
 
     function clearChecked() {
@@ -687,6 +684,7 @@ export function useFieldsConfig(port: FieldsPort) {
             required?: boolean
             readonly?: boolean
             shownIf?: string
+            width?: string
         }>},
     ) {
         failure.value = null
@@ -713,6 +711,7 @@ export function useFieldsConfig(port: FieldsPort) {
                     config: f.config,
                     required: f.required ?? false,
                     readonly: f.readonly ?? false,
+                    width: f.width ?? null,
                     shownIfFieldId: f.shownIf ? created.get(f.shownIf) ?? null : null,
                     fieldSetId: set?.id ?? null,
                 }))

@@ -522,8 +522,7 @@ public class ItemMovementService {
      * @return {@code true} when an open movement names it on either side
      */
     public boolean isOnAMovement(int itemId) {
-        return movementRepository.findOpenByOutgoingItem(itemId).isPresent()
-                || movementRepository.findOpenByIncomingItem(itemId).isPresent();
+        return movementRepository.isOnAMovement(itemId);
     }
 
     private void requireFree(@Nullable Integer itemId) {

@@ -13,6 +13,7 @@ import TextInput from '@/components/input/text/TextInput.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
 import FieldSetRow from './fieldsetspanel/FieldSetRow.vue'
 import type {EditableField} from '@/api/profileFields'
+import {membersOfSet} from '@/util/profileFields'
 import type {FieldSet, FieldSetRequest} from '@/api/generated/schema'
 
 /**
@@ -38,10 +39,7 @@ const {t} = useI18n()
 const newName = ref('')
 
 function fieldNamesOf(set: FieldSet): string[] {
-  return props.fields
-      .filter(field => field.fieldSetId === set.id)
-      .sort((a, b) => (a.setPosition ?? 0) - (b.setPosition ?? 0))
-      .map(field => field.name)
+  return membersOfSet(props.fields, set.id).map(field => field.name)
 }
 
 function create() {

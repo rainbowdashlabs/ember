@@ -15,12 +15,7 @@ export const ExchangeReason = {
 
 export type ExchangeReasonName = (typeof ExchangeReason)[keyof typeof ExchangeReason]
 
-export const EXCHANGE_REASONS: ExchangeReasonName[] = [
-    ExchangeReason.TOO_SMALL,
-    ExchangeReason.TOO_LARGE,
-    ExchangeReason.BROKEN,
-    ExchangeReason.OTHER,
-]
+export const EXCHANGE_REASONS: ExchangeReasonName[] = Object.values(ExchangeReason)
 
 /** How the wanted size stands to the one the piece has now. */
 export type SizeRelation = 'larger' | 'smaller' | 'same' | 'unknown'

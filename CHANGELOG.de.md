@@ -7,7 +7,7 @@ Profilfelder lassen sich nur dann anzeigen, wenn eine Ja/Nein-Frage mit Ja beant
 ### Neue Funktionen
 
 - **Profilfelder können von einer Ja/Nein-Frage abhängen.** Ein Profilfeld lässt sich so einstellen, dass es nur erscheint, wenn eine gewählte Ja/Nein-Frage desselben Profils mit Ja beantwortet ist, und nur dann Pflicht ist, so wird das JuLeiCa-Ablaufdatum nur bei Personen mit JuLeiCa abgefragt. Wer die Ja/Nein-Frage nicht gestellt bekommt, sieht das Feld wie gewohnt, und die Vorlagen JuLeiCa und Leistungsspange richten das gleich mit ein.
-- **Profilfelder lassen sich gruppieren.** Felder, die zusammengehören, etwa eine Adresse, bilden eine Feldgruppe: Sie werden einer Zielgruppe immer gemeinsam gestellt und stehen in jedem Formular zusammen in ihrer Reihenfolge, auf Wunsch unter dem Namen der Gruppe als Überschrift. Vorlagen mit mehreren Feldern legen ihre Gruppe gleich mit an, und eine aufgelöste Gruppe behält ihre Felder samt Antworten.
+- **Profilfelder lassen sich gruppieren.** Felder, die zusammengehören, etwa eine Adresse, bilden eine Feldgruppe: Sie werden einer Zielgruppe immer gemeinsam gestellt und stehen in jedem Formular zusammen in ihrer Reihenfolge, auf Wunsch unter dem Namen der Gruppe als Überschrift. Vorlagen mit mehreren Feldern legen ihre Gruppe gleich mit an und stellen die Felder nebeneinander, etwa Straße und Hausnummer in eine Zeile, und eine aufgelöste Gruppe behält ihre Felder samt Antworten.
 
 ### Verbesserungen
 
