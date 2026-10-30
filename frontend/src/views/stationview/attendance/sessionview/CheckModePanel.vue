@@ -52,15 +52,7 @@ const emit = defineEmits<{
         <MemberName :identity="memberIdentity" size="md"/>
       </p>
       <p class="text-sm text-(--text-muted)">{{ checkIndex + 1 }} / {{ totalUnchecked }}</p>
-      <MemberCheckNotes
-          :notes="notes"
-          :can-manage-swap="canManageSwap"
-          :can-sign-off-found="canSignOffFound"
-          class="text-left inline-block"
-          @move-swap="(movementId, stepId, replacementItemId) => emit('moveSwap', movementId, stepId, replacementItemId)"
-          @drop-swap="(movementId) => emit('dropSwap', movementId)"
-          @sign-off-found="(itemId) => emit('signOffFound', itemId)"
-      />
+      <MemberCheckNotes :notes="notes" part="birthday" class="text-left inline-block"/>
       <div class="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4">
         <SuccessButton :icon="['fas', 'check']" :full-width="isMobile" @click="emit('setStatus', 'PRESENT')">
           {{ t('attendanceSession.present') }}
@@ -76,6 +68,16 @@ const emit = defineEmits<{
         <SecondaryButton @click="emit('skip')">{{ t('attendanceSession.skip') }}</SecondaryButton>
         <SecondaryButton @click="emit('end')">{{ t('attendanceSession.endCheck') }}</SecondaryButton>
       </ButtonRow>
+      <MemberCheckNotes
+          :notes="notes"
+          :can-manage-swap="canManageSwap"
+          :can-sign-off-found="canSignOffFound"
+          part="actions"
+          class="text-left inline-block"
+          @move-swap="(movementId, stepId, replacementItemId) => emit('moveSwap', movementId, stepId, replacementItemId)"
+          @drop-swap="(movementId) => emit('dropSwap', movementId)"
+          @sign-off-found="(itemId) => emit('signOffFound', itemId)"
+      />
     </div>
   </NeutralContainer>
 

@@ -2940,7 +2940,8 @@ volumes:
                 + 'Diese Person war an dem Termin noch nicht dabei und kann deshalb auch nicht nachgetragen werden. Ist kein Beitrittsdatum hinterlegt, gilt keine Einschränkung.',
             notesTitle: 'Hinweise zum Mitglied',
             notesText: 'Neben jedem Namen steht, was für dieses Mitglied noch offen ist: ein laufender Tausch mit dem, worauf gerade gewartet wird, eine Fundsache, die noch abgeholt werden muss, und ein Geburtstag der letzten sechs Tage. '
-                + 'Die Hinweise stehen sowohl in der Schnellprüfung als auch in der Liste aller Anwesenheiten, denn genau dann steht die Person vor dir.',
+                + 'Die Hinweise stehen sowohl in der Schnellprüfung als auch in der Liste aller Anwesenheiten, denn genau dann steht die Person vor dir. '
+                + 'In der Schnellprüfung steht der Geburtstag beim Namen, alles zu Erledigende unter den Knöpfen, damit die Statusknöpfe bei jedem Mitglied an derselben Stelle bleiben.',
             notesActionsText: 'Zwei davon lassen sich direkt erledigen: Bei einem Vorgang trägt der Button den Namen des Schritts, den du gerade erledigst, samt Teil und Größe. '
                 + 'Angezeigt werden nur Schritte, bei denen das Mitglied beteiligt ist; ist das Mitglied selbst am Zug, steht der Schritt da, ohne Button. '
                 + 'Eine Fundsache wird mit "Übergeben" ausgehändigt und verschwindet damit aus der Liste.',

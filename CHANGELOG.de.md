@@ -1,5 +1,13 @@
 # Änderungsprotokoll
 
+## v26.23.2
+
+Die Schnellprüfung der Anwesenheit hält ihre Statusknöpfe bei jedem Mitglied an derselben Stelle.
+
+### Verbesserungen
+
+- **Die Knöpfe der Schnellprüfung bleiben stehen.** In der Schnellprüfung der Anwesenheit stehen offene Tauschvorgänge und Fundsachen eines Mitglieds unter den Knöpfen statt darüber, sodass Anwesend, Abwesend und Abgesagt von Mitglied zu Mitglied an derselben Stelle bleiben. Ein Geburtstag steht weiter beim Namen.
+
 ## v26.23.1
 
 Profilfelder lassen sich nur dann anzeigen, wenn eine Ja/Nein-Frage mit Ja beantwortet ist, und zusammengehörige Felder lassen sich gruppieren. Eine offene Beschaffung zeigt, wenn ein passendes Stück bereits im Lager der Wache liegt, und kann es sofort ausgeben. Jeder Tausch fragt auf dieselbe Weise nach dem Grund, mit der aktuellen Größe neben der gewünschten, und die Bereiche der Seitenleiste öffnen sich wieder in einem neuen Tab.
