@@ -3,7 +3,7 @@
 # the in-container one. Runs the Nuxt dev server with HMR; chokidar uses polling
 # because the inotify events from a bind mount are not always reliable across
 # host filesystems.
-FROM node:24-alpine
+FROM node:26-alpine
 
 WORKDIR /build
 
