@@ -1,5 +1,13 @@
 # Changelog
 
+## v26.23.2
+
+The attendance check keeps its status buttons in the same place for every member.
+
+### Improvements
+
+- **Attendance check buttons stay in place.** In the attendance check, open swaps and found items of a member stand below the buttons instead of above them, so present, absent and declined stay in the same place from one member to the next. A recent birthday still stands beside the name.
+
 ## v26.23.1
 
 Profile fields can be shown only when a yes/no question is answered yes, and fields that belong together can be grouped. An open procurement shows when a matching piece already lies in the station's storage and can hand it out right away. Every swap asks why in the same way, with the current size next to the wanted one, and the sections of the sidebar open in a new tab again.
