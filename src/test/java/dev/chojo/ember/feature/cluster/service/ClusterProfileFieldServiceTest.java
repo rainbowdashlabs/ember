@@ -6,7 +6,9 @@
 package dev.chojo.ember.feature.cluster.service;
 
 import dev.chojo.ember.api.refusal.ClusterRefusal;
+import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
+import dev.chojo.ember.feature.cluster.entity.ClusterProfileFieldAssignment;
 import dev.chojo.ember.feature.members.entity.FieldOrigin;
 import dev.chojo.ember.feature.members.entity.FieldValueEntry;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
@@ -18,6 +20,7 @@ import dev.chojo.ember.feature.station.entity.Station;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.Test;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -25,6 +28,7 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -618,5 +622,64 @@ class ClusterProfileFieldServiceTest extends RepositoryTestBase {
 
         clusterService.releaseStation(clusterId, station.id());
         stationRepo.delete(station.id());
+    }
+
+    /**
+     * An association bundles its questions the way a station does: a group is asked and let go of as one,
+     * keeps its own order on the form, can be renamed, and dissolves into its questions.
+     */
+    @Test
+    void anAssociationsGroupIsAskedOrderedAndDissolvedAsOne() {
+        int clusterId = freshCluster();
+        var loose = clusterProfileFieldService.create(
+                clusterId, "Allein", FieldType.TEXT, ProfileFieldConfig.empty(), false, false, null, true, false, null);
+        var flag = clusterProfileFieldService.create(
+                clusterId,
+                "Atemschutz",
+                FieldType.BOOLEAN,
+                ProfileFieldConfig.empty(),
+                false,
+                false,
+                null,
+                true,
+                false,
+                null);
+        var check = clusterProfileFieldService.create(
+                clusterId, "G26.3", FieldType.DATE, ProfileFieldConfig.empty(), false, false, null, true, false, null);
+        clusterProfileFieldService.assignToRole(clusterId, loose.id(), ProfileFieldScope.MEMBER, 0, null, null, null);
+        var set = clusterProfileFieldService.createSet(clusterId, "Atemschutz", false);
+        clusterProfileFieldService.joinSet(clusterId, flag.id(), set.id());
+        clusterProfileFieldService.joinSet(clusterId, check.id(), set.id());
+
+        clusterProfileFieldService.updateSet(clusterId, set.id(), "Atemschutz und G26", true);
+        var renamed = clusterProfileFieldService.findSets(clusterId).getFirst();
+        assertEquals("Atemschutz und G26", renamed.name());
+        assertTrue(renamed.nameAsSection());
+
+        clusterProfileFieldService.orderSet(clusterId, set.id(), List.of(check.id(), flag.id()));
+        clusterProfileFieldService.assignToRole(clusterId, flag.id(), ProfileFieldScope.MEMBER, 5, null, null, null);
+        assertEquals(1, clusterProfileFieldService.findAssignments(check.id()).size(), "the group is asked as one");
+
+        clusterProfileFieldService.reorder(
+                clusterId, ProfileFieldScope.MEMBER, List.of(flag.id(), loose.id(), check.id()));
+        List<Integer> form = clusterProfileFieldService.findAssignmentsByCluster(clusterId).stream()
+                .sorted(Comparator.comparingInt(ClusterProfileFieldAssignment::position))
+                .map(ClusterProfileFieldAssignment::fieldId)
+                .toList();
+        assertEquals(List.of(check.id(), flag.id(), loose.id()), form, "in the group's own order, as one block");
+
+        clusterProfileFieldService.unassignRole(clusterId, check.id(), ProfileFieldScope.MEMBER);
+        assertTrue(clusterProfileFieldService.findAssignments(flag.id()).isEmpty(), "and let go of as one");
+
+        clusterProfileFieldService.dissolveSet(clusterId, set.id());
+        assertTrue(clusterProfileFieldService.findSets(clusterId).isEmpty());
+        assertNull(
+                clusterProfileFieldService.field(clusterId, flag.id()).fieldSetId(), "dissolving keeps the questions");
+        assertEquals(
+                MemberRefusal.PROFILE_FIELD_SET_NOT_HERE,
+                assertThrows(
+                                RefusalResponse.class,
+                                () -> clusterProfileFieldService.requireSetAllowed(clusterId, set.id()))
+                        .refusal());
     }
 }

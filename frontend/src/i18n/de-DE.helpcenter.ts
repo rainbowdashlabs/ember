@@ -2623,7 +2623,9 @@ volumes:
             createType: 'Wähle den Typ: Eigentum der Wache, Eigentum des Trägers, oder Gemischt, wo pro '
                 + 'Gegenstand entschieden wird. Gehört die Ausrüstung dem Träger, entstehen die einzelnen '
                 + 'Gegenstände erst bei der Zuweisung. Stellst du den Typ später um, werden die vorhandenen '
-                + 'Gegenstände auf den neuen Eigentümer umgestellt; nur geliehene Gegenstände behalten ihren.',
+                + 'Gegenstände auf den neuen Eigentümer umgestellt; nur geliehene Gegenstände behalten ihren. '
+                + 'In einem gemischten Inventar legst du den Eigentümer auch beim Ausgeben fest und kannst ihn '
+                + 'auf der Seite eines Gegenstands ändern, solange er im Lager der Wache liegt.',
             createSizes: 'Aktiviere Größen, wenn die Gegenstände in verschiedenen Größen vorkommen (z.B. S, M, L).',
             kindsTitle: 'Einheitlich oder Sammlung',
             kindsText: 'Beim Anlegen wählst du, was das Inventar enthält. Ein einheitliches Inventar hält eine Sache '
@@ -5796,6 +5798,12 @@ volumes:
             tip: 'Die Bezeichnungen der Schritte kommen aus dem Ablauf, den deine Wache unter Inventar eingerichtet hat. Eine abgeschlossene Bewegung behält die Worte, unter denen sie gelaufen ist, auch wenn der Ablauf später umbenannt wird.',
         },
         itemDetail: {
+            ownerTitle: 'Eigentümer ändern',
+            ownerText: 'In einem gemischten Inventar legst du für jeden Gegenstand fest, ob er der Wache oder dem '
+                + 'Träger gehört. Ändern kannst du das, solange der Gegenstand im Lager der Wache liegt, also nicht, '
+                + 'während ihn jemand hat, er unterwegs ist oder vermisst wird. Dafür brauchst du die Berechtigung, '
+                + 'Ausrüstung der Wache und des Trägers anzulegen. Einen Gegenstand eines Trägers, der selbst Ember '
+                + 'nutzt, kann die Wache nicht sich selbst zuschreiben.',
             title: 'Gegenstand - Details',
             subtitle: 'Alle Informationen zu einem einzelnen Gegenstand.',
             whatIs: 'Was zeigt diese Seite?',

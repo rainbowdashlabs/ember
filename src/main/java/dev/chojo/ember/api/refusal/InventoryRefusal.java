@@ -1076,7 +1076,29 @@ public enum InventoryRefusal implements Refusal {
 
     /** A piece offered against an order that does not fit it or is no longer free in storage. */
     PROCUREMENT_PIECE_NOT_IN_STOCK(
-            278, HttpStatus.CONFLICT, "That piece is not free in storage in the size that was ordered");
+            278, HttpStatus.CONFLICT, "That piece is not free in storage in the size that was ordered"),
+
+    /** A piece whose owner is to change in an inventory that holds only one owner's gear. */
+    INVENTORY_OWNER_SWITCH_ONLY_IN_MIXED(
+            279,
+            HttpStatus.BAD_REQUEST,
+            "The owner of a single piece can only be changed in an inventory that holds both kinds of gear"),
+
+    /** A piece whose owner is to change while it is with somebody, on its way, lent out or missing. */
+    INVENTORY_OWNER_SWITCH_NOT_AT_REST(
+            280, HttpStatus.CONFLICT, "The owner can only be changed while the piece is in the station's store"),
+
+    /** A borrowed piece whose owner is to change, which is the lender's to say. */
+    INVENTORY_OWNER_SWITCH_BORROWED(
+            281, HttpStatus.BAD_REQUEST, "This piece is borrowed from a partner station, so its owner stays"),
+
+    /** A piece whose owner is to change while a movement is still running on it. */
+    INVENTORY_OWNER_SWITCH_ON_A_MOVEMENT(
+            282, HttpStatus.CONFLICT, "A movement is still running on this piece, so its owner stays as it is"),
+
+    /** A change of owner that names no owner. */
+    INVENTORY_OWNER_SWITCH_NEEDS_AN_OWNER(
+            283, HttpStatus.BAD_REQUEST, "Say whether the piece belongs to the station or the association");
 
     private final Definition definition;
 

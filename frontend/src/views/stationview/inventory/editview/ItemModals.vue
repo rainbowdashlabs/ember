@@ -19,7 +19,7 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import {normaliseScannedPayload} from '@/components/scanner/useBarcodeScanner'
-import {ItemOwner} from '@/api/generated/schema'
+import {InventoryType, ItemOwner} from '@/api/generated/schema'
 import type {
   HistoryResponse,
   InventoryArt,
@@ -170,9 +170,13 @@ async function submitAssign() {
 
 const quickAssignMemberId = ref('')
 const quickAssignSizeId = ref('')
+/** Who owns the piece, asked only in a mixed inventory; an external one holds only the Träger's gear. */
+const quickAssignOwner = ref<ItemOwner>(ItemOwner.STATION)
+const isMixed = computed(() => props.detail.inventoryType === InventoryType.MIXED)
 const {isOpen: showQuickAssignModal, open: openQuickAssign} = useModalTarget<null>(() => {
   quickAssignMemberId.value = ''
   quickAssignSizeId.value = ''
+  quickAssignOwner.value = ItemOwner.STATION
 })
 
 /**
@@ -195,7 +199,7 @@ async function submitQuickAssign() {
       name: props.detail.name ?? '',
       sizeId,
       metadata: {fields: {}},
-      ownerKind: ItemOwner.CLUSTER,
+      ownerKind: isMixed.value ? quickAssignOwner.value : ItemOwner.CLUSTER,
     })
   } catch (e) {
     emit('error', describeFailure(e, t))
@@ -347,6 +351,16 @@ defineExpose({openAdd, openEdit, openAssign, openQuickAssign, openHistory, reque
         <SelectInput v-model="quickAssignSizeId">
           <option value="">&#x2013;</option>
           <option v-for="size in detail.sizes ?? []" :key="size.id" :value="String(size.id)">{{ size.label }}</option>
+        </SelectInput>
+      </div>
+      <div v-if="isMixed" class="space-y-1">
+        <FieldLabel>{{ t('inventory.unknownScan.itemOwner') }}</FieldLabel>
+        <SelectInput
+            :model-value="quickAssignOwner"
+            data-testid="quick-assign-owner"
+            @update:model-value="(v: string | number | null | undefined) => quickAssignOwner = String(v ?? '') as ItemOwner">
+          <option :value="ItemOwner.STATION">{{ t('inventory.unknownScan.owners.STATION') }}</option>
+          <option :value="ItemOwner.CLUSTER">{{ t('inventory.unknownScan.owners.CLUSTER') }}</option>
         </SelectInput>
       </div>
       <ButtonRow pair align="end">

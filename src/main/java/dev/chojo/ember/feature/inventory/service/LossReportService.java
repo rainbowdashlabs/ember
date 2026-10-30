@@ -10,6 +10,7 @@ import dev.chojo.ember.api.refusal.InventoryRefusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.event.DomainEventBus;
 import dev.chojo.ember.event.events.ClusterItemLost;
+import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.entity.LossReportRequirement;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.documents.service.DocumentIntake;
@@ -107,20 +108,31 @@ public class LossReportService {
     /**
      * What this item's owner wants to see before it will consider a replacement.
      *
+     * <p>An association outside Ember has said nothing here about what it wants, so a report to it needs
+     * nothing beyond itself; the station files it standing in for the association.
+     *
      * @param itemId the item somebody is about to report
-     * @return the owner's requirement, or empty when the item has no owner here to report to
+     * @return the owner's requirement, or empty when the station owns the item and there is nobody to report to
      */
     public Optional<LossReportRequirement> requirementFor(int itemId) {
         return inventoryRepository
                 .findItemById(itemId)
                 .filter(item -> item.ownerKind() == ItemOwner.CLUSTER)
-                .flatMap(item -> Optional.ofNullable(item.ownerClusterId()))
-                .flatMap(clusterRepository::findById)
-                .map(cluster -> cluster.lossReportRequires());
+                .map(this::requirementOf);
+    }
+
+    private LossReportRequirement requirementOf(InventoryItem item) {
+        Integer ownerClusterId = item.ownerClusterId();
+        if (ownerClusterId == null) return LossReportRequirement.NOTHING;
+        return clusterRepository
+                .findById(ownerClusterId)
+                .map(cluster -> cluster.lossReportRequires())
+                .orElse(LossReportRequirement.NOTHING);
     }
 
     /**
-     * Reports a missing item to the body that owns it.
+     * Reports a missing item to the body that owns it. Where that body is outside Ember, the station files
+     * the report standing in for it, and nobody in Ember is notified.
      *
      * @param stationId  the station raising the report
      * @param itemId     the item that is gone
@@ -139,14 +151,16 @@ public class LossReportService {
         if (item.custody() != ItemCustody.LOST) {
             throw InventoryRefusal.LOSS_REPORT_PIECE_NOT_MISSING.raise();
         }
-        Integer ownerClusterId = item.ownerClusterId();
-        if (item.ownerKind() != ItemOwner.CLUSTER || ownerClusterId == null) {
+        if (item.ownerKind() != ItemOwner.CLUSTER) {
             throw InventoryRefusal.LOSS_REPORT_STATION_OWNS_IT.raise();
         }
-        var cluster = clusterRepository
-                .findById(ownerClusterId)
-                .orElseThrow(InventoryRefusal.LOSS_REPORT_OWNER_NOT_HERE::raise);
-        requireEnough(cluster.lossReportRequires(), note, document);
+        Integer ownerClusterId = item.ownerClusterId();
+        Cluster cluster = ownerClusterId == null
+                ? null
+                : clusterRepository
+                        .findById(ownerClusterId)
+                        .orElseThrow(InventoryRefusal.LOSS_REPORT_OWNER_NOT_HERE::raise);
+        requireEnough(cluster == null ? LossReportRequirement.NOTHING : cluster.lossReportRequires(), note, document);
 
         ItemMovement movement = movementService.create(
                 stationId,
@@ -169,9 +183,9 @@ public class LossReportService {
                 "Station {} reported item {} missing to cluster {} as movement {}",
                 stationId,
                 itemId,
-                cluster.id(),
+                ownerClusterId,
                 movement.id());
-        eventBus.publish(new ClusterItemLost(cluster.id(), item.name(), stationId));
+        if (cluster != null) eventBus.publish(new ClusterItemLost(cluster.id(), item.name(), stationId));
         return movement;
     }
 

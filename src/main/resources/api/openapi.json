@@ -28422,6 +28422,62 @@
         } ]
       }
     },
+    "/api/v1/inventory-items/{id}/owner" : {
+      "put" : {
+        "summary" : "Give a piece of a mixed inventory to the station or to the association",
+        "tags" : [ "Inventory" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/InventoryItem"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/OwnerRequest"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/inventory-items/{itemId}/tags" : {
       "get" : {
         "summary" : "The words one thing wears",
@@ -67987,6 +68043,18 @@
           }
         },
         "required" : [ "name" ]
+      },
+      "OwnerRequest" : {
+        "type" : "object",
+        "properties" : {
+          "owner" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/ItemOwner"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        }
       },
       "PadesLevel" : {
         "type" : "string",

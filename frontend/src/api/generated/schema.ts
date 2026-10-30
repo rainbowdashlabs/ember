@@ -34946,6 +34946,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/inventory-items/{id}/owner": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Give a piece of a mixed inventory to the station or to the association */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["OwnerRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["InventoryItem"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/inventory-items/{itemId}/tags": {
         parameters: {
             query?: never;
@@ -69211,6 +69271,9 @@ export interface components {
         OwnerAboveResponse: {
             name: string | null;
         };
+        OwnerRequest: {
+            owner?: components["schemas"]["ItemOwner"] | null;
+        };
         OwnNameChange: {
             firstName: string;
             lastName: string;
@@ -75082,6 +75145,7 @@ export type OutgoingPairRequestResponse = components['schemas']['OutgoingPairReq
 export type OutputShape = components['schemas']['OutputShape'];
 export type OverviewResponse = components['schemas']['OverviewResponse'];
 export type OwnerAboveResponse = components['schemas']['OwnerAboveResponse'];
+export type OwnerRequest = components['schemas']['OwnerRequest'];
 export type OwnNameChange = components['schemas']['OwnNameChange'];
 export type OwnNameChangeResponse = components['schemas']['OwnNameChangeResponse'];
 export type PadesLevel = components['schemas']['PadesLevel'];

@@ -5280,9 +5280,10 @@ export default {
         },
         request: {
             title: 'Material anfragen',
-            hint: 'Ihr könnt {name} um ein Teil bitten, das ihr nicht habt. Der Verband schickt eines oder '
+            hint: 'Ihr könnt {name} um ein Teil bitten, das ihr nicht habt. Der Träger schickt eines oder '
                 + 'lehnt mit einer Begründung ab; ihr seht beides in den Bewegungen.',
-            ask: 'Beim Verband anfragen',
+            ask: 'Beim Träger anfragen',
+            ownerFallback: 'den Träger',
         },
         requirements: {
             hint: 'Definiere, welche Inventargegenstände Mitglieder mit einer bestimmten Rolle oder Gruppe besitzen '
@@ -7937,7 +7938,12 @@ export default {
         owner: 'Eigentümer',
         ownerStation: 'Wache',
         ownerCluster: 'Träger',
-        ownerClusterOffline: 'Träger (nicht in Ember)',
+        ownerSwitch: {
+            title: 'Eigentümer',
+            hint: 'In einem gemischten Inventar kannst du festlegen, ob dieses Stück der Wache oder dem Träger gehört.',
+            save: 'Eigentümer ändern',
+            notAtRest: 'Den Eigentümer kannst du ändern, sobald das Stück wieder im Lager der Wache liegt.',
+        },
         custody: 'Im Besitz von',
         custodyValues: {
             WITH_OWNER: 'Beim Eigentümer',

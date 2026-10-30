@@ -709,7 +709,10 @@ class DemoServiceTest extends RepositoryTestBase {
                 .findFirst()
                 .orElseThrow();
         var fields = profileFieldRepo.findByStation(station.id());
-        var card = fields.stream().filter(f -> "JuLeiCa".equals(f.name())).findFirst().orElseThrow();
+        var card = fields.stream()
+                .filter(f -> "JuLeiCa".equals(f.name()))
+                .findFirst()
+                .orElseThrow();
         var expiry = fields.stream()
                 .filter(f -> "JuLeiCa Ablaufdatum".equals(f.name()))
                 .findFirst()
@@ -719,8 +722,9 @@ class DemoServiceTest extends RepositoryTestBase {
         assertNotNull(card.fieldSetId(), "The card stands in a group");
         assertEquals(card.fieldSetId(), expiry.fieldSetId(), "together with its expiry date");
         assertTrue(
-                new StationFieldSetRepository().findByOwner(station.id()).stream()
-                        .anyMatch(set -> "Kontakt".equals(set.name()) && set.nameAsSection()),
+                new StationFieldSetRepository()
+                        .findByOwner(station.id()).stream()
+                                .anyMatch(set -> "Kontakt".equals(set.name()) && set.nameAsSection()),
                 "and the phone numbers stand under the heading of their own group");
     }
 

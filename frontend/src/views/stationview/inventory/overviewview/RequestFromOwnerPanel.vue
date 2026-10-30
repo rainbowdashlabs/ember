@@ -21,10 +21,11 @@ import {MovementPurpose} from '@/api/generated/schema'
  * kind of thing and a size, and the association picks the actual piece when it sends one, or refuses
  * with a reason. That is why the wizard asks for an inventory rather than an item.
  *
- * <p>Absent where there is nobody above keeping gear in Ember, because then there is nobody to ask.
+ * <p>Every station has a Träger above it, whether or not it uses Ember, so the panel is always there. Where
+ * the Träger is outside Ember, the station records what it sends, standing in for it.
  */
 const props = defineProps<{
-  /** What the association above is called, or null when there is none. */
+  /** What the Träger above is called where it uses Ember, or null where it does not. */
   ownerName: string | null
 }>()
 
@@ -44,9 +45,11 @@ const prefill: WizardPrefill = {
 </script>
 
 <template>
-  <NeutralContainer v-if="props.ownerName" data-testid="request-from-owner" class="space-y-3">
+  <NeutralContainer data-testid="request-from-owner" class="space-y-3">
     <SectionHeader>{{ t('inventory.request.title') }}</SectionHeader>
-    <MutedText tag="p" size="sm">{{ t('inventory.request.hint', {name: props.ownerName}) }}</MutedText>
+    <MutedText tag="p" size="sm">
+      {{ t('inventory.request.hint', {name: props.ownerName ?? t('inventory.request.ownerFallback')}) }}
+    </MutedText>
 
     <SecondaryButton :icon="['fas', 'hand-holding']" @click="asking = true">
       {{ t('inventory.request.ask') }}

@@ -339,5 +339,10 @@ export default {
     'I-274': 'Diese Ausrüstung gehört dem Verband über der Wache, nur er kann sie löschen',
     'I-276': 'Diese Beschaffung ist nicht mehr offen',
     'I-277': 'Diese Beschaffung ist für niemanden, es gibt also niemanden, dem ein Stück ausgegeben werden kann',
-    'I-278':'Dieses Stück liegt nicht mehr frei im Lager oder hat nicht die bestellte Größe',
+    'I-278': 'Dieses Stück liegt nicht mehr frei im Lager oder hat nicht die bestellte Größe',
+    'I-279': 'Den Eigentümer eines einzelnen Stücks kannst du nur in einem gemischten Inventar ändern',
+    'I-280': 'Den Eigentümer kannst du nur ändern, solange das Stück im Lager der Wache liegt',
+    'I-281': 'Dieses Stück ist von einer Partnerwache geliehen, sein Eigentümer bleibt',
+    'I-282': 'Auf diesem Stück läuft noch eine Bewegung, sein Eigentümer bleibt, wie er ist',
+    'I-283': 'Gib an, ob das Stück der Wache oder dem Träger gehört',
 }

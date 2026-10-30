@@ -9,7 +9,7 @@ import {MovementPurpose} from '@/api/generated/schema'
 import {useMovementWizard, type WizardPrefill} from './useMovementWizard'
 
 vi.mock('@/api', () => ({
-    inventory: {listSizes: vi.fn(async () => []), listInventories: vi.fn(async () => []), ownerAbove: vi.fn(async () => null)},
+    inventory: {listSizes: vi.fn(async () => []), listInventories: vi.fn(async () => [])},
     movements: {resolveFlow: vi.fn(async () => null), createMovement: vi.fn(), acknowledgeStep: vi.fn()},
 }))
 
@@ -48,6 +48,12 @@ describe('useMovementWizard', () => {
 
         expect(wizard.step.value).toBe('reason')
         expect(wizard.newSizeId.value).toBe(9)
+    })
+
+    it('offers a request whether or not the Träger uses Ember', () => {
+        const wizard = useMovementWizard(() => ({}))
+
+        expect(wizard.purposes.value).toContain(MovementPurpose.REQUEST)
     })
 
     it('leaves the size open on an issue', async () => {
