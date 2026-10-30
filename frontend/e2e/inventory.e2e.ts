@@ -586,13 +586,13 @@ test.describe('Inventory', () => {
         await expect(confirm, 'whether the piece was handed over is still unanswered').toBeDisabled()
 
         await page.getByTestId('rapid-exchange-reason-other').click()
-        await page.getByTestId('rapid-exchange-reason').fill('Reißverschluss fehlt')
+        await page.getByTestId('rapid-exchange-note').fill('Reißverschluss fehlt')
         await expect(confirm, 'a reason alone does not answer the question').toBeDisabled()
 
         await page.getByTestId('rapid-exchange-kept').click()
         await expect(confirm, 'reason and answer together stand').toBeEnabled()
 
-        await page.getByTestId('rapid-exchange-reason-damaged').click()
+        await page.getByTestId('rapid-exchange-reason-broken').click()
         await confirm.click()
 
         await expect(confirm).toBeHidden({timeout: 15000})

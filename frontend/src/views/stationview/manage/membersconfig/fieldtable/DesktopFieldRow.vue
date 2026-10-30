@@ -11,6 +11,7 @@ import CheckboxInput from '@/components/input/toggle/CheckboxInput.vue'
 import {useI18n} from 'vue-i18n'
 import DesktopFieldToggles from './DesktopFieldToggles.vue'
 import AudienceCount from './AudienceCount.vue'
+import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import type {EditableField, FieldSwitchName} from '@/api/profileFields'
 import {isSection, widthOf} from '@/components/profilefields/fieldLayout'
 import {widthLabel} from '@/components/profilefields/fieldWidths'
@@ -30,6 +31,8 @@ defineProps<{
   audiences: number
   selected: boolean
   checked: boolean
+  /** The yes/no question this one is only shown behind, by name. */
+  shownIfName?: string
 }>()
 
 const {t} = useI18n()
@@ -70,6 +73,9 @@ const gridClass = computed(() => fieldGrid(capabilities.writability))
           @keydown.enter.prevent="emit('select', field)"
           @keydown.space.prevent="emit('select', field)"
       >{{ field.name }}</span>
+      <SecondaryBadge v-if="shownIfName" class="shrink-0" data-testid="field-shown-if-badge">
+        {{ t('membersConfig.shownIfBadge', {name: shownIfName}) }}
+      </SecondaryBadge>
       <AudienceCount :count="audiences"/>
     </div>
     <div class="text-(--text-muted) px-2 truncate text-xs">{{ typeLabel }}</div>

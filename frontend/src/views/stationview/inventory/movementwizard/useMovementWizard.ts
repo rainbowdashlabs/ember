@@ -79,7 +79,6 @@ export function useMovementWizard(prefill: () => WizardPrefill) {
 
     const inventories = ref<Inventory[]>([])
     const sizes = ref<InventorySize[]>([])
-    const ownerAbove = ref<string | null>(null)
 
     const preview = ref<FlowPreview | null>(null)
     const resolved = ref(false)
@@ -98,25 +97,16 @@ export function useMovementWizard(prefill: () => WizardPrefill) {
     const total = computed(() => steps.value.length)
 
     /**
-     * The purposes this station can actually start.
+     * The purposes a station can start.
      *
-     * <p>A station with nobody above it has nobody to ask and nobody to send anything back to, so
-     * neither a request nor the chains that end at a body are offered. That is read from the inventory
-     * side rather than from the session, which knows nothing about it.
+     * <p>Every station has a Träger above it, whether or not that Träger uses Ember, so a request is always
+     * offered. Where the Träger is outside Ember, the station confirms its steps standing in for it.
      */
-    const purposes = computed<MovementPurpose[]>(() => {
-        const offered: MovementPurpose[] = [MovementPurpose.ISSUE, MovementPurpose.RETURN, MovementPurpose.EXCHANGE]
-        if (ownerAbove.value) offered.push(MovementPurpose.REQUEST)
-        return offered
-    })
+    const purposes = computed<MovementPurpose[]>(() =>
+        [MovementPurpose.ISSUE, MovementPurpose.RETURN, MovementPurpose.EXCHANGE, MovementPurpose.REQUEST])
 
     async function load() {
-        const [loadedInventories, owner] = await Promise.all([
-            inventory.listInventories(),
-            inventory.ownerAbove().catch(() => null),
-        ])
-        inventories.value = loadedInventories
-        ownerAbove.value = owner
+        inventories.value = await inventory.listInventories()
     }
 
     /**
@@ -133,7 +123,7 @@ export function useMovementWizard(prefill: () => WizardPrefill) {
         itemId.value = known.itemId ?? null
         inventoryId.value = known.inventoryId ?? null
         oldSizeId.value = known.oldSizeId ?? null
-        newSizeId.value = known.newSizeId ?? null
+        newSizeId.value = known.newSizeId !== undefined ? known.newSizeId : sizeOfTheSwappedPiece()
         reason.value = ''
         preview.value = null
         resolved.value = false
@@ -141,6 +131,14 @@ export function useMovementWizard(prefill: () => WizardPrefill) {
         sizes.value = []
         if (inventoryId.value != null) await loadSizes()
         if (step.value === 'preview') await resolveChain()
+    }
+
+    /**
+     * The size a swap asks for unless told otherwise: the one the piece handed in has. Most swaps replace
+     * a worn or broken piece with the same thing, so the reader only touches the size when it changes.
+     */
+    function sizeOfTheSwappedPiece(): number | null {
+        return purpose.value === MovementPurpose.EXCHANGE ? oldSizeId.value : null
     }
 
     async function loadSizes() {
@@ -179,7 +177,10 @@ export function useMovementWizard(prefill: () => WizardPrefill) {
         const following = order[index + 1]
         if (!following) return
         if (following === 'preview') await resolveChain()
-        if (step.value === 'subject') await loadSizes()
+        if (step.value === 'subject') {
+            await loadSizes()
+            newSizeId.value = sizeOfTheSwappedPiece() ?? newSizeId.value
+        }
         step.value = following
     }
 
@@ -229,7 +230,6 @@ export function useMovementWizard(prefill: () => WizardPrefill) {
         reason,
         inventories,
         sizes,
-        ownerAbove,
         purposes,
         preview,
         resolved,

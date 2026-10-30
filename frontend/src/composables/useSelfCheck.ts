@@ -39,20 +39,6 @@ export interface SelfCheckDraft {
 
 const EMPTY_DRAFT: SelfCheckDraft = {answer: null, note: '', typedInternalId: '', sizeId: ''}
 
-/**
- * Why a member wants a piece swapped.
- *
- * <p>Both raise the same exchange, and the difference is what it says and what it may ask for: a
- * piece that no longer fits wants another size, a broken one wants a replacement and may perfectly
- * well want the same size back, or none at all.
- */
-export const ExchangeCause = {
-    DOES_NOT_FIT: 'DOES_NOT_FIT',
-    BROKEN: 'BROKEN',
-} as const
-
-export type ExchangeCauseName = (typeof ExchangeCause)[keyof typeof ExchangeCause]
-
 /** One thing the member set going about a piece, and how far it has actually got. */
 export interface RaisedReport {
     kind: SelfCheckRaisedKind

@@ -11888,6 +11888,138 @@
         } ]
       }
     },
+    "/api/v1/cluster/field-sets" : {
+      "post" : {
+        "summary" : "Write down a new, empty group of profile fields",
+        "tags" : [ "Cluster" ],
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FieldSet"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/FieldSetRequest"
+              }
+            }
+          }
+        }
+      },
+      "get" : {
+        "summary" : "The groups the association keeps its profile fields in",
+        "tags" : [ "Cluster" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/FieldSet"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cluster/field-sets/{setId}" : {
+      "put" : {
+        "summary" : "Rename a group of profile fields, or change whether its name is a heading",
+        "tags" : [ "Cluster" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "parameters" : [ {
+          "name" : "setId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/FieldSetRequest"
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "summary" : "Dissolve a group of profile fields, keeping its fields",
+        "tags" : [ "Cluster" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "parameters" : [ {
+          "name" : "setId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/cluster/field-sets/{setId}/order" : {
+      "put" : {
+        "summary" : "Put the fields of a group in order",
+        "tags" : [ "Cluster" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "parameters" : [ {
+          "name" : "setId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/FieldSetOrderRequest"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/cluster/fields" : {
       "post" : {
         "summary" : "Add a question",
@@ -28290,6 +28422,62 @@
         } ]
       }
     },
+    "/api/v1/inventory-items/{id}/owner" : {
+      "put" : {
+        "summary" : "Give a piece of a mixed inventory to the station or to the association",
+        "tags" : [ "Inventory" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/InventoryItem"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/OwnerRequest"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/inventory-items/{itemId}/tags" : {
       "get" : {
         "summary" : "The words one thing wears",
@@ -35382,6 +35570,62 @@
         } ]
       }
     },
+    "/api/v1/procurement/{id}/issue-from-stock" : {
+      "post" : {
+        "summary" : "Settle a procurement request with a piece from storage by handing it out through a movement",
+        "tags" : [ "Procurement" ],
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/IssueFromStockResponse"
+                }
+              }
+            }
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          },
+          "409" : {
+            "description" : "Conflict",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/IssueFromStockRequest"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/profile-changes/all" : {
       "get" : {
         "summary" : "Get all profile field changes for the station with pagination",
@@ -35466,6 +35710,168 @@
             "application/json" : {
               "schema" : {
                 "$ref" : "#/components/schemas/AcknowledgeRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/profile-field-sets" : {
+      "post" : {
+        "summary" : "Write down a new, empty group of profile fields",
+        "tags" : [ "Profile Fields" ],
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FieldSet"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Bad Request",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/FieldSetRequest"
+              }
+            }
+          }
+        }
+      },
+      "get" : {
+        "summary" : "The groups this station keeps its profile fields in",
+        "tags" : [ "Profile Fields" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/FieldSet"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/profile-field-sets/{id}" : {
+      "put" : {
+        "summary" : "Rename a group of profile fields, or change whether its name is a heading",
+        "tags" : [ "Profile Fields" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/FieldSetRequest"
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "summary" : "Dissolve a group of profile fields, keeping its fields",
+        "tags" : [ "Profile Fields" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      }
+    },
+    "/api/v1/profile-field-sets/{id}/order" : {
+      "put" : {
+        "summary" : "Put the fields of a group in order",
+        "tags" : [ "Profile Fields" ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "404" : {
+            "description" : "Not Found",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ErrorResponseWrapper"
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/FieldSetOrderRequest"
               }
             }
           }
@@ -51660,6 +52066,14 @@
           "stationGroupId" : {
             "type" : [ "integer", "null" ],
             "format" : "int32"
+          },
+          "shownIfFieldId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "fieldSetId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
           }
         }
       },
@@ -51697,9 +52111,21 @@
           "stationGroupId" : {
             "type" : [ "integer", "null" ],
             "format" : "int32"
+          },
+          "shownIfFieldId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "fieldSetId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "setPosition" : {
+            "type" : "integer",
+            "format" : "int32"
           }
         },
-        "required" : [ "id", "name", "fieldType", "config", "required", "readonly", "width", "stationReadonly", "keepOnArchive", "stationGroupId" ]
+        "required" : [ "id", "name", "fieldType", "config", "required", "readonly", "width", "stationReadonly", "keepOnArchive", "stationGroupId", "shownIfFieldId", "fieldSetId", "setPosition" ]
       },
       "ClusterFlowResponse" : {
         "type" : "object",
@@ -57770,6 +58196,65 @@
         "type" : "string",
         "enum" : [ "PARTICIPANT", "GUARDIAN", "ANY_GUARDIAN", "ISSUER" ]
       },
+      "FieldSet" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "ownerId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "nameAsSection" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "id", "ownerId", "name", "nameAsSection" ]
+      },
+      "FieldSetLabel" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "heading" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "id", "name", "heading" ]
+      },
+      "FieldSetOrderRequest" : {
+        "type" : "object",
+        "properties" : {
+          "fieldIds" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          }
+        }
+      },
+      "FieldSetRequest" : {
+        "type" : "object",
+        "properties" : {
+          "name" : {
+            "type" : [ "string", "null" ]
+          },
+          "nameAsSection" : {
+            "type" : "boolean"
+          }
+        }
+      },
       "FieldState" : {
         "type" : "string",
         "enum" : [ "OPEN", "SIGNED", "PAPER_CONFIRMED", "WAIVED", "WITHDRAWN" ]
@@ -61379,6 +61864,25 @@
             "type" : "boolean"
           }
         }
+      },
+      "IssueFromStockRequest" : {
+        "type" : "object",
+        "properties" : {
+          "itemId" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "IssueFromStockResponse" : {
+        "type" : "object",
+        "properties" : {
+          "movementId" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        },
+        "required" : [ "movementId" ]
       },
       "Issued" : {
         "type" : "object",
@@ -65149,9 +65653,20 @@
           },
           "readonlyAtStation" : {
             "type" : "boolean"
+          },
+          "shownIfFieldId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "fieldSet" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/FieldSetLabel"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
-        "required" : [ "id", "name", "fieldType", "config", "required", "position", "width", "readonly", "role", "origin", "readonlyAtStation" ]
+        "required" : [ "id", "name", "fieldType", "config", "required", "position", "width", "readonly", "role", "origin", "readonlyAtStation", "shownIfFieldId", "fieldSet" ]
       },
       "MemberProfileRequest" : {
         "type" : "object",
@@ -65596,9 +66111,20 @@
           },
           "readonlyAtStation" : {
             "type" : "boolean"
+          },
+          "shownIfFieldId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "fieldSet" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/FieldSetLabel"
+            }, {
+              "type" : "null"
+            } ]
           }
         },
-        "required" : [ "id", "name", "fieldType", "config", "required", "position", "width", "readonly", "role", "origin", "readonlyAtStation" ]
+        "required" : [ "id", "name", "fieldType", "config", "required", "position", "width", "readonly", "role", "origin", "readonlyAtStation", "shownIfFieldId", "fieldSet" ]
       },
       "MergedValue" : {
         "type" : "object",
@@ -67517,6 +68043,18 @@
           }
         },
         "required" : [ "name" ]
+      },
+      "OwnerRequest" : {
+        "type" : "object",
+        "properties" : {
+          "owner" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/ItemOwner"
+            }, {
+              "type" : "null"
+            } ]
+          }
+        }
       },
       "PadesLevel" : {
         "type" : "string",
@@ -69512,9 +70050,15 @@
             }, {
               "type" : "null"
             } ]
+          },
+          "stock" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/StockPiece"
+            }
           }
         },
-        "required" : [ "id", "inventoryId", "inventoryName", "memberId", "memberName", "memberIdentity", "sizeId", "sizeLabel", "notes", "requestedAt", "fulfilledAt" ]
+        "required" : [ "id", "inventoryId", "inventoryName", "memberId", "memberName", "memberIdentity", "sizeId", "sizeLabel", "notes", "requestedAt", "fulfilledAt", "stock" ]
       },
       "ProfileField" : {
         "type" : "object",
@@ -69547,9 +70091,21 @@
           },
           "keepOnArchive" : {
             "type" : "boolean"
+          },
+          "shownIfFieldId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "fieldSetId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "setPosition" : {
+            "type" : "integer",
+            "format" : "int32"
           }
         },
-        "required" : [ "id", "stationId", "name", "fieldType", "config", "required", "readonly", "width", "keepOnArchive" ]
+        "required" : [ "id", "stationId", "name", "fieldType", "config", "required", "readonly", "width", "keepOnArchive", "shownIfFieldId", "fieldSetId", "setPosition" ]
       },
       "ProfileFieldAssignment" : {
         "type" : "object",
@@ -69766,6 +70322,14 @@
           },
           "keepOnArchive" : {
             "type" : "boolean"
+          },
+          "shownIfFieldId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
+          },
+          "fieldSetId" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
           }
         }
       },
@@ -78010,6 +78574,22 @@
           }
         },
         "required" : [ "verifiedAt" ]
+      },
+      "StockPiece" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "internalId" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "id", "name", "internalId" ]
       },
       "StorageAuditAction" : {
         "type" : "string",

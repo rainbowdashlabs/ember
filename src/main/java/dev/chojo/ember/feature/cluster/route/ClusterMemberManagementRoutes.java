@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.cluster.service.ClusterMemberSearchService.Search
 import dev.chojo.ember.feature.cluster.service.ClusterService;
 import dev.chojo.ember.feature.documents.service.DocumentCatalogService.MemberDocumentResponse;
 import dev.chojo.ember.feature.members.entity.FieldOrigin;
+import dev.chojo.ember.feature.members.entity.FieldSetLabel;
 import dev.chojo.ember.feature.members.entity.FieldValueEntry;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService;
@@ -197,7 +198,9 @@ public class ClusterMemberManagementRoutes implements Routes {
                                         .map(Enum::name)
                                         .orElse(null),
                                 field.origin().name(),
-                                field.readonlyAtStation()))
+                                field.readonlyAtStation(),
+                                field.shownIfFieldId(),
+                                field.fieldSet()))
                         .toList(),
                 profile.values().stream()
                         .map(value -> new MemberProfileValueResponse(
@@ -458,7 +461,9 @@ public class ClusterMemberManagementRoutes implements Routes {
             boolean readonly,
             @Nullable String role,
             String origin,
-            boolean readonlyAtStation) {}
+            boolean readonlyAtStation,
+            @Nullable Integer shownIfFieldId,
+            @Nullable FieldSetLabel fieldSet) {}
 
     public record MemberProfileValueResponse(
             int fieldId, @Nullable String value, String origin) {}

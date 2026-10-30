@@ -5,7 +5,7 @@
  */
 <script lang="ts" setup>
 import {computed, nextTick, ref, watch} from 'vue'
-import {useRoute, useRouter} from 'vue-router'
+import {useRoute} from 'vue-router'
 import NavEntry from '@/components/navigation/NavEntry.vue'
 import NavSectionRow from '@/components/navigation/NavSectionRow.vue'
 import NavSectionView from '@/components/navigation/NavSectionView.vue'
@@ -41,7 +41,6 @@ const emit = defineEmits<{
 }>()
 
 const route = useRoute()
-const router = useRouter()
 const {collapsed} = useSidebarCollapse()
 const {isDesktop} = useBreakpoint()
 const {tree} = useSidebarMode()
@@ -67,7 +66,6 @@ watch([() => route.path, () => holding.value?.key, () => holding.value?.kind], (
 function open(section: NavGroup) {
   leftAt.value = null
   openKey.value = section.key
-  void router.push(section.to)
 }
 
 async function back() {

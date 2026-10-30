@@ -103,8 +103,8 @@ class MemberViewServiceTest {
     void theRegisterOnlyCarriesTheAnswersTheReaderMayRead() {
         when(members.findRichMembers(STATION_ID, true)).thenReturn(List.of(richMember()));
         when(profileFields.findReadableBy(any(Integer.class), any()))
-                .thenReturn(List.of(
-                        new ProfileField(5, STATION_ID, "Größe", FieldType.TEXT, null, false, false, null, false)));
+                .thenReturn(List.of(new ProfileField(
+                        5, STATION_ID, "Größe", FieldType.TEXT, null, false, false, null, false, null, null, 0)));
 
         var rows = service.richMembers(STATION_ID, true, Set.of(StationPermission.MEMBER_READ));
 

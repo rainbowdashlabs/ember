@@ -56,7 +56,18 @@ const NODES: NavNode[] = [
     },
 ]
 
-const RouterLink = {template: '<a :href="to" @click="$emit(\'click\')"><slot/></a>', props: ['to'], emits: ['click']}
+const RouterLink = {
+    template: '<slot v-if="custom" :href="to" :navigate="navigate"/><a v-else :href="to" @click="$emit(\'click\')"><slot/></a>',
+    props: {to: String, custom: Boolean},
+    emits: ['click'],
+    methods: {
+        navigate(this: { to: string }, event: MouseEvent) {
+            if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return
+            event.preventDefault()
+            return push(this.to)
+        },
+    },
+}
 
 function mountSidebar() {
     return mount(NavSidebar, {props: {nodes: NODES}, attachTo: document.body, global: {stubs: {'router-link': RouterLink, RouterLink, transition: true}}})
@@ -96,6 +107,18 @@ describe('NavSidebar', () => {
         expect(sidebar.text()).toContain('Mitgliederliste')
         expect(sidebar.text()).toContain('Alle Bereiche')
         expect(sidebar.find('[data-section="events"]').exists()).toBe(false)
+    })
+
+    it('links a section to its first page and leaves a modified click to the browser', async () => {
+        const sidebar = mountSidebar()
+        const row = sidebar.find('[data-section="members"]')
+
+        await row.trigger('click', {ctrlKey: true})
+        await flushPromises()
+
+        expect(row.attributes('href')).toBe('/station/members/list')
+        expect(push).not.toHaveBeenCalled()
+        expect(sidebar.text()).not.toContain('Mitgliederliste')
     })
 
     it('goes back to the full list with focus on the section just left', async () => {

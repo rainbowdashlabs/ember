@@ -1,5 +1,31 @@
 # Changelog
 
+## v26.23.1
+
+Profile fields can be shown only when a yes/no question is answered yes, and fields that belong together can be grouped. An open procurement shows when a matching piece already lies in the station's storage and can hand it out right away. Every swap asks why in the same way, with the current size next to the wanted one, and the sections of the sidebar open in a new tab again.
+
+### New Features
+
+- **Profile fields can depend on a yes/no question.** A profile field can be set to show only when a chosen yes/no question of the same profile is answered yes, and it is only required then, so the JuLeiCa expiry date is asked only of people who have a JuLeiCa. A member who is not asked the yes/no question sees the field as usual, and the JuLeiCa template and the performance badge template set this up right away.
+- **Profile fields can be grouped.** Fields that belong together, such as an address, form a group: they are always asked of an audience together and stand together in its order on every form, optionally under the group's name as a heading. Templates with several fields create their group right away with the fields side by side, such as street and house number on one line, and dissolving a group keeps its fields and answers.
+
+### Improvements
+
+- **Procurements are served from storage.** An open procurement for a member shows how many pieces of the ordered inventory and size lie free in the station's storage. "Hand out from storage" picks one of them, starts handing it to the member as a movement and marks the procurement fulfilled.
+- **Every swap asks why in the same way.** Starting a swap from a movement, a member's gear, the own gear, a possessions check or a self-check offers too small, too large, broken or another reason in own words, with an optional note. Each reason preselects one size up, one size down or the same size, shown next to the current size, and the choice can still be changed.
+- **The owner of a piece in a mixed inventory can be changed.** A piece of a mixed inventory can be given to the station or the association when editing it while it lies in the station's store. Handing out a new piece in a mixed inventory asks whose it is.
+- **Requests and loss reports work without the association in Ember.** A station whose association does not use Ember can request gear from it and report its gear missing, and the station confirms the association's steps itself.
+
+### Changes
+
+- **The self-check has a single swap button.** "Does not fit anymore" and "Is broken" on a piece of the self-check are replaced by one "Swap" button, and the reason is chosen in its dialog.
+- **The association's gear is named the same everywhere.** A piece of the association reads as the association's whether or not the association uses Ember, without the added "not in Ember".
+
+### Fixes
+
+- **New gear handed out in a mixed inventory always belonged to the association.** Handing out a newly created piece from a mixed inventory recorded it as the association's, even where the station meant its own. The owner is now chosen when handing it out.
+- **Sidebar sections could not be opened in a new tab.** The sections in the list of all sections ignored a middle click or a click with a modifier key. They are now links that open their first page in a new tab like any other link.
+
 ## v26.23.0
 
 Document templates can ask the person generating a document for details that the member's data does not hold, such as the date of a change or which of several boxes applies. Word forms with fields to fill in become PDF templates that keep their look, so a paper form such as a change notification is filled out in Ember. Check marks of existing PDF templates keep following the member's data and can now also be ticked by hand. Families on a waiting list take part in the trial from its first day. Guardians get their account when the trial begins, follow it on their start page and can end it themselves. An invitation always names an appointment, shows where the mail goes before it is sent and can carry a personal note.

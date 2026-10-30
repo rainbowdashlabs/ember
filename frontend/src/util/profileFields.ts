@@ -75,6 +75,87 @@ export function asAsked<T extends {required?: boolean; readonly?: boolean; width
     }
 }
 
+/** A question as far as the group it belongs to goes. */
+export interface GroupedField {
+    id: number
+    fieldSetId?: number | null
+    setPosition?: number
+}
+
+/**
+ * Puts a form's questions in order with every group kept together, the way the server stores it: a group
+ * takes the place of whichever of its questions comes first, and its questions follow in the group's order.
+ *
+ * @param ordered the questions in the order they were dragged into
+ * @param fields  every question of the owner, which says which group each is in
+ */
+export function keepSetsTogether(ordered: readonly number[], fields: readonly GroupedField[]): number[] {
+    const byId = new Map(fields.map(field => [field.id, field]))
+    const setOf = (id: number) => byId.get(id)?.fieldSetId ?? null
+    const placed = new Set<number>()
+    const result: number[] = []
+    for (const id of ordered) {
+        const setId = setOf(id)
+        if (setId === null) {
+            result.push(id)
+            continue
+        }
+        if (placed.has(setId)) continue
+        placed.add(setId)
+        result.push(...membersOfSet(fields, setId)
+            .map(field => field.id)
+            .filter(id => ordered.includes(id)))
+    }
+    return result
+}
+
+/** The questions of one group, in the group's own order. */
+export function membersOfSet<T extends GroupedField>(fields: readonly T[], setId: number): T[] {
+    return fields
+        .filter(field => field.fieldSetId === setId)
+        .sort((a, b) => (a.setPosition ?? 0) - (b.setPosition ?? 0))
+}
+
+/** Who a question belongs to; one that does not say is the station's. */
+export function originOf(field: {origin?: FieldOrigin | null}): FieldOrigin {
+    return field.origin ?? 'STATION'
+}
+
+/** A question as far as depending on a yes/no question goes. */
+export interface DependentField {
+    id: number
+    origin?: FieldOrigin
+    shownIfFieldId?: number | null
+}
+
+/**
+ * Whether a question is hidden because the yes/no question it depends on is not answered yes.
+ *
+ * <p>Only where that yes/no question is on the same form: a member asked only the dependent question sees
+ * it as usual. The yes/no question is one of the same owner, since a station and its association number
+ * their questions apart.
+ *
+ * @param field   the question
+ * @param fields  every question on the form
+ * @param valueOf the answer to a question, as text or as the value itself
+ */
+export function hiddenByDependency<T extends DependentField>(
+    field: T,
+    fields: readonly T[],
+    valueOf: (field: T) => unknown,
+): boolean {
+    if (field.shownIfFieldId == null) return false
+    const controller = fields.find(other => other.id === field.shownIfFieldId && originOf(other) === originOf(field))
+    if (!controller) return false
+    const answer = valueOf(controller)
+    return answer !== true && answer !== 'true'
+}
+
+/** The questions of a form that are shown, the ones hidden behind a yes/no question left out. */
+export function shownFields<T extends DependentField>(fields: readonly T[], valueOf: (field: T) => unknown): T[] {
+    return fields.filter(field => !hiddenByDependency(field, fields, valueOf))
+}
+
 /**
  * The key an answer is held under on the profile, which is the pair and not the id.
  *

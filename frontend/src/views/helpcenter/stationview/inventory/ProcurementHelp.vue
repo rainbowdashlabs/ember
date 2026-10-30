@@ -11,6 +11,9 @@ import HelpTip from '@/components/helpcenter/HelpTip.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import SectionHeader from '@/components/typography/SectionHeader.vue'
 import PrimaryButton from '@/components/button/PrimaryButton.vue'
+import SecondaryButton from '@/components/button/SecondaryButton.vue'
+import ButtonRow from '@/components/button/ButtonRow.vue'
+import InfoBadge from '@/components/badge/InfoBadge.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import SuccessBadge from '@/components/badge/SuccessBadge.vue'
 import ErrorBadge from '@/components/badge/ErrorBadge.vue'
@@ -46,16 +49,20 @@ const {t} = useI18n()
               <span class="font-medium">{{ t('helpCenter.sample.equipment.helmets') }}</span>
               <span class="text-sm text-(--text-muted)">(L)</span>
               <ErrorBadge>{{ t('procurement.open') }}</ErrorBadge>
+              <InfoBadge>{{ t('procurement.inStock', {n: 2}) }}</InfoBadge>
             </div>
             <div class="text-sm text-(--text-muted)">{{ t('helpCenter.sample.people.maxMustermann') }}, 10.05.2026</div>
             <div class="text-sm">{{ t('helpCenter.sample.equipment.helmetTorn') }}</div>
           </div>
-          <div class="flex items-center gap-2 shrink-0">
+          <ButtonRow class="shrink-0">
+            <SecondaryButton :icon="['fas', 'box']">
+              {{ t('procurement.fromStock') }}
+            </SecondaryButton>
             <PrimaryButton :icon="['fas', 'check']">
               {{ t('procurement.markFulfilled') }}
             </PrimaryButton>
             <DeleteButton />
-          </div>
+          </ButtonRow>
         </div>
       </NeutralContainer>
 
@@ -79,6 +86,10 @@ const {t} = useI18n()
 
     <HelpSection :title="t('helpCenter.inventoryProcurement.fulfilledTitle')">
       <p>{{ t('helpCenter.inventoryProcurement.fulfilledText') }}</p>
+    </HelpSection>
+
+    <HelpSection :title="t('helpCenter.inventoryProcurement.fromStockTitle')">
+      <p>{{ t('helpCenter.inventoryProcurement.fromStockText') }}</p>
     </HelpSection>
 
     <HelpTip>{{ t('helpCenter.inventoryProcurement.tip') }}</HelpTip>

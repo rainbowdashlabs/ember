@@ -4,10 +4,13 @@
  *     Copyright (C) RainbowDashLabs and Contributor
  */
 <script lang="ts" setup>
+import MutedText from '@/components/typography/MutedText.vue'
 import DesktopHeaderRow from './fieldtable/DesktopHeaderRow.vue'
 import DesktopFieldRow from './fieldtable/DesktopFieldRow.vue'
 import MobileFieldCard from './fieldtable/MobileFieldCard.vue'
 import type {EditableField, FieldSwitchName} from '@/api/profileFields'
+import {membersOfSet} from '@/util/profileFields'
+import type {FieldSet} from '@/api/generated/schema'
 import {useBreakpoint} from '@/composables/useBreakpoint'
 import {useElementWidth} from '@/composables/useElementWidth'
 import {computed, ref} from 'vue'
@@ -30,6 +33,8 @@ const props = defineProps<{
   audienceCount: Record<number, number>
   /** The questions ticked for putting to somebody all at once. */
   checkedIds: Set<number>
+  /** The owner's groups of fields, by which each field in one is labelled. */
+  sets?: FieldSet[]
 }>()
 
 const {isMobile} = useBreakpoint()
@@ -67,49 +72,87 @@ function typeLabel(value: string): string {
 function audiencesOf(field: EditableField): number {
   return props.audienceCount[field.id] ?? 0
 }
+
+/** One run of rows: a group with its questions in the group's order, or questions on their own. */
+interface Block {
+  key: string
+  set: FieldSet | null
+  fields: EditableField[]
+}
+
+/**
+ * The questions as the table shows them: each group as one framed block, where its first question would
+ * have stood, so what belongs together is read off the table at a glance.
+ */
+const blocks = computed<Block[]>(() => {
+  const result: Block[] = []
+  const placed = new Set<number>()
+  for (const field of props.fields) {
+    const set = field.fieldSetId == null ? undefined : props.sets?.find(s => s.id === field.fieldSetId)
+    if (!set) {
+      const last = result[result.length - 1]
+      if (last && !last.set) last.fields.push(field)
+      else result.push({key: `loose-${field.id}`, set: null, fields: [field]})
+      continue
+    }
+    if (placed.has(set.id)) continue
+    placed.add(set.id)
+    result.push({
+      key: `set-${set.id}`,
+      set,
+      fields: membersOfSet(props.fields, set.id),
+    })
+  }
+  return result
+})
+
+const row = computed(() => tiled.value ? MobileFieldCard : DesktopFieldRow)
+
+function rowProps(field: EditableField) {
+  return {
+    field,
+    audiences: audiencesOf(field),
+    selected: field.id === props.selectedId,
+    checked: props.checkedIds.has(field.id),
+    typeLabel: typeLabel(field.fieldType ?? ''),
+    shownIfName: shownIfNameOf(field),
+  }
+}
+
+const rowEvents = {
+  select: (f: EditableField) => emit('select', f),
+  toggleChecked: (f: EditableField) => emit('toggleChecked', f),
+  delete: (f: EditableField) => emit('delete', f),
+  edit: (f: EditableField) => emit('edit', f),
+  toggleConfig: (f: EditableField, k: FieldSwitchName, v: boolean) => emit('toggleConfig', f, k, v),
+  toggleKeepOnArchive: (f: EditableField, v: boolean) => emit('toggleKeepOnArchive', f, v),
+  toggleRequired: (f: EditableField, v: boolean) => emit('toggleRequired', f, v),
+  toggleReadonly: (f: EditableField, v: boolean) => emit('toggleReadonly', f, v),
+  setWritability: (f: EditableField, level: WritabilityName) => emit('setWritability', f, level),
+}
+
+/** The name of the yes/no question a question is only shown behind, or nothing. */
+function shownIfNameOf(field: EditableField): string | undefined {
+  if (field.shownIfFieldId == null) return undefined
+  return props.fields.find(other => other.id === field.shownIfFieldId)?.name
+}
 </script>
 
 <template>
   <div ref="table">
-    <template v-if="tiled">
-      <MobileFieldCard
-          v-for="field in fields"
-          :key="field.id"
-          :audiences="audiencesOf(field)"
-          :field="field"
-          :selected="field.id === selectedId"
-          :checked="props.checkedIds.has(field.id)"
-          :type-label="typeLabel(field.fieldType ?? '')"
-          @select="emit('select', field)"
-          @toggle-checked="emit('toggleChecked', field)"
-          @delete="emit('delete', field)"
-          @edit="emit('edit', field)"
-          @toggle-config="(f, k, v) => emit('toggleConfig', f, k, v)"
-          @toggle-keep-on-archive="(f, v) => emit('toggleKeepOnArchive', f, v)"
-          @toggle-required="(f, v) => emit('toggleRequired', f, v)"
-          @toggle-readonly="(f, v) => emit('toggleReadonly', f, v)"
-          @set-writability="(f, level) => emit('setWritability', f, level)"/>
-    </template>
-
-    <template v-else>
-      <DesktopHeaderRow/>
-      <DesktopFieldRow
-          v-for="field in fields"
-          :key="field.id"
-          :audiences="audiencesOf(field)"
-          :field="field"
-          :selected="field.id === selectedId"
-          :checked="props.checkedIds.has(field.id)"
-          :type-label="typeLabel(field.fieldType ?? '')"
-          @select="emit('select', field)"
-          @toggle-checked="emit('toggleChecked', field)"
-          @delete="emit('delete', field)"
-          @edit="emit('edit', field)"
-          @toggle-config="(f, k, v) => emit('toggleConfig', f, k, v)"
-          @toggle-keep-on-archive="(f, v) => emit('toggleKeepOnArchive', f, v)"
-          @toggle-required="(f, v) => emit('toggleRequired', f, v)"
-          @toggle-readonly="(f, v) => emit('toggleReadonly', f, v)"
-          @set-writability="(f, level) => emit('setWritability', f, level)"/>
+    <DesktopHeaderRow v-if="!tiled"/>
+    <template v-for="block in blocks" :key="block.key">
+      <div v-if="block.set" class="my-2 rounded-theme border-l-4 border-secondary bg-secondary/5"
+           :data-testid="`field-table-set-${block.set.name}`">
+        <div class="flex items-center gap-2 px-3 pt-2 pb-1 text-xs font-semibold">
+          <font-awesome-icon :icon="['fas', 'layer-group']" class="h-3 w-3"/>
+          <span>{{ block.set.name }}</span>
+          <MutedText>{{ t('membersConfig.sets.fieldCount', {n: block.fields.length}) }}</MutedText>
+        </div>
+        <component :is="row" v-for="field in block.fields" :key="field.id" v-bind="rowProps(field)" v-on="rowEvents"/>
+      </div>
+      <component :is="row" v-for="field in block.fields" v-else :key="field.id" v-bind="rowProps(field)"
+                 v-on="rowEvents"/>
     </template>
   </div>
 </template>

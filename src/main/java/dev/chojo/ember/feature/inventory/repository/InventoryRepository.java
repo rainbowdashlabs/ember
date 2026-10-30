@@ -303,6 +303,34 @@ public class InventoryRepository {
     }
 
     /**
+     * Gives one piece resting in the station's store another owner, and the custody that goes with it: the
+     * station's own gear rests in its own store, somebody else's is held at the station.
+     *
+     * @param itemId         the piece
+     * @param ownerKind      the station or the association
+     * @param ownerClusterId the owning body when it runs on this instance, only ever set for CLUSTER
+     * @param stationId      the station whose store it rests in
+     * @return whether the piece changed
+     */
+    public boolean reown(int itemId, ItemOwner ownerKind, @Nullable Integer ownerClusterId, int stationId) {
+        boolean heldByStation = ownerKind != ItemOwner.STATION;
+        return query("""
+                UPDATE inventory_item
+                SET owner_kind         = :owner_kind,
+                    owner_cluster_id   = :owner_cluster_id,
+                    custody            = :custody,
+                    custody_station_id = :custody_station_id
+                WHERE id = :id;""")
+                .single(call().bind("id", itemId)
+                        .bind("owner_kind", ownerKind)
+                        .bind("owner_cluster_id", ownerKind == ItemOwner.CLUSTER ? ownerClusterId : null)
+                        .bind("custody", heldByStation ? ItemCustody.AT_STATION : ItemCustody.WITH_OWNER)
+                        .bind("custody_station_id", heldByStation ? stationId : null))
+                .update()
+                .changed();
+    }
+
+    /**
      * The requirements pointing at an inventory, named well enough to go and deal with.
      *
      * <p>A requirement has no status: it is a standing profile rather than an event, so every one of
@@ -920,6 +948,30 @@ public class InventoryRepository {
                   AND %s
                 ORDER BY name;""", INVENTORY_ITEM_COLUMNS, ItemCustodySql.freeStock("inventory_item"))
                 .single(call().bind("inventory_id", inventoryId))
+                .map(InventoryItem.map())
+                .all();
+    }
+
+    /**
+     * The free stock of one size in an inventory that no open movement names, ordered by name.
+     *
+     * @param inventoryId the inventory
+     * @param sizeId      the size, or {@code null} for the pieces without one
+     * @return the pieces that could be handed out right now
+     */
+    public List<InventoryItem> findFreeStock(int inventoryId, @Nullable Integer sizeId) {
+        return query(
+                        """
+                SELECT %s FROM inventory_item
+                WHERE inventory_id = :inventory_id
+                  AND size_id IS NOT DISTINCT FROM :size_id
+                  AND %s
+                  AND %s
+                ORDER BY name;""",
+                        INVENTORY_ITEM_COLUMNS,
+                        ItemCustodySql.freeStock("inventory_item"),
+                        ItemCustodySql.notOnAMovement("inventory_item"))
+                .single(call().bind("inventory_id", inventoryId).bind("size_id", sizeId))
                 .map(InventoryItem.map())
                 .all();
     }

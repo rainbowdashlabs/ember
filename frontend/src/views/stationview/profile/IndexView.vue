@@ -10,6 +10,7 @@ import ViewContent from '@/components/layout/ViewContent.vue'
 import Spinner from '@/components/feedback/Spinner.vue'
 import FailureAlert from '@/components/feedback/FailureAlert.vue'
 import {describeFailure} from '@/util/failure'
+import {hiddenByDependency} from '@/util/profileFields'
 import { useSession } from '@/composables/useSession'
 import { useProfileAnswers } from '@/composables/useProfileAnswers'
 import { ownProfileAnswers } from '@/composables/profileAnswerPorts'
@@ -51,6 +52,7 @@ const editableFields = computed(() => fields.value)
 const incompleteFields = computed(() => {
   return editableFields.value.filter(f => {
     if (!f.required || f.readonly) return false
+    if (hiddenByDependency(f, editableFields.value, getValue)) return false
     const val = getValue(f)
     return !val || val === '""' || val === '' || val === 'null'
   })

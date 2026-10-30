@@ -17,7 +17,7 @@ const NO_SETTINGS: ProfileFieldConfig = {
 function question(id: number, name: string, fieldType: FieldType, required = false): ProfileField {
     return {
         id, stationId: 'station', name, fieldType, config: NO_SETTINGS,
-        required, readonly: false, keepOnArchive: false, width: null,
+        required, readonly: false, keepOnArchive: false, width: null, shownIfFieldId: null, fieldSetId: null, setPosition: 0,
     }
 }
 

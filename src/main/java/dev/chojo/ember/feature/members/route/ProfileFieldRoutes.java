@@ -168,16 +168,21 @@ public class ProfileFieldRoutes implements Routes {
         if (request.fieldType() == null || isUnnamedNonSpacer(request)) {
             throw MemberRefusal.PROFILE_FIELD_DETAILS_MISSING_ON_CREATE.raise();
         }
+        profileFieldService.requireDependencyAllowed(session.stationId(), 0, request.shownIfFieldId());
+        profileFieldService.requireSetAllowed(session.stationId(), request.fieldSetId());
+        ProfileField created = profileFieldService.create(
+                session.stationId(),
+                request.name(),
+                request.fieldType(),
+                configOf(request),
+                request.required() != null && request.required(),
+                request.readonly() != null && request.readonly(),
+                request.width(),
+                Boolean.TRUE.equals(request.keepOnArchive()));
+        profileFieldService.dependOn(created.id(), request.shownIfFieldId());
+        profileFieldService.joinSet(created.id(), request.fieldSetId());
         ctx.status(HttpStatus.CREATED)
-                .json(profileFieldService.create(
-                        session.stationId(),
-                        request.name(),
-                        request.fieldType(),
-                        configOf(request),
-                        request.required() != null && request.required(),
-                        request.readonly() != null && request.readonly(),
-                        request.width(),
-                        Boolean.TRUE.equals(request.keepOnArchive())));
+                .json(profileFieldService.findById(created.id()).orElse(created));
     }
 
     @OpenApi(
@@ -295,6 +300,9 @@ public class ProfileFieldRoutes implements Routes {
             throw MemberRefusal.PROFILE_FIELD_DETAILS_MISSING_ON_CHANGE.raise();
         }
         requireOwnedField(ctx, id);
+        int stationId = StationSession.from(ctx).stationId();
+        profileFieldService.requireDependencyAllowed(stationId, id, request.shownIfFieldId());
+        profileFieldService.requireSetAllowed(stationId, request.fieldSetId());
         profileFieldService
                 .update(
                         id,
@@ -305,9 +313,15 @@ public class ProfileFieldRoutes implements Routes {
                         request.readonly() != null && request.readonly(),
                         request.width(),
                         request.keepOnArchive() != null && request.keepOnArchive())
-                .ifPresentOrElse(ctx::json, () -> {
-                    throw MemberRefusal.PROFILE_FIELD_NOT_HERE_ON_CHANGE.raise();
-                });
+                .ifPresentOrElse(
+                        updated -> {
+                            profileFieldService.dependOn(id, request.shownIfFieldId());
+                            profileFieldService.joinSet(id, request.fieldSetId());
+                            ctx.json(profileFieldService.findById(id).orElse(updated));
+                        },
+                        () -> {
+                            throw MemberRefusal.PROFILE_FIELD_NOT_HERE_ON_CHANGE.raise();
+                        });
     }
 
     /**
@@ -443,6 +457,8 @@ public class ProfileFieldRoutes implements Routes {
      *               without a word, which is how a field of group scope lost its group.
      * @param width  how much of a row the question takes by default, which an assignment may
      *               override, or {@code null} for the whole row
+     * @param shownIfFieldId the yes/no question of the station this one depends on, or {@code null} for none
+     * @param fieldSetId     the station's group of fields this one belongs to, or {@code null} for none
      */
     public record ProfileFieldRequest(
             String name,
@@ -451,7 +467,9 @@ public class ProfileFieldRoutes implements Routes {
             Boolean required,
             Boolean readonly,
             @Nullable String width,
-            Boolean keepOnArchive) {}
+            Boolean keepOnArchive,
+            @Nullable Integer shownIfFieldId,
+            @Nullable Integer fieldSetId) {}
 
     /**
      * Who a field is asked of, and how it is put to them.

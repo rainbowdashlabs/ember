@@ -17,6 +17,7 @@ import { useInventoryRoutes } from '@/composables/useInventoryRoutes'
 import { describeFailure } from '@/util/failure'
 import ProcurementEntryRow from './procurementview/ProcurementEntryRow.vue'
 import ProcurementCreateModal from './procurementview/ProcurementCreateModal.vue'
+import ProcurementStockModal from './procurementview/ProcurementStockModal.vue'
 
 const { t } = useI18n()
 const routes = useInventoryRoutes()
@@ -88,6 +89,15 @@ async function deleteEntry(id: number) {
   await reloadEntries()
 }
 
+const stockEntry = ref<ProcurementResponse | null>(null)
+const showStockModal = ref(false)
+
+/** Offers the pieces in storage that would settle this order. */
+function openFromStock(entry: ProcurementResponse) {
+  stockEntry.value = entry
+  showStockModal.value = true
+}
+
 function onCreated() {
   void reloadEntries()
 }
@@ -126,10 +136,18 @@ function onCreated() {
             :entry="entry"
             :can-manage-procurement="canManageProcurement"
             @fulfill="fulfillEntry"
+            @from-stock="openFromStock"
             @delete="deleteEntry"
           />
         </div>
       </AsyncSection>
+
+      <ProcurementStockModal
+        v-if="stockEntry"
+        v-model="showStockModal"
+        :entry="stockEntry"
+        @issued="reloadEntries"
+      />
 
       <ProcurementCreateModal
         v-model="showCreateModal"
