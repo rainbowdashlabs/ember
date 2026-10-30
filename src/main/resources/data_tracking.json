@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:b4f056facae2cb623b0e6d6a47f42b817213917ec344d414a40b477369dd4848",
-  "generatedAt": "2026-10-21T15:23:33Z",
+  "schemaHash": "sha256:7402e18f4ef0173881ae19325d5009ff031a8e2e295859417944ab7d03b146ad",
+  "generatedAt": "2026-10-30T13:19:21Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -5114,7 +5114,7 @@
     "cluster_profile_field": {
       "feature": "cluster",
       "scope": "CLUSTER",
-      "tableHash": "sha256:6002842873440fc08900f31e50b5f2c0a8ead1ec75faa731b52aa741dcd9dc1a",
+      "tableHash": "sha256:a56e0371a92f34b4c873ff2c6acd69d6b1c7f1dd2c7aff116c349364bb99131d",
       "columns": [
         {
           "name": "id",
@@ -5192,6 +5192,27 @@
           "nullable": true,
           "verified": true,
           "description": "How much of a row the question takes: full, half or third. NULL is the whole row. An assignment may say otherwise for its own audience."
+        },
+        {
+          "name": "shown_if_field_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "A yes/no field of the same association this field depends on, NULL when it depends on none. While a member is asked both and has not answered yes, this field is hidden and not required. A member asked only this field sees it as usual. Restricts deleting the yes/no field while anything depends on it."
+        },
+        {
+          "name": "field_set_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The bundle of fields of the same association this field belongs to, NULL when it stands on its own. Cleared when the bundle is dissolved."
+        },
+        {
+          "name": "set_position",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Where the field stands within its bundle, smallest first. Meaningless while it is in none."
         }
       ],
       "foreignKeys": [
@@ -5200,6 +5221,18 @@
           "refTable": "cluster",
           "refColumn": "id",
           "onDelete": "CASCADE"
+        },
+        {
+          "column": "field_set_id",
+          "refTable": "cluster_profile_field_set",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
+        {
+          "column": "shown_if_field_id",
+          "refTable": "cluster_profile_field",
+          "refColumn": "id",
+          "onDelete": "RESTRICT"
         },
         {
           "column": "station_group_id",
@@ -5298,6 +5331,60 @@
         "reason": "Names no person, so an account leaving has nothing to remove here"
       },
       "description": "Which kinds of member a cluster question is asked of. The stations it reaches stay on the definition, because that is a different axis."
+    },
+    "cluster_profile_field_set": {
+      "feature": "cluster",
+      "scope": "CLUSTER",
+      "tableHash": "sha256:1cf9ee5e8fcd19e97d5d777e50b97b6d9a6ba6ea4862fe653ab8d43eec7d7ef6",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true
+        },
+        {
+          "name": "cluster_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "What the bundle is called, shown as a heading above its fields when name_as_section is set."
+        },
+        {
+          "name": "name_as_section",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether the forms show the name as a heading above the fields, in place of a heading field placed by hand."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "cluster_id",
+          "refTable": "cluster",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "IGNORED",
+        "reason": "Cluster-level, like the questions it bundles. A station carries no cluster with it when it moves instance"
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Names no person: how a cluster bundles its questions, not anybody's answer"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Names no person, so an account leaving has nothing to remove here"
+      },
+      "description": "A bundle of an association's profile fields that belong together, such as an address. Its fields are put to an audience together and stand together on every form. Dissolving it leaves the fields as they are."
     },
     "cluster_profile_field_value": {
       "feature": "cluster",
@@ -22642,7 +22729,7 @@
     "profile_field": {
       "feature": "members",
       "scope": "STATION",
-      "tableHash": "sha256:396215edb0cf3abcd6ea3a12db8a7eb5a22862e1b3caa3aa7eb41f7bdca9f606",
+      "tableHash": "sha256:665965b1b43f8a5b7f4ecb5348c051c2ff5b8fec85d8492ec5bc8738a8851339",
       "columns": [
         {
           "name": "id",
@@ -22706,9 +22793,42 @@
           "nullable": true,
           "verified": true,
           "description": "How much of a row the question takes: full, half or third. NULL is the whole row. An assignment may say otherwise for its own audience."
+        },
+        {
+          "name": "shown_if_field_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "A yes/no field of the same station this field depends on, NULL when it depends on none. While a member is asked both and has not answered yes, this field is hidden and not required. A member asked only this field sees it as usual. Restricts deleting the yes/no field while anything depends on it."
+        },
+        {
+          "name": "field_set_id",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "The bundle of fields of the same station this field belongs to, NULL when it stands on its own. Cleared when the bundle is dissolved."
+        },
+        {
+          "name": "set_position",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Where the field stands within its bundle, smallest first. Meaningless while it is in none."
         }
       ],
       "foreignKeys": [
+        {
+          "column": "field_set_id",
+          "refTable": "profile_field_set",
+          "refColumn": "id",
+          "onDelete": "SET NULL"
+        },
+        {
+          "column": "shown_if_field_id",
+          "refTable": "profile_field",
+          "refColumn": "id",
+          "onDelete": "RESTRICT"
+        },
         {
           "column": "station_id",
           "refTable": "station",
@@ -23048,6 +23168,62 @@
         ]
       },
       "description": "Manager acknowledgements of profile field changes."
+    },
+    "profile_field_set": {
+      "feature": "members",
+      "scope": "STATION",
+      "tableHash": "sha256:5994a5b323869b25641344f5736b3d95fb71b52d6e6e988d26a989cd7b39bf06",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true
+        },
+        {
+          "name": "station_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "What the bundle is called, shown as a heading above its fields when name_as_section is set."
+        },
+        {
+          "name": "name_as_section",
+          "type": "bool",
+          "nullable": false,
+          "verified": true,
+          "description": "Whether the forms show the name as a heading above the fields, in place of a heading field placed by hand."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "station_id",
+          "refTable": "station",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED",
+        "ignoredColumns": [
+          "station_id"
+        ]
+      },
+      "gdprExport": {
+        "status": "IGNORED",
+        "reason": "Bundle of profile field definitions, not per-member value"
+      },
+      "gdprDeletion": {
+        "status": "IGNORED",
+        "reason": "Bundle of profile field definitions, not per-member value"
+      },
+      "description": "A bundle of a station's profile fields that belong together, such as an address. Its fields are put to an audience together and stand together on every form. Dissolving it leaves the fields as they are."
     },
     "profile_field_value": {
       "feature": "members",

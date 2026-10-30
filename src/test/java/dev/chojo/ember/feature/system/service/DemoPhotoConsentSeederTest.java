@@ -49,6 +49,7 @@ import dev.chojo.ember.feature.mail.service.MailLocaleService;
 import dev.chojo.ember.feature.mail.service.MailRecipientService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.MemberGroupSetRepository;
+import dev.chojo.ember.feature.members.repository.StationFieldSetRepository;
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.signing.entity.AppointmentRequest;
 import dev.chojo.ember.feature.signing.entity.FieldState;
@@ -140,7 +141,8 @@ class DemoPhotoConsentSeederTest extends RepositoryTestBase {
                         profileFieldRepo,
                         profileFieldChangeRepo,
                         userTagRepo,
-                        stationRepo)
+                        stationRepo,
+                        new StationFieldSetRepository())
                 .seed(run);
         clock = new DemoClock(Clock.systemUTC());
         eventSeeder().seed(run);

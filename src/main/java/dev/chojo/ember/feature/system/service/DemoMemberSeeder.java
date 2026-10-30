@@ -20,6 +20,7 @@ import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.MemberGroupSetRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldChangeRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
+import dev.chojo.ember.feature.members.repository.StationFieldSetRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
 import dev.chojo.ember.feature.members.service.MemberLookupService;
@@ -73,6 +74,7 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
     private final ProfileFieldChangeRepository profileFieldChangeRepository;
     private final UserTagRepository userTagRepository;
     private final StationRepository stationRepository;
+    private final StationFieldSetRepository fieldSetRepository;
 
     @Inject
     public DemoMemberSeeder(
@@ -84,7 +86,9 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
             ProfileFieldRepository profileFieldRepository,
             ProfileFieldChangeRepository profileFieldChangeRepository,
             UserTagRepository userTagRepository,
-            StationRepository stationRepository) {
+            StationRepository stationRepository,
+            StationFieldSetRepository fieldSetRepository) {
+        this.fieldSetRepository = fieldSetRepository;
         this.accountRepository = accountRepository;
         this.stationMemberRepository = stationMemberRepository;
         this.memberLookupService = memberLookupService;
@@ -158,8 +162,10 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
                 "JuLeiCa Ablaufdatum",
                 FieldType.EXPIRY_DATE,
                 "{\"warnFromDays\":90,\"reminderDays\":[90,30],\"remindManagement\":true}",
+                true,
                 ProfileFieldScope.TEAM,
-                1);
+                1,
+                false);
         var fieldFuehrerschein = askOf(stationId, "Führerschein", FieldType.BOOLEAN, "{}", ProfileFieldScope.TEAM, 2);
         var fieldFuehrerscheinAblauf = askOf(
                 stationId,
@@ -244,6 +250,15 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
                 true);
         var fieldJugendflammeDatum =
                 askOf(stationId, "Jugendflamme Datum", FieldType.DATE, "{}", false, ProfileFieldScope.MEMBER, 7, true);
+
+        bundle(stationId, "JuLeiCa", fieldJuleica, fieldJuleicaAblauf);
+        bundle(stationId, "Führerschein", fieldFuehrerschein, fieldFuehrerscheinAblauf);
+        bundle(stationId, "Kontakt", fieldTelefon, fieldFestnetz);
+        bundle(stationId, "Leistungsspange", fieldLeistungsspange, fieldLeistungsspangeDatum);
+        bundle(stationId, "Jugendflamme", fieldJugendflamme, fieldJugendflammeDatum);
+        profileFieldRepository.setShownIf(fieldJuleicaAblauf.id(), fieldJuleica.id());
+        profileFieldRepository.setShownIf(fieldFuehrerscheinAblauf.id(), fieldFuehrerschein.id());
+        profileFieldRepository.setShownIf(fieldLeistungsspangeDatum.id(), fieldLeistungsspange.id());
 
         record DemoUser(String firstName, String lastName) {}
         var betreuerData = List.of(
@@ -706,6 +721,17 @@ public class DemoMemberSeeder implements DemoPerStationSeeder {
                 stationId, name, type, ProfileFieldConfig.parse(config), required, readonly, null);
         profileFieldRepository.assignToRole(field.id(), role, position, null, null, null);
         return field;
+    }
+
+    /**
+     * Bundles questions that belong together into a group named after them, its name standing above them
+     * on the form. They are already asked of the same audience next to each other, in this order.
+     *
+     * @param fields the questions, in the order they stand in the group
+     */
+    private void bundle(int stationId, String name, ProfileField... fields) {
+        var set = fieldSetRepository.create(stationId, name, true);
+        for (ProfileField field : fields) fieldSetRepository.place(field.id(), set.id());
     }
 
     /**

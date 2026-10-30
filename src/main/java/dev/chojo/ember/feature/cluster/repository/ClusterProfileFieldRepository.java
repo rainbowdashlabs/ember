@@ -34,7 +34,7 @@ public class ClusterProfileFieldRepository {
 
     private static final String FIELD_COLUMNS =
             "id, cluster_id, name, field_type, config, required, readonly, width, station_readonly, "
-                    + "keep_on_archive, station_group_id";
+                    + "keep_on_archive, station_group_id, shown_if_field_id, field_set_id, set_position";
 
     /**
      * Whether the association's question {@code cpf} reaches the station {@code s}. A question naming a
@@ -309,6 +309,18 @@ public class ClusterProfileFieldRepository {
 
     public boolean delete(int id) {
         return SqlSupport.deleteById("cluster_profile_field", id);
+    }
+
+    /**
+     * Sets the yes/no question this one depends on, or clears it.
+     *
+     * @param id         the question
+     * @param controller the question it depends on, or {@code null} for none
+     */
+    public void setShownIf(int id, @Nullable Integer controller) {
+        query("UPDATE cluster_profile_field SET shown_if_field_id = :controller WHERE id = :id;")
+                .single(call().bind("id", id).bind("controller", controller))
+                .update();
     }
 
     /**

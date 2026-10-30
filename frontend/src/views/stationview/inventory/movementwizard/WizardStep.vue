@@ -48,6 +48,7 @@ const fromAPiece = computed(() => startsFromAPiece(wizard.purpose.value))
       v-model:reason="wizard.reason.value"
       :asks-for-a-size="wizard.purpose.value === MovementPurpose.EXCHANGE"
       :sizes="wizard.sizes.value"
+      :current-size-id="wizard.oldSizeId.value"
   />
   <StepPreview
       v-else

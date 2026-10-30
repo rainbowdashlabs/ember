@@ -81,6 +81,7 @@ import dev.chojo.ember.feature.media.service.MediaLibraryService;
 import dev.chojo.ember.feature.media.service.MediaReferenceRegistry;
 import dev.chojo.ember.feature.media.service.MediaStorageService;
 import dev.chojo.ember.feature.members.repository.MemberGroupSetRepository;
+import dev.chojo.ember.feature.members.repository.StationFieldSetRepository;
 import dev.chojo.ember.feature.members.service.MemberNameResolver;
 import dev.chojo.ember.feature.members.service.StationMemberInviteService;
 import dev.chojo.ember.feature.members.service.UserTagService;
@@ -389,7 +390,8 @@ class DemoServiceTest extends RepositoryTestBase {
                 profileFieldRepo,
                 profileFieldChangeRepo,
                 userTagRepo,
-                stationRepo);
+                stationRepo,
+                new StationFieldSetRepository());
         var eventSeeder = new DemoEventSeeder(
                 eventCategoryRepo,
                 eventRegistrationRepo,
@@ -695,6 +697,33 @@ class DemoServiceTest extends RepositoryTestBase {
         assertTrue(members.size() >= 10, "At least 10 members should exist, found: " + members.size());
     }
 
+    /**
+     * The demo shows field groups and the questions shown behind a yes, so a visitor meets both without
+     * building them first: the JuLeiCa date stands in the JuLeiCa group and only once the card is there.
+     */
+    @Test
+    @Order(4)
+    void verifyFieldGroupsAndDependenciesSeeded() {
+        var station = stationRepo.findAll().stream()
+                .filter(s -> "Jugendfeuerwehr Musterstadt".equals(s.name()))
+                .findFirst()
+                .orElseThrow();
+        var fields = profileFieldRepo.findByStation(station.id());
+        var card = fields.stream().filter(f -> "JuLeiCa".equals(f.name())).findFirst().orElseThrow();
+        var expiry = fields.stream()
+                .filter(f -> "JuLeiCa Ablaufdatum".equals(f.name()))
+                .findFirst()
+                .orElseThrow();
+
+        assertEquals(card.id(), expiry.shownIfFieldId(), "The expiry date is shown only behind the card");
+        assertNotNull(card.fieldSetId(), "The card stands in a group");
+        assertEquals(card.fieldSetId(), expiry.fieldSetId(), "together with its expiry date");
+        assertTrue(
+                new StationFieldSetRepository().findByOwner(station.id()).stream()
+                        .anyMatch(set -> "Kontakt".equals(set.name()) && set.nameAsSection()),
+                "and the phone numbers stand under the heading of their own group");
+    }
+
     @Test
     @Order(5)
     void verifyPartnerStationCreated() {
@@ -793,10 +822,14 @@ class DemoServiceTest extends RepositoryTestBase {
         assertFalse(
                 clusterApplicationRepo.findByCluster(cluster.id()).isEmpty(),
                 "A station should be waiting to join the cluster");
-        assertEquals(
-                2,
-                clusterProfileFieldRepo.findByCluster(cluster.id()).size(),
-                "The cluster should ask two questions of its members");
+        var questions = clusterProfileFieldRepo.findByCluster(cluster.id());
+        assertEquals(3, questions.size(), "The cluster should ask three questions of its members");
+        var breathingCheck = questions.stream()
+                .filter(q -> "G26.3 gültig bis".equals(q.name()))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("The cluster should ask when the breathing check runs out"));
+        assertNotNull(breathingCheck.fieldSetId(), "and keep it in the breathing apparatus group");
+        assertNotNull(breathingCheck.shownIfFieldId(), "shown only to whoever is fit for breathing apparatus");
 
         var room = clusterStorageQuotaService.findOverview(cluster.id());
         assertEquals(100L * 1024 * 1024 * 1024, room.poolBytes(), "The instance should have granted a pool");

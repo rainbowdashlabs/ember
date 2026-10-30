@@ -14,12 +14,12 @@ import {
 } from '@/api/profileFields'
 import {OfferedFieldTypes} from '@/api/fieldTypes'
 import {
-    FieldType, type AssignmentRequest, type MemberGroup, type ProfileFieldAssignment, type ProfileFieldScope,
-    type StationGroupResponse,
+    FieldType, type AssignmentRequest, type FieldSet, type FieldSetRequest, type MemberGroup,
+    type ProfileFieldAssignment, type ProfileFieldScope, type StationGroupResponse,
 } from '@/api/generated/schema'
-import {asAsked} from '@/util/profileFields'
+import {asAsked, keepSetsTogether} from '@/util/profileFields'
 import {moveWithin} from '@/util/reorder'
-import {describeFailure} from '@/util/failure'
+import {describeFailure, FailureKind} from '@/util/failure'
 
 /** What one switch on a question changes, written into the list at once and sent with the rest. */
 type FieldPatch = Partial<Pick<EditableField, 'required' | 'readonly' | 'keepOnArchive' | 'stationReadonly' | 'config'>>
@@ -46,6 +46,12 @@ export interface FieldsPort {
     unassign(fieldId: number, target: AssignmentTarget): Promise<unknown>
     /** Writes a whole form's order at once, because dragging one question moves every one below it. */
     reorder(role: ProfileFieldScope, fieldIds: number[]): Promise<unknown>
+    /** The groups this owner keeps its questions in. */
+    listSets(): Promise<FieldSet[]>
+    createSet(data: FieldSetRequest): Promise<FieldSet>
+    updateSet(id: number, data: FieldSetRequest): Promise<unknown>
+    /** Dissolves a group. Its questions stay, on their own. */
+    dissolveSet(id: number): Promise<unknown>
     /** The kinds of member this owner may ask, in the order the forms are listed. */
     roles: readonly ProfileFieldScope[]
     /**
@@ -186,6 +192,7 @@ export function useFieldsConfig(port: FieldsPort) {
     const allAssignments = ref<ProfileFieldAssignment[]>([])
     const availableGroups = ref<MemberGroup[]>([])
     const availableStationGroups = ref<StationGroupResponse[]>([])
+    const sets = ref<FieldSet[]>([])
 
     /** The question whose audiences the right hand panel is showing. */
     const selectedFieldId = ref<number | null>(null)
@@ -201,16 +208,18 @@ export function useFieldsConfig(port: FieldsPort) {
     const editingField = ref<EditableField | null>(null)
 
     async function fetchAll() {
-        const [fields, assignments, groups, stationGroups] = await Promise.all([
+        const [fields, assignments, groups, stationGroups, loadedSets] = await Promise.all([
             port.list(),
             port.listAssignments(),
             port.listGroups ? port.listGroups() : Promise.resolve([] as MemberGroup[]),
             port.listStationGroups ? port.listStationGroups() : Promise.resolve([] as StationGroupResponse[]),
+            port.listSets(),
         ])
         allFields.value = fields
         allAssignments.value = assignments
         availableGroups.value = groups
         availableStationGroups.value = stationGroups
+        sets.value = loadedSets
         if (selectedFieldId.value !== null && !fields.some(f => f.id === selectedFieldId.value)) {
             selectedFieldId.value = null
         }
@@ -341,6 +350,9 @@ export function useFieldsConfig(port: FieldsPort) {
     const dateFields = computed(() =>
         questions.value.filter(f => DATE_FIELD_TYPES.includes(f.fieldType ?? '')))
 
+    /** The yes/no questions of this owner, which another question can be shown behind. */
+    const booleanFields = computed(() => questions.value.filter(f => f.fieldType === FieldType.BOOLEAN))
+
     /**
      * The station's date of birth, which decides whether another may be added.
      *
@@ -432,6 +444,8 @@ export function useFieldsConfig(port: FieldsPort) {
             width: field.width,
             keepOnArchive: field.keepOnArchive,
             stationReadonly: field.stationReadonly,
+            shownIfFieldId: field.shownIfFieldId ?? null,
+            fieldSetId: field.fieldSetId ?? null,
             ...(port.listStationGroups ? {stationGroupId: field.stationGroupId} : {}),
             ...patch,
         }
@@ -527,7 +541,8 @@ export function useFieldsConfig(port: FieldsPort) {
      * and says so.
      */
     async function onReorder(role: ProfileFieldScope, fromIndex: number, toIndex: number) {
-        const ordered = moveWithin(formFor(role), fromIndex, toIndex).map(entry => entry.field.id)
+        const ordered = keepSetsTogether(
+            moveWithin(formFor(role), fromIndex, toIndex).map(entry => entry.field.id), allFields.value)
         const before = allAssignments.value
         allAssignments.value = allAssignments.value.map(assignment =>
             assignment.targetKind === 'ROLE' && assignment.role === role && ordered.includes(assignment.fieldId)
@@ -551,11 +566,39 @@ export function useFieldsConfig(port: FieldsPort) {
      */
     const checkedIds = ref<Set<number>>(new Set())
 
+    /**
+     * Ticks a question, or unticks it. A question of a group is never put to anybody on its own, so the
+     * whole group is ticked or unticked with it.
+     */
     function toggleChecked(fieldId: number) {
+        const together = membersOfSetOf(fieldId)
         const next = new Set(checkedIds.value)
-        if (!next.delete(fieldId)) next.add(fieldId)
+        const tick = !next.has(fieldId)
+        for (const id of together) {
+            if (tick) next.add(id)
+            else next.delete(id)
+        }
         checkedIds.value = next
     }
+
+    /** The question and every other question of its group, or the question alone. */
+    function membersOfSetOf(fieldId: number): number[] {
+        const setId = allFields.value.find(f => f.id === fieldId)?.fieldSetId
+        if (setId == null) return [fieldId]
+        return allFields.value.filter(f => f.fieldSetId === setId).map(f => f.id)
+    }
+
+    /** The group the selected question belongs to, with its questions in the group's order, or nothing. */
+    const selectedSet = computed(() => {
+        const setId = selectedField.value?.fieldSetId
+        if (setId == null) return null
+        const set = sets.value.find(s => s.id === setId)
+        if (!set) return null
+        const members = allFields.value
+            .filter(f => f.fieldSetId === setId)
+            .sort((a, b) => (a.setPosition ?? 0) - (b.setPosition ?? 0))
+        return {set, members}
+    })
 
     function clearChecked() {
         checkedIds.value = new Set()
@@ -579,8 +622,14 @@ export function useFieldsConfig(port: FieldsPort) {
         failure.value = null
         const role = target.role
         let position = role ? formFor(role).length : 0
+        const groupsDone = new Set<number>()
         try {
             for (const fieldId of checkedIds.value) {
+                const setId = allFields.value.find(f => f.id === fieldId)?.fieldSetId
+                if (setId != null) {
+                    if (groupsDone.has(setId)) continue
+                    groupsDone.add(setId)
+                }
                 position += 1
                 await port.assign(fieldId, {...target, position})
             }
@@ -622,31 +671,86 @@ export function useFieldsConfig(port: FieldsPort) {
      * <p>Whether an answer is expected and whether only the member management may write it travel on
      * the field, beside its settings, which name neither.
      */
+    /**
+     * Writes a template's questions down. A template of several questions bundles them into a group named
+     * after it, with its name as the heading, since that is what makes them one thing on the form.
+     *
+     * <p>A template naming a question the owner already has is refused before anything is written, so it
+     * leaves no group behind. Where a question is refused for another reason before any was written, the
+     * group made for them is dissolved again.
+     */
     async function applyTemplate(
-        template: {fields: Array<{
+        template: {name: string; fields: Array<{
             name: string
             fieldType: FieldType
             config: FieldSettings
             required?: boolean
             readonly?: boolean
+            shownIf?: string
         }>},
     ) {
         failure.value = null
+        const taken = template.fields
+            .map(f => f.name)
+            .filter(name => allFields.value.some(existing => existing.name.toLowerCase() === name.toLowerCase()))
+        if (taken.length > 0) {
+            failure.value = {
+                kind: FailureKind.CONFLICT,
+                message: t('membersConfig.templateNamesTaken', {names: taken.join(', ')}),
+                guidance: t('membersConfig.templateNamesTakenGuidance'),
+                reportable: false,
+            }
+            return
+        }
+        let set: FieldSet | null = null
+        const created = new Map<string, number>()
         try {
+            if (template.fields.length > 1) set = await port.createSet({name: template.name, nameAsSection: true})
             for (const f of template.fields) {
-                await port.create(withTarget({
+                const field = await port.create(withTarget({
                     name: f.name,
                     fieldType: f.fieldType,
                     config: f.config,
                     required: f.required ?? false,
                     readonly: f.readonly ?? false,
+                    shownIfFieldId: f.shownIf ? created.get(f.shownIf) ?? null : null,
+                    fieldSetId: set?.id ?? null,
                 }))
+                created.set(f.name, field.id)
             }
+        } catch (e) {
+            record(e)
+            if (set && created.size === 0) await port.dissolveSet(set.id).catch(() => undefined)
+            await refresh()
+            return
+        }
+        await reloadAfterWrite()
+    }
+
+    /** Writes a new, empty group down. */
+    async function createSet(name: string, nameAsSection: boolean) {
+        await writeSets(() => port.createSet({name, nameAsSection}))
+    }
+
+    /** Renames a group, or changes whether its name stands above its questions. */
+    async function updateSet(set: FieldSet, patch: Partial<FieldSetRequest>) {
+        await writeSets(() => port.updateSet(set.id, {name: set.name, nameAsSection: set.nameAsSection, ...patch}))
+    }
+
+    /** Dissolves a group. Its questions stay where they stand, on their own. */
+    async function dissolveSet(set: FieldSet) {
+        await writeSets(() => port.dissolveSet(set.id))
+    }
+
+    async function writeSets(write: () => Promise<unknown>) {
+        failure.value = null
+        try {
+            await write()
         } catch (e) {
             record(e)
             return
         }
-        await reloadAfterWrite()
+        await refresh(t('failure.staleAfterAction'))
     }
 
     return {
@@ -667,6 +771,7 @@ export function useFieldsConfig(port: FieldsPort) {
         previewFields,
         formFor,
         dateFields,
+        booleanFields,
         birthDateField,
         genderField,
         showFieldModal,
@@ -698,5 +803,10 @@ export function useFieldsConfig(port: FieldsPort) {
         clearChecked,
         assignCheckedTo,
         applyTemplate,
+        sets,
+        selectedSet,
+        createSet,
+        updateSet,
+        dissolveSet,
     }
 }

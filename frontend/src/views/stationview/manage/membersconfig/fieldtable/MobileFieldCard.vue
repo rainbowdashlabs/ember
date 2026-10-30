@@ -7,6 +7,7 @@
 import {useId} from 'vue'
 import {useI18n} from 'vue-i18n'
 import EditButton from '@/components/button/EditButton.vue'
+import SecondaryBadge from '@/components/badge/SecondaryBadge.vue'
 import DeleteButton from '@/components/button/DeleteButton.vue'
 import NeutralContainer from '@/components/container/NeutralContainer.vue'
 import CompactToggle from '@/components/input/toggle/CompactToggle.vue'
@@ -27,6 +28,8 @@ defineProps<{
   audiences: number
   selected: boolean
   checked: boolean
+  /** The yes/no question this one is only shown behind, by name. */
+  shownIfName?: string
 }>()
 
 const emit = defineEmits<{
@@ -58,6 +61,9 @@ const capabilities = useFieldsCapabilities()
             :data-testid="`field-check-${field.name}`"
             @click.stop="emit('toggleChecked', field)"/>
         <span class="font-medium text-sm">{{ field.name }}</span>
+        <SecondaryBadge v-if="shownIfName" data-testid="field-shown-if-badge">
+          {{ t('membersConfig.shownIfBadge', {name: shownIfName}) }}
+        </SecondaryBadge>
         <span class="text-xs text-(--text-muted)">{{ typeLabel }}</span>
         <span v-if="!isSection(field)" class="text-xs text-(--text-muted)">{{ widthLabel(t, widthOf(field)) }}</span>
         <AudienceCount :count="audiences"/>

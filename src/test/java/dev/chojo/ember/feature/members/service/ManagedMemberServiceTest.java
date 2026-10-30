@@ -64,7 +64,8 @@ class ManagedMemberServiceTest {
     }
 
     private static ProfileField field(int id) {
-        return new ProfileField(id, STATION_ID, "F" + id, FieldType.TEXT, null, false, false, null, false);
+        return new ProfileField(
+                id, STATION_ID, "F" + id, FieldType.TEXT, null, false, false, null, false, null, null, 0);
     }
 
     @BeforeEach

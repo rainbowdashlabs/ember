@@ -20,11 +20,9 @@ import FieldLabel from '@/components/typography/FieldLabel.vue'
 import {
   answersFor,
   borrowed,
-  ExchangeCause,
   recordedLost,
   standingOf,
   waitsForCorrection,
-  type ExchangeCauseName,
   type RaisedReport,
   type SelfCheckDraft,
   type SelfCheckEntry,
@@ -34,10 +32,10 @@ import {SelfCheckAnswer} from '@/api/generated/schema'
 /**
  * One thing the member is asked about, and everything they may say about it.
  *
- * <p>Three of the answers are not answers at all: saying a piece cannot be found, saying it no
- * longer fits and saying it is broken all take effect the moment they are given, through the screens
- * that already accept them, so they are offered as the acts they are rather than as boxes to tick.
- * The last two are one exchange raised for two different reasons.
+ * <p>Two of the answers are not answers at all: saying a piece cannot be found and asking for it to be
+ * swapped both take effect the moment they are given, through the screens that already accept them, so
+ * they are offered as the acts they are rather than as boxes to tick. Why a swap is asked for is said in
+ * its dialog, the way every swap says it.
  *
  * <p>On one line they do not take effect at once, and the card has to say so rather than look as
  * though the button did nothing. Where the member is putting the size right, the report waits for
@@ -63,7 +61,7 @@ const emit = defineEmits<{
   setTypedInternalId: [key: string, typed: string]
   setSizeId: [key: string, sizeId: string]
   reportLost: [entry: SelfCheckEntry]
-  requestExchange: [entry: SelfCheckEntry, cause: ExchangeCauseName]
+  requestExchange: [entry: SelfCheckEntry]
 }>()
 
 const {t} = useI18n()
@@ -103,10 +101,10 @@ function lossLabel(): string {
   return t('selfCheck.reportLost')
 }
 
-function exchangeLabel(fresh: string): string {
+function exchangeLabel(): string {
   if (exchangeStanding.value === 'WAITING') return t('selfCheck.exchangeWaiting')
   if (exchangeStanding.value === 'RAISED') return t('selfCheck.exchangeRaised')
-  return t(fresh)
+  return t('selfCheck.requestExchange')
 }
 
 const sizes = computed(() => props.entry.req.sizes)
@@ -208,18 +206,9 @@ function answerLabel(answer: SelfCheckAnswer): string {
           class="text-xs px-3 py-1.5"
           :disabled="exchangeRaised"
           :data-testid="`self-check-exchange-${entry.key}`"
-          @click="emit('requestExchange', entry, ExchangeCause.DOES_NOT_FIT)"
+          @click="emit('requestExchange', entry)"
       >
-        {{ exchangeLabel('selfCheck.requestExchange') }}
-      </PrimaryButton>
-      <PrimaryButton
-          v-if="mayRequestExchange"
-          class="text-xs px-3 py-1.5"
-          :disabled="exchangeRaised"
-          :data-testid="`self-check-broken-${entry.key}`"
-          @click="emit('requestExchange', entry, ExchangeCause.BROKEN)"
-      >
-        {{ exchangeLabel('selfCheck.reportBroken') }}
+        {{ exchangeLabel() }}
       </PrimaryButton>
       <MutedText size="xs" tag="p" class="w-full" :data-testid="`self-check-timing-${entry.key}`">
         {{ waits ? t('selfCheck.raisedAfterCorrection') : t('selfCheck.raisedAtOnce') }}

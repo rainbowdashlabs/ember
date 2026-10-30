@@ -6,17 +6,22 @@
 package dev.chojo.ember.feature.cluster.service;
 
 import dev.chojo.ember.api.refusal.ClusterRefusal;
+import dev.chojo.ember.api.refusal.MemberRefusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.cluster.entity.AssignedClusterProfileField;
 import dev.chojo.ember.feature.cluster.entity.Cluster;
 import dev.chojo.ember.feature.cluster.entity.ClusterProfileField;
 import dev.chojo.ember.feature.cluster.entity.ClusterProfileFieldAssignment;
+import dev.chojo.ember.feature.cluster.repository.ClusterFieldSetRepository;
 import dev.chojo.ember.feature.cluster.repository.ClusterProfileFieldRepository;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.cluster.repository.ClusterStationGroupRepository;
 import dev.chojo.ember.feature.members.entity.FieldDraft;
+import dev.chojo.ember.feature.members.entity.FieldSet;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
+import dev.chojo.ember.feature.members.service.FieldDependencies;
+import dev.chojo.ember.feature.members.service.FieldSets;
 import dev.chojo.ember.feature.members.service.GenderFields;
 import dev.chojo.ember.feature.members.service.ProfileFieldCore;
 import dev.chojo.ember.feature.question.FieldType;
@@ -27,9 +32,13 @@ import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * The questions a cluster asks of the people at its stations.
@@ -52,6 +61,7 @@ public class ClusterProfileFieldService {
     private final ClusterStationGroupRepository stationGroupRepository;
     private final ProfileFieldCore core;
     private final GenderFields genders;
+    private final ClusterFieldSetRepository sets;
 
     @Inject
     public ClusterProfileFieldService(
@@ -59,12 +69,126 @@ public class ClusterProfileFieldService {
             ClusterRepository clusterRepository,
             ClusterStationGroupRepository stationGroupRepository,
             ProfileFieldCore core,
-            GenderFields genders) {
+            GenderFields genders,
+            ClusterFieldSetRepository sets) {
         this.fieldRepository = fieldRepository;
         this.clusterRepository = clusterRepository;
         this.stationGroupRepository = stationGroupRepository;
         this.core = core;
         this.genders = genders;
+        this.sets = sets;
+    }
+
+    /** One of the association's questions, refused where it is not the association's. */
+    public ClusterProfileField field(int clusterId, int fieldId) {
+        return requireField(clusterId, fieldId);
+    }
+
+    /** The association's bundles of questions, by name. */
+    public List<FieldSet> findSets(int clusterId) {
+        return sets.findByOwner(clusterId);
+    }
+
+    /**
+     * Writes a new, empty bundle down.
+     *
+     * @throws RefusalResponse {@link MemberRefusal#PROFILE_FIELD_SET_NEEDS_A_NAME} for a blank name
+     */
+    public FieldSet createSet(int clusterId, @Nullable String name, boolean nameAsSection) {
+        requireCluster(clusterId);
+        FieldSet set = sets.create(clusterId, requireSetName(name), nameAsSection);
+        log.info("Cluster {} bundled questions as set {} '{}'", clusterId, set.id(), set.name());
+        return set;
+    }
+
+    /** Renames a bundle, or changes whether its name stands above its questions. */
+    public void updateSet(int clusterId, int setId, @Nullable String name, boolean nameAsSection) {
+        requireSet(clusterId, setId);
+        sets.update(setId, requireSetName(name), nameAsSection);
+    }
+
+    /** Dissolves a bundle. Its questions stay, on their own, where they stand. */
+    public void dissolveSet(int clusterId, int setId) {
+        requireSet(clusterId, setId);
+        sets.delete(setId);
+        log.info("Cluster {} dissolved set {}", clusterId, setId);
+    }
+
+    /** Puts a bundle's questions in a new order, which every form follows. */
+    public void orderSet(int clusterId, int setId, List<Integer> fieldIds) {
+        requireSet(clusterId, setId);
+        sets.applyOrder(setId, fieldIds);
+        keepSetsTogether(clusterId);
+    }
+
+    /**
+     * Refuses a bundle that is not the association's, before anything else of a question is written.
+     *
+     * @param setId the bundle, or {@code null} for none, which is always allowed
+     */
+    public void requireSetAllowed(int clusterId, @Nullable Integer setId) {
+        if (setId != null) requireSet(clusterId, setId);
+    }
+
+    /**
+     * Puts a question into a bundle, at its end, or takes it out. A question joining a bundle is put to
+     * everybody the bundle's first question is put to, so the bundle stays one thing on every form.
+     *
+     * @param setId the bundle, or {@code null} to stand on its own
+     */
+    public void joinSet(int clusterId, int fieldId, @Nullable Integer setId) {
+        ClusterProfileField field = requireField(clusterId, fieldId);
+        if (Objects.equals(field.fieldSetId(), setId)) return;
+        requireSetAllowed(clusterId, setId);
+        List<Integer> others = setId == null ? List.of() : sets.members(setId);
+        sets.place(fieldId, setId);
+        if (!others.isEmpty()) {
+            for (ClusterProfileFieldAssignment asked : fieldRepository.findAssignments(others.getFirst())) {
+                askIfNotYet(fieldId, asked.role(), asked.position());
+            }
+        }
+        keepSetsTogether(clusterId);
+        log.info("Cluster {} field {} now in set {}", clusterId, fieldId, setId);
+    }
+
+    private FieldSet requireSet(int clusterId, int setId) {
+        return sets.findById(setId)
+                .filter(set -> set.ownerId() == clusterId)
+                .orElseThrow(MemberRefusal.PROFILE_FIELD_SET_NOT_HERE::raise);
+    }
+
+    private static String requireSetName(@Nullable String name) {
+        if (name == null || name.isBlank()) throw MemberRefusal.PROFILE_FIELD_SET_NEEDS_A_NAME.raise();
+        return name.strip();
+    }
+
+    /** The other questions of the bundle a question is in, or none. */
+    private List<Integer> siblingsOf(ClusterProfileField field) {
+        Integer setId = field.fieldSetId();
+        if (setId == null) return List.of();
+        return sets.members(setId).stream().filter(id -> id != field.id()).toList();
+    }
+
+    private void askIfNotYet(int fieldId, ProfileFieldScope role, int position) {
+        boolean asked = fieldRepository.findAssignments(fieldId).stream().anyMatch(a -> a.role() == role);
+        if (!asked) fieldRepository.assignToRole(fieldId, role, position, null, null, null);
+    }
+
+    /** Puts every form of the association back into an order that keeps each bundle together. */
+    private void keepSetsTogether(int clusterId) {
+        var placements = sets.placements(clusterId);
+        Map<ProfileFieldScope, List<ClusterProfileFieldAssignment>> forms =
+                fieldRepository.findAssignmentsByCluster(clusterId).stream()
+                        .collect(Collectors.groupingBy(ClusterProfileFieldAssignment::role));
+        forms.forEach((role, form) -> fieldRepository.applyOrder(
+                clusterId,
+                role,
+                FieldSets.keepTogether(
+                        form.stream()
+                                .sorted(Comparator.comparingInt(ClusterProfileFieldAssignment::position))
+                                .map(ClusterProfileFieldAssignment::fieldId)
+                                .toList(),
+                        placements)));
     }
 
     public List<ClusterProfileField> findByCluster(int clusterId) {
@@ -150,15 +274,21 @@ public class ClusterProfileFieldService {
             @Nullable Boolean readonlyOverride,
             @Nullable Boolean requiredOverride) {
         requireAsked(role);
-        requireField(clusterId, fieldId);
+        ClusterProfileField field = requireField(clusterId, fieldId);
         fieldRepository.assignToRole(fieldId, role, position, widthOverride, readonlyOverride, requiredOverride);
+        List<Integer> siblings = siblingsOf(field);
+        if (!siblings.isEmpty()) {
+            for (Integer sibling : siblings) askIfNotYet(sibling, role, position);
+            keepSetsTogether(clusterId);
+        }
         log.info("Cluster {} asks {} field {}", clusterId, role, fieldId);
     }
 
-    /** Stops asking a kind of member one of the cluster's questions. */
+    /** Stops asking a kind of member one of the cluster's questions, and the rest of its bundle with it. */
     public void unassignRole(int clusterId, int fieldId, ProfileFieldScope role) {
-        requireField(clusterId, fieldId);
+        ClusterProfileField field = requireField(clusterId, fieldId);
         fieldRepository.unassignRole(fieldId, role);
+        for (Integer sibling : siblingsOf(field)) fieldRepository.unassignRole(sibling, role);
         log.info("Cluster {} no longer asks {} field {}", clusterId, role, fieldId);
     }
 
@@ -178,6 +308,7 @@ public class ClusterProfileFieldService {
             boolean keepOnArchive,
             @Nullable Integer stationGroupId) {
         ClusterProfileField existing = requireField(clusterId, fieldId);
+        FieldDependencies.requireNotStillUsed(fieldId, fieldType, dependencyNodes(clusterId));
         boolean unnamedSpacer = fieldType == FieldType.SPACER && (name == null || name.isBlank());
         String kept = unnamedSpacer ? existing.name() : name;
         var stored = config.withPronounsOfItsAnswers();
@@ -203,8 +334,51 @@ public class ClusterProfileFieldService {
         log.info("Cluster {} changed field {} to '{}' ({})", clusterId, fieldId, chosen, fieldType);
     }
 
+    /**
+     * Makes a question depend on a yes/no question of the same association, or no longer depend on any.
+     *
+     * @param clusterId  the association
+     * @param fieldId    the question
+     * @param controller the yes/no question, or {@code null} for none
+     * @throws RefusalResponse the refusals of {@link FieldDependencies#requireAllowed}
+     */
+    public void dependOn(int clusterId, int fieldId, @Nullable Integer controller) {
+        ClusterProfileField field = requireField(clusterId, fieldId);
+        if (Objects.equals(field.shownIfFieldId(), controller)) return;
+        requireDependencyAllowed(clusterId, fieldId, controller);
+        fieldRepository.setShownIf(fieldId, controller);
+        log.info("Cluster {} field {} now depends on {}", clusterId, fieldId, controller);
+    }
+
+    /**
+     * Refuses a dependency before anything else of the question is written, so a refused one leaves the
+     * question as it was.
+     *
+     * @param clusterId  the association
+     * @param fieldId    the question, or 0 for one about to be created
+     * @param controller the yes/no question, or {@code null} for none
+     * @throws RefusalResponse the refusals of {@link FieldDependencies#requireAllowed}
+     */
+    public void requireDependencyAllowed(int clusterId, int fieldId, @Nullable Integer controller) {
+        FieldDependencies.requireAllowed(fieldId, controller, dependencyNodes(clusterId));
+    }
+
+    private List<FieldDependencies.Node> dependencyNodes(int clusterId) {
+        return fieldRepository.findByCluster(clusterId).stream()
+                .map(field ->
+                        new FieldDependencies.Node(field.id(), field.name(), field.fieldType(), field.shownIfFieldId()))
+                .toList();
+    }
+
+    /**
+     * Withdraws a question and its answers.
+     *
+     * @throws RefusalResponse {@link dev.chojo.ember.api.refusal.MemberRefusal#PROFILE_DEPENDENCY_STILL_USED}
+     *                         while others depend on it
+     */
     public void delete(int clusterId, int fieldId) {
         requireField(clusterId, fieldId);
+        FieldDependencies.requireNotStillUsed(fieldId, null, dependencyNodes(clusterId));
         fieldRepository.delete(fieldId);
         log.info("Cluster {} withdrew field {}", clusterId, fieldId);
     }
@@ -274,7 +448,8 @@ public class ClusterProfileFieldService {
      */
     public void reorder(int clusterId, ProfileFieldScope role, List<Integer> fieldIds) {
         requireCluster(clusterId);
-        int moved = fieldRepository.applyOrder(clusterId, role, fieldIds);
+        int moved = fieldRepository.applyOrder(
+                clusterId, role, FieldSets.keepTogether(fieldIds, sets.placements(clusterId)));
         log.info("Cluster questions reordered: cluster={}, role={}, fields={}", clusterId, role, moved);
     }
 

@@ -1,5 +1,27 @@
 # Änderungsprotokoll
 
+## v26.23.1
+
+Profilfelder lassen sich nur dann anzeigen, wenn eine Ja/Nein-Frage mit Ja beantwortet ist, und zusammengehörige Felder lassen sich gruppieren. Eine offene Beschaffung zeigt, wenn ein passendes Stück bereits im Lager der Wache liegt, und kann es sofort ausgeben. Jeder Tausch fragt auf dieselbe Weise nach dem Grund, mit der aktuellen Größe neben der gewünschten, und die Bereiche der Seitenleiste öffnen sich wieder in einem neuen Tab.
+
+### Neue Funktionen
+
+- **Profilfelder können von einer Ja/Nein-Frage abhängen.** Ein Profilfeld lässt sich so einstellen, dass es nur erscheint, wenn eine gewählte Ja/Nein-Frage desselben Profils mit Ja beantwortet ist, und nur dann Pflicht ist, so wird das JuLeiCa-Ablaufdatum nur bei Personen mit JuLeiCa abgefragt. Wer die Ja/Nein-Frage nicht gestellt bekommt, sieht das Feld wie gewohnt, und die Vorlagen JuLeiCa und Leistungsspange richten das gleich mit ein.
+- **Profilfelder lassen sich gruppieren.** Felder, die zusammengehören, etwa eine Adresse, bilden eine Feldgruppe: Sie werden einer Zielgruppe immer gemeinsam gestellt und stehen in jedem Formular zusammen in ihrer Reihenfolge, auf Wunsch unter dem Namen der Gruppe als Überschrift. Vorlagen mit mehreren Feldern legen ihre Gruppe gleich mit an, und eine aufgelöste Gruppe behält ihre Felder samt Antworten.
+
+### Verbesserungen
+
+- **Beschaffungen werden aus dem Lager bedient.** Eine offene Beschaffung für ein Mitglied zeigt, wie viele Stücke des bestellten Inventars in der bestellten Größe frei im Lager der Wache liegen. „Aus dem Lager ausgeben“ wählt eines davon, startet die Ausgabe an das Mitglied als Bewegung und markiert die Beschaffung als erledigt.
+- **Jeder Tausch fragt gleich nach dem Grund.** Ein Tausch aus einer Bewegung, der Ausrüstung eines Mitglieds, der eigenen Ausrüstung, einer Besitzprüfung oder einer Selbstprüfung bietet zu klein, zu groß, kaputt oder einen anderen Grund in eigenen Worten, mit einer freiwilligen Anmerkung. Jeder Grund wählt eine Größe größer, kleiner oder die gleiche vor, angezeigt neben der aktuellen Größe, und die Wahl lässt sich ändern.
+
+### Änderungen
+
+- **Die Selbstprüfung hat einen einzigen Tausch-Knopf.** „Passt nicht mehr“ und „Ist kaputt“ an einem Stück der Selbstprüfung sind durch einen Knopf „Tauschen“ ersetzt, der Grund wird in dessen Dialog gewählt.
+
+### Fehlerbehebungen
+
+- **Bereiche der Seitenleiste ließen sich nicht in einem neuen Tab öffnen.** Die Bereiche in der Liste aller Bereiche reagierten nicht auf einen Mittelklick oder einen Klick mit gedrückter Zusatztaste. Sie sind jetzt Links, die ihre erste Seite wie jeder andere Link in einem neuen Tab öffnen.
+
 ## v26.23.0
 
 Dokumentvorlagen können beim Erstellen nach Angaben fragen, die nicht in den Daten des Mitglieds stehen, etwa nach dem Datum einer Änderung oder welches von mehreren Kästchen zutrifft. Word-Formulare mit Feldern zum Ausfüllen werden zu PDF-Vorlagen in ihrem gewohnten Aussehen. So lässt sich ein Papierformular wie eine Änderungsmeldung direkt in Ember ausfüllen. Ankreuzfelder bestehender PDF-Vorlagen folgen weiter den Daten des Mitglieds und lassen sich jetzt auch von Hand setzen. Familien auf einer Warteliste sind ab dem ersten Tag der Probezeit dabei. Erziehungsberechtigte bekommen ihr Konto mit dem Start der Probezeit, verfolgen sie auf ihrer Übersicht und können sie selbst beenden. Eine Einladung nennt immer einen Termin, zeigt vor dem Senden, wohin die E-Mail geht, und kann eine persönliche Nachricht enthalten.

@@ -241,6 +241,175 @@ class ProfileFieldServiceTest extends RepositoryTestBase {
     }
 
     /**
+     * A required question behind a yes/no question counts against the profile only once that one is
+     * answered yes, and as usual for a member who is not asked the yes/no question at all.
+     */
+    @Test
+    @Order(22)
+    void aQuestionBehindAYesNoQuestionCountsOnlyOnceItIsAnsweredYes() {
+        var juleica = ask("Juleica", FieldType.BOOLEAN, "{}", ProfileFieldScope.MEMBER, 12);
+        var expiry = ask("Juleica Ablaufdatum", FieldType.DATE, "{}", ProfileFieldScope.MEMBER, 13, true, false);
+        service.assignToRole(expiry.id(), ProfileFieldScope.GUARDIAN, 0, null, null, null);
+        service.dependOn(expiry.id(), juleica.id());
+        var account4 = accountRepo.create("pfield-juleica@test.com", "Jule", "Ica");
+        var member4 = stationMemberRepo.create(station.id(), account4.id());
+        var account5 = accountRepo.create("pfield-guardian@test.com", "Guard", "Ian");
+        var guardian = stationMemberRepo.create(station.id(), account5.id());
+        stationMemberRepo.setUserType(guardian.id(), StationUserType.GUARDIAN);
+        try {
+            assertTrue(service.isProfileComplete(member4.id()), "without a card the date is not asked");
+
+            service.setValues(
+                    member4.id(),
+                    List.of(new FieldValueEntry(juleica.id(), "\"true\"", FieldOrigin.STATION)),
+                    member4.id());
+            assertFalse(service.isProfileComplete(member4.id()), "with a card the date is missing");
+
+            assertFalse(
+                    service.isProfileComplete(guardian.id()),
+                    "a guardian is not asked the yes/no question, so the date is asked as usual");
+        } finally {
+            stationMemberRepo.delete(member4.id());
+            stationMemberRepo.delete(guardian.id());
+            accountRepo.delete(account4.id());
+            accountRepo.delete(account5.id());
+            service.delete(expiry.id());
+            service.delete(juleica.id());
+        }
+    }
+
+    /**
+     * Only a yes/no question of the same station can carry a dependency, one level deep, and it cannot be
+     * deleted or given another type while anything depends on it.
+     */
+    @Test
+    @Order(22)
+    void dependenciesAreOneLevelOnYesNoQuestionsThatStayWhileUsed() {
+        var flag = ask("Has licence", FieldType.BOOLEAN, "{}", ProfileFieldScope.MEMBER, 14);
+        var text = ask("Licence class", FieldType.TEXT, "{}", ProfileFieldScope.MEMBER, 15);
+        var date = ask("Licence until", FieldType.DATE, "{}", ProfileFieldScope.MEMBER, 16);
+        var nested = ask("Licence for trucks", FieldType.BOOLEAN, "{}", ProfileFieldScope.MEMBER, 17);
+        try {
+            assertEquals(
+                    MemberRefusal.PROFILE_DEPENDENCY_NOT_YES_NO,
+                    assertThrows(RefusalResponse.class, () -> service.dependOn(date.id(), text.id()))
+                            .refusal());
+            assertEquals(
+                    MemberRefusal.PROFILE_DEPENDENCY_ON_ITSELF,
+                    assertThrows(RefusalResponse.class, () -> service.dependOn(flag.id(), flag.id()))
+                            .refusal());
+
+            service.dependOn(date.id(), flag.id());
+            assertEquals(flag.id(), service.findById(date.id()).orElseThrow().shownIfFieldId());
+            service.dependOn(nested.id(), flag.id());
+            assertEquals(
+                    MemberRefusal.PROFILE_DEPENDENCY_CHAIN,
+                    assertThrows(RefusalResponse.class, () -> service.dependOn(text.id(), nested.id()))
+                            .refusal());
+            assertEquals(
+                    MemberRefusal.PROFILE_DEPENDENCY_STILL_USED,
+                    assertThrows(RefusalResponse.class, () -> service.delete(flag.id()))
+                            .refusal());
+            assertEquals(
+                    MemberRefusal.PROFILE_DEPENDENCY_STILL_USED,
+                    assertThrows(
+                                    RefusalResponse.class,
+                                    () -> service.update(
+                                            flag.id(),
+                                            flag.name(),
+                                            FieldType.TEXT,
+                                            ProfileFieldConfig.empty(),
+                                            false,
+                                            false,
+                                            null,
+                                            false))
+                            .refusal());
+
+            service.dependOn(date.id(), null);
+            assertNull(service.findById(date.id()).orElseThrow().shownIfFieldId());
+            service.dependOn(nested.id(), null);
+        } finally {
+            service.delete(nested.id());
+            service.delete(date.id());
+            service.delete(text.id());
+            service.delete(flag.id());
+        }
+    }
+
+    /**
+     * The questions of a bundle are put to an audience together, stand together in the bundle's order on
+     * the form, carry the bundle's name where it is a heading, and are let go of together. Dissolving the
+     * bundle keeps the questions.
+     */
+    @Test
+    @Order(22)
+    void aBundleIsAskedAndOrderedAsOneAndDissolvesIntoItsQuestions() {
+        var loose = ask("Loose question", FieldType.TEXT, "{}", ProfileFieldScope.TEAM, 0);
+        var street =
+                service.create(station.id(), "Straße", FieldType.TEXT, ProfileFieldConfig.empty(), false, false, null);
+        var city = service.create(station.id(), "Ort", FieldType.TEXT, ProfileFieldConfig.empty(), false, false, null);
+        var address = service.createSet(station.id(), "Adresse", true);
+        try {
+            service.joinSet(street.id(), address.id());
+            service.joinSet(city.id(), address.id());
+
+            service.assignToRole(city.id(), ProfileFieldScope.TEAM, 5, null, null, null);
+
+            List<Integer> form = service.findMergedFields(station.id(), ProfileFieldScope.TEAM).stream()
+                    .map(ProfileFieldService.MergedField::id)
+                    .toList();
+            assertTrue(form.contains(street.id()), "asking one question of the bundle asks the whole bundle");
+            assertEquals(
+                    form.indexOf(street.id()) + 1,
+                    form.indexOf(city.id()),
+                    "and the bundle stands together in its own order");
+
+            service.reorder(station.id(), ProfileFieldScope.TEAM, List.of(city.id(), loose.id(), street.id()));
+            List<ProfileFieldService.MergedField> reordered =
+                    service.findMergedFields(station.id(), ProfileFieldScope.TEAM);
+            assertEquals(
+                    List.of(street.id(), city.id(), loose.id()),
+                    reordered.stream().map(ProfileFieldService.MergedField::id).toList(),
+                    "dragging a question of the bundle moves the bundle");
+            assertEquals("Adresse", reordered.getFirst().fieldSet().name());
+            assertTrue(reordered.getFirst().fieldSet().heading());
+
+            service.unassignRole(street.id(), ProfileFieldScope.TEAM);
+            assertTrue(
+                    service.findMergedFields(station.id(), ProfileFieldScope.TEAM).stream()
+                            .noneMatch(f -> f.id() == city.id()),
+                    "and letting one question of the bundle go lets the bundle go");
+
+            service.dissolveSet(station.id(), address.id());
+            assertNull(service.findById(city.id()).orElseThrow().fieldSetId(), "dissolving keeps the question");
+        } finally {
+            service.delete(street.id());
+            service.delete(city.id());
+            service.delete(loose.id());
+        }
+    }
+
+    /** A bundle of another station is not one a question can join, and a bundle needs a name. */
+    @Test
+    @Order(22)
+    void aBundleBelongsToItsStationAndHasAName() {
+        var other = stationRepo.create("Fremde Wache Bündel");
+        try {
+            var foreign = service.createSet(other.id(), "Fremd", false);
+            assertEquals(
+                    MemberRefusal.PROFILE_FIELD_SET_NOT_HERE,
+                    assertThrows(RefusalResponse.class, () -> service.requireSetAllowed(station.id(), foreign.id()))
+                            .refusal());
+            assertEquals(
+                    MemberRefusal.PROFILE_FIELD_SET_NEEDS_A_NAME,
+                    assertThrows(RefusalResponse.class, () -> service.createSet(station.id(), " ", false))
+                            .refusal());
+        } finally {
+            stationRepo.delete(other.id());
+        }
+    }
+
+    /**
      * A selection left on its blank entry is an answer that says nothing, and it reaches the column
      * as a document null rather than as an empty column. Read back it is the four letters
      * {@code null}, which is neither empty nor the empty string, so a profile could be called

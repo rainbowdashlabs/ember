@@ -40,6 +40,7 @@ import dev.chojo.ember.feature.board.service.BoardTicketService;
 import dev.chojo.ember.feature.board.service.TicketCommentTarget;
 import dev.chojo.ember.feature.checklist.repository.ChecklistRepository;
 import dev.chojo.ember.feature.cluster.repository.ClusterApplicationRepository;
+import dev.chojo.ember.feature.cluster.repository.ClusterFieldSetRepository;
 import dev.chojo.ember.feature.cluster.repository.ClusterInventoryTagRepository;
 import dev.chojo.ember.feature.cluster.repository.ClusterProfileFieldRepository;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
@@ -168,6 +169,7 @@ import dev.chojo.ember.feature.members.repository.ProfileFieldChangeRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
 import dev.chojo.ember.feature.members.repository.RegistrationCodeRepository;
 import dev.chojo.ember.feature.members.repository.SavedFilterRepository;
+import dev.chojo.ember.feature.members.repository.StationFieldSetRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.members.repository.UserSettingsRepository;
 import dev.chojo.ember.feature.members.repository.UserTagRepository;
@@ -715,7 +717,8 @@ public abstract class RepositoryTestBase {
                 clusterRepo,
                 clusterStationGroupRepo,
                 profileFieldCore,
-                new GenderFields(profileFieldCore, stationRepo));
+                new GenderFields(profileFieldCore, stationRepo),
+                new ClusterFieldSetRepository());
         clusterStorageQuotaRepo = new ClusterStorageQuotaRepository();
         clusterGovernanceService = new ClusterGovernanceService(
                 clusterRepo, clusterStationGroupRepo, stationRepo, new DomainEventBus(Set.of()));
@@ -979,7 +982,8 @@ public abstract class RepositoryTestBase {
                 accountRepo,
                 memberGroupRepo,
                 core,
-                new GenderFields(core, stationRepo));
+                new GenderFields(core, stationRepo),
+                new StationFieldSetRepository());
     }
 
     /**

@@ -1065,7 +1065,18 @@ public enum InventoryRefusal implements Refusal {
     INVENTORY_ASSOCIATION_GEAR_NOT_YOURS_TO_DELETE(
             274,
             HttpStatus.FORBIDDEN,
-            "This gear belongs to the body above the station and can only be deleted by them");
+            "This gear belongs to the body above the station and can only be deleted by them"),
+
+    /** An order that went, or was settled, before a piece from storage could be handed out against it. */
+    PROCUREMENT_NOT_OPEN_FOR_STOCK(276, HttpStatus.NOT_FOUND, "That procurement is no longer open"),
+
+    /** An order for nobody, which has no member to hand a piece from storage to. */
+    PROCUREMENT_FOR_NOBODY_FROM_STOCK(
+            277, HttpStatus.BAD_REQUEST, "This procurement is for nobody, so there is nobody to hand a piece to"),
+
+    /** A piece offered against an order that does not fit it or is no longer free in storage. */
+    PROCUREMENT_PIECE_NOT_IN_STOCK(
+            278, HttpStatus.CONFLICT, "That piece is not free in storage in the size that was ordered");
 
     private final Definition definition;
 

@@ -1671,6 +1671,30 @@ volumes:
             tip: 'Du kannst bestehende Vorlagen duplizieren - so musst du nicht alles nochmal von vorne einrichten.',
         },
         membersConfig: {
+            setsTitle: 'Feldgruppen',
+            setsText: 'Eine Feldgruppe bündelt Felder, die zusammengehören, etwa Straße, Postleitzahl und Ort zu '
+                + 'einer Adresse. Welcher Gruppe ein Feld angehört, wählst du beim Bearbeiten des Felds. Vorlagen '
+                + 'mit mehreren Feldern legen ihre Gruppe gleich mit an.',
+            setsTogether: 'Die Felder einer Gruppe werden immer gemeinsam gestellt: Stellst du eines davon einer '
+                + 'Zielgruppe, bekommt sie alle, und nimmst du eines weg, gehen alle. Im Formular stehen sie '
+                + 'zusammen in der Reihenfolge der Gruppe; verschiebst du eines, wandert die ganze Gruppe mit. '
+                + 'Pflicht, Breite und Änderbarkeit bleiben je Feld einstellbar. In der Feldliste und in der '
+                + 'Formularvorschau stehen die Felder einer Gruppe eingerahmt unter ihrem Namen, und wählst du ein '
+                + 'Feld einer Gruppe aus, gelten die Zielgruppen für die ganze Gruppe.',
+            setsHeading: 'Mit „Name als Überschrift" steht der Name der Gruppe im Formular über ihren Feldern, '
+                + 'ohne dass du eine eigene Überschrift anlegen musst. Löst du eine Gruppe auf, bleiben ihre '
+                + 'Felder samt Antworten erhalten.',
+            shownIfTitle: 'Felder, die nur bei Ja erscheinen',
+            shownIfText: 'Unter „Nur anzeigen, wenn" verbindest du ein Feld mit einer Ja/Nein-Frage. Das Feld '
+                + 'erscheint im Profil erst, wenn die Ja/Nein-Frage mit Ja beantwortet ist, und ist nur dann '
+                + 'Pflicht. So fragt das Profil nach dem JuLeiCa-Ablaufdatum nur, wenn jemand eine JuLeiCa hat. '
+                + 'Wird die Frage wieder auf Nein gesetzt, bleibt die Antwort gespeichert und ist nur ausgeblendet.',
+            shownIfScope: 'Das gilt nur, wenn jemand beide Felder gestellt bekommt. Wer nur das abhängige Feld '
+                + 'bekommt, sieht es immer, mit seiner üblichen Pflicht-Einstellung.',
+            shownIfRules: 'Ein Feld kann nur von einer Ja/Nein-Frage desselben Profils abhängen, und eine Frage, '
+                + 'von der andere abhängen, kann selbst nicht abhängen. Solange Felder von einer Ja/Nein-Frage '
+                + 'abhängen, lässt sie sich weder löschen noch in einen anderen Typ ändern. Die Vorlagen JuLeiCa '
+                + 'und Leistungsspange legen die Verbindung gleich mit an.',
             title: 'Mitglieder-Konfiguration',
             subtitle: 'Profilfelder für Mitglieder einrichten.',
             whatIs: 'Was sind Profilfelder?',
@@ -2428,7 +2452,7 @@ volumes:
             whatIs: 'Was ist mein Inventar?',
             whatIsText: 'Hier siehst du alle Ausrüstungsgegenstände, die dir zugewiesen sind - zum Beispiel Helm, Jacke oder Stiefel. Jeder Gegenstand hat einen Namen und eventuell eine Größe und eine Kennung.',
             exchangeTitle: 'Tausch anfragen',
-            exchangeText: 'Wenn ein Gegenstand nicht mehr passt oder kaputt ist, kannst du einen Tausch anfragen. Klicke auf den Button beim Gegenstand, gib einen Grund an und wähle die gewünschte neue Größe.',
+            exchangeText: 'Wenn ein Gegenstand nicht mehr passt oder kaputt ist, kannst du einen Tausch anfragen. Klicke auf den Button beim Gegenstand und wähle den Grund: zu klein, zu groß, kaputt oder ein anderer Grund in eigenen Worten. Die gewünschte Größe ist danach schon vorgewählt, eine Größe größer, kleiner oder gleich, und steht neben deiner aktuellen Größe. Du kannst sie ändern und eine Anmerkung dazuschreiben.',
             runningTitle: 'Laufende Vorgänge',
             runningText: 'Deine Liste zeigt, was du gerade hast. Läuft für ein Teil ein Vorgang, steht daran der letzte erledigte Schritt und auf wen gerade gewartet wird, genau wie unter den laufenden Vorgängen. Sobald du ein Teil an der Wache abgibst, verschwindet es aus deiner Liste und steht nur noch unter den laufenden Vorgängen. Der Ersatz erscheint in deiner Liste, wenn er dir übergeben wird.',
             withdrawTitle: 'Tausch zurücknehmen',
@@ -2450,8 +2474,7 @@ volumes:
             answersWrongRecord: 'Das ist nicht das, was ich habe - die Wache hat etwas anderes notiert als du tatsächlich hast. Was du wirklich hast, trägst du nicht selbst ein; das macht jemand von der Wache.',
             answersWrongSize: 'Stimmt nur die Größe nicht, stell sie direkt am Stück um: Steht 128 da und du hast ein 134, wählst du 134 aus. Damit ist gesagt, dass die Erfassung nicht stimmt, und die Wache sieht die richtige Größe als Angabe statt als Satz, den jemand lesen muss.',
             answersLost: 'Finde ich nicht mehr - das gilt sofort. Es ist keine Anfrage, und niemand muss sie beantworten. Taucht das Stück wieder auf, kann die Wache das zurücknehmen.',
-            answersExchange: 'Passt nicht mehr - der Tausch geht sofort an die Wache und wartet auf niemanden. Dabei sagst du, welche Größe du brauchst.',
-            answersBroken: 'Ist kaputt - derselbe Tausch, nur aus einem anderen Grund. Die Größe darf dieselbe bleiben, und du kannst sie auch offenlassen. Die Wache sieht am Tausch, ob er entstand, weil etwas nicht mehr passt oder weil es kaputt ist.',
+            answersExchange: 'Tauschen - der Tausch geht sofort an die Wache und wartet auf niemanden. Du wählst den Grund: zu klein, zu groß, kaputt oder ein anderer Grund in eigenen Worten. Zu klein und zu groß stellen die gewünschte Größe eine Größe weiter, kaputt lässt sie gleich. Neben der gewünschten steht deine aktuelle Größe, und du kannst die Vorauswahl jederzeit ändern.',
             answersNeverHad: 'Hatte ich nie - für einen Platz, für den du nie etwas bekommen hast.',
             answersHaveOne: 'Ich habe eins - du hast etwas, das niemand notiert hat. Steht eine Nummer darauf, kannst du sie eintippen; du musst aber nicht. Gibt es das Stück in Größen, kannst du die Größe dazusagen. Auch das ist freiwillig: Weißt du sie nicht, kommst du trotzdem durch, und die Wache sieht, dass keine genannt wurde.',
             answersBorrowedText: 'Bei Material einer Partnerwache kannst du nur sagen, ob du es hast. Ein Verlust gehört dort auf die Ausleihe, über die es zu euch gekommen ist.',
@@ -2700,6 +2723,11 @@ volumes:
             fulfilledText: 'Ist die Ausrüstung angekommen, markiere die Beschaffung als erledigt. Ember erfasst das '
                 + 'Teil und startet die Ausgabe an das Mitglied: es liegt im Lager und ist vorgemerkt, bis jemand es '
                 + 'übergibt und den Schritt bestätigt. War die Bestellung für das Lager, bleibt das Teil dort.',
+            fromStockTitle: 'Aus dem Lager ausgeben',
+            fromStockText: 'Liegt ein passendes Stück (gleiches Inventar, gleiche Größe) bereits frei im Lager der Wache, '
+                + 'zeigt die Beschaffung an, wie viele es sind. Mit „Aus dem Lager ausgeben" wählst du eines davon aus: '
+                + 'Ember startet die Ausgabe an das Mitglied als Bewegung und markiert die Beschaffung als erledigt, '
+                + 'ohne ein neues Teil zu erfassen.',
             tip: 'Beschaffungen können auch direkt aus Tausch-Anfragen oder der Inventarprüfung erstellt werden.',
         },
         inventoryLending: {
@@ -5713,7 +5741,7 @@ volumes:
             countTitle: 'Mehrere gleiche Gegenstände',
             countText: 'Sind von einem Gegenstand mehrere gefordert, steht vor jeder Zeile eine Nummer: 1/2 und 2/2 bei zwei T-Shirts. In der Schnellprüfung steht dieselbe Nummer über dem Gegenstand, damit klar ist, welches Stück gerade gemeint ist.',
             exchangeTitle: 'Tausch aus der Prüfung heraus',
-            exchangeText: 'Über „Tausch" hältst du fest, dass ein Stück ersetzt werden muss. Dabei wirst du gefragt, ob der Gegenstand gleich abgegeben wurde: ist er abgegeben, ist der Tausch bereits einen Schritt weiter, sonst ist er nur angekündigt. So oder so geht die Prüfung zum nächsten Gegenstand.',
+            exchangeText: 'Über „Tausch" hältst du fest, dass ein Stück ersetzt werden muss. Den Grund wählst du wie bei jedem Tausch: zu klein, zu groß, kaputt oder ein anderer Grund, und die gewünschte Größe steht danach schon neben der aktuellen. Dabei wirst du gefragt, ob der Gegenstand gleich abgegeben wurde: ist er abgegeben, ist der Tausch bereits einen Schritt weiter, sonst ist er nur angekündigt. So oder so geht die Prüfung zum nächsten Gegenstand.',
             partialTitle: 'Teilweise prüfen',
             partialText: 'Du musst nicht alles auf einmal prüfen. Gespeichert wird nur, was du wirklich markiert hast; alles andere behält das Ergebnis der letzten Prüfung.',
             correctTitle: 'Eintrag korrigieren',

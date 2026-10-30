@@ -17,6 +17,7 @@ import dev.chojo.ember.feature.generator.service.DocumentTemplateService.Documen
 import dev.chojo.ember.feature.generator.service.GeneratorTestBase;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.MemberGroupSetRepository;
+import dev.chojo.ember.feature.members.repository.StationFieldSetRepository;
 import dev.chojo.ember.owner.Owner;
 import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.BeforeAll;
@@ -52,7 +53,8 @@ class DemoDocumentTemplateSeederTest extends RepositoryTestBase {
                         profileFieldRepo,
                         profileFieldChangeRepo,
                         userTagRepo,
-                        stationRepo)
+                        stationRepo,
+                        new StationFieldSetRepository())
                 .seed(run);
         wiring = GeneratorTestBase.wire(run.primaryStation().station());
         seeder = new DemoDocumentTemplateSeeder(wiring.templates(), memberGroupRepo);

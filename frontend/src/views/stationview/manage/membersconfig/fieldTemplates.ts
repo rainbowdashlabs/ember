@@ -20,6 +20,8 @@ export interface TemplateField {
   config: FieldSettings
   required?: boolean
   readonly?: boolean
+  /** The name of a yes/no field of the same template this one is only shown behind. */
+  shownIf?: string
 }
 
 /**
@@ -79,6 +81,7 @@ const MEMBER_DATA_TEMPLATES: readonly FieldTemplate[] = [
         fieldType: 'EXPIRY_DATE',
         config: {warnFromDays: 90, reminderDays: [90, 30]},
         readonly: true,
+        shownIf: 'JuLeiCa',
       },
     ],
   },
@@ -110,7 +113,7 @@ const QUALIFICATION_TEMPLATES: readonly FieldTemplate[] = [
   {
     name: 'Leistungsspange', icon: 'medal', fields: [
       {name: 'Leistungsspange', fieldType: 'BOOLEAN', config: {}, readonly: true},
-      {name: 'Leistungsspange Datum', fieldType: 'DATE', config: {}, readonly: true},
+      {name: 'Leistungsspange Datum', fieldType: 'DATE', config: {}, readonly: true, shownIf: 'Leistungsspange'},
     ],
   },
   {

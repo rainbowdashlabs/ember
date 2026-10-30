@@ -14,6 +14,7 @@ import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.cluster.repository.ClusterRepository;
 import dev.chojo.ember.feature.inventory.entity.Inventory;
 import dev.chojo.ember.feature.inventory.entity.InventoryItem;
+import dev.chojo.ember.feature.inventory.entity.ItemMovement;
 import dev.chojo.ember.feature.inventory.entity.ItemOwner;
 import dev.chojo.ember.feature.inventory.entity.MovementPurpose;
 import dev.chojo.ember.feature.inventory.entity.Procurement;
@@ -28,6 +29,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 @Singleton
@@ -203,6 +205,66 @@ public class ProcurementService {
                     noChain.getMessage());
             inventoryService.assignItem(item.id(), memberId, "");
         }
+    }
+
+    /**
+     * The pieces already lying in the station's storage that would answer an open order: the same
+     * inventory, the same size, free in storage and not promised to any open movement.
+     *
+     * <p>An order for nobody, or one already settled, has nobody to hand a piece to and gets nothing.
+     *
+     * @param procurement the order
+     * @return the matching pieces, ordered by name
+     */
+    public List<InventoryItem> stockFor(Procurement procurement) {
+        if (procurement.memberId() == null || procurement.fulfilledAt() != null) return List.of();
+        return inventoryRepository.findUnassignedItems(procurement.inventoryId()).stream()
+                .filter(item -> Objects.equals(item.sizeId(), procurement.sizeId()))
+                .filter(item -> !movementService.isOnAMovement(item.id()))
+                .toList();
+    }
+
+    /**
+     * Settles an open order with a piece the station already has rather than one that was bought.
+     *
+     * <p>The piece goes on the station's chain for handing gear out to the member the order was for,
+     * and the order is marked fulfilled. No new piece is written down, since nothing arrived.
+     *
+     * @param id     the order
+     * @param itemId the piece from storage
+     * @param actor  who is starting the hand-out
+     * @return the movement that hands the piece out
+     */
+    public ItemMovement issueFromStock(int id, int itemId, ItemMovementService.Actor actor) {
+        var proc = procurementRepository
+                .findById(id)
+                .filter(found -> found.fulfilledAt() == null)
+                .orElseThrow(InventoryRefusal.PROCUREMENT_NOT_OPEN_FOR_STOCK::raise);
+        Integer memberId = proc.memberId();
+        if (memberId == null) throw InventoryRefusal.PROCUREMENT_FOR_NOBODY_FROM_STOCK.raise();
+        if (stockFor(proc).stream().noneMatch(item -> item.id() == itemId)) {
+            throw InventoryRefusal.PROCUREMENT_PIECE_NOT_IN_STOCK.raise();
+        }
+        var movement = movementService.create(
+                proc.stationId(),
+                MovementPurpose.ISSUE,
+                memberId,
+                memberName(memberId),
+                null,
+                proc.inventoryId(),
+                null,
+                proc.sizeId(),
+                reasonFor(proc),
+                actor,
+                itemId);
+        procurementRepository.fulfill(id);
+        log.info(
+                "Procurement {} settled from storage with item {} on movement {} (station={})",
+                id,
+                itemId,
+                movement.id(),
+                proc.stationId());
+        return movement;
     }
 
     /** What the movement says it is for, which is the order it came out of. */

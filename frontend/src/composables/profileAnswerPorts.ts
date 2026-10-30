@@ -27,6 +27,8 @@ export function associationSnapshot(profile: MemberProfileResponse): ProfileAnsw
             fieldType: field.fieldType,
             config: field.config ?? {},
             origin: originOf(field.origin),
+            shownIfFieldId: field.shownIfFieldId,
+            fieldSet: field.fieldSet,
         })),
         values: profile.values.map(value => ({
             fieldId: value.fieldId,

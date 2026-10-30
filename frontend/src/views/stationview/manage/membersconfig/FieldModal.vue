@@ -13,6 +13,8 @@ import AgeFields from './fieldmodal/AgeFields.vue'
 import QuestionSettingsEditor from '@/components/input/questionsettings/QuestionSettingsEditor.vue'
 import BirthDateFields from './fieldmodal/BirthDateFields.vue'
 import ExpiryDateFields from './fieldmodal/ExpiryDateFields.vue'
+import ShownIfField from './fieldmodal/ShownIfField.vue'
+import FieldSetField from './fieldmodal/FieldSetField.vue'
 import BehaviorToggles from './fieldmodal/BehaviorToggles.vue'
 import ModalActions from './fieldmodal/ModalActions.vue'
 import WidthField from '@/components/profilefields/WidthField.vue'
@@ -23,7 +25,7 @@ import {
 import GenderPronounsEditor from './fieldmodal/GenderPronounsEditor.vue'
 import {loadPronounOffer, type GenderPronouns, type PronounOffer} from './fieldmodal/genderPronouns'
 import {holdsValue as typeHoldsValue, isChoiceType, isDateType} from '@/api/fieldTypes'
-import {FieldType} from '@/api/generated/schema'
+import {FieldType, type FieldSet} from '@/api/generated/schema'
 import {
     defaultAsText, TODAY, typedDefault,
     type QuestionSetting, type QuestionSettingsModel,
@@ -47,6 +49,10 @@ const modelValue = defineModel<boolean>({required: true})
 const props = defineProps<{
   field: EditableField | null
   dateFields: EditableField[]
+  /** The owner's yes/no questions, which this one can be shown behind. */
+  booleanFields: EditableField[]
+  /** The owner's groups of fields, which this one can join. */
+  sets: FieldSet[]
   /** The field that already is the station's birth date, if any. */
   birthDateField: EditableField | null
   /** The field that already is the owner's gender, if any. */
@@ -82,6 +88,8 @@ const fieldShowAge = ref(true)
 const fieldExpiry = ref<ExpirySettings>(expirySettingsOf({}))
 const fieldWidth = ref<string>(FieldWidths.FULL)
 const fieldPronouns = ref<GenderPronouns>({})
+const fieldShownIf = ref<number | null>(null)
+const fieldSetId = ref<number | null>(null)
 const pronounOffer = shallowRef<PronounOffer | null>(null)
 const saving = ref(false)
 
@@ -131,6 +139,8 @@ watch(modelValue, (open) => {
   fieldDescription.value = typeof cfg.description === 'string' ? cfg.description : ''
   fieldRequired.value = !!f?.required
   fieldReadonly.value = !!f?.readonly
+  fieldShownIf.value = f?.shownIfFieldId ?? null
+  fieldSetId.value = f?.fieldSetId ?? null
   fieldNotifyOnChange.value = !!cfg.notifyOnChange
   fieldOverview.value = !!cfg.overview
   fieldSettings.value = {
@@ -201,6 +211,8 @@ function submit() {
     readonly: fieldReadonly.value,
     width: fieldWidth.value === FieldWidths.FULL ? null : fieldWidth.value,
     keepOnArchive: fieldKeepOnArchive.value,
+    shownIfFieldId: holdsValue.value ? fieldShownIf.value : null,
+    fieldSetId: fieldSetId.value,
   })
   saving.value = false
 }
@@ -230,9 +242,11 @@ function submit() {
           v-model:keep-on-archive="fieldKeepOnArchive"
           :calculated="isCalculated"
         />
+        <ShownIfField v-model="fieldShownIf" :boolean-fields="booleanFields" :field-id="field?.id ?? null"/>
         <WidthField v-model="fieldWidth"/>
       </template>
       <WidthField v-if="isSpacer" v-model="fieldWidth"/>
+      <FieldSetField v-model="fieldSetId" :sets="sets"/>
       <ModalActions
           :saving="saving"
           :disabled="!fieldName && !isSpacer"

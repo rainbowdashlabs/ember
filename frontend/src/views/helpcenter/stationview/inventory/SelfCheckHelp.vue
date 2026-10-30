@@ -29,7 +29,6 @@ const {t} = useI18n()
         <li>{{ t('helpCenter.inventorySelfCheck.answersWrongSize') }}</li>
         <li>{{ t('helpCenter.inventorySelfCheck.answersLost') }}</li>
         <li>{{ t('helpCenter.inventorySelfCheck.answersExchange') }}</li>
-        <li>{{ t('helpCenter.inventorySelfCheck.answersBroken') }}</li>
         <li>{{ t('helpCenter.inventorySelfCheck.answersNeverHad') }}</li>
         <li>{{ t('helpCenter.inventorySelfCheck.answersHaveOne') }}</li>
       </ul>

@@ -92,7 +92,9 @@ public class AssociationProfileFields implements ProfileFieldOwner {
                         assigned.readonly(),
                         role,
                         FieldOrigin.CLUSTER,
-                        assigned.field().stationReadonly()))
+                        assigned.field().stationReadonly(),
+                        assigned.field().shownIfFieldId(),
+                        assigned.set()))
                 .toList();
     }
 

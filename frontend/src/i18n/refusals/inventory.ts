@@ -337,4 +337,7 @@ export default {
     'I-272': 'Diese Ausrüstung gehört dem Verband über der Wache, nur er kann sie anders beschreiben',
     'I-273': 'Diese Ausrüstung gehört dem Verband über der Wache, nur er kann sie verschieben',
     'I-274': 'Diese Ausrüstung gehört dem Verband über der Wache, nur er kann sie löschen',
+    'I-276': 'Diese Beschaffung ist nicht mehr offen',
+    'I-277': 'Diese Beschaffung ist für niemanden, es gibt also niemanden, dem ein Stück ausgegeben werden kann',
+    'I-278':'Dieses Stück liegt nicht mehr frei im Lager oder hat nicht die bestellte Größe',
 }

@@ -11,6 +11,8 @@ import dev.chojo.ember.feature.account.repository.AccountRepository;
 import dev.chojo.ember.feature.members.entity.AssignedProfileField;
 import dev.chojo.ember.feature.members.entity.FieldDraft;
 import dev.chojo.ember.feature.members.entity.FieldOrigin;
+import dev.chojo.ember.feature.members.entity.FieldSet;
+import dev.chojo.ember.feature.members.entity.FieldSetLabel;
 import dev.chojo.ember.feature.members.entity.FieldValueEntry;
 import dev.chojo.ember.feature.members.entity.MemberChangeSummary;
 import dev.chojo.ember.feature.members.entity.NameParts;
@@ -22,10 +24,12 @@ import dev.chojo.ember.feature.members.entity.ProfileFieldChange;
 import dev.chojo.ember.feature.members.entity.ProfileFieldChangeAcknowledgement;
 import dev.chojo.ember.feature.members.entity.ProfileFieldConfig;
 import dev.chojo.ember.feature.members.entity.ProfileFieldScope;
+import dev.chojo.ember.feature.members.entity.ProfileFieldTarget;
 import dev.chojo.ember.feature.members.entity.ProfileWriter;
 import dev.chojo.ember.feature.members.repository.MemberGroupRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldChangeRepository;
 import dev.chojo.ember.feature.members.repository.ProfileFieldRepository;
+import dev.chojo.ember.feature.members.repository.StationFieldSetRepository;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
 import dev.chojo.ember.feature.question.FieldType;
 import dev.chojo.ember.owner.Owner;
@@ -37,8 +41,10 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -60,6 +66,7 @@ public class ProfileFieldService {
     private final MemberGroupRepository memberGroupRepository;
     private final ProfileFieldCore core;
     private final GenderFields genders;
+    private final StationFieldSetRepository sets;
 
     @Inject
     public ProfileFieldService(
@@ -69,7 +76,8 @@ public class ProfileFieldService {
             AccountRepository accountRepository,
             MemberGroupRepository memberGroupRepository,
             ProfileFieldCore core,
-            GenderFields genders) {
+            GenderFields genders,
+            StationFieldSetRepository sets) {
         this.profileFieldRepository = profileFieldRepository;
         this.changeRepository = changeRepository;
         this.stationMemberRepository = stationMemberRepository;
@@ -77,6 +85,131 @@ public class ProfileFieldService {
         this.memberGroupRepository = memberGroupRepository;
         this.core = core;
         this.genders = genders;
+        this.sets = sets;
+    }
+
+    /** The station's bundles of questions, by name. */
+    public List<FieldSet> findSets(int stationId) {
+        return sets.findByOwner(stationId);
+    }
+
+    /**
+     * Writes a new, empty bundle down.
+     *
+     * @throws RefusalResponse {@link MemberRefusal#PROFILE_FIELD_SET_NEEDS_A_NAME} for a blank name
+     */
+    public FieldSet createSet(int stationId, @Nullable String name, boolean nameAsSection) {
+        FieldSet set = sets.create(stationId, requireSetName(name), nameAsSection);
+        log.info("Station {} bundled questions as set {} '{}'", stationId, set.id(), set.name());
+        return set;
+    }
+
+    /** Renames a bundle, or changes whether its name stands above its questions. */
+    public void updateSet(int stationId, int setId, @Nullable String name, boolean nameAsSection) {
+        requireSet(stationId, setId);
+        sets.update(setId, requireSetName(name), nameAsSection);
+    }
+
+    /** Dissolves a bundle. Its questions stay, on their own, where they stand. */
+    public void dissolveSet(int stationId, int setId) {
+        requireSet(stationId, setId);
+        sets.delete(setId);
+        log.info("Station {} dissolved set {}", stationId, setId);
+    }
+
+    /** Puts a bundle's questions in a new order, which every form follows. */
+    public void orderSet(int stationId, int setId, List<Integer> fieldIds) {
+        requireSet(stationId, setId);
+        sets.applyOrder(setId, fieldIds);
+        keepSetsTogether(stationId);
+    }
+
+    /**
+     * Refuses a bundle that is not the station's, before anything else of a question is written.
+     *
+     * @param setId the bundle, or {@code null} for none, which is always allowed
+     */
+    public void requireSetAllowed(int stationId, @Nullable Integer setId) {
+        if (setId != null) requireSet(stationId, setId);
+    }
+
+    /**
+     * Puts a question into a bundle, at its end, or takes it out. A question joining a bundle is put to
+     * everybody the bundle's first question is put to, so the bundle stays one thing on every form.
+     *
+     * @param setId the bundle, or {@code null} to stand on its own
+     */
+    public void joinSet(int fieldId, @Nullable Integer setId) {
+        ProfileField field = profileFieldRepository.findById(fieldId).orElse(null);
+        if (field == null || Objects.equals(field.fieldSetId(), setId)) return;
+        requireSetAllowed(field.stationId(), setId);
+        List<Integer> others = setId == null ? List.of() : sets.members(setId);
+        sets.place(fieldId, setId);
+        if (!others.isEmpty()) {
+            for (ProfileFieldAssignment asked : profileFieldRepository.findAssignments(others.getFirst())) {
+                askIfNotYet(fieldId, asked);
+            }
+        }
+        keepSetsTogether(field.stationId());
+        log.info("Profile field {} now in set {}", fieldId, setId);
+    }
+
+    private FieldSet requireSet(int stationId, int setId) {
+        return sets.findById(setId)
+                .filter(set -> set.ownerId() == stationId)
+                .orElseThrow(MemberRefusal.PROFILE_FIELD_SET_NOT_HERE::raise);
+    }
+
+    private static String requireSetName(@Nullable String name) {
+        if (name == null || name.isBlank()) throw MemberRefusal.PROFILE_FIELD_SET_NEEDS_A_NAME.raise();
+        return name.strip();
+    }
+
+    /** The other questions of the bundle a question is in, or none. */
+    private List<Integer> siblingsOf(int fieldId) {
+        Integer setId = profileFieldRepository
+                .findById(fieldId)
+                .map(ProfileField::fieldSetId)
+                .orElse(null);
+        if (setId == null) return List.of();
+        return sets.members(setId).stream().filter(id -> id != fieldId).toList();
+    }
+
+    /** Puts a question to the audience of an assignment, unless that audience is asked it already. */
+    private void askIfNotYet(int fieldId, ProfileFieldAssignment like) {
+        boolean asked = profileFieldRepository.findAssignments(fieldId).stream()
+                .anyMatch(a -> a.targetKind() == like.targetKind()
+                        && Objects.equals(a.role(), like.role())
+                        && Objects.equals(a.groupId(), like.groupId()));
+        if (asked) return;
+        ProfileFieldScope role = like.role();
+        Integer groupId = like.groupId();
+        if (role != null) {
+            profileFieldRepository.assignToRole(fieldId, role, like.position(), null, null, null);
+        } else if (groupId != null) {
+            profileFieldRepository.assignToGroup(fieldId, groupId, like.position(), null, null, null);
+        }
+    }
+
+    /**
+     * Puts every form of the station back into an order that keeps each bundle together. The forms of
+     * kinds of member are kept in order; a group's form follows the order the questions were put to it.
+     */
+    private void keepSetsTogether(int stationId) {
+        var placements = sets.placements(stationId);
+        Map<ProfileFieldScope, List<ProfileFieldAssignment>> forms =
+                profileFieldRepository.findAssignmentsByStation(stationId).stream()
+                        .filter(assignment -> assignment.role() != null)
+                        .collect(Collectors.groupingBy(ProfileFieldAssignment::role));
+        forms.forEach((role, form) -> profileFieldRepository.applyOrder(
+                stationId,
+                role,
+                FieldSets.keepTogether(
+                        form.stream()
+                                .sorted(Comparator.comparingInt(ProfileFieldAssignment::position))
+                                .map(ProfileFieldAssignment::fieldId)
+                                .toList(),
+                        placements)));
     }
 
     public List<ProfileField> findByStation(int stationId) {
@@ -139,6 +272,11 @@ public class ProfileFieldService {
      * @param origin            who asked
      * @param readonlyAtStation whether the people at the station may read the answer but not write it, which
      *                          only an association's field can be
+     * @param shownIfFieldId    the yes/no field of the same origin this one depends on, or {@code null}. It only
+     *                          takes effect where that field is asked on the same form: hidden and not required
+     *                          until it is answered yes
+     * @param fieldSet          the bundle of the same origin this one belongs to, or {@code null}. A form keeps
+     *                          its questions together and shows its name above them where it says so
      */
     public record MergedField(
             int id,
@@ -151,7 +289,9 @@ public class ProfileFieldService {
             boolean readonly,
             @Nullable ProfileFieldScope role,
             FieldOrigin origin,
-            boolean readonlyAtStation) {
+            boolean readonlyAtStation,
+            @Nullable Integer shownIfFieldId,
+            @Nullable FieldSetLabel fieldSet) {
         /**
          * What tells this question apart from every other one a member can be asked.
          *
@@ -246,6 +386,7 @@ public class ProfileFieldService {
             return Optional.empty();
         }
         int stationId = existing.get().stationId();
+        FieldDependencies.requireNotStillUsed(id, fieldType, dependencyNodes(stationId));
         var stored = config.withPronounsOfItsAnswers();
         String chosen = core.checkedName(new Owner.Station(stationId), new FieldDraft(name, fieldType, stored, false));
         requireSingleBirthDate(stationId, fieldType, id);
@@ -293,7 +434,8 @@ public class ProfileFieldService {
      * @param fieldIds  the fields in the order they should stand
      */
     public void reorder(int stationId, ProfileFieldScope role, List<Integer> fieldIds) {
-        int moved = profileFieldRepository.applyOrder(stationId, role, fieldIds);
+        int moved = profileFieldRepository.applyOrder(
+                stationId, role, FieldSets.keepTogether(fieldIds, sets.placements(stationId)));
         log.info("Profile fields reordered: station={}, role={}, fields={}", stationId, role, moved);
     }
 
@@ -325,7 +467,18 @@ public class ProfileFieldService {
             @Nullable Boolean readonlyOverride,
             @Nullable Boolean requiredOverride) {
         profileFieldRepository.assignToRole(fieldId, role, position, widthOverride, readonlyOverride, requiredOverride);
+        List<Integer> siblings = siblingsOf(fieldId);
+        if (!siblings.isEmpty()) {
+            for (Integer sibling : siblings) {
+                askIfNotYet(sibling, roleAssignment(fieldId, role, position));
+            }
+            profileFieldRepository.findById(fieldId).ifPresent(field -> keepSetsTogether(field.stationId()));
+        }
         log.info("Profile field {} is asked of {}", fieldId, role);
+    }
+
+    private static ProfileFieldAssignment roleAssignment(int fieldId, ProfileFieldScope role, int position) {
+        return new ProfileFieldAssignment(0, fieldId, ProfileFieldTarget.ROLE, role, null, position, null, null, null);
     }
 
     /**
@@ -350,6 +503,12 @@ public class ProfileFieldService {
         requireGroupOfTheFieldsStation(fieldId, groupId);
         profileFieldRepository.assignToGroup(
                 fieldId, groupId, position, widthOverride, readonlyOverride, requiredOverride);
+        for (Integer sibling : siblingsOf(fieldId)) {
+            askIfNotYet(
+                    sibling,
+                    new ProfileFieldAssignment(
+                            0, fieldId, ProfileFieldTarget.GROUP, null, groupId, position, null, null, null));
+        }
         log.info("Profile field {} is asked of group {}", fieldId, groupId);
     }
 
@@ -363,21 +522,73 @@ public class ProfileFieldService {
         if (!own) throw MemberRefusal.PROFILE_FIELD_GROUP_NOT_HERE.raise();
     }
 
-    /** Stops asking a kind of member this question. The definition and its answers stay. */
+    /**
+     * Stops asking a kind of member this question, and the rest of its bundle with it. The definitions and
+     * their answers stay.
+     */
     public boolean unassignRole(int fieldId, ProfileFieldScope role) {
+        for (Integer sibling : siblingsOf(fieldId)) profileFieldRepository.unassignRole(sibling, role);
         boolean removed = profileFieldRepository.unassignRole(fieldId, role);
         if (removed) log.info("Profile field {} is no longer asked of {}", fieldId, role);
         return removed;
     }
 
-    /** Stops asking a group this question. The definition and its answers stay. */
+    /**
+     * Stops asking a group this question, and the rest of its bundle with it. The definitions and their
+     * answers stay.
+     */
     public boolean unassignGroup(int fieldId, int groupId) {
+        for (Integer sibling : siblingsOf(fieldId)) profileFieldRepository.unassignGroup(sibling, groupId);
         boolean removed = profileFieldRepository.unassignGroup(fieldId, groupId);
         if (removed) log.info("Profile field {} is no longer asked of group {}", fieldId, groupId);
         return removed;
     }
 
+    /**
+     * Makes a question depend on a yes/no question of the same station, or no longer depend on any.
+     *
+     * @param id         the question
+     * @param controller the yes/no question, or {@code null} for none
+     * @throws RefusalResponse the refusals of {@link FieldDependencies#requireAllowed}
+     */
+    public void dependOn(int id, @Nullable Integer controller) {
+        var field = profileFieldRepository.findById(id).orElse(null);
+        if (field == null || Objects.equals(field.shownIfFieldId(), controller)) return;
+        requireDependencyAllowed(field.stationId(), id, controller);
+        profileFieldRepository.setShownIf(id, controller);
+        log.info("Profile field {} now depends on {}", id, controller);
+    }
+
+    /**
+     * Refuses a dependency before anything else of the question is written, so a refused one leaves the
+     * question as it was.
+     *
+     * @param stationId  the station whose questions these are
+     * @param id         the question, or 0 for one about to be created
+     * @param controller the yes/no question, or {@code null} for none
+     * @throws RefusalResponse the refusals of {@link FieldDependencies#requireAllowed}
+     */
+    public void requireDependencyAllowed(int stationId, int id, @Nullable Integer controller) {
+        FieldDependencies.requireAllowed(id, controller, dependencyNodes(stationId));
+    }
+
+    private List<FieldDependencies.Node> dependencyNodes(int stationId) {
+        return profileFieldRepository.findByStation(stationId).stream()
+                .map(field ->
+                        new FieldDependencies.Node(field.id(), field.name(), field.fieldType(), field.shownIfFieldId()))
+                .toList();
+    }
+
+    /**
+     * Deletes a question and its answers.
+     *
+     * @throws RefusalResponse {@link MemberRefusal#PROFILE_DEPENDENCY_STILL_USED} while others depend on it
+     */
     public boolean delete(int id) {
+        profileFieldRepository
+                .findById(id)
+                .ifPresent(
+                        field -> FieldDependencies.requireNotStillUsed(id, null, dependencyNodes(field.stationId())));
         boolean deleted = profileFieldRepository.delete(id);
         if (deleted) {
             log.info("Profile field deleted: id={}", id);

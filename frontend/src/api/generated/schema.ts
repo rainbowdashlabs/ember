@@ -15229,6 +15229,175 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/cluster/field-sets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The groups the association keeps its profile fields in */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FieldSet"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Write down a new, empty group of profile fields */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["FieldSetRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FieldSet"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cluster/field-sets/{setId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Rename a group of profile fields, or change whether its name is a heading */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    setId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["FieldSetRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        /** Dissolve a group of profile fields, keeping its fields */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    setId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cluster/field-sets/{setId}/order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Put the fields of a group in order */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    setId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["FieldSetOrderRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/cluster/fields": {
         parameters: {
             query?: never;
@@ -45298,6 +45467,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/procurement/{id}/issue-from-stock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Settle a procurement request with a piece from storage by handing it out through a movement */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["IssueFromStockRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["IssueFromStockResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/procurement/open": {
         parameters: {
             query?: never;
@@ -45444,6 +45673,202 @@ export interface paths {
             };
         };
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/profile-field-sets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The groups this station keeps its profile fields in */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FieldSet"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Write down a new, empty group of profile fields */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["FieldSetRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FieldSet"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/profile-field-sets/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Rename a group of profile fields, or change whether its name is a heading */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["FieldSetRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Dissolve a group of profile fields, keeping its fields */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/profile-field-sets/{id}/order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Put the fields of a group in order */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["FieldSetOrderRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponseWrapper"];
+                    };
+                };
+            };
+        };
         post?: never;
         delete?: never;
         options?: never;
@@ -63246,11 +63671,15 @@ export interface components {
         };
         ClusterFieldRequest: {
             config?: components["schemas"]["ProfileFieldConfig"];
+            /** Format: int32 */
+            fieldSetId?: number | null;
             fieldType?: string;
             keepOnArchive?: boolean;
             name?: string;
             readonly?: boolean;
             required?: boolean;
+            /** Format: int32 */
+            shownIfFieldId?: number | null;
             /** Format: int32 */
             stationGroupId?: number | null;
             stationReadonly?: boolean;
@@ -63258,6 +63687,8 @@ export interface components {
         };
         ClusterFieldResponse: {
             config: components["schemas"]["ProfileFieldConfig"];
+            /** Format: int32 */
+            fieldSetId: number | null;
             fieldType: components["schemas"]["FieldType"];
             /** Format: int32 */
             id: number;
@@ -63265,6 +63696,10 @@ export interface components {
             name: string;
             readonly: boolean;
             required: boolean;
+            /** Format: int32 */
+            setPosition: number;
+            /** Format: int32 */
+            shownIfFieldId: number | null;
             /** Format: int32 */
             stationGroupId: number | null;
             stationReadonly: boolean;
@@ -65363,6 +65798,27 @@ export interface components {
         };
         /** @enum {string} */
         FieldRole: "PARTICIPANT" | "GUARDIAN" | "ANY_GUARDIAN" | "ISSUER";
+        FieldSet: {
+            /** Format: int32 */
+            id: number;
+            name: string;
+            nameAsSection: boolean;
+            /** Format: int32 */
+            ownerId: number;
+        };
+        FieldSetLabel: {
+            heading: boolean;
+            /** Format: int32 */
+            id: number;
+            name: string;
+        };
+        FieldSetOrderRequest: {
+            fieldIds?: number[] | null;
+        };
+        FieldSetRequest: {
+            name?: string | null;
+            nameAsSection?: boolean;
+        };
         /** @enum {string} */
         FieldState: "OPEN" | "SIGNED" | "PAPER_CONFIRMED" | "WAIVED" | "WITHDRAWN";
         /** @enum {string} */
@@ -66622,6 +67078,14 @@ export interface components {
             loginName: string;
             name: string;
             password: string;
+        };
+        IssueFromStockRequest: {
+            /** Format: int32 */
+            itemId?: number;
+        };
+        IssueFromStockResponse: {
+            /** Format: int32 */
+            movementId: number;
         };
         IssuerChoice: {
             function?: string | null;
@@ -67940,6 +68404,7 @@ export interface components {
         };
         MemberProfileFieldResponse: {
             config: components["schemas"]["ProfileFieldConfig"] | null;
+            fieldSet: components["schemas"]["FieldSetLabel"] | null;
             fieldType: string;
             /** Format: int32 */
             id: number;
@@ -67951,6 +68416,8 @@ export interface components {
             readonlyAtStation: boolean;
             required: boolean;
             role: string | null;
+            /** Format: int32 */
+            shownIfFieldId: number | null;
             width: string | null;
         };
         MemberProfileRequest: {
@@ -68092,6 +68559,7 @@ export interface components {
         };
         MergedField: {
             config: components["schemas"]["ProfileFieldConfig"];
+            fieldSet: components["schemas"]["FieldSetLabel"] | null;
             fieldType: components["schemas"]["FieldType"];
             /** Format: int32 */
             id: number;
@@ -68103,6 +68571,8 @@ export interface components {
             readonlyAtStation: boolean;
             required: boolean;
             role: components["schemas"]["ProfileFieldScope"] | null;
+            /** Format: int32 */
+            shownIfFieldId: number | null;
             width: string | null;
         };
         MergedValue: {
@@ -69425,9 +69895,12 @@ export interface components {
             /** Format: int32 */
             sizeId: number | null;
             sizeLabel: string | null;
+            stock: components["schemas"]["StockPiece"][];
         };
         ProfileField: {
             config: components["schemas"]["ProfileFieldConfig"];
+            /** Format: int32 */
+            fieldSetId: number | null;
             fieldType: components["schemas"]["FieldType"];
             /** Format: int32 */
             id: number;
@@ -69435,6 +69908,10 @@ export interface components {
             name: string;
             readonly: boolean;
             required: boolean;
+            /** Format: int32 */
+            setPosition: number;
+            /** Format: int32 */
+            shownIfFieldId: number | null;
             /** Format: uuid */
             stationId: string;
             width: string | null;
@@ -69513,11 +69990,15 @@ export interface components {
         };
         ProfileFieldRequest: {
             config?: components["schemas"]["ProfileFieldConfig"];
+            /** Format: int32 */
+            fieldSetId?: number | null;
             fieldType?: components["schemas"]["FieldType"];
             keepOnArchive?: boolean;
             name?: string;
             readonly?: boolean;
             required?: boolean;
+            /** Format: int32 */
+            shownIfFieldId?: number | null;
             width?: string | null;
         };
         /** @enum {string} */
@@ -72306,6 +72787,12 @@ export interface components {
         StepUpVerifiedResponse: {
             verifiedAt: components["schemas"]["Instant"];
         };
+        StockPiece: {
+            /** Format: int32 */
+            id: number;
+            internalId: string | null;
+            name: string;
+        };
         /** @enum {string} */
         StorageAuditAction: "CREATED" | "UPDATED" | "DELETED" | "PROBE_OK" | "PROBE_FAILED" | "MIGRATION_STARTED" | "MIGRATION_COMPLETED" | "MIGRATION_FAILED" | "REJECTED" | "INSTANCE_DEFAULT_UPDATED" | "INSTANCE_MIGRATION_STARTED" | "INSTANCE_MIGRATION_COMPLETED" | "INSTANCE_MIGRATION_FAILED" | "POLICY_CHANGED";
         /** @enum {string} */
@@ -74119,6 +74606,10 @@ export type FieldOrigin = components['schemas']['FieldOrigin'];
 export type FieldRect = components['schemas']['FieldRect'];
 export type FieldRequest = components['schemas']['FieldRequest'];
 export type FieldRole = components['schemas']['FieldRole'];
+export type FieldSet = components['schemas']['FieldSet'];
+export type FieldSetLabel = components['schemas']['FieldSetLabel'];
+export type FieldSetOrderRequest = components['schemas']['FieldSetOrderRequest'];
+export type FieldSetRequest = components['schemas']['FieldSetRequest'];
 export type FieldState = components['schemas']['FieldState'];
 export type FieldType = components['schemas']['FieldType'];
 export type FieldUpdateRequest = components['schemas']['FieldUpdateRequest'];
@@ -74292,6 +74783,8 @@ export type InviteEntry = components['schemas']['InviteEntry'];
 export type InviteRequest = components['schemas']['InviteRequest'];
 export type Issued = components['schemas']['Issued'];
 export type IssuedOneTimePassword = components['schemas']['IssuedOneTimePassword'];
+export type IssueFromStockRequest = components['schemas']['IssueFromStockRequest'];
+export type IssueFromStockResponse = components['schemas']['IssueFromStockResponse'];
 export type IssuerChoice = components['schemas']['IssuerChoice'];
 export type ItemAssignment = components['schemas']['ItemAssignment'];
 export type ItemBooleanValue = components['schemas']['ItemBooleanValue'];
@@ -75072,6 +75565,7 @@ export type StepUpProof = components['schemas']['StepUpProof'];
 export type StepUpRequest = components['schemas']['StepUpRequest'];
 export type StepUpResponse = components['schemas']['StepUpResponse'];
 export type StepUpVerifiedResponse = components['schemas']['StepUpVerifiedResponse'];
+export type StockPiece = components['schemas']['StockPiece'];
 export type StorageAuditAction = components['schemas']['StorageAuditAction'];
 export type StorageAuditOutcome = components['schemas']['StorageAuditOutcome'];
 export type StorageBackendType = components['schemas']['StorageBackendType'];

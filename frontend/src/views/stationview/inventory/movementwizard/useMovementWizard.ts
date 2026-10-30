@@ -133,7 +133,7 @@ export function useMovementWizard(prefill: () => WizardPrefill) {
         itemId.value = known.itemId ?? null
         inventoryId.value = known.inventoryId ?? null
         oldSizeId.value = known.oldSizeId ?? null
-        newSizeId.value = known.newSizeId ?? null
+        newSizeId.value = known.newSizeId !== undefined ? known.newSizeId : sizeOfTheSwappedPiece()
         reason.value = ''
         preview.value = null
         resolved.value = false
@@ -141,6 +141,14 @@ export function useMovementWizard(prefill: () => WizardPrefill) {
         sizes.value = []
         if (inventoryId.value != null) await loadSizes()
         if (step.value === 'preview') await resolveChain()
+    }
+
+    /**
+     * The size a swap asks for unless told otherwise: the one the piece handed in has. Most swaps replace
+     * a worn or broken piece with the same thing, so the reader only touches the size when it changes.
+     */
+    function sizeOfTheSwappedPiece(): number | null {
+        return purpose.value === MovementPurpose.EXCHANGE ? oldSizeId.value : null
     }
 
     async function loadSizes() {
@@ -179,7 +187,10 @@ export function useMovementWizard(prefill: () => WizardPrefill) {
         const following = order[index + 1]
         if (!following) return
         if (following === 'preview') await resolveChain()
-        if (step.value === 'subject') await loadSizes()
+        if (step.value === 'subject') {
+            await loadSizes()
+            newSizeId.value = sizeOfTheSwappedPiece() ?? newSizeId.value
+        }
         step.value = following
     }
 
