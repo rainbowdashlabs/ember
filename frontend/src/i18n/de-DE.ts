@@ -7939,9 +7939,7 @@ export default {
         ownerStation: 'Wache',
         ownerCluster: 'Träger',
         ownerSwitch: {
-            title: 'Eigentümer',
             hint: 'In einem gemischten Inventar kannst du festlegen, ob dieses Stück der Wache oder dem Träger gehört.',
-            save: 'Eigentümer ändern',
             notAtRest: 'Den Eigentümer kannst du ändern, sobald das Stück wieder im Lager der Wache liegt.',
         },
         custody: 'Im Besitz von',

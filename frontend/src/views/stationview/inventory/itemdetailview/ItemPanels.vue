@@ -9,7 +9,6 @@ import NoteEditor from '@/components/comment/NoteEditor.vue'
 import ItemMetadataPanel from './ItemMetadataPanel.vue'
 import ItemActionsPanel from './ItemActionsPanel.vue'
 import OwnedElsewherePanel from './OwnedElsewherePanel.vue'
-import ItemOwnerPanel from './ItemOwnerPanel.vue'
 import ReportLossPanel from './ReportLossPanel.vue'
 import ItemHistoryPanel from './ItemHistoryPanel.vue'
 import ItemCheckHistoryPanel from './ItemCheckHistoryPanel.vue'
@@ -67,8 +66,6 @@ const emit = defineEmits<{
   />
 
   <OwnedElsewherePanel v-if="props.ownedElsewhere" :item="props.item" @started="emit('reload')"/>
-
-  <ItemOwnerPanel v-if="props.canEditItem" :item="props.item" @updated="emit('updated', $event)"/>
 
   <ReportLossPanel
       v-if="props.ownedElsewhere && props.isManager && props.item.lostAt"

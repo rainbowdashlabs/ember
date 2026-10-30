@@ -2625,7 +2625,7 @@ volumes:
                 + 'Gegenstände erst bei der Zuweisung. Stellst du den Typ später um, werden die vorhandenen '
                 + 'Gegenstände auf den neuen Eigentümer umgestellt; nur geliehene Gegenstände behalten ihren. '
                 + 'In einem gemischten Inventar legst du den Eigentümer auch beim Ausgeben fest und kannst ihn '
-                + 'auf der Seite eines Gegenstands ändern, solange er im Lager der Wache liegt.',
+                + 'beim Bearbeiten eines Gegenstands ändern, solange er im Lager der Wache liegt.',
             createSizes: 'Aktiviere Größen, wenn die Gegenstände in verschiedenen Größen vorkommen (z.B. S, M, L).',
             kindsTitle: 'Einheitlich oder Sammlung',
             kindsText: 'Beim Anlegen wählst du, was das Inventar enthält. Ein einheitliches Inventar hält eine Sache '
@@ -5800,7 +5800,8 @@ volumes:
         itemDetail: {
             ownerTitle: 'Eigentümer ändern',
             ownerText: 'In einem gemischten Inventar legst du für jeden Gegenstand fest, ob er der Wache oder dem '
-                + 'Träger gehört. Ändern kannst du das, solange der Gegenstand im Lager der Wache liegt, also nicht, '
+                + 'Träger gehört. Ändern kannst du das beim Bearbeiten des Gegenstands, im Inventar wie auf seiner '
+                + 'eigenen Seite, solange der Gegenstand im Lager der Wache liegt, also nicht, '
                 + 'während ihn jemand hat, er unterwegs ist oder vermisst wird. Dafür brauchst du die Berechtigung, '
                 + 'Ausrüstung der Wache und des Trägers anzulegen. Einen Gegenstand eines Trägers, der selbst Ember '
                 + 'nutzt, kann die Wache nicht sich selbst zuschreiben.',

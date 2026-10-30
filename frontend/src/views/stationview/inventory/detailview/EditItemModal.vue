@@ -23,6 +23,8 @@ import EditItemFields from './edititemmodal/EditItemFields.vue'
 import EditItemCustomFields from './edititemmodal/EditItemCustomFields.vue'
 import EditItemFooter from './edititemmodal/EditItemFooter.vue'
 import InventoryFieldsPanel from '@/components/inventory/InventoryFieldsPanel.vue'
+import ItemOwnerField from '../ItemOwnerField.vue'
+import {useItemOwnerChoice} from '../useItemOwnerChoice'
 import {parseItemMetadata, buildItemMetadata} from './itemMetadata'
 import {describeFailure, type Failure} from '@/util/failure'
 
@@ -65,6 +67,8 @@ const tagNames = ref<string[]>([])
 const fieldDefs = ref<InventoryFieldDefinition[]>([])
 const fieldValues = ref<Record<string, unknown>>({})
 const containers = ref<InventoryContainer[]>([])
+const ownerChoice = useItemOwnerChoice(() => props.item)
+const {owner, offered: ownerOffered, atRest: ownerAtRest} = ownerChoice
 
 const sortedContainers = computed(() => [...containers.value].sort((a, b) => a.name.localeCompare(b.name)))
 const fieldsInvalid = computed(() => inventoryFields.hasInvalidFieldValues(fieldDefs.value, fieldValues.value))
@@ -126,6 +130,7 @@ watch(() => props.item, async (item) => {
   containerId.value = item.containerId ?? null
   artId.value = item.artId ?? null
   artDraft.value = ''
+  ownerChoice.reset()
   fieldValues.value = {}
   await reloadFields()
 })
@@ -157,6 +162,7 @@ async function save() {
       await inventoryContainers.setItemContainer(props.item.id, containerId.value)
     }
     await inventoryTags.setItemTags(props.item.id, tagNames.value)
+    await ownerChoice.apply()
     show.value = false
     emit('saved')
   } catch (e) {
@@ -186,6 +192,7 @@ async function save() {
           :show-art="props.heterogeneous"
           :tags="tags"
       />
+      <ItemOwnerField v-if="ownerOffered" v-model="owner" :at-rest="ownerAtRest"/>
       <EditItemCustomFields v-model="fieldValues" :defs="fieldDefs"/>
       <template v-if="props.item">
         <hr class="border-(--bg-accent)"/>

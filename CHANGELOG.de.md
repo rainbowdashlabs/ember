@@ -13,7 +13,7 @@ Profilfelder lassen sich nur dann anzeigen, wenn eine Ja/Nein-Frage mit Ja beant
 
 - **Beschaffungen werden aus dem Lager bedient.** Eine offene Beschaffung für ein Mitglied zeigt, wie viele Stücke des bestellten Inventars in der bestellten Größe frei im Lager der Wache liegen. „Aus dem Lager ausgeben“ wählt eines davon, startet die Ausgabe an das Mitglied als Bewegung und markiert die Beschaffung als erledigt.
 - **Jeder Tausch fragt gleich nach dem Grund.** Ein Tausch aus einer Bewegung, der Ausrüstung eines Mitglieds, der eigenen Ausrüstung, einer Besitzprüfung oder einer Selbstprüfung bietet zu klein, zu groß, kaputt oder einen anderen Grund in eigenen Worten, mit einer freiwilligen Anmerkung. Jeder Grund wählt eine Größe größer, kleiner oder die gleiche vor, angezeigt neben der aktuellen Größe, und die Wahl lässt sich ändern.
-- **Der Eigentümer eines Stücks im gemischten Inventar lässt sich ändern.** Ein Stück eines gemischten Inventars lässt sich auf seiner Seite der Wache oder dem Träger zuschreiben, solange es im Lager der Wache liegt. Wer in einem gemischten Inventar ein neues Stück ausgibt, wird gefragt, wem es gehört.
+- **Der Eigentümer eines Stücks im gemischten Inventar lässt sich ändern.** Ein Stück eines gemischten Inventars lässt sich beim Bearbeiten der Wache oder dem Träger zuschreiben, solange es im Lager der Wache liegt. Wer in einem gemischten Inventar ein neues Stück ausgibt, wird gefragt, wem es gehört.
 - **Anfragen und Verlustmeldungen gehen auch ohne Träger in Ember.** Eine Wache, deren Träger Ember nicht nutzt, kann bei ihm Material anfragen und seine Ausrüstung als vermisst melden, und die Wache bestätigt die Schritte des Trägers selbst.
 
 ### Änderungen

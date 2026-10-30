@@ -13,7 +13,7 @@ Profile fields can be shown only when a yes/no question is answered yes, and fie
 
 - **Procurements are served from storage.** An open procurement for a member shows how many pieces of the ordered inventory and size lie free in the station's storage. "Hand out from storage" picks one of them, starts handing it to the member as a movement and marks the procurement fulfilled.
 - **Every swap asks why in the same way.** Starting a swap from a movement, a member's gear, the own gear, a possessions check or a self-check offers too small, too large, broken or another reason in own words, with an optional note. Each reason preselects one size up, one size down or the same size, shown next to the current size, and the choice can still be changed.
-- **The owner of a piece in a mixed inventory can be changed.** A piece of a mixed inventory can be given to the station or the association on its page while it lies in the station's store. Handing out a new piece in a mixed inventory asks whose it is.
+- **The owner of a piece in a mixed inventory can be changed.** A piece of a mixed inventory can be given to the station or the association when editing it while it lies in the station's store. Handing out a new piece in a mixed inventory asks whose it is.
 - **Requests and loss reports work without the association in Ember.** A station whose association does not use Ember can request gear from it and report its gear missing, and the station confirms the association's steps itself.
 
 ### Changes
