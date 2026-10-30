@@ -11,6 +11,7 @@ import SelectInput from '@/components/input/select/SelectInput.vue'
 import {FieldWidths, type FieldWidthName} from '@/components/profilefields/fieldLayout'
 import {widthLabel} from '@/components/profilefields/fieldWidths'
 import type {EditableField} from '@/api/profileFields'
+import {isWrittenType} from '@/util/questions'
 import type {AssignmentRequest} from '@/api/generated/schema'
 import type {Audience} from '@/composables/useFieldsConfig'
 
@@ -37,6 +38,9 @@ const emit = defineEmits<{
 const {t} = useI18n()
 
 const widths: FieldWidthName[] = [FieldWidths.FULL, FieldWidths.HALF, FieldWidths.THIRD]
+
+/** Whether anybody writes the answer, without which expecting or locking it means nothing. */
+const written = computed(() => isWrittenType(props.field.fieldType))
 
 /** The question's own width, named so the entry that follows it reads as what it falls back to. */
 const inheritedWidth = computed(() => t('membersConfig.audiences.inherit', {
@@ -89,7 +93,7 @@ function onReadonly(value: string) {
       </SelectInput>
     </label>
 
-    <label class="flex flex-col gap-0.5 text-xs">
+    <label v-if="written" class="flex flex-col gap-0.5 text-xs">
       <span class="text-(--text-muted)">{{ t('membersConfig.fieldRequired') }}</span>
       <SelectInput :model-value="requiredValue" class="min-w-44" @update:model-value="onRequired(String($event))">
         <option value="">{{ inheritedRequired }}</option>
@@ -98,7 +102,7 @@ function onReadonly(value: string) {
       </SelectInput>
     </label>
 
-    <label class="flex flex-col gap-0.5 text-xs">
+    <label v-if="written" class="flex flex-col gap-0.5 text-xs">
       <span class="text-(--text-muted)">{{ t('membersConfig.fieldReadonly') }}</span>
       <SelectInput :model-value="readonlyValue" class="min-w-44" @update:model-value="onReadonly(String($event))">
         <option value="">{{ inheritedReadonly }}</option>

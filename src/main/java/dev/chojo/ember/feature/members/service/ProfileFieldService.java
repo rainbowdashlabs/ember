@@ -276,6 +276,11 @@ public class ProfileFieldService {
             boolean readonlyAtStation,
             @Nullable Integer shownIfFieldId,
             @Nullable FieldSetLabel fieldSet) {
+        /** A field nobody writes is never required, whatever its definition or assignment still says. */
+        public MergedField {
+            required = required && fieldType.isWritten();
+        }
+
         /**
          * What tells this question apart from every other one a member can be asked.
          *
@@ -329,7 +334,14 @@ public class ProfileFieldService {
         requireSingleBirthDate(stationId, fieldType, 0);
         genders.requireAllowed(new Owner.Station(stationId), new FieldDraft(chosen, fieldType, stored, false), null, 0);
         var field = profileFieldRepository.create(
-                stationId, chosen, fieldType, stored, required, readonly, width, keepOnArchive);
+                stationId,
+                chosen,
+                fieldType,
+                stored,
+                required && fieldType.isWritten(),
+                readonly,
+                width,
+                keepOnArchive);
         log.info(
                 "Profile field created: id={}, station={}, name='{}', type={}",
                 field.id(),
@@ -379,7 +391,8 @@ public class ProfileFieldService {
                 new FieldDraft(chosen, fieldType, stored, false),
                 existing.get().fieldType(),
                 id);
-        if (profileFieldRepository.update(id, chosen, fieldType, stored, required, readonly, width, keepOnArchive)) {
+        boolean expected = required && fieldType.isWritten();
+        if (profileFieldRepository.update(id, chosen, fieldType, stored, expected, readonly, width, keepOnArchive)) {
             log.info("Profile field updated: id={}, name='{}', type={}", id, chosen, fieldType);
             return profileFieldRepository.findById(id);
         }

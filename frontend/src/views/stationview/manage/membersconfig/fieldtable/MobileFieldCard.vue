@@ -18,6 +18,7 @@ import {useFieldsCapabilities, type WritabilityName} from '@/composables/useFiel
 import {type EditableField, type FieldSwitchName, parseFieldConfig} from '@/api/profileFields'
 import {holdsAnswer, isSection, widthOf} from '@/components/profilefields/fieldLayout'
 import {widthLabel} from '@/components/profilefields/fieldWidths'
+import {isWrittenType} from '@/util/questions'
 
 const {t} = useI18n()
 const writabilityId = useId()
@@ -74,21 +75,23 @@ const capabilities = useFieldsCapabilities()
       </div>
     </div>
     <div v-if="holdsAnswer(field)" class="flex flex-wrap gap-3 text-xs">
-      <label class="flex items-center gap-1">
-        <CompactToggle :model-value="!!field.required"
-                       @update:model-value="v => emit('toggleRequired', field, v)"/>
-        {{ t('membersConfig.fieldRequired') }}
-      </label>
-      <label v-if="capabilities.writability" :for="writabilityId" class="flex items-center gap-1">
-        <span>{{ t('membersConfig.writability.column') }}</span>
-        <WritabilitySelect :id="writabilityId" :field="field" @set="(f, level) => emit('setWritability', f, level)"/>
-      </label>
-      <label v-else class="flex items-center gap-1">
-        <CompactToggle :model-value="!!field.readonly"
-                       @update:model-value="v => emit('toggleReadonly', field, v)"/>
-        {{ t('membersConfig.fieldReadonly') }}
-      </label>
-      <label class="flex items-center gap-1">
+      <template v-if="isWrittenType(field.fieldType)">
+        <label class="flex items-center gap-1">
+          <CompactToggle :model-value="!!field.required"
+                         @update:model-value="v => emit('toggleRequired', field, v)"/>
+          {{ t('membersConfig.fieldRequired') }}
+        </label>
+        <label v-if="capabilities.writability" :for="writabilityId" class="flex items-center gap-1">
+          <span>{{ t('membersConfig.writability.column') }}</span>
+          <WritabilitySelect :id="writabilityId" :field="field" @set="(f, level) => emit('setWritability', f, level)"/>
+        </label>
+        <label v-else class="flex items-center gap-1">
+          <CompactToggle :model-value="!!field.readonly"
+                         @update:model-value="v => emit('toggleReadonly', field, v)"/>
+          {{ t('membersConfig.fieldReadonly') }}
+        </label>
+      </template>
+      <label v-if="isWrittenType(field.fieldType)" class="flex items-center gap-1">
         <CompactToggle :model-value="!!parseFieldConfig(field.config).notifyOnChange"
                        @update:model-value="v => emit('toggleConfig', field, 'notifyOnChange', v)"/>
         {{ t('membersConfig.fieldNotifyOnChange') }}
