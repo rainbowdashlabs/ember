@@ -9,7 +9,7 @@ import {waitingList} from '@/api'
 import {describeFailure, type Failure} from '@/util/failure'
 import type {InvitationRecipients, WaitingListEntryWithScore} from '@/api/generated/schema'
 import {useAsyncAction} from '@/composables/useAsyncAction'
-import {emptyDate, hasDuplicateDates, pickedDates, type InvitationDateDraft} from './invitationDates'
+import {emptyDate, hasDuplicateDates, pickedDates, type InvitationDateDraft, type InvitationMode} from './invitationDates'
 
 /**
  * Inviting somebody to come and look, which is the one transition with something to fill in.
@@ -34,21 +34,32 @@ export function useEntryInvitation(
   const {t} = useI18n()
 
   const target = ref<WaitingListEntryWithScore | null>(null)
+  const mode = ref<InvitationMode>('invite')
   const dates = ref<InvitationDateDraft[]>([emptyDate()])
   const message = ref('')
   const recipients = ref<InvitationRecipients | null>(null)
 
-  async function request(entryId: number) {
+  /**
+   * Opens the dialog for an entry: to invite somebody who is waiting, or to offer somebody already
+   * invited other dates in place of the ones they hold.
+   *
+   * <p>The addresses are kept only while the dialog they were read for is still the one open, so a
+   * dialog opened for another entry before the read returns never shows the first entry's addresses.
+   */
+  async function request(entryId: number, chosen: InvitationMode = 'invite') {
     const entry = entries.value.find(e => e.entry.id === entryId)
     if (!entry) return
+    mode.value = chosen
     dates.value = [emptyDate()]
     message.value = ''
     recipients.value = null
     target.value = entry
+    const stillOpen = () => target.value === entry && mode.value === chosen
     try {
-      recipients.value = await waitingList.invitationRecipients(listId.value, entryId)
+      const found = await waitingList.invitationRecipients(listId.value, entryId)
+      if (stillOpen()) recipients.value = found
     } catch (e) {
-      failure.value = describeFailure(e, t)
+      if (stillOpen()) failure.value = describeFailure(e, t)
     }
   }
 
@@ -67,10 +78,12 @@ export function useEntryInvitation(
     const options = pickedDates(dates.value)
     if (!target.value || options.length === 0) return
     failure.value = null
-    await waitingList.inviteEntry(listId.value, target.value.entry.id, {
-      options,
-      message: message.value.trim() || null,
-    })
+    const invitation = {options, message: message.value.trim() || null}
+    if (mode.value === 'otherDates') {
+      await waitingList.reofferEntry(listId.value, target.value.entry.id, invitation)
+    } else {
+      await waitingList.inviteEntry(listId.value, target.value.entry.id, invitation)
+    }
     target.value = null
 
     try {
@@ -90,6 +103,7 @@ export function useEntryInvitation(
 
   return {
     target,
+    mode,
     dates,
     duplicate,
     message,

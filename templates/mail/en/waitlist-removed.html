@@ -1,0 +1,15 @@
+{% extends '_layout.html' %}
+{% block body %}
+      <h2>Hello {{ name }},</h2>
+      {% if duringTrial %}
+      <p><strong>{{ stationName }}</strong> has ended your trial, and you are no longer on its waiting list.</p>
+      {% else %}
+      <p><strong>{{ stationName }}</strong> has taken you off its waiting list.</p>
+      {% endif %}
+      {% if message %}
+      <ul class="notification-list">
+        <li class="notification-item"><p class="message" style="white-space:pre-line">{{ message }}</p></li>
+      </ul>
+      {% endif %}
+      <p class="hint">Your entry and what you gave us with it have been removed.</p>
+{% endblock %}

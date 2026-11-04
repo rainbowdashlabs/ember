@@ -761,6 +761,35 @@ public class EmailService implements TaskSource {
             String locale,
             @Nullable Integer stationId,
             WaitlistInvitationDetails details) {
+        sendWaitlistDatesEmail(
+                "waitlist-invitation", email, name, accessToken, stationName, locale, stationId, details);
+    }
+
+    /**
+     * Sends other dates to somebody whose invitation the station has replaced, usually because the
+     * dates it offered first did not suit. It reads like the invitation and links to the same page.
+     */
+    public void sendWaitlistOtherDatesEmail(
+            String email,
+            String name,
+            String accessToken,
+            String stationName,
+            String locale,
+            @Nullable Integer stationId,
+            WaitlistInvitationDetails details) {
+        sendWaitlistDatesEmail(
+                "waitlist-other-dates", email, name, accessToken, stationName, locale, stationId, details);
+    }
+
+    private void sendWaitlistDatesEmail(
+            String template,
+            String email,
+            String name,
+            String accessToken,
+            String stationName,
+            String locale,
+            @Nullable Integer stationId,
+            WaitlistInvitationDetails details) {
         var vars = baseVars(name, stationId);
         vars.put("url", api.baseUrl() + "/waiting-list/status?token=" + accessToken);
         vars.put("stationName", stationName != null ? stationName : "");
@@ -774,8 +803,62 @@ public class EmailService implements TaskSource {
                         .toList());
         enqueueGlobal(
                 email,
-                subject("waitlist-invitation", locale, waitlistPlaceholders(stationName)),
-                loadTemplate("waitlist-invitation.html", locale, context));
+                subject(template, locale, waitlistPlaceholders(stationName)),
+                loadTemplate(template + ".html", locale, context));
+    }
+
+    /**
+     * Tells the family that the trial has begun, with what the station wrote to them and the date
+     * they said they would come to.
+     *
+     * @param appointment the picked date in one line, empty when none was picked
+     * @param message     what the station wrote, empty when it wrote nothing
+     */
+    public void sendWaitlistTrialStartedEmail(
+            String email,
+            String name,
+            String accessToken,
+            String stationName,
+            String locale,
+            @Nullable Integer stationId,
+            String appointment,
+            String message) {
+        var vars = baseVars(name, stationId);
+        vars.put("url", api.baseUrl() + "/waiting-list/status?token=" + accessToken);
+        vars.put("stationName", stationName != null ? stationName : "");
+        vars.put("appointment", appointment);
+        vars.put("message", message);
+        putStationLogo(vars, stationId);
+        enqueueGlobal(
+                email,
+                subject("waitlist-trial-started", locale, waitlistPlaceholders(stationName)),
+                loadTemplate("waitlist-trial-started.html", locale, vars));
+    }
+
+    /**
+     * Tells the family that the station has taken them off the waiting list, with what it wrote to
+     * them. It carries no link: the entry and its page are gone by the time it is read.
+     *
+     * @param message     what the station wrote, empty when it wrote nothing
+     * @param duringTrial whether a running trial ended with it
+     */
+    public void sendWaitlistRemovedEmail(
+            String email,
+            String name,
+            String stationName,
+            String locale,
+            @Nullable Integer stationId,
+            String message,
+            boolean duringTrial) {
+        var vars = baseVars(name, stationId);
+        vars.put("stationName", stationName != null ? stationName : "");
+        vars.put("message", message);
+        vars.put("duringTrial", duringTrial ? "true" : "");
+        putStationLogo(vars, stationId);
+        enqueueGlobal(
+                email,
+                subject("waitlist-removed", locale, waitlistPlaceholders(stationName)),
+                loadTemplate("waitlist-removed.html", locale, vars));
     }
 
     /**

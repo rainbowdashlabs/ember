@@ -19,7 +19,6 @@ import dev.chojo.ember.feature.account.service.AccountInviteService;
 import dev.chojo.ember.feature.account.service.SetupMail;
 import dev.chojo.ember.feature.legal.entity.ConsentProof;
 import dev.chojo.ember.feature.legal.service.GdprDeletionService;
-import dev.chojo.ember.feature.mail.entity.WaitlistInvitationDetails;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
@@ -564,7 +563,7 @@ public class WaitingListService implements TaskSource {
      * moment and write the invitation to the guardians.
      *
      * <p>Nothing is created here. The account, the membership, the trial user type and the testing
-     * group only come into being once the person actually turns up, in {@link #moveToTesting(int)}.
+     * group only come into being once the person actually turns up, in {@link #moveToTesting(int, String)}.
      * Until then the entry is a waiting list entry and nothing else, so a refusal or a withdrawal
      * leaves no member behind.
      *
@@ -578,26 +577,89 @@ public class WaitingListService implements TaskSource {
      * @param invitation the appointment they are asked to come to, with the station's personal note
      */
     public WaitingListEntry inviteEntry(int entryId, WaitingListInvitation invitation) {
-        var entry =
-                repository.findEntryById(entryId).orElseThrow(() -> new IllegalArgumentException("Entry not found"));
-        if (entry.status() != WaitingListEntryStatus.WAITING) {
-            throw new IllegalStateException("Entry must be in WAITING status to invite");
-        }
-        var list = repository.findById(entry.listId()).orElseThrow();
-        var station = stationRepository.findById(list.stationId()).orElseThrow();
+        var invited = writeInvitation(
+                entryId,
+                WaitingListEntryStatus.WAITING,
+                invitation,
+                () -> repository.updateEntryStatusWithTimestamp(entryId, WaitingListEntryStatus.INVITED, "invited_at"));
+        log.info(
+                "Invited waiting-list entry {} on station {}",
+                entryId,
+                invited.list().stationId());
 
-        Transactions.run(() -> {
-            repository.updateInvitation(entryId, invitation);
-            repository.updateEntryStatusWithTimestamp(entryId, WaitingListEntryStatus.INVITED, "invited_at");
-        });
-        log.info("Invited waiting-list entry {} on station {}", entryId, list.stationId());
-
-        if (list.sendsMail()) {
-            invitationMessage.send(entry, repository.findGuardiansByEntry(entryId), station, invitation);
+        if (invited.list().sendsMail()) {
+            invitationMessage.send(
+                    invited.entry(), repository.findGuardiansByEntry(entryId), invited.station(), invitation);
         }
 
         return repository.findEntryById(entryId).orElseThrow();
     }
+
+    /**
+     * Offers an invited entry other dates in place of the ones it holds, usually because the answer
+     * was that none of them suited.
+     *
+     * <p>It is one step rather than going back to waiting and inviting again, so the entry never
+     * drops out of the section the manager is answering it from. The new dates start a new round, so
+     * the answer to the old ones is gone and a page still showing them can no longer answer.
+     *
+     * @param invitation the dates now offered, with what the station writes to go with them
+     */
+    public WaitingListEntry reofferEntry(int entryId, WaitingListInvitation invitation) {
+        var reoffered = writeInvitation(entryId, WaitingListEntryStatus.INVITED, invitation, () -> {});
+        log.info(
+                "Offered waiting-list entry {} other dates on station {}",
+                entryId,
+                reoffered.list().stationId());
+
+        if (reoffered.list().sendsMail()) {
+            invitationMessage.sendOtherDates(
+                    reoffered.entry(), repository.findGuardiansByEntry(entryId), reoffered.station(), invitation);
+        }
+
+        return repository.findEntryById(entryId).orElseThrow();
+    }
+
+    /**
+     * Writes an invitation onto an entry that is in the status the step starts from, together with
+     * whatever else the step changes.
+     *
+     * <p>The status is read again under a row lock in the same transaction as the write. A second
+     * manager starting the trial or withdrawing between the first look and the write would otherwise
+     * leave a trial carrying fresh dates, and a mail offering them.
+     *
+     * @param expected the status the step starts from
+     * @param alongside the step's own change, written in the same transaction
+     * @return the entry as it was before the write, with its list and station
+     */
+    private InvitationTarget writeInvitation(
+            int entryId, WaitingListEntryStatus expected, WaitingListInvitation invitation, Runnable alongside) {
+        var entry =
+                repository.findEntryById(entryId).orElseThrow(() -> new IllegalArgumentException("Entry not found"));
+        var list = repository.findById(entry.listId()).orElseThrow();
+        var station = stationRepository.findById(list.stationId()).orElseThrow();
+
+        Transactions.run(() -> {
+            var current = repository
+                    .lockEntryStatus(entryId)
+                    .orElseThrow(() -> new IllegalArgumentException("Entry not found"));
+            if (current != expected) {
+                throw new IllegalStateException("Entry must be in " + expected + " status, is " + current);
+            }
+            repository.updateInvitation(entryId, invitation);
+            alongside.run();
+        });
+        return new InvitationTarget(entry, list, station);
+    }
+
+    /**
+     * The entry an invitation was written onto, with what writing to the family needs.
+     *
+     * @param entry   the entry as it was read before the write
+     * @param list    the list it is on
+     * @param station the station the list belongs to
+     */
+    private record InvitationTarget(WaitingListEntry entry, WaitingList list, Station station) {}
 
     /**
      * Who an invitation for the entry would be written to, read before it is sent so nobody sends
@@ -715,13 +777,7 @@ public class WaitingListService implements TaskSource {
     private String pickedSummary(int stationId, WaitingListInvitation.OfferedDate picked) {
         var station = stationRepository.findById(stationId).orElse(null);
         if (station == null) return "";
-        return invitationMessage
-                .describe(station, new WaitingListInvitation("", List.of(picked)))
-                .appointments()
-                .stream()
-                .findFirst()
-                .map(WaitlistInvitationDetails.Appointment::summary)
-                .orElse("");
+        return invitationMessage.summary(station, picked);
     }
 
     /**
@@ -736,8 +792,14 @@ public class WaitingListService implements TaskSource {
      * permission are idempotent on their own, and so is joining the testing group.
      *
      * <p>The writes run as one, so a failure halfway cannot leave a member nothing points at.
+     *
+     * <p>The family is told, with what the station wrote and the date they said they would come to.
+     * The message is kept on the entry as well, so the page behind the entry link shows it to a
+     * family on a list that writes no mail.
+     *
+     * @param message what the station writes to the family, empty for nothing
      */
-    public WaitingListEntry moveToTesting(int entryId) {
+    public WaitingListEntry moveToTesting(int entryId, String message) {
         var entry =
                 repository.findEntryById(entryId).orElseThrow(() -> new IllegalArgumentException("Entry not found"));
         if (entry.status() != WaitingListEntryStatus.INVITED) {
@@ -757,6 +819,7 @@ public class WaitingListService implements TaskSource {
                 groupMemberships.joinAutomatically(testingGroupId, member);
             }
             createGuardianAccounts(entry, member, list);
+            repository.updateTrialMessage(entryId, message.trim());
             repository.updateEntryStatusWithTimestamp(entryId, WaitingListEntryStatus.TESTING, "testing_at");
             return member;
         });
@@ -766,7 +829,15 @@ public class WaitingListService implements TaskSource {
                 entryId,
                 list.stationId(),
                 memberId);
-        return repository.findEntryById(entryId).orElseThrow();
+
+        var testing = repository.findEntryById(entryId).orElseThrow();
+        if (list.sendsMail()) {
+            stationRepository
+                    .findById(list.stationId())
+                    .ifPresent(station -> invitationMessage.sendTrialStarted(
+                            testing, repository.findGuardiansByEntry(entryId), station, testing.trialMessage()));
+        }
+        return testing;
     }
 
     /**
@@ -855,6 +926,32 @@ public class WaitingListService implements TaskSource {
 
         repository.deleteEntry(entryId);
         log.info("Withdrew waiting-list entry {} (was {})", entryId, entry.status());
+    }
+
+    /**
+     * Withdraws an entry on the station's word and tells the family, with what the station wrote.
+     *
+     * <p>The addresses are read before the entry goes, because they go with it, and the mail is sent
+     * only once the withdrawal has gone through. A withdrawal the family makes themselves goes through
+     * {@link #withdrawEntry(int)} alone and tells them nothing they do not already know.
+     *
+     * @param message what the station writes to the family, empty for nothing
+     */
+    public void withdrawByStation(int entryId, String message) {
+        var entry =
+                repository.findEntryById(entryId).orElseThrow(() -> new IllegalArgumentException("Entry not found"));
+        var list = repository.findById(entry.listId()).orElseThrow();
+        var recipients = list.sendsMail()
+                ? WaitlistInvitationMessage.recipients(entry, repository.findGuardiansByEntry(entryId))
+                : List.<WaitlistInvitationMessage.Recipient>of();
+
+        Transactions.run(() -> withdrawEntry(entryId));
+
+        if (recipients.isEmpty()) return;
+        stationRepository
+                .findById(list.stationId())
+                .ifPresent(station -> invitationMessage.sendRemoved(
+                        recipients, station, message.trim(), entry.status() == WaitingListEntryStatus.TESTING));
     }
 
     private void releaseGuardianWithoutWards(int guardianMemberId) {

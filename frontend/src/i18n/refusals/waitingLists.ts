@@ -89,4 +89,7 @@ export default {
     'W-066': 'Dieser Termin wird in der Einladung nicht angeboten, es wurde nichts gespeichert',
     'W-067': 'Eine Einladung bietet höchstens 5 Termine an, es wurde nichts gesendet',
     'W-068': 'Derselbe Termin wird zweimal angeboten, es wurde nichts gesendet',
+    'W-069': 'Diesem Eintrag können so, wie er gerade steht, keine anderen Termine angeboten werden, es wurde nichts geändert',
+    'W-070': 'Die Nachricht ist länger als 2000 Zeichen, es wurde nichts geändert',
+    'W-071': ENTRY_NOT_HERE,
 }

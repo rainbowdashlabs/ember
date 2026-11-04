@@ -47118,6 +47118,31 @@
         }
       }
     },
+    "/api/v1/waiting-lists/{id}/entries/{entryId}/other-dates" : {
+      "post" : {
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WaitingListEntry"
+                }
+              }
+            }
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/WaitingListInvitationRequest"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/waiting-lists/{id}/entries/{entryId}/reject" : {
       "post" : {
         "responses" : {
@@ -47140,6 +47165,15 @@
               }
             }
           }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/WaitingListMessageRequest"
+              }
+            }
+          }
         }
       }
     },
@@ -47148,6 +47182,15 @@
         "responses" : {
           "204" : {
             "description" : "No Content"
+          }
+        },
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/WaitingListMessageRequest"
+              }
+            }
           }
         }
       }
@@ -81439,9 +81482,12 @@
             }, {
               "type" : "null"
             } ]
+          },
+          "trialMessage" : {
+            "type" : "string"
           }
         },
-        "required" : [ "id", "listId", "firstname", "lastname", "parentName", "email", "accessToken", "status", "confirmedAt", "reminderSentAt", "createdAt", "notes", "memberId", "invitedAt", "testingAt", "joinedAt", "withdrawnAt", "attendanceCount", "invitationRound", "invitation", "answer" ]
+        "required" : [ "id", "listId", "firstname", "lastname", "parentName", "email", "accessToken", "status", "confirmedAt", "reminderSentAt", "createdAt", "notes", "memberId", "invitedAt", "testingAt", "joinedAt", "withdrawnAt", "attendanceCount", "invitationRound", "invitation", "answer", "trialMessage" ]
       },
       "WaitingListEntryGuardian" : {
         "type" : "object",
@@ -81799,6 +81845,14 @@
           }
         }
       },
+      "WaitingListMessageRequest" : {
+        "type" : "object",
+        "properties" : {
+          "message" : {
+            "type" : [ "string", "null" ]
+          }
+        }
+      },
       "WaitingListPublicAnswer" : {
         "type" : "object",
         "properties" : {
@@ -81928,9 +81982,12 @@
             }, {
               "type" : "null"
             } ]
+          },
+          "trialMessage" : {
+            "type" : "string"
           }
         },
-        "required" : [ "firstname", "lastname", "parentName", "email", "status", "confirmedAt", "createdAt", "confirmIntervalDays", "position", "listName", "fields", "values", "guardians", "invitation", "answer" ]
+        "required" : [ "firstname", "lastname", "parentName", "email", "status", "confirmedAt", "createdAt", "confirmIntervalDays", "position", "listName", "fields", "values", "guardians", "invitation", "answer", "trialMessage" ]
       },
       "WaitingListRegisterRequest" : {
         "type" : "object",

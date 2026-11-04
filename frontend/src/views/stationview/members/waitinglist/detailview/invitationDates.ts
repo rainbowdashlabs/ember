@@ -6,6 +6,9 @@
 import type {EventOccurrenceRef} from '@/api/events'
 import type {WaitingListInvitationOptionRequest} from '@/api/generated/schema'
 
+/** What the invitation dialog is doing: inviting somebody waiting, or replacing the dates somebody holds. */
+export type InvitationMode = 'invite' | 'otherDates'
+
 /** The most dates one invitation offers, as the backend refuses anything above it. */
 export const MAX_INVITATION_DATES = 5
 

@@ -20,6 +20,7 @@ import type {
     WaitingListFieldRequest,
     WaitingListInvitationAnswerRequest,
     WaitingListInvitationRequest,
+    WaitingListMessageRequest,
     WaitingListInvite,
     WaitingListInviteInfo,
     WaitingListInviteRequest,
@@ -114,6 +115,17 @@ export async function inviteEntry(
     return res.data
 }
 
+/** Offers an invited entry other dates in place of the ones it holds, and writes them to the family. */
+export async function reofferEntry(
+    listId: number,
+    entryId: number,
+    invitation: WaitingListInvitationRequest,
+): Promise<WaitingListEntry> {
+    const res = await client.post<WaitingListEntry>(
+        `/waiting-lists/${listId}/entries/${entryId}/other-dates`, invitation)
+    return res.data
+}
+
 /** Who an invitation for the entry would be written to, read before it is sent. */
 export async function invitationRecipients(listId: number, entryId: number): Promise<InvitationRecipients> {
     const res = await client.get<InvitationRecipients>(
@@ -137,8 +149,10 @@ export async function returnToWaiting(listId: number, entryId: number): Promise<
     return res.data
 }
 
-export async function moveToTesting(listId: number, entryId: number): Promise<WaitingListEntry> {
-    const res = await client.post<WaitingListEntry>(`/waiting-lists/${listId}/entries/${entryId}/testing`)
+/** Starts the trial, with what the station writes to the family; an empty message writes nothing of its own. */
+export async function moveToTesting(listId: number, entryId: number, message = ''): Promise<WaitingListEntry> {
+    const request: WaitingListMessageRequest = {message: message.trim() || null}
+    const res = await client.post<WaitingListEntry>(`/waiting-lists/${listId}/entries/${entryId}/testing`, request)
     return res.data
 }
 
@@ -147,8 +161,10 @@ export async function moveToJoined(listId: number, entryId: number): Promise<Wai
     return res.data
 }
 
-export async function withdrawEntry(listId: number, entryId: number): Promise<void> {
-    await client.post(`/waiting-lists/${listId}/entries/${entryId}/withdraw`)
+/** Takes the entry off the list and tells the family, with what the station writes to them. */
+export async function withdrawEntry(listId: number, entryId: number, message = ''): Promise<void> {
+    const request: WaitingListMessageRequest = {message: message.trim() || null}
+    await client.post(`/waiting-lists/${listId}/entries/${entryId}/withdraw`, request)
 }
 
 export async function getInviteInfo(code: string): Promise<WaitingListInviteInfo> {

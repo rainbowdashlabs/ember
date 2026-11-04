@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.legal.service.ConsentService;
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingList;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntry;
+import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryStatus;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListInvitation;
 import dev.chojo.ember.feature.waitinglist.service.PublicWaitingListRateLimiter;
 import dev.chojo.ember.feature.waitinglist.service.PublicWaitingListService;
@@ -71,6 +72,8 @@ class WaitingListInvitationRoutesTest {
         when(entry.listId()).thenReturn(5);
         when(lists.findEntryById(9)).thenReturn(Optional.of(entry));
         when(lists.inviteEntry(anyInt(), any())).thenReturn(entry);
+        when(lists.reofferEntry(anyInt(), any())).thenReturn(entry);
+        when(lists.moveToTesting(anyInt(), any())).thenReturn(entry);
 
         var event = mock(StationEvent.class);
         when(event.id()).thenReturn(7);
@@ -101,6 +104,79 @@ class WaitingListInvitationRoutesTest {
             assertEquals(
                     "mutter@test.com", json(answer).path("addresses").path(0).asString());
         });
+    }
+
+    @Test
+    void otherDatesAreCheckedLikeAnInvitationAndReplaceIt() {
+        harness.run((server, client) -> {
+            var editor = harness.as(TestSessions.member(3, StationPermission.WAITLIST_EDIT));
+            var answer = client.post(
+                    ENTRY + "/other-dates",
+                    body("{\"options\": [{\"eventId\": 7, \"date\": \"2026-05-15\"}], \"message\": \" Freitag? \"}"),
+                    editor);
+            assertEquals(200, answer.code());
+        });
+
+        var sent = ArgumentCaptor.forClass(WaitingListInvitation.class);
+        verify(lists).reofferEntry(eq(9), sent.capture());
+        assertEquals(
+                LocalDate.of(2026, 5, 15), sent.getValue().options().getFirst().date());
+        assertEquals("Freitag?", sent.getValue().message());
+        verify(lists, never()).inviteEntry(anyInt(), any());
+    }
+
+    @Test
+    void theTrialBeginsWithTheStationsMessageOrWithout() {
+        harness.run((server, client) -> {
+            var editor = harness.as(TestSessions.member(3, StationPermission.WAITLIST_EDIT));
+            assertEquals(
+                    200,
+                    client.post(ENTRY + "/testing", body("{\"message\": \" Bis bald \"}"), editor)
+                            .code());
+            assertEquals(200, client.post(ENTRY + "/testing", body(""), editor).code());
+        });
+
+        verify(lists).moveToTesting(9, "Bis bald");
+        verify(lists).moveToTesting(9, "");
+    }
+
+    /** The trial message stands on the family's page while the trial runs, and only then. */
+    @Test
+    void theFamilyReadsTheTrialMessageOnlyDuringTheTrial() {
+        var family = mock(WaitingListEntry.class);
+        when(family.listId()).thenReturn(5);
+        when(family.confirmedAt()).thenReturn(Instant.EPOCH);
+        when(family.createdAt()).thenReturn(Instant.EPOCH);
+        when(family.trialMessage()).thenReturn("Bis Dienstag");
+        when(lists.findEntryByToken("token")).thenReturn(Optional.of(family));
+
+        when(family.status()).thenReturn(WaitingListEntryStatus.TESTING);
+        harness.run((server, client) -> assertEquals(
+                "Bis Dienstag",
+                json(client.get(PREFIX + "/public/waiting-list/entry/token"))
+                        .path("trialMessage")
+                        .asString()));
+
+        when(family.status()).thenReturn(WaitingListEntryStatus.JOINED);
+        harness.run((server, client) -> assertEquals(
+                "",
+                json(client.get(PREFIX + "/public/waiting-list/entry/token"))
+                        .path("trialMessage")
+                        .asString()));
+    }
+
+    @Test
+    void aMessageLongerThanAllowedWithdrawsNobody() {
+        String message = "x".repeat(WaitingListInvitation.MESSAGE_MAX_LENGTH + 1);
+
+        harness.run((server, client) -> {
+            var editor = harness.as(TestSessions.member(3, StationPermission.WAITLIST_EDIT));
+            assertEquals(
+                    WaitingListRefusal.STATION_MESSAGE_TOO_LONG,
+                    refusalOf(client.post(ENTRY + "/withdraw", body("{\"message\": \"" + message + "\"}"), editor)));
+        });
+
+        verify(lists, never()).withdrawByStation(anyInt(), any());
     }
 
     @Test

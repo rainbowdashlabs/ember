@@ -1,0 +1,31 @@
+{% extends '_layout.html' %}
+{% block body %}
+      <h2>Hallo {{ name }},</h2>
+      <p><strong>{{ stationName }}</strong> hat andere Termine für dich, um einmal vorbeizukommen und uns kennenzulernen. Sie ersetzen die, die wir dir vorher angeboten haben.</p>
+      {% if message %}
+      <ul class="notification-list">
+        <li class="notification-item"><p class="message" style="white-space:pre-line">{{ message }}</p></li>
+      </ul>
+      {% endif %}
+      {% if appointments | length > 1 %}
+      <p>Such dir einfach den aus, der dir am besten passt:</p>
+      {% elseif appointments | length == 1 %}
+      <p>Wir würden uns freuen, dich hier zu sehen:</p>
+      {% endif %}
+      {% for appointment in appointments %}
+      <ul class="notification-list">
+        <li class="notification-item"><strong>{{ appointment.appointmentName }}</strong></li>
+        {% if appointment.appointmentDate %}<li class="notification-item">Datum: {{ appointment.appointmentDate }}</li>{% endif %}
+        {% if appointment.appointmentTime %}<li class="notification-item">Uhrzeit: {{ appointment.appointmentTime }}</li>{% endif %}
+        {% if appointment.arrivalTime %}<li class="notification-item">Bitte sei schon um {{ appointment.arrivalTime }} da, damit wir dich in Ruhe begrüßen können.</li>{% endif %}
+        {% if appointment.location %}<li class="notification-item">Wo: {{ appointment.location }}</li>{% endif %}
+      </ul>
+      {% endfor %}
+      {% if appointments | length > 1 %}
+      <p>Sag uns bitte über die folgende Seite Bescheid, zu welchem Termin du kommst. Dort kannst du auch sagen, dass keiner davon passt oder dass du kein Interesse mehr hast:</p>
+      {% else %}
+      <p>Sag uns bitte über die folgende Seite Bescheid, ob es dir passt. Dort kannst du auch sagen, dass der Termin nicht passt oder dass du kein Interesse mehr hast:</p>
+      {% endif %}
+      <div class="btn-wrap"><a class="btn" href="{{ url }}">Einladung beantworten</a></div>
+      <p class="hint">Bis du zum ersten Mal da warst, bist du weiterhin nur auf der Warteliste. Es wird nichts angelegt und du bist zu nichts verpflichtet.</p>
+{% endblock %}

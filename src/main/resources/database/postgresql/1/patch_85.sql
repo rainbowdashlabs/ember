@@ -33,7 +33,11 @@ WHERE invited_event_id IS NOT NULL
 
 ALTER TABLE ember_schema.waiting_list_entry
     ADD COLUMN invitation_round           INTEGER NOT NULL DEFAULT 0,
-    ADD COLUMN invitation_answer_position INTEGER NULL;
+    ADD COLUMN invitation_answer_position INTEGER NULL,
+    ADD COLUMN trial_message              TEXT    NOT NULL DEFAULT '';
+
+COMMENT ON COLUMN ember_schema.waiting_list_entry.trial_message IS
+    'What the station wrote to the family when the trial began, empty when it wrote nothing. Shown on the page behind the entry link for as long as the trial runs, so a list that sends no mail still delivers it.';
 
 COMMENT ON COLUMN ember_schema.waiting_list_entry.invitation_round IS
     'How often the entry has been invited or offered other dates. An answer names the round it answers and is refused when that is not the current one, so a click on a page opened before the dates changed cannot apply to the dates that replaced them.';

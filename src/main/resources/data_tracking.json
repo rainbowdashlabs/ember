@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:e8844637778810bfb70455ab9b4ee48b0789b7a9d5fb42d2cce9f487365b0970",
-  "generatedAt": "2026-11-04T11:38:29Z",
+  "schemaHash": "sha256:aec6ea0d3987ddbdcad7ef9960408aeab55e261ab29d1e5b98d652053f8034b0",
+  "generatedAt": "2026-11-04T13:10:16Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -29690,7 +29690,7 @@
     "waiting_list_entry": {
       "feature": "waitinglist",
       "scope": "STATION",
-      "tableHash": "sha256:a3708e0680b08feedd26acfea591cf7fbe007d911ef641224e3df320e177c7e9",
+      "tableHash": "sha256:ec26127ac5cf9764d5801dc7cb13a18fa4122e0a30fc3d1c64f8cb9e6996f148",
       "columns": [
         {
           "name": "id",
@@ -29866,6 +29866,13 @@
           "nullable": true,
           "verified": true,
           "description": "Which offered date a COMING answer picked, by its position among the options. NULL for any other answer and while the invitation is unanswered."
+        },
+        {
+          "name": "trial_message",
+          "type": "text",
+          "nullable": false,
+          "verified": true,
+          "description": "What the station wrote to the family when the trial began, empty when it wrote nothing. Shown on the page behind the entry link for as long as the trial runs, so a list that sends no mail still delivers it."
         }
       ],
       "foreignKeys": [

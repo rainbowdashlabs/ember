@@ -56,7 +56,7 @@ public class WaitingListRepository {
             id, list_id, firstname, lastname, parent_name, email, access_token, status, confirmed_at, \
             reminder_sent_at, created_at, notes, member_id, invited_at, testing_at, joined_at, \
             withdrawn_at, attendance_count, invitation_round, invited_message, invitation_answer, \
-            invitation_answered_at, invitation_answer_note, invitation_answer_position, \
+            invitation_answered_at, invitation_answer_note, invitation_answer_position, trial_message, \
             (SELECT jsonb_agg(jsonb_build_object(
                         'position', invitation_option.position,
                         'event_id', invitation_option.event_id,
@@ -467,6 +467,26 @@ public class WaitingListRepository {
     public void updateReminderSentAt(int id, Instant sentAt) {
         query("UPDATE waiting_list_entry SET reminder_sent_at = :sent_at WHERE id = :id;")
                 .single(call().bind("id", id).bind("sent_at", sentAt, INSTANT_TIMESTAMP))
+                .update();
+    }
+
+    /**
+     * The entry's status, read with a row lock held until the calling transaction ends, so a step that
+     * starts from one status cannot be overtaken by another step on the same entry.
+     *
+     * @return the status, or empty when the entry is gone
+     */
+    public Optional<WaitingListEntryStatus> lockEntryStatus(int entryId) {
+        return query("SELECT status FROM waiting_list_entry WHERE id = :id FOR UPDATE;")
+                .single(call().bind("id", entryId))
+                .map(row -> row.getEnum("status", WaitingListEntryStatus.class))
+                .first();
+    }
+
+    /** Keeps what the station wrote to the family as the trial began. */
+    public void updateTrialMessage(int entryId, String message) {
+        query("UPDATE waiting_list_entry SET trial_message = :message WHERE id = :id;")
+                .single(call().bind("id", entryId).bind("message", message))
                 .update();
     }
 

@@ -254,7 +254,20 @@ public enum WaitingListRefusal implements Refusal {
     INVITATION_TOO_MANY_DATES(67, HttpStatus.BAD_REQUEST, "An invitation offers at most 5 dates, so nothing was sent"),
 
     /** An invitation offering the same date of the same appointment twice. */
-    INVITATION_DATE_TWICE(68, HttpStatus.BAD_REQUEST, "The same date is offered twice, so nothing was sent");
+    INVITATION_DATE_TWICE(68, HttpStatus.BAD_REQUEST, "The same date is offered twice, so nothing was sent"),
+
+    /** Other dates for an entry that is not invited, so there is nothing to replace. */
+    WAITING_LIST_ENTRY_NOT_REOFFERED(
+            69,
+            HttpStatus.BAD_REQUEST,
+            "This entry cannot be offered other dates as it now stands, so nothing was changed"),
+
+    /** A message to the family that is longer than one is allowed to be. */
+    STATION_MESSAGE_TOO_LONG(
+            70, HttpStatus.BAD_REQUEST, "The message is longer than 2000 characters, so nothing was changed"),
+
+    /** An entry that went before it could be offered other dates. */
+    WAITING_LIST_ENTRY_NOT_HERE_ON_OTHER_DATES(71, HttpStatus.NOT_FOUND, Sentences.WAITING_LIST_ENTRY_NOT_HERE);
 
     private final Definition definition;
 

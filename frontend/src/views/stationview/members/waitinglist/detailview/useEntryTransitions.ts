@@ -3,22 +3,16 @@
  *
  *     Copyright (C) RainbowDashLabs and Contributor
  */
-import { ref, type Ref } from 'vue'
+import { computed, ref, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { waitingList } from '@/api'
 import { describeFailure, type Failure } from '@/util/failure'
-import { StationPermission, type WaitingListEntryWithScore } from '@/api/generated/schema'
+import { StationPermission, type InvitationRecipients, type WaitingListEntryWithScore } from '@/api/generated/schema'
 import { useAsyncAction } from '@/composables/useAsyncAction'
 import { useSession } from '@/composables/useSession'
 import { useSidebarCounts } from '@/composables/useSidebarCounts'
-
-export type TransitionKind = 'testing' | 'join' | 'approve' | 'reject' | 'withdraw' | 'backToWaiting'
-
-export interface PendingTransition {
-  entry: WaitingListEntryWithScore
-  kind: TransitionKind
-}
+import { TELLS_THE_FAMILY, type PendingTransition, type TransitionKind } from './entryTransitions'
 
 /**
  * Moving a waiting-list entry to its next state.
@@ -45,11 +39,31 @@ export function useEntryTransitions(
   const { refresh: refreshSidebarCounts } = useSidebarCounts()
 
   const pending = ref<PendingTransition | null>(null)
+  const message = ref('')
+  const recipients = ref<InvitationRecipients | null>(null)
 
-  function request(entryId: number, kind: TransitionKind) {
+  /**
+   * Opens the confirmation. A move the family is written to about reads first where the mail goes,
+   * so the confirmation can name the addresses beside the message box.
+   *
+   * <p>The addresses are kept only while the dialog they were read for is still the one open. A
+   * dialog closed and another opened before the first read returns would otherwise show the other
+   * family's addresses.
+   */
+  async function request(entryId: number, kind: TransitionKind) {
     const entry = entries.value.find(e => e.entry.id === entryId)
     if (!entry) return
-    pending.value = {entry, kind}
+    message.value = ''
+    recipients.value = null
+    const opened: PendingTransition = {entry, kind}
+    pending.value = opened
+    if (!TELLS_THE_FAMILY.has(kind)) return
+    try {
+      const found = await waitingList.invitationRecipients(listId.value, entryId)
+      if (pending.value === opened) recipients.value = found
+    } catch (e) {
+      if (pending.value === opened) failure.value = describeFailure(e, t)
+    }
   }
 
   /**
@@ -75,13 +89,13 @@ export function useEntryTransitions(
     } else if (kind === 'backToWaiting') {
       await waitingList.returnToWaiting(listId.value, entryId)
     } else if (kind === 'testing') {
-      await waitingList.moveToTesting(listId.value, entryId)
+      await waitingList.moveToTesting(listId.value, entryId, message.value)
     } else if (kind === 'approve') {
       await waitingList.approveEntry(listId.value, entryId)
     } else if (kind === 'reject') {
       await waitingList.rejectEntry(listId.value, entryId)
     } else if (kind === 'withdraw') {
-      await waitingList.withdrawEntry(listId.value, entryId)
+      await waitingList.withdrawEntry(listId.value, entryId, message.value)
     }
 
     pending.value = null
@@ -93,8 +107,16 @@ export function useEntryTransitions(
     }
   })
 
+  /** Whether the move can be confirmed: not while running, nor before the addresses of a mail are known. */
+  const canConfirm = computed(() => pending.value !== null
+    && !running.value
+    && (!TELLS_THE_FAMILY.has(pending.value.kind) || recipients.value !== null))
+
   return {
     pending,
+    message,
+    recipients,
+    canConfirm,
     running,
     failure: transitionFailure,
     confirm,

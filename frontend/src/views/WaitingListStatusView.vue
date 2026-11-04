@@ -17,6 +17,7 @@ import InvitationDetails from './waitingliststatusview/InvitationDetails.vue'
 import InvitationAnswerActions from './waitingliststatusview/InvitationAnswerActions.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import MutedText from '@/components/typography/MutedText.vue'
+import TrialMessage from './waitingliststatusview/TrialMessage.vue'
 import type { WaitingListAnswer, WaitingListPublicStatus } from '@/api/generated/schema'
 import { waitingList } from '@/api'
 import { describeFailure, type Failure } from '@/util/failure'
@@ -155,6 +156,7 @@ const failure = computed(() => confirmFailure.value
           @confirm="confirmInterest"
           @remove="showRemoveModal = true"
         />
+        <TrialMessage v-if="status.status === 'TESTING' && status.trialMessage" :message="status.trialMessage" />
         <template v-if="status.status === 'INVITED'">
           <InvitationDetails v-if="status.invitation" :invitation="status.invitation" />
           <Alert v-if="status.answer" variant="info" data-testid="waitlist-answer-given">

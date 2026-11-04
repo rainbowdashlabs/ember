@@ -33,7 +33,8 @@ public record WaitingListEntry(
         int attendanceCount,
         int invitationRound,
         @Nullable WaitingListInvitation invitation,
-        @Nullable WaitingListInvitationAnswer answer) {
+        @Nullable WaitingListInvitationAnswer answer,
+        String trialMessage) {
 
     public static RowMapping<WaitingListEntry> map() {
         return row -> new WaitingListEntry(
@@ -57,7 +58,8 @@ public record WaitingListEntry(
                 row.getInt("attendance_count"),
                 row.getInt("invitation_round"),
                 WaitingListInvitation.from(row),
-                WaitingListInvitationAnswer.from(row));
+                WaitingListInvitationAnswer.from(row),
+                row.getString("trial_message"));
     }
 
     public String fullName() {

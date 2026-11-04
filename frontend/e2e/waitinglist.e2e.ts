@@ -262,6 +262,53 @@ test.describe('Waiting lists', () => {
     })
 
     /**
+     * When the date does not suit, the station answers with other dates in one step, and the family
+     * can answer again: the entry never leaves the invited section and the old answer goes with the
+     * old dates.
+     */
+    test('the station offers other dates after the first did not suit', async ({managerPage: page, page: visitor}) => {
+        const surname = `Anders-${Date.now()}`
+        const headers = await apiHeaders(page)
+        const list = await ownList(page)
+
+        const created = await page.request.post(`/api/v1/waiting-lists/${list}/entries`, {
+            headers,
+            data: {firstname: 'Neu', lastname: surname, guardians: [{firstname: 'Erika', lastname: surname, email: ''}]},
+        })
+        expect(created.ok(), `the entry was written down (${await created.text()})`).toBeTruthy()
+        const entry = await created.json()
+
+        const coming = await page.request.get('/api/v1/events/upcoming?limit=1', {headers})
+        const [occurrence] = await coming.json()
+        const invited = await page.request.post(`/api/v1/waiting-lists/${list}/entries/${entry.id}/invite`, {
+            headers,
+            data: {options: [{eventId: occurrence.event.id, date: occurrence.date}]},
+        })
+        expect(invited.ok(), `the invitation went out (${await invited.text()})`).toBeTruthy()
+
+        await visitor.goto(`/waiting-list/status?token=${entry.accessToken}`)
+        await visitor.getByTestId('waitlist-answer-date').click()
+        await expect(visitor.getByTestId('waitlist-answer-given')).toBeVisible()
+
+        await page.goto(`/station/members/waiting-lists/${list}`)
+        const row = page.getByRole('row').filter({hasText: surname})
+        await row.getByTestId('waitlist-offer-other-dates').click()
+        await expect(page.getByTestId('waitlist-other-dates-answer'), 'the station sees what was said first')
+            .toBeVisible()
+        const picker = page.getByTestId('waitlist-invite-occurrence')
+        await picker.locator('input[type="search"]').click()
+        await picker.getByRole('button').first().click()
+        await page.getByTestId('waitlist-invite-message').fill('Wie wäre es an diesem Tag?')
+        await page.getByTestId('waitlist-invite-send').click()
+        await expect(page.getByTestId('waitlist-invite-modal')).toHaveCount(0)
+
+        await visitor.reload()
+        await expect(visitor.getByTestId('waitlist-invitation-message'), 'the family reads the new note')
+            .toHaveText('Wie wäre es an diesem Tag?')
+        await expect(visitor.getByTestId('waitlist-answer-coming'), 'and can answer the new dates').toBeVisible()
+    })
+
+    /**
      * A station nobody outside its own network can reach sends links nobody can open, so its lists
      * write to nobody. The story makes such a list, opens it to the public, and registers on it as
      * a stranger who leaves no address at all: the registration is on the list the moment it is

@@ -170,6 +170,10 @@ public class WaitingListRoutes implements Routes {
                 this::inviteEntry,
                 StationPermission.WAITLIST_EDIT);
         routes.post(
+                prefix + "/waiting-lists/{id}/entries/{entryId}/other-dates",
+                this::reofferEntry,
+                StationPermission.WAITLIST_EDIT);
+        routes.post(
                 prefix + "/waiting-lists/{id}/entries/{entryId}/back-to-waiting",
                 this::returnToWaiting,
                 StationPermission.WAITLIST_EDIT);
@@ -327,7 +331,8 @@ public class WaitingListRoutes implements Routes {
                 values,
                 guardians,
                 describeInvitation(list.stationId(), entry),
-                describeAnswer(entry)));
+                describeAnswer(entry),
+                entry.status() == WaitingListEntryStatus.TESTING ? entry.trialMessage() : ""));
     }
 
     /**
@@ -880,6 +885,31 @@ public class WaitingListRoutes implements Routes {
     }
 
     @OpenApi(
+            path = "/api/v1/waiting-lists/{id}/entries/{entryId}/other-dates",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = WaitingListInvitationRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = WaitingListEntry.class)))
+    private void reofferEntry(Context ctx) {
+        int listId = pathInt(ctx, "id");
+        verifyListOwnership(ctx, listId);
+        int entryId = pathInt(ctx, "entryId");
+        verifyEntryInList(listId, entryId);
+        if (ctx.body().isBlank()) {
+            throw WaitingListRefusal.INVITATION_NEEDS_AN_APPOINTMENT.raise();
+        }
+        var invitation = resolveInvitation(ctx, ctx.bodyAsClass(WaitingListInvitationRequest.class));
+        try {
+            ctx.json(service.reofferEntry(entryId, invitation));
+        } catch (IllegalArgumentException e) {
+            log.warn("Waiting list entry not found for other dates, entryId={}", entryId, e);
+            throw WaitingListRefusal.WAITING_LIST_ENTRY_NOT_HERE_ON_OTHER_DATES.raise();
+        } catch (IllegalStateException e) {
+            log.warn("Invalid state when offering other dates, entryId={}", entryId, e);
+            throw WaitingListRefusal.WAITING_LIST_ENTRY_NOT_REOFFERED.raise();
+        }
+    }
+
+    @OpenApi(
             path = "/api/v1/waiting-lists/{id}/entries/{entryId}/back-to-waiting",
             methods = HttpMethod.POST,
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = WaitingListEntry.class)))
@@ -976,14 +1006,16 @@ public class WaitingListRoutes implements Routes {
     @OpenApi(
             path = "/api/v1/waiting-lists/{id}/entries/{entryId}/testing",
             methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = WaitingListMessageRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = WaitingListEntry.class)))
     private void moveToTesting(Context ctx) {
         int listId = pathInt(ctx, "id");
         verifyListOwnership(ctx, listId);
         int entryId = pathInt(ctx, "entryId");
         verifyEntryInList(listId, entryId);
+        String message = stationMessage(ctx);
         try {
-            var entry = service.moveToTesting(entryId);
+            var entry = service.moveToTesting(entryId, message);
             ctx.json(entry);
         } catch (IllegalArgumentException e) {
             log.warn("Waiting list entry not found for moveToTesting, entryId={}", entryId, e);
@@ -1018,14 +1050,16 @@ public class WaitingListRoutes implements Routes {
     @OpenApi(
             path = "/api/v1/waiting-lists/{id}/entries/{entryId}/withdraw",
             methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = WaitingListMessageRequest.class)),
             responses = @OpenApiResponse(status = "204"))
     private void withdrawEntry(Context ctx) {
         int listId = pathInt(ctx, "id");
         verifyListOwnership(ctx, listId);
         int entryId = pathInt(ctx, "entryId");
         verifyEntryInList(listId, entryId);
+        String message = stationMessage(ctx);
         try {
-            service.withdrawEntry(entryId);
+            service.withdrawByStation(entryId, message);
             ctx.status(HttpStatus.NO_CONTENT);
         } catch (IllegalArgumentException e) {
             log.warn("Waiting list entry not found for withdraw, entryId={}", entryId, e);
@@ -1034,6 +1068,21 @@ public class WaitingListRoutes implements Routes {
             log.warn("Invalid state when withdrawing waiting list entry, entryId={}", entryId, e);
             throw WaitingListRefusal.WAITING_LIST_ENTRY_NOT_WITHDRAWN.raise();
         }
+    }
+
+    /**
+     * What the station writes to the family with a step, trimmed, or empty when the request carries
+     * none. A request without a body, or with a body of JSON {@code null}, is a step without a message.
+     */
+    private static String stationMessage(Context ctx) {
+        String raw = ctx.body().trim();
+        if (raw.isEmpty() || raw.equals("null")) return "";
+        String requested = ctx.bodyAsClass(WaitingListMessageRequest.class).message();
+        String message = requested == null ? "" : requested.trim();
+        if (message.length() > WaitingListInvitation.MESSAGE_MAX_LENGTH) {
+            throw WaitingListRefusal.STATION_MESSAGE_TOO_LONG.raise();
+        }
+        return message;
     }
 
     private void validateFormula(@Nullable String formula, List<String> fieldNames) {
@@ -1212,7 +1261,8 @@ public class WaitingListRoutes implements Routes {
             List<WaitingListEntryValue> values,
             List<WaitingListEntryGuardian> guardians,
             @Nullable WaitingListPublicInvitation invitation,
-            @Nullable WaitingListPublicAnswer answer) {}
+            @Nullable WaitingListPublicAnswer answer,
+            String trialMessage) {}
 
     /**
      * The invitation the entry holds, as the page has to show it.
@@ -1346,6 +1396,13 @@ public class WaitingListRoutes implements Routes {
     public record WaitingListInvitationRequest(
             @Nullable List<WaitingListInvitationOptionRequest> options,
             @Nullable String message) {}
+
+    /**
+     * What the station writes to the family with a step it takes.
+     *
+     * @param message the text, or null for none
+     */
+    public record WaitingListMessageRequest(@Nullable String message) {}
 
     /**
      * One date an invitation offers.

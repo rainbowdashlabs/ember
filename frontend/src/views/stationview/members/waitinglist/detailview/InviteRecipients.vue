@@ -10,10 +10,17 @@ import Spinner from '@/components/feedback/Spinner.vue'
 import type {InvitationRecipients} from '@/api/generated/schema'
 
 /**
- * Where the invitation goes, named before it is sent: the addresses, or plainly that nobody is
- * written to and the entry is only marked as invited.
+ * Where a mail about the entry goes, named before it is sent: the addresses, or plainly that nobody
+ * is written to and what happens instead. The invitation says the entry is only marked as invited;
+ * another step says what it does in its own words.
  */
-const props = defineProps<{recipients: InvitationRecipients | null}>()
+const props = defineProps<{
+  recipients: InvitationRecipients | null
+  /** What is said when the list writes no mail, the invitation's wording when not given. */
+  silentText?: string
+  /** What is said when nobody left an address, the invitation's wording when not given. */
+  noAddressText?: string
+}>()
 
 const {t} = useI18n()
 </script>
@@ -26,8 +33,8 @@ const {t} = useI18n()
       <li v-for="address in props.recipients.addresses" :key="address">{{ address }}</li>
     </ul>
     <p v-else-if="!props.recipients.sendsMail" class="text-sm text-(--text-muted)">
-      {{ t('waitingList.inviteListSendsNoMail') }}
+      {{ props.silentText ?? t('waitingList.inviteListSendsNoMail') }}
     </p>
-    <p v-else class="text-sm text-(--text-muted)">{{ t('waitingList.inviteNoAddress') }}</p>
+    <p v-else class="text-sm text-(--text-muted)">{{ props.noAddressText ?? t('waitingList.inviteNoAddress') }}</p>
   </div>
 </template>

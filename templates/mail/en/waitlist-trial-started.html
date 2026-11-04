@@ -1,0 +1,15 @@
+{% extends '_layout.html' %}
+{% block body %}
+      <h2>Hello {{ name }},</h2>
+      <p>Your trial at <strong>{{ stationName }}</strong> has begun. We are glad to have you with us.</p>
+      {% if appointment %}
+      <p>You told us you would come to: <strong>{{ appointment }}</strong></p>
+      {% endif %}
+      {% if message %}
+      <ul class="notification-list">
+        <li class="notification-item"><p class="message" style="white-space:pre-line">{{ message }}</p></li>
+      </ul>
+      {% endif %}
+      <p>If you were given an account for the trial, you will receive a separate mail to set it up.</p>
+      <div class="btn-wrap"><a class="btn" href="{{ url }}">Open your entry</a></div>
+{% endblock %}

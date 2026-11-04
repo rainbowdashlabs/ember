@@ -31,7 +31,9 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * What an invitation to come and look says, and writing it to whoever can be written to.
+ * What an invitation to come and look says, and writing it to whoever can be written to: the
+ * invitation itself, other dates replacing it, the start of the trial and being taken off the list.
+ * All four go to the same people, so all four are written here.
  *
  * <p>The page behind the entry link shows the same thing, so both ask this rather than each working
  * the appointment out for itself. An answer given without knowing the occasion is not an answer worth
@@ -85,6 +87,95 @@ public class WaitlistInvitationMessage {
                     station.id(),
                     details);
         }
+    }
+
+    /**
+     * Sends the dates that replace the ones offered before to everybody on the entry who left an
+     * address.
+     *
+     * @param invitation the new dates and the station's note
+     */
+    public void sendOtherDates(
+            WaitingListEntry entry,
+            List<WaitingListEntryGuardian> guardians,
+            Station station,
+            WaitingListInvitation invitation) {
+        var details = describe(station, invitation);
+        String language = StationFormat.languageOf(station);
+        for (var recipient : recipients(entry, guardians)) {
+            emailService.sendWaitlistOtherDatesEmail(
+                    recipient.email(),
+                    recipient.name(),
+                    entry.accessToken(),
+                    station.name(),
+                    language,
+                    station.id(),
+                    details);
+        }
+    }
+
+    /**
+     * Tells everybody on the entry who left an address that the trial has begun.
+     *
+     * @param message what the station wrote to them, empty for nothing
+     */
+    public void sendTrialStarted(
+            WaitingListEntry entry, List<WaitingListEntryGuardian> guardians, Station station, String message) {
+        String appointment = pickedAppointment(station, entry);
+        String language = StationFormat.languageOf(station);
+        for (var recipient : recipients(entry, guardians)) {
+            emailService.sendWaitlistTrialStartedEmail(
+                    recipient.email(),
+                    recipient.name(),
+                    entry.accessToken(),
+                    station.name(),
+                    language,
+                    station.id(),
+                    appointment,
+                    message);
+        }
+    }
+
+    /**
+     * Tells everybody on the entry who left an address that the station has taken them off the list.
+     *
+     * <p>Read before the entry is deleted and sent after, since the addresses go with the entry.
+     *
+     * @param recipients  the addresses as they were before the entry went
+     * @param message     what the station wrote to them, empty for nothing
+     * @param duringTrial whether a running trial ended with it, which the mail says in its own words
+     */
+    public void sendRemoved(List<Recipient> recipients, Station station, String message, boolean duringTrial) {
+        String language = StationFormat.languageOf(station);
+        for (var recipient : recipients) {
+            emailService.sendWaitlistRemovedEmail(
+                    recipient.email(), recipient.name(), station.name(), language, station.id(), message, duringTrial);
+        }
+    }
+
+    /**
+     * The date a coming answer picked, in one line, or empty when the entry picked none.
+     */
+    private String pickedAppointment(Station station, WaitingListEntry entry) {
+        var invitation = entry.invitation();
+        var answer = entry.answer();
+        Integer position = answer == null ? null : answer.position();
+        if (invitation == null || position == null) return "";
+        return invitation
+                .option(position)
+                .map(picked -> summary(station, picked))
+                .orElse("");
+    }
+
+    /**
+     * One offered date in one line, as the station and the family are told it, or empty when its
+     * appointment is gone.
+     */
+    public String summary(Station station, WaitingListInvitation.OfferedDate date) {
+        return describe(station, new WaitingListInvitation("", List.of(date))).appointments().stream()
+                .findFirst()
+                .map(WaitlistInvitationDetails.Appointment::summary)
+                .orElse("");
     }
 
     /**
@@ -160,7 +251,7 @@ public class WaitlistInvitationMessage {
      * Whoever the invitation goes to: every guardian who left an address, and the entry's own
      * address only when no guardian did.
      */
-    private static List<Recipient> recipients(WaitingListEntry entry, List<WaitingListEntryGuardian> guardians) {
+    public static List<Recipient> recipients(WaitingListEntry entry, List<WaitingListEntryGuardian> guardians) {
         var found = guardians.stream()
                 .filter(guardian ->
                         guardian.email() != null && !guardian.email().isBlank())
@@ -173,5 +264,11 @@ public class WaitlistInvitationMessage {
                 new Recipient(entry.email(), entry.parentName().isBlank() ? entry.fullName() : entry.parentName()));
     }
 
-    private record Recipient(String email, String name) {}
+    /**
+     * One person a message about the entry is written to.
+     *
+     * @param email where it goes
+     * @param name  who it greets
+     */
+    public record Recipient(String email, String name) {}
 }
