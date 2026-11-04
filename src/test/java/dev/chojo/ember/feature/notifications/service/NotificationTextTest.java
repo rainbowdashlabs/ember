@@ -294,12 +294,30 @@ class NotificationTextTest {
                 text.resolveDetail(notificationWith(
                         NotificationType.WAITLIST_INVITATION_ANSWERED,
                         new NotificationParams.WaitlistInvitationAnswered(
-                                "Emil", "Jugend", "COMING", "Wir kommen zu zweit"),
+                                "Emil", "Jugend", "COMING", "Wir kommen zu zweit", null),
                         30)));
         assertNull(text.resolveDetail(notificationWith(
                 NotificationType.WAITLIST_INVITATION_ANSWERED,
-                new NotificationParams.WaitlistInvitationAnswered("Emil", "Jugend", "COMING", " "),
+                new NotificationParams.WaitlistInvitationAnswered("Emil", "Jugend", "COMING", " ", ""),
                 31)));
+    }
+
+    @Test
+    void anAnsweredInvitationNamesThePickedDateBeforeTheNote() {
+        assertEquals(
+                "Dienstabend, 12.05.2026 - Wir kommen zu zweit",
+                text.resolveDetail(notificationWith(
+                        NotificationType.WAITLIST_INVITATION_ANSWERED,
+                        new NotificationParams.WaitlistInvitationAnswered(
+                                "Emil", "Jugend", "COMING", "Wir kommen zu zweit", "Dienstabend, 12.05.2026"),
+                        32)));
+        assertEquals(
+                "Dienstabend, 12.05.2026",
+                text.resolveDetail(notificationWith(
+                        NotificationType.WAITLIST_INVITATION_ANSWERED,
+                        new NotificationParams.WaitlistInvitationAnswered(
+                                "Emil", "Jugend", "COMING", "", "Dienstabend, 12.05.2026"),
+                        33)));
     }
 
     @Test

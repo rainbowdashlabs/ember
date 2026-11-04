@@ -23,8 +23,14 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param answer     which of the three was clicked
  * @param answeredAt when it was clicked, so a station can see how long an invitation has been sitting
  * @param note       what they wrote alongside it, empty when they wrote nothing
+ * @param position   which offered date a {@link WaitingListAnswer#COMING} answer picked, {@code null}
+ *                   for any other answer
  */
-public record WaitingListInvitationAnswer(WaitingListAnswer answer, Instant answeredAt, String note) {
+public record WaitingListInvitationAnswer(
+        WaitingListAnswer answer,
+        Instant answeredAt,
+        String note,
+        @Nullable Integer position) {
 
     /** Reads the answer off an entry row, or {@code null} when the invitation is unanswered. */
     public static @Nullable WaitingListInvitationAnswer from(Row row) throws SQLException {
@@ -33,6 +39,7 @@ public record WaitingListInvitationAnswer(WaitingListAnswer answer, Instant answ
         return new WaitingListInvitationAnswer(
                 WaitingListAnswer.valueOf(answer),
                 row.get("invitation_answered_at", INSTANT_TIMESTAMP),
-                row.getString("invitation_answer_note"));
+                row.getString("invitation_answer_note"),
+                row.getObject("invitation_answer_position", Integer.class));
     }
 }

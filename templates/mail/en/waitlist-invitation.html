@@ -7,17 +7,25 @@
         <li class="notification-item"><p class="message" style="white-space:pre-line">{{ message }}</p></li>
       </ul>
       {% endif %}
-      {% if appointmentName %}
+      {% if appointments | length > 1 %}
+      <p>We would be glad to see you on one of these dates. Pick whichever suits you best:</p>
+      {% elseif appointments | length == 1 %}
       <p>We would be glad to see you here:</p>
-      <ul class="notification-list">
-        <li class="notification-item"><strong>{{ appointmentName }}</strong></li>
-        {% if appointmentDate %}<li class="notification-item">Date: {{ appointmentDate }}</li>{% endif %}
-        {% if appointmentTime %}<li class="notification-item">Time: {{ appointmentTime }}</li>{% endif %}
-        {% if arrivalTime %}<li class="notification-item">Please be there by {{ arrivalTime }} so we can welcome you properly.</li>{% endif %}
-        {% if location %}<li class="notification-item">Where: {{ location }}</li>{% endif %}
-      </ul>
       {% endif %}
+      {% for appointment in appointments %}
+      <ul class="notification-list">
+        <li class="notification-item"><strong>{{ appointment.appointmentName }}</strong></li>
+        {% if appointment.appointmentDate %}<li class="notification-item">Date: {{ appointment.appointmentDate }}</li>{% endif %}
+        {% if appointment.appointmentTime %}<li class="notification-item">Time: {{ appointment.appointmentTime }}</li>{% endif %}
+        {% if appointment.arrivalTime %}<li class="notification-item">Please be there by {{ appointment.arrivalTime }} so we can welcome you properly.</li>{% endif %}
+        {% if appointment.location %}<li class="notification-item">Where: {{ appointment.location }}</li>{% endif %}
+      </ul>
+      {% endfor %}
+      {% if appointments | length > 1 %}
+      <p>Please tell us on the page below which date you will come to. You can also say there that none of them works for you, or that you are no longer interested:</p>
+      {% else %}
       <p>Please let us know on the page below whether that suits you. You can also say there that the date does not work for you, or that you are no longer interested:</p>
+      {% endif %}
       <div class="btn-wrap"><a class="btn" href="{{ url }}">Answer the invitation</a></div>
       <p class="hint">Until you have been here for the first time you are still only on the waiting list. Nothing is created and you are committed to nothing.</p>
 {% endblock %}

@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "schemaHash": "sha256:7402e18f4ef0173881ae19325d5009ff031a8e2e295859417944ab7d03b146ad",
-  "generatedAt": "2026-10-30T13:19:21Z",
+  "schemaHash": "sha256:e8844637778810bfb70455ab9b4ee48b0789b7a9d5fb42d2cce9f487365b0970",
+  "generatedAt": "2026-11-04T11:38:29Z",
   "tables": {
     "account": {
       "feature": "account",
@@ -29690,7 +29690,7 @@
     "waiting_list_entry": {
       "feature": "waitinglist",
       "scope": "STATION",
-      "tableHash": "sha256:767bed5422c043dffb5fb9da2e9797eb9bf29b6b343ee532832d0cd484fc2f1a",
+      "tableHash": "sha256:a3708e0680b08feedd26acfea591cf7fbe007d911ef641224e3df320e177c7e9",
       "columns": [
         {
           "name": "id",
@@ -29826,27 +29826,6 @@
           "description": "JSONB-encoded ConsentProof captured at the time of public submission. NULL for entries created by managers via the admin UI."
         },
         {
-          "name": "invited_event_id",
-          "type": "int4",
-          "nullable": true,
-          "verified": true,
-          "description": "The appointment the current invitation asks them to come to, or NULL when nobody has been invited yet. No sign-up is created from it: they have not joined anything, so they are not on the attendee list and count towards nothing the station plans from. Deleting the appointment empties this, which leaves the invitation without an occasion rather than pointing at nothing."
-        },
-        {
-          "name": "invited_event_date",
-          "type": "date",
-          "nullable": true,
-          "verified": true,
-          "description": "The one date of that appointment they were invited to. An appointment repeats, so without a date the invitation would name every Tuesday there has ever been, and the answer to it would mean nothing."
-        },
-        {
-          "name": "invited_arrival_time",
-          "type": "time",
-          "nullable": true,
-          "verified": true,
-          "description": "When they were asked to be there, which is usually earlier than everybody else so somebody can meet them. NULL when the invitation named no time of its own. A time rather than an offset, because that is what the mail has to say and what the reader has to read."
-        },
-        {
           "name": "invitation_answer",
           "type": "text",
           "nullable": true,
@@ -29873,15 +29852,23 @@
           "nullable": false,
           "verified": true,
           "description": "A personal note the station wrote into the current invitation, empty when it wrote none. Shown in the invitation mail and on the page behind the entry link. Cleared together with the invitation it belongs to."
+        },
+        {
+          "name": "invitation_round",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "How often the entry has been invited or offered other dates. An answer names the round it answers and is refused when that is not the current one, so a click on a page opened before the dates changed cannot apply to the dates that replaced them."
+        },
+        {
+          "name": "invitation_answer_position",
+          "type": "int4",
+          "nullable": true,
+          "verified": true,
+          "description": "Which offered date a COMING answer picked, by its position among the options. NULL for any other answer and while the invitation is unanswered."
         }
       ],
       "foreignKeys": [
-        {
-          "column": "invited_event_id",
-          "refTable": "station_event",
-          "refColumn": "id",
-          "onDelete": "SET NULL"
-        },
         {
           "column": "list_id",
           "refTable": "waiting_list",
@@ -30150,6 +30137,80 @@
         "reason": "Waiting list structure, not per-entry"
       },
       "description": "Custom fields on a waiting list application form."
+    },
+    "waiting_list_invitation_option": {
+      "feature": "waitinglist",
+      "scope": "STATION",
+      "tableHash": "sha256:cc06adb1aa90b50daafd3e118663bfec5da5841c0b8190e32dff8892c4e636dc",
+      "columns": [
+        {
+          "name": "entry_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The entry whose invitation offers this date. Deleting the entry deletes its options."
+        },
+        {
+          "name": "position",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "Where the date stands among the ones offered, starting at 0. An answer names the date it picked by this position."
+        },
+        {
+          "name": "event_id",
+          "type": "int4",
+          "nullable": false,
+          "verified": true,
+          "description": "The appointment offered. Deleting the appointment removes the option, which leaves the invitation with the dates that still exist."
+        },
+        {
+          "name": "event_date",
+          "type": "date",
+          "nullable": false,
+          "verified": true,
+          "description": "The one date of that appointment. An appointment repeats, so without a date the option would name every occurrence there has ever been."
+        },
+        {
+          "name": "arrival_time",
+          "type": "time",
+          "nullable": true,
+          "verified": true,
+          "description": "When they were asked to be there on that date, usually earlier than everybody else so somebody can meet them. NULL when the station named no time of its own."
+        }
+      ],
+      "foreignKeys": [
+        {
+          "column": "entry_id",
+          "refTable": "waiting_list_entry",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        },
+        {
+          "column": "event_id",
+          "refTable": "station_event",
+          "refColumn": "id",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "stationTransfer": {
+        "status": "TRACKED",
+        "rationale": "Belongs in station transfer with the entry it hangs off"
+      },
+      "gdprExport": {
+        "status": "TRACKED"
+      },
+      "gdprDeletion": {
+        "status": "TRACKED",
+        "strategies": [
+          {
+            "column": "entry_id",
+            "strategy": "CASCADE",
+            "reason": "FK ON DELETE CASCADE: removed with waitlist_entry"
+          }
+        ]
+      },
+      "description": "The appointments the current invitation of a waiting list entry offers, one row per date the person can pick from. No sign-up is created from any of them: they have not joined anything, so they are on no attendee list and count towards nothing the station plans from. Replaced as a whole whenever the station invites again or offers other dates."
     },
     "waiting_list_invite": {
       "feature": "waitinglist",

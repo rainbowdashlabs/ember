@@ -12,9 +12,10 @@ import SubHeader from '@/components/typography/SubHeader.vue'
 import WaitingListStatusBadge from '@/components/badge/WaitingListStatusBadge.vue'
 import WaitingListAnswerBadge from '@/components/badge/WaitingListAnswerBadge.vue'
 import type { WaitingListEntryWithScore } from '@/api/generated/schema'
-import { formatDateTime } from '@/util/format'
+import { computed } from 'vue'
+import { formatDate, formatDateTime } from '@/util/format'
 
-defineProps<{
+const props = defineProps<{
   entry: WaitingListEntryWithScore
   entryFullName: string
 }>()
@@ -28,6 +29,27 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+
+type OfferedDate = NonNullable<WaitingListEntryWithScore['entry']['invitation']>['options'][number]
+
+/** An offered date as the station reads it: the appointment and the day, since one day can hold two. */
+function describeOffered(option: OfferedDate): string {
+  const day = formatDate(option.date)
+  return option.appointmentName ? `${option.appointmentName}, ${day}` : day
+}
+
+/** The dates the current invitation offers, written out, so the station sees what was offered. */
+const offeredDates = computed(() => (props.entry.entry.invitation?.options ?? [])
+  .map(describeOffered)
+  .join('; '))
+
+/** The date a coming answer picked, written out, or empty when nothing was picked. */
+const pickedDate = computed(() => {
+  const position = props.entry.entry.answer?.position
+  if (position === null || position === undefined) return ''
+  const picked = props.entry.entry.invitation?.options.find(option => option.position === position)
+  return picked ? describeOffered(picked) : ''
+})
 </script>
 
 <template>
@@ -36,6 +58,14 @@ const { t } = useI18n()
     <WaitingListStatusBadge :status="entry.entry.status" />
     <WaitingListAnswerBadge v-if="entry.entry.answer" :answer="entry.entry.answer.answer" />
   </div>
+
+  <p v-if="entry.entry.status === 'INVITED' && offeredDates" class="text-sm" data-testid="waitlist-offered-dates">
+    {{ t('waitingList.offeredDates') }}: {{ offeredDates }}
+  </p>
+
+  <p v-if="pickedDate" class="text-sm" data-testid="waitlist-picked-date">
+    {{ t('waitingList.pickedDate') }}: {{ pickedDate }}
+  </p>
 
   <p v-if="entry.entry.answer && entry.entry.answer.note" class="text-sm">
     {{ t('waitingList.answerNote') }}: {{ entry.entry.answer.note }}

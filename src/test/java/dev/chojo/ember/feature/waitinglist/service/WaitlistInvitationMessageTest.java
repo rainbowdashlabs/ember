@@ -115,6 +115,10 @@ class WaitlistInvitationMessageTest extends RepositoryTestBase {
         return captor.getValue();
     }
 
+    private WaitlistInvitationDetails.Appointment captureFirstAppointment() {
+        return captureDetails().appointments().getFirst();
+    }
+
     @Test
     void theMailCarriesTheAppointmentItIsAbout() {
         var event = appointment("Dienstabend");
@@ -126,11 +130,58 @@ class WaitlistInvitationMessageTest extends RepositoryTestBase {
                 station,
                 new WaitingListInvitation(event.id(), LocalDate.of(2026, 5, 12), LocalTime.of(17, 45)));
 
-        var details = captureDetails();
+        var details = captureDetails().appointments().getFirst();
         assertEquals("Dienstabend", details.appointmentName());
         assertTrue(details.date().contains("2026"), "the date is written out for a reader");
         assertEquals("18:00 - 20:00", details.time(), "the appointment's own hours are in the mail");
         assertEquals("17:45", details.arrivalTime(), "and the time they were asked to be there");
+    }
+
+    @Test
+    void everyOfferedDateIsInTheMailInTheOrderOffered() {
+        var first = appointment("Dienstabend");
+        var second = appointment("Übungsabend");
+        var invited = entry("Kind", "kind@test.com");
+
+        message.send(
+                invited,
+                List.of(),
+                station,
+                new WaitingListInvitation(
+                        "",
+                        List.of(
+                                new WaitingListInvitation.OfferedDate(0, first.id(), LocalDate.of(2026, 5, 12), null),
+                                new WaitingListInvitation.OfferedDate(
+                                        1, second.id(), LocalDate.of(2026, 5, 19), LocalTime.of(17, 30)))));
+
+        var appointments = captureDetails().appointments();
+        assertEquals(2, appointments.size());
+        assertEquals("Dienstabend", appointments.get(0).appointmentName());
+        assertEquals(0, appointments.get(0).position());
+        assertEquals("Übungsabend", appointments.get(1).appointmentName());
+        assertEquals(1, appointments.get(1).position(), "an answer names the date by this position");
+        assertEquals("17:30", appointments.get(1).arrivalTime());
+    }
+
+    /** A date whose appointment was deleted is left out, and the dates that remain keep their positions. */
+    @Test
+    void aGoneDateIsLeftOutAndTheOthersStay() {
+        var kept = appointment("Dienstabend");
+        var invited = entry("Kind", "kind@test.com");
+
+        message.send(
+                invited,
+                List.of(),
+                station,
+                new WaitingListInvitation(
+                        "",
+                        List.of(
+                                new WaitingListInvitation.OfferedDate(0, -1, LocalDate.of(2026, 5, 12), null),
+                                new WaitingListInvitation.OfferedDate(1, kept.id(), LocalDate.of(2026, 5, 19), null))));
+
+        var appointments = captureDetails().appointments();
+        assertEquals(1, appointments.size());
+        assertEquals(1, appointments.getFirst().position());
     }
 
     @Test
@@ -145,7 +196,7 @@ class WaitlistInvitationMessageTest extends RepositoryTestBase {
 
         var details = captureDetails();
         assertEquals("Bis bald", details.message());
-        assertEquals("", details.appointmentName(), "the gone appointment is not guessed at");
+        assertTrue(details.appointments().isEmpty(), "the gone appointment is not guessed at");
     }
 
     /** The hours are printed in the zone the station keeps its times in, not in the stored one. */
@@ -160,7 +211,7 @@ class WaitlistInvitationMessageTest extends RepositoryTestBase {
         message.send(
                 invited, List.of(), reloaded, new WaitingListInvitation(event.id(), LocalDate.of(2026, 5, 12), null));
 
-        assertEquals("20:00 - 22:00", captureDetails().time());
+        assertEquals("20:00 - 22:00", captureDetails().appointments().getFirst().time());
     }
 
     @Test
@@ -169,9 +220,7 @@ class WaitlistInvitationMessageTest extends RepositoryTestBase {
 
         message.send(invited, List.of(), station, null);
 
-        var details = captureDetails();
-        assertEquals("", details.appointmentName());
-        assertEquals("", details.date());
+        assertTrue(captureDetails().appointments().isEmpty());
     }
 
     /** An appointment deleted between the invitation and the mail is not a reason to stay silent. */
@@ -181,7 +230,7 @@ class WaitlistInvitationMessageTest extends RepositoryTestBase {
 
         message.send(invited, List.of(), station, new WaitingListInvitation(-1, LocalDate.of(2026, 5, 12), null));
 
-        assertEquals("", captureDetails().appointmentName());
+        assertTrue(captureDetails().appointments().isEmpty());
     }
 
     @Test
@@ -201,7 +250,7 @@ class WaitlistInvitationMessageTest extends RepositoryTestBase {
 
         message.send(invited, List.of(), station, new WaitingListInvitation(event.id(), LocalDate.now(), null));
 
-        assertEquals("Am Hof 3", captureDetails().location());
+        assertEquals("Am Hof 3", captureFirstAppointment().location());
     }
 
     /** Without a meeting point on the appointment, the station's published address answers "wo". */
@@ -215,7 +264,8 @@ class WaitlistInvitationMessageTest extends RepositoryTestBase {
 
         message.send(invited, List.of(), reloaded, new WaitingListInvitation(event.id(), LocalDate.now(), null));
 
-        assertEquals("Feuerwache 1, 12345 Musterstadt", captureDetails().location());
+        assertEquals(
+                "Feuerwache 1, 12345 Musterstadt", captureFirstAppointment().location());
     }
 
     @Test
@@ -225,7 +275,7 @@ class WaitlistInvitationMessageTest extends RepositoryTestBase {
 
         message.send(invited, List.of(), station, new WaitingListInvitation(event.id(), LocalDate.now(), null));
 
-        assertEquals("", captureDetails().location());
+        assertEquals("", captureFirstAppointment().location());
     }
 
     @Test

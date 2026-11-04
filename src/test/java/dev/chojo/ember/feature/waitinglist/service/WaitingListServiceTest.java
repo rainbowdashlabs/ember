@@ -704,9 +704,11 @@ class WaitingListServiceTest extends RepositoryTestBase {
 
         assertEquals(WaitingListEntryStatus.INVITED, invited.status());
         assertNotNull(invited.invitation());
-        assertEquals(event.id(), invited.invitation().eventId());
-        assertEquals(LocalDate.of(2026, 5, 12), invited.invitation().date());
-        assertEquals(LocalTime.of(17, 45), invited.invitation().arrivalTime());
+        var offered = invited.invitation().options().getFirst();
+        assertEquals(event.id(), offered.eventId());
+        assertEquals(LocalDate.of(2026, 5, 12), offered.date());
+        assertEquals(LocalTime.of(17, 45), offered.arrivalTime());
+        assertEquals(1, invited.invitationRound(), "an invitation starts a round its answer has to name");
     }
 
     /** Nobody is signed up from an invitation: they have not joined anything yet. */
@@ -771,12 +773,81 @@ class WaitingListServiceTest extends RepositoryTestBase {
                 service.inviteEntry(entry.id(), new WaitingListInvitation(event.id(), LocalDate.of(2026, 5, 12), null));
 
         var answered = service.answerInvitation(
-                invited.accessToken(), event.id(), LocalDate.of(2026, 5, 12), WaitingListAnswer.COMING, "  Bis dann  ");
+                invited.accessToken(), invited.invitationRound(), WaitingListAnswer.COMING, null, "  Bis dann  ");
 
         assertNotNull(answered.answer());
         assertEquals(WaitingListAnswer.COMING, answered.answer().answer());
         assertEquals("Bis dann", answered.answer().note());
         assertNotNull(answered.answer().answeredAt());
+        assertEquals(0, answered.answer().position(), "the only date offered is the one picked");
+    }
+
+    private static WaitingListEntry inviteToTwoDates(int entryId, StationEvent event) {
+        return service.inviteEntry(
+                entryId,
+                new WaitingListInvitation(
+                        "",
+                        List.of(
+                                new WaitingListInvitation.OfferedDate(0, event.id(), LocalDate.of(2026, 5, 12), null),
+                                new WaitingListInvitation.OfferedDate(
+                                        1, event.id(), LocalDate.of(2026, 5, 19), null))));
+    }
+
+    @Test
+    void comingToOneOfSeveralDatesNamesTheOnePicked() {
+        var event = appointment("Wahl");
+        var entry = service.createEntry(listId, "Neu", "Wahl", guardians("", "wahl@test.com"), Map.of(), "");
+        var invited = inviteToTwoDates(entry.id(), event);
+
+        var answered = service.answerInvitation(
+                invited.accessToken(), invited.invitationRound(), WaitingListAnswer.COMING, 1, null);
+
+        assertEquals(1, answered.answer().position());
+        assertEquals(2, answered.invitation().options().size(), "the other date stays on the invitation");
+    }
+
+    @Test
+    void comingToSeveralDatesWithoutPickingOneIsRefused() {
+        var event = appointment("Ohne Wahl");
+        var entry = service.createEntry(listId, "Neu", "Unklar", guardians("", "unklar@test.com"), Map.of(), "");
+        var invited = inviteToTwoDates(entry.id(), event);
+
+        var refused = assertThrows(
+                RefusalResponse.class,
+                () -> service.answerInvitation(
+                        invited.accessToken(), invited.invitationRound(), WaitingListAnswer.COMING, null, null));
+        assertEquals(WaitingListRefusal.WAITING_LIST_ANSWER_NEEDS_A_DATE, refused.refusal());
+    }
+
+    @Test
+    void comingToADateNotOfferedIsRefused() {
+        var event = appointment("Falsche Wahl");
+        var entry = service.createEntry(listId, "Neu", "Falsch", guardians("", "falsch@test.com"), Map.of(), "");
+        var invited = inviteToTwoDates(entry.id(), event);
+
+        var refused = assertThrows(
+                RefusalResponse.class,
+                () -> service.answerInvitation(
+                        invited.accessToken(), invited.invitationRound(), WaitingListAnswer.COMING, 2, null));
+        assertEquals(WaitingListRefusal.WAITING_LIST_ANSWER_DATE_NOT_OFFERED, refused.refusal());
+    }
+
+    /** None of these suit picks nothing, whatever the page sent along. */
+    @Test
+    void noDateSuitsPicksNoDate() {
+        var event = appointment("Keiner passt");
+        var entry = service.createEntry(listId, "Neu", "Keiner", guardians("", "keiner@test.com"), Map.of(), "");
+        var invited = inviteToTwoDates(entry.id(), event);
+
+        var answered = service.answerInvitation(
+                invited.accessToken(),
+                invited.invitationRound(),
+                WaitingListAnswer.DATE_DOES_NOT_SUIT,
+                1,
+                "Nur Freitags");
+
+        assertNull(answered.answer().position());
+        assertEquals("Nur Freitags", answered.answer().note());
     }
 
     /**
@@ -788,41 +859,36 @@ class WaitingListServiceTest extends RepositoryTestBase {
         var entry = service.createEntry(listId, "Neu", "Nein", guardians("", "nein@test.com"), Map.of(), "");
         var invited = invite(entry.id());
 
-        var answered =
-                service.answerInvitation(invited.accessToken(), null, null, WaitingListAnswer.NOT_INTERESTED, null);
+        var answered = service.answerInvitation(
+                invited.accessToken(), invited.invitationRound(), WaitingListAnswer.NOT_INTERESTED, null, null);
 
         assertEquals(WaitingListEntryStatus.INVITED, answered.status());
         assertEquals(WaitingListAnswer.NOT_INTERESTED, answered.answer().answer());
         assertEquals("", answered.answer().note());
     }
 
-    /** An old link in a mailbox cannot answer the invitation that replaced the one it was sent for. */
+    /** A page opened before the invitation was replaced cannot answer the one that replaced it. */
     @Test
-    void anAnswerAboutAnotherAppointmentIsRefused() {
+    void anAnswerToAReplacedInvitationIsRefused() {
         var first = appointment("Erster");
         var second = appointment("Zweiter");
         var entry = service.createEntry(listId, "Neu", "Alt", guardians("", "alt@test.com"), Map.of(), "");
+        var firstInvitation =
+                service.inviteEntry(entry.id(), new WaitingListInvitation(first.id(), LocalDate.of(2026, 5, 12), null));
+        service.returnToWaiting(entry.id());
         var invited = service.inviteEntry(
                 entry.id(), new WaitingListInvitation(second.id(), LocalDate.of(2026, 5, 19), null));
 
         var refused = assertThrows(
                 RefusalResponse.class,
                 () -> service.answerInvitation(
-                        invited.accessToken(), first.id(), LocalDate.of(2026, 5, 12), WaitingListAnswer.COMING, null));
+                        invited.accessToken(),
+                        firstInvitation.invitationRound(),
+                        WaitingListAnswer.COMING,
+                        null,
+                        null));
         assertEquals(WaitingListRefusal.WAITING_LIST_INVITATION_ANSWER_FOR_ANOTHER, refused.refusal());
-    }
-
-    @Test
-    void anAnswerNamingADateTheEntryWasNotInvitedToIsRefused() {
-        var event = appointment("Anderer Abend");
-        var entry = service.createEntry(listId, "Neu", "Datum", guardians("", "datum@test.com"), Map.of(), "");
-        var invited =
-                service.inviteEntry(entry.id(), new WaitingListInvitation(event.id(), LocalDate.of(2026, 5, 19), null));
-
-        assertThrows(
-                RefusalResponse.class,
-                () -> service.answerInvitation(
-                        invited.accessToken(), event.id(), LocalDate.of(2026, 5, 12), WaitingListAnswer.COMING, null));
+        assertEquals(firstInvitation.invitationRound() + 1, invited.invitationRound());
     }
 
     @Test
@@ -832,7 +898,8 @@ class WaitingListServiceTest extends RepositoryTestBase {
 
         var refused = assertThrows(
                 RefusalResponse.class,
-                () -> service.answerInvitation(testing.accessToken(), null, null, WaitingListAnswer.COMING, null));
+                () -> service.answerInvitation(
+                        testing.accessToken(), testing.invitationRound(), WaitingListAnswer.COMING, null, null));
         assertEquals(WaitingListRefusal.WAITING_LIST_INVITATION_NO_LONGER_OPEN, refused.refusal());
     }
 
@@ -840,7 +907,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
     void answeringNeedsATokenThatNamesAnEntry() {
         assertThrows(
                 IllegalArgumentException.class,
-                () -> service.answerInvitation("nothing", null, null, WaitingListAnswer.COMING, null));
+                () -> service.answerInvitation("nothing", 0, WaitingListAnswer.COMING, null, null));
     }
 
     /** A second invitation is a new question, so the answer to the first does not stand for it. */
@@ -849,7 +916,11 @@ class WaitingListServiceTest extends RepositoryTestBase {
         var entry = service.createEntry(listId, "Neu", "Nochmal", guardians("", "nochmal@test.com"), Map.of(), "");
         var invited = invite(entry.id());
         service.answerInvitation(
-                invited.accessToken(), null, null, WaitingListAnswer.DATE_DOES_NOT_SUIT, "Da kann ich nicht");
+                invited.accessToken(),
+                invited.invitationRound(),
+                WaitingListAnswer.DATE_DOES_NOT_SUIT,
+                null,
+                "Da kann ich nicht");
 
         var back = service.returnToWaiting(invited.id());
         assertNull(back.answer(), "going back to waiting takes the answer with the invitation");

@@ -67763,6 +67763,33 @@
         },
         "required" : [ "offer" ]
       },
+      "OfferedDate" : {
+        "type" : "object",
+        "properties" : {
+          "position" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "eventId" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "date" : {
+            "$ref" : "#/components/schemas/LocalDate"
+          },
+          "arrivalTime" : {
+            "anyOf" : [ {
+              "$ref" : "#/components/schemas/LocalTime"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "appointmentName" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "position", "eventId", "date", "arrivalTime", "appointmentName" ]
+      },
       "OkResponse" : {
         "type" : "object",
         "properties" : {
@@ -81395,6 +81422,10 @@
             "type" : "integer",
             "format" : "int32"
           },
+          "invitationRound" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
           "invitation" : {
             "anyOf" : [ {
               "$ref" : "#/components/schemas/WaitingListInvitation"
@@ -81410,7 +81441,7 @@
             } ]
           }
         },
-        "required" : [ "id", "listId", "firstname", "lastname", "parentName", "email", "accessToken", "status", "confirmedAt", "reminderSentAt", "createdAt", "notes", "memberId", "invitedAt", "testingAt", "joinedAt", "withdrawnAt", "attendanceCount", "invitation", "answer" ]
+        "required" : [ "id", "listId", "firstname", "lastname", "parentName", "email", "accessToken", "status", "confirmedAt", "reminderSentAt", "createdAt", "notes", "memberId", "invitedAt", "testingAt", "joinedAt", "withdrawnAt", "attendanceCount", "invitationRound", "invitation", "answer" ]
       },
       "WaitingListEntryGuardian" : {
         "type" : "object",
@@ -81621,25 +81652,17 @@
       "WaitingListInvitation" : {
         "type" : "object",
         "properties" : {
-          "eventId" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "date" : {
-            "$ref" : "#/components/schemas/LocalDate"
-          },
-          "arrivalTime" : {
-            "anyOf" : [ {
-              "$ref" : "#/components/schemas/LocalTime"
-            }, {
-              "type" : "null"
-            } ]
-          },
           "message" : {
             "type" : "string"
+          },
+          "options" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/OfferedDate"
+            }
           }
         },
-        "required" : [ "eventId", "date", "arrivalTime", "message" ]
+        "required" : [ "message", "options" ]
       },
       "WaitingListInvitationAnswer" : {
         "type" : "object",
@@ -81652,29 +81675,34 @@
           },
           "note" : {
             "type" : "string"
+          },
+          "position" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
           }
         },
-        "required" : [ "answer", "answeredAt", "note" ]
+        "required" : [ "answer", "answeredAt", "note", "position" ]
       },
       "WaitingListInvitationAnswerRequest" : {
         "type" : "object",
         "properties" : {
-          "eventId" : {
+          "round" : {
             "type" : [ "integer", "null" ],
             "format" : "int32"
           },
-          "date" : {
-            "type" : [ "string", "null" ]
-          },
           "answer" : {
             "type" : [ "string", "null" ]
+          },
+          "position" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
           },
           "note" : {
             "type" : [ "string", "null" ]
           }
         }
       },
-      "WaitingListInvitationRequest" : {
+      "WaitingListInvitationOptionRequest" : {
         "type" : "object",
         "properties" : {
           "eventId" : {
@@ -81686,6 +81714,17 @@
           },
           "arrivalTime" : {
             "type" : [ "string", "null" ]
+          }
+        }
+      },
+      "WaitingListInvitationRequest" : {
+        "type" : "object",
+        "properties" : {
+          "options" : {
+            "type" : [ "array", "null" ],
+            "items" : {
+              "$ref" : "#/components/schemas/WaitingListInvitationOptionRequest"
+            }
           },
           "message" : {
             "type" : [ "string", "null" ]
@@ -81771,19 +81810,20 @@
           },
           "note" : {
             "type" : "string"
+          },
+          "position" : {
+            "type" : [ "integer", "null" ],
+            "format" : "int32"
           }
         },
-        "required" : [ "answer", "answeredAt", "note" ]
+        "required" : [ "answer", "answeredAt", "note", "position" ]
       },
-      "WaitingListPublicInvitation" : {
+      "WaitingListPublicAppointment" : {
         "type" : "object",
         "properties" : {
-          "eventId" : {
+          "position" : {
             "type" : "integer",
             "format" : "int32"
-          },
-          "date" : {
-            "type" : "string"
           },
           "appointmentName" : {
             "type" : "string"
@@ -81799,12 +81839,28 @@
           },
           "location" : {
             "type" : "string"
+          }
+        },
+        "required" : [ "position", "appointmentName", "appointmentDate", "appointmentTime", "arrivalTime", "location" ]
+      },
+      "WaitingListPublicInvitation" : {
+        "type" : "object",
+        "properties" : {
+          "round" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "appointments" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/WaitingListPublicAppointment"
+            }
           },
           "message" : {
             "type" : "string"
           }
         },
-        "required" : [ "eventId", "date", "appointmentName", "appointmentDate", "appointmentTime", "arrivalTime", "location", "message" ]
+        "required" : [ "round", "appointments", "message" ]
       },
       "WaitingListPublicStatus" : {
         "type" : "object",

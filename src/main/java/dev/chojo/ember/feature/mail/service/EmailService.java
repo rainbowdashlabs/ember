@@ -749,7 +749,7 @@ public class EmailService implements TaskSource {
      * Sends the invitation to come and look, which is the first message a station writes to
      * somebody on its waiting list of its own accord.
      *
-     * <p>It carries the appointment they are asked to come to and links to the page where the three
+     * <p>It carries the dates they are asked to pick from and links to the page where the three
      * answers are given. The answers are not links in the body: a one-click answer in a mail is
      * followed by scanners, which would answer on the reader's behalf.
      */
@@ -764,17 +764,18 @@ public class EmailService implements TaskSource {
         var vars = baseVars(name, stationId);
         vars.put("url", api.baseUrl() + "/waiting-list/status?token=" + accessToken);
         vars.put("stationName", stationName != null ? stationName : "");
-        vars.put("appointmentName", details.appointmentName());
-        vars.put("appointmentDate", details.date());
-        vars.put("appointmentTime", details.time());
-        vars.put("arrivalTime", details.arrivalTime());
-        vars.put("location", details.location());
         vars.put("message", details.message());
         putStationLogo(vars, stationId);
+        var context = new HashMap<String, Object>(vars);
+        context.put(
+                "appointments",
+                details.appointments().stream()
+                        .map(WaitlistInvitationDetails.Appointment::templateVariables)
+                        .toList());
         enqueueGlobal(
                 email,
                 subject("waitlist-invitation", locale, waitlistPlaceholders(stationName)),
-                loadTemplate("waitlist-invitation.html", locale, vars));
+                loadTemplate("waitlist-invitation.html", locale, context));
     }
 
     /**
@@ -916,7 +917,7 @@ public class EmailService implements TaskSource {
                 loadTemplate(template + ".html", locale, vars));
     }
 
-    public String loadTemplate(String name, String locale, Map<String, String> variables) {
+    public String loadTemplate(String name, String locale, Map<String, ?> variables) {
         return templateRenderer.render(name, locale, variables);
     }
 

@@ -59,6 +59,7 @@ function entryIn(status: WaitingListEntryStatus): WaitingListEntryWithScore {
             accessToken: 'token',
             answer: null,
             attendanceCount: 0,
+            invitationRound: 0,
             invitation: null,
             memberId: status === WaitingListEntryStatus.JOINED ? 12 : null,
             createdAt: '2026-01-01T08:00:00Z',

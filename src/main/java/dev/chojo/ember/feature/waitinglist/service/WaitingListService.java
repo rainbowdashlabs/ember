@@ -19,6 +19,7 @@ import dev.chojo.ember.feature.account.service.AccountInviteService;
 import dev.chojo.ember.feature.account.service.SetupMail;
 import dev.chojo.ember.feature.legal.entity.ConsentProof;
 import dev.chojo.ember.feature.legal.service.GdprDeletionService;
+import dev.chojo.ember.feature.mail.entity.WaitlistInvitationDetails;
 import dev.chojo.ember.feature.mail.service.EmailService;
 import dev.chojo.ember.feature.members.entity.StationMember;
 import dev.chojo.ember.feature.members.repository.StationMemberRepository;
@@ -646,59 +647,81 @@ public class WaitingListService implements TaskSource {
      * Records what somebody answered to the invitation their entry currently holds, and tells the
      * station.
      *
-     * <p>The answer names the appointment it answers and is refused when that is not the appointment
-     * the entry is currently invited to. Together with an entry carrying one current invitation, that is
-     * what makes a click from a mail that has been superseded harmless rather than misleading.
+     * <p>The answer names the invitation round it answers and is refused when that is not the round
+     * the entry is currently in. Together with an entry carrying one current invitation, that is what
+     * makes a click on a page that still shows replaced dates harmless rather than misleading.
+     *
+     * <p>Coming means coming to one of the offered dates, so that answer names which. With a single
+     * date there is nothing to choose and it may be left out. Any other answer picks nothing.
      *
      * <p>A refusal is recorded and nothing more. Withdrawing the entry would move it out of the
      * section the manager is looking at, and an answer that disappears on arrival is the same
      * failure as no answer at all.
      *
-     * @param eventId the appointment the answer is about, {@code null} for an invitation naming none
-     * @param date    the one date of it, {@code null} for the same
+     * @param round    the invitation round the answer was given in
+     * @param position which offered date a coming answer picks, {@code null} for any other answer or
+     *                 when only one date is offered
      */
     public WaitingListEntry answerInvitation(
-            String token,
-            @Nullable Integer eventId,
-            @Nullable LocalDate date,
-            WaitingListAnswer answer,
-            @Nullable String note) {
+            String token, int round, WaitingListAnswer answer, @Nullable Integer position, @Nullable String note) {
         var entry =
                 repository.findEntryByToken(token).orElseThrow(() -> new IllegalArgumentException("Entry not found"));
         if (entry.status() != WaitingListEntryStatus.INVITED) {
             log.info("Invitation answer refused for waiting-list entry {} (is {})", entry.id(), entry.status());
             throw WaitingListRefusal.WAITING_LIST_INVITATION_NO_LONGER_OPEN.raise();
         }
-        requireAnswersTheCurrentInvitation(entry, eventId, date);
+        if (entry.invitationRound() != round) {
+            throw WaitingListRefusal.WAITING_LIST_INVITATION_ANSWER_FOR_ANOTHER.raise();
+        }
+        var picked = answer == WaitingListAnswer.COMING ? pickedOption(entry.invitation(), position) : null;
 
-        String written = note == null ? "" : note.trim();
-        repository.updateInvitationAnswer(entry.id(), answer, written);
+        String writtenNote = note == null ? "" : note.trim();
+        boolean recorded = repository.updateInvitationAnswer(
+                entry.id(), round, answer, writtenNote, picked != null ? picked.position() : null);
+        if (!recorded) {
+            throw WaitingListRefusal.WAITING_LIST_INVITATION_ANSWER_FOR_ANOTHER.raise();
+        }
         log.info("Waiting-list entry {} answered its invitation with {}", entry.id(), answer);
 
-        repository
-                .findById(entry.listId())
-                .ifPresent(list -> eventBus.publish(new WaitlistInvitationAnswered(
-                        list.stationId(), entry.fullName(), list.name(), answer, written)));
+        repository.findById(entry.listId()).ifPresent(list -> {
+            String appointment = picked == null ? "" : pickedSummary(list.stationId(), picked);
+            eventBus.publish(new WaitlistInvitationAnswered(
+                    list.stationId(), entry.fullName(), list.name(), answer, writtenNote, appointment));
+        });
 
         return repository.findEntryById(entry.id()).orElseThrow();
     }
 
     /**
-     * Refuses an answer given to an invitation the entry no longer holds.
+     * The offered date a coming answer picks.
      *
-     * <p>The token never expires and an old mail stays in a mailbox for good, so what the answer
-     * says it is about has to match what the entry is actually invited to.
+     * <p>An invitation left without dates, because every appointment it named was deleted, can still
+     * be answered with coming: the person means to come, and the station has to hear it.
+     *
+     * @return the option, or {@code null} when the invitation offers no dates at all
      */
-    private static void requireAnswersTheCurrentInvitation(
-            WaitingListEntry entry, @Nullable Integer eventId, @Nullable LocalDate date) {
-        var current = entry.invitation();
-        boolean matches = current == null
-                ? eventId == null
-                : Integer.valueOf(current.eventId()).equals(eventId)
-                        && current.date().equals(date);
-        if (!matches) {
-            throw WaitingListRefusal.WAITING_LIST_INVITATION_ANSWER_FOR_ANOTHER.raise();
+    private static WaitingListInvitation.@Nullable OfferedDate pickedOption(
+            @Nullable WaitingListInvitation invitation, @Nullable Integer position) {
+        var options = invitation == null ? List.<WaitingListInvitation.OfferedDate>of() : invitation.options();
+        if (options.isEmpty()) return null;
+        if (position == null) {
+            if (options.size() == 1) return options.getFirst();
+            throw WaitingListRefusal.WAITING_LIST_ANSWER_NEEDS_A_DATE.raise();
         }
+        return invitation.option(position).orElseThrow(WaitingListRefusal.WAITING_LIST_ANSWER_DATE_NOT_OFFERED::raise);
+    }
+
+    /** The picked date in one line, as the station is told it. */
+    private String pickedSummary(int stationId, WaitingListInvitation.OfferedDate picked) {
+        var station = stationRepository.findById(stationId).orElse(null);
+        if (station == null) return "";
+        return invitationMessage
+                .describe(station, new WaitingListInvitation("", List.of(picked)))
+                .appointments()
+                .stream()
+                .findFirst()
+                .map(WaitlistInvitationDetails.Appointment::summary)
+                .orElse("");
     }
 
     /**

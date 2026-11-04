@@ -31,6 +31,7 @@ public record WaitingListEntry(
         @Nullable Instant joinedAt,
         @Nullable Instant withdrawnAt,
         int attendanceCount,
+        int invitationRound,
         @Nullable WaitingListInvitation invitation,
         @Nullable WaitingListInvitationAnswer answer) {
 
@@ -54,6 +55,7 @@ public record WaitingListEntry(
                 row.get("joined_at", INSTANT_TIMESTAMP),
                 row.get("withdrawn_at", INSTANT_TIMESTAMP),
                 row.getInt("attendance_count"),
+                row.getInt("invitation_round"),
                 WaitingListInvitation.from(row),
                 WaitingListInvitationAnswer.from(row));
     }

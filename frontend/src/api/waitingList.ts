@@ -177,9 +177,9 @@ export async function confirmInterest(token: string): Promise<void> {
 /**
  * Answers the invitation the entry currently holds.
  *
- * The occurrence travels with the answer so it says what it answers: an entry carries one current
- * invitation, and a click from a mail that has been superseded is refused rather than applied to
- * the invitation that replaced it.
+ * The invitation round travels with the answer so it says what it answers: an entry carries one
+ * current invitation, and a click on a page opened before it was replaced is refused rather than
+ * applied to the invitation that replaced it.
  */
 export async function answerInvitation(token: string, data: WaitingListInvitationAnswerRequest): Promise<void> {
     await client.post(`/public/waiting-list/entry/${token}/answer`, data)

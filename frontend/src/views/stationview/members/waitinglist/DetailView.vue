@@ -252,12 +252,12 @@ function showFailure(reported: Failure) {
       @confirm="transitions.confirm"
     />
     <InviteEntryModal
-      v-model:occurrence="invitation.occurrence.value"
-      v-model:arrival-time="invitation.arrivalTime.value"
+      v-model:dates="invitation.dates.value"
       v-model:message="invitation.message.value"
       :target="invitation.target.value"
       :recipients="invitation.recipients.value"
       :can-send="invitation.canSend.value"
+      :duplicate="invitation.duplicate.value"
       :running="invitation.running.value"
       @cancel="invitation.cancel"
       @confirm="invitation.confirm"

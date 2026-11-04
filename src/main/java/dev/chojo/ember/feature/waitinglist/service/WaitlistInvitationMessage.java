@@ -88,28 +88,33 @@ public class WaitlistInvitationMessage {
     }
 
     /**
-     * What the invitation can say about the appointment, all of it already written out for a reader.
+     * What the invitation can say about the dates it offers, all of it already written out for a
+     * reader.
      *
-     * <p>An invitation whose appointment has since been deleted describes only its personal note
-     * rather than failing: the person still has to be told they are invited.
+     * <p>A date whose appointment has since been deleted is left out rather than failing the whole
+     * invitation: the person still has to be told they are invited, and to the dates that remain.
      */
     public WaitlistInvitationDetails describe(Station station, @Nullable WaitingListInvitation invitation) {
         if (invitation == null) return WaitlistInvitationDetails.NONE;
-        var event = eventRepository.findById(invitation.eventId()).orElse(null);
-        if (event == null) return WaitlistInvitationDetails.messageOnly(invitation.message());
 
         Locale locale = StationFormat.localeOf(station);
         ZoneId zone = StationFormat.timezoneOf(station);
         var dateFormat = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(locale);
         var timeFormat = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(locale);
 
-        return new WaitlistInvitationDetails(
-                event.name(),
-                dateFormat.format(invitation.date()),
-                span(event, zone, timeFormat),
-                invitation.arrivalTime() == null ? "" : timeFormat.format(invitation.arrivalTime()),
-                location(event, station, invitation.date()),
-                invitation.message());
+        var appointments = new ArrayList<WaitlistInvitationDetails.Appointment>();
+        for (var option : invitation.options()) {
+            var event = eventRepository.findById(option.eventId()).orElse(null);
+            if (event == null) continue;
+            appointments.add(new WaitlistInvitationDetails.Appointment(
+                    option.position(),
+                    event.name(),
+                    dateFormat.format(option.date()),
+                    span(event, zone, timeFormat),
+                    option.arrivalTime() == null ? "" : timeFormat.format(option.arrivalTime()),
+                    location(event, station, option.date())));
+        }
+        return new WaitlistInvitationDetails(appointments, invitation.message());
     }
 
     /** When the appointment itself runs, in the zone the station keeps its times in. */

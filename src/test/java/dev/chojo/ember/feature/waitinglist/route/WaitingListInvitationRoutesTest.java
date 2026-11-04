@@ -26,6 +26,8 @@ import org.mockito.ArgumentCaptor;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -123,11 +125,68 @@ class WaitingListInvitationRoutesTest {
                     WaitingListRefusal.INVITATION_MESSAGE_TOO_LONG,
                     refusalOf(client.post(
                             ENTRY + "/invite",
-                            body("{\"eventId\": 7, \"date\": \"2026-05-12\", \"message\": \"" + note + "\"}"),
+                            body("{\"options\": [{\"eventId\": 7, \"date\": \"2026-05-12\"}], \"message\": \"" + note
+                                    + "\"}"),
                             editor)));
         });
 
         verify(lists, never()).inviteEntry(anyInt(), any());
+    }
+
+    @Test
+    void moreDatesThanAnInvitationOffersSendNothing() {
+        String option = "{\"eventId\": 7, \"date\": \"2026-05-1%d\"}";
+        var options = new ArrayList<String>();
+        for (int day = 0; day <= WaitingListInvitation.MAX_OPTIONS; day++) options.add(option.formatted(day));
+
+        harness.run((server, client) -> {
+            var editor = harness.as(TestSessions.member(3, StationPermission.WAITLIST_EDIT));
+            assertEquals(
+                    WaitingListRefusal.INVITATION_TOO_MANY_DATES,
+                    refusalOf(client.post(
+                            ENTRY + "/invite", body("{\"options\": [" + String.join(",", options) + "]}"), editor)));
+        });
+
+        verify(lists, never()).inviteEntry(anyInt(), any());
+    }
+
+    @Test
+    void theSameDateOfferedTwiceSendsNothing() {
+        harness.run((server, client) -> {
+            var editor = harness.as(TestSessions.member(3, StationPermission.WAITLIST_EDIT));
+            assertEquals(
+                    WaitingListRefusal.INVITATION_DATE_TWICE,
+                    refusalOf(client.post(
+                            ENTRY + "/invite",
+                            body("{\"options\": [{\"eventId\": 7, \"date\": \"2026-05-12\"},"
+                                    + " {\"eventId\": 7, \"date\": \"2026-05-12\", \"arrivalTime\": \"17:30\"}]}"),
+                            editor)));
+        });
+
+        verify(lists, never()).inviteEntry(anyInt(), any());
+    }
+
+    @Test
+    void severalDatesKeepTheOrderTheyWereOfferedIn() {
+        harness.run((server, client) -> {
+            var editor = harness.as(TestSessions.member(3, StationPermission.WAITLIST_EDIT));
+            var answer = client.post(
+                    ENTRY + "/invite",
+                    body("{\"options\": [{\"eventId\": 7, \"date\": \"2026-05-19\", \"arrivalTime\": \"17:30\"},"
+                            + " {\"eventId\": 7, \"date\": \"2026-05-12\"}]}"),
+                    editor);
+            assertEquals(200, answer.code());
+        });
+
+        var sent = ArgumentCaptor.forClass(WaitingListInvitation.class);
+        verify(lists).inviteEntry(eq(9), sent.capture());
+        var options = sent.getValue().options();
+        assertEquals(2, options.size());
+        assertEquals(0, options.get(0).position());
+        assertEquals(LocalDate.of(2026, 5, 19), options.get(0).date());
+        assertEquals(LocalTime.of(17, 30), options.get(0).arrivalTime());
+        assertEquals(1, options.get(1).position());
+        assertEquals(LocalDate.of(2026, 5, 12), options.get(1).date());
     }
 
     @Test
@@ -136,15 +195,16 @@ class WaitingListInvitationRoutesTest {
             var editor = harness.as(TestSessions.member(3, StationPermission.WAITLIST_EDIT));
             var answer = client.post(
                     ENTRY + "/invite",
-                    body("{\"eventId\": 7, \"date\": \"2026-05-12\", \"message\": \"  Bis bald  \"}"),
+                    body("{\"options\": [{\"eventId\": 7, \"date\": \"2026-05-12\"}], \"message\": \"  Bis bald  \"}"),
                     editor);
             assertEquals(200, answer.code());
         });
 
         var sent = ArgumentCaptor.forClass(WaitingListInvitation.class);
         verify(lists).inviteEntry(eq(9), sent.capture());
-        assertEquals(7, sent.getValue().eventId());
-        assertEquals(LocalDate.of(2026, 5, 12), sent.getValue().date());
+        var offered = sent.getValue().options().getFirst();
+        assertEquals(7, offered.eventId());
+        assertEquals(LocalDate.of(2026, 5, 12), offered.date());
         assertEquals("Bis bald", sent.getValue().message());
     }
 
