@@ -1,5 +1,18 @@
 # Changelog
 
+## v26.23.4
+
+An invitation from a waiting list can offer several dates to pick from, and the station can write to the family when it offers other dates, starts the trial or takes someone off the list.
+
+### New Features
+
+- **Invitations can offer several dates.** An invitation from a waiting list can offer up to five appointments, each with its own arrival time, and the family picks the one that suits on the invitation page or says that none of them do. The station sees which date was picked on the entry and in the notification.
+
+### Improvements
+
+- **Other dates are offered in one step.** When the dates of an invitation do not suit, "Offer other dates" replaces them with new ones and a note, and the family gets them by mail or on the entry's page without the entry going back to waiting first.
+- **The station can write to the family.** Starting the trial and withdrawing an entry take an optional message, mailed to the family when the waiting list sends mail, and the message for the trial also stands on the entry's page while the trial runs. Invited entries can now be withdrawn directly as well.
+
 ## v26.23.3
 
 Profiles no longer ask members to fill in fields they cannot fill in.
