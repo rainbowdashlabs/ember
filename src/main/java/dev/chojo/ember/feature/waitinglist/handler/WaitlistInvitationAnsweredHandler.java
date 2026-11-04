@@ -44,7 +44,8 @@ public class WaitlistInvitationAnsweredHandler implements DomainEventHandler<Wai
                                 event.applicantName(),
                                 event.listName(),
                                 event.answer().name(),
-                                event.note()),
+                                event.note(),
+                                event.appointment()),
                         new NotificationData.NotificationLink("waiting-lists", Map.of())),
                 Delivery.EVERY_TIME);
     }

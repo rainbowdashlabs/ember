@@ -7,17 +7,25 @@
         <li class="notification-item"><p class="message" style="white-space:pre-line">{{ message }}</p></li>
       </ul>
       {% endif %}
-      {% if appointmentName %}
+      {% if appointments | length > 1 %}
+      <p>Wir würden uns freuen, dich an einem dieser Termine zu sehen. Such dir einfach den aus, der dir am besten passt:</p>
+      {% elseif appointments | length == 1 %}
       <p>Wir würden uns freuen, dich hier zu sehen:</p>
-      <ul class="notification-list">
-        <li class="notification-item"><strong>{{ appointmentName }}</strong></li>
-        {% if appointmentDate %}<li class="notification-item">Datum: {{ appointmentDate }}</li>{% endif %}
-        {% if appointmentTime %}<li class="notification-item">Uhrzeit: {{ appointmentTime }}</li>{% endif %}
-        {% if arrivalTime %}<li class="notification-item">Bitte sei schon um {{ arrivalTime }} da, damit wir dich in Ruhe begrüßen können.</li>{% endif %}
-        {% if location %}<li class="notification-item">Wo: {{ location }}</li>{% endif %}
-      </ul>
       {% endif %}
+      {% for appointment in appointments %}
+      <ul class="notification-list">
+        <li class="notification-item"><strong>{{ appointment.appointmentName }}</strong></li>
+        {% if appointment.appointmentDate %}<li class="notification-item">Datum: {{ appointment.appointmentDate }}</li>{% endif %}
+        {% if appointment.appointmentTime %}<li class="notification-item">Uhrzeit: {{ appointment.appointmentTime }}</li>{% endif %}
+        {% if appointment.arrivalTime %}<li class="notification-item">Bitte sei schon um {{ appointment.arrivalTime }} da, damit wir dich in Ruhe begrüßen können.</li>{% endif %}
+        {% if appointment.location %}<li class="notification-item">Wo: {{ appointment.location }}</li>{% endif %}
+      </ul>
+      {% endfor %}
+      {% if appointments | length > 1 %}
+      <p>Sag uns bitte über die folgende Seite Bescheid, zu welchem Termin du kommst. Dort kannst du auch sagen, dass keiner davon passt oder dass du kein Interesse mehr hast:</p>
+      {% else %}
       <p>Sag uns bitte über die folgende Seite Bescheid, ob es dir passt. Dort kannst du auch sagen, dass der Termin nicht passt oder dass du kein Interesse mehr hast:</p>
+      {% endif %}
       <div class="btn-wrap"><a class="btn" href="{{ url }}">Einladung beantworten</a></div>
       <p class="hint">Bis du zum ersten Mal da warst, bist du weiterhin nur auf der Warteliste. Es wird nichts angelegt und du bist zu nichts verpflichtet.</p>
 {% endblock %}

@@ -10,18 +10,21 @@ import SecondaryButton from '@/components/button/SecondaryButton.vue'
 import ButtonRow from '@/components/button/ButtonRow.vue'
 import Modal from '@/components/feedback/Modal.vue'
 import SubHeader from '@/components/typography/SubHeader.vue'
-import type { WaitingListEntryWithScore } from '@/api/generated/schema'
+import type { InvitationRecipients } from '@/api/generated/schema'
 import { entryFullName } from './entryFullName'
+import { TELLS_THE_FAMILY, type PendingTransition, type TransitionKind } from './entryTransitions'
+import TransitionMessage from './TransitionMessage.vue'
 
-type TransitionKind = 'testing' | 'join' | 'approve' | 'reject' | 'withdraw' | 'backToWaiting'
-
-interface PendingTransition {
-  entry: WaitingListEntryWithScore
-  kind: TransitionKind
-}
+/**
+ * Confirms a move before it runs. A move the family is told about also takes what the station
+ * writes to them, beside the addresses it goes to.
+ */
+const message = defineModel<string>('message', { required: true })
 
 const props = defineProps<{
   pending: PendingTransition | null
+  recipients: InvitationRecipients | null
+  canConfirm: boolean
   running: boolean
 }>()
 
@@ -54,9 +57,15 @@ const open = () => props.pending !== null
     <div v-if="pending" class="space-y-4">
       <SubHeader>{{ t('waitingList.transitionConfirmTitle') }}</SubHeader>
       <p class="text-sm">{{ t(transitionTextKey[pending.kind], { name: entryFullName(pending.entry) }) }}</p>
+      <TransitionMessage
+        v-if="TELLS_THE_FAMILY.has(pending.kind)"
+        v-model="message"
+        :kind="pending.kind"
+        :recipients="props.recipients"
+      />
       <ButtonRow pair align="end">
         <SecondaryButton @click="emit('cancel')">{{ t('common.cancel') }}</SecondaryButton>
-        <PrimaryButton :disabled="running" @click="emit('confirm')">
+        <PrimaryButton :disabled="!props.canConfirm" data-testid="waitlist-transition-confirm" @click="emit('confirm')">
           {{ running ? t('common.loading') : t('waitingList.transitionConfirmAction') }}
         </PrimaryButton>
       </ButtonRow>

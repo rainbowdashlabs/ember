@@ -311,13 +311,16 @@ public sealed interface NotificationParams {
     record WaitlistPublicRegistration(String childName, String listName) implements NotificationParams {}
 
     /**
-     * @param note what they wrote alongside the answer, empty or {@code null} when they wrote nothing
+     * @param note        what they wrote alongside the answer, empty or {@code null} when they wrote nothing
+     * @param appointment the date a coming answer picked, in one line, empty or {@code null} for any other
+     *                    answer and for notifications written before dates could be picked
      */
     record WaitlistInvitationAnswered(
             String childName,
             String listName,
             String answer,
-            @Nullable String note) implements NotificationParams {}
+            @Nullable String note,
+            @Nullable String appointment) implements NotificationParams {}
 
     /**
      * A trial ended by the family rather than by the station.

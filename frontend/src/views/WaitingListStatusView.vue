@@ -17,6 +17,7 @@ import InvitationDetails from './waitingliststatusview/InvitationDetails.vue'
 import InvitationAnswerActions from './waitingliststatusview/InvitationAnswerActions.vue'
 import ConfirmDeleteModal from '@/components/feedback/ConfirmDeleteModal.vue'
 import MutedText from '@/components/typography/MutedText.vue'
+import TrialMessage from './waitingliststatusview/TrialMessage.vue'
 import type { WaitingListAnswer, WaitingListPublicStatus } from '@/api/generated/schema'
 import { waitingList } from '@/api'
 import { describeFailure, type Failure } from '@/util/failure'
@@ -74,18 +75,47 @@ const { running: removing, failure: removeFailure, run: removeFromList } = useAs
 })
 
 const answerNote = ref('')
+const pickedDate = ref('')
 const pendingAnswer = ref<WaitingListAnswer | null>(null)
+
+const offeredDates = computed(() => status.value?.invitation?.appointments ?? [])
+
+/**
+ * The date a coming answer names. With one date there is nothing to choose, and the backend reads the
+ * missing position as that one.
+ */
+function pickedPosition(answer: WaitingListAnswer): number | null {
+  if (answer !== 'COMING' || pickedDate.value === '') return null
+  return Number(pickedDate.value)
+}
+
+/** What the page says about an answer already given, naming the picked date when there is one. */
+const answerGivenText = computed(() => {
+  const given = status.value?.answer
+  if (!given) return ''
+  const several = offeredDates.value.length > 1
+  if (given.answer === 'DATE_DOES_NOT_SUIT' && several) return t('waitingList.publicStatus.answerGivenNoneSuits')
+  const picked = offeredDates.value.find(date => date.position === given.position)
+  if (given.answer === 'COMING' && picked && several) {
+    return t('waitingList.publicStatus.answerGivenFor', {
+      appointment: picked.appointmentName,
+      date: picked.appointmentDate,
+    })
+  }
+  return t(`waitingList.publicStatus.answerGiven.${given.answer}`)
+})
 
 const { running: answering, failure: answerFailure, run: sendAnswer } = useAsyncAction(async () => {
   if (!pendingAnswer.value) return
   await waitingList.answerInvitation(token.value, {
-    eventId: status.value?.invitation?.eventId ?? null,
-    date: status.value?.invitation?.date ?? null,
+    round: status.value?.invitation?.round ?? null,
     answer: pendingAnswer.value,
+    position: pickedPosition(pendingAnswer.value),
     note: answerNote.value,
   })
   pendingAnswer.value = null
   answerNote.value = ''
+  pickedDate.value = ''
   flash(t('waitingList.publicStatus.answered'))
   await readBack()
 })
@@ -126,14 +156,17 @@ const failure = computed(() => confirmFailure.value
           @confirm="confirmInterest"
           @remove="showRemoveModal = true"
         />
+        <TrialMessage v-if="status.status === 'TESTING' && status.trialMessage" :message="status.trialMessage" />
         <template v-if="status.status === 'INVITED'">
           <InvitationDetails v-if="status.invitation" :invitation="status.invitation" />
           <Alert v-if="status.answer" variant="info" data-testid="waitlist-answer-given">
-            {{ t(`waitingList.publicStatus.answerGiven.${status.answer.answer}`) }}
+            {{ answerGivenText }}
           </Alert>
           <InvitationAnswerActions
             v-else
             v-model:note="answerNote"
+            v-model:picked="pickedDate"
+            :appointments="offeredDates"
             :answering="answering"
             @answer="answer"
           />

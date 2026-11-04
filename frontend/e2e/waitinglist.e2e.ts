@@ -217,6 +217,98 @@ test.describe('Waiting lists', () => {
     })
 
     /**
+     * An invitation can offer several dates, and the family picks the one that suits. The station's
+     * side is walked through the API; picking is walked on the page, where "I'm coming" waits for a
+     * date to be chosen.
+     */
+    test('an invited family picks one of several dates', async ({managerPage: page, page: visitor}) => {
+        const surname = `Wahl-${Date.now()}`
+        const headers = await apiHeaders(page)
+        const list = await ownList(page)
+
+        const created = await page.request.post(`/api/v1/waiting-lists/${list}/entries`, {
+            headers,
+            data: {firstname: 'Neu', lastname: surname, guardians: [{firstname: 'Erika', lastname: surname, email: ''}]},
+        })
+        expect(created.ok(), `the entry was written down (${await created.text()})`).toBeTruthy()
+        const entry = await created.json()
+
+        const coming = await page.request.get('/api/v1/events/upcoming?limit=2', {headers})
+        const occurrences = await coming.json()
+        expect(occurrences.length, 'the seed has two dates coming up to offer').toBeGreaterThanOrEqual(2)
+        const invited = await page.request.post(`/api/v1/waiting-lists/${list}/entries/${entry.id}/invite`, {
+            headers,
+            data: {
+                options: occurrences.slice(0, 2).map((occurrence: {event: {id: number}, date: string}) => ({
+                    eventId: occurrence.event.id,
+                    date: occurrence.date,
+                })),
+            },
+        })
+        expect(invited.ok(), `the invitation went out (${await invited.text()})`).toBeTruthy()
+
+        await visitor.goto(`/waiting-list/status?token=${entry.accessToken}`)
+        await expect(visitor.getByTestId('waitlist-invitation-appointment'), 'both dates are on the page')
+            .toHaveCount(2)
+        await expect(visitor.getByTestId('waitlist-answer-coming'), 'coming waits for a date to be picked')
+            .toBeDisabled()
+        await visitor.getByTestId('waitlist-answer-pick').getByRole('radio').nth(1).check()
+        await visitor.getByTestId('waitlist-answer-coming').click()
+        await expect(visitor.getByTestId('waitlist-answer-given')).toBeVisible()
+
+        const entries = await page.request.get(`/api/v1/waiting-lists/${list}/entries`, {headers})
+        const answered = (await entries.json()).find((item: {entry: {id: number}}) => item.entry.id === entry.id)
+        expect(answered.entry.answer.position, 'the station learns which date was picked').toBe(1)
+    })
+
+    /**
+     * When the date does not suit, the station answers with other dates in one step, and the family
+     * can answer again: the entry never leaves the invited section and the old answer goes with the
+     * old dates.
+     */
+    test('the station offers other dates after the first did not suit', async ({managerPage: page, page: visitor}) => {
+        const surname = `Anders-${Date.now()}`
+        const headers = await apiHeaders(page)
+        const list = await ownList(page)
+
+        const created = await page.request.post(`/api/v1/waiting-lists/${list}/entries`, {
+            headers,
+            data: {firstname: 'Neu', lastname: surname, guardians: [{firstname: 'Erika', lastname: surname, email: ''}]},
+        })
+        expect(created.ok(), `the entry was written down (${await created.text()})`).toBeTruthy()
+        const entry = await created.json()
+
+        const coming = await page.request.get('/api/v1/events/upcoming?limit=1', {headers})
+        const [occurrence] = await coming.json()
+        const invited = await page.request.post(`/api/v1/waiting-lists/${list}/entries/${entry.id}/invite`, {
+            headers,
+            data: {options: [{eventId: occurrence.event.id, date: occurrence.date}]},
+        })
+        expect(invited.ok(), `the invitation went out (${await invited.text()})`).toBeTruthy()
+
+        await visitor.goto(`/waiting-list/status?token=${entry.accessToken}`)
+        await visitor.getByTestId('waitlist-answer-date').click()
+        await expect(visitor.getByTestId('waitlist-answer-given')).toBeVisible()
+
+        await page.goto(`/station/members/waiting-lists/${list}`)
+        const row = page.getByRole('row').filter({hasText: surname})
+        await row.getByTestId('waitlist-offer-other-dates').click()
+        await expect(page.getByTestId('waitlist-other-dates-answer'), 'the station sees what was said first')
+            .toBeVisible()
+        const picker = page.getByTestId('waitlist-invite-occurrence')
+        await picker.locator('input[type="search"]').click()
+        await picker.getByRole('button').first().click()
+        await page.getByTestId('waitlist-invite-message').fill('Wie wäre es an diesem Tag?')
+        await page.getByTestId('waitlist-invite-send').click()
+        await expect(page.getByTestId('waitlist-invite-modal')).toHaveCount(0)
+
+        await visitor.reload()
+        await expect(visitor.getByTestId('waitlist-invitation-message'), 'the family reads the new note')
+            .toHaveText('Wie wäre es an diesem Tag?')
+        await expect(visitor.getByTestId('waitlist-answer-coming'), 'and can answer the new dates').toBeVisible()
+    })
+
+    /**
      * A station nobody outside its own network can reach sends links nobody can open, so its lists
      * write to nobody. The story makes such a list, opens it to the public, and registers on it as
      * a stranger who leaves no address at all: the registration is on the list the moment it is
@@ -246,7 +338,7 @@ test.describe('Waiting lists', () => {
         expect(occurrence, 'the seed has something coming up to invite to').toBeTruthy()
         const invited = await page.request.post(`/api/v1/waiting-lists/${list}/entries/${entryId}/invite`, {
             headers,
-            data: {eventId: occurrence.event.id, date: occurrence.date},
+            data: {options: [{eventId: occurrence.event.id, date: occurrence.date}]},
         })
         expect(invited.ok(), `the invitation went out (${await invited.text()})`).toBeTruthy()
         const testing = await page.request.post(`/api/v1/waiting-lists/${list}/entries/${entryId}/testing`, {headers})

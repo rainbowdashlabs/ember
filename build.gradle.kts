@@ -23,7 +23,7 @@ application {
 
 group = "dev.chojo"
 // CalVer as YY.MINOR.MICRO -> https://calver.org/
-version = "26.23.3"
+version = "26.23.4"
 
 repositories {
     maven("https://eldonexus.de/repository/maven-proxies/")

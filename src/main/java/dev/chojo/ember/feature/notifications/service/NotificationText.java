@@ -209,10 +209,21 @@ public class NotificationText {
                                 ? Markdown.toPlainText(p.eventDescription())
                                 : null;
                     case WAITLIST_INVITATION_ANSWERED ->
-                        params instanceof NotificationParams.WaitlistInvitationAnswered p ? p.note() : null;
+                        params instanceof NotificationParams.WaitlistInvitationAnswered p
+                                ? answerDetail(p.appointment(), p.note())
+                                : null;
                     default -> null;
                 };
         return detail == null || detail.isBlank() ? null : detail;
+    }
+
+    /** The picked date and the note of an invitation answer, whichever of the two were given. */
+    private static String answerDetail(@Nullable String appointment, @Nullable String note) {
+        boolean hasAppointment = appointment != null && !appointment.isBlank();
+        boolean hasNote = note != null && !note.isBlank();
+        if (hasAppointment && hasNote) return appointment + " - " + note;
+        if (hasAppointment) return appointment;
+        return hasNote ? note : "";
     }
 
     private static @Nullable String plainText(@Nullable String markdown) {

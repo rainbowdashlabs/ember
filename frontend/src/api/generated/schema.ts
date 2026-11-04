@@ -61781,6 +61781,45 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/waiting-lists/{id}/entries/{entryId}/other-dates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["WaitingListInvitationRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WaitingListEntry"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/waiting-lists/{id}/entries/{entryId}/reject": {
         parameters: {
             query?: never;
@@ -61830,7 +61869,11 @@ export interface paths {
                 path?: never;
                 cookie?: never;
             };
-            requestBody?: never;
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["WaitingListMessageRequest"];
+                };
+            };
             responses: {
                 /** @description OK */
                 200: {
@@ -61865,7 +61908,11 @@ export interface paths {
                 path?: never;
                 cookie?: never;
             };
-            requestBody?: never;
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["WaitingListMessageRequest"];
+                };
+            };
             responses: {
                 /** @description No Content */
                 204: {
@@ -69183,6 +69230,15 @@ export interface components {
         OfferAnswerRequest: {
             answer?: components["schemas"]["OfferAnswer"] | null;
         };
+        OfferedDate: {
+            appointmentName: string;
+            arrivalTime: components["schemas"]["LocalTime"] | null;
+            date: components["schemas"]["LocalDate"];
+            /** Format: int32 */
+            eventId: number;
+            /** Format: int32 */
+            position: number;
+        };
         OfferResponse: {
             offer: boolean;
         };
@@ -73850,6 +73906,8 @@ export interface components {
             /** Format: int32 */
             id: number;
             invitation: components["schemas"]["WaitingListInvitation"] | null;
+            /** Format: int32 */
+            invitationRound: number;
             invitedAt: components["schemas"]["Instant"] | null;
             joinedAt: components["schemas"]["Instant"] | null;
             lastname: string;
@@ -73862,6 +73920,7 @@ export interface components {
             reminderSentAt: components["schemas"]["Instant"] | null;
             status: components["schemas"]["WaitingListEntryStatus"];
             testingAt: components["schemas"]["Instant"] | null;
+            trialMessage: string;
             withdrawnAt: components["schemas"]["Instant"] | null;
         };
         WaitingListEntryGuardian: {
@@ -73940,30 +73999,33 @@ export interface components {
             phone?: string | null;
         };
         WaitingListInvitation: {
-            arrivalTime: components["schemas"]["LocalTime"] | null;
-            date: components["schemas"]["LocalDate"];
-            /** Format: int32 */
-            eventId: number;
             message: string;
+            options: components["schemas"]["OfferedDate"][];
         };
         WaitingListInvitationAnswer: {
             answer: components["schemas"]["WaitingListAnswer"];
             answeredAt: components["schemas"]["Instant"];
             note: string;
+            /** Format: int32 */
+            position: number | null;
         };
         WaitingListInvitationAnswerRequest: {
             answer?: string | null;
-            date?: string | null;
-            /** Format: int32 */
-            eventId?: number | null;
             note?: string | null;
+            /** Format: int32 */
+            position?: number | null;
+            /** Format: int32 */
+            round?: number | null;
         };
-        WaitingListInvitationRequest: {
+        WaitingListInvitationOptionRequest: {
             arrivalTime?: string | null;
             date?: string | null;
             /** Format: int32 */
             eventId?: number | null;
+        };
+        WaitingListInvitationRequest: {
             message?: string | null;
+            options?: components["schemas"]["WaitingListInvitationOptionRequest"][] | null;
         };
         WaitingListInvite: {
             code: string;
@@ -73989,21 +74051,30 @@ export interface components {
             /** Format: int32 */
             maxUses?: number | null;
         };
+        WaitingListMessageRequest: {
+            message?: string | null;
+        };
         WaitingListPublicAnswer: {
             answer: components["schemas"]["WaitingListAnswer"];
             answeredAt: string;
             note: string;
+            /** Format: int32 */
+            position: number | null;
         };
-        WaitingListPublicInvitation: {
+        WaitingListPublicAppointment: {
             appointmentDate: string;
             appointmentName: string;
             appointmentTime: string;
             arrivalTime: string;
-            date: string;
-            /** Format: int32 */
-            eventId: number;
             location: string;
+            /** Format: int32 */
+            position: number;
+        };
+        WaitingListPublicInvitation: {
+            appointments: components["schemas"]["WaitingListPublicAppointment"][];
             message: string;
+            /** Format: int32 */
+            round: number;
         };
         WaitingListPublicStatus: {
             answer: components["schemas"]["WaitingListPublicAnswer"] | null;
@@ -74022,6 +74093,7 @@ export interface components {
             /** Format: int32 */
             position: number;
             status: components["schemas"]["WaitingListEntryStatus"];
+            trialMessage: string;
             values: components["schemas"]["WaitingListEntryValue"][];
         };
         WaitingListRegisterRequest: {
@@ -75129,6 +75201,7 @@ export type NumberConfig = components['schemas']['NumberConfig'];
 export type NumberValue = components['schemas']['NumberValue'];
 export type OfferAnswer = components['schemas']['OfferAnswer'];
 export type OfferAnswerRequest = components['schemas']['OfferAnswerRequest'];
+export type OfferedDate = components['schemas']['OfferedDate'];
 export type OfferResponse = components['schemas']['OfferResponse'];
 export type OkResponse = components['schemas']['OkResponse'];
 export type OnboardAgainResponse = components['schemas']['OnboardAgainResponse'];
@@ -75789,11 +75862,14 @@ export type WaitingListGuardianRequest = components['schemas']['WaitingListGuard
 export type WaitingListInvitation = components['schemas']['WaitingListInvitation'];
 export type WaitingListInvitationAnswer = components['schemas']['WaitingListInvitationAnswer'];
 export type WaitingListInvitationAnswerRequest = components['schemas']['WaitingListInvitationAnswerRequest'];
+export type WaitingListInvitationOptionRequest = components['schemas']['WaitingListInvitationOptionRequest'];
 export type WaitingListInvitationRequest = components['schemas']['WaitingListInvitationRequest'];
 export type WaitingListInvite = components['schemas']['WaitingListInvite'];
 export type WaitingListInviteInfo = components['schemas']['WaitingListInviteInfo'];
 export type WaitingListInviteRequest = components['schemas']['WaitingListInviteRequest'];
+export type WaitingListMessageRequest = components['schemas']['WaitingListMessageRequest'];
 export type WaitingListPublicAnswer = components['schemas']['WaitingListPublicAnswer'];
+export type WaitingListPublicAppointment = components['schemas']['WaitingListPublicAppointment'];
 export type WaitingListPublicInvitation = components['schemas']['WaitingListPublicInvitation'];
 export type WaitingListPublicStatus = components['schemas']['WaitingListPublicStatus'];
 export type WaitingListRegisterRequest = components['schemas']['WaitingListRegisterRequest'];

@@ -1,5 +1,18 @@
 # Änderungsprotokoll
 
+## v26.23.4
+
+Eine Einladung von der Warteliste kann mehrere Termine zur Auswahl anbieten, und die Wache kann der Familie schreiben, wenn sie andere Termine anbietet, die Probezeit startet oder jemanden von der Liste nimmt.
+
+### Neue Funktionen
+
+- **Einladungen bieten mehrere Termine an.** Eine Einladung von der Warteliste kann bis zu fünf Termine mit je eigener Ankunftszeit anbieten, und die Familie wählt auf der Einladungsseite den passenden aus oder sagt, dass keiner passt. Die Wache sieht am Eintrag und in der Benachrichtigung, welcher Termin gewählt wurde.
+
+### Verbesserungen
+
+- **Andere Termine in einem Schritt.** Passen die Termine einer Einladung nicht, ersetzt „Andere Termine anbieten“ sie durch neue mit einer Nachricht, und die Familie bekommt sie per E-Mail oder auf der Seite des Eintrags, ohne dass der Eintrag erst zurück in die Warteliste muss.
+- **Die Wache kann der Familie schreiben.** Der Start der Probezeit und das Ausscheiden nehmen eine optionale Nachricht, die der Familie per E-Mail geschickt wird, wenn die Warteliste E-Mails verschickt, und die Nachricht zur Probezeit steht auch auf der Seite des Eintrags, solange die Probezeit läuft. Eingeladene Einträge können jetzt auch direkt ausscheiden.
+
 ## v26.23.3
 
 Profile verlangen von Mitgliedern keine Felder mehr, die sie nicht ausfüllen können.

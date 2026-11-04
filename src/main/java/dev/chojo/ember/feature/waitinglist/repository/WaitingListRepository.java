@@ -21,6 +21,7 @@ import dev.chojo.ember.feature.waitinglist.entity.WaitingListInvitation;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListInvite;
 import dev.chojo.ember.feature.waitinglist.entity.WaitlistVerificationToken;
 import dev.chojo.ember.util.sql.SqlSupport;
+import dev.chojo.ember.util.sql.Transactions;
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.Nullable;
 import tools.jackson.databind.JsonNode;
@@ -54,8 +55,18 @@ public class WaitingListRepository {
     private static final String WAITING_LIST_ENTRY_COLUMNS = """
             id, list_id, firstname, lastname, parent_name, email, access_token, status, confirmed_at, \
             reminder_sent_at, created_at, notes, member_id, invited_at, testing_at, joined_at, \
-            withdrawn_at, attendance_count, invited_event_id, invited_event_date, invited_arrival_time, \
-            invited_message, invitation_answer, invitation_answered_at, invitation_answer_note""";
+            withdrawn_at, attendance_count, invitation_round, invited_message, invitation_answer, \
+            invitation_answered_at, invitation_answer_note, invitation_answer_position, trial_message, \
+            (SELECT jsonb_agg(jsonb_build_object(
+                        'position', invitation_option.position,
+                        'event_id', invitation_option.event_id,
+                        'event_date', invitation_option.event_date,
+                        'arrival_time', invitation_option.arrival_time,
+                        'event_name', invitation_event.name)
+                    ORDER BY invitation_option.position)::TEXT
+             FROM waiting_list_invitation_option invitation_option
+             JOIN station_event invitation_event ON invitation_event.id = invitation_option.event_id
+             WHERE invitation_option.entry_id = waiting_list_entry.id) AS invitation_options""";
 
     /**
      * The dates of the trial period, counted off the attendance sheets themselves.
@@ -459,6 +470,26 @@ public class WaitingListRepository {
                 .update();
     }
 
+    /**
+     * The entry's status, read with a row lock held until the calling transaction ends, so a step that
+     * starts from one status cannot be overtaken by another step on the same entry.
+     *
+     * @return the status, or empty when the entry is gone
+     */
+    public Optional<WaitingListEntryStatus> lockEntryStatus(int entryId) {
+        return query("SELECT status FROM waiting_list_entry WHERE id = :id FOR UPDATE;")
+                .single(call().bind("id", entryId))
+                .map(row -> row.getEnum("status", WaitingListEntryStatus.class))
+                .first();
+    }
+
+    /** Keeps what the station wrote to the family as the trial began. */
+    public void updateTrialMessage(int entryId, String message) {
+        query("UPDATE waiting_list_entry SET trial_message = :message WHERE id = :id;")
+                .single(call().bind("id", entryId).bind("message", message))
+                .update();
+    }
+
     public void linkMember(int entryId, int memberId) {
         query("UPDATE waiting_list_entry SET member_id = :member_id WHERE id = :id;")
                 .single(call().bind("id", entryId).bind("member_id", memberId))
@@ -466,27 +497,48 @@ public class WaitingListRepository {
     }
 
     /**
-     * Writes the one appointment the current invitation names, or clears it when the invitation is
-     * withdrawn. The date goes with the appointment, so an entry never carries half a reference.
+     * Replaces the current invitation with the dates and the note given, or clears it when the
+     * invitation is withdrawn. Any answer goes with the invitation it answered.
+     *
+     * <p>A new invitation starts a new round, so an answer given on a page that still showed the
+     * dates it replaced is refused. Clearing leaves the round where it is: nothing can be answered
+     * until the next invitation raises it.
      */
     public void updateInvitation(int entryId, @Nullable WaitingListInvitation invitation) {
-        query("""
-                UPDATE waiting_list_entry
-                SET
-                    invited_event_id       = :event_id,
-                    invited_event_date     = :event_date,
-                    invited_arrival_time   = :arrival_time,
-                    invited_message        = :message,
-                    invitation_answer      = NULL,
-                    invitation_answered_at = NULL,
-                    invitation_answer_note = ''
-                WHERE id = :id;""")
-                .single(call().bind("id", entryId)
-                        .bind("event_id", invitation != null ? invitation.eventId() : null)
-                        .bind("event_date", invitation != null ? invitation.date() : null)
-                        .bind("arrival_time", invitation != null ? invitation.arrivalTime() : null)
-                        .bind("message", invitation != null ? invitation.message() : ""))
-                .update();
+        Transactions.run(() -> {
+            query("DELETE FROM waiting_list_invitation_option WHERE entry_id = :entry_id;")
+                    .single(call().bind("entry_id", entryId))
+                    .delete();
+            if (invitation != null) {
+                for (var option : invitation.options()) {
+                    query("""
+                            INSERT INTO waiting_list_invitation_option
+                                (entry_id, position, event_id, event_date, arrival_time)
+                            VALUES
+                                (:entry_id, :position, :event_id, :event_date, :arrival_time);""")
+                            .single(call().bind("entry_id", entryId)
+                                    .bind("position", option.position())
+                                    .bind("event_id", option.eventId())
+                                    .bind("event_date", option.date())
+                                    .bind("arrival_time", option.arrivalTime()))
+                            .insert();
+                }
+            }
+            query("""
+                    UPDATE waiting_list_entry
+                    SET
+                        invited_message            = :message,
+                        invitation_round           = invitation_round + :round_step,
+                        invitation_answer          = NULL,
+                        invitation_answered_at     = NULL,
+                        invitation_answer_note     = '',
+                        invitation_answer_position = NULL
+                    WHERE id = :id;""")
+                    .single(call().bind("id", entryId)
+                            .bind("message", invitation != null ? invitation.message() : "")
+                            .bind("round_step", invitation != null ? 1 : 0))
+                    .update();
+        });
     }
 
     /**
@@ -494,20 +546,34 @@ public class WaitingListRepository {
      *
      * <p>Written together with its moment, because an answer nobody can date says nothing about how
      * long an invitation has been sitting.
+     *
+     * <p>Written only while the entry is still invited in the round the answer was given in. A station
+     * inviting again between the answer being checked and being written starts a new round, and the
+     * answer then belongs to dates that are no longer offered.
+     *
+     * @param round the invitation round the answer was given in
+     * @return whether the answer was written, false when the entry has moved on in the meantime
      */
-    public void updateInvitationAnswer(int entryId, WaitingListAnswer answer, String note) {
-        query("""
+    public boolean updateInvitationAnswer(
+            int entryId, int round, WaitingListAnswer answer, String note, @Nullable Integer position) {
+        return query("""
                 UPDATE waiting_list_entry
                 SET
-                    invitation_answer      = :answer,
-                    invitation_answered_at = :answered_at,
-                    invitation_answer_note = :note
-                WHERE id = :id;""")
+                    invitation_answer          = :answer,
+                    invitation_answered_at     = :answered_at,
+                    invitation_answer_note     = :note,
+                    invitation_answer_position = :position
+                WHERE id = :id
+                  AND invitation_round = :round
+                  AND status = 'INVITED';""")
                 .single(call().bind("id", entryId)
+                        .bind("round", round)
                         .bind("answer", answer.name())
                         .bind("answered_at", Instant.now(), INSTANT_TIMESTAMP)
-                        .bind("note", note))
-                .update();
+                        .bind("note", note)
+                        .bind("position", position))
+                .update()
+                .changed();
     }
 
     public void deleteEntry(int id) {

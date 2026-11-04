@@ -170,6 +170,10 @@ public class WaitingListRoutes implements Routes {
                 this::inviteEntry,
                 StationPermission.WAITLIST_EDIT);
         routes.post(
+                prefix + "/waiting-lists/{id}/entries/{entryId}/other-dates",
+                this::reofferEntry,
+                StationPermission.WAITLIST_EDIT);
+        routes.post(
                 prefix + "/waiting-lists/{id}/entries/{entryId}/back-to-waiting",
                 this::returnToWaiting,
                 StationPermission.WAITLIST_EDIT);
@@ -327,35 +331,45 @@ public class WaitingListRoutes implements Routes {
                 values,
                 guardians,
                 describeInvitation(list.stationId(), entry),
-                describeAnswer(entry)));
+                describeAnswer(entry),
+                entry.status() == WaitingListEntryStatus.TESTING ? entry.trialMessage() : ""));
     }
 
     /**
-     * The appointment the page is about, written exactly as the mail wrote it.
+     * The dates the page is about, written exactly as the mail wrote them.
      *
      * <p>The page is the invitation rather than a window into the station: somebody holding the link
      * was deliberately invited, and an answer given without knowing the occasion is not an answer
      * worth collecting.
+     *
+     * <p>An invited entry whose dates are all gone and which carries no note still gets an invitation
+     * here, empty but for its round, because the round is what the answer has to send back.
      */
     private @Nullable WaitingListPublicInvitation describeInvitation(int stationId, WaitingListEntry entry) {
         var invitation = entry.invitation();
-        if (invitation == null) return null;
+        if (invitation == null) {
+            return entry.status() == WaitingListEntryStatus.INVITED
+                    ? new WaitingListPublicInvitation(entry.invitationRound(), List.of(), "")
+                    : null;
+        }
         var details = publicLists.invitationDetails(stationId, invitation);
-        return new WaitingListPublicInvitation(
-                invitation.eventId(),
-                invitation.date().toString(),
-                details.appointmentName(),
-                details.date(),
-                details.time(),
-                details.arrivalTime(),
-                details.location(),
-                details.message());
+        var appointments = details.appointments().stream()
+                .map(appointment -> new WaitingListPublicAppointment(
+                        appointment.position(),
+                        appointment.appointmentName(),
+                        appointment.date(),
+                        appointment.time(),
+                        appointment.arrivalTime(),
+                        appointment.location()))
+                .toList();
+        return new WaitingListPublicInvitation(entry.invitationRound(), appointments, details.message());
     }
 
     private static @Nullable WaitingListPublicAnswer describeAnswer(WaitingListEntry entry) {
         var answer = entry.answer();
         if (answer == null) return null;
-        return new WaitingListPublicAnswer(answer.answer(), answer.answeredAt().toString(), answer.note());
+        return new WaitingListPublicAnswer(
+                answer.answer(), answer.answeredAt().toString(), answer.note(), answer.position());
     }
 
     @OpenApi(
@@ -383,9 +397,9 @@ public class WaitingListRoutes implements Routes {
             log.warn("Unknown waiting-list invitation answer {}", answerName, e);
             throw WaitingListRefusal.WAITING_LIST_ANSWER_UNKNOWN.raise(answerName);
         }
+        int round = Objects.requireNonNullElse(request.round(), 0);
         try {
-            service.answerInvitation(
-                    token, request.eventId(), parseOptionalDate(request.date()), answer, request.note());
+            service.answerInvitation(token, round, answer, request.position(), request.note());
             ctx.status(HttpStatus.NO_CONTENT);
         } catch (IllegalArgumentException e) {
             log.warn("No waiting-list entry for the token answering an invitation", e);
@@ -871,6 +885,31 @@ public class WaitingListRoutes implements Routes {
     }
 
     @OpenApi(
+            path = "/api/v1/waiting-lists/{id}/entries/{entryId}/other-dates",
+            methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = WaitingListInvitationRequest.class)),
+            responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = WaitingListEntry.class)))
+    private void reofferEntry(Context ctx) {
+        int listId = pathInt(ctx, "id");
+        verifyListOwnership(ctx, listId);
+        int entryId = pathInt(ctx, "entryId");
+        verifyEntryInList(listId, entryId);
+        if (ctx.body().isBlank()) {
+            throw WaitingListRefusal.INVITATION_NEEDS_AN_APPOINTMENT.raise();
+        }
+        var invitation = resolveInvitation(ctx, ctx.bodyAsClass(WaitingListInvitationRequest.class));
+        try {
+            ctx.json(service.reofferEntry(entryId, invitation));
+        } catch (IllegalArgumentException e) {
+            log.warn("Waiting list entry not found for other dates, entryId={}", entryId, e);
+            throw WaitingListRefusal.WAITING_LIST_ENTRY_NOT_HERE_ON_OTHER_DATES.raise();
+        } catch (IllegalStateException e) {
+            log.warn("Invalid state when offering other dates, entryId={}", entryId, e);
+            throw WaitingListRefusal.WAITING_LIST_ENTRY_NOT_REOFFERED.raise();
+        }
+    }
+
+    @OpenApi(
             path = "/api/v1/waiting-lists/{id}/entries/{entryId}/back-to-waiting",
             methods = HttpMethod.POST,
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = WaitingListEntry.class)))
@@ -891,18 +930,22 @@ public class WaitingListRoutes implements Routes {
     }
 
     /**
-     * The appointment an invitation names, checked against the station that is inviting.
+     * The dates an invitation offers, each checked against the station that is inviting.
      *
-     * <p>An appointment repeats, so the date travels with it and an invitation naming an appointment
+     * <p>An appointment repeats, so the date travels with it and an option naming an appointment
      * without one is refused rather than silently meaning every occurrence there has ever been.
      *
-     * <p>An invitation without an appointment is refused too. It is what the person answers, and
-     * "the date does not suit" means nothing when no date was named.
+     * <p>An invitation without any date is refused too. It is what the person answers, and "none of
+     * these suit" means nothing when no date was named.
      */
     private WaitingListInvitation resolveInvitation(Context ctx, WaitingListInvitationRequest request) {
-        Integer eventId = request.eventId();
-        if (eventId == null) {
+        var requestedOptions =
+                Objects.requireNonNullElse(request.options(), List.<WaitingListInvitationOptionRequest>of());
+        if (requestedOptions.isEmpty()) {
             throw WaitingListRefusal.INVITATION_NEEDS_AN_APPOINTMENT.raise();
+        }
+        if (requestedOptions.size() > WaitingListInvitation.MAX_OPTIONS) {
+            throw WaitingListRefusal.INVITATION_TOO_MANY_DATES.raise();
         }
         String requested = request.message();
         String message = requested == null ? "" : requested.trim();
@@ -910,6 +953,24 @@ public class WaitingListRoutes implements Routes {
             throw WaitingListRefusal.INVITATION_MESSAGE_TOO_LONG.raise();
         }
         var session = StationSession.from(ctx);
+        var options = new ArrayList<WaitingListInvitation.OfferedDate>();
+        for (var requestedOption : requestedOptions) {
+            var option = resolveOption(session, options.size(), requestedOption);
+            boolean twice = options.stream()
+                    .anyMatch(known ->
+                            known.eventId() == option.eventId() && known.date().equals(option.date()));
+            if (twice) throw WaitingListRefusal.INVITATION_DATE_TWICE.raise();
+            options.add(option);
+        }
+        return new WaitingListInvitation(message, options);
+    }
+
+    private WaitingListInvitation.OfferedDate resolveOption(
+            StationSession session, int position, WaitingListInvitationOptionRequest request) {
+        Integer eventId = request.eventId();
+        if (eventId == null) {
+            throw WaitingListRefusal.INVITATION_NEEDS_AN_APPOINTMENT.raise();
+        }
         var event = eventCrudService
                 .findById(eventId)
                 .filter(candidate -> candidate.stationId() == session.stationId())
@@ -918,12 +979,8 @@ public class WaitingListRoutes implements Routes {
                 event.id(), session.member().id(), session.user().permissions())) {
             throw WaitingListRefusal.APPOINTMENT_NOT_YOURS_TO_INVITE_TO.raise();
         }
-        return new WaitingListInvitation(
-                event.id(), parseDate(request.date()), parseTime(request.arrivalTime()), message);
-    }
-
-    private static @Nullable LocalDate parseOptionalDate(@Nullable String raw) {
-        return raw == null || raw.isBlank() ? null : parseDate(raw);
+        return new WaitingListInvitation.OfferedDate(
+                position, event.id(), parseDate(request.date()), parseTime(request.arrivalTime()));
     }
 
     private static LocalDate parseDate(@Nullable String raw) {
@@ -949,14 +1006,16 @@ public class WaitingListRoutes implements Routes {
     @OpenApi(
             path = "/api/v1/waiting-lists/{id}/entries/{entryId}/testing",
             methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = WaitingListMessageRequest.class)),
             responses = @OpenApiResponse(status = "200", content = @OpenApiContent(from = WaitingListEntry.class)))
     private void moveToTesting(Context ctx) {
         int listId = pathInt(ctx, "id");
         verifyListOwnership(ctx, listId);
         int entryId = pathInt(ctx, "entryId");
         verifyEntryInList(listId, entryId);
+        String message = stationMessage(ctx);
         try {
-            var entry = service.moveToTesting(entryId);
+            var entry = service.moveToTesting(entryId, message);
             ctx.json(entry);
         } catch (IllegalArgumentException e) {
             log.warn("Waiting list entry not found for moveToTesting, entryId={}", entryId, e);
@@ -991,14 +1050,16 @@ public class WaitingListRoutes implements Routes {
     @OpenApi(
             path = "/api/v1/waiting-lists/{id}/entries/{entryId}/withdraw",
             methods = HttpMethod.POST,
+            requestBody = @OpenApiRequestBody(content = @OpenApiContent(from = WaitingListMessageRequest.class)),
             responses = @OpenApiResponse(status = "204"))
     private void withdrawEntry(Context ctx) {
         int listId = pathInt(ctx, "id");
         verifyListOwnership(ctx, listId);
         int entryId = pathInt(ctx, "entryId");
         verifyEntryInList(listId, entryId);
+        String message = stationMessage(ctx);
         try {
-            service.withdrawEntry(entryId);
+            service.withdrawByStation(entryId, message);
             ctx.status(HttpStatus.NO_CONTENT);
         } catch (IllegalArgumentException e) {
             log.warn("Waiting list entry not found for withdraw, entryId={}", entryId, e);
@@ -1007,6 +1068,21 @@ public class WaitingListRoutes implements Routes {
             log.warn("Invalid state when withdrawing waiting list entry, entryId={}", entryId, e);
             throw WaitingListRefusal.WAITING_LIST_ENTRY_NOT_WITHDRAWN.raise();
         }
+    }
+
+    /**
+     * What the station writes to the family with a step, trimmed, or empty when the request carries
+     * none. A request without a body, or with a body of JSON {@code null}, is a step without a message.
+     */
+    private static String stationMessage(Context ctx) {
+        String raw = ctx.body().trim();
+        if (raw.isEmpty() || raw.equals("null")) return "";
+        String requested = ctx.bodyAsClass(WaitingListMessageRequest.class).message();
+        String message = requested == null ? "" : requested.trim();
+        if (message.length() > WaitingListInvitation.MESSAGE_MAX_LENGTH) {
+            throw WaitingListRefusal.STATION_MESSAGE_TOO_LONG.raise();
+        }
+        return message;
     }
 
     private void validateFormula(@Nullable String formula, List<String> fieldNames) {
@@ -1185,44 +1261,60 @@ public class WaitingListRoutes implements Routes {
             List<WaitingListEntryValue> values,
             List<WaitingListEntryGuardian> guardians,
             @Nullable WaitingListPublicInvitation invitation,
-            @Nullable WaitingListPublicAnswer answer) {}
+            @Nullable WaitingListPublicAnswer answer,
+            String trialMessage) {}
 
     /**
-     * The appointment the entry is invited to, as the page has to show it.
+     * The invitation the entry holds, as the page has to show it.
      *
-     * @param eventId         the appointment, sent back with the answer so it names what it answers
-     * @param date            the one date of it, in {@code YYYY-MM-DD}, sent back for the same reason
+     * @param round        the invitation round, sent back with the answer so it names what it answers
+     * @param appointments the dates offered, written out for a reader, empty when all are gone
+     * @param message      the personal note the station wrote into the invitation, empty for none
+     */
+    public record WaitingListPublicInvitation(
+            int round, List<WaitingListPublicAppointment> appointments, String message) {}
+
+    /**
+     * One offered date, as the page has to show it.
+     *
+     * @param position        how the answer names it when this is the date they pick
      * @param appointmentName what it is called
      * @param appointmentDate the date written out for a reader
      * @param appointmentTime when the appointment itself runs
      * @param arrivalTime     when they were asked to be there, empty when the invitation named no time
      * @param location        where it is, empty when neither the appointment nor the station says
-     * @param message         the personal note the station wrote into the invitation, empty for none
      */
-    public record WaitingListPublicInvitation(
-            int eventId,
-            String date,
+    public record WaitingListPublicAppointment(
+            int position,
             String appointmentName,
             String appointmentDate,
             String appointmentTime,
             String arrivalTime,
-            String location,
-            String message) {}
+            String location) {}
 
-    public record WaitingListPublicAnswer(WaitingListAnswer answer, String answeredAt, String note) {}
+    /**
+     * @param position which offered date a coming answer picked, null for any other answer
+     */
+    public record WaitingListPublicAnswer(
+            WaitingListAnswer answer,
+            String answeredAt,
+            String note,
+            @Nullable Integer position) {}
 
     /**
      * An answer to the invitation an entry currently holds.
      *
-     * @param eventId the appointment it answers, null when the invitation named none
-     * @param date    the one date of it, null for the same
-     * @param answer  one of COMING, NOT_INTERESTED or DATE_DOES_NOT_SUIT
-     * @param note    anything they wrote alongside it
+     * @param round    the invitation round it answers, as the page was given it; a page loaded before
+     *                 rounds existed sends none, which answers the round every invitation from then
+     *                 started in
+     * @param answer   one of COMING, NOT_INTERESTED or DATE_DOES_NOT_SUIT
+     * @param position which offered date a coming answer picks, null when only one is offered
+     * @param note     anything they wrote alongside it
      */
     public record WaitingListInvitationAnswerRequest(
-            @Nullable Integer eventId,
-            @Nullable String date,
+            @Nullable Integer round,
             @Nullable String answer,
+            @Nullable Integer position,
             @Nullable String note) {}
 
     /**
@@ -1296,18 +1388,33 @@ public class WaitingListRoutes implements Routes {
             @Nullable String phone) {}
 
     /**
-     * The appointment an invitation is about.
+     * The dates an invitation offers to pick from.
+     *
+     * @param options the dates, at least one and at most five, in the order they are offered
+     * @param message a personal note for the mail and the entry page, or null for none
+     */
+    public record WaitingListInvitationRequest(
+            @Nullable List<WaitingListInvitationOptionRequest> options,
+            @Nullable String message) {}
+
+    /**
+     * What the station writes to the family with a step it takes.
+     *
+     * @param message the text, or null for none
+     */
+    public record WaitingListMessageRequest(@Nullable String message) {}
+
+    /**
+     * One date an invitation offers.
      *
      * @param eventId     the appointment, required
      * @param date        the one date of it, as {@code YYYY-MM-DD}, required
      * @param arrivalTime when they should be there, as {@code HH:MM}, or null to say nothing about it
-     * @param message     a personal note for the mail and the entry page, or null for none
      */
-    public record WaitingListInvitationRequest(
+    public record WaitingListInvitationOptionRequest(
             @Nullable Integer eventId,
             @Nullable String date,
-            @Nullable String arrivalTime,
-            @Nullable String message) {}
+            @Nullable String arrivalTime) {}
 
     /**
      * Where a public registration or its confirmation stands.

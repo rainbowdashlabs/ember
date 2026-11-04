@@ -35,6 +35,7 @@ import dev.chojo.ember.repository.RepositoryTestBase;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import tools.jackson.databind.node.IntNode;
 import tools.jackson.databind.node.StringNode;
 
@@ -270,10 +271,12 @@ class WaitingListServiceTest extends RepositoryTestBase {
         var confirmed = service.findEntryByToken(entry.accessToken()).orElseThrow();
         assertNotNull(confirmed.confirmedAt());
 
+        clearInvocations(emailService);
         service.removeByToken(entry.accessToken());
         assertTrue(
                 service.findEntryByToken(entry.accessToken()).isEmpty(),
                 "while waiting there is nothing but the entry, so it goes for good");
+        verify(emailService, never()).sendWaitlistRemovedEmail(any(), any(), any(), any(), any(), any(), anyBoolean());
     }
 
     @Test
@@ -410,7 +413,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
         assertEquals(WaitingListEntryStatus.INVITED, invited.status());
         assertNull(invited.memberId(), "an invitation must not put anybody on the station");
 
-        var testing = service.moveToTesting(invited.id());
+        var testing = service.moveToTesting(invited.id(), "");
         assertEquals(WaitingListEntryStatus.TESTING, testing.status());
         assertNotNull(testing.memberId(), "moving to testing is where the member appears");
 
@@ -431,7 +434,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
         var entry = service.createEntry(
                 list.id(), "Kind", "Mustermann", guardians("Mutter", "mutter@test.com"), Map.of(), "");
         var joined = service.moveToJoined(
-                service.moveToTesting(invite(entry.id()).id()).id());
+                service.moveToTesting(invite(entry.id()).id(), "").id());
 
         var managers = stationMemberRepo.findManagers(joined.memberId());
         assertEquals(1, managers.size(), "the child has exactly one guardian");
@@ -455,7 +458,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
                 service.create(station.id(), "Guardian Silent", "", null, 180, null, null, 5, false, true, null, null);
         var entry = service.createEntry(list.id(), "Kind", "Ohnemail", guardians("Vater", ""), Map.of(), "");
         var joined = service.moveToJoined(
-                service.moveToTesting(invite(entry.id()).id()).id());
+                service.moveToTesting(invite(entry.id()).id(), "").id());
 
         var managers = stationMemberRepo.findManagers(joined.memberId());
         assertEquals(1, managers.size(), "the child still has a guardian");
@@ -482,7 +485,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
                 waitingListRepo.findGuardiansByEntry(entry.id()).stream().allMatch(g -> g.memberId() == null),
                 "an invitation takes nobody on");
 
-        var testing = service.moveToTesting(entry.id());
+        var testing = service.moveToTesting(entry.id(), "");
         var managers = stationMemberRepo.findManagers(testing.memberId());
         assertEquals(1, managers.size(), "the guardian is there for the trial");
         assertEquals(StationUserType.GUARDIAN, managers.getFirst().userType());
@@ -498,7 +501,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
         var list = service.create(station.id(), "Trial Twice", "", null, 180, null, null, 5, false, true, null, null);
         var entry = service.createEntry(list.id(), "Kind", "Zweimal", guardians("Vater", ""), Map.of(), "");
         invite(entry.id());
-        var testing = service.moveToTesting(entry.id());
+        var testing = service.moveToTesting(entry.id(), "");
         var guardian = stationMemberRepo.findManagers(testing.memberId()).getFirst();
 
         var joined = service.moveToJoined(testing.id());
@@ -517,7 +520,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
         var list = service.create(station.id(), "Trial Older", "", null, 180, null, null, 5, false, true, null, null);
         var entry = service.createEntry(list.id(), "Kind", "Aelter", guardians("Oma", ""), Map.of(), "");
         invite(entry.id());
-        var testing = service.moveToTesting(entry.id());
+        var testing = service.moveToTesting(entry.id(), "");
         var guardian = stationMemberRepo.findManagers(testing.memberId()).getFirst();
         stationMemberRepo.delete(guardian.id());
 
@@ -541,13 +544,15 @@ class WaitingListServiceTest extends RepositoryTestBase {
                 Map.of(),
                 "");
         invite(entry.id());
-        var testing = service.moveToTesting(entry.id());
+        var testing = service.moveToTesting(entry.id(), "");
         var child = stationMemberRepo.findById(testing.memberId()).orElseThrow();
         var guardian = stationMemberRepo.findManagers(testing.memberId()).getFirst();
+        clearInvocations(emailService);
 
         service.endTrial(station.id(), entry.id(), List.of(guardian.id(), testing.memberId()));
 
         assertTrue(service.findEntryById(entry.id()).isEmpty(), "the entry is gone");
+        verify(emailService, never()).sendWaitlistRemovedEmail(any(), any(), any(), any(), any(), any(), anyBoolean());
         assertTrue(stationMemberRepo.findById(testing.memberId()).isEmpty(), "the trial member is gone");
         assertTrue(accountRepo.findById(child.accountId()).isEmpty(), "and so is the child's account");
         assertTrue(stationMemberRepo.findById(guardian.id()).isEmpty(), "the guardian answered for nobody else");
@@ -568,7 +573,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
                 Map.of(),
                 "");
         invite(entry.id());
-        var testing = service.moveToTesting(entry.id());
+        var testing = service.moveToTesting(entry.id(), "");
         var guardian = stationMemberRepo.findManagers(testing.memberId()).getFirst();
         var elsewhere = stationRepo.create("Elsewhere " + UUID.randomUUID());
         stationMemberRepo.create(elsewhere.id(), guardian.accountId());
@@ -587,7 +592,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
         var list = service.create(station.id(), "Trial Sibling", "", null, 180, null, null, 5, false, true, null, null);
         var entry = service.createEntry(list.id(), "Kind", "Geschwister", guardians("Vater", ""), Map.of(), "");
         invite(entry.id());
-        var testing = service.moveToTesting(entry.id());
+        var testing = service.moveToTesting(entry.id(), "");
         var guardian = stationMemberRepo.findManagers(testing.memberId()).getFirst();
         var sibling = stationMemberRepo.create(
                 station.id(),
@@ -606,7 +611,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
         var list = service.create(station.id(), "Trial Other", "", null, 180, null, null, 5, false, true, null, null);
         var entry = service.createEntry(list.id(), "Kind", "Fremd", guardians("Mutter", ""), Map.of(), "");
         invite(entry.id());
-        service.moveToTesting(entry.id());
+        service.moveToTesting(entry.id(), "");
 
         var refused =
                 assertThrows(RefusalResponse.class, () -> service.endTrial(station.id(), entry.id(), List.of(-1)));
@@ -630,7 +635,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
         var list = service.create(station.id(), "Trial Over", "", null, 180, null, null, 5, false, true, null, null);
         var entry = service.createEntry(list.id(), "Kind", "Vorbei", guardians("Mutter", ""), Map.of(), "");
         invite(entry.id());
-        var joined = service.moveToJoined(service.moveToTesting(entry.id()).id());
+        var joined = service.moveToJoined(service.moveToTesting(entry.id(), "").id());
 
         var refused = assertThrows(
                 RefusalResponse.class, () -> service.endTrial(station.id(), entry.id(), List.of(joined.memberId())));
@@ -663,7 +668,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
         var list = service.create(station.id(), "Trial Seen", "", null, 180, null, null, 4, false, true, null, null);
         var entry = service.createEntry(list.id(), "Kind", "Gesehen", guardians("Mutter", ""), Map.of(), "");
         invite(entry.id());
-        var testing = service.moveToTesting(entry.id());
+        var testing = service.moveToTesting(entry.id(), "");
         var guardian = stationMemberRepo.findManagers(testing.memberId()).getFirst();
 
         var trials = service.trialsOf(List.of(guardian.id(), testing.memberId()));
@@ -704,9 +709,11 @@ class WaitingListServiceTest extends RepositoryTestBase {
 
         assertEquals(WaitingListEntryStatus.INVITED, invited.status());
         assertNotNull(invited.invitation());
-        assertEquals(event.id(), invited.invitation().eventId());
-        assertEquals(LocalDate.of(2026, 5, 12), invited.invitation().date());
-        assertEquals(LocalTime.of(17, 45), invited.invitation().arrivalTime());
+        var offered = invited.invitation().options().getFirst();
+        assertEquals(event.id(), offered.eventId());
+        assertEquals(LocalDate.of(2026, 5, 12), offered.date());
+        assertEquals(LocalTime.of(17, 45), offered.arrivalTime());
+        assertEquals(1, invited.invitationRound(), "an invitation starts a round its answer has to name");
     }
 
     /** Nobody is signed up from an invitation: they have not joined anything yet. */
@@ -771,12 +778,81 @@ class WaitingListServiceTest extends RepositoryTestBase {
                 service.inviteEntry(entry.id(), new WaitingListInvitation(event.id(), LocalDate.of(2026, 5, 12), null));
 
         var answered = service.answerInvitation(
-                invited.accessToken(), event.id(), LocalDate.of(2026, 5, 12), WaitingListAnswer.COMING, "  Bis dann  ");
+                invited.accessToken(), invited.invitationRound(), WaitingListAnswer.COMING, null, "  Bis dann  ");
 
         assertNotNull(answered.answer());
         assertEquals(WaitingListAnswer.COMING, answered.answer().answer());
         assertEquals("Bis dann", answered.answer().note());
         assertNotNull(answered.answer().answeredAt());
+        assertEquals(0, answered.answer().position(), "the only date offered is the one picked");
+    }
+
+    private static WaitingListEntry inviteToTwoDates(int entryId, StationEvent event) {
+        return service.inviteEntry(
+                entryId,
+                new WaitingListInvitation(
+                        "",
+                        List.of(
+                                new WaitingListInvitation.OfferedDate(0, event.id(), LocalDate.of(2026, 5, 12), null),
+                                new WaitingListInvitation.OfferedDate(
+                                        1, event.id(), LocalDate.of(2026, 5, 19), null))));
+    }
+
+    @Test
+    void comingToOneOfSeveralDatesNamesTheOnePicked() {
+        var event = appointment("Wahl");
+        var entry = service.createEntry(listId, "Neu", "Wahl", guardians("", "wahl@test.com"), Map.of(), "");
+        var invited = inviteToTwoDates(entry.id(), event);
+
+        var answered = service.answerInvitation(
+                invited.accessToken(), invited.invitationRound(), WaitingListAnswer.COMING, 1, null);
+
+        assertEquals(1, answered.answer().position());
+        assertEquals(2, answered.invitation().options().size(), "the other date stays on the invitation");
+    }
+
+    @Test
+    void comingToSeveralDatesWithoutPickingOneIsRefused() {
+        var event = appointment("Ohne Wahl");
+        var entry = service.createEntry(listId, "Neu", "Unklar", guardians("", "unklar@test.com"), Map.of(), "");
+        var invited = inviteToTwoDates(entry.id(), event);
+
+        var refused = assertThrows(
+                RefusalResponse.class,
+                () -> service.answerInvitation(
+                        invited.accessToken(), invited.invitationRound(), WaitingListAnswer.COMING, null, null));
+        assertEquals(WaitingListRefusal.WAITING_LIST_ANSWER_NEEDS_A_DATE, refused.refusal());
+    }
+
+    @Test
+    void comingToADateNotOfferedIsRefused() {
+        var event = appointment("Falsche Wahl");
+        var entry = service.createEntry(listId, "Neu", "Falsch", guardians("", "falsch@test.com"), Map.of(), "");
+        var invited = inviteToTwoDates(entry.id(), event);
+
+        var refused = assertThrows(
+                RefusalResponse.class,
+                () -> service.answerInvitation(
+                        invited.accessToken(), invited.invitationRound(), WaitingListAnswer.COMING, 2, null));
+        assertEquals(WaitingListRefusal.WAITING_LIST_ANSWER_DATE_NOT_OFFERED, refused.refusal());
+    }
+
+    /** None of these suit picks nothing, whatever the page sent along. */
+    @Test
+    void noDateSuitsPicksNoDate() {
+        var event = appointment("Keiner passt");
+        var entry = service.createEntry(listId, "Neu", "Keiner", guardians("", "keiner@test.com"), Map.of(), "");
+        var invited = inviteToTwoDates(entry.id(), event);
+
+        var answered = service.answerInvitation(
+                invited.accessToken(),
+                invited.invitationRound(),
+                WaitingListAnswer.DATE_DOES_NOT_SUIT,
+                1,
+                "Nur Freitags");
+
+        assertNull(answered.answer().position());
+        assertEquals("Nur Freitags", answered.answer().note());
     }
 
     /**
@@ -788,51 +864,47 @@ class WaitingListServiceTest extends RepositoryTestBase {
         var entry = service.createEntry(listId, "Neu", "Nein", guardians("", "nein@test.com"), Map.of(), "");
         var invited = invite(entry.id());
 
-        var answered =
-                service.answerInvitation(invited.accessToken(), null, null, WaitingListAnswer.NOT_INTERESTED, null);
+        var answered = service.answerInvitation(
+                invited.accessToken(), invited.invitationRound(), WaitingListAnswer.NOT_INTERESTED, null, null);
 
         assertEquals(WaitingListEntryStatus.INVITED, answered.status());
         assertEquals(WaitingListAnswer.NOT_INTERESTED, answered.answer().answer());
         assertEquals("", answered.answer().note());
     }
 
-    /** An old link in a mailbox cannot answer the invitation that replaced the one it was sent for. */
+    /** A page opened before the invitation was replaced cannot answer the one that replaced it. */
     @Test
-    void anAnswerAboutAnotherAppointmentIsRefused() {
+    void anAnswerToAReplacedInvitationIsRefused() {
         var first = appointment("Erster");
         var second = appointment("Zweiter");
         var entry = service.createEntry(listId, "Neu", "Alt", guardians("", "alt@test.com"), Map.of(), "");
+        var firstInvitation =
+                service.inviteEntry(entry.id(), new WaitingListInvitation(first.id(), LocalDate.of(2026, 5, 12), null));
+        service.returnToWaiting(entry.id());
         var invited = service.inviteEntry(
                 entry.id(), new WaitingListInvitation(second.id(), LocalDate.of(2026, 5, 19), null));
 
         var refused = assertThrows(
                 RefusalResponse.class,
                 () -> service.answerInvitation(
-                        invited.accessToken(), first.id(), LocalDate.of(2026, 5, 12), WaitingListAnswer.COMING, null));
+                        invited.accessToken(),
+                        firstInvitation.invitationRound(),
+                        WaitingListAnswer.COMING,
+                        null,
+                        null));
         assertEquals(WaitingListRefusal.WAITING_LIST_INVITATION_ANSWER_FOR_ANOTHER, refused.refusal());
-    }
-
-    @Test
-    void anAnswerNamingADateTheEntryWasNotInvitedToIsRefused() {
-        var event = appointment("Anderer Abend");
-        var entry = service.createEntry(listId, "Neu", "Datum", guardians("", "datum@test.com"), Map.of(), "");
-        var invited =
-                service.inviteEntry(entry.id(), new WaitingListInvitation(event.id(), LocalDate.of(2026, 5, 19), null));
-
-        assertThrows(
-                RefusalResponse.class,
-                () -> service.answerInvitation(
-                        invited.accessToken(), event.id(), LocalDate.of(2026, 5, 12), WaitingListAnswer.COMING, null));
+        assertEquals(firstInvitation.invitationRound() + 1, invited.invitationRound());
     }
 
     @Test
     void anEntryThatHasMovedOnCanNoLongerBeAnswered() {
         var entry = service.createEntry(listId, "Neu", "Weiter", guardians("", "weiter@test.com"), Map.of(), "");
-        var testing = service.moveToTesting(invite(entry.id()).id());
+        var testing = service.moveToTesting(invite(entry.id()).id(), "");
 
         var refused = assertThrows(
                 RefusalResponse.class,
-                () -> service.answerInvitation(testing.accessToken(), null, null, WaitingListAnswer.COMING, null));
+                () -> service.answerInvitation(
+                        testing.accessToken(), testing.invitationRound(), WaitingListAnswer.COMING, null, null));
         assertEquals(WaitingListRefusal.WAITING_LIST_INVITATION_NO_LONGER_OPEN, refused.refusal());
     }
 
@@ -840,7 +912,167 @@ class WaitingListServiceTest extends RepositoryTestBase {
     void answeringNeedsATokenThatNamesAnEntry() {
         assertThrows(
                 IllegalArgumentException.class,
-                () -> service.answerInvitation("nothing", null, null, WaitingListAnswer.COMING, null));
+                () -> service.answerInvitation("nothing", 0, WaitingListAnswer.COMING, null, null));
+    }
+
+    /** Other dates replace the invitation in one step: the entry stays invited and the old answer goes. */
+    @Test
+    void otherDatesReplaceTheInvitationWithoutLeavingIt() {
+        var first = appointment("Erste Wahl");
+        var second = appointment("Zweite Wahl");
+        var entry = service.createEntry(listId, "Neu", "Andere", guardians("", "andere@test.com"), Map.of(), "");
+        var invited =
+                service.inviteEntry(entry.id(), new WaitingListInvitation(first.id(), LocalDate.of(2026, 5, 12), null));
+        service.answerInvitation(
+                invited.accessToken(),
+                invited.invitationRound(),
+                WaitingListAnswer.DATE_DOES_NOT_SUIT,
+                null,
+                "Dienstags nie");
+
+        var reoffered = service.reofferEntry(
+                entry.id(),
+                new WaitingListInvitation(second.id(), LocalDate.of(2026, 5, 15), null, "Wie wäre Freitag?"));
+
+        assertEquals(WaitingListEntryStatus.INVITED, reoffered.status());
+        assertNull(reoffered.answer(), "the answer belonged to the dates that were replaced");
+        assertEquals(invited.invitationRound() + 1, reoffered.invitationRound());
+        assertEquals(second.id(), reoffered.invitation().options().getFirst().eventId());
+        assertEquals("Wie wäre Freitag?", reoffered.invitation().message());
+        verify(emailService)
+                .sendWaitlistOtherDatesEmail(
+                        eq("andere@test.com"), anyString(), anyString(), anyString(), anyString(), any(), any());
+    }
+
+    @Test
+    void onlyAnInvitedEntryIsOfferedOtherDates() {
+        var event = appointment("Zu früh");
+        var entry = service.createEntry(listId, "Neu", "Wartend", guardians("", "wartend@test.com"), Map.of(), "");
+
+        assertThrows(
+                IllegalStateException.class,
+                () -> service.reofferEntry(
+                        entry.id(), new WaitingListInvitation(event.id(), LocalDate.of(2026, 5, 15), null)));
+    }
+
+    /** Starting the trial tells the family, with what the station wrote, and the page keeps it. */
+    @Test
+    void theTrialBeginsWithAMessageToTheFamily() {
+        var entry = service.createEntry(listId, "Neu", "Probe", guardians("", "probebeginn@test.com"), Map.of(), "");
+
+        var testing = service.moveToTesting(invite(entry.id()).id(), "  Bis Dienstag!  ");
+
+        assertEquals("Bis Dienstag!", testing.trialMessage());
+        verify(emailService)
+                .sendWaitlistTrialStartedEmail(
+                        eq("probebeginn@test.com"),
+                        anyString(),
+                        anyString(),
+                        anyString(),
+                        anyString(),
+                        any(),
+                        anyString(),
+                        eq("Bis Dienstag!"));
+    }
+
+    /** Taken off the list by the station, the family hears it, at the addresses the entry had. */
+    @Test
+    void aWithdrawalByTheStationTellsTheFamily() {
+        var entry = service.createEntry(listId, "Neu", "Weg", guardians("Erika", "weg@test.com"), Map.of(), "");
+        invite(entry.id());
+
+        service.withdrawByStation(entry.id(), "Leider ist kein Platz frei.");
+
+        assertTrue(service.findEntryById(entry.id()).isEmpty(), "the entry is gone");
+        verify(emailService)
+                .sendWaitlistRemovedEmail(
+                        eq("weg@test.com"),
+                        anyString(),
+                        anyString(),
+                        anyString(),
+                        any(),
+                        eq("Leider ist kein Platz frei."),
+                        eq(false));
+    }
+
+    @Test
+    void aWithdrawalDuringTheTrialSaysTheTrialEnded() {
+        var entry = service.createEntry(listId, "Neu", "Ende", guardians("Erika", "probeende@test.com"), Map.of(), "");
+        service.moveToTesting(invite(entry.id()).id(), "");
+
+        service.withdrawByStation(entry.id(), "");
+
+        verify(emailService)
+                .sendWaitlistRemovedEmail(
+                        eq("probeende@test.com"), anyString(), anyString(), anyString(), any(), eq(""), eq(true));
+    }
+
+    @Test
+    void aListThatWritesToNobodyWithdrawsInSilence() {
+        var quiet = service.create(station.id(), "Still", "", null, 180, null, null, 5, false, false, null, null);
+        var entry = service.createEntry(quiet.id(), "Neu", "Still", guardians("", "still@test.com"), Map.of(), "");
+
+        service.withdrawByStation(entry.id(), "Tschüss");
+
+        verify(emailService, never())
+                .sendWaitlistRemovedEmail(eq("still@test.com"), any(), any(), any(), any(), any(), anyBoolean());
+    }
+
+    /** A list that writes to nobody still keeps the trial message, for the entry's page to show. */
+    @Test
+    void aListThatWritesToNobodyKeepsTheTrialMessageAndSendsNothing() {
+        var quiet = service.create(station.id(), "Still Probe", "", null, 180, null, null, 5, false, false, null, null);
+        var entry = service.createEntry(quiet.id(), "Neu", "Leise", guardians("", "leise@test.com"), Map.of(), "");
+        var event = appointment("Leiser Abend");
+        service.inviteEntry(entry.id(), new WaitingListInvitation(event.id(), LocalDate.of(2026, 5, 12), null));
+        service.reofferEntry(entry.id(), new WaitingListInvitation(event.id(), LocalDate.of(2026, 5, 19), null));
+
+        var testing = service.moveToTesting(entry.id(), "Willkommen");
+
+        assertEquals("Willkommen", testing.trialMessage());
+        verify(emailService, never())
+                .sendWaitlistOtherDatesEmail(eq("leise@test.com"), any(), any(), any(), any(), any(), any());
+        verify(emailService, never())
+                .sendWaitlistTrialStartedEmail(eq("leise@test.com"), any(), any(), any(), any(), any(), any(), any());
+    }
+
+    /** The trial mail names the date the family said they would come to. */
+    @Test
+    void theTrialMailNamesThePickedDate() {
+        var event = appointment("Gewählter Abend");
+        var entry = service.createEntry(listId, "Neu", "Gewählt", guardians("", "gewaehlt@test.com"), Map.of(), "");
+        var invited = inviteToTwoDates(entry.id(), event);
+        service.answerInvitation(invited.accessToken(), invited.invitationRound(), WaitingListAnswer.COMING, 1, null);
+
+        service.moveToTesting(entry.id(), "");
+
+        var appointment = ArgumentCaptor.forClass(String.class);
+        verify(emailService)
+                .sendWaitlistTrialStartedEmail(
+                        eq("gewaehlt@test.com"),
+                        anyString(),
+                        anyString(),
+                        anyString(),
+                        anyString(),
+                        any(),
+                        appointment.capture(),
+                        anyString());
+        assertTrue(appointment.getValue().startsWith("Gewählter Abend, "), appointment.getValue());
+    }
+
+    /** Other dates are refused once the trial has begun, and nothing is written to the family. */
+    @Test
+    void otherDatesAreRefusedOnceTheTrialHasBegun() {
+        var event = appointment("Zu spät");
+        var entry = service.createEntry(listId, "Neu", "Spät", guardians("", "spaet@test.com"), Map.of(), "");
+        service.moveToTesting(invite(entry.id()).id(), "");
+
+        assertThrows(
+                IllegalStateException.class,
+                () -> service.reofferEntry(
+                        entry.id(), new WaitingListInvitation(event.id(), LocalDate.of(2026, 5, 19), null)));
+        verify(emailService, never())
+                .sendWaitlistOtherDatesEmail(eq("spaet@test.com"), any(), any(), any(), any(), any(), any());
     }
 
     /** A second invitation is a new question, so the answer to the first does not stand for it. */
@@ -849,7 +1081,11 @@ class WaitingListServiceTest extends RepositoryTestBase {
         var entry = service.createEntry(listId, "Neu", "Nochmal", guardians("", "nochmal@test.com"), Map.of(), "");
         var invited = invite(entry.id());
         service.answerInvitation(
-                invited.accessToken(), null, null, WaitingListAnswer.DATE_DOES_NOT_SUIT, "Da kann ich nicht");
+                invited.accessToken(),
+                invited.invitationRound(),
+                WaitingListAnswer.DATE_DOES_NOT_SUIT,
+                null,
+                "Da kann ich nicht");
 
         var back = service.returnToWaiting(invited.id());
         assertNull(back.answer(), "going back to waiting takes the answer with the invitation");
@@ -867,7 +1103,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
     @Test
     void turningUpDuringTheTrialPeriodRaisesTheCount() {
         var entry = service.createEntry(listId, "Neu", "Probe", guardians("", "probe@test.com"), Map.of(), "");
-        var testing = service.moveToTesting(invite(entry.id()).id());
+        var testing = service.moveToTesting(invite(entry.id()).id(), "");
 
         markPresent(testing.memberId(), "Erster Abend");
         markPresent(testing.memberId(), "Zweiter Abend");
@@ -880,7 +1116,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
     void turningUpAfterJoiningCountsTowardsNothing() {
         var entry = service.createEntry(listId, "Neu", "Dabei", guardians("", "dabei@test.com"), Map.of(), "");
         var joined = service.moveToJoined(
-                service.moveToTesting(invite(entry.id()).id()).id());
+                service.moveToTesting(invite(entry.id()).id(), "").id());
 
         markPresent(joined.memberId(), "Abend danach");
 
@@ -900,11 +1136,13 @@ class WaitingListServiceTest extends RepositoryTestBase {
         var here = service.moveToTesting(
                 invite(service.createEntry(listId, "Neu", "Hier", guardians("", "hier@test.com"), Map.of(), "")
                                 .id())
-                        .id());
+                        .id(),
+                "");
         var there = service.moveToTesting(
                 invite(service.createEntry(otherList.id(), "Neu", "Dort", guardians("", "dort@test.com"), Map.of(), "")
                                 .id())
-                        .id());
+                        .id(),
+                "");
 
         markPresent(here.memberId(), "Abend hier");
 
@@ -931,7 +1169,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
     @Test
     void moveToTestingWrongStatusThrows() {
         var entry = service.createEntry(listId, "Bad", "", guardians("", "bad@test.com"), Map.of(), "");
-        assertThrows(IllegalStateException.class, () -> service.moveToTesting(entry.id()));
+        assertThrows(IllegalStateException.class, () -> service.moveToTesting(entry.id(), ""));
     }
 
     @Test
@@ -1030,7 +1268,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
                 service.create(station.id(), "Withdraw Testing", "", null, 180, null, null, 5, false, true, null, null);
         var entry = service.createEntry(
                 list.id(), "TestToWithdraw", "Last", guardians("Parent", "testwd@test.com"), Map.of(), "");
-        var testing = service.moveToTesting(invite(entry.id()).id());
+        var testing = service.moveToTesting(invite(entry.id()).id(), "");
         int memberId = testing.memberId();
         int accountId = stationMemberRepo.findById(memberId).orElseThrow().accountId();
 
@@ -1052,7 +1290,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
                 service.create(station.id(), "Withdraw Sealed", "", null, 180, null, null, 5, false, true, null, null);
         var entry = service.createEntry(
                 list.id(), "SealedWithdraw", "Last", guardians("Parent", "sealedwd@test.com"), Map.of(), "");
-        var testing = service.moveToTesting(invite(entry.id()).id());
+        var testing = service.moveToTesting(invite(entry.id()).id(), "");
         int memberId = testing.memberId();
         var document = memberDocumentRepo.create(
                 station.id(),
@@ -1162,7 +1400,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
                 memberGroupRepo.findMembers(testingGroup.id()).isEmpty(),
                 "without a member the testing group stays empty");
 
-        var testing = service.moveToTesting(invited.id());
+        var testing = service.moveToTesting(invited.id(), "");
         assertEquals(WaitingListEntryStatus.TESTING, testing.status());
         assertEquals(
                 StationUserType.TRIAL,
@@ -1341,7 +1579,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
                 service.createEntry(list.id(), "Arriving", "Once", guardians("Parent", "once@test.com"), Map.of(), "");
         int membersBefore = stationMemberRepo.findByStation(station.id()).size();
 
-        var testing = service.moveToTesting(invite(entry.id()).id());
+        var testing = service.moveToTesting(invite(entry.id()).id(), "");
 
         assertEquals(WaitingListEntryStatus.TESTING, testing.status());
         assertNotNull(testing.memberId());
@@ -1393,7 +1631,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
         memberGroupRepo.addMember(oldGroup.id(), member.id());
         service.update(list.id(), list.name(), "", null, 180, currentGroup.id(), null, 5, false, true, null, null);
 
-        var testing = service.moveToTesting(invited.id());
+        var testing = service.moveToTesting(invited.id(), "");
 
         assertEquals(member.id(), testing.memberId(), "the member it already had is the one it keeps");
         assertEquals(
@@ -1407,7 +1645,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
                         .map(StationMember::id)
                         .toList());
         waitingListRepo.updateEntryStatus(testing.id(), WaitingListEntryStatus.INVITED);
-        assertDoesNotThrow(() -> service.moveToTesting(testing.id()));
+        assertDoesNotThrow(() -> service.moveToTesting(testing.id(), ""));
         assertEquals(1, memberGroupRepo.findMembers(currentGroup.id()).size());
 
         memberGroupRepo.delete(oldGroup.id());
@@ -1425,7 +1663,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
         var entry = service.createEntry(
                 list.id(), "Joined", "Already", guardians("Parent", "joinedtoken@test.com"), Map.of(), "");
         var joined = service.moveToJoined(
-                service.moveToTesting(invite(entry.id()).id()).id());
+                service.moveToTesting(invite(entry.id()).id(), "").id());
 
         assertEquals(
                 WaitingListRefusal.WAITING_LIST_ENTRY_NO_LONGER_REMOVABLE,
@@ -1461,7 +1699,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
                 "");
 
         var invited = invite(entry.id());
-        var testing = service.moveToTesting(invited.id());
+        var testing = service.moveToTesting(invited.id(), "");
         var joined = service.moveToJoined(testing.id());
         assertEquals(WaitingListEntryStatus.JOINED, joined.status());
     }
@@ -1493,7 +1731,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
                 "");
 
         var invited = invite(entry.id());
-        var testing = service.moveToTesting(invited.id());
+        var testing = service.moveToTesting(invited.id(), "");
         var joined = service.moveToJoined(testing.id());
         assertEquals(WaitingListEntryStatus.JOINED, joined.status());
 
@@ -1520,7 +1758,7 @@ class WaitingListServiceTest extends RepositoryTestBase {
                 list.id(), "Child3", "Name", List.of(new GuardianInput("NoEmail", "Guardian", "", "")), Map.of(), "");
 
         var invited = invite(entry.id());
-        var testing = service.moveToTesting(invited.id());
+        var testing = service.moveToTesting(invited.id(), "");
         var joined = service.moveToJoined(testing.id());
         assertEquals(WaitingListEntryStatus.JOINED, joined.status());
     }

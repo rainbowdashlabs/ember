@@ -108,6 +108,16 @@ const sampleFields = [
       <p class="mt-2 text-sm">{{ t('helpCenter.waitingList.invitationStays') }}</p>
     </HelpSection>
 
+    <HelpSection :title="t('helpCenter.waitingList.messagesTitle')">
+      <p>{{ t('helpCenter.waitingList.messagesText') }}</p>
+      <ul class="list-disc list-inside mt-2 space-y-1">
+        <li>{{ t('helpCenter.waitingList.messagesOtherDates') }}</li>
+        <li>{{ t('helpCenter.waitingList.messagesTrial') }}</li>
+        <li>{{ t('helpCenter.waitingList.messagesWithdraw') }}</li>
+      </ul>
+      <p class="mt-2 text-sm">{{ t('helpCenter.waitingList.messagesNoMail') }}</p>
+    </HelpSection>
+
     <HelpSection :title="t('helpCenter.waitingList.createEntryTitle')">
       <p>{{ t('helpCenter.waitingList.createEntryText') }}</p>
       <NeutralContainer class="space-y-4 mt-2">

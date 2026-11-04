@@ -345,16 +345,72 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
                 null);
 
         waitingListRepo.updateInvitation(
-                entry.id(), new WaitingListInvitation(event.id(), LocalDate.of(2026, 5, 12), LocalTime.of(17, 45)));
+                entry.id(),
+                new WaitingListInvitation(
+                        "Bis bald",
+                        List.of(
+                                new WaitingListInvitation.OfferedDate(
+                                        0, event.id(), LocalDate.of(2026, 5, 12), LocalTime.of(17, 45)),
+                                new WaitingListInvitation.OfferedDate(
+                                        1, event.id(), LocalDate.of(2026, 5, 19), null))));
 
         var invited = waitingListRepo.findEntryById(entry.id()).orElseThrow();
         assertNotNull(invited.invitation());
-        assertEquals(event.id(), invited.invitation().eventId());
-        assertEquals(LocalDate.of(2026, 5, 12), invited.invitation().date());
-        assertEquals(LocalTime.of(17, 45), invited.invitation().arrivalTime());
+        assertEquals("Bis bald", invited.invitation().message());
+        assertEquals(1, invited.invitationRound());
+        var options = invited.invitation().options();
+        assertEquals(2, options.size());
+        assertEquals(event.id(), options.get(0).eventId());
+        assertEquals(LocalDate.of(2026, 5, 12), options.get(0).date());
+        assertEquals(LocalTime.of(17, 45), options.get(0).arrivalTime());
+        assertEquals("Dienstabend", options.get(0).appointmentName(), "the station reads which appointment it was");
+        assertEquals(1, options.get(1).position());
+        assertNull(options.get(1).arrivalTime());
+
+        waitingListRepo.updateInvitation(
+                entry.id(), new WaitingListInvitation(event.id(), LocalDate.of(2026, 6, 2), null));
+        var replaced = waitingListRepo.findEntryById(entry.id()).orElseThrow();
+        assertEquals(1, replaced.invitation().options().size(), "a new invitation replaces the dates as a whole");
+        assertEquals(2, replaced.invitationRound());
 
         waitingListRepo.updateInvitation(entry.id(), null);
-        assertNull(waitingListRepo.findEntryById(entry.id()).orElseThrow().invitation());
+        var cleared = waitingListRepo.findEntryById(entry.id()).orElseThrow();
+        assertNull(cleared.invitation());
+        assertEquals(2, cleared.invitationRound(), "clearing opens no round of its own");
+    }
+
+    /** Deleting an appointment takes its dates off the invitations that offered it. */
+    @Test
+    void aDeletedAppointmentLeavesTheInvitation() {
+        var list = waitingListRepo.create(
+                stationId, "Deleted Event List", "", null, 180, null, null, 5, false, true, null, null);
+        var entry = waitingListRepo.createEntry(
+                list.id(), "Max", "", "", "test@test.com", UUID.randomUUID().toString(), "", null);
+        var event = eventRepo.create(
+                stationId,
+                "Einmalig",
+                "",
+                StationEvent.EventType.ONE_TIME,
+                null,
+                Instant.parse("2026-05-12T18:00:00Z"),
+                Instant.parse("2026-05-12T20:00:00Z"),
+                null,
+                false,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null);
+        waitingListRepo.updateInvitation(
+                entry.id(), new WaitingListInvitation(event.id(), LocalDate.of(2026, 5, 12), null, "Hallo"));
+
+        eventRepo.delete(event.id());
+
+        var invited = waitingListRepo.findEntryById(entry.id()).orElseThrow();
+        assertNotNull(invited.invitation(), "the note still stands");
+        assertTrue(invited.invitation().options().isEmpty());
     }
 
     /** An answer is written with its moment, and a new invitation takes it away again. */
@@ -364,14 +420,29 @@ class WaitingListRepositoryTest extends RepositoryTestBase {
                 waitingListRepo.create(stationId, "Answer List", "", null, 180, null, null, 5, false, true, null, null);
         var entry = waitingListRepo.createEntry(
                 list.id(), "Max", "", "", "test@test.com", UUID.randomUUID().toString(), "", null);
+        waitingListRepo.updateEntryStatus(entry.id(), WaitingListEntryStatus.INVITED);
 
-        waitingListRepo.updateInvitationAnswer(entry.id(), WaitingListAnswer.NOT_INTERESTED, "Kein Interesse mehr");
+        assertTrue(waitingListRepo.updateInvitationAnswer(
+                entry.id(), 0, WaitingListAnswer.NOT_INTERESTED, "Kein Interesse mehr", null));
 
         var answered = waitingListRepo.findEntryById(entry.id()).orElseThrow();
         assertNotNull(answered.answer());
         assertEquals(WaitingListAnswer.NOT_INTERESTED, answered.answer().answer());
         assertEquals("Kein Interesse mehr", answered.answer().note());
         assertNotNull(answered.answer().answeredAt());
+        assertNull(answered.answer().position());
+
+        assertTrue(waitingListRepo.updateInvitationAnswer(entry.id(), 0, WaitingListAnswer.COMING, "", 1));
+        assertEquals(
+                1,
+                waitingListRepo.findEntryById(entry.id()).orElseThrow().answer().position());
+
+        assertFalse(
+                waitingListRepo.updateInvitationAnswer(entry.id(), 1, WaitingListAnswer.NOT_INTERESTED, "", null),
+                "an answer to a round the entry is not in is not written");
+        assertEquals(
+                WaitingListAnswer.COMING,
+                waitingListRepo.findEntryById(entry.id()).orElseThrow().answer().answer());
 
         waitingListRepo.updateInvitation(entry.id(), null);
         assertNull(waitingListRepo.findEntryById(entry.id()).orElseThrow().answer());

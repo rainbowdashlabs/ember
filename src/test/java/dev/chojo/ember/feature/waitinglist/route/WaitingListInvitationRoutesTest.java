@@ -16,6 +16,7 @@ import dev.chojo.ember.feature.legal.service.ConsentService;
 import dev.chojo.ember.feature.members.service.GuardianPolicy;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingList;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntry;
+import dev.chojo.ember.feature.waitinglist.entity.WaitingListEntryStatus;
 import dev.chojo.ember.feature.waitinglist.entity.WaitingListInvitation;
 import dev.chojo.ember.feature.waitinglist.service.PublicWaitingListRateLimiter;
 import dev.chojo.ember.feature.waitinglist.service.PublicWaitingListService;
@@ -26,6 +27,8 @@ import org.mockito.ArgumentCaptor;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -69,6 +72,8 @@ class WaitingListInvitationRoutesTest {
         when(entry.listId()).thenReturn(5);
         when(lists.findEntryById(9)).thenReturn(Optional.of(entry));
         when(lists.inviteEntry(anyInt(), any())).thenReturn(entry);
+        when(lists.reofferEntry(anyInt(), any())).thenReturn(entry);
+        when(lists.moveToTesting(anyInt(), any())).thenReturn(entry);
 
         var event = mock(StationEvent.class);
         when(event.id()).thenReturn(7);
@@ -102,6 +107,79 @@ class WaitingListInvitationRoutesTest {
     }
 
     @Test
+    void otherDatesAreCheckedLikeAnInvitationAndReplaceIt() {
+        harness.run((server, client) -> {
+            var editor = harness.as(TestSessions.member(3, StationPermission.WAITLIST_EDIT));
+            var answer = client.post(
+                    ENTRY + "/other-dates",
+                    body("{\"options\": [{\"eventId\": 7, \"date\": \"2026-05-15\"}], \"message\": \" Freitag? \"}"),
+                    editor);
+            assertEquals(200, answer.code());
+        });
+
+        var sent = ArgumentCaptor.forClass(WaitingListInvitation.class);
+        verify(lists).reofferEntry(eq(9), sent.capture());
+        assertEquals(
+                LocalDate.of(2026, 5, 15), sent.getValue().options().getFirst().date());
+        assertEquals("Freitag?", sent.getValue().message());
+        verify(lists, never()).inviteEntry(anyInt(), any());
+    }
+
+    @Test
+    void theTrialBeginsWithTheStationsMessageOrWithout() {
+        harness.run((server, client) -> {
+            var editor = harness.as(TestSessions.member(3, StationPermission.WAITLIST_EDIT));
+            assertEquals(
+                    200,
+                    client.post(ENTRY + "/testing", body("{\"message\": \" Bis bald \"}"), editor)
+                            .code());
+            assertEquals(200, client.post(ENTRY + "/testing", body(""), editor).code());
+        });
+
+        verify(lists).moveToTesting(9, "Bis bald");
+        verify(lists).moveToTesting(9, "");
+    }
+
+    /** The trial message stands on the family's page while the trial runs, and only then. */
+    @Test
+    void theFamilyReadsTheTrialMessageOnlyDuringTheTrial() {
+        var family = mock(WaitingListEntry.class);
+        when(family.listId()).thenReturn(5);
+        when(family.confirmedAt()).thenReturn(Instant.EPOCH);
+        when(family.createdAt()).thenReturn(Instant.EPOCH);
+        when(family.trialMessage()).thenReturn("Bis Dienstag");
+        when(lists.findEntryByToken("token")).thenReturn(Optional.of(family));
+
+        when(family.status()).thenReturn(WaitingListEntryStatus.TESTING);
+        harness.run((server, client) -> assertEquals(
+                "Bis Dienstag",
+                json(client.get(PREFIX + "/public/waiting-list/entry/token"))
+                        .path("trialMessage")
+                        .asString()));
+
+        when(family.status()).thenReturn(WaitingListEntryStatus.JOINED);
+        harness.run((server, client) -> assertEquals(
+                "",
+                json(client.get(PREFIX + "/public/waiting-list/entry/token"))
+                        .path("trialMessage")
+                        .asString()));
+    }
+
+    @Test
+    void aMessageLongerThanAllowedWithdrawsNobody() {
+        String message = "x".repeat(WaitingListInvitation.MESSAGE_MAX_LENGTH + 1);
+
+        harness.run((server, client) -> {
+            var editor = harness.as(TestSessions.member(3, StationPermission.WAITLIST_EDIT));
+            assertEquals(
+                    WaitingListRefusal.STATION_MESSAGE_TOO_LONG,
+                    refusalOf(client.post(ENTRY + "/withdraw", body("{\"message\": \"" + message + "\"}"), editor)));
+        });
+
+        verify(lists, never()).withdrawByStation(anyInt(), any());
+    }
+
+    @Test
     void anInvitationWithoutAnAppointmentSendsNothing() {
         harness.run((server, client) -> {
             var editor = harness.as(TestSessions.member(3, StationPermission.WAITLIST_EDIT));
@@ -123,11 +201,68 @@ class WaitingListInvitationRoutesTest {
                     WaitingListRefusal.INVITATION_MESSAGE_TOO_LONG,
                     refusalOf(client.post(
                             ENTRY + "/invite",
-                            body("{\"eventId\": 7, \"date\": \"2026-05-12\", \"message\": \"" + note + "\"}"),
+                            body("{\"options\": [{\"eventId\": 7, \"date\": \"2026-05-12\"}], \"message\": \"" + note
+                                    + "\"}"),
                             editor)));
         });
 
         verify(lists, never()).inviteEntry(anyInt(), any());
+    }
+
+    @Test
+    void moreDatesThanAnInvitationOffersSendNothing() {
+        String option = "{\"eventId\": 7, \"date\": \"2026-05-1%d\"}";
+        var options = new ArrayList<String>();
+        for (int day = 0; day <= WaitingListInvitation.MAX_OPTIONS; day++) options.add(option.formatted(day));
+
+        harness.run((server, client) -> {
+            var editor = harness.as(TestSessions.member(3, StationPermission.WAITLIST_EDIT));
+            assertEquals(
+                    WaitingListRefusal.INVITATION_TOO_MANY_DATES,
+                    refusalOf(client.post(
+                            ENTRY + "/invite", body("{\"options\": [" + String.join(",", options) + "]}"), editor)));
+        });
+
+        verify(lists, never()).inviteEntry(anyInt(), any());
+    }
+
+    @Test
+    void theSameDateOfferedTwiceSendsNothing() {
+        harness.run((server, client) -> {
+            var editor = harness.as(TestSessions.member(3, StationPermission.WAITLIST_EDIT));
+            assertEquals(
+                    WaitingListRefusal.INVITATION_DATE_TWICE,
+                    refusalOf(client.post(
+                            ENTRY + "/invite",
+                            body("{\"options\": [{\"eventId\": 7, \"date\": \"2026-05-12\"},"
+                                    + " {\"eventId\": 7, \"date\": \"2026-05-12\", \"arrivalTime\": \"17:30\"}]}"),
+                            editor)));
+        });
+
+        verify(lists, never()).inviteEntry(anyInt(), any());
+    }
+
+    @Test
+    void severalDatesKeepTheOrderTheyWereOfferedIn() {
+        harness.run((server, client) -> {
+            var editor = harness.as(TestSessions.member(3, StationPermission.WAITLIST_EDIT));
+            var answer = client.post(
+                    ENTRY + "/invite",
+                    body("{\"options\": [{\"eventId\": 7, \"date\": \"2026-05-19\", \"arrivalTime\": \"17:30\"},"
+                            + " {\"eventId\": 7, \"date\": \"2026-05-12\"}]}"),
+                    editor);
+            assertEquals(200, answer.code());
+        });
+
+        var sent = ArgumentCaptor.forClass(WaitingListInvitation.class);
+        verify(lists).inviteEntry(eq(9), sent.capture());
+        var options = sent.getValue().options();
+        assertEquals(2, options.size());
+        assertEquals(0, options.get(0).position());
+        assertEquals(LocalDate.of(2026, 5, 19), options.get(0).date());
+        assertEquals(LocalTime.of(17, 30), options.get(0).arrivalTime());
+        assertEquals(1, options.get(1).position());
+        assertEquals(LocalDate.of(2026, 5, 12), options.get(1).date());
     }
 
     @Test
@@ -136,15 +271,16 @@ class WaitingListInvitationRoutesTest {
             var editor = harness.as(TestSessions.member(3, StationPermission.WAITLIST_EDIT));
             var answer = client.post(
                     ENTRY + "/invite",
-                    body("{\"eventId\": 7, \"date\": \"2026-05-12\", \"message\": \"  Bis bald  \"}"),
+                    body("{\"options\": [{\"eventId\": 7, \"date\": \"2026-05-12\"}], \"message\": \"  Bis bald  \"}"),
                     editor);
             assertEquals(200, answer.code());
         });
 
         var sent = ArgumentCaptor.forClass(WaitingListInvitation.class);
         verify(lists).inviteEntry(eq(9), sent.capture());
-        assertEquals(7, sent.getValue().eventId());
-        assertEquals(LocalDate.of(2026, 5, 12), sent.getValue().date());
+        var offered = sent.getValue().options().getFirst();
+        assertEquals(7, offered.eventId());
+        assertEquals(LocalDate.of(2026, 5, 12), offered.date());
         assertEquals("Bis bald", sent.getValue().message());
     }
 
