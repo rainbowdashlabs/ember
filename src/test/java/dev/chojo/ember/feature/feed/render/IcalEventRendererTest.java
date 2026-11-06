@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.events.entity.EventBreak;
 import dev.chojo.ember.feature.events.entity.EventCategory;
 import dev.chojo.ember.feature.events.entity.EventDateCancellation;
 import dev.chojo.ember.feature.events.entity.EventQuestionSettings;
+import dev.chojo.ember.feature.events.entity.EventRecurrence;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationCalendar;
 import dev.chojo.ember.feature.events.entity.StationEvent;
@@ -33,6 +34,7 @@ import org.junit.jupiter.api.Test;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -325,10 +327,37 @@ class IcalEventRendererTest {
 
         var ve = renderer.render(weekly, ctxWithBreaks(List.of(holiday))).getFirst();
 
-        assertEquals("20260902T160000Z", ve.getProperty("DTSTART").orElseThrow().getValue());
+        assertEquals("20260902T180000", ve.getProperty("DTSTART").orElseThrow().getValue());
         assertEquals(
                 "FREQ=WEEKLY;BYDAY=WE", ve.getProperty("RRULE").orElseThrow().getValue());
-        assertEquals("20260909T160000Z", ve.getProperty("EXDATE").orElseThrow().getValue());
+        assertEquals("20260909T180000", ve.getProperty("EXDATE").orElseThrow().getValue());
+    }
+
+    /**
+     * A series is written on the station's clock, so a calendar repeats it at the same time of day
+     * once the clocks change, and a date a winter break takes out is named at that same time.
+     */
+    @Test
+    void aSeriesKeepsItsTimeOfDayAcrossAChangeOfTheClocks() {
+        Instant summerEvening = Instant.parse("2026-08-31T16:00:00Z");
+        var weekly = series(25, StationEvent.EventType.RECURRING, 3, summerEvening, null);
+        var winter = new EventBreak(2, 1, "Winter", LocalDate.parse("2026-12-09"), LocalDate.parse("2026-12-15"));
+
+        var ve = renderer.render(weekly, ctxWithBreaks(List.of(winter))).getFirst();
+
+        assertTrue(ve.getProperty("DTSTART").orElseThrow().toString().contains("TZID=Europe/Berlin"));
+        assertEquals("20261209T180000", ve.getProperty("EXDATE").orElseThrow().getValue());
+        assertTrue(ve.getProperty("EXDATE").orElseThrow().toString().contains("TZID=Europe/Berlin"));
+    }
+
+    /** A feed carries the definition of the station's clock its entries are written on. */
+    @Test
+    void theStationClockHasADefinitionForTheCalendar() {
+        var definition = EventRecurrence.timeZoneOf(BERLIN).orElseThrow();
+
+        assertEquals(
+                "Europe/Berlin", definition.getProperty("TZID").orElseThrow().getValue());
+        assertTrue(EventRecurrence.timeZoneOf(ZoneOffset.UTC).isEmpty(), "UTC needs no definition");
     }
 
     /** A quarterly series counts its quarters from its own first date, as the calendar reading it does. */
@@ -338,7 +367,7 @@ class IcalEventRendererTest {
 
         var ve = renderer.render(quarterly, ctx(Map.of(), Map.of())).getFirst();
 
-        assertEquals("20260202T170000Z", ve.getProperty("DTSTART").orElseThrow().getValue());
+        assertEquals("20260202T180000", ve.getProperty("DTSTART").orElseThrow().getValue());
         assertEquals(
                 "FREQ=MONTHLY;INTERVAL=3;BYDAY=1MO",
                 ve.getProperty("RRULE").orElseThrow().getValue());
@@ -389,8 +418,10 @@ class IcalEventRendererTest {
         var override = entries.get(1);
         assertEquals("event-24@ember", override.getProperty("UID").orElseThrow().getValue());
         assertEquals(
-                "20260916T160000Z",
+                "20260916T180000",
                 override.getProperty("RECURRENCE-ID").orElseThrow().getValue());
+        assertTrue(
+                override.getProperty("RECURRENCE-ID").orElseThrow().toString().contains("TZID=Europe/Berlin"));
         assertEquals(
                 ImmutableStatus.VEVENT_CANCELLED, override.getProperty("STATUS").orElseThrow());
         assertTrue(override.getProperty("SUMMARY").orElseThrow().getValue().startsWith("summary.cancelledPrefix"));

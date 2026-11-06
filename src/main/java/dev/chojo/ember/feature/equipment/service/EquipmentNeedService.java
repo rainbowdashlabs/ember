@@ -15,6 +15,7 @@ import dev.chojo.ember.feature.equipment.repository.EquipmentAvailabilityReposit
 import dev.chojo.ember.feature.equipment.repository.EquipmentNeedRepository;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventCrudService;
+import dev.chojo.ember.feature.events.service.OccurrenceCalendar;
 import dev.chojo.ember.feature.inventory.entity.LineTarget;
 import dev.chojo.ember.feature.inventory.service.LineTargetService;
 import jakarta.inject.Inject;
@@ -25,6 +26,7 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -50,6 +52,7 @@ public class EquipmentNeedService {
     private final EquipmentAvailabilityService availabilityService;
     private final EventCrudService eventService;
     private final LineTargetService lineTargets;
+    private final OccurrenceCalendar occurrenceCalendar;
 
     @Inject
     public EquipmentNeedService(
@@ -57,7 +60,9 @@ public class EquipmentNeedService {
             EquipmentAvailabilityRepository availabilityRepository,
             EquipmentAvailabilityService availabilityService,
             EventCrudService eventService,
-            LineTargetService lineTargets) {
+            LineTargetService lineTargets,
+            OccurrenceCalendar occurrenceCalendar) {
+        this.occurrenceCalendar = occurrenceCalendar;
         this.needRepository = needRepository;
         this.availabilityRepository = availabilityRepository;
         this.availabilityService = availabilityService;
@@ -187,8 +192,10 @@ public class EquipmentNeedService {
                 .orElseThrow(() -> new IllegalArgumentException("The appointment does not exist"));
         lineTargets.requireOwnedBy(
                 LineTarget.item(itemId), event.stationId(), "A station only hands over its own gear");
-        Instant from = EquipmentOccurrenceWindows.startOf(event, eventDate).minus(need.lead());
-        Instant to = EquipmentOccurrenceWindows.endOf(event, eventDate).plus(need.trail());
+        ZoneId zone = occurrenceCalendar.zoneOf(event.stationId());
+        Instant from =
+                EquipmentOccurrenceWindows.startOf(event, eventDate, zone).minus(need.lead());
+        Instant to = EquipmentOccurrenceWindows.endOf(event, eventDate, zone).plus(need.trail());
         return needRepository.recordHandover(needId, eventDate, itemId, from, to, handedBy);
     }
 
@@ -238,9 +245,10 @@ public class EquipmentNeedService {
                 .orElseThrow(() -> new IllegalArgumentException("The appointment does not exist"));
         var lines = EquipmentAvailabilityService.needsForDate(needRepository.findByEvent(eventId), date);
         var coverage = new ArrayList<NeedCoverage>();
+        ZoneId zone = occurrenceCalendar.zoneOf(event.stationId());
         for (var need : lines) {
-            Instant from = EquipmentOccurrenceWindows.startOf(event, date).minus(need.lead());
-            Instant to = EquipmentOccurrenceWindows.endOf(event, date).plus(need.trail());
+            Instant from = EquipmentOccurrenceWindows.startOf(event, date, zone).minus(need.lead());
+            Instant to = EquipmentOccurrenceWindows.endOf(event, date, zone).plus(need.trail());
             EquipmentAvailability availability =
                     availabilityService.availability(event.stationId(), need.target(), from, to, need.id());
             int borrowed = availabilityRepository.borrowedAgainstNeed(need.id());

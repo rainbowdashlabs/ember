@@ -1,5 +1,13 @@
 # Changelog
 
+## v26.23.5
+
+Repeating appointments keep their time of day after the clocks change.
+
+### Fixes
+
+- **Repeating appointments were an hour off in winter.** In some cases, a repeating appointment set up in summer time showed the wrong time once the clocks changed, on attendance sheets, generated documents, equipment planning and in subscribed calendars. Its time of day now stays the same on the station's clock throughout the year.
+
 ## v26.23.4
 
 An invitation from a waiting list can offer several dates to pick from, and the station can write to the family when it offers other dates, starts the trial or takes someone off the list.

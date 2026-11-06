@@ -11,6 +11,7 @@ import dev.chojo.ember.api.refusal.FeedRefusal;
 import dev.chojo.ember.api.refusal.RefusalResponse;
 import dev.chojo.ember.feature.events.entity.EventRegistration;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
+import dev.chojo.ember.feature.events.entity.StationCalendar;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventCategoryService;
 import dev.chojo.ember.feature.events.service.EventCrudService;
@@ -43,6 +44,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -116,6 +118,9 @@ class PersonalFeedServiceTest {
         when(station.id()).thenReturn(STATION);
         when(station.name()).thenReturn("Wache");
         when(station.uid()).thenReturn(UUID.fromString("00000000-0000-0000-0000-000000000003"));
+        var occurrenceCalendar = mock(OccurrenceCalendar.class);
+        when(occurrenceCalendar.forStation(STATION))
+                .thenReturn(new StationCalendar(ZoneId.of("Europe/Berlin"), List.of()));
         when(stations.findById(STATION)).thenReturn(Optional.of(station));
         when(text.resolveLocale(any())).thenReturn("de");
         when(text.resolveLocalized(any(), any(), any(), any())).thenReturn("text");
@@ -135,7 +140,7 @@ class PersonalFeedServiceTest {
                 images,
                 notificationRenderer,
                 names,
-                mock(OccurrenceCalendar.class));
+                occurrenceCalendar);
     }
 
     @Test
@@ -174,6 +179,7 @@ class PersonalFeedServiceTest {
 
         assertEquals(2, rendered.entries());
         assertTrue(rendered.body().contains("X-WR-CALNAME:Wache"));
+        assertTrue(rendered.body().contains("TZID:Europe/Berlin"));
         verify(tokens).recordIcalPoll(7);
         verify(names).called(8);
         assertNotEquals(feed.fingerprint(), service.calendar(OWNER, false).fingerprint());

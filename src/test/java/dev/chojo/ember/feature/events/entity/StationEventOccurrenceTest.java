@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -24,7 +25,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class StationEventOccurrenceTest {
 
-    /** A Wednesday evening. */
+    private static final ZoneId BERLIN = ZoneId.of("Europe/Berlin");
+
+    /** A Wednesday evening at eight in Berlin, in summer time. */
     private static final Instant START = Instant.parse("2024-09-04T18:00:00Z");
 
     private static StationEvent event(StationEvent.EventType type, Instant start, Instant end) {
@@ -61,10 +64,24 @@ class StationEventOccurrenceTest {
     void aRepeatingAppointmentRunsOnTheDayItIsRecordedFor() {
         var weekly = event(StationEvent.EventType.RECURRING, START, START.plus(Duration.ofHours(2)));
 
-        var span = weekly.occurrenceOn(LocalDate.parse("2026-09-02")).orElseThrow();
+        var span = weekly.occurrenceOn(LocalDate.parse("2026-09-02"), BERLIN).orElseThrow();
 
         assertEquals(Instant.parse("2026-09-02T18:00:00Z"), span.start());
         assertEquals(Instant.parse("2026-09-02T20:00:00Z"), span.end());
+    }
+
+    /**
+     * An appointment configured in summer time runs at the same time of day in winter time. Placed in
+     * UTC, its eight in the evening became seven.
+     */
+    @Test
+    void aRepeatingAppointmentKeepsItsTimeOfDayAcrossAChangeOfTheClocks() {
+        var weekly = event(StationEvent.EventType.RECURRING, START, START.plus(Duration.ofHours(2)));
+
+        var span = weekly.occurrenceOn(LocalDate.parse("2026-12-02"), BERLIN).orElseThrow();
+
+        assertEquals(Instant.parse("2026-12-02T19:00:00Z"), span.start());
+        assertEquals(Instant.parse("2026-12-02T21:00:00Z"), span.end());
     }
 
     /** A repeating occasion that runs into the next day keeps its length rather than its dates. */
@@ -72,7 +89,7 @@ class StationEventOccurrenceTest {
     void aRepeatingAppointmentKeepsItsLengthPastMidnight() {
         var weekend = event(StationEvent.EventType.RECURRING, START, START.plus(Duration.ofHours(44)));
 
-        var span = weekend.occurrenceOn(LocalDate.parse("2026-09-02")).orElseThrow();
+        var span = weekend.occurrenceOn(LocalDate.parse("2026-09-02"), BERLIN).orElseThrow();
 
         assertEquals(Instant.parse("2026-09-02T18:00:00Z"), span.start());
         assertEquals(Instant.parse("2026-09-04T14:00:00Z"), span.end());
@@ -84,7 +101,7 @@ class StationEventOccurrenceTest {
         Instant friday = Instant.parse("2026-06-05T16:00:00Z");
         var camp = event(StationEvent.EventType.ONE_TIME, friday, friday.plus(Duration.ofHours(44)));
 
-        var span = camp.occurrenceOn(LocalDate.parse("2026-09-02")).orElseThrow();
+        var span = camp.occurrenceOn(LocalDate.parse("2026-09-02"), BERLIN).orElseThrow();
 
         assertEquals(friday, span.start());
         assertEquals(friday.plus(Duration.ofHours(44)), span.end());
@@ -94,7 +111,7 @@ class StationEventOccurrenceTest {
     void anAppointmentWithoutAnEndRunsForNoTimeAtAll() {
         var weekly = event(StationEvent.EventType.RECURRING, START, null);
 
-        var span = weekly.occurrenceOn(LocalDate.parse("2026-09-02")).orElseThrow();
+        var span = weekly.occurrenceOn(LocalDate.parse("2026-09-02"), BERLIN).orElseThrow();
 
         assertEquals(span.start(), span.end());
     }
@@ -102,7 +119,7 @@ class StationEventOccurrenceTest {
     @Test
     void anAppointmentWithoutTimesHasNoOccurrence() {
         assertTrue(event(StationEvent.EventType.RECURRING, null, null)
-                .occurrenceOn(LocalDate.parse("2026-09-02"))
+                .occurrenceOn(LocalDate.parse("2026-09-02"), BERLIN)
                 .isEmpty());
     }
 }

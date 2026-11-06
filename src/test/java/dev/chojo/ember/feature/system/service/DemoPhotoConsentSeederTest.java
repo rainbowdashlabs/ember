@@ -253,7 +253,8 @@ class DemoPhotoConsentSeederTest extends RepositoryTestBase {
                 wiring.issuers(),
                 new EventRestrictionService(eventRepo, restrictionService),
                 RequirementSignatures.NONE,
-                stationMemberRepo);
+                stationMemberRepo,
+                occurrenceCalendar);
         var signatures = new AppointmentSignatures(
                 eventRepo,
                 eventRegistrationRepo,
