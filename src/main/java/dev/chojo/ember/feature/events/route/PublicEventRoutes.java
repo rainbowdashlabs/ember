@@ -249,10 +249,11 @@ public class PublicEventRoutes implements Routes {
         calendar.add(new XProperty("X-WR-CALNAME", data.station().name()));
 
         var stationCalendar = occurrenceCalendar.forStation(data.station().id());
+        EventRecurrence.timeZoneOf(stationCalendar.zone()).ifPresent(calendar::add);
         for (var event : data.publicEvents()) {
             buildVEvent(event, data.categoryMap(), stationCalendar).ifPresent(calendar::add);
             for (var cancellation : stationCalendar.cancelledDates(event)) {
-                EventRecurrence.cancelledDateOf(event, cancellation.eventDate(), event.name())
+                EventRecurrence.cancelledDateOf(event, cancellation.eventDate(), event.name(), stationCalendar)
                         .ifPresent(calendar::add);
             }
         }

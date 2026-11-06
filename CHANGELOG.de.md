@@ -1,5 +1,13 @@
 # Änderungsprotokoll
 
+## v26.23.5
+
+Wiederkehrende Termine behalten ihre Uhrzeit, wenn die Uhren umgestellt werden.
+
+### Fehlerbehebungen
+
+- **Wiederkehrende Termine lagen im Winter eine Stunde daneben.** In manchen Fällen zeigte ein im Sommer angelegter wiederkehrender Termin nach der Zeitumstellung die falsche Uhrzeit, auf Anwesenheitslisten, erzeugten Dokumenten und in abonnierten Kalendern. Seine Uhrzeit bleibt jetzt das ganze Jahr über nach der Uhr der Wache gleich.
+
 ## v26.23.4
 
 Eine Einladung von der Warteliste kann mehrere Termine zur Auswahl anbieten, und die Wache kann der Familie schreiben, wenn sie andere Termine anbietet, die Probezeit startet oder jemanden von der Liste nimmt.

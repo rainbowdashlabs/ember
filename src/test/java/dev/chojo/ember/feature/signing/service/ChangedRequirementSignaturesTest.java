@@ -146,7 +146,8 @@ class ChangedRequirementSignaturesTest extends GeneratorTestBase {
                 wiring.issuers(),
                 new EventRestrictionService(eventRepo, restrictionService),
                 new RequirementSignatureStates(requestRepo, requests, new WithdrawalRights(guardianPolicy)),
-                stationMemberRepo);
+                stationMemberRepo,
+                occurrenceCalendar);
         signatures = new AppointmentSignatures(
                 eventRepo,
                 eventRegistrationRepo,

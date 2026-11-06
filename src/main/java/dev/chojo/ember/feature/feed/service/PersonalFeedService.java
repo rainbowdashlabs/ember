@@ -11,6 +11,7 @@ import com.rometools.rome.feed.synd.SyndFeedImpl;
 import com.rometools.rome.io.SyndFeedOutput;
 import dev.chojo.ember.api.refusal.FeedRefusal;
 import dev.chojo.ember.feature.events.entity.EventCategory;
+import dev.chojo.ember.feature.events.entity.EventRecurrence;
 import dev.chojo.ember.feature.events.entity.RegistrationStatus;
 import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.service.EventCategoryService;
@@ -198,6 +199,7 @@ public class PersonalFeedService {
         calendar.add(ImmutableVersion.VERSION_2_0);
         calendar.add(ImmutableCalScale.GREGORIAN);
         calendar.add(new XProperty("X-WR-CALNAME", station.name()));
+        EventRecurrence.timeZoneOf(renderContext.calendar().zone()).ifPresent(calendar::add);
         for (var event : events) {
             try {
                 icalRenderer.render(event, renderContext).forEach(calendar::add);

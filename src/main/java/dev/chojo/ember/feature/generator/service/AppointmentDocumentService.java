@@ -13,6 +13,7 @@ import dev.chojo.ember.feature.events.entity.StationEvent;
 import dev.chojo.ember.feature.events.repository.EventFieldRepository;
 import dev.chojo.ember.feature.events.repository.EventRegistrationRepository;
 import dev.chojo.ember.feature.events.service.EventRestrictionService;
+import dev.chojo.ember.feature.events.service.OccurrenceCalendar;
 import dev.chojo.ember.feature.generator.entity.DocumentTemplate;
 import dev.chojo.ember.feature.generator.entity.FieldStatements;
 import dev.chojo.ember.feature.generator.entity.GenerationContext;
@@ -81,6 +82,7 @@ public class AppointmentDocumentService {
     private final EventRestrictionService audience;
     private final RequirementSignatures signatures;
     private final StationMemberRepository members;
+    private final OccurrenceCalendar occurrenceCalendar;
 
     @Inject
     public AppointmentDocumentService(
@@ -96,7 +98,9 @@ public class AppointmentDocumentService {
             DocumentIssuerService issuers,
             EventRestrictionService audience,
             RequirementSignatures signatures,
-            StationMemberRepository members) {
+            StationMemberRepository members,
+            OccurrenceCalendar occurrenceCalendar) {
+        this.occurrenceCalendar = occurrenceCalendar;
         this.audience = audience;
         this.signatures = signatures;
         this.members = members;
@@ -474,7 +478,8 @@ public class AppointmentDocumentService {
 
     /** What a document says about the appointment on the date: its name, its times and its place. */
     private GenerationContext.EventFacts facts(StationEvent event, LocalDate date) {
-        var span = event.occurrenceOn(date).orElseGet(() -> new StationEvent.Span(event.startTime(), event.endTime()));
+        var span = event.occurrenceOn(date, occurrenceCalendar.zoneOf(event.stationId()))
+                .orElseGet(() -> new StationEvent.Span(event.startTime(), event.endTime()));
         var location = AppointmentField.firstLocation(fields.findByEventOn(event.id(), date));
         return new GenerationContext.EventFacts(event.name(), span.start(), span.end(), location);
     }

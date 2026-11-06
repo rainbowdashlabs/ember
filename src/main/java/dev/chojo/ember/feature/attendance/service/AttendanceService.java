@@ -441,7 +441,7 @@ public class AttendanceService {
                 LocalDate day = sheetDay(event, eventDate, startTime, zone);
                 requireNotCancelled(event, day);
                 if (resolvedStart == null || resolvedEnd == null) {
-                    var span = event.occurrenceOn(day);
+                    var span = event.occurrenceOn(day, zone);
                     if (span.isPresent()) {
                         if (resolvedStart == null) resolvedStart = span.get().start();
                         if (resolvedEnd == null) resolvedEnd = span.get().end();

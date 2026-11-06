@@ -108,7 +108,8 @@ class AppointmentDocumentServiceTest extends GeneratorTestBase {
                 wiring.issuers(),
                 new EventRestrictionService(eventRepo, restrictionService),
                 RequirementSignatures.NONE,
-                stationMemberRepo);
+                stationMemberRepo,
+                occurrenceCalendar);
     }
 
     private static StationEvent event(String name) {

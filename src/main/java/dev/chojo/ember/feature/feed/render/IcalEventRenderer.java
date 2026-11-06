@@ -189,7 +189,7 @@ public class IcalEventRenderer {
         String summary = cancelledPrefix(ctx.locale()) + event.name();
         var overrides = new ArrayList<VEvent>();
         for (var cancellation : ctx.calendar().cancelledDates(event)) {
-            EventRecurrence.cancelledDateOf(event, cancellation.eventDate(), summary)
+            EventRecurrence.cancelledDateOf(event, cancellation.eventDate(), summary, ctx.calendar())
                     .ifPresent(override -> {
                         override.add(new Description(cancelledText(ctx.locale(), cancellation.notice())));
                         overrides.add(override);
