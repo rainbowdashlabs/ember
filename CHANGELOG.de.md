@@ -6,7 +6,7 @@ Wiederkehrende Termine behalten ihre Uhrzeit, wenn die Uhren umgestellt werden.
 
 ### Fehlerbehebungen
 
-- **Wiederkehrende Termine lagen im Winter eine Stunde daneben.** In manchen Fällen zeigte ein im Sommer angelegter wiederkehrender Termin nach der Zeitumstellung die falsche Uhrzeit, auf Anwesenheitslisten, erzeugten Dokumenten und in abonnierten Kalendern. Seine Uhrzeit bleibt jetzt das ganze Jahr über nach der Uhr der Wache gleich.
+- **Wiederkehrende Termine lagen im Winter eine Stunde daneben.** In manchen Fällen zeigte ein im Sommer angelegter wiederkehrender Termin nach der Zeitumstellung die falsche Uhrzeit, auf Anwesenheitslisten, erzeugten Dokumenten, in der Ausrüstungsplanung und in abonnierten Kalendern. Seine Uhrzeit bleibt jetzt das ganze Jahr über nach der Uhr der Wache gleich.
 
 ## v26.23.4
 

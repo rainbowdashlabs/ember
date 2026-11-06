@@ -11,17 +11,16 @@ import org.jspecify.annotations.Nullable;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.time.ZoneOffset;
+import java.time.ZoneId;
 
 /**
  * When an occurrence of an appointment starts and ends, and how long the gear it needs is away.
  *
  * <p>An appointment carries the clock time of its first date and repeats that clock time onto every
  * date it falls on, so one occurrence is that date combined with the times read off the start and the
- * end. The reading is done in UTC because every other date derivation in the appointment code is:
- * the calendar, the reminders and the identity of a sign-up all read the day off the start time that
- * way, and a claim that computed the day differently would hold a window on a different date than
- * the one the sign-ups are keyed to.
+ * end. The reading is done on the station's clock, the one the calendar, the attendance sheets and the
+ * identity of a sign-up read their days on, so a claim holds its window on the date the sign-ups are
+ * keyed to. Read in UTC, a series configured in summer claimed its gear an hour early all winter.
  *
  * <p>A window is instants rather than days on purpose. Lead and trail are "Friday evening to Monday
  * morning", and on days alone a claim running to Monday morning and one starting Monday afternoon
@@ -36,10 +35,11 @@ public final class EquipmentOccurrenceWindows {
      *
      * @param event the appointment
      * @param date  the date
+     * @param zone  the station's clock
      * @return the moment it begins
      */
-    public static Instant startOf(StationEvent event, LocalDate date) {
-        return date.atTime(timeOf(event.startTime(), LocalTime.MIN)).toInstant(ZoneOffset.UTC);
+    public static Instant startOf(StationEvent event, LocalDate date, ZoneId zone) {
+        return date.atTime(timeOf(event.startTime(), LocalTime.MIN, zone)).atZone(zone).toInstant();
     }
 
     /**
@@ -50,27 +50,29 @@ public final class EquipmentOccurrenceWindows {
      *
      * @param event the appointment
      * @param date  the date
+     * @param zone  the station's clock
      * @return the moment it ends
      */
-    public static Instant endOf(StationEvent event, LocalDate date) {
-        LocalTime start = timeOf(event.startTime(), LocalTime.MIN);
-        LocalTime end = timeOf(event.endTime(), start);
+    public static Instant endOf(StationEvent event, LocalDate date, ZoneId zone) {
+        LocalTime start = timeOf(event.startTime(), LocalTime.MIN, zone);
+        LocalTime end = timeOf(event.endTime(), start, zone);
         LocalDate endDate = end.isBefore(start) ? date.plusDays(1) : date;
-        return endDate.atTime(end).toInstant(ZoneOffset.UTC);
+        return endDate.atTime(end).atZone(zone).toInstant();
     }
 
     /**
      * The day an appointment that happens once falls on.
      *
      * @param event the appointment
+     * @param zone  the station's clock
      * @return the day, or {@code null} where it has no start
      */
-    public static @Nullable LocalDate singleDateOf(StationEvent event) {
+    public static @Nullable LocalDate singleDateOf(StationEvent event, ZoneId zone) {
         if (event.startTime() == null) return null;
-        return event.startTime().atZone(ZoneOffset.UTC).toLocalDate();
+        return event.startTime().atZone(zone).toLocalDate();
     }
 
-    private static LocalTime timeOf(Instant instant, LocalTime fallback) {
-        return instant == null ? fallback : instant.atZone(ZoneOffset.UTC).toLocalTime();
+    private static LocalTime timeOf(@Nullable Instant instant, LocalTime fallback, ZoneId zone) {
+        return instant == null ? fallback : instant.atZone(zone).toLocalTime();
     }
 }

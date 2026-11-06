@@ -1137,7 +1137,12 @@ public abstract class RepositoryTestBase {
                         memberNameResolver),
                 new EventReminderService(eventReminderRepo),
                 new EquipmentNeedService(
-                        equipmentNeedRepo, equipmentAvailabilityRepo, availability, crudService, lineTargetService),
+                        equipmentNeedRepo,
+                        equipmentAvailabilityRepo,
+                        availability,
+                        crudService,
+                        lineTargetService,
+                        calendar),
                 availability,
                 lending,
                 cancellation,
