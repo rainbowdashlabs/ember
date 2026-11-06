@@ -83,8 +83,7 @@ class EquipmentOccurrenceWindowsTest {
                 Instant.parse("2026-12-05T18:30:00Z"),
                 EquipmentOccurrenceWindows.startOf(summerEvening, winter, BERLIN));
         assertEquals(
-                Instant.parse("2026-12-05T20:00:00Z"),
-                EquipmentOccurrenceWindows.endOf(summerEvening, winter, BERLIN));
+                Instant.parse("2026-12-05T20:00:00Z"), EquipmentOccurrenceWindows.endOf(summerEvening, winter, BERLIN));
     }
 
     @Test

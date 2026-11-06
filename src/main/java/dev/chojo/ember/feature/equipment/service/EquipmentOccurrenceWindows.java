@@ -39,7 +39,9 @@ public final class EquipmentOccurrenceWindows {
      * @return the moment it begins
      */
     public static Instant startOf(StationEvent event, LocalDate date, ZoneId zone) {
-        return date.atTime(timeOf(event.startTime(), LocalTime.MIN, zone)).atZone(zone).toInstant();
+        return date.atTime(timeOf(event.startTime(), LocalTime.MIN, zone))
+                .atZone(zone)
+                .toInstant();
     }
 
     /**

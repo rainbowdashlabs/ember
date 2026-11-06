@@ -193,7 +193,8 @@ public class EquipmentNeedService {
         lineTargets.requireOwnedBy(
                 LineTarget.item(itemId), event.stationId(), "A station only hands over its own gear");
         ZoneId zone = occurrenceCalendar.zoneOf(event.stationId());
-        Instant from = EquipmentOccurrenceWindows.startOf(event, eventDate, zone).minus(need.lead());
+        Instant from =
+                EquipmentOccurrenceWindows.startOf(event, eventDate, zone).minus(need.lead());
         Instant to = EquipmentOccurrenceWindows.endOf(event, eventDate, zone).plus(need.trail());
         return needRepository.recordHandover(needId, eventDate, itemId, from, to, handedBy);
     }
