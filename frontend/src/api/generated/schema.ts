@@ -9410,6 +9410,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/attendance/templates/{templateId}/time-rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the preparation and follow-up rules of an attendance template */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    templateId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TimeRule"][];
+                    };
+                };
+            };
+        };
+        /** Replace the preparation and follow-up rules of an attendance template */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    templateId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["SetTimeRulesRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TimeRule"][];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/attendance/templates/{templateId}/user-types": {
         parameters: {
             query?: never;
@@ -72078,6 +72142,9 @@ export interface components {
         SetTemplateUserTypesRequest: {
             userTypes?: components["schemas"]["StationUserType"][];
         };
+        SetTimeRulesRequest: {
+            rules?: components["schemas"]["TimeRuleInput"][];
+        };
         SettingsRequest: {
             darkMode?: string;
             emailEnabled?: boolean;
@@ -73456,6 +73523,27 @@ export interface components {
             perImage: number;
             /** Format: int64 */
             total: number;
+        };
+        TimeRule: {
+            audience: components["schemas"]["RestrictionAudience"];
+            /** Format: int32 */
+            followUpMinutes: number;
+            /** Format: int32 */
+            id: number;
+            intact: boolean;
+            label: string | null;
+            /** Format: int32 */
+            position: number;
+            /** Format: int32 */
+            preparationMinutes: number;
+        };
+        TimeRuleInput: {
+            audience?: components["schemas"]["RestrictionAudience"];
+            /** Format: int32 */
+            followUpMinutes?: number;
+            label?: string | null;
+            /** Format: int32 */
+            preparationMinutes?: number;
         };
         TimestampCheck: {
             authority: components["schemas"]["CertificateFacts"] | null;
@@ -75593,6 +75681,7 @@ export type SetSessionFieldsRequest = components['schemas']['SetSessionFieldsReq
 export type SetShareRequest = components['schemas']['SetShareRequest'];
 export type SetTemplateGroupsRequest = components['schemas']['SetTemplateGroupsRequest'];
 export type SetTemplateUserTypesRequest = components['schemas']['SetTemplateUserTypesRequest'];
+export type SetTimeRulesRequest = components['schemas']['SetTimeRulesRequest'];
 export type SettingsRequest = components['schemas']['SettingsRequest'];
 export type SettingsResponse = components['schemas']['SettingsResponse'];
 export type SetupStatus = components['schemas']['SetupStatus'];
@@ -75777,6 +75866,8 @@ export type TicketSummary = components['schemas']['TicketSummary'];
 export type TidyResult = components['schemas']['TidyResult'];
 export type TierRequest = components['schemas']['TierRequest'];
 export type TierResponse = components['schemas']['TierResponse'];
+export type TimeRule = components['schemas']['TimeRule'];
+export type TimeRuleInput = components['schemas']['TimeRuleInput'];
 export type TimestampCheck = components['schemas']['TimestampCheck'];
 export type TimestampRequest = components['schemas']['TimestampRequest'];
 export type TimestampResponse = components['schemas']['TimestampResponse'];

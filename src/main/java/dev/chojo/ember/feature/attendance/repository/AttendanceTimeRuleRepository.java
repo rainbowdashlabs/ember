@@ -142,18 +142,49 @@ public class AttendanceTimeRuleRepository {
         Map<Integer, List<TimeRule>> byOwner = new HashMap<>();
         for (OwnedRule row : rows) {
             List<Restriction> restrictions = restrictionsByRule.getOrDefault(row.id(), List.of());
-            var set = new RestrictionSet(restrictions, row.mode());
+            boolean intact = namedKinds(restrictions) >= row.namedKinds();
+            var audience = intact
+                    ? RestrictionAudience.of(new RestrictionSet(restrictions, row.mode()))
+                    : RestrictionAudience.empty();
             var rule = new TimeRule(
                     row.id(),
                     row.position(),
                     row.label(),
                     row.preparationMinutes(),
                     row.followUpMinutes(),
-                    RestrictionAudience.of(set),
-                    namedKinds(restrictions) >= row.namedKinds());
+                    audience,
+                    intact);
             byOwner.computeIfAbsent(row.ownerId(), id -> new ArrayList<>()).add(rule);
         }
         return byOwner;
+    }
+
+    /**
+     * Whether every group, tag and member a selection names exists and belongs to the station.
+     *
+     * @param stationId the station the rules are written for
+     * @param selection whom a rule names
+     * @return false where any of them is unknown or another station's
+     */
+    public boolean namesOnlyOwn(int stationId, RestrictionSelection selection) {
+        return query("""
+                SELECT (SELECT count(*) FROM member_group WHERE station_id = :station_id AND id = ANY(:group_ids))
+                           = cardinality(:group_ids)
+                   AND (SELECT count(*) FROM user_tag WHERE station_id = :station_id AND id = ANY(:tag_ids))
+                           = cardinality(:tag_ids)
+                   AND (SELECT count(*) FROM station_member WHERE station_id = :station_id AND id = ANY(:member_ids))
+                           = cardinality(:member_ids) AS own;""")
+                .single(call().bind("station_id", stationId)
+                        .bind("group_ids", distinct(selection.groupIds()), PostgreSqlTypes.INTEGER)
+                        .bind("tag_ids", distinct(selection.tagIds()), PostgreSqlTypes.INTEGER)
+                        .bind("member_ids", distinct(selection.memberIds()), PostgreSqlTypes.INTEGER))
+                .map(row -> row.getBoolean("own"))
+                .first()
+                .orElse(false);
+    }
+
+    private static List<Integer> distinct(List<Integer> ids) {
+        return ids.stream().distinct().toList();
     }
 
     private static int namedKinds(List<Restriction> restrictions) {

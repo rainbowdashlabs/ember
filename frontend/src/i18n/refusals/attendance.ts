@@ -88,4 +88,7 @@ export default {
     'AT-057': 'Eine gespeicherte Auswertung kann keinen leeren Eintrag nennen, es wurde nichts gespeichert',
     'AT-058': 'Diese Anwesenheitsvorlage wurde gelöscht und kann nicht mehr gewählt werden, es wurde nichts gespeichert',
     'AT-059': 'Dieses Feld der Anwesenheitsvorlage wurde gelöscht und kann nicht mehr verwendet werden, es wurde nichts gespeichert',
+    'AT-060': 'Eine Regel für Vor- und Nachbereitung muss jemanden nennen, es wurde nichts gespeichert',
+    'AT-061': 'Vor- und Nachbereitung liegen jeweils zwischen 0 und 1440 Minuten, es wurde nichts gespeichert',
+    'AT-062': 'Eine Regel nennt eine Gruppe, einen Tag oder ein Mitglied, das nicht zu dieser Wache gehört, es wurde nichts gespeichert',
 }

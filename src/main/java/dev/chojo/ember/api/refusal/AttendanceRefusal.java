@@ -241,7 +241,29 @@ public enum AttendanceRefusal implements Refusal {
     ATTENDANCE_FIELD_ARCHIVED(
             59,
             HttpStatus.GONE,
-            "This field of the attendance template was deleted and can no longer be used, so nothing was saved");
+            "This field of the attendance template was deleted and can no longer be used, so nothing was saved"),
+
+    /**
+     * A preparation and follow-up rule that names nobody. Everywhere else an empty audience means
+     * everybody, here it would mean nobody, so the rule is refused rather than kept doing nothing.
+     */
+    ATTENDANCE_TIME_RULE_NAMES_NOBODY(
+            60, HttpStatus.BAD_REQUEST, "A preparation and follow-up rule has to name somebody, so nothing was saved"),
+
+    /** Preparation or follow-up below nothing or above a whole day. */
+    ATTENDANCE_TIME_RULE_MINUTES_OUT_OF_RANGE(
+            61,
+            HttpStatus.BAD_REQUEST,
+            "Preparation and follow-up are between 0 and 1440 minutes each, so nothing was saved"),
+
+    /**
+     * A preparation and follow-up rule that names a group, tag or member the station does not have:
+     * one deleted while the page was open, another station's, or an empty entry.
+     */
+    ATTENDANCE_TIME_RULE_NAMES_UNKNOWN(
+            62,
+            HttpStatus.BAD_REQUEST,
+            "A rule names a group, tag or member that is not part of this station, so nothing was saved");
 
     private final Definition definition;
 

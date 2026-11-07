@@ -22,7 +22,8 @@ import org.jspecify.annotations.Nullable;
  * @param label              what the rule is for, such as a role name, null where nobody named it
  * @param preparationMinutes minutes credited for preparing the appointment
  * @param followUpMinutes    minutes credited for what comes after it
- * @param audience           whom the rule names
+ * @param audience           whom the rule names; empty where it is not intact, so what is left of it
+ *     can never be written back as though somebody had chosen it
  * @param intact             false where a group or tag the rule named has been deleted since
  */
 public record TimeRule(

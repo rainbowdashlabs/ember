@@ -211,6 +211,7 @@ class AttendanceTimeRuleRepositoryTest extends RepositoryTestBase {
 
         TimeRule rule = rules.findTemplateRules(templateId).getFirst();
         assertFalse(rule.intact(), "it still names members, but no longer only those with the tag");
+        assertTrue(rule.audience().namesNobody(), "what is left of it is not handed out to be written back");
         assertFalse(rule.appliesTo(new RestrictionMember(member.id(), StationUserType.MEMBER, List.of(), List.of())));
         int sessionId = newSession(templateId);
         rules.copyTemplateRules(templateId, sessionId);

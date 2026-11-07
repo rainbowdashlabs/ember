@@ -56,6 +56,7 @@ import dev.chojo.ember.feature.accountlink.route.MemberLinkRoutes;
 import dev.chojo.ember.feature.accountlink.service.AccountLinkSweeper;
 import dev.chojo.ember.feature.attendance.handler.EventAnswerRecordedHandler;
 import dev.chojo.ember.feature.attendance.route.AttendanceRoutes;
+import dev.chojo.ember.feature.attendance.route.AttendanceTimeRuleRoutes;
 import dev.chojo.ember.feature.beacon.route.BeaconAdminRoutes;
 import dev.chojo.ember.feature.beacon.route.BeaconIntakeRoutes;
 import dev.chojo.ember.feature.beacon.service.BeaconMetricsService;
@@ -493,6 +494,7 @@ public class EmberModule extends AbstractModule {
         routesBinder.addBinding().to(MemberCardRoutes.class);
         routesBinder.addBinding().to(StationMemberInviteRoutes.class);
         routesBinder.addBinding().to(AttendanceRoutes.class);
+        routesBinder.addBinding().to(AttendanceTimeRuleRoutes.class);
         routesBinder.addBinding().to(InventoryRoutes.class);
         routesBinder.addBinding().to(ItemOwnerRoutes.class);
         routesBinder.addBinding().to(ProfileFieldRoutes.class);

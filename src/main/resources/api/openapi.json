@@ -6876,6 +6876,73 @@
         } ]
       }
     },
+    "/api/v1/attendance/templates/{templateId}/time-rules" : {
+      "get" : {
+        "summary" : "List the preparation and follow-up rules of an attendance template",
+        "tags" : [ "Attendance" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/TimeRule"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "templateId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ]
+      },
+      "put" : {
+        "summary" : "Replace the preparation and follow-up rules of an attendance template",
+        "tags" : [ "Attendance" ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/TimeRule"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters" : [ {
+          "name" : "templateId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SetTimeRulesRequest"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/attendance/templates/{templateId}/user-types" : {
       "put" : {
         "summary" : "Set the user types an attendance template expects besides its groups (replace all)",
@@ -76360,6 +76427,17 @@
           }
         }
       },
+      "SetTimeRulesRequest" : {
+        "type" : "object",
+        "properties" : {
+          "rules" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/TimeRuleInput"
+            }
+          }
+        }
+      },
       "SetUserTypePermissionsRequest" : {
         "type" : "object",
         "properties" : {
@@ -80139,6 +80217,56 @@
           }
         },
         "required" : [ "id", "name", "total", "kb", "board", "images", "pages", "perFile", "perImage" ]
+      },
+      "TimeRule" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "position" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "label" : {
+            "type" : [ "string", "null" ]
+          },
+          "preparationMinutes" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "followUpMinutes" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "audience" : {
+            "$ref" : "#/components/schemas/RestrictionAudience"
+          },
+          "intact" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "id", "position", "label", "preparationMinutes", "followUpMinutes", "audience", "intact" ]
+      },
+      "TimeRuleInput" : {
+        "type" : "object",
+        "properties" : {
+          "label" : {
+            "type" : [ "string", "null" ]
+          },
+          "preparationMinutes" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "followUpMinutes" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "audience" : {
+            "$ref" : "#/components/schemas/RestrictionAudience"
+          }
+        }
       },
       "TimestampCheck" : {
         "type" : "object",
