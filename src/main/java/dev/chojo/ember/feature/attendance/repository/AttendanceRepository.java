@@ -49,7 +49,7 @@ public class AttendanceRepository {
     private static final String ATTENDANCE_SESSION_COLUMNS =
             "id, template_id, start_time, end_time, created_at, event_id, title, unlocked_until, locked_at, counted_minutes";
     private static final String ATTENDANCE_ENTRY_COLUMNS =
-            "id, session_id, member_id, status, check_in, check_out, source";
+            "id, session_id, member_id, status, check_in, check_out, source, skip_extra_time";
     private static final String ATTENDANCE_REPORT_PRESET_COLUMNS =
             "id, station_id, name, user_types, group_ids, period, rounding";
     private static final String MEMBER_ABSENCE_COLUMNS =

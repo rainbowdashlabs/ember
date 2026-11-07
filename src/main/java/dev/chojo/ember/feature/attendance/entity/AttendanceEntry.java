@@ -22,6 +22,8 @@ import static de.chojo.sadu.queries.converter.StandardValueConverter.INSTANT_TIM
  * @param checkIn   optional check-in timestamp
  * @param checkOut  optional check-out timestamp
  * @param source    how this entry was created (EXPECTED from group or EXTRA manually added)
+ * @param skipExtraTime whether this person did not do the preparation and follow-up their sheet's time
+ *     rules would credit them with
  */
 public record AttendanceEntry(
         int id,
@@ -30,7 +32,8 @@ public record AttendanceEntry(
         AttendanceStatus status,
         @Nullable Instant checkIn,
         @Nullable Instant checkOut,
-        EntrySource source) {
+        EntrySource source,
+        boolean skipExtraTime) {
     /**
      * Creates a row mapping for database result set conversion.
      */
@@ -42,7 +45,8 @@ public record AttendanceEntry(
                 row.getEnum("status", AttendanceStatus.class),
                 row.get("check_in", INSTANT_TIMESTAMP),
                 row.get("check_out", INSTANT_TIMESTAMP),
-                row.getEnum("source", EntrySource.class));
+                row.getEnum("source", EntrySource.class),
+                row.getBoolean("skip_extra_time"));
     }
 
     /**

@@ -62743,6 +62743,7 @@ export interface components {
             memberId: number;
             /** Format: int32 */
             sessionId: number;
+            skipExtraTime: boolean;
             source: components["schemas"]["EntrySource"];
             status: components["schemas"]["AttendanceStatus"];
         };
@@ -71429,7 +71430,7 @@ export interface components {
             userTypes?: components["schemas"]["StationUserType"][] | null;
         };
         /** @enum {string} */
-        RestrictionType: "EVENT" | "EVENT_VIEW" | "EVENT_TEMPLATE" | "EVENT_TEMPLATE_VIEW" | "QUIZ_TEST" | "FORM" | "NEWS" | "KB_FOLDER" | "KB_FILE" | "DOCUMENT_TEMPLATE" | "DOCUMENT_TEMPLATE_STATION_USE";
+        RestrictionType: "EVENT" | "EVENT_VIEW" | "EVENT_TEMPLATE" | "EVENT_TEMPLATE_VIEW" | "QUIZ_TEST" | "FORM" | "NEWS" | "KB_FOLDER" | "KB_FILE" | "DOCUMENT_TEMPLATE" | "DOCUMENT_TEMPLATE_STATION_USE" | "ATTENDANCE_TEMPLATE_TIME_RULE" | "ATTENDANCE_SESSION_TIME_RULE";
         ResultFieldCondition: {
             /** Format: int32 */
             fieldId?: number;
@@ -76939,6 +76940,8 @@ export const RestrictionMode = {
 } as const;
 
 export const RestrictionType = {
+    ATTENDANCE_SESSION_TIME_RULE: "ATTENDANCE_SESSION_TIME_RULE",
+    ATTENDANCE_TEMPLATE_TIME_RULE: "ATTENDANCE_TEMPLATE_TIME_RULE",
     DOCUMENT_TEMPLATE: "DOCUMENT_TEMPLATE",
     DOCUMENT_TEMPLATE_STATION_USE: "DOCUMENT_TEMPLATE_STATION_USE",
     EVENT: "EVENT",
